@@ -26,7 +26,7 @@ afterEach(() => {
 describe('triggerDatabaseMaintenance', () => {
   it('throws when no API base URL is configured', async () => {
     const { triggerDatabaseMaintenance } = await import('./index.js');
-    await expect(triggerDatabaseMaintenance({})).rejects.toThrowError(/API_INTERNAL_URL .* is required/);
+    await expect(triggerDatabaseMaintenance({})).rejects.toThrowError(/API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required/);
   });
 
   it('POSTs to /internal/database-maintenance with the internal secret', async () => {

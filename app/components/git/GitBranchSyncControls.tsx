@@ -87,7 +87,7 @@ export function GitBranchSyncControls({
             </a>
             {isSshRemoteUrl(repoUrl) ? (
               <span
-                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary"
                 title={t('idePanels.git.sshAuthentication')}
               >
                 <span className="i-ph:key text-[11px]" aria-hidden />

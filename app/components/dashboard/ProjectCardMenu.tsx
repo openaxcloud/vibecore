@@ -15,6 +15,7 @@ import {
   getProjectCardMenuCopy,
   type ProjectCardMenuCopy,
 } from '~/lib/i18n/catalogs/project-card-menu';
+import { classNames } from '~/utils/classNames';
 
 /*
  * E16 — shared ⋯ menu for project cards (grid cards on /dashboard,
@@ -109,7 +110,7 @@ export function ProjectCardMenu({ project, onRename }: { project: ProjectCard; o
             aria-label={formatProjectCardMenuCopy(copy['projectCardMenu.actions.ariaLabel'], {
               name: project.name,
             })}
-            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+            className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             onClick={stopCardNavigation}
           >
             <MoreHorizontal className="h-4 w-4" aria-hidden />
@@ -345,7 +346,7 @@ export function ProjectRenameForm({
         }
       }}
       onBlur={commit}
-      className={className ?? 'h-[44px] text-sm font-semibold'}
+      className={classNames('h-[44px] text-sm font-semibold', className)}
     />
   );
 }

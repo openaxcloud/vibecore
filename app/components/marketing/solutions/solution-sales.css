@@ -31,7 +31,7 @@
   overflow: hidden;
   border-bottom: 1px solid var(--ecode-border);
   background:
-    radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--status-info-text) 12%, transparent), transparent 34%),
+    radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--ecode-accent) 12%, transparent), transparent 34%),
     linear-gradient(
       180deg,
       var(--ecode-background),
@@ -56,66 +56,49 @@
   display: grid;
   min-width: 0;
   align-items: center;
-  gap: 3rem;
-  padding-block: 4.5rem;
+  gap: 2.5rem;
+  padding-block: 3.5rem;
 }
 
 .sol-hero__copy {
   min-width: 0;
 }
 
-.sol-language-switch {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 1.25rem;
-  border: 1px solid var(--ecode-border-strong);
-  border-radius: 0.65rem;
-  padding: 0.2rem;
-  background: color-mix(in srgb, var(--ecode-surface) 88%, transparent);
-}
-
-.sol-language-switch a {
-  display: inline-flex;
-  min-width: 72px;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.45rem;
-  padding-inline: 0.85rem;
-  color: var(--ecode-text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.sol-language-switch a:hover {
-  color: var(--ecode-text);
-}
-
-.sol-language-switch a[aria-current='page'] {
-  background: var(--ecode-accent);
-  color: var(--ecode-accent-contrast);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--ecode-accent) 22%, transparent);
-}
-
+/*
+ * Accent de MARQUE, pas statut « info ». Ces surfaces utilisaient
+ * `--status-info-text` (#2563eb) : l'accroche et ses icônes ressortaient en
+ * bleu sur des pages dont tout le reste — CTA, logo — est orange #f26207.
+ * `--ecode-accent-text` est la variante prévue pour du TEXTE accentué : #c74e00
+ * en thème clair (~5,9:1 sur blanc, AA sur petit texte, là où l'orange brut
+ * plafonne vers 3:1) et #ff8a3d en sombre.
+ *
+ * Les maquettes de démo (`.sol-mini-*`, `.sol-icon-tile`) gardent volontairement
+ * le bleu : elles figurent l'application d'un client, pas l'interface E-Code.
+ */
 .sol-eyebrow {
   display: inline-flex;
   min-height: 2rem;
   align-items: center;
   gap: 0.55rem;
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.13em;
   line-height: 1.4;
   text-transform: uppercase;
+}
+
+/*
+ * `--ecode-accent-text` (#c74e00) est l'orange AA du design system sur du BLANC
+ * (~4,6:1). Le héros Solutions est sur #f7f8f9, ce qui le fait retomber à
+ * 4,37:1 — juste SOUS le plancher AA de 4,5 pour cette accroche de 14px gras.
+ * On l'assombrit donc de 10 % sur le thème clair uniquement (5,2:1), en le
+ * dérivant du token pour qu'il suive toute évolution de la charte. Le thème
+ * sombre garde #ff8a3d, qui n'a pas ce problème sur fond foncé.
+ */
+:root[data-theme='light']
+  :where(.sol-eyebrow, .sol-product-visual figcaption > span, .sol-app-showcase figcaption > span, .sol-icon-tile) {
+  color: color-mix(in srgb, var(--ecode-accent-text), #000 10%);
 }
 
 .sol-eyebrow svg {
@@ -135,12 +118,12 @@
   text-wrap: balance;
 }
 
-.sol-hero__subtitle {
+.sol-hero__subtitle.sol-hero__subtitle {
   max-width: 43rem;
   margin-top: 1.4rem !important;
   color: var(--ecode-text-secondary);
-  font-size: 1.0625rem;
-  line-height: 1.7;
+  font-size: 1.0625rem !important;
+  line-height: 1.65 !important;
 }
 
 .sol-actions {
@@ -227,7 +210,7 @@
   height: 1rem;
   flex: none;
   margin-top: 0.1rem;
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
 }
 
 .sol-product-visual {
@@ -263,7 +246,7 @@
 }
 
 .sol-product-visual figcaption > span {
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -328,6 +311,156 @@
 
 .sol-product-visual--hero {
   align-self: center;
+}
+
+/* Real, executable Gallery applications used throughout SOL-02 → SOL-09. */
+.sol-app-showcase {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--ecode-border-strong);
+  border-radius: 1rem;
+  background: var(--ecode-surface);
+  box-shadow: 0 26px 70px color-mix(in srgb, var(--ecode-shadow, #000) 20%, transparent);
+}
+
+.sol-app-showcase--hero {
+  align-self: center;
+  width: min(100%, 34rem);
+  justify-self: center;
+  box-shadow:
+    0 30px 78px color-mix(in srgb, var(--ecode-shadow, #000) 24%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--ecode-accent) 7%, transparent);
+}
+
+.sol-app-showcase__chrome {
+  display: flex;
+  min-width: 0;
+  min-height: 2.875rem;
+  align-items: center;
+  gap: 0.45rem;
+  border-bottom: 1px solid var(--ecode-border);
+  padding: 0.65rem 0.85rem;
+  background: color-mix(in srgb, var(--ecode-surface-secondary) 76%, var(--ecode-surface));
+}
+
+.sol-app-showcase__chrome > span {
+  width: 0.58rem;
+  height: 0.58rem;
+  flex: none;
+  border-radius: 999px;
+  background: var(--ecode-border-strong);
+}
+
+.sol-app-showcase__chrome > span:first-child {
+  background: var(--ecode-accent);
+}
+
+.sol-app-showcase__chrome strong {
+  min-width: 0;
+  margin-inline-start: 0.35rem;
+  overflow: hidden;
+  color: var(--ecode-text);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sol-app-showcase__chrome em {
+  display: inline-flex;
+  min-height: 1.75rem;
+  flex: none;
+  align-items: center;
+  margin-inline-start: auto;
+  border: 1px solid var(--status-success-border);
+  border-radius: 999px;
+  padding-inline: 0.65rem;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  font-size: 0.6875rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sol-app-showcase__media {
+  position: relative;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  background: #090c10;
+  text-decoration: none;
+}
+
+.sol-app-showcase__media img {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  transition: transform 220ms ease;
+}
+
+.sol-app-showcase__media:hover img {
+  transform: scale(1.012);
+}
+
+.sol-app-showcase__open-hint {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  padding-inline: 0.9rem;
+  background: rgb(5 8 12 / 86%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(10px);
+}
+
+.sol-app-showcase__open-hint svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.sol-app-showcase figcaption {
+  display: grid;
+  min-width: 0;
+  gap: 0.375rem;
+  border-top: 1px solid var(--ecode-border);
+  padding: 0.9rem 1rem 1rem;
+  background: var(--ecode-surface);
+}
+
+.sol-app-showcase figcaption > span {
+  color: var(--ecode-accent-text);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.sol-app-showcase figcaption > strong {
+  color: var(--ecode-text);
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.sol-app-showcase figcaption > p {
+  color: var(--ecode-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.55;
 }
 
 .sol-product-visual--feature {
@@ -468,10 +601,12 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--status-info-border);
+  /* Tuiles d'icônes du CONTENU (cartes problème/atouts) : accent de marque.
+     Mêmes opacités que les anciens tokens info (38 % bordure, 10 % fond). */
+  border: 1px solid color-mix(in srgb, var(--ecode-accent) 38%, transparent);
   border-radius: 0.65rem;
-  background: var(--status-info-bg);
-  color: var(--status-info-text);
+  background: color-mix(in srgb, var(--ecode-accent) 10%, transparent);
+  color: var(--ecode-accent-text);
 }
 
 .sol-icon-tile svg {
@@ -599,7 +734,7 @@
   position: relative;
   scroll-margin-top: 7rem;
   border-bottom: 1px solid var(--ecode-border);
-  padding-block: 4.5rem;
+  padding-block: 3.75rem;
 }
 
 .sol-section--problem,
@@ -612,7 +747,7 @@
 .sol-section--proof {
   isolation: isolate;
   background:
-    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--status-info-text) 9%, transparent), transparent 29rem),
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--ecode-accent) 9%, transparent), transparent 29rem),
     var(--ecode-background);
 }
 
@@ -648,7 +783,7 @@
 .sol-problem-grid {
   display: grid;
   gap: 1rem;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 
 .sol-problem-card,
@@ -665,7 +800,9 @@
   display: grid;
   align-content: start;
   gap: 1rem;
-  border-top-color: var(--status-info-border);
+
+  /* Même opacité que l'ancien `--status-info-border` (38 %), teinte de marque. */
+  border-top-color: color-mix(in srgb, var(--ecode-accent) 38%, transparent);
 }
 
 .sol-problem-card h3,
@@ -721,7 +858,7 @@
   display: grid;
   min-width: 0;
   gap: 1.25rem;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 
 .sol-prompt-card {
@@ -819,7 +956,7 @@
   display: grid;
   min-width: 0;
   gap: 0.75rem;
-  margin-top: 2.5rem !important;
+  margin-top: 2rem !important;
   padding: 0;
   list-style: none;
 }
@@ -1080,7 +1217,7 @@
 .sol-deliverables-grid {
   display: grid;
   gap: 1rem;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 
 .sol-deliverables-grid article {
@@ -1093,7 +1230,7 @@
 .sol-faq-layout {
   display: grid;
   min-width: 0;
-  gap: 2.5rem;
+  gap: 2rem;
 }
 
 .sol-features-intro {
@@ -1159,12 +1296,12 @@
 .sol-use-case-grid {
   display: grid;
   gap: 1rem;
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 
 .sol-use-case-grid article {
   display: grid;
-  min-height: 13rem;
+  min-height: 0;
   align-content: start;
   gap: 0.85rem;
 }
@@ -1251,7 +1388,7 @@
   display: grid;
   align-items: center;
   gap: 2rem;
-  padding-block: 4.5rem;
+  padding-block: 3.75rem;
 }
 
 .sol-final-cta__layout > div:first-child {
@@ -1325,14 +1462,32 @@
 }
 
 @media (min-width: 768px) {
-  .sol-title.sol-title {
-    font-size: 32px !important;
+  .sol-hero__layout {
+    gap: 2rem;
+    padding-block: 3.25rem;
   }
 
-  .sol-hero__layout,
+  .sol-hero__copy {
+    width: min(100%, 52rem);
+    justify-self: center;
+  }
+
+  .sol-title.sol-title {
+    max-width: none;
+    font-size: clamp(2rem, 1.45rem + 1.15vw, 2.25rem) !important;
+  }
+
   .sol-section,
   .sol-final-cta__layout {
-    padding-block: 5.5rem;
+    padding-block: 4.25rem;
+  }
+
+  .sol-hero__subtitle.sol-hero__subtitle {
+    max-width: 52rem;
+  }
+
+  .sol-microcopy {
+    max-width: 50rem;
   }
 
   .sol-deliverables-grid {
@@ -1340,11 +1495,7 @@
   }
 }
 
-@media (min-width: 960px) {
-  .sol-hero__layout {
-    grid-template-columns: minmax(0, 1.03fr) minmax(28rem, 0.97fr);
-  }
-
+@media (min-width: 1024px) {
   .sol-prompt-layout {
     grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1.28fr);
   }
@@ -1378,10 +1529,6 @@
     top: 8rem;
   }
 
-  .sol-use-case-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
   .sol-faq-layout {
     grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.28fr);
     gap: 4.5rem;
@@ -1397,6 +1544,43 @@
   }
 }
 
+@media (min-width: 1120px) {
+  .sol-hero__layout {
+    grid-template-columns: minmax(0, 1.03fr) minmax(28rem, 0.97fr);
+    gap: clamp(2.5rem, 3vw, 3rem);
+    padding-block: 5rem;
+  }
+
+  .sol-app-showcase--hero {
+    width: auto;
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  .sol-hero__copy {
+    width: auto;
+    justify-self: stretch;
+  }
+
+  .sol-title.sol-title {
+    max-width: 23ch;
+    font-size: clamp(41px, 35px + 0.55vw, 44px) !important;
+  }
+
+  .sol-hero__subtitle.sol-hero__subtitle {
+    max-width: 39rem;
+    font-size: 1.125rem !important;
+  }
+
+  .sol-microcopy {
+    max-width: 40rem;
+  }
+
+  .sol-use-case-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 479px) {
   .sol-actions {
     align-items: stretch;
@@ -1409,6 +1593,12 @@
 
   .sol-product-visual__full-size {
     width: 100%;
+  }
+
+  .sol-app-showcase__chrome em {
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .sol-demo-window__prompt {
@@ -1696,8 +1886,8 @@
 
 .sol-proof-link__layout {
   display: grid;
-  gap: 2rem;
-  padding-block: 3.25rem;
+  gap: 2.25rem;
+  padding-block: 3rem;
 }
 
 .sol-proof-link__intro {
@@ -1705,6 +1895,7 @@
   min-width: 0;
   align-items: center;
   gap: 1.5rem;
+  max-width: 49rem;
 }
 
 .sol-proof-link__layout h2 {
@@ -1726,7 +1917,12 @@
 .sol-proof-link__gallery {
   display: grid;
   min-width: 0;
-  gap: 1rem;
+  gap: 1.25rem;
+}
+
+.sol-proof-link__gallery > .sol-app-showcase {
+  width: min(100%, 34rem);
+  justify-self: center;
 }
 
 .sol-product-visual--ide-reference {
@@ -1750,13 +1946,14 @@
   }
 }
 
-@media (min-width: 900px) {
-  .sol-proof-link__intro {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
+@media (min-width: 1024px) {
   .sol-proof-link__gallery {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     align-items: start;
+  }
+
+  .sol-proof-link__gallery > .sol-app-showcase {
+    width: 100%;
+    max-width: 36rem;
   }
 }

@@ -230,7 +230,7 @@ export default function UsagePage() {
           />
         )
       ) : breakdown && breakdown.categories.length ? (
-        <section className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-5">
+        <section className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{t('usage.breakdown.title')}</h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -341,8 +341,16 @@ export default function UsagePage() {
             ]}
           />
           <div className="mt-6 overflow-x-auto rounded-lg border border-bolt-elements-borderColor">
-            <div className="min-w-[420px]">
-              <div className="grid grid-cols-[1fr_120px_120px] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
+            {/*
+             * Le plancher de 420px ne s'applique qu'à partir de `sm`. En dessous
+             * il forçait un défilement horizontal dans un écran de 390px, et le
+             * message d'alerte de quota comme son bouton « Augmenter les limites »
+             * sortaient du cadre visible : on ne voyait plus QUE la partie gauche
+             * du tableau. Les deux colonnes de chiffres se resserrent au lieu de
+             * pousser le contenu hors de l'écran.
+             */}
+            <div className="min-w-0 sm:min-w-[420px]">
+              <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary sm:grid-cols-[1fr_120px_120px]">
                 <span>{t('usage.table.quota')}</span>
                 <span className="text-right">{t('usage.table.used')}</span>
                 <span className="text-right">{t('usage.table.limit')}</span>
@@ -360,11 +368,11 @@ export default function UsagePage() {
                     key={quota}
                     className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm last:border-b-0"
                   >
-                    <div className="grid grid-cols-[1fr_120px_120px]">
+                    <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] sm:grid-cols-[1fr_120px_120px]">
                       <span className="min-w-0 break-words">
                         {quotaLabel}
                         {override ? (
-                          <span className="ml-2 inline-flex rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] uppercase text-bolt-elements-textTertiary">
+                          <span className="ml-2 inline-flex rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] uppercase text-bolt-elements-textTertiary">
                             {t('usage.table.customLimit')}
                           </span>
                         ) : null}
@@ -409,7 +417,7 @@ export default function UsagePage() {
                         {tone === 'error' ? (
                           <Link
                             to="/upgrade"
-                            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                           >
                             {t('usage.table.increaseLimits')}
                           </Link>
@@ -423,8 +431,8 @@ export default function UsagePage() {
           </div>
 
           {overrides.length > 0 ? (
-            <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">{t('usage.overrides.title')}</h3>
+            <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+              <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{t('usage.overrides.title')}</h2>
               <p className="mb-3 text-xs text-bolt-elements-textSecondary">{t('usage.overrides.description')}</p>
               <ul className="flex flex-col gap-2">
                 {overrides.map((override) => (
@@ -464,8 +472,8 @@ export default function UsagePage() {
           />
         )
       ) : memberLimits && memberLimits.members.length ? (
-        <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-          <h3 className="text-sm font-medium text-bolt-elements-textPrimary">{t('usage.members.title')}</h3>
+        <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{t('usage.members.title')}</h2>
           <p className="mb-3 text-xs text-bolt-elements-textSecondary">{t('usage.members.description')}</p>
           {actionSuccess ? (
             <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">

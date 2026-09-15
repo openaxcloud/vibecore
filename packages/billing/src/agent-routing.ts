@@ -19,8 +19,8 @@
  * save time.
  *
  * Cost-of-revenue sources (sourceDate 2026-07-16):
- * - Anthropic (Claude API reference, cache 2026-06-24): fable-5 $10/$50,
- *   opus-4-8 $5/$25, haiku-4-5 $1/$5 per 1M in/out.
+ * - Anthropic (Claude API reference, re-checked 2026-08-20): opus-5 $5/$25,
+ *   fable-5 $10/$50, opus-4-8 $5/$25, haiku-4-5 $1/$5 per 1M in/out.
  * - OpenAI (GPT-5.6 family GA 2026-07-09): gpt-5.6-sol $5/$30 per 1M.
  */
 import { agentRoutingLabel, agentRoutingValidationMessage, type AgentRoutingLocale } from './agent-routing-i18n.js';
@@ -101,16 +101,32 @@ const ALL_PLANS = ['free', 'starter', 'core', 'pro', 'team', 'enterprise'];
 const PAID_PLANS = ['core', 'pro', 'team', 'enterprise'];
 
 /**
- * Version 1 — Avi's target config (2026-07-16): Economy = Claude Opus 4.8 ×1
- * (default), High effort = Fable ×2 (hard tasks only, Economy+Power, never
- * Lite), Turbo = OpenAI 5.6 ×2 (Power only, org-gated). Base user price =
- * Economy cost × 1.3 (the platform's standing 30% AI margin), so ×1/×2
- * multipliers keep every line's margin positive — see lineMargins().
+ * Version 3 — Claude Opus 5 becomes the platform's principal generation model
+ * (2026-08-20). Economy (the DEFAULT mode, every plan), Power and High effort
+ * all route to `claude-opus-5`; only Lite (Haiku 4.5) and Turbo (OpenAI) differ.
+ * Base user price = Economy cost × 1.3 (the platform's standing 30% AI margin),
+ * so ×1/×2 multipliers keep every line's margin positive — see lineMargins().
+ *
+ * Margins IMPROVE versus v2: Power / High effort keep their ×2 multiplier while
+ * their cost of revenue halves ($10/$50 on Fable 5 → $5/$25 on Opus 5).
+ *
+ * ⚠️ Product note for the next card revision: Power and High effort now bill ×2
+ * for the SAME model Economy bills ×1. The tier ladder no longer differentiates
+ * by model — Opus 5's `effort` ladder (high → xhigh) is the natural
+ * differentiator, but this card has no effort field. Either re-point Power at
+ * `claude-fable-5` (still the higher-capability tier) or add an effort column;
+ * both are config decisions, not code.
+ *
+ * NOTE: this built-in is the SEED for a fresh install and the read fallback.
+ * `seedAgentRoutingCard` is one-shot (it returns early when any card row
+ * exists), so on an installation that already has a card — production does —
+ * shipping this file does NOT change routing. A new version must be PUBLISHED
+ * as a card row. That is by design: a model change is config, never a deploy.
  */
 export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
-  version: 1,
-  effectiveFrom: '2026-07-16T00:00:00.000Z',
-  sourceDate: '2026-07-16',
+  version: 3,
+  effectiveFrom: '2026-08-20T00:00:00.000Z',
+  sourceDate: '2026-08-20',
   currency: 'usd',
   baseUserInCentsPerM: 650,
   baseUserOutCentsPerM: 3250,
@@ -131,7 +147,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       key: 'economy',
       label: agentRoutingLabel('economy'),
       provider: 'anthropic',
-      model: 'claude-opus-4-8',
+      model: 'claude-opus-5',
       costInCentsPerM: 500,
       costOutCentsPerM: 2500,
       multiplier: 1,
@@ -143,9 +159,9 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       key: 'power',
       label: agentRoutingLabel('power'),
       provider: 'anthropic',
-      model: 'claude-fable-5',
-      costInCentsPerM: 1000,
-      costOutCentsPerM: 5000,
+      model: 'claude-opus-5',
+      costInCentsPerM: 500,
+      costOutCentsPerM: 2500,
       multiplier: 2,
       billedToUser: true,
       availablePlans: ALL_PLANS,
@@ -155,9 +171,9 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       key: 'high-effort',
       label: agentRoutingLabel('high-effort'),
       provider: 'anthropic',
-      model: 'claude-fable-5',
-      costInCentsPerM: 1000,
-      costOutCentsPerM: 5000,
+      model: 'claude-opus-5',
+      costInCentsPerM: 500,
+      costOutCentsPerM: 2500,
       multiplier: 2,
       billedToUser: true,
       availablePlans: PAID_PLANS,

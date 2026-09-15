@@ -22,7 +22,6 @@ export const GAME_BUILDER_COPY = {
       microcopy:
         'Start from the game you already have in mind. Source files, the running Preview, and publishing controls stay visible as the game evolves.',
     },
-    languageSwitch: { label: 'Choose the Game Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'TriviaClash',
@@ -266,7 +265,7 @@ export const GAME_BUILDER_COPY = {
     },
     hero: {
       eyebrow: 'Générateur de jeu pour prototypes web jouables',
-      title: 'Transformez une idée de jeu en un build web que vous jouez et inspectez',
+      title: 'Transformez une idée de jeu en une version navigateur que vous jouez et inspectez',
       subtitle:
         'Décrivez le jeu, les manches et la façon dont les joueurs s’affrontent. E-Code en fait une boucle modifiable, une interface de salon, des règles de score et un modèle d’état multijoueur. Jouez le parcours local dans l’aperçu, affinez-le avec l’Agent, puis connectez un service temps réel avant d’inviter des joueurs distants.',
       primaryCta: { label: 'Décrivez votre jeu', ariaLabel: 'Décrivez votre jeu avec E-Code' },
@@ -277,7 +276,6 @@ export const GAME_BUILDER_COPY = {
       microcopy:
         'Partez du jeu que vous avez déjà en tête. Les fichiers source, l’aperçu actif et les contrôles de publication restent visibles à mesure que le jeu évolue.',
     },
-    languageSwitch: { label: 'Choisir la langue de la page Générateur de jeu', english: 'English', french: 'Français' },
     demo: {
       badge: 'Données fictives',
       brand: 'TriviaClash',
@@ -286,7 +284,7 @@ export const GAME_BUILDER_COPY = {
       eyebrow: 'Manche 3 sur 5',
       title: 'Quelle capitale se trouve sur le détroit du Bosphore ?',
       intro:
-        'Un concept de quiz responsive qui présente un salon, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
+        'Un concept de quiz adaptatif qui présente un salon, des questions chronométrées et une interface de score partagé dans une boucle de manches claire.',
       primaryHeading: 'Classement en direct',
       primaryRows: [
         { label: 'Nadia', meta: '1 240 pts', status: 'En tête' },
@@ -300,10 +298,10 @@ export const GAME_BUILDER_COPY = {
         { label: 'Joueurs', value: '24' },
       ],
       asideCta: 'Valider la réponse',
-      disclaimer: 'Démonstration responsive intégrée · données de partie fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données de partie fictives · pas une trace de génération',
       caption: {
         title: 'Un écran de jeu qui se joue comme une vraie partie',
-        body: 'Cette démonstration intégrée présente un classement en direct, le panneau de la question en cours et un contrôle de réponse dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente un classement en direct, le panneau de la question en cours et un contrôle de réponse dans une mise en page adaptative.',
       },
       alt: 'Démonstration de jeu de quiz multijoueur avec un classement en direct et un panneau de question en cours.',
     },
@@ -344,7 +342,7 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Modèle d’état multijoueur',
-          body: 'Les états du salon, de la question, du chrono et du classement vivent dans un code modifiable avec des points de branchement explicites pour un backend temps réel. La synchronisation distante ne démarre qu’une fois ce service connecté.',
+          body: 'Les états du salon, de la question, du chrono et du classement vivent dans un code modifiable avec des points de branchement explicites pour un service applicatif temps réel. La synchronisation distante ne démarre qu’une fois ce service connecté.',
         },
         {
           title: 'Score et manches',
@@ -352,38 +350,39 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Aperçu et publication',
-          body: 'E-Code exécute le parcours local dans l’aperçu à toutes les tailles d’écran. Les frontends statiques pris en charge suivent la publication guidée ; les parties distantes exigent toujours le service temps réel que vous connectez.',
+          body: 'E-Code exécute le parcours local dans l’aperçu à toutes les tailles d’écran. Les interfaces statiques prises en charge suivent la publication guidée ; les parties distantes exigent toujours le service temps réel que vous connectez.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'De l’instruction en langage courant à l’aperçu actif',
       title: 'Découvrez la boucle IDE derrière une construction E-Code',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un jeu interactif comme celui-ci.',
+      body: 'La page Générateur d’applications montre un vrai espace de travail E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un jeu interactif comme celui-ci.',
       galleryLabel: 'Preuve IDE réelle en regard du concept de quiz',
       disclaimer:
-        'Périmètre de la preuve : les deux captures appartiennent au vrai run App Builder du salon et montrent le workflow E-Code. TriviaClash reste une vue de partie scénarisée et fictive ; ce n’est ni un run Game Builder enregistré, ni la preuve d’un serveur multijoueur connecté.',
+        'Périmètre de la preuve : les deux captures appartiennent au vrai run Générateur d’applications du salon et montrent le processus E-Code. TriviaClash reste une vue de partie scénarisée et fictive ; ce n’est ni un run Game Builder enregistré, ni la preuve d’un serveur multijoueur connecté.',
       openFullSizeLabel: 'Ouvrir la capture IDE du run salon en pleine résolution',
       preview: {
         title: 'Une application fonctionnelle dans la Webview E-Code',
         body: 'Le run salon capturé réunit le prompt utilisateur, le plan de l’Agent, les fichiers modifiables et l’application active sur un même écran — les mêmes surfaces qui servent à construire et tester un jeu web.',
-        alt: 'Vraie capture App Builder E-Code avec le prompt salon et les tâches de l’agent, un tableau de bord de réservation actif dans la Webview et la bibliothèque de fichiers source.',
+        alt: 'Vraie capture Générateur d’applications E-Code avec le prompt salon et les tâches de l’agent, un tableau de bord de réservation actif dans la Webview et la bibliothèque de fichiers source.',
       },
       iteration: {
-        title: 'L’Agent reçoit une demande précise de réparation runtime',
+        title: 'L’Agent reçoit une demande précise de réparation d’exécution',
         body: 'Ce vrai suivi formule une erreur en langage courant pour que l’Agent inspecte le code, préserve les routes fonctionnelles et vérifie à nouveau l’aperçu.',
-        alt: 'Vraie capture App Builder E-Code avec un prompt de réparation runtime React, la Webview de l’application salon et ses fichiers source modifiables dans l’IDE.',
+        alt: 'Vraie capture Générateur d’applications E-Code avec un prompt de réparation d’exécution React, la Webview de l’application salon et ses fichiers source modifiables dans l’IDE.',
       },
       cta: {
-        label: 'Ouvrir le workflow de construction enregistré',
-        ariaLabel: 'Ouvrir le workflow App Builder E-Code enregistré et utilisé comme preuve du Générateur de jeu',
+        label: 'Ouvrir le processus de construction enregistré',
+        ariaLabel:
+          'Ouvrir le processus Générateur d’applications E-Code enregistré et utilisé comme preuve du Générateur de jeu',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
       title: 'Une base de jeu jouable que vous inspectez et faites évoluer',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les builds statiques pris en charge ajoutent une mise en ligne guidée sans masquer le code.',
+        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les compilations statiques prises en charge ajoutent une mise en ligne guidée sans masquer le code.',
       items: [
         {
           title: 'Un code de jeu ouvert et exportable',
@@ -391,19 +390,19 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Un adaptateur d’état de partie, pas un serveur caché',
-          body: 'Les états du salon, de la question, du chrono et du classement apparaissent dans la source. Branchez ce modèle à un backend temps réel avant d’attendre une synchronisation entre joueurs distants.',
+          body: 'Les états du salon, de la question, du chrono et du classement apparaissent dans la source. Branchez ce modèle à un service applicatif temps réel avant d’attendre une synchronisation entre joueurs distants.',
         },
         {
           title: 'Un aperçu jouable à chaque format cible',
           body: 'Exécutez le parcours local des manches dans l’aperçu actif et testez les contrôles et le classement sur desktop, tablette et mobile.',
         },
         {
-          title: 'Publication guidée du frontend statique',
-          body: 'Les builds statiques de jeu pris en charge suivent le parcours de mise en ligne E-Code quand le test en jeu est prêt à être partagé.',
+          title: 'Publication guidée de l’interface statique',
+          body: 'Les compilations statiques de jeu prises en charge suivent le parcours de mise en ligne E-Code quand le test en jeu est prêt à être partagé.',
         },
         {
           title: 'Un lien de test en ligne avec une frontière serveur claire',
-          body: 'Un frontend statique pris en charge se publie sur une URL E-Code. Les jeux qui dépendent d’un serveur restent exportables afin de déployer ensemble le frontend et le runtime connecté.',
+          body: 'Une interface statique prise en charge se publie sur une URL E-Code. Les jeux qui dépendent d’un serveur restent exportables afin de déployer ensemble l’interface utilisateur et l’environnement d’exécution connecté.',
         },
         {
           title: 'Réglez la manche suivante avec l’Agent',
@@ -415,7 +414,7 @@ export const GAME_BUILDER_COPY = {
       eyebrow: 'Pensé pour de vrais jeux dans le navigateur',
       title: 'La boucle, les règles et les écrans du jeu web dans un code que vous maîtrisez',
       intro:
-        'Le parcours Générateur de jeu garde la logique, l’état prêt à connecter et la publication du frontend dans un seul flux inspectable.',
+        'Le parcours Générateur de jeu garde la logique, l’état prêt à connecter et la publication de l’interface utilisateur dans un seul flux inspectable.',
       items: [
         {
           title: 'Canvas et boucle de jeu',
@@ -434,12 +433,12 @@ export const GAME_BUILDER_COPY = {
           body: 'Jouez le parcours local dans l’aperçu à toutes les tailles d’écran avant de publier.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'Les écrans de jeu s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Adaptatif par défaut',
+          body: 'Les écrans de jeu s’adaptent du grand écran au téléphone sans compilation mobile séparée.',
         },
         {
           title: 'Gardez la source accessible',
-          body: 'Exportez le projet ou publiez les frontends statiques pris en charge tout en conservant des fichiers source modifiables.',
+          body: 'Exportez le projet ou publiez les interfaces statiques prises en charge tout en conservant des fichiers source modifiables.',
         },
       ],
     },
@@ -458,7 +457,7 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Jeux d’événement et campagne',
-          body: 'Frontends de jeux de marque avec salons et classements à brancher à l’infrastructure de l’événement.',
+          body: 'Interfaces de jeux de marque avec salons et classements à brancher à l’infrastructure de l’événement.',
         },
         {
           title: 'Expériences arcade casual',
@@ -477,15 +476,15 @@ export const GAME_BUILDER_COPY = {
         },
         {
           title: 'Le multijoueur est-il réel ?',
-          body: 'Pas dans la démonstration intégrée : elle utilise des données de partie fictives et aucun backend connecté. La source générée peut modéliser le salon et l’état de partie, mais les joueurs distants exigent un service temps réel que vous connectez, sécurisez et testez.',
+          body: 'Pas dans la démonstration intégrée : elle utilise des données de partie fictives et aucun service applicatif connecté. La source générée peut modéliser le salon et l’état de partie, mais les joueurs distants exigent un service temps réel que vous connectez, sécurisez et testez.',
         },
         {
           title: 'Puis-je tester le jeu avant de publier ?',
           body: 'Oui. E-Code exécute le parcours local des manches dans l’aperçu sur desktop, tablette et mobile. Le test d’une partie distante commence après le branchement du service réseau.',
         },
         {
-          title: 'Puis-je connecter un backend temps réel ou une base ?',
-          body: 'Le modèle d’état généré est du code que vous étendez et branchez à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté.',
+          title: 'Puis-je connecter un service applicatif temps réel ou une base ?',
+          body: 'Le modèle d’état généré est du code que vous étendez et branchez à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun service applicatif connecté.',
         },
         {
           title: 'Comment modifier le jeu ensuite ?',
@@ -509,7 +508,7 @@ export const GAME_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de jeu',
       buildLabel: 'Comment fonctionne le Générateur de jeu',
       outputListLabel: 'Résultats de la génération de jeu',
-      proofLinkLabel: 'Ouvrir la preuve du workflow Générateur de jeu',
+      proofLinkLabel: 'Ouvrir la preuve du processus Générateur de jeu',
       deliverablesLabel: 'Ce que livre le Générateur de jeu',
       featuresLabel: 'Capacités du Générateur de jeu',
       useCasesLabel: 'Cas d’usage du Générateur de jeu',

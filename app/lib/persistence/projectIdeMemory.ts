@@ -1,6 +1,8 @@
 import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
+import { pruneToBudget, writeWithinBudget } from './ide-memory-budget';
 import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
+import { createSingleFlight } from '~/lib/ide/single-flight';
 
 export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
 export type ProjectIdeWorkspacePanel =
@@ -97,6 +99,42 @@ export interface ProjectIdeMemory {
       aiFallback?: boolean;
       aiFallbackReason?: string;
     } | null;
+
+    /*
+     * LE PROMPT N'EST JAMAIS DÉTRUIT.
+     *
+     * `pendingPrompt` était mis à `null` par deux chemins distincts, sans trace.
+     * Mesuré en production le 2026-09-06 : sur 22 projets échoués — créés depuis
+     * un prompt, aucune application produite — impossible de distinguer « jamais
+     * écrit » de « effacé ». Sept portaient `null`, trois n'avaient pas la clé, et
+     * rien ne disait lequel des deux effaceurs était passé. Ce trou de diagnostic
+     * a coûté une enquête entière sur un projet réel.
+     *
+     * Le prompt est désormais DÉPLACÉ ici plutôt que supprimé :
+     *   - `reason` dit QUI a effacé, `clearedAt` QUAND ;
+     *   - et la récupération reste possible, ce dont a précisément besoin le
+     *     bouton « Générer l'application ».
+     *
+     * Aucun risque de fuite : ce champ vit dans `ProjectIdeState`, côté serveur,
+     * jamais dans un fichier de projet. C'est la raison même pour laquelle
+     * BUG-QA-PROMPT-IN-README a sorti le prompt du README, qui lui est exporté
+     * en ZIP et commité chez l'utilisateur.
+     */
+    consumedPrompt?: {
+      id: string;
+      prompt: string;
+      model?: string;
+      provider?: string;
+      createdAt: string;
+      aiFallback?: boolean;
+      aiFallbackReason?: string;
+
+      /** Horodatage de l'effacement. */
+      clearedAt: string;
+
+      /** Qui a effacé : génération aboutie, ou rejeu jugé inutile. */
+      reason: 'generated' | 'skipped-existing-app';
+    } | null;
     conversations?: Array<{
       id: string;
       title?: string;
@@ -181,6 +219,30 @@ type IdeStateEnvelope = {
 };
 
 const memoryCache = new Map<string, ProjectIdeMemory>();
+
+/**
+ * Entrées du cache qui font AUTORITÉ, c'est-à-dire venues d'une lecture serveur.
+ *
+ * Le défaut : `saveProjectIdeMemory` peuple `memoryCache`. Une sauvegarde
+ * précoce — la sélection de modèle, par exemple — y installe donc l'état
+ * PARTIEL du client, et toute lecture ultérieure est servie par cette entrée
+ * sans jamais interroger le serveur.
+ *
+ * Tracé le 2026-09-02, dans cet ordre :
+ *   SAUVEGARDE peuple le cache — aiConversationId=ABSENT
+ *   lecture servie par le CACHE — aiConversationId=ABSENT   (×5)
+ *   useChatHistory RESOLU en 2 ms
+ *
+ * Conséquence : `chatMetadata` était posé sans identifiant de conversation, donc
+ * l'hydratation n'avait rien à charger, donc transcription vide pour toute la
+ * durée de la page. Le réseau n'y était pour rien — ce qui explique enfin
+ * pourquoi allonger l'échéance de lecture ne changeait rien.
+ *
+ * C'est la famille de BUG-CREATE-011 : un état partiel local qui écrase un état
+ * plus riche. Ici dans le cache, pas sur le serveur — côté serveur la fusion est
+ * correcte, vérifié séparément.
+ */
+const entreesFaisantAutorite = new Set<string>();
 const pendingSaves = new Map<string, Promise<void>>();
 const pendingDirty = new Map<string, ProjectIdeMemory>();
 const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>();
@@ -193,6 +255,9 @@ const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void
  * clobbering the other tab's writes.
  */
 const versionByProject = new Map<string, number>();
+
+/** Chargements `ide-state` en vol, par clé de portée (projet ou workspace). */
+const ideMemoryInFlight = createSingleFlight<ProjectIdeMemory>();
 
 /*
  * Workspace isolation — when a `workspaceId` is supplied the IDE state is
@@ -433,11 +498,123 @@ function writeLocalProjectIdeMemory(scope: string, memory: ProjectIdeMemory) {
     return;
   }
 
+  /*
+   * Écriture SOUS BUDGET, et qui ne lève jamais.
+   *
+   * Un simple `try/catch` ne suffisait pas : il évitait la levée mais laissait le
+   * stockage saturé, donc TOUTES les écritures suivantes échouaient en silence et
+   * la mémoire IDE devenait inutile. `writeWithinBudget` fait de la place en
+   * évinçant les autres projets, puis retente une fois.
+   */
   try {
-    globalThis.localStorage.setItem(storageKeyForScope(scope), JSON.stringify(memory));
+    const key = storageKeyForScope(scope);
+
+    const outcome = writeWithinBudget(
+      globalThis.localStorage,
+      PROJECT_IDE_MEMORY_STORAGE_PREFIX,
+      key,
+      JSON.stringify(memory),
+    );
+
+    if (outcome !== 'written') {
+      console.warn('Project IDE memory write degraded', { scope, outcome });
+    }
   } catch (error) {
+    /*
+     * Filet de dernier recours. `writeWithinBudget` est écrit pour ne pas lever,
+     * mais cette écriture est appelée depuis la boucle de génération : une
+     * exception ici la casserait, et c'est précisément le défaut d'origine.
+     */
     console.error('Failed to write local project IDE memory', error);
   }
+}
+
+/*
+ * Purge déclenchée au CHARGEMENT DU MODULE, côté navigateur uniquement.
+ *
+ * Placée ici et pas dans un composant : ce module est importé par tout ce qui lit
+ * la mémoire IDE, donc aucun appelant ne peut l'oublier. `localStorageAvailable()`
+ * la rend inerte au rendu serveur, et le drapeau la rend idempotente — un second
+ * import ne repurge pas.
+ */
+if (
+  typeof globalThis !== 'undefined' &&
+  typeof (globalThis as { localStorage?: unknown }).localStorage !== 'undefined'
+) {
+  queueMicrotask(() => {
+    pruneProjectIdeMemoryOnBoot();
+  });
+}
+
+/**
+ * Purge au démarrage : sans elle, un navigateur DÉJÀ saturé reste cassé jusqu'à
+ * une purge manuelle. C'est exactement ce qu'il a fallu faire à la main en
+ * production, sur un stockage arrivé à 10 Mo pour 64 projets.
+ *
+ * Idempotente et silencieuse : sous le budget, elle ne fait rien.
+ */
+let purgeFaite = false;
+
+export function pruneProjectIdeMemoryOnBoot(): string[] {
+  if (purgeFaite) {
+    return [];
+  }
+
+  purgeFaite = true;
+
+  return prunerMaintenant();
+}
+
+function prunerMaintenant(): string[] {
+  if (!localStorageAvailable()) {
+    return [];
+  }
+
+  try {
+    const evicted = pruneToBudget(globalThis.localStorage, PROJECT_IDE_MEMORY_STORAGE_PREFIX);
+
+    if (evicted.length > 0) {
+      console.warn(`Project IDE memory: evicted ${evicted.length} stale project entr(y|ies) to stay within budget`);
+    }
+
+    return evicted;
+  } catch (error) {
+    console.error('Project IDE memory prune skipped', error);
+
+    return [];
+  }
+}
+
+/**
+ * Réunit les métadonnées de conversation des deux côtés.
+ *
+ * `newerMemory` ne fusionne pas : elle CHOISIT un objet entier selon
+ * `updatedAt`. Une sauvegarde locale, plus récente mais plus pauvre, remplaçait
+ * donc en bloc l'état serveur — et emportait `aiConversationId` avec elle.
+ * Mesuré : le client sauvegarde `{selectedModel, selectedProvider}`, la lecture
+ * suivante rend cet objet-là, `chatMetadata` est posé sans identifiant de
+ * conversation, et la transcription reste vide pour toute la durée de la page.
+ *
+ * On garde le choix de `newerMemory` — le plus récent fait foi — mais on
+ * complète ses métadonnées avec les clés que l'autre côté est seul à porter.
+ * Le gagnant garde ses valeurs ; il ne perd plus ce qu'il ignorait.
+ *
+ * Volontairement limité aux MÉTADONNÉES : fusionner les messages des deux côtés
+ * ressusciterait ceux qu'une suppression a retirés, ce que la mécanique de
+ * `clearMessages` existe précisément pour empêcher.
+ */
+function completerLesMetadonneesDeChat(
+  choisi: ProjectIdeMemory,
+  premier: ProjectIdeMemory | undefined,
+  second: ProjectIdeMemory | undefined,
+): ProjectIdeMemory {
+  const metadonnees = { ...premier?.chat?.metadata, ...second?.chat?.metadata, ...choisi.chat?.metadata };
+
+  if (Object.keys(metadonnees).length === 0) {
+    return choisi;
+  }
+
+  return { ...choisi, chat: { ...choisi.chat, metadata: metadonnees } };
 }
 
 function newerMemory(first: ProjectIdeMemory | undefined, second: ProjectIdeMemory | undefined) {
@@ -488,6 +665,7 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string, workspaceI
 
   pendingDebouncedSaves.clear();
   saveDebounceMs = DEFAULT_SAVE_DEBOUNCE_MS;
+  entreesFaisantAutorite.clear();
 }
 
 /**
@@ -689,17 +867,34 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
 
   const cached = memoryCache.get(id);
 
-  if (cached) {
+  if (cached && entreesFaisantAutorite.has(id)) {
     return cached;
   }
 
+  /*
+   * BUG-PANEL-PERF-004 — `memoryCache` n'est rempli qu'à l'ARRIVÉE de la
+   * réponse. Les neuf sites d'appel de cette fonction montent ensemble à
+   * l'ouverture de l'IDE : tous manquaient le cache avant que le premier ait
+   * répondu, et chacun émettait sa propre requête. Mesuré en production :
+   * 9 GET `ide-state` pour UNE ouverture à froid.
+   *
+   * La déduplication est posée APRÈS la lecture du cache : une entrée déjà
+   * faisant autorité continue de répondre sans réseau, c'est seulement le
+   * chargement qui est mutualisé.
+   */
+  return ideMemoryInFlight.run(id, () => chargerMemoireProjet(id, endpoint));
+}
+
+async function chargerMemoireProjet(id: string, endpoint: string): Promise<ProjectIdeMemory> {
   const localMemory = readLocalProjectIdeMemory(id);
 
   try {
     const response = await fetchProjectIdeMemory(endpoint);
 
     if (PROJECT_IDE_MEMORY_AUTH_STATUSES.has(response.status)) {
+      /* Le serveur a répondu — refuser est une réponse : on ne le redemandera pas. */
       const memory = localMemory ?? {};
+      entreesFaisantAutorite.add(id);
       memoryCache.set(id, memory);
       versionByProject.delete(id);
 
@@ -712,7 +907,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
 
     const payload = (await response.json()) as IdeStateEnvelope;
     const serverMemory = payload.ideState?.state ?? {};
-    const memory = newerMemory(serverMemory, localMemory);
+    const memory = completerLesMetadonneesDeChat(newerMemory(serverMemory, localMemory), serverMemory, localMemory);
 
     const version = parseEtagHeader(readResponseHeader(response, 'etag')) ?? payload.ideState?.version;
 
@@ -720,6 +915,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
       versionByProject.set(id, version);
     }
 
+    entreesFaisantAutorite.add(id);
     memoryCache.set(id, memory);
     writeLocalProjectIdeMemory(id, memory);
 
@@ -994,6 +1190,7 @@ async function persistWithRetry(scope: string): Promise<void> {
            * toggle isn't lost when we save a panel resize, for example).
            */
           const merged = mergeProjectIdeMemory(serverMemory, dirty);
+          entreesFaisantAutorite.add(scope);
           memoryCache.set(scope, merged);
           writeLocalProjectIdeMemory(scope, merged);
           notifyCrossTabListeners(scope, merged);

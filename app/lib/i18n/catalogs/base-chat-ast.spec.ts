@@ -132,14 +132,63 @@ describe('BaseChat strengthened-AST catalog', () => {
     expect(result.parseErrors).toEqual([]);
 
     /*
-     * Empreinte du bloc mobile Terminal/en-tête GELÉ, re-scellée après la seule
-     * modification autorisée : l'externalisation des libellés visibles vers le
-     * catalogue FR (étape 3/3). La structure, la mise en page et le comportement
-     * sont inchangés — seul le texte affiché passe par `t()`. Toute évolution du
-     * hash sans changement de libellé signale une dérive de mise en page à
-     * refuser.
+     * Empreinte du bloc GELÉ. Re-scellée à chaque évolution VÉRIFIÉE, jamais à
+     * l'aveugle : la procédure est de comparer la tranche
+     * [frozenStartOffset, frozenEndOffset) entre la branche et `origin/main`,
+     * et de n'accepter que des différences qu'on sait nommer.
+     *
+     * Re-scellements successifs :
+     *   2026-09-09 — les cinq recherches dans `ECODE_MOBILE_TAB_META` passent
+     *     par `outilCanonique(...)`, et le cas particulier
+     *     `mobilePanel === 'chat' ? 'agent' : mobilePanel` disparaît, absorbé
+     *     par la table d'alias. Différences VÉRIFIÉES ligne à ligne contre
+     *     `origin/main` : uniquement des clés de recherche normalisées, aucun
+     *     libellé ni balisage — l'apparence gelée sur la référence d'Avi est
+     *     intacte.
+     *
+     *   1. externalisation des libellés visibles vers le catalogue FR (3/3) ;
+     *   2. RPL-IDE-001.8 — en-tête Spotlight dans la palette de commandes ;
+     *   3. BUG-IDE-PANEL-RESOLUTION-001, à la demande explicite du propriétaire
+     *      (« une seule source de vérité pour l'en-tête et le contenu ») :
+     *      `mobileServiceHeaderTab` ne dérive plus de `activeMobileOpenTabId`
+     *      — un état d'onglet monté tardivement — mais du panneau de service
+     *      RÉSOLU, celui-là même que rend le contenu. C'est ce décalage qui
+     *      affichait l'en-tête « Agent » au-dessus du contenu « Déploiements »,
+     *      et qui envoyait `?panel=studio` sur Vue d'ensemble et
+     *      `?panel=debugger` sur Git à froid.
+     *
+     * Vérifié pour ce re-scellement : la tranche diffère de `origin/main`
+     * (f19699c3…) par 14 lignes, toutes dans ce seul hunk. `mobileHeaderTab` —
+     * l'en-tête de la coque mobile gelée — n'est PAS touché : mêmes valeurs,
+     * mêmes classes, même rendu.
+     *
+     *   4. BUG-TAB-CLOSE-CONTRAST-001, à la demande d'Avi (07/09 : « la croix
+     *      est blanche sur du clair, il faut la même couleur que le contenu ») :
+     *      dans le sélecteur d'onglets, la croix de fermeture enveloppe son
+     *      icône `i-ph:x` dans un span `bolt-mobile-tab-switcher-close-chip`.
+     *      L'icône est un masque peint par sa `background-color` ; la pastille
+     *      posée sur l'icône elle-même la peignait en couleur de fond.
+     *
+     * Vérifié pour ce re-scellement : la tranche diffère de `d484982` (dernier
+     * `main` vert) par UN hunk de 9 lignes, celui-là seul — l'enveloppe et son
+     * commentaire. En-tête mobile, socle, Terminal : identiques au caractère
+     * près. Mesuré par `difflib` sur la tranche [frozenStartOffset,
+     * frozenEndOffset) des deux versions.
+     *
+     * Toute évolution du hash hors de ces cas signale une dérive de mise en
+     * page à refuser.
      */
-    expect(frozenHash).toBe('ea1ba7dc96f9d7bff2cf1dc948d98b4860e263c247e7d208f34f7536f85d0929');
+    expect(frozenHash).toBe('9183f9a8db6184e7f5f4797a54f6d58ffe73bac4fa656e279d153d3351e209cd');
+
+    /*
+     * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
+     * décrite juste au-dessus, et non à l'aveugle : la tranche
+     * [frozenStartOffset, frozenEndOffset) de cette branche a été comparée à
+     * celle de `origin/main` (509abbb9…). Un SEUL hunk les sépare — l'en-tête
+     * Spotlight de RPL-IDE-001.8 et l'aria-label/data-mode qui le
+     * conditionnent. Le markup mobile Terminal/en-tête est identique à
+     * `origin/main` au caractère près.
+     */
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

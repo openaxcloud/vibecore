@@ -28,7 +28,7 @@ describe('AUTO_MODEL', () => {
 describe('resolveRouteTable', () => {
   it('returns the default table when no override is present', () => {
     const table = resolveRouteTable({});
-    expect(table.Anthropic).toEqual({ frontier: 'claude-sonnet-4-5-20250929', small: 'claude-haiku-4-5-20251001' });
+    expect(table.Anthropic).toEqual({ frontier: 'claude-opus-5', small: 'claude-haiku-4-5-20251001' });
     expect(table.OpenAI).toEqual({ frontier: 'gpt-4.1', small: 'gpt-4.1-mini' });
     expect(table.Google).toEqual({ frontier: 'gemini-2.5-pro', small: 'gemini-2.5-flash' });
   });

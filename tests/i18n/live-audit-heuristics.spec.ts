@@ -53,6 +53,20 @@ describe('French live-audit heuristics', () => {
     ]);
   });
 
+  /*
+   * `\b` se définit sur `[A-Za-z0-9_]` : une lettre accentuée n'est pas un
+   * caractère de mot, donc `\bbranch\b` acceptait « branché » et signalait des
+   * dérivés français parfaitement corrects comme des anglicismes.
+   */
+  it.each([
+    'Branchez ce modèle à un service applicatif temps réel.',
+    'Un service de support branché reste soumis aux conditions de son fournisseur.',
+    'Les connecteurs branchés apparaissent dans la source.',
+    'Le rôle est taggué dans le journal.',
+  ])('accepts the accented French derivative of an English term in %j', (text) => {
+    expect(findFrenchAuditResidue([], [entry(text)])).toEqual([]);
+  });
+
   it.each([
     'Notre team prépare la livraison.',
     'Notre Team prépare aussi la livraison.',

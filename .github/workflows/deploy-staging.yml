@@ -36,7 +36,7 @@ jobs:
       url: https://${{ vars.STAGING_APP_DOMAIN }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # On workflow_run, check out the exact commit that was built so the
           # resolved sha-<short> tag matches the published image.
@@ -64,11 +64,11 @@ jobs:
           IMAGE_TAG_INPUT: ${{ inputs.image_tag }}
           BUILT_SHA: ${{ github.event.workflow_run.head_sha }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9.14.4
           run_install: false
@@ -76,12 +76,43 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - uses: google-github-actions/auth@v2
+      - uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
-      - uses: google-github-actions/get-gke-credentials@v2
+      # RELEASE INTEGRITY: staging must never become a second production path.
+      #
+      # This workflow runs `helm upgrade --install vibecore --namespace vibecore` — the
+      # SAME release name and namespace as production — inside `GCP_PROJECT_ID`, which
+      # IS the production project (`vibecore-495216`). The only thing separating it from
+      # production is `vars.STAGING_APP_CLUSTER`, which is currently defined NOWHERE
+      # (not at repo level, not on the `staging` environment). It therefore fails today
+      # by accident, not by design: the moment someone sets that variable to the prod
+      # cluster, this becomes an ungated, tag-based deploy of the production release.
+      #
+      # deploy-main.yml is the only sanctioned production path, and it is gated. This
+      # check makes staging fail CLOSED and loudly instead.
+      - name: Refuse to target the production cluster
+        env:
+          TARGET_CLUSTER: ${{ vars.STAGING_APP_CLUSTER }}
+          PROD_CLUSTER: vibecore-prod-app
+        run: |
+          set -euo pipefail
+          if [ -z "${TARGET_CLUSTER}" ]; then
+            echo "::error::vars.STAGING_APP_CLUSTER is not set — refusing to run a helm upgrade against an unnamed cluster."
+            echo "Set it on the staging environment to the staging cluster name."
+            exit 1
+          fi
+          if [ "${TARGET_CLUSTER}" = "${PROD_CLUSTER}" ]; then
+            echo "::error::STAGING_APP_CLUSTER is '${TARGET_CLUSTER}', the PRODUCTION cluster."
+            echo "::error::This workflow deploys the 'vibecore' release into namespace 'vibecore' by mutable tag, ungated."
+            echo "::error::Production is deployed only by deploy-main.yml, behind the exact-SHA release gate."
+            exit 1
+          fi
+          echo "staging target cluster: ${TARGET_CLUSTER} (production is ${PROD_CLUSTER})"
+
+      - uses: google-github-actions/get-gke-credentials@64bc7249bbcf78056bb92f14d3cedc2da193946c # v2
         with:
           cluster_name: ${{ vars.STAGING_APP_CLUSTER }}
           location: ${{ vars.GCP_REGION }}

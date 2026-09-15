@@ -4,6 +4,7 @@ import { access, cp, mkdir, readdir, readFile, rm, stat } from 'node:fs/promises
 import { join, relative, resolve, sep } from 'node:path';
 import { z } from 'zod';
 import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
+import { accessConfigFromMetadata } from './deployment-access.js';
 import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
 import type { TransactionalLocale } from './transactional-i18n.js';
@@ -158,9 +159,33 @@ export function assertDeploymentProviderConfigured(
     return;
   }
 
+  /*
+   * BUG-DEPLOY-DEAD-001 — Avi, 08/09 : « le déploiement ne marche pour aucun
+   * fournisseur ». Il voyait « Le service du panneau est temporairement
+   * indisponible. Veuillez réessayer. », avec un bouton Réessayer.
+   *
+   * Rien n'était temporaire, et rien ne pouvait réussir en réessayant : le
+   * fournisseur n'a tout simplement pas ses identifiants. Deux masquages
+   * s'ajoutaient. Ici le premier : pour un statut >= 500, le gestionnaire
+   * d'erreurs de l'API remplace `error.message` par un texte générique, sauf
+   * si l'erreur porte un `publicMessage`. Le nom du fournisseur et la liste
+   * des variables manquantes étaient donc jetés avant même de sortir de l'API.
+   *
+   * On porte donc le message canonique — la MÊME phrase que la garde jumelle
+   * `deployProviderConfigError` rend en 400 hors production, pour que le
+   * produit dise la même chose des deux côtés. `localizeAppPublicMessage` la
+   * retraduit ensuite dans la langue de la requête.
+   *
+   * Ce sont des NOMS de variables, jamais des valeurs (règle 12) : c'est ce
+   * qu'il faut pour agir, et cela ne divulgue aucun secret.
+   */
   throw Object.assign(new Error(`Deployment provider "${provider}" is not configured for production use`), {
     statusCode: 503,
     code: 'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
+    publicMessage: appPublicEnglish('DEPLOY_PROVIDER_CONFIG_REQUIRED', {
+      provider: providerDisplayName[provider] ?? provider,
+      missing: missing.join(', '),
+    }),
     details: { provider, missingEnv: missing },
   });
 }
@@ -225,6 +250,39 @@ export function deployProviderConfigError(
       missing: missing.join(', '),
     }),
   };
+}
+
+/**
+ * BUG-DEPLOY-PROVIDERS-UI-001 — « les fournisseurs ne fonctionnent pas ».
+ *
+ * Ils ne pouvaient pas : six des sept demandent des identifiants d'hébergeur
+ * (crochet de build Vercel, jeton GitHub Pages…) et l'interface les proposait
+ * tous, indistinctement. Choisir l'un d'eux menait à un 503 — un mur, après
+ * avoir rempli tout l'assistant.
+ *
+ * Le serveur SAIT lesquels sont utilisables. Il le dit maintenant, pour que
+ * la liste ne promette que ce qu'elle peut tenir.
+ *
+ * On rend des NOMS de variables, jamais des valeurs (règle 12) : `missingEnv`
+ * suffit à dire quoi configurer et ne divulgue rien. Un fournisseur configuré
+ * ne rend PAS la liste de ses variables — inutile ici, et c'est autant de
+ * surface en moins.
+ */
+export interface DisponibiliteFournisseur {
+  readonly provider: (typeof deploymentProviders)[number];
+  readonly configured: boolean;
+  readonly missingEnv: readonly string[];
+}
+
+export function disponibiliteDesFournisseurs(
+  env: NodeJS.ProcessEnv = process.env,
+): readonly DisponibiliteFournisseur[] {
+  return deploymentProviders.map((provider) => {
+    const requises = providerEnvRequirement[provider] ?? [];
+    const manquantes = requises.filter((cle) => !env[cle]);
+
+    return { provider, configured: manquantes.length === 0, missingEnv: manquantes };
+  });
 }
 
 export function assertDeploymentRequestAllowed(
@@ -742,9 +800,16 @@ export function buildDeploymentUrl(project: ProjectRecord, deployment: Deploymen
      * domain is configured (local dev/tests); that URL keeps working either way
      * because the route redirects to the dedicated origin when one exists.
      */
+    /*
+     * P104: a password-protected deployment is served + gated on the API origin
+     * only (the dedicated origin can't carry the gate cookie / __access POST), so
+     * its public URL must be the API-origin one. Public static deploys keep the
+     * dedicated origin for the same-origin sandbox.
+     */
+    const gated = accessConfigFromMetadata(deployment.metadata).mode !== 'public';
     const dedicated = staticDeployDedicatedOrigin(deployment.id);
 
-    if (dedicated) {
+    if (dedicated && !gated) {
       return `${dedicated}/`;
     }
 
@@ -1560,8 +1625,11 @@ export async function restoreStaticSnapshotInto(
 
   if (await pathExists(indexHtmlPath)) {
     const original = await readFile(indexHtmlPath, 'utf8');
-    // The source index.html was rewritten for the OLD id's base path; re-point it
-    // to the new id's base so assets resolve under /static-deployments/<newId>/.
+
+    /*
+     * The source index.html was rewritten for the OLD id's base path; re-point it
+     * to the new id's base so assets resolve under /static-deployments/<newId>/.
+     */
     const restored = original.replaceAll(
       `/static-deployments/${fromDeploymentId}/`,
       `/static-deployments/${toDeploymentId}/`,
@@ -1622,8 +1690,15 @@ export function createDeploymentLogs(
   /*
    * Same lie for server deploys: readiness is logged by the pipeline when the
    * Deployment really answers, never at queue time.
+   *
+   * 2026-08-17: `static` had exactly the same problem and was still exempt. Its
+   * pipeline installs and builds inside the workspace pod AFTER queueing, so a
+   * deploy that then died on `npm install` had already announced
+   * "Déploiement ready: https://s-…/" in its own log — an address that serves
+   * nothing. Measured live on two consecutive failed deploys. A provider that
+   * still has work to do cannot report readiness up front.
    */
-  if (deployment.provider !== 'server') {
+  if (deployment.provider !== 'server' && deployment.provider !== 'static') {
     baseLogs.push(
       `Deployment ready: ${deployment.url ?? deployment.previewUrl ?? deployment.productionUrl ?? 'pending URL'}`,
     );
@@ -1647,7 +1722,8 @@ export function createDeploymentLogs(
   }));
 }
 
-/* ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
  * LAUNCH-BLOCKER (2026-08-01): a deployed static app rendered BLANK for
  * anonymous visitors.
  *

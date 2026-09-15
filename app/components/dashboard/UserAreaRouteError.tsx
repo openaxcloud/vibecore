@@ -96,10 +96,16 @@ export function UserAreaRouteErrorBoundary() {
   const descriptor = describeUserAreaRouteError(error, surface, translate);
   const signInTarget = `/login?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
 
+  /*
+   * `serverSync={false}` : cette coque s'affiche aussi HORS session
+   * (`signInRequired`), où `/api/user/preferences` répondrait 401 et ferait
+   * journaliser une erreur de console au navigateur.
+   */
   return (
     <AppShell
       title={surface.title}
       description={surface.description}
+      serverSync={false}
       actions={
         <LinkButton to={descriptor.signInRequired ? signInTarget : surface.backTo} variant="outline">
           {descriptor.signInRequired ? t('userArea.routeError.signIn') : surface.backLabel}

@@ -3,6 +3,7 @@ import type { AgentRoleId } from './agent-orchestration';
 import { ECODE_AGENT_ROLES } from './agent-orchestration';
 import { removeUnsupportedModelSettings } from './model-compat';
 import { resolveUsableProvider } from './provider-credentials';
+import { classifyProviderFailure, markProviderUnhealthy, resolveRuntimeProvider } from './provider-fallback';
 import { extractPropertiesFromMessage } from './utils';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { IProviderSetting } from '~/types/model';
@@ -123,6 +124,26 @@ export function parseAgentPlan(raw: string): AgentPlan | undefined {
  * Mirrors create-summary.ts for provider/model resolution so the planner runs on
  * the SAME model the user picked.
  */
+/**
+ * Consigne de langue ajoutée au prompt de planification.
+ *
+ * Le `title` de chaque tâche est rendu tel quel dans le panneau de plan, et il
+ * est ÉCRIT PAR LE MODÈLE — pas lu dans un catalogue. Sans cette consigne, il
+ * les rédigeait en anglais au milieu d'une interface française, y compris quand
+ * il avait compris que l'application à construire, elle, devait être en
+ * français (BUG-I18N-003).
+ *
+ * La langue visée est celle de L'INTERFACE, et elle seule : un francophone peut
+ * demander une application en anglais, son plan doit rester en français.
+ */
+export function buildPlanLanguageRule(language?: string): string {
+  if (language !== 'fr') {
+    return '';
+  }
+
+  return '- Write every task title in FRENCH — the interface is French. The language of the app being built does not change this.\n';
+}
+
 export async function createAgentPlan(props: {
   messages: Message[];
   env?: Env;
@@ -130,8 +151,17 @@ export async function createAgentPlan(props: {
   providerSettings?: Record<string, IProviderSetting>;
   abortSignal?: AbortSignal;
   maxRoles?: number;
+
+  /**
+   * Langue de l'interface, telle que résolue par la route. Les intitulés de
+   * tâches affichés dans le plan sont ÉCRITS PAR LE MODÈLE, pas lus dans un
+   * catalogue : sans consigne, il les rédige en anglais au milieu d'une
+   * interface française — y compris quand il a compris que l'application à
+   * construire, elle, doit être en français.
+   */
+  language?: string;
 }): Promise<AgentPlan | undefined> {
-  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, maxRoles } = props;
+  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, maxRoles, language } = props;
 
   const lastUser = [...messages].reverse().find((message) => message.role === 'user');
 
@@ -146,6 +176,9 @@ export async function createAgentPlan(props: {
   currentModel = model;
   currentProvider = provider;
 
+  /* Retenu hors du `try` pour que le chemin d'erreur sache QUEL fournisseur a refusé. */
+  let fournisseurDuTour = currentProvider;
+
   try {
     const resolved = resolveUsableProvider({
       requestedProvider: currentProvider,
@@ -154,8 +187,34 @@ export async function createAgentPlan(props: {
       serverEnv: serverEnv as Record<string, string> | undefined,
     });
 
-    const resolvedProvider = resolved.provider;
-    currentModel = resolved.model;
+    /*
+     * Le planificateur est un chemin d'appel SÉPARÉ de `streamText`, et il
+     * résolvait son fournisseur pour lui seul. Mesuré en production le 19/08,
+     * juste après la certification du repli : la génération basculait bien sur
+     * OpenAI, mais le plan, lui, mourait encore —
+     *
+     *     create-agent-plan  Agent planner failed: Your credit balance is too low…
+     *
+     * L'échec n'est pas fatal (l'agent retombe sur le rôle complet), mais il
+     * coûte un appel pour rien et prive l'utilisateur du plan alors que DEUX
+     * fournisseurs répondent. Le repli s'applique donc ici aussi.
+     */
+    const runtimeChoice = resolveRuntimeProvider({
+      provider: resolved.provider,
+      model: resolved.model,
+      apiKeys,
+      serverEnv: serverEnv as Record<string, string> | undefined,
+    });
+
+    const resolvedProvider = runtimeChoice.provider;
+    currentModel = runtimeChoice.model;
+    fournisseurDuTour = resolvedProvider.name;
+
+    if (runtimeChoice.switchedFrom) {
+      logger.warn(
+        `Plan redirigé : [${runtimeChoice.switchedFrom.provider}] écarté (${runtimeChoice.switchedFrom.reason}) → [${resolvedProvider.name}] / ${currentModel}.`,
+      );
+    }
 
     const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(resolvedProvider);
 
@@ -178,7 +237,17 @@ export async function createAgentPlan(props: {
       modelDetails = modelsList.find((m) => m.name === currentModel) ?? modelsList[0];
     }
 
+    /*
+     * `modelsList[0]` reste `undefined` pour le vérificateur (accès indexé non
+     * garanti). Sans cette garde, un registre vide partirait construire une
+     * instance de modèle sur `undefined.name`.
+     */
+    if (!modelDetails) {
+      return undefined;
+    }
+
     const roleCatalog = ECODE_AGENT_ROLES.map((role) => `- ${role.id}: ${role.responsibility}`).join('\n');
+
     const roleCap = Math.max(1, Math.min(maxRoles ?? ECODE_AGENT_ROLES.length, ECODE_AGENT_ROLES.length));
 
     const resp = await generateText({
@@ -189,9 +258,10 @@ ${roleCatalog}
 
 Rules:
 - Only include roles that are genuinely needed for THIS request (e.g. a static landing page needs no backend/devops).
+- Prefer the SIMPLEST architecture that works: a client-only tool (local counter, calculator, timer, single-user todo — anything whose state fits in the browser with no shared or durable server data) needs NO backend lane and NO HTTP API; do not add one.
 - Use at most ${roleCap} distinct roles.
 - Order tasks in execution order (architecture first, QA last).
-- Output STRICT JSON only, no prose, no code fences:
+${buildPlanLanguageRule(language)}- Output STRICT JSON only, no prose, no code fences:
 {"tasks":[{"title":"<short imperative task>","role":"<roleId>"}]}`,
       prompt: `Build request:\n${getTextContent(lastUser).slice(0, 4000)}\n\nReturn the JSON plan.`,
       model: removeUnsupportedModelSettings(
@@ -229,7 +299,20 @@ Rules:
 
     return plan;
   } catch (error) {
+    /*
+     * Signale la panne au repli. Le planificateur tourne AVANT la génération :
+     * s'il essuie un refus de crédit, c'est lui qui l'apprend en premier, et
+     * marquer le fournisseur ici évite que la génération qui suit immédiatement
+     * ne retape le même mur.
+     */
+    const kind = classifyProviderFailure(error);
+
+    if (kind) {
+      markProviderUnhealthy(fournisseurDuTour, kind, String(error).slice(0, 300));
+    }
+
     logger.warn(`Agent planner failed: ${error instanceof Error ? error.message : error}`);
+
     return undefined;
   }
 }

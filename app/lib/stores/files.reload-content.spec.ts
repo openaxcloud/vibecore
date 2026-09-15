@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it, vi } from 'vitest';
-import { FilesStore } from './files';
+import { FilesStore, shouldPreserveHydratedTree } from './files';
 
 /*
  * Reproduces the production "blank editor" bug: in remote mode listFiles() returns
@@ -60,5 +60,66 @@ describe('FilesStore.reloadFromRuntime — content preservation (remote tree-onl
     await store.reloadFromRuntime('.');
 
     expect(store.files.get()['/home/project/src/new.ts']).toEqual({ type: 'file', content: '', isBinary: false });
+  });
+});
+
+/*
+ * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — a listing taken while the pod is
+ * waking/being reprovisioned can be PARTIAL (agent answers before the reseed).
+ * Observed live: the IDE tree collapsed from 12 files to 1. A partial listing
+ * must never replace the hydrated tree.
+ */
+describe('FilesStore.reloadFromRuntime — partial-listing protection (waking pod)', () => {
+  const twelveFiles = Array.from({ length: 12 }, (_, index) => ({
+    path: `src/file-${index}.ts`,
+    content: `export const value${index} = ${index};`,
+    isBinary: false,
+  }));
+
+  it('keeps the hydrated 12-file tree when a waking pod lists only 1 file (the live repro)', async () => {
+    const store = new FilesStore(makeRuntime([{ type: 'file', name: 'index.html', path: 'index.html' }]));
+
+    store.replaceWithProjectStorageFiles(twelveFiles);
+    expect(store.filesCount).toBe(12);
+
+    const treeBefore = store.files.get();
+
+    await store.reloadFromRuntime('.');
+
+    expect(store.filesCount).toBe(12);
+    expect(store.files.get()).toEqual(treeBefore);
+  });
+
+  it('adopts the runtime listing again once the pod serves the full tree (self-healing)', async () => {
+    const fullNodes = twelveFiles.map((file) => ({
+      type: 'file' as const,
+      name: file.path.split('/').pop() ?? file.path,
+      path: file.path,
+    }));
+
+    const store = new FilesStore(makeRuntime(fullNodes));
+
+    store.replaceWithProjectStorageFiles(twelveFiles);
+    await store.reloadFromRuntime('.');
+
+    expect(store.filesCount).toBe(12);
+    expect(store.files.get()['/home/project/src/file-3.ts']).toMatchObject({ content: 'export const value3 = 3;' });
+  });
+
+  it('shouldPreserveHydratedTree: preserves only a drastic collapse of a hydrated tree', () => {
+    // The live repro: 12 -> 1.
+    expect(shouldPreserveHydratedTree(12, 1)).toBe(true);
+    expect(shouldPreserveHydratedTree(12, 0)).toBe(true);
+    expect(shouldPreserveHydratedTree(12, 3)).toBe(true);
+
+    // Genuine bulk change / normal reload: adopt.
+    expect(shouldPreserveHydratedTree(12, 12)).toBe(false);
+    expect(shouldPreserveHydratedTree(12, 8)).toBe(false);
+    expect(shouldPreserveHydratedTree(12, 20)).toBe(false);
+
+    // Small trees carry no signal: always adopt.
+    expect(shouldPreserveHydratedTree(3, 1)).toBe(false);
+    expect(shouldPreserveHydratedTree(0, 1)).toBe(false);
+    expect(shouldPreserveHydratedTree(1, 0)).toBe(false);
   });
 });

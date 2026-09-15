@@ -1,0 +1,10 @@
+                  List of relations
+ Schema |           Name           | Type  |  Owner   
+--------+--------------------------+-------+----------
+ public | _ecode_schema_migrations | table | postgres
+ public | v311_customers           | table | postgres
+ public | v311_e2e                 | table | postgres
+ public | v311_orders              | table | postgres
+(4 rows)
+
+PostgreSQL 16.13 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit

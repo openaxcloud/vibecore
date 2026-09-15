@@ -305,7 +305,7 @@ export const chatEn = {
   'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Enabled when GitHub remote exists',
   'chat.copy.enableObjectStorageForThisProject_6caf063b': 'Enable Object Storage for this project',
   'chat.copy.encryptedSecret_0cdff4dc': 'Encrypted secret',
-  'chat.copy.ensureBucket_59b7cad5': 'Ensure bucket',
+  'chat.copy.ensureBucket_59b7cad5': 'Check bucket',
   'chat.copy.ensureBucketExists_5c9d55b8': 'Ensure bucket exists',
   'chat.copy.enterAValidDomainSuchAs_763570b5': 'Enter a valid domain such as app.example.com',
   'chat.copy.enterAValidEmailAddressOr_b9c2422c':
@@ -314,6 +314,15 @@ export const chatEn = {
   'chat.copy.environment_d443a118': 'Environment',
   'chat.copy.environmentScope_aa238040': 'Environment scope',
   'chat.copy.environmentVariables_1173b2e1': 'Environment variables',
+
+  /*
+   * R-4 — Secrets needs a description OF ITS OWN. It used to reuse the Env vars
+   * one, so the All-tools grid showed two cards with the same subtitle and no
+   * way to tell which to open. Two real panels, two different stores
+   * (`/projects/:id/env-vars` vs `/projects/:id/secrets`) — the copy has to say
+   * what separates them: secrets are encrypted and masked until revealed.
+   */
+  'chat.copy.secretsToolDescription': 'Encrypted values, hidden until revealed',
   'chat.copy.environmentVariables_ec072bba': 'Environment Variables',
   'chat.copy.episodic_2de3ef9c': 'Episodic',
   'chat.copy.errors_e6ef8d02': 'errors ·',
@@ -384,6 +393,7 @@ export const chatEn = {
   'chat.copy.google_2b681c0a': 'Google',
   'chat.copy.googlePubSub_5e01c618': 'Google Pub/Sub',
   'chat.copy.goToLastMessage_2d23b856': 'Go to last message',
+  'chat.copy.scrollToLatest': 'Scroll to latest',
   'chat.copy.guidedTour_5a0d3068': 'Guided tour',
   'chat.copy.hardwareKeyboardIdeShortcuts_80e616e2': 'Hardware keyboard IDE shortcuts',
   'chat.copy.hidden_53333214': 'hidden (',
@@ -485,6 +495,9 @@ export const chatEn = {
   'chat.copy.memoryContent_66fe7c72': 'Memory content',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'Microphone access is blocked. Allow the microphone permission for this site in your browser settings to use speech-to-text.',
+  'chat.copy.dictationNoSpeech': 'No speech detected. Tap the microphone and speak.',
+  'chat.copy.dictationNoMicrophone': 'No microphone was found.',
+  'chat.copy.dictationNetwork': 'Dictation needs a network connection.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': 'Minimum 8 characters',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Missing project id. Reload the IDE and try again.',
@@ -523,21 +536,21 @@ export const chatEn = {
   'chat.copy.nextTab_84c508a2': 'Next tab',
   'chat.copy.no_816c52fd': 'No',
   'chat.copy.noActivePresenceYet_5bb4c6e2': 'No active presence yet.',
-  'chat.copy.noActiveSessionsReturnedByApi_93156dfd': 'No active sessions returned by API.',
+  'chat.copy.noActiveSessionsReturnedByApi_93156dfd': 'No active sessions.',
   'chat.copy.noActivityMatchesTheCurrentFilters_b352e1bf': 'No activity matches the current filters.',
   'chat.copy.noAgentMemoriesRecordedForThis_538bbffe': 'No agent memories recorded for this project yet.',
   'chat.copy.noAiChangesAreWaitingFor_625a8e45':
     'No AI changes are waiting for review. Accepted and rejected changes are applied automatically.',
   'chat.copy.noApiKeysCreated_f68337b0': 'No API keys created',
   'chat.copy.noArchivedConversationBranchesForThis_d64f39a6': 'No archived conversation branches for this project yet.',
-  'chat.copy.noBillingLimitsReturnedByApi_68d00609': 'No billing limits returned by API.',
+  'chat.copy.noBillingLimitsReturnedByApi_68d00609': 'No billing limits set.',
   'chat.copy.noBreakpointsConfigured_cac0d3f6': 'No breakpoints configured.',
   'chat.copy.noBuiltinSkillsAreAvailable_22eb212a': 'No builtin skills are available.',
   'chat.copy.noCheckpointsMatchThisSearch_aef33bf2': 'No checkpoints match this search.',
   'chat.copy.noCheckpointsYet_0cd8841d': 'No checkpoints yet',
   'chat.copy.noCommentsYet_207b24fc': 'No comments yet.',
   'chat.copy.noCommitsInThisWorkspaceYet_0a787c26': 'No commits in this workspace yet.',
-  'chat.copy.noCommunitySkillsMatch_7bc0a3ba': 'No community skills match “',
+  'chat.copy.noCommunitySkillsMatchQuery_4c1d9a2e': 'No community skills match “{value0}”.',
   'chat.copy.noConnectedIntegrations_b428bc03': 'No connected integrations',
   'chat.copy.noConnectedIntegrationsYet_23fcaf4d': 'No connected integrations yet.',
   'chat.copy.noConversationToCopy_cac64e35': 'No conversation to copy',
@@ -580,7 +593,7 @@ export const chatEn = {
   'chat.copy.noRemoteConfiguredConnectOneIn_c5d82469':
     'No remote configured — connect one in the Git panel settings first.',
   'chat.copy.noRunsYetTheFirstOne_ba1ed340': 'No runs yet. The first one will appear here after the schedule fires.',
-  'chat.copy.noRuntimeProcessesReported_f02fbd04': 'No runtime processes reported.',
+  'chat.copy.noRuntimeProcessesReported_f02fbd04': 'No processes are running yet.',
   'chat.copy.noSshConnectionsConfigured_149be10e': 'No SSH connections configured.',
   'chat.copy.noTargetWorkflow_eb5ef507': 'No target workflow',
   'chat.copy.noTasksConfiguredForThisWorkflow_e345761c': 'No tasks configured for this workflow.',
@@ -703,6 +716,7 @@ export const chatEn = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Project variables and encrypted secrets loaded from backend stores.',
   'chat.copy.provider_7ceee3f3': 'Provider',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — not configured ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Provider modes, keys and routing are persisted in project secrets; agent behaviour is surfaced here.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via native runtime',
@@ -1095,10 +1109,9 @@ export const chatEn = {
   'chat.copy.dependenciesManager_5bf6692e': 'Dependencies manager',
   'chat.copy.deployAndHostModernWebApps_c87b1d87': 'Deploy and host modern web apps.',
   'chat.copy.deploymentContextDetected_4ffe7eeb': 'Deployment context detected',
-  'chat.copy.describeAScopedEditEG_0d84e847': 'Describe a scoped edit, e.g. "Add a logout button to the navbar"…',
-  'chat.copy.describeTheSystemToDesignGoals_b6fcef66':
-    'Describe the system to design — goals, constraints, integrations…',
-  'chat.copy.describeWhatYouWantTheAgent_283b294d': 'Describe what you want the agent to build, fix or refactor…',
+  'chat.copy.describeAScopedEditEG_0d84e847': 'Describe a scoped edit…',
+  'chat.copy.describeTheSystemToDesignGoals_b6fcef66': 'Describe the system to design…',
+  'chat.copy.describeWhatYouWantTheAgent_283b294d': 'Build, fix or refactor — describe it…',
   'chat.copy.describeWhatYouWantToBuild_998d9a1a':
     'Describe what you want to build, fix or refactor. Use Plan first when you want approval before edits.',
   'chat.copy.designArchitectureContractsRisksAndRollout_33a8af69':
@@ -1373,6 +1386,7 @@ export const chatEn = {
   'chat.copy.loading_33ce4174': 'Loading…',
   'chat.copy.loadingObjects_9bcff057': 'Loading objects…',
   'chat.copy.loadingValue0_99abf3e6': 'Loading {value0}…',
+  'chat.copy.unknownIdePanel_9d1c4b70': 'Unknown panel “{value0}” — the address was ignored.',
   'chat.copy.logs_126dd3b7': 'Logs',
   'chat.copy.logValue0_7807582a': 'log {value0}',
   'chat.copy.main_b28b7af6': 'main',
@@ -1391,7 +1405,7 @@ export const chatEn = {
   'chat.copy.noCommand_96ba3230': '(no command)',
   'chat.copy.noDependenciesFoundInPackageJson_8f3d26bd': 'No dependencies found in package.json.',
   'chat.copy.noDeployment_26885551': 'No deployment',
-  'chat.copy.noEmailReturnedByApi_dfb6c309': 'No email returned by API',
+  'chat.copy.noEmailReturnedByApi_dfb6c309': 'No email on file',
   'chat.copy.noEnvironmentVariablesToCompareYet_73d09bd3': 'No environment variables to compare yet.',
   'chat.copy.noExtensionsMatchTheCurrentSearch_98b63cc6': 'No extensions match the current search and domain filters.',
   'chat.copy.noFileMetadataRecorded_c8f89f26': 'No file metadata recorded',
@@ -1497,7 +1511,7 @@ export const chatEn = {
   'chat.copy.switchToLightMode_fc450912': 'Switch to light mode',
   'chat.copy.switchToValue0Tab_f9ebf5a1': 'Switch to {value0} tab',
   'chat.copy.system_1435f3bd': '· system',
-  'chat.copy.theBucketIsEmpty_18809c5d': 'The bucket is empty.',
+  'chat.copy.theBucketIsEmpty_18809c5d': 'No files in this bucket yet.',
   'chat.copy.theBucketRoot_d8754c09': 'the bucket root',
   'chat.copy.theCnameAInstructionsUnlockAfter_4c5056ef':
     'The CNAME/A instructions unlock after the first successful deployment.',
@@ -1592,7 +1606,7 @@ export const chatFr = {
   'chat.copy.addTabWithCommandPalette_49e6c454': 'Ajouter un onglet avec la palette de commandes',
   'chat.copy.addTask_24700e60': 'Ajouter une tâche',
   'chat.copy.addVariable_4c2707bc': 'Ajouter une variable',
-  'chat.copy.addWatch_11f0adc5': 'Ajouter une montre',
+  'chat.copy.addWatch_11f0adc5': 'Surveiller cette expression',
   'chat.copy.addYourFirstDatabase_b10872bd': 'Ajoutez votre première base de données',
   'chat.copy.admin_4e7afebc': 'Administrateur',
   'chat.copy.against_2d19e3d7': 'Contre',
@@ -1743,7 +1757,7 @@ export const chatFr = {
     'Configurez SAML ou OIDC pour les organisations qui nécessitent SSO.',
   'chat.copy.configureWorkflows_20afd690': 'Configurer les flux de travail',
   'chat.copy.conflicts_19401428': 'Conflits ·',
-  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter une télécommande GitHub',
+  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter un dépôt distant GitHub',
   'chat.copy.connectARealProviderBySaving_bb256530':
     'Connectez un vrai fournisseur en enregistrant sa chaîne de connexion en tant que secret de projet crypté. E-Code détecte les URL Postgres, MySQL, MongoDB et Redis à partir des secrets et les utilise pour la navigation dans les schémas, les sauvegardes et les requêtes en lecture seule.',
   'chat.copy.connectAServiceToSyncData_643c4e95':
@@ -1868,10 +1882,10 @@ export const chatFr = {
   'chat.copy.enabled_df174a3f': 'Activé',
   'chat.copy.enableDisableOrRemoveExtensionsWithout_fd2603b1':
     "Activez, désactivez ou supprimez des extensions sans quitter l'EDI.",
-  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsque la télécommande GitHub existe',
+  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsqu’un dépôt distant GitHub existe',
   'chat.copy.enableObjectStorageForThisProject_6caf063b': "Activer le stockage d'objets pour ce projet",
   'chat.copy.encryptedSecret_0cdff4dc': 'Secret crypté',
-  'chat.copy.ensureBucket_59b7cad5': 'Assurez-vous que le seau',
+  'chat.copy.ensureBucket_59b7cad5': 'Vérifier le bucket',
   'chat.copy.ensureBucketExists_5c9d55b8': "S'assurer que le compartiment existe",
   'chat.copy.enterAValidDomainSuchAs_763570b5': 'Entrez un domaine valide tel que app.example.com',
   'chat.copy.enterAValidEmailAddressOr_b9c2422c':
@@ -1880,6 +1894,7 @@ export const chatFr = {
   'chat.copy.environment_d443a118': 'Environnement',
   'chat.copy.environmentScope_aa238040': 'Périmètre environnement',
   'chat.copy.environmentVariables_1173b2e1': "Variables d'environnement",
+  'chat.copy.secretsToolDescription': 'Valeurs chiffrées, masquées jusqu’à révélation',
   'chat.copy.environmentVariables_ec072bba': "Variables d'environnement",
   'chat.copy.episodic_2de3ef9c': 'Épisodique',
   'chat.copy.errors_e6ef8d02': 'erreurs ·',
@@ -1892,8 +1907,8 @@ export const chatFr = {
   'chat.copy.exampleNpmRunBuildPnpmBuild_cf3d34a0': 'Exemple : npm run build, pnpm build ou Yarn build.',
   'chat.copy.executeShellCommand_ded81fd3': 'Exécuter la commande Shell',
   'chat.copy.executionMode_cb9e185b': "Mode d'exécution",
-  'chat.copy.exit_c4098fbe': '· sortir',
-  'chat.copy.exit_de3ac217': 'sortir',
+  'chat.copy.exit_c4098fbe': '· code de sortie',
+  'chat.copy.exit_de3ac217': 'code de sortie',
   'chat.copy.expiresInMinutes_13812bb6': 'Expire dans quelques minutes',
   'chat.copy.expiringLinksSharedAiConversationPolicy_fc638296':
     "Les liens expirant, la politique de conversation partagée par l'IA et les modes en lecture seule restent limités à ce projet.",
@@ -1908,9 +1923,9 @@ export const chatFr = {
   'chat.copy.exportsDeploysCollaboratorsGitAndRuntime_21970b4b':
     'Exportations, déploiements, collaborateurs, Git et actions de l’environnement d’exécution',
   'chat.copy.exportTxt_469c1c08': 'Exporter le .txt',
-  'chat.copy.extension_f9896101': 'rallonge',
+  'chat.copy.extension_f9896101': 'extension',
   'chat.copy.extensionDomains_abc98b01': "Domaines d'extension",
-  'chat.copy.extensions_656bcfe2': 'Rallonges',
+  'chat.copy.extensions_656bcfe2': 'Extensions',
   'chat.copy.fallbackProvider_595064ee': 'Fournisseur de secours',
   'chat.copy.feature_4b7615dc': 'fonctionnalité',
   'chat.copy.fileEncodingUtf8_b8734a83': 'Encodage du fichier : UTF-8',
@@ -1953,6 +1968,7 @@ export const chatFr = {
   'chat.copy.google_2b681c0a': 'Google',
   'chat.copy.googlePubSub_5e01c618': 'Google Pub/Sub',
   'chat.copy.goToLastMessage_2d23b856': 'Aller au dernier message',
+  'chat.copy.scrollToLatest': 'Aller au plus récent',
   'chat.copy.guidedTour_5a0d3068': 'Visite guidée',
   'chat.copy.hardwareKeyboardIdeShortcuts_80e616e2': 'Raccourcis clavier matériels IDE',
   'chat.copy.hidden_53333214': 'caché (',
@@ -2056,6 +2072,9 @@ export const chatFr = {
   'chat.copy.memoryContent_66fe7c72': 'Contenu de la mémoire',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'L’accès au microphone est bloqué. Autorisez ce site à utiliser le microphone dans les paramètres de votre navigateur pour activer la reconnaissance vocale.',
+  'chat.copy.dictationNoSpeech': 'Aucune parole détectée. Appuyez sur le micro et parlez.',
+  'chat.copy.dictationNoMicrophone': 'Aucun micro détecté.',
+  'chat.copy.dictationNetwork': 'La dictée a besoin d’une connexion réseau.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': '8 caractères minimum',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Identifiant du projet manquant. Rechargez l’IDE et réessayez.',
@@ -2095,7 +2114,7 @@ export const chatFr = {
   'chat.copy.nextTab_84c508a2': 'Onglet suivant',
   'chat.copy.no_816c52fd': 'Non',
   'chat.copy.noActivePresenceYet_5bb4c6e2': "Pas de présence active pour l'instant.",
-  'chat.copy.noActiveSessionsReturnedByApi_93156dfd': "Aucune session active renvoyée par l'API.",
+  'chat.copy.noActiveSessionsReturnedByApi_93156dfd': 'Aucune session active.',
   'chat.copy.noActivityMatchesTheCurrentFilters_b352e1bf': 'Aucune activité ne correspond aux filtres actuels.',
   'chat.copy.noAgentMemoriesRecordedForThis_538bbffe':
     "Aucun souvenir d'agent enregistré pour ce projet pour l'instant.",
@@ -2104,14 +2123,14 @@ export const chatFr = {
   'chat.copy.noApiKeysCreated_f68337b0': 'Aucune clé API créée',
   'chat.copy.noArchivedConversationBranchesForThis_d64f39a6':
     "Aucune branche de conversation archivée pour ce projet pour l'instant.",
-  'chat.copy.noBillingLimitsReturnedByApi_68d00609': "Aucune limite de facturation renvoyée par l'API.",
+  'chat.copy.noBillingLimitsReturnedByApi_68d00609': 'Aucune limite de facturation définie.',
   'chat.copy.noBreakpointsConfigured_cac0d3f6': "Aucun point d'arrêt configuré.",
   'chat.copy.noBuiltinSkillsAreAvailable_22eb212a': "Aucune compétence intégrée n'est disponible.",
   'chat.copy.noCheckpointsMatchThisSearch_aef33bf2': 'Aucun point de contrôle ne correspond à cette recherche.',
   'chat.copy.noCheckpointsYet_0cd8841d': 'Pas encore de points de contrôle',
   'chat.copy.noCommentsYet_207b24fc': 'Pas encore de commentaires.',
   'chat.copy.noCommitsInThisWorkspaceYet_0a787c26': 'Aucun commit dans cet espace de travail pour le moment.',
-  'chat.copy.noCommunitySkillsMatch_7bc0a3ba': 'Aucune compétence communautaire ne correspond »',
+  'chat.copy.noCommunitySkillsMatchQuery_4c1d9a2e': 'Aucune compétence communautaire ne correspond à « {value0} ».',
   'chat.copy.noConnectedIntegrations_b428bc03': 'Aucune intégration connectée',
   'chat.copy.noConnectedIntegrationsYet_23fcaf4d': "Aucune intégration connectée pour l'instant.",
   'chat.copy.noConversationToCopy_cac64e35': 'Aucune conversation à copier',
@@ -2156,10 +2175,10 @@ export const chatFr = {
   'chat.copy.noProjectSecrets_f3f1ca38': 'Aucun secret de projet.',
   'chat.copy.noProtocolPathOrPortExample_d3c7f2f8': 'Aucun protocole, chemin ou port. Exemple : app.example.com.',
   'chat.copy.noRemoteConfiguredConnectOneIn_c5d82469':
-    "Aucune télécommande configurée : connectez-en d'abord une dans les paramètres du panneau Git.",
+    "Aucun dépôt distant configuré : connectez-en d'abord un dans les paramètres du panneau Git.",
   'chat.copy.noRunsYetTheFirstOne_ba1ed340':
     "Aucune course pour l'instant. Le premier apparaîtra ici après le déclenchement du planning.",
-  'chat.copy.noRuntimeProcessesReported_f02fbd04': 'Aucun processus de l’environnement d’exécution signalé.',
+  'chat.copy.noRuntimeProcessesReported_f02fbd04': 'Aucun processus en cours pour l’instant.',
   'chat.copy.noSshConnectionsConfigured_149be10e': 'Aucune connexion SSH configurée.',
   'chat.copy.noTargetWorkflow_eb5ef507': 'Aucun flux de travail cible',
   'chat.copy.noTasksConfiguredForThisWorkflow_e345761c': 'Aucune tâche configurée pour ce flux de travail.',
@@ -2256,7 +2275,7 @@ export const chatFr = {
   'chat.copy.procedural_4fce7cb8': 'Procédure',
   'chat.copy.processesAndPorts_52df812f': 'Processus et ports',
   'chat.copy.prod_23dc0c60': 'prod /',
-  'chat.copy.production_df70fc79': 'Fabrication',
+  'chat.copy.production_df70fc79': 'Production',
   'chat.copy.productionApiKey_43fad6cd': 'Clé API de production',
   'chat.copy.productionBastion_786805c7': 'Bastion de la production',
   'chat.copy.productionRoutingDnsVerificationAndManaged_f5631fc2':
@@ -2272,7 +2291,7 @@ export const chatFr = {
   'chat.copy.projectAgentHistory_c9f06d3e': 'Historique des agents de projet',
   'chat.copy.projectAutomationRunsAgainstTheActive_bec66266':
     "L'automatisation du projet s'exécute sur l'espace de travail isolé actif",
-  'chat.copy.projectBucket_b51aaf40': 'Seau de projet',
+  'chat.copy.projectBucket_b51aaf40': 'Bucket du projet',
   'chat.copy.projectCheckpoints_f1ddc705': 'Points de contrôle du projet',
   'chat.copy.projectDescription_f9e31cfd': 'Descriptif du projet',
   'chat.copy.projectIdentitySecurityBillingAiCredentials_63be3c90':
@@ -2287,6 +2306,7 @@ export const chatFr = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Variables de projet et secrets chiffrés chargés depuis les stockages du service applicatif.',
   'chat.copy.provider_7ceee3f3': 'Fournisseur',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — non configuré ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Les modes, les clés et le routage du fournisseur sont conservés dans les secrets du projet ; le comportement des agents est exposé ici.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via l’environnement d’exécution natif',
@@ -2298,7 +2318,7 @@ export const chatFr = {
   'chat.copy.readWrite_7c0d355c': 'Lire et écrire',
   'chat.copy.recent_76eec760': 'Récent',
   'chat.copy.recentFiles_2944f38c': 'FICHIERS RÉCENTS',
-  'chat.copy.recentRuns_af7051db': 'Courses récentes',
+  'chat.copy.recentRuns_af7051db': 'Exécutions récentes',
   'chat.copy.recommendedDatabaseUrlMysqlUrlMongodb_95ee0c89':
     'Recommandé : DATABASE_URL, MYSQL_URL, MONGODB_URI ou REDIS_URL.',
   'chat.copy.reconnected_43e3de6a': 'Reconnecté',
@@ -2345,9 +2365,9 @@ export const chatFr = {
   'chat.copy.rollbackToCheckpoint_b3cc16a0': 'Retour au point de contrôle',
   'chat.copy.routineInternalEvent_1f36f1ff': 'événement interne de routine',
   'chat.copy.rsa_01e4715c': 'rsa',
-  'chat.copy.run_b1b39260': 'Courir',
+  'chat.copy.run_b1b39260': 'Exécuter',
   'chat.copy.runButton_d1e247ba': 'Bouton Exécuter',
-  'chat.copy.runNow_2af00e23': 'Courez maintenant',
+  'chat.copy.runNow_2af00e23': 'Exécuter maintenant',
   'chat.copy.runsCommandsThroughTheRuntimeCommand_7f7c4938':
     'Exécute des commandes via l’API de commandes de l’environnement d’exécution avec prévention des abus.',
   'chat.copy.runScript_9c520cef': 'Exécuter le script',
@@ -2482,7 +2502,7 @@ export const chatFr = {
   'chat.copy.srcServerTs_bcc09dcb': 'src/server.ts',
   'chat.copy.sshConnections_564ae345': 'Connexions SSH',
   'chat.copy.sshGitUrl_f6b1fb5f': 'URL git SSH',
-  'chat.copy.staging_c9fb656c': 'Mise en scène',
+  'chat.copy.staging_c9fb656c': 'Préproduction',
   'chat.copy.standardBrowserShortcuts_ac1cbde1': 'Raccourcis standards du navigateur',
   'chat.copy.startDebugging_94a77e4e': 'Commencer le débogage',
   'chat.copy.status_bae7d5be': 'Statut',
@@ -2597,8 +2617,8 @@ export const chatFr = {
   'chat.copy.vote_f3f11c36': 'Voter ·',
   'chat.copy.vsPrevious_2eb3ee87': 'par rapport au précédent',
   'chat.copy.warningsInTheCurrentWorkspace_e8b37cee': "avertissements dans l'espace de travail actuel",
-  'chat.copy.watchExpressions_5a230a1a': 'Regarder les expressions',
-  'chat.copy.watchList_daa6ded7': 'Liste de surveillance',
+  'chat.copy.watchExpressions_5a230a1a': 'Expressions à surveiller',
+  'chat.copy.watchList_daa6ded7': 'Expressions surveillées',
   'chat.copy.webhooks_fdfe2da7': 'Webhooks',
   'chat.copy.webhookSigningSecret_4d07255a': 'Secret de signature du webhook',
   'chat.copy.weeklyAt0300Utc_ce446487': 'Hebdomadaire à 03h00 UTC',
@@ -2695,12 +2715,9 @@ export const chatFr = {
   'chat.copy.dependenciesManager_5bf6692e': 'Gestionnaire de dépendances',
   'chat.copy.deployAndHostModernWebApps_c87b1d87': 'Déployez et hébergez des applications Web modernes.',
   'chat.copy.deploymentContextDetected_4ffe7eeb': 'Contexte de déploiement détecté',
-  'chat.copy.describeAScopedEditEG_0d84e847':
-    'Décrivez une modification de portée, par ex. "Ajouter un bouton de déconnexion à la barre de navigation"…',
-  'chat.copy.describeTheSystemToDesignGoals_b6fcef66':
-    'Décrire le système à concevoir – objectifs, contraintes, intégrations…',
-  'chat.copy.describeWhatYouWantTheAgent_283b294d':
-    "Décrivez ce que vous souhaitez que l'agent construise, corrige ou refactorise…",
+  'chat.copy.describeAScopedEditEG_0d84e847': 'Décrivez une modification ciblée…',
+  'chat.copy.describeTheSystemToDesignGoals_b6fcef66': 'Décrivez le système à concevoir…',
+  'chat.copy.describeWhatYouWantTheAgent_283b294d': 'Construire, corriger, refactoriser…',
   'chat.copy.describeWhatYouWantToBuild_998d9a1a':
     'Décrivez ce que vous souhaitez créer, réparer ou refactoriser. Utilisez Plan en premier lorsque vous souhaitez une approbation avant les modifications.',
   'chat.copy.designArchitectureContractsRisksAndRollout_33a8af69':
@@ -2999,6 +3016,7 @@ export const chatFr = {
   'chat.copy.loading_33ce4174': 'Chargement…',
   'chat.copy.loadingObjects_9bcff057': "Chargement d'objets…",
   'chat.copy.loadingValue0_99abf3e6': 'Chargement de {value0}…',
+  'chat.copy.unknownIdePanel_9d1c4b70': 'Panneau « {value0} » inconnu — l’adresse a été ignorée.',
   'chat.copy.logs_126dd3b7': 'Journaux',
   'chat.copy.logValue0_7807582a': 'journal {value0}',
   'chat.copy.main_b28b7af6': 'principal',
@@ -3017,7 +3035,7 @@ export const chatFr = {
   'chat.copy.noCommand_96ba3230': '(pas de commande)',
   'chat.copy.noDependenciesFoundInPackageJson_8f3d26bd': 'Aucune dépendance trouvée dans package.json.',
   'chat.copy.noDeployment_26885551': 'Pas de déploiement',
-  'chat.copy.noEmailReturnedByApi_dfb6c309': "Aucun email renvoyé par l'API",
+  'chat.copy.noEmailReturnedByApi_dfb6c309': 'Aucune adresse e-mail enregistrée',
   'chat.copy.noEnvironmentVariablesToCompareYet_73d09bd3': "Aucune variable d'environnement à comparer pour le moment.",
   'chat.copy.noExtensionsMatchTheCurrentSearch_98b63cc6':
     'Aucune extension ne correspond aux filtres de recherche et de domaine actuels.',
@@ -3098,10 +3116,10 @@ export const chatFr = {
   'chat.copy.round_f0590a6d': 'rond',
   'chat.copy.rounds_75a7b395': 'tours',
   'chat.copy.runFullScan_aedc848e': 'Exécuter une analyse complète',
-  'chat.copy.runInOrder_56733fe3': "Courir dans l'ordre",
+  'chat.copy.runInOrder_56733fe3': 'Exécution séquentielle',
   'chat.copy.runningOnValue0_0f8bc1d7': 'Exécuté sur {value0}',
   'chat.copy.runtimeStatusLoading_226ec569': 'chargement de l’état de l’environnement d’exécution',
-  'chat.copy.runTogether_8eab02f9': 'Courez ensemble',
+  'chat.copy.runTogether_8eab02f9': 'Exécution en parallèle',
   'chat.copy.rValue0_e9b63dd3': 'r : {value0}',
   'chat.copy.saveValue0_b6c78e5c': 'Enregistrer {value0}',
   'chat.copy.saveVariable_ae0baaa7': 'Enregistrer la variable',
@@ -3129,8 +3147,8 @@ export const chatFr = {
   'chat.copy.switchToLightMode_fc450912': 'Passer en mode lumière',
   'chat.copy.switchToValue0Tab_f9ebf5a1': "Passer à l'onglet {value0}",
   'chat.copy.system_1435f3bd': '· système',
-  'chat.copy.theBucketIsEmpty_18809c5d': 'Le seau est vide.',
-  'chat.copy.theBucketRoot_d8754c09': 'la racine du seau',
+  'chat.copy.theBucketIsEmpty_18809c5d': 'Aucun fichier dans ce bucket pour l’instant.',
+  'chat.copy.theBucketRoot_d8754c09': 'la racine du bucket',
   'chat.copy.theCnameAInstructionsUnlockAfter_4c5056ef':
     'Les instructions CNAME/A se déverrouillent après le premier déploiement réussi.',
   'chat.copy.theMcpMarketplaceCatalogIsEmpty_be25c277':

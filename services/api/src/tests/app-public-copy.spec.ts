@@ -305,12 +305,29 @@ describe('app.ts i18n source guard', () => {
       'invalid_credentials',
       'mfa_required',
       'invalid_mfa',
+      // Dimension de `auth_failures_total`, comme ses voisines : jamais rendue.
+      // La réponse vue par l'utilisateur passe par le catalogue
+      // (`AUTH_INVALID_CREDENTIALS`) et reste volontairement identique à celle
+      // d'un mauvais mot de passe, pour ne pas révéler qu'un compte existe.
+      'account_locked',
       'suspended',
       'sso_enforced',
       'token_expired_or_revoked',
       'agent-unreachable',
       'persisted-read-failed',
       'no-persisted-files',
+      /*
+       * DEUX ALLOWLISTES POUR UNE SEULE REGLE, et la seconde est invisible depuis
+       * la premiere. `espace-non-stabilise` avait ete declare dans
+       * `scripts/i18n/source-allowlist.json` — ce qui suffit a `scan-source.mjs`
+       * mais pas ici : ce test relance le scanner SANS la liste JSON et compare
+       * les trouvailles brutes a SA PROPRE copie. Une declaration a un endroit ne
+       * se voit donc pas a l'autre. Consigne dans `BUG_INVENTORY_LIVE.md`.
+       *
+       * Le code lui-meme : motif machine de la reconciliation (app.ts), rendu a
+       * l'appelant interne, jamais affiche.
+       */
+      'espace-non-stabilise',
       'already-synced',
       'reconciled-from-persisted',
       'missing_storage_key',
@@ -326,9 +343,33 @@ describe('app.ts i18n source guard', () => {
       // Internal deploy-manifest outcomes are discarded before the public response.
       'Open the project workspace before deploying.',
       'Workspace is starting — please retry.',
+      /*
+       * P0-V3-09 — motifs internes de la machine à états du checkpoint. Écrits
+       * dans `ProjectCheckpoint.error` ou portés par une Error typée dont le
+       * CODE (CHECKPOINT_INADMISSIBLE, CHECKPOINT_UNVERIFIED) est ce que voit
+       * l'appelant ; les messages destinés à l'utilisateur, eux, passent
+       * désormais par le catalogue (CHECKPOINT_*_MESSAGE). Les traduire
+       * masquerait le motif technique dans l'audit sans rien apporter.
+       */
+      'quiesce inadmissible',
+      'quiesce without finite timeout + guaranteed thaw',
+      'checkpoint inadmissible',
+      'manifest not visible',
+      // Libellé d'instantané du stockage (`checkpoint <barrierId>`) : identifiant
+      // interne corrélé aux journaux, pas de la copie destinée à l'utilisateur.
+      'checkpoint {…}',
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',
+      /*
+       * P104: boot-time misconfiguration guard. Thrown only when NODE_ENV is
+       * production and no deployment-access HMAC secret is configured at all —
+       * it aborts the request path rather than signing tokens with a fallback
+       * key. The text goes to logs; the client sees the generic 500 body. Same
+       * class as 'DB_ROLLBACK_ENABLED is off' above: an operator diagnostic, not
+       * user copy, so localizing it would hide the failing env var name.
+       */
+      'No deployment-access HMAC secret (DEPLOYMENT_ACCESS_TOKEN_SECRET or a base secret) configured',
     ]);
 
     expect(result.parseErrors).toEqual([]);

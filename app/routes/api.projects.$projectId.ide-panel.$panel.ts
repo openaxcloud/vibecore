@@ -21,7 +21,14 @@ import {
 } from '~/lib/i18n/catalogs/api-runtime-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
-import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
+import { messageDEchecDInstallation } from '~/lib/ide/message-echec-installation';
+import { objectStorageResultOrDisabled } from '~/lib/ide/panneau-stockage-objets';
+import {
+  extractGrepMatchLines,
+  isGrepMatchLine,
+  isSecurityScheduleDue,
+  vulnerabilitiesFromSecretScan,
+} from '~/lib/ide-panel-security';
 import {
   computeNextRunFromCron,
   defaultWorkflowSchedule,
@@ -34,6 +41,7 @@ import {
 } from '~/lib/ide-panel-workflows';
 import { defaultProjectKeybindings, serializeKeybindingOverrides } from '~/lib/keybindings';
 import { buildProjectOverviewInsights } from '~/lib/project-overview';
+import { causeDu429 } from '~/lib/runtime/refus-429';
 import { generateSshKeyPair } from '~/lib/ssh-keygen.server';
 
 export type IdePanelStatus = 'ok' | 'empty' | 'error';
@@ -96,7 +104,8 @@ function panelEnvelope<T>(panel: string, project: unknown, data: T): IdePanelEnv
   };
 }
 
-function panelEnvelopeError(
+/** Exportée pour que le SITE D'APPEL soit tenu par un test, pas seulement la règle. */
+export function panelEnvelopeError(
   panel: string,
   project: unknown,
   error: unknown,
@@ -111,6 +120,19 @@ function panelEnvelopeError(
    * pas pu être chargées » — alors que la cause réelle est un QUOTA atteint, que
    * l'utilisateur peut corriger. La ligne `retryable` juste en dessous
    * reconnaissait pourtant déjà 429.
+   *
+   * MAIS L'ÉTIQUETTE NOMMAIT UNE CAUSE QU'ELLE N'AVAIT PAS VÉRIFIÉE. Donner une
+   * branche au 429 était juste ; l'appeler « quota » ne l'était pas. Derrière un
+   * 429 il y a deux causes, et elles ne demandent PAS la même chose :
+   *
+   *   - un refus de DÉBIT : trop de requêtes trop vite. Il faut ATTENDRE, et
+   *     l'action se rouvre d'elle-même en moins d'une minute.
+   *   - un refus de QUOTA : la limite du plan est atteinte. Il faut LIBÉRER de
+   *     la place, ou attendre la période suivante.
+   *
+   * Dire « libérez des ressources » à quelqu'un qui doit simplement patienter
+   * l'envoie chercher un problème qui n'existe pas. `causeDu429` tranche sur le
+   * reste du limiteur ; voir `app/lib/runtime/refus-429.ts`.
    */
   const code =
     status === 401
@@ -120,7 +142,9 @@ function panelEnvelopeError(
         : status === 404
           ? 'PANEL_NOT_FOUND'
           : status === 429
-            ? 'PANEL_QUOTA_EXCEEDED'
+            ? causeDu429((error as { headers?: Headers } | undefined)?.headers) === 'debit'
+              ? 'PANEL_RATE_LIMITED'
+              : 'PANEL_QUOTA_EXCEEDED'
             : status && status >= 500
               ? 'PANEL_BACKEND_UNAVAILABLE'
               : 'PANEL_REQUEST_FAILED';
@@ -134,11 +158,13 @@ function panelEnvelopeError(
         ? copy['apiRuntime.panel.forbidden']
         : code === 'PANEL_NOT_FOUND'
           ? copy['apiRuntime.panel.notFound']
-          : code === 'PANEL_QUOTA_EXCEEDED'
-            ? copy['apiRuntime.panel.quotaExceeded']
-            : code === 'PANEL_BACKEND_UNAVAILABLE'
-              ? copy['apiRuntime.panel.backendUnavailable']
-              : copy['apiRuntime.panel.loadFailed'];
+          : code === 'PANEL_RATE_LIMITED'
+            ? copy['apiRuntime.panel.rateLimited']
+            : code === 'PANEL_QUOTA_EXCEEDED'
+              ? copy['apiRuntime.panel.quotaExceeded']
+              : code === 'PANEL_BACKEND_UNAVAILABLE'
+                ? copy['apiRuntime.panel.backendUnavailable']
+                : copy['apiRuntime.panel.loadFailed'];
 
   console.error('IDE panel request failed:', { panel, status, error });
 
@@ -223,6 +249,42 @@ async function resolvePanelWorkspace(
   return { workspaceList, primaryWorkspaceId, activeWorkspaceId, selectedWorkspaceId };
 }
 
+/*
+ * SCR-008 — jauges RAM / CPU / stockage de « Vue d'ensemble ».
+ *
+ * Rien n'est fabriqué ici : la valeur vient du lecteur cgroup du
+ * workspace-agent, relayé par `/api/runtime/workspaces/:id/resources`. Un projet
+ * sans espace de travail, ou un agent injoignable, rend des jauges VIDES
+ * (`null`) marquées `unavailable` — surtout pas des zéros, qui se liraient
+ * « rien n'est consommé » alors que la vraie information est « on ne sait pas ».
+ *
+ * L'appel rejoint le fan-out existant du panneau et échoue toujours ouvert :
+ * une ligne d'affichage secondaire ne doit jamais empêcher « Vue d'ensemble »
+ * de s'ouvrir.
+ */
+function unavailableOverviewResources() {
+  return {
+    memory: { used: null, limit: null },
+    cpu: { ratio: null, limitCores: null },
+    storage: { used: null, limit: null },
+    unavailable: true,
+  };
+}
+
+async function loadOverviewResources(request: Request, projectId: string) {
+  try {
+    const { selectedWorkspaceId } = await resolvePanelWorkspace(request, projectId);
+
+    if (!selectedWorkspaceId) {
+      return unavailableOverviewResources();
+    }
+
+    return await apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(selectedWorkspaceId)}/resources`);
+  } catch {
+    return unavailableOverviewResources();
+  }
+}
+
 async function loadOverviewPanelEnvelope(
   request: Request,
   projectId: string,
@@ -230,7 +292,7 @@ async function loadOverviewPanelEnvelope(
   language?: string | null,
 ) {
   try {
-    const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
+    const [dashboard, packages, collaborators, gitGraph, envVars, resources] = await Promise.all([
       apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({
         error: panelErrorMessage(error, language),
       })),
@@ -241,6 +303,7 @@ async function loadOverviewPanelEnvelope(
         envVars: [],
         error: panelErrorMessage(error, language),
       })),
+      loadOverviewResources(request, projectId),
     ]);
 
     const dashboardData = dashboard as Record<string, any>;
@@ -265,6 +328,7 @@ async function loadOverviewPanelEnvelope(
         gitGraph: gitGraphData as any,
         collaboration: collaborationData as any,
       }),
+      resources,
       workflowsState: readWorkflowsState(envVars, language),
       terminalState: readTerminalState(envVars, language),
       packagesState: readPackagesState(envVars),
@@ -272,6 +336,7 @@ async function loadOverviewPanelEnvelope(
   } catch (error) {
     return panelEnvelope('overview', project, {
       overview: buildProjectOverviewInsights({ project: project as any, language }),
+      resources: unavailableOverviewResources(),
       loadError: panelErrorMessage(error, language),
       workflowsState: defaultWorkflowsState(language),
       terminalState: defaultTerminalState(),
@@ -563,7 +628,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        * history scoping the deployment — hash + author + date). Each enrichment
        * is best-effort so the panel never fails if git/db is unavailable.
        */
-      const [deployments, databases, commitGraph] = await Promise.all([
+      const [deployments, databases, commitGraph, rateCard, fournisseurs] = await Promise.all([
         apiRequest<{ deployments?: Array<Record<string, unknown>> }>(request, `/projects/${projectId}/deployments`),
         apiRequest<{ connections?: unknown[] }>(request, `/projects/${projectId}/databases`).catch(() => ({
           connections: [],
@@ -572,6 +637,26 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           request,
           `/projects/${projectId}/git/graph${selectedWorkspaceId ? `?workspaceId=${encodeURIComponent(selectedWorkspaceId)}` : ''}`,
         ).catch(() => ({ commits: [] })),
+
+        /*
+         * RP-PUBLISH-10 — la carte tarifaire ACTIVE : gabarits de machine
+         * réellement disponibles pour le plan, et le coût unitaire du calcul.
+         * C'est ce qui permet d'afficher un prix VRAI sous « Configuration de
+         * la machine » plutôt qu'un chiffre recopié de la capture Replit.
+         * Au pire elle manque, et l'écran n'affiche simplement pas de prix.
+         */
+        apiRequest<Record<string, unknown>>(request, `/projects/${projectId}/deployments/rate-card`).catch(() => null),
+
+        /*
+         * BUG-DEPLOY-PROVIDERS-UI-001 — quels hébergeurs peuvent réellement
+         * aboutir. Sans cette liste l'assistant les proposait tous, et six sur
+         * sept rendaient un 503 une fois le formulaire rempli. Au pire elle
+         * manque : on retombe alors sur l'ancien comportement plutôt que de
+         * masquer un fournisseur qui marche.
+         */
+        apiRequest<{ providers?: unknown[] }>(request, `/projects/${projectId}/deployments/providers`).catch(() => ({
+          providers: [],
+        })),
       ]);
 
       const deploymentList = Array.isArray(deployments.deployments) ? deployments.deployments : [];
@@ -584,6 +669,8 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           allDeployments: deploymentList,
           connections: Array.isArray(databases.connections) ? databases.connections : [],
           gitCommits: Array.isArray(commitGraph.commits) ? commitGraph.commits : [],
+          rateCard,
+          providerAvailability: Array.isArray(fournisseurs.providers) ? fournisseurs.providers : [],
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId,
           activeWorkspaceId: workspaceCtx.activeWorkspaceId,
@@ -638,7 +725,21 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/databases`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/secrets`),
-        apiRequest(request, `/projects/${projectId}/snapshots`).catch(() => ({ snapshots: [] })),
+
+        /*
+         * PANEL-PERF — projection SOMMAIRE, pas suppression de l'appel.
+         *
+         * Le panneau consomme bien ces instantanés : la chaîne vivante est
+         * BaseChat → DatabaseWorkbench → DatabaseSettings → DatabaseRollbackPanel,
+         * qui lit `data.snapshots`. Mais il n'en lit que cinq champs — id,
+         * label, kind, sizeBytes, createdAt — et jamais le manifeste.
+         *
+         * Mesuré en production le 2026-09-08 sur un projet de 355 instantanés :
+         * ce panneau expédiait 1 282 Ko, soit à quelques kilo-octets près le
+         * corps du panneau Instantanés lui-même. Avec `fields=summary`, la même
+         * interface est servie par ~127 Ko (−90,1 %).
+         */
+        apiRequest(request, `/projects/${projectId}/snapshots?fields=summary`).catch(() => ({ snapshots: [] })),
       ]);
       const schema = schemaKey
         ? await apiRequest(
@@ -777,9 +878,16 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
   if (panel === 'packages') {
     try {
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
-      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
 
-      const [packages, envVars] = await Promise.all([
+      /*
+       * BUG-PANEL-PERF-004 — `resolvePanelWorkspace` used to be awaited BEFORE
+       * this fan-out, which cost a serial hop for nothing: neither `/packages`
+       * nor `/env-vars` takes anything from `workspaceCtx` (it is read only
+       * when the envelope below is built). Joining the fan-out removes one of
+       * the three sequential hops this panel paid on every open.
+       */
+      const [workspaceCtx, packages, envVars] = await Promise.all([
+        resolvePanelWorkspace(request, projectId, requestedWorkspaceId),
         apiRequest(request, `/projects/${projectId}/packages`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
       ]);
@@ -834,11 +942,29 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
       const workspaceCtx =
         panel === 'monitoring' ? await resolvePanelWorkspace(request, projectId, requestedWorkspaceId) : undefined;
 
+      /*
+       * PANEL-PERF — une branche lente ne doit pas emporter l'enveloppe entière.
+       *
+       * Le bloc `database` plus haut garde chacune de ses branches ; celui-ci
+       * n'en gardait AUCUNE. Or `apiRequest` abandonne à 30 s
+       * (`enterprise-api.server.ts`, `AbortSignal.timeout(30_000)`) — bien avant
+       * l'ingress, qui est à 180 s. Un seul amont lent faisait donc basculer
+       * tout le panneau en erreur, au lieu de rendre ce qui avait répondu.
+       * Chaque branche est ensuite étalée par `...(x as any)` : un objet vide
+       * est absorbé sans dommage, et l'enveloppe se déclare honnêtement vide.
+       *
+       * ⚠️ La branche `panel === 'database'` ci-dessous est INATTEIGNABLE : le
+       * bloc `if (panel === 'database')` plus haut retourne dans ses deux
+       * chemins. Vérifié, laissé en place — sa suppression appartient à la
+       * session qui refond cette route.
+       */
       const [dashboard, envVars, deployments, snapshots] = await Promise.all([
-        apiRequest(request, `/projects/${projectId}/dashboard`),
-        apiRequest(request, `/projects/${projectId}/env-vars`),
-        apiRequest(request, `/projects/${projectId}/deployments`),
-        panel === 'database' ? apiRequest(request, `/projects/${projectId}/snapshots`) : Promise.resolve({}),
+        apiRequest(request, `/projects/${projectId}/dashboard`).catch(() => ({})),
+        apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({})),
+        apiRequest(request, `/projects/${projectId}/deployments`).catch(() => ({})),
+        panel === 'database'
+          ? apiRequest(request, `/projects/${projectId}/snapshots?fields=summary`).catch(() => ({ snapshots: [] }))
+          : Promise.resolve({}),
       ]);
 
       const workspaceId = workspaceCtx?.selectedWorkspaceId ?? (dashboard as any)?.workspace?.id ?? projectId;
@@ -1142,6 +1268,16 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           runtimeFiles,
           runtimeProcesses,
           runtimePorts,
+
+          /*
+           * R-3 — the Terminal's Connections tab mounts the real
+           * `ProjectPortsPanel`, which needs the persisted primary-port and
+           * public/private state, not just the runtime port list. Without it
+           * the mounted panel would render every port as "public" with no
+           * primary until the next full reload — the toggle would write
+           * correctly while displaying the wrong thing.
+           */
+          portsState: readPortsState(envVars),
           terminalState: readTerminalState(envVars, language),
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
@@ -1295,27 +1431,6 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
   }
 }
 
-/*
- * Object Storage (GCS) is flag-gated (OBJECT_STORAGE_ENABLED): every internal
- * route 404s with code FEATURE_NOT_ENABLED while the flag is off. Translate that
- * into a structured `{ enabled: false }` payload so the IDE panel can render a
- * clear "not enabled" state instead of a 502; any other error is re-thrown.
- */
-async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType<typeof json>> {
-  if (error instanceof Response && error.status === 404) {
-    const payload = (await error
-      .clone()
-      .json()
-      .catch(() => ({}))) as { code?: string };
-
-    if (payload.code === 'FEATURE_NOT_ENABLED' || payload.code === undefined) {
-      return json({ enabled: false, objects: [], folders: [] });
-    }
-  }
-
-  throw error;
-}
-
 async function actionHandler({ request, params }: EnterpriseActionArgs) {
   const language = resolveRequestLocale(request).language;
   const copy = getApiRuntimeRoutesCopy(language);
@@ -1405,7 +1520,97 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         }
       }
 
+      /*
+       * RP-CKPT-05 — la feuille Replit annonce trois choses restaurées :
+       * fichiers, base de données, mémoire de l'agent. La mémoire suit ici :
+       * ce que l'agent a appris APRÈS le point est archivé. Son échec ne
+       * bloque pas le retour des fichiers, déjà fait ; il est journalisé.
+       */
+      if (body.restoreAgentMemory === 'true' && (body.since ?? '').trim()) {
+        try {
+          await apiRequest(request, `/projects/${projectId}/agent-memory/rollback`, {
+            method: 'POST',
+            body: JSON.stringify({ since: body.since.trim() }),
+          });
+        } catch (error) {
+          console.error('Agent memory rollback failed:', error instanceof Response ? error.status : error);
+        }
+      }
+
       return json(foldRestoreResponse(databaseOutcome));
+    } else if (intent === 'checkpoint') {
+      /*
+       * RP-CKPT-04 — point de restauration AUTOMATIQUE de fin de tour, à la
+       * Replit : un commit Git portant le message du tour, puis un instantané
+       * du projet dont le manifeste relie le tout au message de l'agent (et
+       * garde les statistiques du tour, que l'annotation de flux ne conserve
+       * pas au rechargement). Rien n'est demandé à l'utilisateur.
+       */
+      const messageId = (body.messageId ?? '').trim();
+
+      if (!messageId) {
+        throw json({ error: copy['apiRuntime.panel.invalidBody'], code: 'MESSAGE_REQUIRED' }, { status: 400 });
+      }
+
+      const label = (body.label ?? '').trim() || copy['apiRuntime.panel.updateProjectFiles'];
+
+      let commitSha: string | undefined;
+
+      try {
+        const committed = (await apiRequest(request, `/projects/${projectId}/git/commit`, {
+          method: 'POST',
+          body: JSON.stringify({ message: label }),
+        })) as { commit?: { sha?: string } };
+
+        commitSha = committed.commit?.sha?.trim() || undefined;
+      } catch (error) {
+        /*
+         * « Rien à valider » n'est pas une erreur : le tour a réécrit des
+         * fichiers à l'identique. L'instantané se prend quand même — c'est
+         * lui qui porte le retour arrière.
+         */
+        const code =
+          error instanceof Response
+            ? (
+                (await error
+                  .clone()
+                  .json()
+                  .catch(() => ({}))) as { code?: string }
+              ).code
+            : undefined;
+
+        if (code !== 'GIT_NOTHING_TO_COMMIT') {
+          console.error('Checkpoint commit failed:', error instanceof Response ? error.status : error);
+        }
+      }
+
+      let statistiques: unknown;
+
+      try {
+        statistiques = body.statistiques ? JSON.parse(body.statistiques) : undefined;
+      } catch {
+        statistiques = undefined;
+      }
+
+      const created = (await apiRequest(request, `/projects/${projectId}/snapshots`, {
+        method: 'POST',
+        body: JSON.stringify({
+          label,
+          kind: 'automatic',
+          manifest: {
+            checkpoint: {
+              messageId,
+              conversationId: (body.conversationId ?? '').trim() || undefined,
+              turnIndex: /^\d+$/u.test((body.turnIndex ?? '').trim()) ? Number(body.turnIndex) : undefined,
+              commitSha,
+              commitMessage: label,
+              statistiques,
+            },
+          },
+        }),
+      })) as { snapshot?: unknown };
+
+      return json({ ok: true, snapshot: created.snapshot ?? null, commitSha: commitSha ?? null });
     } else {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',
@@ -1932,16 +2137,37 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         method: 'DELETE',
         body: JSON.stringify({ key: body.key }),
       });
-    } else if (intent === 'delete-env') {
-      await apiRequest(request, `/projects/${projectId}/env-vars`, {
-        method: 'DELETE',
-        body: JSON.stringify({ key: body.key }),
-      });
     } else {
-      await apiRequest(request, `/projects/${projectId}/env-vars`, {
-        method: 'PUT',
-        body: JSON.stringify({ key: body.key || 'DATABASE_URL', value: body.value ?? '' }),
-      });
+      /*
+       * R-8 — this used to fall through to
+       * `PUT /env-vars { key: body.key || 'DATABASE_URL', value: body.value ?? '' }`.
+       *
+       * Nothing routes here: the only callers of `/ide-panel/database` are the
+       * workbench (`provision`), the SQL studio (`query`) and the connection
+       * onboarding form (`upsert-secret`) — all handled above. The rollback
+       * panel's `restore` / `snapshot` go to `/api/projects/:id/database`, a
+       * different route. Measured with a fixed-string sweep of `app/`, because a
+       * quoted-pattern search missed the JSX `value="…"` forms and under-reported.
+       *
+       * But an unreachable path that WRITES is still a loaded gun: any future
+       * intent added to a database form without a branch here would have blanked
+       * the project's `DATABASE_URL` (empty `value`) and returned `ok: true`.
+       * A dead branch that silently destroys the connection string is exactly
+       * the fallthrough-as-default trap; it now fails closed and says so.
+       *
+       * The `delete-env` branch removed alongside it had no emitter either: the
+       * only `delete-env` forms belong to the Terminal panel and post to
+       * `/ide-panel/terminal`.
+       */
+      return json(
+        {
+          error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.databaseIntentUnsupported'], {
+            intent: intent ?? '',
+          }),
+          code: 'DATABASE_INTENT_UNSUPPORTED',
+        },
+        { status: 400 },
+      );
     }
   } else if (panel === 'ports') {
     /*
@@ -2229,6 +2455,36 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       method: 'PUT',
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
+
+    /*
+     * BUG-IDE-005 — UN RUN QUI ÉCHOUE NE PEUT PLUS RÉPONDRE « ok ».
+     *
+     * Le bloc retombait sur le `return json({ ok: true })` commun quel que soit
+     * `run.exitCode`. Mesuré le 06/08 : `HTTP 200 {ok:true}` pendant que le run
+     * enregistré portait `exitCode 1 / status failed`, et que RIEN n'était
+     * installé. L'échec n'existait que dans la liste « Install & runtime
+     * checks » de la barre latérale — sous la ligne de flottaison, là où
+     * personne ne regarde après avoir cliqué « Installer ».
+     *
+     * MÊME MÉCANISME QUE BUG-GIT-001, corrigé le même jour : une action qui ne
+     * fait rien, ou qui rate, ne doit pas répondre comme si elle avait réussi.
+     * C'est la règle, pas l'occurrence.
+     *
+     * Le refus vient APRÈS l'écriture de l'historique : la trace du run et sa
+     * sortie restent consultables, ce qui est précisément ce qu'il faut pour
+     * diagnostiquer. Et le message porte la fin de la sortie — la cause réelle
+     * (module introuvable, registre injoignable…), pas un « échec » nu.
+     */
+    if (run.exitCode !== 0) {
+      throw json(
+        {
+          error: messageDEchecDInstallation(run, language),
+          code: 'PACKAGE_RUN_FAILED',
+          run: { id: run.id, exitCode: run.exitCode, status: run.status },
+        },
+        { status: 422 },
+      );
+    }
   } else if (panel === 'extensions') {
     /*
      * Extensions are MCP marketplace servers. Each action maps to a real
@@ -2826,28 +3082,23 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     const workspaceId = dashboard?.workspace?.id ?? projectId;
     const now = new Date().toISOString();
 
-    if (intent === 'add-env') {
-      if (body.isSecret === 'true') {
-        await apiRequest(request, `/projects/${projectId}/secrets`, {
-          method: 'PUT',
-          body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
-        });
-      } else {
-        await apiRequest(request, `/projects/${projectId}/env-vars`, {
-          method: 'PUT',
-          body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
-        });
-      }
-    } else if (intent === 'delete-env') {
-      await apiRequest(
-        request,
-        body.isSecret === 'true' ? `/projects/${projectId}/secrets` : `/projects/${projectId}/env-vars`,
-        {
-          method: 'DELETE',
-          body: JSON.stringify({ key: body.key }),
-        },
-      );
-    } else if (intent === 'run-script') {
+    /*
+     * R-2 — `add-env` / `delete-env` are GONE from this panel on purpose.
+     *
+     * They were a second writer for `/projects/:id/env-vars`, and a broken one:
+     * they never sent `scope`, and the store defaults an omitted scope to
+     * production (`upsertProjectEnvVar` / `deleteProjectEnvVar`). The terminal
+     * tab listed variables of every scope undifferentiated, then wrote and
+     * deleted only the production row — so deleting a preview-scoped variable
+     * from there removed the production one instead.
+     *
+     * The Environment tab now mounts the real `env` / `secrets` panels, which
+     * post to their own panels below and do carry the scope. Re-adding a
+     * scope-less writer here reintroduces the defect, which is why
+     * `api.projects.$projectId.ide-panel.terminal-env-writes.spec.ts` fails if
+     * this panel ever writes env vars again.
+     */
+    if (intent === 'run-script') {
       const script = body.script ?? '';
 
       const run = await runTerminalCommand(
@@ -3207,6 +3458,27 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           workspaceId,
         }),
       });
+    } else {
+      /*
+       * BUG-GIT-001 — LA MOITIÉ QUI REND LE DÉFAUT IMPOSSIBLE À REVIVRE EN
+       * SILENCE.
+       *
+       * Cette chaîne n'avait pas de dernier `else`. Une intention qu'aucun cas
+       * ne reconnaissait ne déclenchait donc AUCUN appel git, tombait jusqu'au
+       * `return json({ ok: true })`, et le panneau annonçait « action
+       * effectuée ». C'est ce que l'audit du 15/08 a mesuré : un seul
+       * `POST …/ide-panel/git` → 200, et pas une seule route d'écriture git
+       * atteinte, sur 2 projets sur 2.
+       *
+       * Corriger l'appelant ne suffit pas : le prochain formulaire qui oublie
+       * son intention se tairait de la même façon. Un panneau Git n'a pas
+       * d'action par défaut — toute intention inconnue est une erreur, et elle
+       * se dit.
+       */
+      throw json(
+        { error: copy['apiRuntime.panel.unsupportedAction'], code: 'UNSUPPORTED_PANEL_ACTION', intent },
+        { status: 400 },
+      );
     }
   } else {
     throw json(
@@ -3286,6 +3558,36 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
 
     console.error('IDE panel route failed:', error);
 
+    /*
+     * Upstream codes the USER can act on. Two things used to go wrong at once
+     * when provisioning a project database failed:
+     *
+     *  - the API answered `503 DATABASE_PROVISION_UNAVAILABLE` with a `reason`,
+     *    and this handler flattened it into "the panel service is temporarily
+     *    unavailable, please retry" — advice that is simply false, because no
+     *    retry can ever succeed while the platform is missing its shared-tenant
+     *    configuration;
+     *  - and because the failure was THROWN as a Response, the whole panel
+     *    unmounted, leaving a blank IDE with no error and no way back.
+     *
+     * So for these codes: keep the real code and message, and RETURN the
+     * payload instead of throwing. The panels already render `ok === false`
+     * (DatabasePanel has a `role="alert"` failure state) — they simply never
+     * received it. Every other failure keeps the existing masked behaviour.
+     */
+    if (error instanceof Response) {
+      const upstream = await error
+        .clone()
+        .json()
+        .catch(() => undefined);
+
+      const passthrough = actionablePanelFailure(upstream);
+
+      if (passthrough) {
+        return json(passthrough, { status: error.status, headers: mergeLocaleHeaders(request) });
+      }
+    }
+
     const status =
       error instanceof Response
         ? error.status
@@ -3303,16 +3605,93 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
           : status === 404
             ? copy['apiRuntime.panel.notFound']
             : status === 429
-              ? copy['apiRuntime.panel.quotaExceeded']
+              ? causeDu429((error as { headers?: Headers } | undefined)?.headers) === 'debit'
+                ? copy['apiRuntime.panel.rateLimited']
+                : copy['apiRuntime.panel.quotaExceeded']
               : status >= 500
                 ? copy['apiRuntime.panel.backendUnavailable']
                 : copy['apiRuntime.panel.loadFailed'];
 
     throw json(
-      { error: message, code: status === 429 ? 'PANEL_QUOTA_EXCEEDED' : 'PANEL_REQUEST_FAILED' },
+      {
+        error: message,
+        code:
+          status === 429
+            ? causeDu429((error as { headers?: Headers } | undefined)?.headers) === 'debit'
+              ? 'PANEL_RATE_LIMITED'
+              : 'PANEL_QUOTA_EXCEEDED'
+            : 'PANEL_REQUEST_FAILED',
+      },
       { status, headers: mergeLocaleHeaders(request) },
     );
   }
+}
+
+/**
+ * Upstream failures a USER can act on, which must keep their identity instead of
+ * being flattened into the catch-all "panel service temporarily unavailable —
+ * please retry". Provisioning a project database is the case that exposed this:
+ * the API answers `503 DATABASE_PROVISION_UNAVAILABLE` with a `reason`, and the
+ * generic message told users to retry something that can never succeed until the
+ * platform is configured.
+ *
+ * Returning a payload (rather than throwing) also keeps the panel mounted: the
+ * panels already render `ok === false` — DatabasePanel has a `role="alert"`
+ * failure block — they simply never received it, so an action failure tore the
+ * whole panel out of the DOM and left a blank IDE.
+ */
+/*
+ * BUG-DEPLOY-DEAD-001 — le même défaut que pour la base de données, jamais
+ * généralisé (règle 7 : viser la règle, pas la première occurrence).
+ *
+ * Avi, 08/09 : « le déploiement ne marche pour aucun fournisseur », devant
+ * « Le service du panneau est temporairement indisponible. Veuillez
+ * réessayer. » et son bouton Réessayer. MESURÉ contre l'API : six
+ * fournisseurs sur huit répondent `PROVIDER_NOT_CONFIGURED` en nommant très
+ * exactement ce qui manque (`VERCEL_DEPLOY_HOOK_URL`,
+ * `CLOUD_RUN_BUILD_TRIGGER_URL, GCP_OAUTH_TOKEN`, …) ; en production la même
+ * condition sort en 503 `DEPLOYMENT_PROVIDER_NOT_CONFIGURED`. Rien de
+ * temporaire, rien à réessayer — et l'utilisateur ne voyait aucun des deux.
+ */
+export const ACTIONABLE_PANEL_CODES = new Set([
+  'DATABASE_PROVISION_UNAVAILABLE',
+  'FEATURE_NOT_ENABLED',
+  'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
+  'PROVIDER_NOT_CONFIGURED',
+  'ENTERPRISE_DEPLOYMENT_REQUIRED',
+]);
+
+export function actionablePanelFailure(upstream: unknown) {
+  const brut = upstream as { code?: unknown; error?: unknown; message?: unknown; reason?: unknown } | undefined;
+
+  /*
+   * DEUX formes de charge utile, mesurées sur l'API le 08/09 :
+   *   503 → { error: '<phrase lisible>', code: 'DEPLOYMENT_PROVIDER_NOT_CONFIGURED' }
+   *   400 → { error: 'PROVIDER_NOT_CONFIGURED', message: '<phrase lisible>' }
+   * Le jeton d'identité est donc tantôt dans `code`, tantôt dans `error`, et
+   * la phrase lisible tantôt dans `error`, tantôt dans `message`. Ne lire que
+   * `code` laissait passer la seconde — et c'est celle que rend la plupart des
+   * environnements.
+   */
+  const codeConnu = (valeur: unknown) => typeof valeur === 'string' && ACTIONABLE_PANEL_CODES.has(valeur);
+  const code = codeConnu(brut?.code) ? (brut!.code as string) : codeConnu(brut?.error) ? (brut!.error as string) : null;
+
+  if (!code) {
+    return undefined;
+  }
+
+  const lisible = [brut?.error, brut?.message].find(
+    (valeur): valeur is string => typeof valeur === 'string' && valeur.trim().length > 0 && valeur !== code,
+  );
+
+  const reason = brut?.reason;
+
+  return {
+    ok: false as const,
+    code,
+    error: lisible ?? code,
+    ...(typeof reason === 'string' && reason ? { reason } : {}),
+  };
 }
 
 export async function loader(args: EnterpriseLoaderArgs) {
@@ -4531,34 +4910,56 @@ async function runSecurityScan(
 
   const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now, language);
 
+  /*
+   * BUG-SEC-SCANNER-PHANTOM-FINDING: `2>/dev/null` keeps grep's own error/usage
+   * text (unsupported option on BusyBox grep, permission errors, …) out of the
+   * captured output — the runtime merges stdout+stderr — so tool noise can never
+   * be parsed into findings. A failed sub-command is logged and skipped instead
+   * of being reported as vulnerabilities (extractGrepMatchLines is the second
+   * line of defence for anything that still slips through on stdout).
+   */
   if (runSecretScan) {
     const secretRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
+      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null | head -50 || true",
       copy['apiRuntime.panel.securitySecretScan'],
       now,
       language,
     );
-    findings.push(
-      ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
-        ...finding,
-        title: copy['apiRuntime.panel.securitySecretFinding'],
-        recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
-      })),
-    );
+
+    if (secretRun.status !== 'succeeded') {
+      console.error(
+        `Security secret scan command failed (exit ${secretRun.exitCode}); output ignored, not reported as findings`,
+      );
+    } else {
+      findings.push(
+        ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
+          ...finding,
+          title: copy['apiRuntime.panel.securitySecretFinding'],
+          recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
+        })),
+      );
+    }
   }
 
   if (runSastScan) {
     const sastRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build | head -80 || true",
+      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build 2>/dev/null | head -80 || true",
       copy['apiRuntime.panel.securityStaticScan'],
       now,
       language,
     );
-    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+
+    if (sastRun.status !== 'succeeded') {
+      console.error(
+        `Security static scan command failed (exit ${sastRun.exitCode}); output ignored, not reported as findings`,
+      );
+    } else {
+      findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+    }
   }
 
   const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
@@ -4674,56 +5075,70 @@ function normalizeSecurityState(input: any, language?: string | null) {
         }))
       : fallback.scans,
     vulnerabilities: Array.isArray(input?.vulnerabilities)
-      ? input.vulnerabilities.map((vulnerability: any) => ({
-          id: String(vulnerability.id || randomUUID()),
-          packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
-          title: String(
-            vulnerability.title === `${vulnerability.packageName} dependency advisory`
-              ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
-                  name: vulnerability.packageName,
-                })
-              : localizedSecurityText(
-                  localizedSecurityText(
+      ? input.vulnerabilities
+          .map((vulnerability: any) => ({
+            id: String(vulnerability.id || randomUUID()),
+            packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
+            title: String(
+              vulnerability.title === `${vulnerability.packageName} dependency advisory`
+                ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
+                    name: vulnerability.packageName,
+                  })
+                : localizedSecurityText(
                     localizedSecurityText(
-                      localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
-                      'apiRuntime.panel.securityCommandFinding',
+                      localizedSecurityText(
+                        localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
+                        'apiRuntime.panel.securityCommandFinding',
+                      ),
+                      'apiRuntime.panel.securityDomFinding',
                     ),
-                    'apiRuntime.panel.securityDomFinding',
-                  ),
-                  'apiRuntime.panel.securityReviewFinding',
-                ) ||
-                  vulnerability.packageName ||
-                  copy['apiRuntime.panel.securityFinding'],
-          ),
-          severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
-            ? vulnerability.severity
-            : 'info',
-          status: ['open', 'fixed', 'ignored'].includes(vulnerability.status) ? vulnerability.status : 'open',
-          hidden: Boolean(vulnerability.hidden),
-          source: String(vulnerability.source || 'workspace-runtime'),
-          details: String(vulnerability.details || ''),
-          recommendation: vulnerability.recommendation
-            ? String(
-                localizedSecurityText(
+                    'apiRuntime.panel.securityReviewFinding',
+                  ) ||
+                    vulnerability.packageName ||
+                    copy['apiRuntime.panel.securityFinding'],
+            ),
+            severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
+              ? vulnerability.severity
+              : 'info',
+            status: ['open', 'fixed', 'ignored'].includes(vulnerability.status) ? vulnerability.status : 'open',
+            hidden: Boolean(vulnerability.hidden),
+            source: String(vulnerability.source || 'workspace-runtime'),
+            details: String(vulnerability.details || ''),
+            recommendation: vulnerability.recommendation
+              ? String(
                   localizedSecurityText(
                     localizedSecurityText(
                       localizedSecurityText(
-                        localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
-                        'apiRuntime.panel.securityUpdateRemediation',
+                        localizedSecurityText(
+                          localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
+                          'apiRuntime.panel.securityUpdateRemediation',
+                        ),
+                        'apiRuntime.panel.securityPinRemediation',
                       ),
-                      'apiRuntime.panel.securityPinRemediation',
+                      'apiRuntime.panel.securityCommandAdvice',
                     ),
-                    'apiRuntime.panel.securityCommandAdvice',
+                    vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
+                      ? 'apiRuntime.panel.securityDomAdvice'
+                      : 'apiRuntime.panel.securityReviewAdvice',
                   ),
-                  vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
-                    ? 'apiRuntime.panel.securityDomAdvice'
-                    : 'apiRuntime.panel.securityReviewAdvice',
-                ),
-              )
-            : undefined,
-          createdAt: vulnerability.createdAt,
-          updatedAt: vulnerability.updatedAt,
-        }))
+                )
+              : undefined,
+            createdAt: vulnerability.createdAt,
+            updatedAt: vulnerability.updatedAt,
+          }))
+          /*
+           * BUG-SEC-SCANNER-PHANTOM-FINDING: earlier scans persisted grep's own
+           * error/usage text ("Usage: grep [-HhnlLoqvsrRiwFE] …") as findings.
+           * Grep-based findings (sast / secret-scan) always carry a
+           * `path:lineno:` details prefix; anything else in the stored state is
+           * scanner noise — drop it on read so the panel is clean immediately,
+           * without waiting for a rescan.
+           */
+          .filter(
+            (vulnerability: any) =>
+              !['sast', 'secret-scan'].includes(vulnerability.source) ||
+              isGrepMatchLine(String(vulnerability.details ?? '')),
+          )
       : fallback.vulnerabilities,
   };
 }
@@ -4763,10 +5178,7 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string, langu
 function vulnerabilitiesFromSastOutput(output: string, timestamp: string, language?: string | null) {
   const copy = getApiRuntimeRoutesCopy(language);
 
-  return output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+  return extractGrepMatchLines(output)
     .slice(0, 80)
     .map((line, index) => {
       const isCommandExecution = /\b(child_process|exec\(|spawn\(|new Function\(|eval\()/i.test(line);
@@ -4826,7 +5238,17 @@ function normalizeSeverity(value: unknown) {
   return ['critical', 'high', 'moderate', 'low', 'info'].includes(severity) ? severity : 'info';
 }
 
-function defaultWorkflowsState(language?: string | null) {
+/*
+ * A freshly provisioned workspace has the project's SOURCE but no
+ * `node_modules`, so the Run button's `npm run dev` died on every brand-new
+ * project with `sh: vite: not found` (exit 127) — the workflow panel simply
+ * never worked out of the box. Install first, and only when the directory is
+ * actually missing so re-runs stay fast and work offline.
+ */
+const RUN_BUTTON_DEV_COMMAND = 'npm run dev';
+const RUN_BUTTON_INSTALL_COMMAND = '[ -d node_modules ] || npm install --no-audit --no-fund';
+
+export function defaultWorkflowsState(language?: string | null) {
   const copy = getApiRuntimeRoutesCopy(language);
 
   return {
@@ -4846,7 +5268,14 @@ function defaultWorkflowsState(language?: string | null) {
             id: 1002,
             orderIndex: 0,
             taskType: 'shell',
-            command: 'npm run dev',
+            command: RUN_BUTTON_INSTALL_COMMAND,
+            targetWorkflowId: null,
+          },
+          {
+            id: 1003,
+            orderIndex: 1,
+            taskType: 'shell',
+            command: RUN_BUTTON_DEV_COMMAND,
             targetWorkflowId: null,
           },
         ],
@@ -4856,7 +5285,37 @@ function defaultWorkflowsState(language?: string | null) {
   };
 }
 
-function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
+/**
+ * Repair the seeded Run-button workflow of projects created BEFORE the install
+ * step existed. Their `VIBECORE_WORKFLOWS_STATE` is already persisted, so the
+ * new default alone would never reach them and their Run button would keep
+ * failing forever.
+ *
+ * Deliberately narrow: only the system-owned Run-button workflow, and only when
+ * its steps are still exactly the single bare `npm run dev`. A workflow the user
+ * has edited — even by adding one step — is left untouched.
+ */
+export function withRunButtonInstallStep(workflow: any) {
+  if (!workflow?.isSystem || !workflow?.isRunButton) {
+    return workflow;
+  }
+
+  const tasks = Array.isArray(workflow.tasks) ? workflow.tasks : [];
+
+  if (tasks.length !== 1 || String(tasks[0]?.command ?? '').trim() !== RUN_BUTTON_DEV_COMMAND) {
+    return workflow;
+  }
+
+  return {
+    ...workflow,
+    tasks: [
+      { id: 1002, orderIndex: 0, taskType: 'shell', command: RUN_BUTTON_INSTALL_COMMAND, targetWorkflowId: null },
+      { ...tasks[0], orderIndex: 1 },
+    ],
+  };
+}
+
+export function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === WORKFLOWS_STATE_ENV_KEY)?.value;
 
@@ -4877,7 +5336,7 @@ function normalizeWorkflowsState(input: any, language?: string | null) {
   const workflows = Array.isArray(input?.workflows) ? input.workflows : fallback.workflows;
 
   return {
-    workflows: workflows.map((workflow: any, index: number) => ({
+    workflows: workflows.map(withRunButtonInstallStep).map((workflow: any, index: number) => ({
       id: Number(workflow.id) || Date.now() + index,
       projectId: workflow.projectId ?? null,
       name: String(

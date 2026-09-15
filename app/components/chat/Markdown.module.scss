@@ -94,6 +94,13 @@ $code-font-size: 13px;
 
     @include not-inside-actions {
       border-radius: 6px;
+
+      /*
+       * La pastille de code inline doit respirer : sans marge horizontale, son
+       * fond teinté démarrait au ras du mot précédent et se collait au suivant.
+       * `margin-inline` reste correct en RTL.
+       */
+      margin-inline: 0.15em;
       padding: 0.2em 0.4em;
       background-color: var(--bolt-elements-messages-inlineCode-background);
       color: var(--bolt-elements-messages-inlineCode-text);

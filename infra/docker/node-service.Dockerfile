@@ -30,6 +30,24 @@ COPY apps ./apps
 COPY packages ./packages
 COPY services ./services
 
+# `app/` — la source de l'application web — est copiée parce que l'alias `~/*`
+# du workspace y pointe (`tsconfig` racine : baseUrl `.`, `~/* -> app/*`), et que
+# `apps/admin` s'en sert : `apps/admin/src/i18n.ts` importe
+# `~/lib/i18n/catalogs/admin` et `~/lib/i18n/language`, et son `vite.config`
+# alias `~` vers `../../app`.
+#
+# Sans cette ligne le tier `admin` était INCONSTRUCTIBLE (BUG-BUILD-002) :
+# `tsc --noEmit` échouait sur deux TS2307 « Cannot find module '~/lib/i18n/…' »
+# et cassait `pnpm build`. Le défaut ne se voyait pas en local — le dépôt entier
+# y est présent — mais seulement dans le conteneur, dont le contexte s'arrêtait à
+# apps/packages/services. Conséquence : l'image admin de production était gelée
+# (ef05fea502) pendant que les autres tiers avançaient.
+#
+# Coût : cette copie n'existe QUE dans l'étage `build`. L'étage `runtime` ne
+# reprend que `/runtime` (sortie de `pnpm deploy`), donc les images finales des
+# six services construits par ce Dockerfile ne grossissent pas.
+COPY app ./app
+
 RUN pnpm --filter "${PACKAGE_FILTER}" build
 RUN pnpm deploy --filter "${PACKAGE_FILTER}" --prod --prefer-offline /runtime
 
@@ -55,6 +73,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /runtime /runtime
+
+# CVE-2026-59873 — `tar` CRITIQUE (bombe gzip) dans le node-tar EMBARQUÉ PAR npm.
+#
+# Mesuré le 2026-09-03 dans l'image réellement servie :
+#   7.5.11  /usr/local/lib/node_modules/npm/node_modules/tar/package.json
+#   7.5.15  /app/node_modules/.pnpm/tar@.../node_modules/tar/package.json
+#
+# La seconde est la nôtre et se corrige par un `override` pnpm. La PREMIÈRE non :
+# elle appartient à l'image de base `node:22-bookworm-slim`, ce n'est pas une
+# dépendance résolue. Elle a bloqué les 7 images à la porte de vulnérabilités et
+# figé toutes les livraisons.
+#
+# npm et corepack ne servent JAMAIS à l'exécution — le conteneur lance `node`
+# directement. Les retirer est un correctif réel, pas un contournement : la
+# vulnérabilité disparaît ET la surface d'attaque diminue. Préféré à une entrée
+# `.trivyignore`, qui aurait affaibli une porte de sécurité pour un outil qui ne
+# s'exécute pas.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 USER node
 EXPOSE 3000

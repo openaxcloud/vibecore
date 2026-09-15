@@ -22,6 +22,13 @@ interface FilterChipProps {
   /** Optional icon to display before the label */
   icon?: string;
 
+  /**
+   * Disables the toggle button (clickable chips only). Used by scoped toggles
+   * whose target does not exist yet (e.g. Skills "Install to: Workspace"
+   * without a workspace).
+   */
+  disabled?: boolean;
+
   /** Additional class name */
   className?: string;
 }
@@ -40,7 +47,16 @@ const variants = {
  * buttons (aria-pressed) with the app's blue action accent when active, per
  * docs/DESIGN_ACCENTS.md.
  */
-export function FilterChip({ label, value, onClick, onRemove, active = false, icon, className }: FilterChipProps) {
+export function FilterChip({
+  label,
+  value,
+  onClick,
+  onRemove,
+  active = false,
+  icon,
+  disabled,
+  className,
+}: FilterChipProps) {
   const { i18n } = useTranslation();
   const copy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
 
@@ -84,7 +100,20 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
   const chipClasses = classNames(
     'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
     active
-      ? 'border border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+      ? /*
+         * TEXTE SUR UNE TEINTE DE SA PROPRE COULEUR : variante `-on-tint`.
+         *
+         * La puce active pose l'accent SUR un fond `color-mix(… 12%)` du même
+         * accent (voir `activeBackground` juste en dessous). Mesuré au pixel
+         * RENDU le 2026-09-08, iPhone 390, thème clair, page /projects :
+         * `rgb(194,65,12)` sur `248,232,225` donne 4,35 pour 4,5 exigé.
+         *
+         * `--vc-ide-accent-action-on-tint` existe exactement pour ce cas et
+         * vaut `#9a3412` en clair — assez sombre pour repasser le seuil. La
+         * BORDURE garde l'accent nu : une bordure n'est pas du texte et ne
+         * relève pas de 1.4.3.
+         */
+        'border border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action-on-tint)]'
       : 'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
     onRemove && 'pr-1',
     className,
@@ -100,6 +129,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
         type="button"
         aria-pressed={active}
         onClick={onClick}
+        disabled={disabled}
         initial="initial"
         animate="animate"
         exit="exit"
@@ -108,6 +138,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
         className={classNames(
           chipClasses,
           'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+          'disabled:cursor-not-allowed disabled:opacity-50',
         )}
         style={activeBackground}
       >

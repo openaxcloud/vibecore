@@ -68,7 +68,7 @@ export function AppBuilderSolutionPage({ language }: { language: SupportedLangua
         lang={language}
         dir={direction}
       >
-        <Hero copy={copy} language={language} asset={visualAssets.hero} />
+        <Hero copy={copy} asset={visualAssets.hero} />
         <ProblemSection copy={copy} />
         <PromptSection copy={copy} assets={visualAssets} />
         <IdeProofSection copy={copy} assets={visualAssets} />
@@ -82,21 +82,12 @@ export function AppBuilderSolutionPage({ language }: { language: SupportedLangua
   );
 }
 
-function Hero({
-  copy,
-  language,
-  asset,
-}: {
-  copy: AppBuilderCopy;
-  language: SupportedLanguage;
-  asset: AppBuilderVisualAsset;
-}) {
+function Hero({ copy, asset }: { copy: AppBuilderCopy; asset: AppBuilderVisualAsset }) {
   return (
     <section className="app-builder-hero" aria-label={copy.aria.heroLabel} data-testid="app-builder-hero">
       <div className="app-builder-hero__grid" aria-hidden />
       <div className="container-responsive app-builder-hero__layout">
         <div className="app-builder-hero__copy">
-          <LanguageSwitch copy={copy} language={language} />
           <p className="app-builder-eyebrow">
             <Sparkles aria-hidden />
             {copy.hero.eyebrow}
@@ -482,19 +473,6 @@ function ProductVisual({
         ) : null}
       </figcaption>
     </figure>
-  );
-}
-
-function LanguageSwitch({ copy, language }: { copy: AppBuilderCopy; language: SupportedLanguage }) {
-  return (
-    <nav className="app-builder-language-switch" aria-label={copy.languageSwitch.label}>
-      <Link to="?lang=en" lang="en" hrefLang="en" reloadDocument aria-current={language === 'en' ? 'page' : undefined}>
-        {copy.languageSwitch.english}
-      </Link>
-      <Link to="?lang=fr" lang="fr" hrefLang="fr" reloadDocument aria-current={language === 'fr' ? 'page' : undefined}>
-        {copy.languageSwitch.french}
-      </Link>
-    </nav>
   );
 }
 

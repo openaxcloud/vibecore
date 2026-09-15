@@ -344,7 +344,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                   type="button"
                   onClick={() => setQuery('')}
                   aria-label={copy.clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
+                  className="absolute right-1 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
@@ -411,7 +411,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         </section>
 
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
-          <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="container-responsive grid grid-cols-[minmax(0,1fr)] gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
                 {copy.foundations.eyebrow}
@@ -528,11 +528,11 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         </section>
 
         <section id="community-feed" className="container-responsive py-16 sm:py-24">
-          <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div>
               <SectionHeader eyebrow={copy.feed.eyebrow} title={copy.feed.title} description={copy.feed.description} />
 
-              <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
                 <label className="relative block">
                   <span className="sr-only">{copy.searchLabel}</span>
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ecode-text-muted)]" />
@@ -558,9 +558,9 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                     type="button"
                     onClick={() => setActiveCategory(category.id)}
                     className={classNames(
-                      'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+                      'inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
                       activeCategory === category.id
-                        ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+                        ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
                         : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
                     )}
                   >
@@ -616,7 +616,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         </section>
 
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
-          <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="container-responsive grid grid-cols-[minmax(0,1fr)] gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
                 {copy.events.eyebrow}
@@ -811,9 +811,9 @@ function TemplateTagChip({ label, active, onClick }: { label: string; active: bo
       aria-pressed={active}
       onClick={onClick}
       className={classNames(
-        'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+        'inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
         active
-          ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+          ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
           : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
       )}
     >
@@ -862,7 +862,7 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
           </div>
         </div>
         {template.trending ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ecode-accent)] px-3 py-1 text-[11px] font-semibold text-white">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white">
             <Zap className="h-3 w-3" aria-hidden />
             {copy.trending}
           </span>
@@ -1122,7 +1122,7 @@ function MarketingLinkButton({
         'inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition',
         fullWidth ? 'w-full' : '',
         variant === 'primary'
-          ? 'bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)]'
+          ? 'bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90'
           : 'border border-[var(--ecode-border)] bg-transparent text-[var(--ecode-text)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
       )}
     >

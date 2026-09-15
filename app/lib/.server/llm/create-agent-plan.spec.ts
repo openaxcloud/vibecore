@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseAgentPlan } from './create-agent-plan';
+import { buildPlanLanguageRule, parseAgentPlan } from './create-agent-plan';
 
 describe('parseAgentPlan', () => {
   it('parses a clean JSON plan into tasks + a roster ordered by the role catalog', () => {
@@ -45,5 +45,30 @@ describe('parseAgentPlan', () => {
     expect(parseAgentPlan('{"tasks":[]}')).toBeUndefined();
     expect(parseAgentPlan('{"tasks":[{"title":"x","role":"nope"}]}')).toBeUndefined();
     expect(parseAgentPlan('{not valid json')).toBeUndefined();
+  });
+});
+
+/*
+ * BUG-I18N-003 — le plan de l'agent s'affichait en ANGLAIS dans une interface
+ * française, sur les 3 formats. À distinguer d'une traduction manquante : le
+ * catalogue FR existe et sert de valeur par défaut ; ce qui s'affichait était du
+ * texte PRODUIT par le modèle, et le prompt de planification ne lui imposait
+ * aucune langue de sortie.
+ */
+describe('langue du plan', () => {
+  it('impose le français quand l’interface est en français', () => {
+    expect(buildPlanLanguageRule('fr')).toMatch(/task title in FRENCH/i);
+  });
+
+  it('rappelle que la langue de l’app demandée ne change pas celle du plan', () => {
+    expect(buildPlanLanguageRule('fr')).toMatch(/language of the app being built does not change this/i);
+  });
+
+  it.each([['en'], [undefined], ['es']])('n’ajoute aucune consigne pour %s — comportement d’origine', (langue) => {
+    expect(buildPlanLanguageRule(langue as string | undefined)).toBe('');
+  });
+
+  it('se termine par un saut de ligne pour ne pas coller à la règle suivante', () => {
+    expect(buildPlanLanguageRule('fr').endsWith('\n')).toBe(true);
   });
 });

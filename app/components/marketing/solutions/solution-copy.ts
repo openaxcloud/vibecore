@@ -1,13 +1,12 @@
 import type { SupportedLanguage } from '~/lib/i18n/language';
 
 /**
- * Shared content contract for the declined solution sales pages (SOL-02 → SOL-09).
+ * Shared content contract for the solution sales pages (SOL-02 → SOL-09).
  *
  * These pages reuse the App Builder gabarit's structure (hero, problem, build,
- * deliverables, capabilities, use cases, FAQ, CTA) but render an inline, fully
- * responsive product demonstration mock, then show the localized App Builder
- * IDE captures as a clearly-labelled reference proof of the real E-Code build
- * loop. The page-specific mock is never presented as a generation record.
+ * deliverables, capabilities, use cases, FAQ, CTA). Their photographed working
+ * applications are registered separately in `solution-app-showcases.ts`, so
+ * editorial copy cannot silently substitute a decorative or unrelated visual.
  */
 
 export type ActionCopy = Readonly<{ label: string; ariaLabel: string }>;
@@ -53,7 +52,6 @@ export type SolutionCopy = Readonly<{
     secondaryCta: ActionCopy;
     microcopy: string;
   }>;
-  languageSwitch: Readonly<{ label: string; english: string; french: string }>;
   demo: SolutionDemo;
   problem: Readonly<{
     eyebrow: string;
@@ -108,15 +106,24 @@ export type SolutionCopy = Readonly<{
  * which clamps the resolved language before selecting copy.
  */
 export type BilingualLanguage = 'en' | 'fr';
+export type SolutionAppShowcaseSlug =
+  | 'website-builder'
+  | 'game-builder'
+  | 'dashboard-builder'
+  | 'chatbot-builder'
+  | 'internal-ai-builder'
+  | 'enterprise'
+  | 'startups'
+  | 'freelancers';
 export type SolutionCopyByLanguage = Record<BilingualLanguage, SolutionCopy>;
 
 export function toBilingual(language: SupportedLanguage): BilingualLanguage {
   return language === 'fr' ? 'fr' : 'en';
 }
 
-/** Metadata used by the shared route helper for each declined solution. */
+/** Metadata used by the shared route helper for each solution. */
 export type SolutionRouteConfig = Readonly<{
-  slug: string;
+  slug: SolutionAppShowcaseSlug;
   canonicalUrl: string;
   ogImage: Readonly<{ en: string; fr: string }>;
 }>;

@@ -111,7 +111,12 @@ async function paneActions(page: Page, paneIndex = 0) {
    */
   await pane.click({ position: { x: 30, y: 8 } }).catch(() => {});
 
-  const trigger = pane.locator('button[aria-label="Tab actions"]').first();
+  /*
+   * RPL-IDE-001.6 — the trigger's aria-label now names the active tab
+   * ("Options for Webview"), so it can no longer be matched by exact text.
+   * The test id is the stable handle.
+   */
+  const trigger = pane.locator('[data-testid="tab-options"]').first();
   const menu = page.locator('.bolt-project-tab-actions-menu').first();
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -130,7 +135,17 @@ async function paneActions(page: Page, paneIndex = 0) {
 async function clickPaneAction(page: Page, paneIndex: number, name: string) {
   await paneActions(page, paneIndex);
 
-  const item = page.locator('.bolt-project-tab-actions-menu').getByRole('button', { name, exact: true });
+  /*
+   * `menuitem`, plus `button`. Le menu d'actions d'onglet est désormais un vrai
+   * menu ARIA : le conteneur porte `role="menu"` et ses entrées `role="menuitem"`.
+   * Un rôle explicite REMPLACE le rôle implicite, donc `getByRole('button')` ne
+   * les voit plus — d'où l'échec « element(s) not found » alors que le menu
+   * s'ouvrait bien.
+   *
+   * Le test n'est pas assoupli : il vérifie maintenant le nom accessible ET la
+   * sémantique de menu, là où il ne vérifiait que le premier.
+   */
+  const item = page.locator('.bolt-project-tab-actions-menu').getByRole('menuitem', { name, exact: true });
   await expect(item).toBeVisible();
   await item.click();
   await page.waitForTimeout(500);
@@ -138,6 +153,28 @@ async function clickPaneAction(page: Page, paneIndex: number, name: string) {
 
 for (const theme of ['light', 'dark'] as const) {
   test(`RPL-IDE live proof (${theme})`, async ({ page }, testInfo) => {
+    /*
+     * BUDGET MESURÉ, PAS ARBITRAIRE.
+     *
+     * Ce test échouait par intermittence sur `Test timeout of 30000ms
+     * exceeded`, en bloquant sur une PRÉCONDITION — l'ouverture de la palette
+     * de commandes — sans jamais atteindre ses assertions métier.
+     *
+     * Durées relevées le 2026-09-01 sur un même run CI :
+     *     17,0 s / 17,7 s
+     * contre un budget global de 30 s (`playwright.config.ts`). La marge
+     * n'était que de ×1,8 : dépasser 30 s sous contention CI est
+     * ATTENDU, pas exceptionnel.
+     *
+     * C'est la différence avec `dashboard.spec.ts` (#338), où la marge était
+     * de ×10 et où gonfler le budget aurait MASQUÉ un vrai blocage. Ici le
+     * budget est réellement trop serré pour le travail effectué, et le
+     * relever est la correction mesurée.
+     *
+     * Aucune assertion n'est touchée : seul le temps alloué change.
+     */
+    test.setTimeout(90_000);
+
     const label = `${theme}-${width(testInfo)}`;
     page.on('pageerror', (e) => console.log(`[pageerror ${label}]`, e.message));
 

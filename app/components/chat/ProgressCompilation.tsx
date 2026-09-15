@@ -37,33 +37,73 @@ export function deriveProgressState({
   hasActiveWork,
   streaming,
   failed,
+  degraded,
 }: {
   completedCount: number;
   totalCount: number;
   hasActiveWork: boolean;
   streaming?: boolean;
   failed?: boolean;
-}): 'working' | 'done' | 'interrupted' {
+
+  /**
+   * BUG-UX-AGENT-DONE-FALSE — le % vient du ratio d'ACTIONS DE FICHIERS, pas de
+   * la santé du projet. Un run peut donc finir « 100 % » avec 51 erreurs dans
+   * Problèmes, un consensus à 20 % d'accord et un aperçu en erreur. `degraded`
+   * porte ces signaux de santé (Problèmes > 0, consensus partiel/accord faible,
+   * rôles du plan non complétés, alerte d'aperçu) : quand il est vrai, la fin de
+   * run s'affiche « Terminé avec des erreurs », jamais un succès total.
+   */
+  degraded?: boolean;
+}): 'working' | 'done' | 'done-with-issues' | 'interrupted' {
   if (failed) {
     return 'interrupted';
   }
 
-  if (streaming || hasActiveWork) {
+  if (streaming) {
     return 'working';
   }
 
+  if (hasActiveWork) {
+    /*
+     * ANNOTATION VIVANTE, FLUX MORT — le cas de l'Arrêt.
+     *
+     * `hasActiveWork` ne connaît que le CONTENU des annotations, jamais le fait
+     * que le flux est terminé. Sur un Arrêt, le SDK avale l'AbortError sans
+     * appeler `onFinish` ni `onError` : `setData(undefined)` — qui ne vit que
+     * dans `onFinish` — ne s'exécute jamais, et la dernière annotation écrite
+     * par le serveur, `{response, in-progress}`, reste dans `data` pour
+     * toujours. `failed` reste faux (un abandon ne produit pas d'erreur) et
+     * `streaming` retombe à faux. L'ancienne condition rendait donc 'working' :
+     * l'anneau tournait indéfiniment sous un composeur libéré, l'interface
+     * disant deux choses contraires à la fois. Rien ne le rattrapait — aucune
+     * annotation terminale n'arriverait jamais, la connexion étant coupée.
+     *
+     * Un flux mort avec du travail annoncé vivant est une INTERRUPTION, pas du
+     * travail. `streaming === false` explicitement, et non `!streaming` : un
+     * appelant qui ne renseigne pas le signal ne sait pas si le flux vit, et on
+     * ne convertit pas une ignorance en interruption.
+     */
+    return streaming === false ? 'interrupted' : 'working';
+  }
+
+  if (!(totalCount > 0 && completedCount === totalCount)) {
+    return 'interrupted';
+  }
+
   // Terminé sans erreur ET sans reste : le seul cas où « terminé » est vrai.
-  return totalCount > 0 && completedCount === totalCount ? 'done' : 'interrupted';
+  return degraded ? 'done-with-issues' : 'done';
 }
 
 export default function ProgressCompilation({
   data,
   streaming,
   failed,
+  degraded,
 }: {
   data?: ProgressAnnotation[];
   streaming?: boolean;
   failed?: boolean;
+  degraded?: boolean;
 }) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
@@ -97,7 +137,7 @@ export default function ProgressCompilation({
   const totalCount = progressList.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const hasActiveWork = progressList.some((item) => item.status === 'in-progress');
-  const state = deriveProgressState({ completedCount, totalCount, hasActiveWork, streaming, failed });
+  const state = deriveProgressState({ completedCount, totalCount, hasActiveWork, streaming, failed, degraded });
   const activeItem = progressList.find((item) => item.status === 'in-progress') ?? progressList.at(-1);
   const localizedMessage = localizePersistedProgressMessage(activeItem?.message, language);
 
@@ -106,7 +146,9 @@ export default function ProgressCompilation({
       ? formatPhase(localizedMessage, copy['chatResiduals.progress.working'])
       : state === 'done'
         ? copy['chatResiduals.progress.done']
-        : copy['chatResiduals.progress.interrupted'];
+        : state === 'done-with-issues'
+          ? copy['chatResiduals.progress.doneWithIssues']
+          : copy['chatResiduals.progress.interrupted'];
 
   const formattedPercent = formatChatResidualsNumber(progressPercent, language);
 
@@ -118,7 +160,9 @@ export default function ProgressCompilation({
       aria-label={
         state === 'interrupted'
           ? formatChatResidualsCopy(copy['chatResiduals.progress.ariaInterrupted'], { percent: formattedPercent })
-          : formatChatResidualsCopy(copy['chatResiduals.progress.aria'], { phase, percent: formattedPercent })
+          : state === 'done-with-issues'
+            ? formatChatResidualsCopy(copy['chatResiduals.progress.ariaDoneWithIssues'], { percent: formattedPercent })
+            : formatChatResidualsCopy(copy['chatResiduals.progress.aria'], { phase, percent: formattedPercent })
       }
       data-active-work={state === 'working' ? 'true' : 'false'}
       data-progress-state={state}
@@ -129,7 +173,8 @@ export default function ProgressCompilation({
             ? 'i-svg-spinners:90-ring-with-bg text-bolt-elements-item-contentAccent'
             : state === 'done'
               ? 'i-ph:check-circle-fill text-emerald-500'
-              : 'i-ph:warning-circle-fill text-amber-500'
+              : // 'done-with-issues' et 'interrupted' : jamais de coche verte.
+                'i-ph:warning-circle-fill text-amber-500'
         } text-sm shrink-0`}
         aria-hidden
       />
@@ -146,7 +191,9 @@ export default function ProgressCompilation({
       >
         <span
           className={`block h-full transition-[width] duration-300 ${
-            state === 'interrupted' ? 'bg-amber-500' : 'bg-bolt-elements-item-contentAccent'
+            state === 'interrupted' || state === 'done-with-issues'
+              ? 'bg-amber-500'
+              : 'bg-bolt-elements-item-contentAccent'
           }`}
           style={{ width: `${progressPercent}%` }}
         />

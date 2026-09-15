@@ -22,11 +22,12 @@ import { Link } from 'react-router';
 
 import './solution-sales.css';
 import {
-  APP_BUILDER_VISUAL_ASSETS,
-  resolveAppBuilderVisualLanguage,
-  type AppBuilderVisualAsset,
-} from './app-builder.visuals';
-import type { SolutionCopy } from './solution-copy';
+  getSolutionAppShowcase,
+  SOLUTION_SHOWCASE_UI,
+  type SolutionAppShowcase,
+  type SolutionAppVisual,
+} from './solution-app-showcases';
+import { toBilingual, type BilingualLanguage, type SolutionAppShowcaseSlug, type SolutionCopy } from './solution-copy';
 import { EcodeExactPublicShell as PublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import type { SupportedLanguage } from '~/lib/i18n/language';
 
@@ -51,23 +52,33 @@ const featureIcons = [
   Code2,
 ] as const satisfies readonly LucideIcon[];
 
-export function SolutionSalesPage({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
+export function SolutionSalesPage({
+  copy,
+  language,
+  solutionSlug,
+}: {
+  copy: SolutionCopy;
+  language: SupportedLanguage;
+  solutionSlug: SolutionAppShowcaseSlug;
+}) {
   const direction = language === 'ar' ? 'rtl' : 'ltr';
+  const visualLanguage = toBilingual(language);
+  const showcase = getSolutionAppShowcase(solutionSlug);
 
   return (
     <PublicShell language={language}>
       <main
         className="sol-sales"
-        data-ecode-marketing-page={`solution-${copy.demo.brand.toLowerCase().replace(/\s+/g, '-')}`}
+        data-ecode-marketing-page={`solution-${solutionSlug}`}
         data-testid="solution-page"
         aria-label={copy.aria.pageLabel}
         lang={language}
         dir={direction}
       >
-        <Hero copy={copy} language={language} />
+        <Hero copy={copy} language={visualLanguage} visual={showcase.primary} />
+        <ProofLinkBand language={visualLanguage} showcase={showcase} />
         <ProblemSection copy={copy} />
         <BuildSection copy={copy} />
-        <ProofLinkBand copy={copy} language={language} />
         <DeliverablesSection copy={copy} />
         <FeaturesSection copy={copy} />
         <UseCasesSection copy={copy} />
@@ -78,13 +89,20 @@ export function SolutionSalesPage({ copy, language }: { copy: SolutionCopy; lang
   );
 }
 
-function Hero({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
+function Hero({
+  copy,
+  language,
+  visual,
+}: {
+  copy: SolutionCopy;
+  language: BilingualLanguage;
+  visual: SolutionAppVisual;
+}) {
   return (
     <section className="sol-hero" aria-label={copy.aria.heroLabel} data-testid="solution-hero">
       <div className="sol-hero__grid" aria-hidden />
       <div className="container-responsive sol-hero__layout">
         <div className="sol-hero__copy">
-          <LanguageSwitch copy={copy} language={language} />
           <p className="sol-eyebrow">
             <Sparkles aria-hidden />
             {copy.hero.eyebrow}
@@ -100,76 +118,9 @@ function Hero({ copy, language }: { copy: SolutionCopy; language: SupportedLangu
             {copy.hero.microcopy}
           </p>
         </div>
-        <DemoMock copy={copy} />
+        <SolutionAppVisualCard visual={visual} language={language} eager hero testId="solution-demo" />
       </div>
     </section>
-  );
-}
-
-function DemoMock({ copy }: { copy: SolutionCopy }) {
-  const { demo } = copy;
-
-  return (
-    <figure className="sol-demo" aria-describedby="solution-demo-caption" data-testid="solution-demo">
-      <div className="sol-demo__frame">
-        <div className="sol-demo__chrome" aria-hidden>
-          <span className="sol-demo__dot" />
-          <span className="sol-demo__dot" />
-          <span className="sol-demo__dot" />
-          <span className="sol-demo__url">{demo.brand.toLowerCase().replace(/[^a-z0-9]+/g, '')}.example.test</span>
-        </div>
-        <div className="sol-demo__body" role="img" aria-label={demo.alt}>
-          <div className="sol-demo__topbar">
-            <div className="sol-demo__brand">
-              <strong>{demo.brand}</strong>
-              <span>{demo.brandType}</span>
-            </div>
-            <nav className="sol-demo__nav" aria-hidden>
-              {demo.nav.map((item) => (
-                <span key={item}>{item}</span>
-              ))}
-              <span className="sol-demo__badge">{demo.badge}</span>
-            </nav>
-          </div>
-          <div className="sol-demo__hero">
-            <p className="sol-demo__hero-eyebrow">{demo.eyebrow}</p>
-            <h3>{demo.title}</h3>
-            <p>{demo.intro}</p>
-          </div>
-          <div className="sol-demo__split">
-            <div className="sol-demo__panel">
-              <p className="sol-demo__panel-heading">{demo.primaryHeading}</p>
-              <ul className="sol-demo__rows">
-                {demo.primaryRows.map((row) => (
-                  <li key={row.label}>
-                    <span className="sol-demo__row-main">{row.label}</span>
-                    <span className="sol-demo__row-meta">{row.meta}</span>
-                    {row.status ? <span className="sol-demo__row-status">{row.status}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <aside className="sol-demo__aside">
-              <p className="sol-demo__aside-heading">{demo.asideHeading}</p>
-              <dl>
-                {demo.asideRows.map((row) => (
-                  <div key={row.label}>
-                    <dt>{row.label}</dt>
-                    <dd>{row.value}</dd>
-                  </div>
-                ))}
-              </dl>
-              <span className="sol-demo__aside-cta">{demo.asideCta}</span>
-            </aside>
-          </div>
-        </div>
-      </div>
-      <figcaption id="solution-demo-caption">
-        <span>{demo.disclaimer}</span>
-        <strong>{demo.caption.title}</strong>
-        <p>{demo.caption.body}</p>
-      </figcaption>
-    </figure>
   );
 }
 
@@ -253,102 +204,95 @@ function BuildSection({ copy }: { copy: SolutionCopy }) {
   );
 }
 
-function ProofLinkBand({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
-  const visualLanguage = resolveAppBuilderVisualLanguage(language);
-  const assets = APP_BUILDER_VISUAL_ASSETS[visualLanguage];
+function ProofLinkBand({ language, showcase }: { language: BilingualLanguage; showcase: SolutionAppShowcase }) {
+  const ui = SOLUTION_SHOWCASE_UI[language];
 
   return (
-    <section className="sol-proof-link" aria-label={copy.aria.proofLinkLabel} data-testid="solution-proof-link">
+    <section className="sol-proof-link" aria-label={ui.sectionLabel} data-testid="solution-proof-link">
       <div className="container-responsive sol-proof-link__layout">
         <div className="sol-proof-link__intro">
           <div>
             <p className="sol-eyebrow">
               <Sparkles aria-hidden />
-              {copy.proofLink.eyebrow}
+              {ui.sectionEyebrow}
             </p>
-            <h2>{copy.proofLink.title}</h2>
-            <p>{copy.proofLink.body}</p>
+            <h2>{ui.sectionTitle}</h2>
+            <p>{ui.sectionBody}</p>
           </div>
-          <ActionLink
-            to={`/solutions/app-builder?lang=${visualLanguage}`}
-            action={copy.proofLink.cta}
-            variant="secondary"
-          />
         </div>
 
         <div
           className="sol-proof-link__gallery"
           role="group"
-          aria-label={copy.proofLink.galleryLabel}
+          aria-label={ui.sectionLabel}
           data-testid="solution-ide-proof-gallery"
         >
-          <SolutionProofVisual
-            asset={assets.idePreview}
-            content={copy.proofLink.preview}
-            disclaimer={copy.proofLink.disclaimer}
-            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
-            testId="solution-ide-preview"
-          />
-          <SolutionProofVisual
-            asset={assets.ideIteration}
-            content={copy.proofLink.iteration}
-            disclaimer={copy.proofLink.disclaimer}
-            openFullSizeLabel={copy.proofLink.openFullSizeLabel}
-            testId="solution-ide-iteration"
-          />
+          <SolutionAppVisualCard visual={showcase.supporting} language={language} testId="solution-app-supporting" />
+          <SolutionAppVisualCard visual={showcase.related} language={language} testId="solution-app-related" />
         </div>
       </div>
     </section>
   );
 }
 
-function SolutionProofVisual({
-  asset,
-  content,
-  disclaimer,
-  openFullSizeLabel,
+function SolutionAppVisualCard({
+  visual,
+  language,
+  eager = false,
+  hero = false,
   testId,
 }: {
-  asset: AppBuilderVisualAsset;
-  content: SolutionCopy['proofLink']['preview'];
-  disclaimer: string;
-  openFullSizeLabel: string;
+  visual: SolutionAppVisual;
+  language: BilingualLanguage;
+  eager?: boolean;
+  hero?: boolean;
   testId: string;
 }) {
   const captionId = `${testId}-caption`;
+  const ui = SOLUTION_SHOWCASE_UI[language];
 
   return (
     <figure
-      className="sol-product-visual sol-product-visual--ide-reference"
+      className={`sol-app-showcase${hero ? ' sol-app-showcase--hero' : ''}`}
       aria-describedby={captionId}
-      data-visual-language={asset.language}
+      data-gallery-app-id={visual.id}
+      data-visual-kind="working-demo-app"
       data-testid={testId}
     >
-      <div className="sol-product-visual__media">
-        <img
-          src={asset.src}
-          width={asset.width}
-          height={asset.height}
-          alt={content.alt}
-          loading="lazy"
-          decoding="async"
-        />
+      <div className="sol-app-showcase__chrome" aria-hidden>
+        <span />
+        <span />
+        <span />
+        <strong>{visual.name[language]}</strong>
+        <em>{ui.realApp}</em>
       </div>
-      <figcaption id={captionId}>
-        <span>{disclaimer}</span>
-        <strong>{content.title}</strong>
-        <p>{content.body}</p>
-        <a
-          className="sol-product-visual__full-size"
-          href={asset.src}
-          target="_blank"
-          rel="noopener"
-          aria-label={`${openFullSizeLabel}: ${content.title}`}
-          data-testid={`${testId}-open-full-size`}
-        >
-          <span>{openFullSizeLabel}</span>
+      <a
+        className="sol-app-showcase__media"
+        href={visual.previewHref}
+        target="_blank"
+        rel="noopener"
+        aria-label={`${ui.openPreviewAria}: ${visual.name[language]}`}
+      >
+        <img
+          src={visual.thumbnailSrc}
+          width={1200}
+          height={675}
+          alt={visual.alt[language]}
+          loading={eager ? 'eager' : 'lazy'}
+          decoding="async"
+          fetchPriority={eager ? 'high' : 'auto'}
+        />
+        <span className="sol-app-showcase__open-hint">
+          {ui.openPreview}
           <ExternalLink aria-hidden />
-        </a>
+        </span>
+      </a>
+      <figcaption id={captionId}>
+        <span>
+          {ui.workingDemo} · {visual.capability[language]}
+        </span>
+        <strong>{visual.name[language]}</strong>
+        <p>{visual.description[language]}</p>
       </figcaption>
     </figure>
   );
@@ -483,19 +427,6 @@ function FinalCta({ copy }: { copy: SolutionCopy }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function LanguageSwitch({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
-  return (
-    <nav className="sol-language-switch" aria-label={copy.languageSwitch.label}>
-      <Link to="?lang=en" lang="en" hrefLang="en" reloadDocument aria-current={language === 'en' ? 'page' : undefined}>
-        {copy.languageSwitch.english}
-      </Link>
-      <Link to="?lang=fr" lang="fr" hrefLang="fr" reloadDocument aria-current={language === 'fr' ? 'page' : undefined}>
-        {copy.languageSwitch.french}
-      </Link>
-    </nav>
   );
 }
 

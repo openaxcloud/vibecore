@@ -15,6 +15,7 @@ import {
   PenLine,
   Play,
   Rocket,
+  Search,
   Settings,
   Share2,
   Square,
@@ -25,6 +26,7 @@ import {
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -34,20 +36,20 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
+import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { configuredToast } from '~/components/ui/use-toast';
+import { ProjectResourcesPanel } from '~/components/workbench/ProjectResourcesPanel';
 import { formatProjectIdeCopy, formatProjectIdeCount, getProjectIdeCopy } from '~/lib/i18n/catalogs/project-ide';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
@@ -76,67 +78,16 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   ];
 };
 
-const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit', 'peWindow']);
+/*
+ * Revalidation policy extracted to projects.$projectId.ide.revalidate.ts (pure,
+ * unit-tested). BUG-IDE-PANEL-RECLICK-REPROVISION-001: it now also skips the
+ * loader on a SAME-URL navigation (re-click of the already-active panel), which
+ * React Router otherwise treats as a refresh and revalidates.
+ */
+export const shouldRevalidate = shouldRevalidateProjectIde;
 
-function routeKeyWithoutClientIdeParams(url: URL) {
-  const searchParams = new URLSearchParams(url.search);
-
-  for (const param of IDE_CLIENT_SEARCH_PARAMS) {
-    searchParams.delete(param);
-  }
-
-  const search = searchParams.toString();
-
-  return `${url.pathname}${search ? `?${search}` : ''}`;
-}
-
-export function MobileIdeLanguageSwitchPortal() {
-  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    setPortalHost(document.body);
-  }, []);
-
-  if (!portalHost) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="bolt-project-mobile-language-switch-slot" data-testid="mobile-ide-language-switch-slot">
-      <LanguageSwitch className="bolt-project-mobile-language-switch" />
-    </div>,
-    portalHost,
-  );
-}
-
-export const shouldRevalidate = ({
-  currentUrl,
-  nextUrl,
-  formMethod,
-  defaultShouldRevalidate,
-}: {
-  currentUrl: URL;
-  nextUrl: URL;
-  formMethod?: string;
-  defaultShouldRevalidate: boolean;
-}) => {
-  if (formMethod && formMethod.toUpperCase() !== 'GET') {
-    return defaultShouldRevalidate;
-  }
-
-  if (
-    currentUrl.origin === nextUrl.origin &&
-    routeKeyWithoutClientIdeParams(currentUrl) === routeKeyWithoutClientIdeParams(nextUrl) &&
-    currentUrl.search !== nextUrl.search
-  ) {
-    return false;
-  }
-
-  return defaultShouldRevalidate;
-};
-
-export const loader = async ({ request, params }: LoaderFunctionArgs) =>
-  loadProjectIdeData(request, params.projectId ?? '');
+export const loader = async ({ request, params, context }: LoaderFunctionArgs) =>
+  loadProjectIdeData(request, params.projectId ?? '', context);
 
 export default function ProjectIdeRoute() {
   const { i18n } = useTranslation();
@@ -188,7 +139,6 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <MobileIdeLanguageSwitchPortal />
           <main className="h-dvh pt-9">
             <ClientOnly fallback={optimisticShell}>
               {() => (
@@ -259,6 +209,18 @@ function IdeProjectTopBar({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
   const effectiveWorkspace = runtimeWorkspaceStatus ?? workspace;
+
+  /**
+   * RPL-IDE-001.8 — hand Spotlight to the workspace shell, which owns the
+   * palette engine it is built on. Same window-event channel the topbar already
+   * uses to open tool panels.
+   */
+  const openProjectSpotlight = useCallback(() => {
+    window.dispatchEvent(
+      new CustomEvent('vibecore:open-project-spotlight', { detail: { projectName: displayProjectName } }),
+    );
+  }, [displayProjectName]);
+
   const isReallyRunning = isWorkspaceReallyRunning(effectiveWorkspace, previews);
   const previewRunning = isReallyRunning;
   const workspaceState = workspaceUiState(effectiveWorkspace, { ports: previews, loading, error });
@@ -496,9 +458,32 @@ function IdeProjectTopBar({
                   }}
                 >
                   <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.project.kicker']}</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={projectTooltip}>
+                  {/*
+                   * SCR-006 — « le clic sur le NOM du projet ouvre la recherche ».
+                   *
+                   * Le nom vit dans le `<summary>` d'un `<details>` dont le rôle est
+                   * d'ouvrir le menu projet (Paramètres, renommage). Remplacer le
+                   * `<summary>` en entier aurait supprimé ces accès. On sépare donc
+                   * les deux gestes : le NOM ouvre la recherche, le chevron garde le
+                   * menu. `preventDefault` empêche le `<details>` de basculer sous le
+                   * clic, `stopPropagation` empêche le `<summary>` de le récupérer.
+                   */}
+                  <button
+                    type="button"
+                    className="bolt-project-breadcrumb-value truncate"
+                    title={projectTooltip}
+                    aria-label={copy['projectIde.project.search']}
+                    data-testid="button-project-name-search"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      window.dispatchEvent(
+                        new CustomEvent('vibecore:open-command-palette', { detail: { mode: 'all' } }),
+                      );
+                    }}
+                  >
                     {projectLabel.display}
-                  </span>
+                  </button>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />
                 </summary>
                 {projectMenuOpen && (
@@ -583,17 +568,37 @@ function IdeProjectTopBar({
             <span className="bolt-project-breadcrumb-value truncate">{branchLabel.display}</span>
           </Link>
         </nav>
+        {/*
+          RPL-IDE-001.7 — Resources sits beside the app name, as in Replit, so
+          RAM/CPU/Storage pressure is visible from wherever you are in the IDE
+          rather than being buried in a tool tab.
+        */}
+        <ProjectResourcesPanel projectId={projectId} workspaceId={effectiveWorkspace?.id} />
       </div>
       <div className="bolt-project-topbar-actions">
-        <div className="bolt-project-action-group bolt-project-action-group--language" data-priority="high">
-          <LanguageSwitch className="bolt-project-language-switch" />
-        </div>
         <div
           ref={overflowMenuRef}
           className="bolt-project-action-group bolt-project-action-group--overflow"
           data-priority="overflow"
           aria-label={copy['projectIde.actions.more']}
         >
+          {/*
+            RPL-IDE-001.8 — le déclencheur de Spotlight. Le rappel, les
+            traductions et l'écouteur côté coque existaient déjà ; seul ce
+            bouton manquait, si bien que la palette n'était joignable depuis
+            aucun endroit de l'IDE.
+          */}
+          <button
+            type="button"
+            data-testid="ide-spotlight-trigger"
+            className="bolt-project-topbar-icon-button"
+            aria-label={text(copy['projectIde.project.spotlightAria'], { project: displayProjectName })}
+            title={copy['projectIde.project.spotlight']}
+            data-vc-tooltip={copy['projectIde.project.spotlight']}
+            onClick={openProjectSpotlight}
+          >
+            <Search className="h-3.5 w-3.5" aria-hidden />
+          </button>
           <button
             type="button"
             data-testid="ide-files-panel-toggle"
@@ -774,7 +779,7 @@ function IdeProjectTopBar({
               className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
               onClick={() => {
                 if (previewRunning) {
-                  void workbenchStore.stopPreviewServer().catch(() => undefined);
+                  void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch(() => undefined);
 
                   return;
                 }

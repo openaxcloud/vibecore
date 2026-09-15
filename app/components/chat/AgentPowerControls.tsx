@@ -1,7 +1,8 @@
-import { Check, ChevronDown, Gauge, Lock, SlidersHorizontal, Sparkles, Zap } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
+import { cibleFeuilleMobile } from './feuille-mobile';
 import { formatChatControlsCopy, formatChatControlsCost, getChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 import { classNames } from '~/utils/classNames';
 
@@ -44,6 +45,28 @@ export interface AgentPowerControlsProps {
   /** Invoked when the user clicks the upgrade CTA shown while premium is locked. */
   onUpgrade?: () => void;
   className?: string;
+
+  /**
+   * `full` keeps the three-part row (segmented + Advanced + cost) used by the
+   * standalone composer. `compact` collapses the whole thing to ONE discreet
+   * label in the composer's single control row; the segmented control, the
+   * switches, the Plan-first toggle and the cost estimate all move inside the
+   * popover. At 390 the full row wrapped onto three lines and, with the field
+   * and the action row, ate ~40% of the panel.
+   */
+  variant?: 'full' | 'compact';
+
+  /**
+   * Plan-first toggle, hosted inside the popover in `compact` so it no longer
+   * occupies a row of its own. Omitted entirely when the caller has no
+   * plan-first pipeline wired.
+   */
+  planFirst?: {
+    enabled: boolean;
+    onChange: (next: boolean) => void;
+    label: string;
+    title: string;
+  };
 }
 
 /*
@@ -68,6 +91,8 @@ export function AgentPowerControls({
   availability,
   onUpgrade,
   className,
+  variant = 'full',
+  planFirst,
 }: AgentPowerControlsProps) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
@@ -93,7 +118,9 @@ export function AgentPowerControls({
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const hintId = useId();
 
   const modeAvailable = (mode: AgentBuildTier): boolean => {
     if (!availability?.modes) {
@@ -169,9 +196,14 @@ export function AgentPowerControls({
     }
 
     const onPointerDown = (event: PointerEvent) => {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
-        setAdvancedOpen(false);
+      const cible = event.target as Node;
+
+      // Le panneau peut vivre hors de la racine (portail mobile) : un appui dedans n'est pas « dehors ».
+      if (rootRef.current?.contains(cible) || panelRef.current?.contains(cible)) {
+        return;
       }
+
+      setAdvancedOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -191,237 +223,318 @@ export function AgentPowerControls({
   const activeTier = buildTiers.find((tier) => tier.id === value.buildTier) ?? buildTiers[1];
   const activeSwitches = (value.highEffort ? 1 : 0) + (value.turboMode ? 1 : 0);
 
-  return (
-    <div ref={rootRef} className={classNames('relative flex flex-wrap items-center gap-2', className)}>
-      <div
-        role="radiogroup"
-        aria-label={copy['chatControls.power.groupAria']}
-        data-testid="agent-mode-segmented"
-        className="inline-grid max-w-full grid-cols-3 items-stretch rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
-      >
-        {buildTiers.map((tier) => {
-          const active = value.buildTier === tier.id;
-          const available = modeAvailable(tier.id);
+  const compact = variant === 'compact';
 
-          return (
-            <button
-              key={tier.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              disabled={disabled || !available}
-              onClick={() => selectMode(tier.id)}
-              title={
-                available
-                  ? formatChatControlsCopy(copy['chatControls.power.availableTitle'], {
-                      label: tier.label,
-                      hint: tier.hint,
-                    })
-                  : formatChatControlsCopy(copy['chatControls.power.unavailableTitle'], { label: tier.label })
-              }
-              data-testid={`agent-mode-${tier.id}`}
-              className={classNames(
-                'min-h-10 min-w-0 whitespace-normal break-words rounded-xl px-2 py-1 text-xs font-medium leading-tight transition-colors sm:px-3',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-                active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
-              )}
-              style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
-            >
-              {tier.label}
-              {!available ? <Lock className="ml-1 inline h-3 w-3" aria-hidden /> : null}
-            </button>
-          );
-        })}
-      </div>
+  const segmentedControl = (
+    <div
+      role="radiogroup"
+      aria-label={copy['chatControls.power.groupAria']}
+      aria-describedby={hintId}
+      title={value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
+      data-testid="agent-mode-segmented"
+      className="inline-grid max-w-full grid-cols-3 items-stretch rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
+    >
+      {buildTiers.map((tier) => {
+        const active = value.buildTier === tier.id;
+        const available = modeAvailable(tier.id);
 
-      <button
-        type="button"
-        disabled={disabled}
-        aria-haspopup="dialog"
-        aria-expanded={advancedOpen}
-        aria-controls={panelId}
-        onClick={() => setAdvancedOpen((prev) => !prev)}
-        title={copy['chatControls.power.advancedTitle']}
-        data-testid="agent-mode-advanced"
-        className={classNames(
-          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          advancedOpen || activeSwitches > 0
-            ? 'border-transparent text-white'
-            : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
-        )}
-        style={advancedOpen || activeSwitches > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
-      >
-        <SlidersHorizontal className="h-3.5 w-3.5" />
-        <span>{copy['chatControls.power.advanced']}</span>
-        {activeSwitches > 0 ? (
-          <span className="rounded-full bg-white/25 px-1.5 text-[10px] font-semibold leading-4">+{activeSwitches}</span>
-        ) : null}
-        <ChevronDown className="h-3 w-3" />
-      </button>
-
-      <span
-        className="inline-flex items-center gap-1 self-center rounded-full bg-bolt-elements-background-depth-2 px-2.5 py-1 text-xs font-semibold text-bolt-elements-textPrimary"
-        title={copy['chatControls.power.estimatedTitle']}
-      >
-        <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
-        {formatChatControlsCost(estimatedCents, language)}
-      </span>
-
-      <p className="w-full text-[11px] leading-snug text-bolt-elements-textSecondary" data-testid="agent-mode-hint">
-        {value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
-      </p>
-
-      {advancedOpen ? (
-        <div
-          id={panelId}
-          role="dialog"
-          aria-label={copy['chatControls.power.dialogAria']}
-          className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
-        >
-          <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-            {copy['chatControls.power.dialogTitle']}
-          </p>
-
-          <div className="flex flex-col gap-0.5">
-            {/* High effort — Economy and Power only, never Lite. */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={value.highEffort && value.buildTier !== 'lite'}
-              disabled={disabled || value.buildTier === 'lite' || !highEffortAvailable}
-              onClick={() => setHighEffort(!value.highEffort)}
-              data-testid="agent-switch-high-effort"
-              title={
-                value.buildTier === 'lite'
-                  ? copy['chatControls.power.highEffortLite']
-                  : highEffortAvailable
-                    ? copy['chatControls.power.highEffortAvailable']
-                    : copy['chatControls.power.highEffortPaid']
-              }
-              className={classNames(
-                'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
-                value.buildTier === 'lite' || !highEffortAvailable
-                  ? 'opacity-60'
-                  : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
-                value.highEffort ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
-              )}
-            >
-              <span className="flex flex-col">
-                <span className="flex items-center gap-2 font-medium">
-                  <Zap
-                    className="h-3.5 w-3.5"
-                    style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
-                  />
-                  {copy['chatControls.power.highEffort']}
-                </span>
-                <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.highEffortDescription']}
-                </span>
-              </span>
-              {!highEffortAvailable && value.buildTier !== 'lite' ? (
-                <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.proBadge']}
-                </span>
-              ) : (
-                <span
-                  className={classNames(
-                    'flex h-4 w-4 items-center justify-center rounded border',
-                    value.highEffort && value.buildTier !== 'lite'
-                      ? 'border-transparent'
-                      : 'border-bolt-elements-borderColor',
-                  )}
-                  style={
-                    value.highEffort && value.buildTier !== 'lite'
-                      ? { background: 'var(--vc-ide-accent-action)' }
-                      : undefined
-                  }
-                >
-                  {value.highEffort && value.buildTier !== 'lite' ? <Check className="h-3 w-3 text-white" /> : null}
-                </span>
-              )}
-            </button>
-
-            {/* Turbo — Power only, OFF by default, enabled per-org by an admin. */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={value.turboMode && value.buildTier === 'power'}
-              disabled={disabled || value.buildTier !== 'power' || !turboAvailable}
-              onClick={() => setTurbo(!value.turboMode)}
-              data-testid="agent-switch-turbo"
-              title={
-                value.buildTier !== 'power'
-                  ? copy['chatControls.power.turboPower']
-                  : turboAvailable
-                    ? copy['chatControls.power.turboAvailable']
-                    : copy['chatControls.power.turboOrganization']
-              }
-              className={classNames(
-                'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
-                value.buildTier !== 'power' || !turboAvailable
-                  ? 'opacity-60'
-                  : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
-                value.turboMode ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
-              )}
-            >
-              <span className="flex flex-col">
-                <span className="flex items-center gap-2 font-medium">
-                  <Gauge
-                    className="h-3.5 w-3.5"
-                    style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
-                  />
-                  {copy['chatControls.power.turbo']}
-                </span>
-                <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.turboDescription']}
-                </span>
-              </span>
-              {!turboAvailable && value.buildTier === 'power' ? (
-                <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.organizationBadge']}
-                </span>
-              ) : (
-                <span
-                  className={classNames(
-                    'flex h-4 w-4 items-center justify-center rounded border',
-                    value.turboMode && value.buildTier === 'power'
-                      ? 'border-transparent'
-                      : 'border-bolt-elements-borderColor',
-                  )}
-                  style={
-                    value.turboMode && value.buildTier === 'power'
-                      ? { background: 'var(--vc-ide-accent-action)' }
-                      : undefined
-                  }
-                >
-                  {value.turboMode && value.buildTier === 'power' ? <Check className="h-3 w-3 text-white" /> : null}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {!highEffortAvailable || (!turboAvailable && value.buildTier === 'power') ? (
-            <button
-              type="button"
-              onClick={() => onUpgrade?.()}
-              className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'var(--ecode-accent)' }}
-            >
-              <Zap className="h-3 w-3" />
-              {copy['chatControls.power.upgrade']}
-            </button>
-          ) : null}
-
-          <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
-            <span className="text-bolt-elements-textSecondary">{copy['chatControls.power.estimated']}</span>
-            <span className="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary">
-              <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
-              {formatChatControlsCost(estimatedCents, language)}
-            </span>
-          </div>
-        </div>
-      ) : null}
+        return (
+          <button
+            key={tier.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled || !available}
+            onClick={() => selectMode(tier.id)}
+            title={
+              available
+                ? formatChatControlsCopy(copy['chatControls.power.availableTitle'], {
+                    label: tier.label,
+                    hint: tier.hint,
+                  })
+                : formatChatControlsCopy(copy['chatControls.power.unavailableTitle'], { label: tier.label })
+            }
+            data-testid={`agent-mode-${tier.id}`}
+            className={classNames(
+              'min-h-7 min-w-0 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight transition-colors sm:px-2 sm:text-xs',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+            )}
+            style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
+          >
+            {tier.label}
+            {!available ? <span className="i-ph:lock ml-1 inline-block align-middle text-xs" aria-hidden /> : null}
+          </button>
+        );
+      })}
     </div>
   );
+
+  const advancedTrigger = (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-haspopup="dialog"
+      aria-expanded={advancedOpen}
+      aria-controls={panelId}
+      onClick={() => setAdvancedOpen((prev) => !prev)}
+      title={copy['chatControls.power.advancedTitle']}
+      data-testid="agent-mode-advanced"
+      className={classNames(
+        'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        advancedOpen || activeSwitches > 0
+          ? 'border-transparent text-white'
+          : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+      )}
+      style={advancedOpen || activeSwitches > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
+    >
+      <span className="i-ph:sliders-horizontal text-sm" aria-hidden />
+      <span>{copy['chatControls.power.advanced']}</span>
+      {activeSwitches > 0 ? (
+        <span className="rounded-full bg-white/25 px-1.5 text-[10px] font-semibold leading-4">+{activeSwitches}</span>
+      ) : null}
+      <span className="i-ph:caret-down text-xs" aria-hidden />
+    </button>
+  );
+
+  const costChip = (
+    <span
+      className="inline-flex h-8 items-center gap-1 self-center rounded-lg bg-bolt-elements-background-depth-2 px-2.5 text-xs font-semibold text-bolt-elements-textPrimary"
+      title={copy['chatControls.power.estimatedTitle']}
+    >
+      <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
+      {formatChatControlsCost(estimatedCents, language)}
+    </span>
+  );
+
+  const planFirstToggle = planFirst ? (
+    <button
+      type="button"
+      className={classNames('bolt-chatbox-plan-toggle', { 'is-active': planFirst.enabled })}
+      aria-pressed={planFirst.enabled}
+      disabled={disabled}
+      title={planFirst.title}
+      onClick={() => planFirst.onChange(!planFirst.enabled)}
+    >
+      <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
+      <span className="bolt-chatbox-plan-toggle-label">{planFirst.label}</span>
+    </button>
+  ) : null;
+
+  const compactTrigger = (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-haspopup="dialog"
+      aria-expanded={advancedOpen}
+      aria-controls={panelId}
+      aria-describedby={hintId}
+      onClick={() => setAdvancedOpen((prev) => !prev)}
+      title={copy['chatControls.power.advancedTitle']}
+      aria-label={formatChatControlsCopy(copy['chatControls.power.compactAria'], { mode: activeTier.label })}
+      data-testid="agent-mode-advanced"
+      className={classNames('bolt-composer-chip', { 'is-open': advancedOpen })}
+    >
+      <span className="bolt-composer-chip-label">{activeTier.label}</span>
+      {activeSwitches > 0 ? <span className="bolt-composer-chip-badge">+{activeSwitches}</span> : null}
+      <span className="i-ph:caret-up bolt-composer-chip-caret" aria-hidden />
+    </button>
+  );
+
+  return (
+    <div
+      ref={rootRef}
+      className={classNames(
+        'relative flex items-center',
+        compact ? 'bolt-agent-power-compact' : 'flex-wrap gap-2',
+        className,
+      )}
+    >
+      {compact ? compactTrigger : segmentedControl}
+      {compact ? null : advancedTrigger}
+      {compact ? null : costChip}
+
+      <p className="sr-only" data-testid="agent-mode-hint" id={hintId}>
+        {value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
+      </p>
+      {advancedOpen
+        ? porterSurTelephone(
+            <div
+              id={panelId}
+              ref={panelRef}
+              role="dialog"
+              aria-label={copy['chatControls.power.dialogAria']}
+              className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
+            >
+              {compact ? (
+                <div className="bolt-agent-power-compact-modes">
+                  {segmentedControl}
+                  {planFirstToggle}
+                </div>
+              ) : null}
+
+              <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                {copy['chatControls.power.dialogTitle']}
+              </p>
+
+              <div className="flex flex-col gap-0.5">
+                {/* High effort — Economy and Power only, never Lite. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={value.highEffort && value.buildTier !== 'lite'}
+                  disabled={disabled || value.buildTier === 'lite' || !highEffortAvailable}
+                  onClick={() => setHighEffort(!value.highEffort)}
+                  data-testid="agent-switch-high-effort"
+                  title={
+                    value.buildTier === 'lite'
+                      ? copy['chatControls.power.highEffortLite']
+                      : highEffortAvailable
+                        ? copy['chatControls.power.highEffortAvailable']
+                        : copy['chatControls.power.highEffortPaid']
+                  }
+                  className={classNames(
+                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
+                    value.buildTier === 'lite' || !highEffortAvailable
+                      ? 'opacity-60'
+                      : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
+                    value.highEffort ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
+                  )}
+                >
+                  <span className="flex flex-col">
+                    <span className="flex items-center gap-2 font-medium">
+                      <span
+                        className="i-ph:lightning text-sm"
+                        style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                        aria-hidden
+                      />
+                      {copy['chatControls.power.highEffort']}
+                    </span>
+                    <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.highEffortDescription']}
+                    </span>
+                  </span>
+                  {!highEffortAvailable && value.buildTier !== 'lite' ? (
+                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.proBadge']}
+                    </span>
+                  ) : (
+                    <span
+                      className={classNames(
+                        'flex h-4 w-4 items-center justify-center rounded border',
+                        value.highEffort && value.buildTier !== 'lite'
+                          ? 'border-transparent'
+                          : 'border-bolt-elements-borderColor',
+                      )}
+                      style={
+                        value.highEffort && value.buildTier !== 'lite'
+                          ? { background: 'var(--vc-ide-accent-action)' }
+                          : undefined
+                      }
+                    >
+                      {value.highEffort && value.buildTier !== 'lite' ? (
+                        <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                      ) : null}
+                    </span>
+                  )}
+                </button>
+
+                {/* Turbo — Power only, OFF by default, enabled per-org by an admin. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={value.turboMode && value.buildTier === 'power'}
+                  disabled={disabled || value.buildTier !== 'power' || !turboAvailable}
+                  onClick={() => setTurbo(!value.turboMode)}
+                  data-testid="agent-switch-turbo"
+                  title={
+                    value.buildTier !== 'power'
+                      ? copy['chatControls.power.turboPower']
+                      : turboAvailable
+                        ? copy['chatControls.power.turboAvailable']
+                        : copy['chatControls.power.turboOrganization']
+                  }
+                  className={classNames(
+                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
+                    value.buildTier !== 'power' || !turboAvailable
+                      ? 'opacity-60'
+                      : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
+                    value.turboMode ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
+                  )}
+                >
+                  <span className="flex flex-col">
+                    <span className="flex items-center gap-2 font-medium">
+                      <span
+                        className="i-ph:gauge text-sm"
+                        style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                        aria-hidden
+                      />
+                      {copy['chatControls.power.turbo']}
+                    </span>
+                    <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.turboDescription']}
+                    </span>
+                  </span>
+                  {!turboAvailable && value.buildTier === 'power' ? (
+                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.organizationBadge']}
+                    </span>
+                  ) : (
+                    <span
+                      className={classNames(
+                        'flex h-4 w-4 items-center justify-center rounded border',
+                        value.turboMode && value.buildTier === 'power'
+                          ? 'border-transparent'
+                          : 'border-bolt-elements-borderColor',
+                      )}
+                      style={
+                        value.turboMode && value.buildTier === 'power'
+                          ? { background: 'var(--vc-ide-accent-action)' }
+                          : undefined
+                      }
+                    >
+                      {value.turboMode && value.buildTier === 'power' ? (
+                        <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                      ) : null}
+                    </span>
+                  )}
+                </button>
+              </div>
+
+              {!highEffortAvailable || (!turboAvailable && value.buildTier === 'power') ? (
+                <button
+                  type="button"
+                  onClick={() => onUpgrade?.()}
+                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: 'var(--ecode-accent)' }}
+                >
+                  <span className="i-ph:lightning text-xs" aria-hidden />
+                  {copy['chatControls.power.upgrade']}
+                </button>
+              ) : null}
+
+              <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
+                <span className="text-bolt-elements-textSecondary">{copy['chatControls.power.estimated']}</span>
+                <span className="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary">
+                  <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
+                  {formatChatControlsCost(estimatedCents, language)}
+                </span>
+              </div>
+            </div>,
+          )
+        : null}
+    </div>
+  );
+}
+
+/*
+ * Sur téléphone, le panneau se rend à la racine du gabarit mobile — hors du
+ * composeur et de ses ancêtres qui bornent un élément fixé (voir
+ * feuille-mobile.ts). Sur bureau, il reste ancré à son déclencheur.
+ */
+function porterSurTelephone(panneau: React.ReactElement) {
+  const cible = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
+
+  return cible ? createPortal(panneau, cible) : panneau;
 }

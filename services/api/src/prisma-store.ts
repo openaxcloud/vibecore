@@ -5,7 +5,16 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
-import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
+import { horodatageMessageMonotone } from './horodatage-message.js';
+import {
+  CLEARED_LOCKOUT,
+  nextStateOnFailure,
+  type LoginLockoutState,
+  type LoginThrottleConfig,
+} from './login-throttle.js';
+import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
+import { slugify } from './slugify.js';
+import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES, projectSnapshotManifest } from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
@@ -96,6 +105,7 @@ import type {
   InstallSkillInput,
   SkillAuditEventRecord,
   RecordSkillAuditInput,
+  SnapshotListOptions,
 } from './store.js';
 
 function now() {
@@ -215,14 +225,6 @@ function mapDatabaseRestore(row: {
     startedAt: toIso(row.startedAt),
     completedAt: toIso(row.completedAt),
   };
-}
-
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 }
 
 function projectSlugBase(input: { slug?: string; name: string }) {
@@ -452,6 +454,7 @@ export class PrismaApiStore implements ApiStore {
           userId: input.userId,
           tokenHash: hashToken(input.token),
           expiresAt: input.expiresAt,
+          lastActiveAt: new Date(),
           ipAddress: input.ipAddress,
           userAgent: input.userAgent,
           impersonatedBy: input.impersonatedBy,
@@ -467,7 +470,38 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
+    /*
+     * Idle timeout: a session unused past the inactivity window is rejected here
+     * (in addition to the absolute expiresAt), bounding a stolen token's life to
+     * the idle period. lastActiveAt is null on rows predating the column → fall
+     * back to createdAt so those still age out. requireAuth refreshes lastActiveAt.
+     */
+    const lastActiveMs = (session.lastActiveAt ?? session.createdAt).getTime();
+
+    if (isSessionIdleExpired(lastActiveMs, Date.now(), sessionIdleTimeoutMs())) {
+      return undefined;
+    }
+
     return mapSession(session);
+  }
+
+  async touchSession(sessionId: string, nowMs: number, throttleMs = 60_000): Promise<void> {
+    /*
+     * Refresh lastActiveAt at most once per throttle window: the WHERE only
+     * matches when the stored value is stale (or null), so a burst of requests in
+     * the same window is a single no-op update, not a write per request.
+     */
+    const now = new Date(nowMs);
+    const staleBefore = new Date(nowMs - throttleMs);
+
+    await this.prisma.session.updateMany({
+      where: {
+        id: sessionId,
+        revokedAt: null,
+        OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: staleBefore } }],
+      },
+      data: { lastActiveAt: now },
+    });
   }
 
   async listSessions(userId: string) {
@@ -633,6 +667,51 @@ export class PrismaApiStore implements ApiStore {
 
   async countUnusedRecoveryCodes(userId: string) {
     return this.prisma.mfaRecoveryCode.count({ where: { userId, usedAt: null } });
+  }
+
+  async getLoginLockout(userId: string): Promise<LoginLockoutState | undefined> {
+    const row = await this.prisma.accountLockout.findUnique({ where: { userId } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      failedCount: row.failedCount,
+      firstFailedAtMs: row.firstFailedAt ? row.firstFailedAt.getTime() : null,
+      lockedUntilMs: row.lockedUntil ? row.lockedUntil.getTime() : null,
+    };
+  }
+
+  async recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState> {
+    /*
+     * Serialize per-user so two concurrent failed logins can't both read the same
+     * count and clobber each other (lost update). The advisory lock makes the
+     * read-compute-write atomic across pods, so N concurrent failures increment to
+     * exactly N — the property the concurrency test proves against real Postgres.
+     */
+    return this.withSerializedMutation(`login-lockout:${userId}`, async () => {
+      const current = (await this.getLoginLockout(userId)) ?? CLEARED_LOCKOUT;
+      const next = nextStateOnFailure(current, nowMs, config);
+      const data = {
+        failedCount: next.failedCount,
+        firstFailedAt: next.firstFailedAtMs === null ? null : new Date(next.firstFailedAtMs),
+        lockedUntil: next.lockedUntilMs === null ? null : new Date(next.lockedUntilMs),
+      };
+
+      await this.prisma.accountLockout.upsert({
+        where: { userId },
+        create: { userId, ...data },
+        update: data,
+      });
+
+      return next;
+    });
+  }
+
+  async clearLoginLockout(userId: string): Promise<void> {
+    // deleteMany (not delete) so clearing an account that never failed is a no-op.
+    await this.prisma.accountLockout.deleteMany({ where: { userId } });
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
@@ -1180,6 +1259,84 @@ export class PrismaApiStore implements ApiStore {
     return secret ? mapSecret(secret) : undefined;
   }
 
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = await this.prisma.projectCheckpoint.create({
+      data: { projectId: input.projectId, createdByUserId: input.createdByUserId ?? null, state: 'PREPARING' },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      barrierExpiresAt?: string | null;
+    },
+  ) {
+    await this.prisma.projectCheckpoint.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.logicalBarrierId !== undefined ? { logicalBarrierId: patch.logicalBarrierId } : {}),
+        ...(patch.consistencyLevel !== undefined ? { consistencyLevel: patch.consistencyLevel } : {}),
+        ...(patch.manifest !== undefined ? { manifest: patch.manifest as object } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.expiresAt !== undefined ? { expiresAt: new Date(patch.expiresAt) } : {}),
+        ...(patch.barrierExpiresAt !== undefined
+          ? { barrierExpiresAt: patch.barrierExpiresAt === null ? null : new Date(patch.barrierExpiresAt) }
+          : {}),
+      },
+    });
+  }
+
+  async getActiveCheckpointBarrier(projectId: string) {
+    /*
+     * Indexed on (projectId, barrierExpiresAt). `gt: now` means an expired lease
+     * reads as thawed without needing a sweeper — the deadline itself IS the
+     * guaranteed thaw if the orchestrating replica dies holding the barrier.
+     */
+    const row = await this.prisma.projectCheckpoint.findFirst({
+      where: { projectId, barrierExpiresAt: { gt: new Date() } },
+      orderBy: { barrierExpiresAt: 'desc' },
+    });
+
+    if (!row?.barrierExpiresAt || !row.logicalBarrierId) {
+      return undefined;
+    }
+
+    return {
+      checkpointId: row.id,
+      barrierId: row.logicalBarrierId,
+      expiresAt: row.barrierExpiresAt.toISOString(),
+    };
+  }
+
+  async getProjectCheckpoint(id: string) {
+    const row = await this.prisma.projectCheckpoint.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      state: row.state,
+      logicalBarrierId: row.logicalBarrierId ?? undefined,
+      consistencyLevel: row.consistencyLevel ?? undefined,
+      manifest: row.manifest as unknown,
+      error: row.error ?? undefined,
+      expiresAt: row.expiresAt?.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
   async createRemixJob(input: {
     sourceProjectId: string;
     organizationId: string;
@@ -1448,6 +1605,7 @@ export class PrismaApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    idempotencyKey?: string;
   }) {
     const row = await this.prisma.importJob.create({
       data: {
@@ -1456,11 +1614,82 @@ export class PrismaApiStore implements ApiStore {
         provider: input.provider,
         sourceRef: input.sourceRef ?? null,
         expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        idempotencyKey: input.idempotencyKey ?? null,
         state: 'RECEIVED',
       },
     });
 
     return { id: row.id, state: row.state };
+  }
+
+  async findImportJobByIdempotencyKey(organizationId: string, idempotencyKey: string) {
+    const row = await this.prisma.importJob.findFirst({
+      where: { organizationId, idempotencyKey },
+      select: { id: true },
+    });
+
+    return row ?? undefined;
+  }
+
+  async putImportStagedFiles(
+    importJobId: string,
+    files: Array<{ path: string; content: string; encoding?: string }>,
+  ): Promise<void> {
+    /*
+     * Replace wholesale, in ONE transaction: a partially-written staging is
+     * indistinguishable from a complete one at commit time, and the commit path
+     * has no way to tell "3 of 5 files" from "3 files".
+     */
+    await this.prisma.$transaction([
+      this.prisma.importStagedFile.deleteMany({ where: { importJobId } }),
+      ...(files.length > 0
+        ? [
+            this.prisma.importStagedFile.createMany({
+              data: files.map((file) => ({
+                importJobId,
+                path: file.path,
+                content: file.content,
+                encoding: file.encoding ?? null,
+              })),
+            }),
+          ]
+        : []),
+    ]);
+  }
+
+  async getImportStagedFiles(importJobId: string) {
+    const rows = await this.prisma.importStagedFile.findMany({
+      where: { importJobId },
+      orderBy: { path: 'asc' },
+      select: { path: true, content: true, encoding: true },
+    });
+
+    /*
+     * `undefined` means NO staging row exists — which the commit path treats as
+     * IMPORT_STAGING_GONE. An empty array is a real, staged-but-empty import and
+     * must stay distinguishable from it: collapsing the two would turn "nothing
+     * was staged" into "an empty import committed successfully".
+     */
+    if (rows.length === 0) {
+      const job = await this.prisma.importJob.findUnique({
+        where: { id: importJobId },
+        select: { stagedFileCount: true, state: true },
+      });
+
+      if (!job || job.state === 'RECEIVED') {
+        return undefined;
+      }
+
+      if (job.stagedFileCount > 0) {
+        return undefined;
+      }
+    }
+
+    return rows.map((row) => ({ path: row.path, content: row.content, encoding: row.encoding ?? undefined }));
+  }
+
+  async deleteImportStagedFiles(importJobId: string): Promise<void> {
+    await this.prisma.importStagedFile.deleteMany({ where: { importJobId } });
   }
 
   async updateImportJob(
@@ -2407,11 +2636,42 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  /**
+   * BUG-CREATE-001 — le quota comptait des LIGNES, pas des espaces qui tournent.
+   *
+   * Mesuré en production le 2026-09-01 : **198 espaces comptés actifs pour 2 pods
+   * réellement en cours** — un facteur 99. 196 d'entre eux n'avaient pas été
+   * touchés depuis plus de 24 h, le plus récent des morts datant de 11 jours.
+   * Chaque ligne morte retenait son créneau indéfiniment, et un utilisateur au
+   * plafond ne pouvait plus créer un seul projet.
+   *
+   * La fenêtre de fraîcheur n'est pas un réglage arbitraire : les données
+   * montrent une séparation nette. À 6 h il reste exactement 2 espaces — les
+   * deux qui ont un pod — et le suivant a 11 jours. Aucun seuil entre 6 h et
+   * 72 h ne change le résultat.
+   *
+   * Le risque résiduel est assumé et il est le bon sens : un espace réellement
+   * vivant mais dont la ligne n'aurait pas bougé depuis 6 h ne serait plus
+   * compté, donc le quota SOUS-compterait. Un utilisateur pourrait dépasser son
+   * plan de quelques espaces. C'est sans commune mesure avec l'inverse — plus
+   * personne ne peut rien créer.
+   *
+   * AUCUNE ÉCRITURE EN BASE ICI, et c'est délibéré. J'avais d'abord ajouté une
+   * réconciliation qui remettait les lignes périmées à STOPPED. Vérification
+   * faite AVANT de livrer : `STOPPED` n'est pas un état neutre — le
+   * ramasse-miettes supprime un espace STOPPED après 24 h, PVC compris. La
+   * réconciliation aurait donc armé la suppression de 196 espaces. On se
+   * contente d'ignorer les lignes périmées à la lecture : elles restent en base,
+   * rien n'est déclenché, et le quota cesse de bloquer.
+   */
+  static readonly ACTIVE_WORKSPACE_FRESHNESS_MS = 6 * 60 * 60 * 1000;
+
   async countActiveWorkspaces(organizationId: string) {
     return this.prisma.workspace.count({
       where: {
         project: { organizationId, deletedAt: null },
         status: { in: ['PENDING', 'STARTING', 'RUNNING'] },
+        updatedAt: { gte: new Date(Date.now() - PrismaApiStore.ACTIVE_WORKSPACE_FRESHNESS_MS) },
       },
     });
   }
@@ -2428,7 +2688,7 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapWorkspace);
   }
 
-  async countSnapshots(organizationId: string) {
+  async countSnapshots(organizationId: string, since?: Date) {
     /*
      * Exclude system-generated 'before-ai-change' snapshots from the user's
      * snapshots.count quota. They are created automatically on every AI
@@ -2437,8 +2697,17 @@ export class PrismaApiStore implements ApiStore {
      * manual snapshot endpoint even though they took no manual snapshots
      * (self-lockout). The quota governs user-initiated snapshots only.
      */
+    /*
+     * `since` borne le compte à la période d'usage courante. Sans lui, le total
+     * était monotone et finissait par fermer définitivement le retour arrière —
+     * exactement le piège décrit sur `countDeployments` juste en dessous.
+     */
     return this.prisma.projectSnapshot.count({
-      where: { project: { organizationId, deletedAt: null }, kind: { not: 'before-ai-change' } },
+      where: {
+        project: { organizationId, deletedAt: null },
+        kind: { not: 'before-ai-change' },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
     });
   }
 
@@ -2594,10 +2863,24 @@ export class PrismaApiStore implements ApiStore {
     return snapshot ? mapSnapshot(snapshot) : undefined;
   }
 
-  async listSnapshots(projectId: string) {
-    return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
-      mapSnapshot,
-    );
+  /**
+   * PANEL-PERF — la requête est bornable et le manifeste projetable.
+   *
+   * Sans option, le comportement est celui d'avant, à l'identique : toutes les
+   * lignes, manifeste complet. Le tri secondaire sur `id` rend l'ordre TOTAL,
+   * sans quoi deux instantanés du même tour d'agent (même `createdAt` à la
+   * seconde) pourraient s'échanger entre deux pages — et la pagination perdrait
+   * ou dupliquerait une ligne.
+   */
+  async listSnapshots(projectId: string, options?: SnapshotListOptions) {
+    const rows = await this.prisma.projectSnapshot.findMany({
+      where: { projectId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(options?.take ? { take: options.take } : {}),
+      ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+    });
+
+    return rows.map((row) => projectSnapshotManifest(mapSnapshot(row), options?.manifest));
   }
 
   async putProjectStorageObject(input: {
@@ -2659,6 +2942,111 @@ export class PrismaApiStore implements ApiStore {
     });
 
     return row ? mapDatabaseInstance(row) : undefined;
+  }
+
+  async createMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    activeLock: string;
+    state: string;
+    statementsSha256: string;
+    statementCount: number;
+    backwardCompatible: string;
+    forwardCompatible: string;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }) {
+    /*
+     * Aucun try/catch ici : une violation d'unicité sur `activeLock` DOIT
+     * remonter pour que l'appelant la traduise en refus (MIGRATION_LOCK_HELD).
+     * L'avaler ici transformerait un verrou tenu en migration silencieusement
+     * ignorée — et deux migrations concurrentes finiraient par se croiser.
+     */
+    const row = await this.prisma.dBMigrationExecution.create({
+      data: {
+        projectId: input.projectId,
+        organizationId: input.organizationId,
+        environment: input.environment,
+        idempotencyKey: input.idempotencyKey,
+        activeLock: input.activeLock,
+        state: input.state,
+        statementsSha256: input.statementsSha256,
+        statementCount: input.statementCount,
+        backwardCompatible: input.backwardCompatible,
+        forwardCompatible: input.forwardCompatible,
+        deploymentId: input.deploymentId ?? null,
+        createdByUserId: input.createdByUserId ?? null,
+      },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateMigrationExecution(
+    id: string,
+    patch: {
+      state?: string;
+      activeLock?: string | null;
+      backupId?: string;
+      backupVerifiedAt?: string;
+      backupVerificationMethod?: string;
+      appliedStatements?: number;
+      error?: string;
+      completedAt?: string;
+    },
+  ) {
+    await this.prisma.dBMigrationExecution.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        // `null` libère le verrou ; `undefined` le laisse intact.
+        ...(patch.activeLock !== undefined ? { activeLock: patch.activeLock } : {}),
+        ...(patch.backupId !== undefined ? { backupId: patch.backupId } : {}),
+        ...(patch.backupVerifiedAt !== undefined ? { backupVerifiedAt: new Date(patch.backupVerifiedAt) } : {}),
+        ...(patch.backupVerificationMethod !== undefined
+          ? { backupVerificationMethod: patch.backupVerificationMethod }
+          : {}),
+        ...(patch.appliedStatements !== undefined ? { appliedStatements: patch.appliedStatements } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.completedAt !== undefined ? { completedAt: new Date(patch.completedAt) } : {}),
+      },
+    });
+  }
+
+  async getMigrationExecutionByIdempotencyKey(projectId: string, idempotencyKey: string) {
+    const row = await this.prisma.dBMigrationExecution.findUnique({
+      where: { projectId_idempotencyKey: { projectId, idempotencyKey } },
+    });
+
+    return row ? { id: row.id, state: row.state, appliedStatements: row.appliedStatements } : undefined;
+  }
+
+  async getMigrationExecution(id: string) {
+    const row = await this.prisma.dBMigrationExecution.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      environment: row.environment,
+      state: row.state,
+      idempotencyKey: row.idempotencyKey,
+      backupId: row.backupId ?? undefined,
+      backupVerifiedAt: row.backupVerifiedAt?.toISOString(),
+      backupVerificationMethod: row.backupVerificationMethod ?? undefined,
+      statementCount: row.statementCount,
+      appliedStatements: row.appliedStatements,
+      backwardCompatible: row.backwardCompatible,
+      forwardCompatible: row.forwardCompatible,
+      error: row.error ?? undefined,
+      startedAt: row.startedAt.toISOString(),
+      completedAt: row.completedAt?.toISOString(),
+    };
   }
 
   async listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]> {
@@ -2871,6 +3259,9 @@ export class PrismaApiStore implements ApiStore {
         status: true,
         createdAt: true,
         environmentName: true,
+        // P104: the access config lives in metadata.access; the static-serve
+        // gate reads it from here. Dropping it fails OPEN (see store.ts).
+        metadata: true,
         /*
          * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
          * d'une publication Starter se décide dans le chemin de SERVICE, pas
@@ -2909,6 +3300,7 @@ export class PrismaApiStore implements ApiStore {
       environmentName: deployment.environmentName ?? undefined,
       organizationId: deployment.project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
+      metadata: (deployment.metadata ?? undefined) as Record<string, unknown> | undefined,
     };
   }
 
@@ -4399,11 +4791,19 @@ export class PrismaApiStore implements ApiStore {
     role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
   }) {
+    /*
+     * Instant STRICTEMENT croissant d'un message au suivant : voir
+     * horodatage-message.ts. Sans lui, question et réponse d'un même tour (ou
+     * une transcription synchronisée en rafale) partagent la milliseconde et
+     * reviennent dans un ordre indéfini au rechargement.
+     */
+    const createdAt = horodatageMessageMonotone();
+
     if (input.id) {
       return mapAiMessage(
         await this.prisma.aiMessage.upsert({
           where: { id: input.id },
-          create: input,
+          create: { ...input, createdAt },
           update: {
             role: input.role,
             content: input.content,
@@ -4412,7 +4812,7 @@ export class PrismaApiStore implements ApiStore {
       );
     }
 
-    return mapAiMessage(await this.prisma.aiMessage.create({ data: input }));
+    return mapAiMessage(await this.prisma.aiMessage.create({ data: { ...input, createdAt } }));
   }
 
   async listAiMessages(conversationId: string) {
@@ -4425,11 +4825,25 @@ export class PrismaApiStore implements ApiStore {
 
     const rows = await this.prisma.aiMessage.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'desc' },
+
+      /*
+       * `id` départage deux instants égaux : l'ordre reste alors DÉTERMINISTE
+       * d'une lecture à l'autre, quel que soit le plan choisi par Postgres.
+       */
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: MAX_AI_MESSAGES,
     });
 
     return rows.reverse().map(mapAiMessage);
+  }
+
+  async listAiMessageIds(conversationId: string) {
+    const rows = await this.prisma.aiMessage.findMany({
+      where: { conversationId },
+      select: { id: true },
+    });
+
+    return rows.map((row) => row.id);
   }
 
   async createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }) {
@@ -6004,6 +6418,7 @@ function mapSession(session: any): SessionRecord {
     userAgent: session.userAgent ?? undefined,
     revokedAt: toIso(session.revokedAt),
     lastReauthAt: toIso(session.lastReauthAt),
+    lastActiveAt: toIso(session.lastActiveAt),
     impersonatedBy: session.impersonatedBy ?? undefined,
   };
 }

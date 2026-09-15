@@ -67,6 +67,8 @@
 -}}
 {{- $merged := mustMergeOverwrite (deepCopy $defaults) $cronjobs -}}
 {{- $workerImageTag := default .Values.global.imageTag .Values.services.worker.imageTag -}}
+{{- $workerImageDigest := default .Values.global.imageDigest .Values.services.worker.imageDigest -}}
+{{- $workerImageArgs := dict "registry" .Values.global.imageRegistry "image" "worker" "digest" $workerImageDigest "tag" $workerImageTag -}}
 {{- range $name, $cron := $merged }}
 {{- if $cron.enabled }}
 ---
@@ -117,8 +119,8 @@ spec:
               type: RuntimeDefault
           containers:
             - name: enqueue
-              image: "{{ $.Values.global.imageRegistry }}/worker:{{ required "global.imageTag or services.worker.imageTag must be set" $workerImageTag }}"
-              imagePullPolicy: {{ if eq (toString $workerImageTag) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+              image: "{{ include "vibecore-platform.imageRef" $workerImageArgs }}"
+              imagePullPolicy: {{ include "vibecore-platform.imagePullPolicy" $workerImageArgs }}
               command:
                 - node
                 - /runtime/dist/enqueue-cli.js

@@ -1,0 +1,85 @@
+{
+  "$comment": [
+    "RELEASE-INTEGRITY POLICY — the set of checks that MUST be green, for the EXACT",
+    "commit being deployed, before any production rollout starts.",
+    "",
+    "Why workflows are pinned by numeric `id` and not by `name`: a workflow's display",
+    "name is just a `name:` line in a YAML file that any commit can change. Pinning the",
+    "name means a commit that renames a cheap always-green workflow to 'Production CI'",
+    "satisfies the gate while the real CI is red or deleted. The numeric id is minted by",
+    "GitHub per workflow FILE PATH and cannot be claimed by another file.",
+    "",
+    "`path` is asserted too, as a second, independent key: the API reports the path each",
+    "run actually executed. id+path disagreeing means the pinned id no longer refers to",
+    "the file we think it does -> refuse rather than guess.",
+    "",
+    "`requiredJobs` is the anti-gutting guard. Pinning only the workflow lets a commit",
+    "empty out ci.yml (delete every real step, keep a green no-op job) and still deploy.",
+    "The named jobs must EXIST in the run and be `success`; a deleted or renamed job is",
+    "a refusal, which forces the rename to be a deliberate, reviewed edit of this file.",
+    "",
+    "Jobs deliberately NOT required: quality.yaml 'PR Size Check' (skipped by design on",
+    "push events) and 'Accessibility Tests' / 'Performance Audit' (continue-on-error /",
+    "advisory). Requiring an advisory job would make the gate lie about what blocks.",
+    "",
+    "WAIVERS. A required workflow may carry waivedUntil/waiverReason/waiverTicket to be",
+    "temporarily not-required — for a pipeline broken for reasons unrelated to release",
+    "integrity, where making it required today would block every deploy rather than gate",
+    "anything. A waiver is loud (printed on every run, in the verdict artifact) and",
+    "EXPIRES: past the date the check is required again and deploys refuse. Expiry fails",
+    "closed on purpose — the reason this gate exists is that Production E2E was already",
+    "effectively waived, by never running, with nobody noticing.",
+    "",
+    "NOTHING IS WAIVED HERE. Production E2E carried a waiver until 2026-08-13, when the",
+    "suite went green for the first time (fix/e2e-production-green). That branch carries",
+    "its own bounded waiver INSIDE the suite — tests/e2e/e2e-waivers.json, enforced by",
+    "scripts/e2e-gate.mjs, same 30-day ceiling, same expire-into-failure. Keeping a second",
+    "waiver at THIS level would suppress exactly the signal that fix made available: an",
+    "E2E failure that is NOT on that list is a real regression, and it must refuse the",
+    "deploy. Two layers of the same waiver only mean the outer one hides the inner one.",
+    "",
+    "ORDERING, because this policy is unsatisfiable until both land: on `main` today,",
+    "e2e.yml triggers on push to [stable, product/saas-platform-production] — NOT main —",
+    "so Production E2E has never run on a main push (0 runs, verified via the API). This",
+    "lot adds `main` to that trigger; fix/e2e-production-green makes the suite pass. Merge",
+    "the suite fix FIRST: if this lot lands first, the first push-to-main E2E run happens",
+    "on its own merge commit and goes red, refusing deploys until the fix follows."
+  ],
+  "repository": "openaxcloud/vibecore",
+  "allowedEvents": ["push"],
+  "requiredHeadBranch": "main",
+  "waitTimeoutSeconds": 5400,
+  "pollIntervalSeconds": 30,
+  "requiredWorkflows": [
+    {
+      "id": 271139572,
+      "path": ".github/workflows/ci.yml",
+      "displayName": "Production CI",
+      "requiredJobs": ["Install, test, build, scan"]
+    },
+    {
+      "id": 271139579,
+      "path": ".github/workflows/e2e.yml",
+      "displayName": "Production E2E",
+      "requiredJobs": ["Playwright local stack"]
+    },
+    {
+      "id": 271139585,
+      "path": ".github/workflows/security.yaml",
+      "displayName": "Security Analysis",
+      "requiredJobs": [
+        "Secret scan (gitleaks, blocking)",
+        "CodeQL Analysis (javascript)",
+        "CodeQL Analysis (typescript)",
+        "Dependency Vulnerability Scan",
+        "Secrets Detection"
+      ]
+    },
+    {
+      "id": 271139584,
+      "path": ".github/workflows/quality.yaml",
+      "displayName": "Code Quality",
+      "requiredJobs": ["Quality Analysis"]
+    }
+  ]
+}

@@ -27,14 +27,28 @@ const logger = createScopedLogger('FilesStore');
 
 const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
 
+/** Code porté par le conflit de concurrence, pour le reconnaître sans lire son texte. */
+export const CODE_CONFLIT_DISTANT = 'REMOTE_FILE_CHANGED';
+
 export interface SaveFileOptions {
   /*
    * How to handle a remote-kubernetes optimistic-concurrency conflict (the file
    * changed on disk since it was loaded). 'throw' (default) surfaces the
    * conflict — correct for human saves. 'reconcile' merges JSON / adopts the
    * fresh version for other files, so parallel agent-patch lanes don't fail.
+   *
+   * BUG-IDE-004 — 'overwrite' est LA SORTIE DE SECOURS DE L'HUMAIN.
+   *
+   * Sans elle, une édition prise dans un conflit ne pouvait être persistée
+   * NULLE PART : mesuré le 06/08, l'onglet restait sale après le bouton Save,
+   * Ctrl+S et Cmd+S, et l'édition était absente des trois magasins. Le garde
+   * protégeait le fichier distant en sacrifiant le travail de l'utilisateur.
+   *
+   * Elle n'est JAMAIS choisie automatiquement : seul un geste explicite de
+   * l'utilisateur, devant un message qui dit ce qui s'est passé, peut l'armer.
+   * La version distante reste dans l'historique de fichier.
    */
-  onRemoteConflict?: 'throw' | 'reconcile';
+  onRemoteConflict?: 'throw' | 'reconcile' | 'overwrite';
 }
 
 export interface File {
@@ -60,6 +74,33 @@ export interface ProjectStorageFile {
 type Dirent = File | Folder;
 
 export type FileMap = Record<string, Dirent | undefined>;
+
+/*
+ * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — a runtime tree listing taken while the
+ * pod is waking/being (re)provisioned can be PARTIAL: the agent answers before
+ * the workspace has been (re)seeded, so it lists only a fraction of the real
+ * project (observed live: the IDE file tree collapsed from 12 files to 1 during
+ * a spurious reprovision). Hard-replacing a hydrated tree with such a snapshot
+ * destroys the canonical view — and everything derived from it (editor tabs,
+ * "files changed" signatures, install detection).
+ *
+ * Pure decision: keep the CURRENT hydrated tree when the incoming listing lost
+ * most of it. Small trees (< 4 files) carry no signal and always adopt; a
+ * listing that keeps at least ~a quarter of the files is treated as a genuine
+ * bulk change (e.g. real deletions) and adopted. Later reloads adopt the full
+ * tree again once the pod is seeded, so preservation is self-healing.
+ */
+export function shouldPreserveHydratedTree(currentFileCount: number, incomingFileCount: number): boolean {
+  if (currentFileCount < 4) {
+    return false;
+  }
+
+  if (incomingFileCount >= currentFileCount) {
+    return false;
+  }
+
+  return incomingFileCount <= Math.max(2, Math.floor(currentFileCount / 4));
+}
 
 export class FilesStore {
   #runtime: RuntimeAdapter;
@@ -252,6 +293,21 @@ export class FilesStore {
     };
 
     nodes.forEach(visit);
+
+    /*
+     * A full-tree resync must never let a PARTIAL listing (pod waking up /
+     * mid-reprovision, before the reseed lands) collapse an already-hydrated
+     * tree — see shouldPreserveHydratedTree. Keep the canonical tree; the next
+     * successful reload adopts the runtime listing again.
+     */
+    if (shouldPreserveHydratedTree(this.#size, fileCount)) {
+      logger.warn(
+        `Ignoring partial runtime tree listing (${fileCount} files) that would collapse the hydrated tree (${this.#size} files)`,
+      );
+
+      return;
+    }
+
     this.#size = fileCount;
     this.files.set(nextFiles);
     this.#loadLockedFiles();
@@ -819,12 +875,29 @@ export class FilesStore {
            * `reconcile`, which merges (JSON) / adopts-fresh (other) instead of
            * failing with a stack of "Remote file changed since it was loaded".
            */
-          if (options?.onRemoteConflict !== 'reconcile') {
-            throw new Error(clientStoresServicesText('clientStores.files.remoteChanged', { path: filePath }));
+          if (options?.onRemoteConflict === 'overwrite') {
+            /*
+             * BUG-IDE-004 — l'utilisateur a vu le conflit et a tranché : sa
+             * version l'emporte. On adopte la version distante comme base pour
+             * que la comptabilité des fichiers modifiés reste juste, mais le
+             * contenu écrit est le SIEN.
+             */
+            baselineContent = remoteContent;
+          } else if (options?.onRemoteConflict !== 'reconcile') {
+            /*
+             * BUG-IDE-004 — l'erreur porte un CODE. Le message reste localisé
+             * pour l'humain, mais l'interface ne doit pas avoir à reconnaître
+             * un conflit en lisant une phrase traduite : elle changerait de
+             * sens à la première retraduction (règle 5).
+             */
+            throw Object.assign(
+              new Error(clientStoresServicesText('clientStores.files.remoteChanged', { path: filePath })),
+              { code: CODE_CONFLIT_DISTANT, filePath },
+            );
+          } else {
+            effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
+            baselineContent = remoteContent;
           }
-
-          effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
-          baselineContent = remoteContent;
 
           this.files.setKey(filePath, {
             type: 'file',

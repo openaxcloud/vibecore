@@ -19,19 +19,29 @@ export const mobileIdeTabsEn = {
   'mobileIdeTabs.editor.description': 'Open code editor',
   'mobileIdeTabs.overview.title': 'Overview',
   'mobileIdeTabs.overview.description': 'Project summary',
-  'mobileIdeTabs.agent.title': 'AI Agent',
+  'mobileIdeTabs.agent.title': 'Agent',
   'mobileIdeTabs.agent.description': 'Agent can make changes, review its work, and debug itself automatically.',
-  'mobileIdeTabs.deployments.title': 'Deployments',
+  'mobileIdeTabs.deployments.title': 'Publish',
   'mobileIdeTabs.deployments.description': 'Publish your app',
   'mobileIdeTabs.objectStorage.title': 'Object Storage',
   'mobileIdeTabs.objectStorage.description': 'File storage',
   'mobileIdeTabs.settings.title': 'Settings',
   'mobileIdeTabs.settings.description': 'Project settings',
+
+  /*
+   * Frozen label: identical in EN and FR ('Shell (Terminal)'). It lives here as a
+   * real key so the mobile Tools sheet can resolve it — the entry used to carry
+   * the literal in its `titleKey`, which `t()` could not resolve, so the tab
+   * rendered the missing-key fallback "Unavailable" as its title.
+   */
+  'mobileIdeTabs.terminal.title': 'Shell (Terminal)',
   'mobileIdeTabs.terminal.description': 'Workspace shell terminal',
   'mobileIdeTabs.database.title': 'Database',
   'mobileIdeTabs.database.description': 'SQL browser',
   'mobileIdeTabs.locks.title': 'Locks',
   'mobileIdeTabs.locks.description': 'Locked files',
+  'mobileIdeTabs.problems.title': 'Problems',
+  'mobileIdeTabs.problems.description': 'Errors and warnings detected in your workspace',
   'mobileIdeTabs.debugger.title': 'Debugger',
   'mobileIdeTabs.debugger.description': 'Breakpoints and launch configs',
   'mobileIdeTabs.git.title': 'Git',
@@ -85,20 +95,25 @@ export const mobileIdeTabsFr: Record<keyof typeof mobileIdeTabsEn, string> = {
   'mobileIdeTabs.editor.description': 'Ouvrir l’éditeur de code',
   'mobileIdeTabs.overview.title': 'Vue d’ensemble',
   'mobileIdeTabs.overview.description': 'Résumé du projet',
-  'mobileIdeTabs.agent.title': 'Agent IA',
+  'mobileIdeTabs.agent.title': 'Agent',
   'mobileIdeTabs.agent.description':
     'L’agent peut effectuer des modifications, relire son travail et se déboguer automatiquement.',
-  'mobileIdeTabs.deployments.title': 'Déploiements',
+  'mobileIdeTabs.deployments.title': 'Publier',
   'mobileIdeTabs.deployments.description': 'Publiez votre application',
   'mobileIdeTabs.objectStorage.title': 'Stockage d’objets',
   'mobileIdeTabs.objectStorage.description': 'Stockage de fichiers',
   'mobileIdeTabs.settings.title': 'Paramètres',
   'mobileIdeTabs.settings.description': 'Paramètres du projet',
+
+  // Libellé gelé : identique en EN et FR, volontairement non traduit.
+  'mobileIdeTabs.terminal.title': 'Shell (Terminal)',
   'mobileIdeTabs.terminal.description': 'Terminal shell de l’espace de travail',
   'mobileIdeTabs.database.title': 'Base de données',
   'mobileIdeTabs.database.description': 'Explorateur SQL',
   'mobileIdeTabs.locks.title': 'Verrous',
   'mobileIdeTabs.locks.description': 'Fichiers verrouillés',
+  'mobileIdeTabs.problems.title': 'Problèmes',
+  'mobileIdeTabs.problems.description': 'Erreurs et avertissements détectés dans votre espace de travail',
   'mobileIdeTabs.debugger.title': 'Débogueur',
   'mobileIdeTabs.debugger.description': 'Points d’arrêt et configurations de lancement',
   'mobileIdeTabs.git.title': 'Git',

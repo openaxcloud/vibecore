@@ -1,6 +1,7 @@
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
 
 export const lockManagerEn = {
+  'lockManager.panel.title': 'Locks',
   'lockManager.search.placeholder': 'Search…',
   'lockManager.search.ariaLabel': 'Search locked items',
   'lockManager.filter.ariaLabel': 'Filter locked items by type',
@@ -8,7 +9,14 @@ export const lockManagerEn = {
   'lockManager.filter.files': 'Files',
   'lockManager.filter.folders': 'Folders',
   'lockManager.selectAll.ariaLabel': 'Select all items',
-  'lockManager.selectAll.label': 'All',
+
+  /*
+   * VERROUS-01 — ce libellé valait « All », le mot que porte DÉJÀ l'option
+   * sélectionnée du filtre juste au-dessus. Deux contrôles distincts, un seul
+   * mot, l'un sous l'autre : sur un panneau vide la case est désactivée et se
+   * réduit à un filet, si bien que le second « All » se lit comme un résidu.
+   */
+  'lockManager.selectAll.label': 'Select all',
   'lockManager.unlockSelected': 'Unlock all',
   'lockManager.unlockSelected.title': 'Unlock all selected items',
   'lockManager.empty': 'No locked items found',
@@ -29,6 +37,7 @@ export type LockManagerKey = keyof typeof lockManagerEn;
 export type LockManagerCopy = Readonly<Record<LockManagerKey, string>>;
 
 export const lockManagerFr: LockManagerCopy = {
+  'lockManager.panel.title': 'Verrous',
   'lockManager.search.placeholder': 'Rechercher…',
   'lockManager.search.ariaLabel': 'Rechercher dans les éléments verrouillés',
   'lockManager.filter.ariaLabel': 'Filtrer les éléments verrouillés par type',
@@ -36,7 +45,7 @@ export const lockManagerFr: LockManagerCopy = {
   'lockManager.filter.files': 'Fichiers',
   'lockManager.filter.folders': 'Dossiers',
   'lockManager.selectAll.ariaLabel': 'Sélectionner tous les éléments',
-  'lockManager.selectAll.label': 'Tous',
+  'lockManager.selectAll.label': 'Tout sélectionner',
   'lockManager.unlockSelected': 'Tout déverrouiller',
   'lockManager.unlockSelected.title': 'Déverrouiller tous les éléments sélectionnés',
   'lockManager.empty': 'Aucun élément verrouillé trouvé',

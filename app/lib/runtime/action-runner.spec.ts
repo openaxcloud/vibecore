@@ -33,7 +33,9 @@ import {
   ActionRunner,
   extractSelfRepairContent,
   isDevServerStartCommand,
+  installCommandForStartCommand,
   isLongRunningInstallCommand,
+  startCommandAlreadyInstalls,
 } from './action-runner';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
@@ -308,6 +310,175 @@ describe('ActionRunner abort / start finalization', () => {
   });
 });
 
+/*
+ * BUG-AGENT-007 (chemin de repli) — un `start` qui passe par le PTY (commande non
+ * reconnue comme dev-server, ou hook onStartDevServer non câblé) doit garantir
+ * l'installation des dépendances AVANT de lancer sa commande. Sans la garantie,
+ * la commande partait brute contre un node_modules vide et mourait aussitôt
+ * (« command not found » / « Cannot find module ») → aperçu vide.
+ */
+describe('BUG-AGENT-007 — install guarantee on the PTY start fallback', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function startData(actionId: string, content: string): ActionCallbackData {
+    return {
+      artifactId: 'artifact-1',
+      messageId: 'message-1',
+      actionId,
+      action: { type: 'start', content },
+    };
+  }
+
+  function runtimeWithManifest(options: { installed: boolean; packageManager?: string }) {
+    const manifest = {
+      dependencies: { express: '^4.19.0' },
+      ...(options.packageManager ? { packageManager: options.packageManager } : {}),
+    };
+
+    return createRuntime({
+      readFile: vi.fn().mockResolvedValue({ content: JSON.stringify(manifest) }),
+      listFiles: options.installed
+        ? vi.fn().mockResolvedValue([{ name: 'express', type: 'directory' }])
+        : vi.fn().mockRejectedValue(new Error('ENOENT: node_modules does not exist')),
+    } as Partial<RuntimeAdapter>);
+  }
+
+  async function runStart(runner: ActionRunner, data: ActionCallbackData) {
+    runner.addAction(data);
+
+    const runPromise = runner.runAction(data, false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await runPromise;
+    await Promise.resolve();
+  }
+
+  it('REGRESSION: a PTY start against an empty node_modules runs the install BEFORE the command', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-install-first', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['npm install', 'node server.js']);
+    expect(runner.actions.get()['action-start-install-first']?.status).toBe('complete');
+  });
+
+  it('covers a dev-server start too when the onStartDevServer hook is unwired', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-dev-unwired', 'npm run dev'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['npm install', 'npm run dev']);
+  });
+
+  it('does NOT prepend an install when node_modules is already populated', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: true }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-already-installed', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['node server.js']);
+  });
+
+  it('does NOT double-install when the start command already chains its own install', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-chained-install', 'npm install && node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['npm install && node server.js']);
+  });
+
+  it('fails the action with the real install error when the install itself fails', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async (_id: string, command: string) =>
+      command === 'npm install' ? { exitCode: 1, output: 'npm ERR! ERESOLVE' } : { exitCode: 0, output: '' },
+    );
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-install-fails', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+
+    // The dev command must never run against the broken node_modules.
+    expect(commands).toEqual(['npm install']);
+    expect(runner.actions.get()['action-start-install-fails']?.status).toBe('failed');
+  });
+
+  it('leaves the historic behaviour untouched when package.json cannot be read (best-effort probe)', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      createRuntime({ readFile: vi.fn().mockRejectedValue(new Error('ENOENT')) } as Partial<RuntimeAdapter>),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-no-manifest', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['node server.js']);
+  });
+});
+
+describe('installCommandForStartCommand / startCommandAlreadyInstalls', () => {
+  it.each([
+    ['node server.js', undefined, 'npm install'],
+    ['pnpm run start:custom', undefined, 'pnpm install'],
+    ['yarn node server.js', undefined, 'yarn install'],
+    ['bun server.ts', undefined, 'bun install'],
+    ['node server.js', 'pnpm@9.14.4', 'pnpm install'],
+    ['node server.js', 'yarn@4.0.0', 'yarn install'],
+  ])('derives the install command for %s (packageManager: %s) → %s', (command, packageManager, expected) => {
+    expect(installCommandForStartCommand(command, packageManager)).toBe(expected);
+  });
+
+  it('detects an explicit chained install', () => {
+    expect(startCommandAlreadyInstalls('npm install && node server.js')).toBe(true);
+    expect(startCommandAlreadyInstalls('pnpm i; pnpm start:worker')).toBe(true);
+    expect(startCommandAlreadyInstalls('node server.js')).toBe(false);
+
+    // npx only installs the invoked TOOL, not the app's dependencies.
+    expect(startCommandAlreadyInstalls('npx serve -s build')).toBe(false);
+  });
+});
+
 describe('isDevServerStartCommand', () => {
   it.each([
     'npm run dev',
@@ -430,7 +601,7 @@ describe('ActionRunner self-repair retry loop', () => {
     runner.addAction(fileAction);
     await runner.runAction(fileAction, false);
 
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const x = 1;\n');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const x = 1;\n', { streaming: false });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(progressEvents).toHaveLength(0);
   });
@@ -474,7 +645,7 @@ describe('ActionRunner self-repair retry loop', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/agent/self-repair');
 
     expect(writeFile).toHaveBeenCalledTimes(1);
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n', { streaming: false });
 
     // One "attempt 1/2" progress, then a clearing null.
     expect(progressEvents).toEqual([
@@ -522,7 +693,7 @@ describe('ActionRunner self-repair retry loop', () => {
     await runPromise;
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2', { streaming: false });
 
     const clearing = progressEvents.find((event) => event.status === null);
     expect(clearing).toBeDefined();
@@ -623,7 +794,7 @@ describe('ActionRunner self-repair retry loop', () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await runPromise;
 
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;', { streaming: false });
     expect(progressEvents.some((event) => event.status === null)).toBe(true);
   });
 });
@@ -696,7 +867,7 @@ describe('ActionRunner diff action apply', () => {
     expect(writeFile).toHaveBeenCalledTimes(1);
 
     const expected = original.replace('line 300\n', 'line THREE-HUNDRED\n');
-    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected);
+    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected, { streaming: false });
 
     // project-doctor / reconcile ran AFTER the write on the applied full content.
     expect(applyEntryExportReconcileMock).toHaveBeenCalledTimes(1);
@@ -727,6 +898,52 @@ describe('ActionRunner diff action apply', () => {
     expect(onAlert).toHaveBeenCalledTimes(1);
     expect(onAlert.mock.calls[0][0]).toMatchObject({ type: 'warning', title: 'Diff could not be applied' });
     expect(onAlert.mock.calls[0][0].description).toContain('src/answer.ts');
+  });
+
+  /*
+   * BUG-PERF-001 — amplification d'ecritures agent. Le generateur re-emet la
+   * MEME action de fichier avec un actionId NEUF pour un contenu identique :
+   * mesure du 15/08, 1018 `PUT /files/write` pour 25 fichiers (x40), et
+   * package.json ecrit 96 fois pour une seule taille distincte.
+   *
+   * La parade est `#lastWrittenFingerprint` dans `#runFileAction` : une
+   * empreinte (chemin, contenu) qui saute l'ecriture quand rien n'a change.
+   * Elle n'etait tenue par AUCUN test — regle 15.
+   */
+  it("BUG-PERF-001 : une re-emission a contenu IDENTIQUE n'ecrit qu'une fois", async () => {
+    const contenu = 'export const compteur = 0;\n';
+    const { runtime, writeFile } = createStatefulRuntime({});
+    const runner = new ActionRunner(runtime, () => createShell() as any, vi.fn());
+
+    /* Dix re-emissions du meme fichier, chacune avec un actionId NEUF. */
+    for (let n = 0; n < 10; n += 1) {
+      const data = fileActionData('src/compteur.ts', contenu, `file-repete-${n}`);
+      runner.addAction(data);
+      await runner.runAction(data, false);
+    }
+
+    expect(
+      writeFile.mock.calls.filter((appel: unknown[]) => appel[0] === 'src/compteur.ts').length,
+      "dix re-emissions identiques ont produit plus d'une ecriture",
+    ).toBe(1);
+  });
+
+  it('BUG-PERF-001 : un contenu REELLEMENT different ecrit bien a chaque fois', async () => {
+    /*
+     * Contre-epreuve dans l'autre sens : la deduplication ne doit pas avaler
+     * une vraie modification. Sans ce cas, une empreinte trop large passerait
+     * le test precedent en perdant des ecritures legitimes.
+     */
+    const { runtime, writeFile } = createStatefulRuntime({});
+    const runner = new ActionRunner(runtime, () => createShell() as any, vi.fn());
+
+    for (let n = 0; n < 3; n += 1) {
+      const data = fileActionData('src/varie.ts', `export const v = ${n};\n`, `file-varie-${n}`);
+      runner.addAction(data);
+      await runner.runAction(data, false);
+    }
+
+    expect(writeFile.mock.calls.filter((appel: unknown[]) => appel[0] === 'src/varie.ts').length).toBe(3);
   });
 
   it('AMBIGUOUS anchor (multiple matches) writes nothing and alerts', async () => {
@@ -818,7 +1035,7 @@ describe('ActionRunner diff action apply', () => {
 
     const expected = ['const a = 10;', 'const b = 2;', 'const c = 30;', ''].join('\n');
     expect(writeFile).toHaveBeenCalledTimes(1);
-    expect(writeFile).toHaveBeenCalledWith('src/multi.ts', expected);
+    expect(writeFile).toHaveBeenCalledWith('src/multi.ts', expected, { streaming: false });
 
     // Sanitize + self-repair validation ran on the applied content, then reconcile.
     expect(validateAndFormatHunkMock).toHaveBeenCalledWith('src/multi.ts', expected);
@@ -949,5 +1166,92 @@ describe('ActionRunner.recoverDiffViaFullFileReemit (diff apply-fail full-file f
     const out = await runner.recoverDiffViaFullFileReemit('src/a.ts', 'base\n', 'diff', freshSignal());
 
     expect(out).toBeNull();
+  });
+});
+
+/*
+ * BUG-AGENT-001 — amplification d'écritures.
+ *
+ * Comportement, pas structure. Le scénario reproduit ce qui a été MESURÉ en
+ * direct le 21/08 sur `web:405b1f369d` : des actions ré-émises, portant des
+ * `actionId` DIFFÉRENTS, réécrivent le même fichier avec un contenu identique
+ * (vite.config.ts : 20 écritures, 1 seule taille distincte).
+ *
+ * Utiliser le même actionId ne testerait RIEN : `runAction` a déjà une garde
+ * `if (action.executed) return` qui l'attrape. C'est précisément la confusion
+ * qui rendait ce bug difficile à cerner.
+ */
+describe('BUG-AGENT-001 — une réécriture octet-pour-octet ne repart pas sur le réseau', () => {
+  beforeEach(() => {
+    validateAndFormatHunkMock.mockReset();
+    validateAndFormatHunkMock.mockResolvedValue({ kind: 'skipped' });
+    buildSelfRepairPromptMock.mockReset();
+    buildSelfRepairPromptMock.mockReturnValue('synthetic-prompt');
+  });
+
+  async function replay(runner: ActionRunner, actionId: string, content: string) {
+    const data = createActionData(actionId);
+    (data.action as { content: string }).content = content;
+    runner.addAction(data);
+    await runner.runAction(data);
+    await runner.waitForIdle();
+  }
+
+  const cssWrites = (runtime: RuntimeAdapter) =>
+    (runtime.writeFile as ReturnType<typeof vi.fn>).mock.calls
+      .filter((c) => String(c[0]).includes('index.css'))
+      .map((c) => String(c[1]));
+
+  it('écrit UNE fois pour vingt ré-émissions identiques (actionId différents)', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    for (let i = 0; i < 20; i++) {
+      await replay(runner, `action-${i}`, 'body { color: red; }');
+    }
+
+    expect(cssWrites(runtime)).toHaveLength(1);
+  });
+
+  it('laisse passer TOUT changement de contenu — une garde trop large perdrait le fichier', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    // motif réel de package.json : répétitions, puis un contenu plus complet
+    for (let i = 0; i < 5; i++) {
+      await replay(runner, `a-${i}`, '{"name":"app"}');
+    }
+
+    for (let i = 0; i < 5; i++) {
+      await replay(runner, `b-${i}`, '{"name":"app","dependencies":{"react":"18"}}');
+    }
+
+    const written = cssWrites(runtime);
+
+    // une écriture par contenu distinct, et la version complète a bien atteint le disque
+    expect(written).toEqual(['{"name":"app"}', '{"name":"app","dependencies":{"react":"18"}}']);
+  });
+
+  it('un retour au contenu précédent est bien réécrit (annulation)', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    await replay(runner, 'v1', 'AAA');
+    await replay(runner, 'v2', 'BBB');
+    await replay(runner, 'v3', 'AAA');
+
+    // Le mémo ne doit pas transformer un retour arrière en no-op silencieux.
+    expect(cssWrites(runtime).at(-1)).toBe('AAA');
+  });
+
+  it('une écriture en ÉCHEC laisse le chemin réécrivable', async () => {
+    const writeFile = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined);
+    const runtime = createRuntime({ writeFile } as Partial<RuntimeAdapter>);
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    await replay(runner, 'r1', 'body { color: red; }');
+    await replay(runner, 'r2', 'body { color: red; }');
+
+    expect(cssWrites(runtime).length).toBeGreaterThanOrEqual(2);
   });
 });

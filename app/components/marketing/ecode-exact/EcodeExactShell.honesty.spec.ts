@@ -32,6 +32,23 @@ describe('E-Code public marketing shell honesty and touch targets', () => {
     expect(source).toContain('className="!min-h-11 !min-w-11 gap-2"');
     expect(source).toContain('className="inline-flex min-h-11 items-center"');
     expect(source).toContain('var(--ecode-accent)');
-    expect(source).toContain('var(--status-info-text)');
+
+    /*
+     * `--ecode-accent-text` a remplacé `--status-info-text` sur les trois
+     * surfaces décoratives du shell (puce de bannière, accroche du pied, icône
+     * des garanties). L'intention de ce test — des tokens SÉMANTIQUES plutôt que
+     * des valeurs codées en dur — est intacte : c'est justement le token prévu
+     * pour du texte accentué. `--status-info-text` était détourné de son sens
+     * (statut « info ») et faisait ressortir en bleu des éléments de marque sur
+     * des pages entièrement orange.
+     */
+    expect(source).toContain('var(--ecode-accent-text)');
+  });
+
+  it('keeps the mobile/tablet drawer CTAs at least 44px tall', () => {
+    expect(source).toContain(
+      'className="w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"',
+    );
+    expect(source).toContain('className="mt-2 w-full !min-h-11 border-border text-foreground hover:bg-muted"');
   });
 });

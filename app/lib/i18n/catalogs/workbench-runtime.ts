@@ -57,6 +57,17 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.patch.reverted': 'AI patch reverted: {file}',
   'workbenchRuntime.patch.revertFailed': 'The AI patch for {file} could not be reverted.',
   'workbenchRuntime.patch.checkpointLabel': 'AI accepted {file}',
+  'workbenchRuntime.patch.duplicateSkippedLog':
+    'AI patch for {file} skipped: identical to the content already applied.',
+  'workbenchRuntime.patch.haltTitle': 'Automatic AI repair paused',
+  'workbenchRuntime.patch.haltFile':
+    'The AI patched {file} {attempts} times without a working result. Automatic repair for this file is paused — check the workspace logs or ask the agent for help.',
+  'workbenchRuntime.patch.haltGlobal':
+    'The AI applied {attempts} patches in a short time without a working result. Automatic repair is paused — check the workspace logs or ask the agent for help.',
+  'workbenchRuntime.patch.haltFileLog': 'AI auto-repair paused for {file} after {attempts} attempts (limit {limit}).',
+  'workbenchRuntime.patch.haltGlobalLog': 'AI auto-repair paused after {attempts} patches (limit {limit}).',
+  'workbenchRuntime.patch.deferredStartLog':
+    'AI patches are settled; launching the start command that was deferred during review.',
   'workbenchRuntime.diff.title': 'Diff could not be applied',
   'workbenchRuntime.diff.description':
     'The change could not be applied safely. Ask the agent to emit the complete file.',
@@ -67,6 +78,8 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.write.blockedTitle': 'AI file write blocked',
   'workbenchRuntime.write.locked': '{file} is locked; the assistant change was not written.',
   'workbenchRuntime.write.failed': 'The assistant could not write {file}.',
+  'workbenchRuntime.write.notConfirmed':
+    'The assistant wrote {file} but the workspace did not confirm it within {seconds}s. Nothing is lost — ask the agent to write it again.',
   'workbenchRuntime.write.blockedLog': 'AI file write blocked: {file}',
   'workbenchRuntime.write.refreshSkipped': 'File refresh was skipped after the AI write.',
   'workbenchRuntime.write.commandReviewPending':
@@ -172,6 +185,19 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
   'workbenchRuntime.patch.reverted': 'Patch de l’IA annulé : {file}',
   'workbenchRuntime.patch.revertFailed': 'Impossible d’annuler le patch de l’IA pour {file}.',
   'workbenchRuntime.patch.checkpointLabel': 'Patch de l’IA accepté pour {file}',
+  'workbenchRuntime.patch.duplicateSkippedLog':
+    'Patch de l’IA ignoré pour {file} : identique au contenu déjà appliqué.',
+  'workbenchRuntime.patch.haltTitle': 'Réparation automatique de l’IA en pause',
+  'workbenchRuntime.patch.haltFile':
+    'L’IA a modifié {file} {attempts} fois sans résultat fonctionnel. La réparation automatique de ce fichier est en pause — consultez les journaux de l’espace de travail ou demandez de l’aide à l’agent.',
+  'workbenchRuntime.patch.haltGlobal':
+    'L’IA a appliqué {attempts} patchs en peu de temps sans résultat fonctionnel. La réparation automatique est en pause — consultez les journaux de l’espace de travail ou demandez de l’aide à l’agent.',
+  'workbenchRuntime.patch.haltFileLog':
+    'Réparation automatique de l’IA en pause pour {file} après {attempts} tentatives (limite {limit}).',
+  'workbenchRuntime.patch.haltGlobalLog':
+    'Réparation automatique de l’IA en pause après {attempts} patchs (limite {limit}).',
+  'workbenchRuntime.patch.deferredStartLog':
+    'Les patchs de l’IA sont réglés ; lancement de la commande de démarrage différée pendant l’examen.',
   'workbenchRuntime.diff.title': 'Impossible d’appliquer le diff',
   'workbenchRuntime.diff.description':
     'La modification n’a pas pu être appliquée en toute sécurité. Demandez à l’agent de renvoyer le fichier complet.',
@@ -183,6 +209,8 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
   'workbenchRuntime.write.locked':
     'Le fichier {file} est verrouillé ; la modification de l’assistant n’a pas été écrite.',
   'workbenchRuntime.write.failed': 'L’assistant n’a pas pu écrire le fichier {file}.',
+  'workbenchRuntime.write.notConfirmed':
+    'L’assistant a écrit {file}, mais l’espace de travail ne l’a pas confirmé en {seconds}s. Rien n’est perdu — redemandez l’écriture à l’agent.',
   'workbenchRuntime.write.blockedLog': 'Écriture du fichier par l’IA bloquée : {file}',
   'workbenchRuntime.write.refreshSkipped': 'L’actualisation des fichiers a été ignorée après l’écriture de l’IA.',
   'workbenchRuntime.write.commandReviewPending':

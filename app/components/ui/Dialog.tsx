@@ -33,8 +33,15 @@ export const DialogButton = memo(({ type, children, onClick, disabled }: DialogB
     <button
       className={classNames(
         'inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors',
+
+        /*
+         * UNIF lot 5 : primary de dialog = la même famille surface-aware que
+         * ui/Button `primary` (`--vc-action-primary` → accent action bleu dans
+         * l'IDE, orange user area, accents auth/marketing). Hover = fond
+         * assombri (pas d'opacity, illisible sur certains fonds).
+         */
         type === 'primary'
-          ? 'bg-bolt-elements-item-contentAccent text-white hover:opacity-90'
+          ? 'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] hover:bg-[var(--vc-action-primary-hover)]'
           : type === 'secondary'
             ? 'bg-transparent text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary'
             : 'bg-transparent text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-background',
@@ -154,7 +161,9 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
     <RadixDialog.Portal>
       <RadixDialog.Overlay asChild>
         <motion.div
-          className={classNames('fixed inset-0 z-[9999] bg-black/70 dark:bg-black/80 backdrop-blur-sm')}
+          className={classNames(
+            'bolt-dialog-overlay fixed inset-0 z-[9999] bg-black/70 dark:bg-black/80 backdrop-blur-sm',
+          )}
           initial="closed"
           animate="open"
           exit="closed"
@@ -177,7 +186,7 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
       <RadixDialog.Content asChild>
         <motion.div
           className={classNames(
-            'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none',
+            'bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none',
             className,
           )}
           initial="closed"
@@ -528,10 +537,12 @@ export function SelectionDialog({
             >
               {sharedCopy.cancel}
             </Button>
+            {/* UNIF lot 5 : primary canonique (variant) au lieu du legacy statique `bg-accent-500`. */}
             <Button
+              variant="primary"
               onClick={handleConfirm}
               disabled={selectedItems.length === 0}
-              className="!h-auto min-h-9 !whitespace-normal break-words bg-accent-500 py-2 text-center leading-tight text-white hover:bg-accent-600 disabled:pointer-events-none disabled:opacity-50"
+              className="!h-auto min-h-9 !whitespace-normal break-words py-2 text-center leading-tight"
             >
               {resolvedConfirmLabel}
             </Button>
