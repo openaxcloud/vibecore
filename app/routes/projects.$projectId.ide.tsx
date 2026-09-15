@@ -86,8 +86,8 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
  */
 export const shouldRevalidate = shouldRevalidateProjectIde;
 
-export const loader = async ({ request, params }: LoaderFunctionArgs) =>
-  loadProjectIdeData(request, params.projectId ?? '');
+export const loader = async ({ request, params, context }: LoaderFunctionArgs) =>
+  loadProjectIdeData(request, params.projectId ?? '', context);
 
 export default function ProjectIdeRoute() {
   const { i18n } = useTranslation();
@@ -779,7 +779,7 @@ function IdeProjectTopBar({
               className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
               onClick={() => {
                 if (previewRunning) {
-                  void workbenchStore.stopPreviewServer().catch(() => undefined);
+                  void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch(() => undefined);
 
                   return;
                 }

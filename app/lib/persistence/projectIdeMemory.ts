@@ -2,6 +2,7 @@ import type { Message } from 'ai';
 import type { IChatMetadata } from './db';
 import { pruneToBudget, writeWithinBudget } from './ide-memory-budget';
 import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
+import { createSingleFlight } from '~/lib/ide/single-flight';
 
 export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
 export type ProjectIdeWorkspacePanel =
@@ -97,6 +98,42 @@ export interface ProjectIdeMemory {
       createdAt: string;
       aiFallback?: boolean;
       aiFallbackReason?: string;
+    } | null;
+
+    /*
+     * LE PROMPT N'EST JAMAIS DÉTRUIT.
+     *
+     * `pendingPrompt` était mis à `null` par deux chemins distincts, sans trace.
+     * Mesuré en production le 2026-09-06 : sur 22 projets échoués — créés depuis
+     * un prompt, aucune application produite — impossible de distinguer « jamais
+     * écrit » de « effacé ». Sept portaient `null`, trois n'avaient pas la clé, et
+     * rien ne disait lequel des deux effaceurs était passé. Ce trou de diagnostic
+     * a coûté une enquête entière sur un projet réel.
+     *
+     * Le prompt est désormais DÉPLACÉ ici plutôt que supprimé :
+     *   - `reason` dit QUI a effacé, `clearedAt` QUAND ;
+     *   - et la récupération reste possible, ce dont a précisément besoin le
+     *     bouton « Générer l'application ».
+     *
+     * Aucun risque de fuite : ce champ vit dans `ProjectIdeState`, côté serveur,
+     * jamais dans un fichier de projet. C'est la raison même pour laquelle
+     * BUG-QA-PROMPT-IN-README a sorti le prompt du README, qui lui est exporté
+     * en ZIP et commité chez l'utilisateur.
+     */
+    consumedPrompt?: {
+      id: string;
+      prompt: string;
+      model?: string;
+      provider?: string;
+      createdAt: string;
+      aiFallback?: boolean;
+      aiFallbackReason?: string;
+
+      /** Horodatage de l'effacement. */
+      clearedAt: string;
+
+      /** Qui a effacé : génération aboutie, ou rejeu jugé inutile. */
+      reason: 'generated' | 'skipped-existing-app';
     } | null;
     conversations?: Array<{
       id: string;
@@ -218,6 +255,9 @@ const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void
  * clobbering the other tab's writes.
  */
 const versionByProject = new Map<string, number>();
+
+/** Chargements `ide-state` en vol, par clé de portée (projet ou workspace). */
+const ideMemoryInFlight = createSingleFlight<ProjectIdeMemory>();
 
 /*
  * Workspace isolation — when a `workspaceId` is supplied the IDE state is
@@ -831,6 +871,21 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
     return cached;
   }
 
+  /*
+   * BUG-PANEL-PERF-004 — `memoryCache` n'est rempli qu'à l'ARRIVÉE de la
+   * réponse. Les neuf sites d'appel de cette fonction montent ensemble à
+   * l'ouverture de l'IDE : tous manquaient le cache avant que le premier ait
+   * répondu, et chacun émettait sa propre requête. Mesuré en production :
+   * 9 GET `ide-state` pour UNE ouverture à froid.
+   *
+   * La déduplication est posée APRÈS la lecture du cache : une entrée déjà
+   * faisant autorité continue de répondre sans réseau, c'est seulement le
+   * chargement qui est mutualisé.
+   */
+  return ideMemoryInFlight.run(id, () => chargerMemoireProjet(id, endpoint));
+}
+
+async function chargerMemoireProjet(id: string, endpoint: string): Promise<ProjectIdeMemory> {
   const localMemory = readLocalProjectIdeMemory(id);
 
   try {

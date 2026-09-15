@@ -391,6 +391,22 @@
     "en": "The import could not be completed. Please try again.",
     "fr": "L’importation n’a pas pu aboutir. Veuillez réessayer."
   },
+  "IMPORT_REPOSITORY_UNREACHABLE": {
+    "en": "This repository could not be read. Check the URL and that the repository is public, or connect an account that can access it.",
+    "fr": "Ce dépôt n’a pas pu être lu. Vérifiez l’URL et que le dépôt est public, ou connectez un compte qui y a accès."
+  },
+  "IMPORT_CLONE_TIMEOUT": {
+    "en": "The repository took too long to clone and the import was stopped. Try a smaller repository, or import a single branch.",
+    "fr": "Le clonage du dépôt a dépassé le délai et l’importation a été arrêtée. Essayez un dépôt plus petit, ou importez une seule branche."
+  },
+  "IMPORT_UPSTREAM_UNREACHABLE": {
+    "en": "The repository host could not be reached. This is not a problem with your repository — try again in a few minutes.",
+    "fr": "L’hébergeur du dépôt n’a pas pu être joint. Le problème ne vient pas de votre dépôt — réessayez dans quelques minutes."
+  },
+  "IMPORT_FAILED": {
+    "en": "The repository could not be imported. Try again.",
+    "fr": "Impossible d’importer le dépôt. Réessayez."
+  },
   "PROJECT_SLUG_INVALID": {
     "en": "Slug must contain at least one letter or number.",
     "fr": "Le slug doit contenir au moins une lettre ou un chiffre."
