@@ -75,8 +75,10 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.forbidden': 'You do not have permission to load this panel.',
   'apiRuntime.panel.notFound': 'The requested panel data was not found.',
   'apiRuntime.panel.backendUnavailable': 'The panel service is temporarily unavailable. Please try again.',
+  'apiRuntime.panel.rateLimited':
+    'Too many requests in a short time. Wait a moment, then try again — there is nothing to free up.',
   'apiRuntime.panel.quotaExceeded':
-    'A quota was reached, so this panel could not load. Free up resources or upgrade, then try again.',
+    'A plan limit was reached, so this panel could not load. Free up resources, or wait for the next period if the limit is periodic.',
   'apiRuntime.panel.runtimeFailed': 'The runtime request could not be completed. Please try again.',
   'apiRuntime.panel.panelNotFound': 'The project panel was not found.',
   'apiRuntime.panel.secretConfirmation': 'Confirm that you want to reveal this secret, then try again with confirm=1.',
@@ -126,6 +128,9 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.sshKeyAmbiguous': 'Several SSH keys are configured, but none matches the origin host ({host}).',
   'apiRuntime.panel.sshOperationFailed': 'The Git {operation} operation over SSH failed (exit {exitCode}).',
   'apiRuntime.panel.scriptRequired': 'Enter a script to run.',
+  'apiRuntime.panel.packageRunFailed': 'The package command failed (exit code {code}). Nothing was installed.',
+  'apiRuntime.panel.packageRunFailedWithOutput':
+    'The package command failed (exit code {code}). Nothing was installed. {output}',
   'apiRuntime.panel.manualCheckpoint': 'Manual checkpoint',
   'apiRuntime.panel.projectWebhook': 'Project webhook',
   'apiRuntime.panel.projectApiKey': 'Project API key',
@@ -249,8 +254,10 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.forbidden': 'Vous n’avez pas l’autorisation de charger ce panneau.',
   'apiRuntime.panel.notFound': 'Les données demandées pour ce panneau sont introuvables.',
   'apiRuntime.panel.backendUnavailable': 'Le service du panneau est temporairement indisponible. Veuillez réessayer.',
+  'apiRuntime.panel.rateLimited':
+    'Trop de requêtes en peu de temps. Patientez quelques instants, puis réessayez — il n’y a rien à libérer.',
   'apiRuntime.panel.quotaExceeded':
-    'Un quota est atteint, le panneau n’a donc pas pu se charger. Libérez des ressources ou changez d’offre, puis réessayez.',
+    'Une limite de votre offre est atteinte, le panneau n’a donc pas pu se charger. Libérez des ressources, ou attendez la période suivante si la limite est périodique.',
   'apiRuntime.panel.runtimeFailed': 'La requête vers l’environnement d’exécution a échoué. Veuillez réessayer.',
   'apiRuntime.panel.panelNotFound': 'Le panneau du projet est introuvable.',
   'apiRuntime.panel.secretConfirmation': 'Confirmez l’affichage de ce secret, puis réessayez avec confirm=1.',
@@ -302,6 +309,10 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
     'Plusieurs clés SSH sont configurées, mais aucune ne correspond à l’hôte d’origine ({host}).',
   'apiRuntime.panel.sshOperationFailed': 'L’opération Git {operation} via SSH a échoué (code de sortie {exitCode}).',
   'apiRuntime.panel.scriptRequired': 'Saisissez un script à exécuter.',
+  'apiRuntime.panel.packageRunFailed':
+    'La commande de paquets a échoué (code de sortie {code}). Rien n’a été installé.',
+  'apiRuntime.panel.packageRunFailedWithOutput':
+    'La commande de paquets a échoué (code de sortie {code}). Rien n’a été installé. {output}',
   'apiRuntime.panel.manualCheckpoint': 'Point de contrôle manuel',
   'apiRuntime.panel.projectWebhook': 'Webhook du projet',
   'apiRuntime.panel.projectApiKey': 'Clé API du projet',
