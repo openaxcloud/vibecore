@@ -104,6 +104,7 @@ export const clientStoresServicesEn = {
   'clientRuntime.webcontainer.unhandledRejection': 'Unhandled promise rejection',
   'clientRuntime.webcontainer.uncaughtException': 'Uncaught exception',
   'clientRuntime.webcontainer.unknownError': 'An unknown preview error occurred.',
+  'clientRuntime.webcontainer.previewErrorAt': '{title} in your app, at {location}. The stack trace is below.',
   'clientRuntime.webcontainer.previewErrorDetails':
     'Preview error at {location}\nPort: {port}\n\nStack trace:\n{stack}',
 } as const;
@@ -233,6 +234,8 @@ export const clientStoresServicesFr: ClientStoresServicesCopy = {
   'clientRuntime.webcontainer.unhandledRejection': 'Rejet de promesse non géré',
   'clientRuntime.webcontainer.uncaughtException': 'Exception non interceptée',
   'clientRuntime.webcontainer.unknownError': 'Une erreur inconnue est survenue dans l’aperçu.',
+  'clientRuntime.webcontainer.previewErrorAt':
+    '{title} dans votre application, à l’emplacement {location}. La trace d’appel est ci-dessous.',
   'clientRuntime.webcontainer.previewErrorDetails':
     'Erreur de l’aperçu à l’emplacement {location}\nPort : {port}\n\nTrace d’appel :\n{stack}',
 };

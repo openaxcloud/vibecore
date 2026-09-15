@@ -24,6 +24,19 @@ export const OBJECT_STORAGE_LOCATION = process.env.OBJECT_STORAGE_LOCATION?.trim
 /** Signed-URL validity window. */
 export const SIGNED_URL_TTL_MS = 15 * 60 * 1000;
 
+/**
+ * Objects per GCS list page. 1 000 is the API's own default page size; it is a
+ * PAGE size, never a total. Treating it as a total is AUDX-024.
+ */
+export const OBJECT_LIST_PAGE_SIZE = 1_000;
+
+/**
+ * Hard bound on pages walked by a full inventory, so a runaway bucket cannot
+ * spin forever. Exceeding it THROWS rather than returning a short count — a
+ * silently capped inventory is the very defect being fixed.
+ */
+export const OBJECT_LIST_MAX_PAGES = 10_000;
+
 /** Days after which objects under the `tmp/` prefix are auto-deleted. */
 export const TMP_LIFECYCLE_DAYS = Number(process.env.OBJECT_STORAGE_TMP_TTL_DAYS) || 7;
 
@@ -140,6 +153,23 @@ export interface ListObjectsResult {
 
   /** Folder prefixes (when a delimiter is supplied), e.g. `src/`. */
   folders: string[];
+
+  /*
+   * AUDX-024 — set when GCS has more objects than this page carries. Pass it
+   * back as `pageToken` to fetch the next page. Its ABSENCE is the only honest
+   * way for a caller to know the listing is complete; before this existed, a
+   * bucket with 2 500 objects returned a flat 1 000 with no marker, and a
+   * truncated listing was indistinguishable from a complete one.
+   */
+  nextPageToken?: string;
+}
+
+/** Full-inventory result: every page walked, never truncated. */
+export interface FullInventoryResult {
+  objects: StoredObject[];
+  totalBytes: number;
+  /** Number of GCS list calls it took — non-zero proof the walk actually paged. */
+  pages: number;
 }
 
 export interface SignedUrlResult {
@@ -164,7 +194,17 @@ export interface ObjectStorage {
    * feature flag.
    */
   bucketExists(projectId: string): Promise<boolean>;
-  listObjects(projectId: string, opts?: { prefix?: string; delimiter?: string }): Promise<ListObjectsResult>;
+  listObjects(
+    projectId: string,
+    opts?: { prefix?: string; delimiter?: string; pageToken?: string; pageSize?: number },
+  ): Promise<ListObjectsResult>;
+
+  /**
+   * Every object under a prefix, all pages walked. Inventory, quota and metering
+   * MUST use this rather than `listObjects`, whose single page silently stopped
+   * at 1 000 objects (AUDX-024).
+   */
+  listAllObjects(projectId: string, opts?: { prefix?: string }): Promise<FullInventoryResult>;
   createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult>;
   createDownloadUrl(projectId: string, input: { key: string }): Promise<SignedUrlResult>;
 
@@ -225,6 +265,10 @@ export class NoopObjectStorage implements ObjectStorage {
 
   async listObjects(): Promise<ListObjectsResult> {
     return { objects: [], folders: [] };
+  }
+
+  async listAllObjects(): Promise<FullInventoryResult> {
+    return { objects: [], totalBytes: 0, pages: 0 };
   }
 
   async createUploadUrl(): Promise<UploadUrlResult> {
@@ -292,18 +336,24 @@ export class GcsObjectStorage implements ObjectStorage {
     return exists;
   }
 
-  async listObjects(projectId: string, opts: { prefix?: string; delimiter?: string } = {}) {
+  /** Fetch ONE page and normalise it, exposing the continuation token. */
+  private async _listPage(
+    projectId: string,
+    opts: { prefix?: string; delimiter?: string; pageToken?: string; pageSize?: number },
+  ): Promise<ListObjectsResult> {
     const bucket = this._storage.bucket(projectBucketName(projectId));
 
     let files: Awaited<ReturnType<typeof bucket.getFiles>>[0];
+    let nextQuery: Awaited<ReturnType<typeof bucket.getFiles>>[1];
     let apiResponse: Awaited<ReturnType<typeof bucket.getFiles>>[2];
 
     try {
-      [files, , apiResponse] = await bucket.getFiles({
+      [files, nextQuery, apiResponse] = await bucket.getFiles({
         prefix: opts.prefix || undefined,
         delimiter: opts.delimiter || undefined,
         autoPaginate: false,
-        maxResults: 1000,
+        maxResults: opts.pageSize ?? OBJECT_LIST_PAGE_SIZE,
+        ...(opts.pageToken ? { pageToken: opts.pageToken } : {}),
       });
     } catch (error) {
       /*
@@ -330,7 +380,54 @@ export class GcsObjectStorage implements ObjectStorage {
 
     const folders = (apiResponse?.prefixes ?? []).slice().sort();
 
-    return { objects, folders };
+    /*
+     * AUDX-024 — with autoPaginate:false the SDK returns the query for the NEXT
+     * page, or null when the listing is exhausted. That token is the whole
+     * point: it is what distinguishes "this is everything" from "this is the
+     * first 1 000". Without it, a truncated listing was indistinguishable from a
+     * complete one, for every caller.
+     */
+    const token = (nextQuery as { pageToken?: string } | null | undefined)?.pageToken;
+
+    return { objects, folders, ...(token ? { nextPageToken: token } : {}) };
+  }
+
+  async listObjects(
+    projectId: string,
+    opts: { prefix?: string; delimiter?: string; pageToken?: string; pageSize?: number } = {},
+  ): Promise<ListObjectsResult> {
+    return this._listPage(projectId, opts);
+  }
+
+  /**
+   * Walk EVERY page. This is what an inventory, a quota check or a metering
+   * sweep must use: `listObjects` deliberately returns one page, and reading a
+   * page as if it were the whole bucket is exactly AUDX-024.
+   *
+   * Throws past OBJECT_LIST_MAX_PAGES instead of returning a short count — an
+   * inventory that quietly stopped early would reintroduce the same defect with
+   * a different number.
+   */
+  async listAllObjects(projectId: string, opts: { prefix?: string } = {}): Promise<FullInventoryResult> {
+    const objects: StoredObject[] = [];
+    let pageToken: string | undefined;
+    let pages = 0;
+
+    do {
+      const page: ListObjectsResult = await this._listPage(projectId, { prefix: opts.prefix, pageToken });
+      objects.push(...page.objects);
+      pageToken = page.nextPageToken;
+      pages += 1;
+
+      if (pages > OBJECT_LIST_MAX_PAGES) {
+        throw new ObjectStorageError(
+          `Object inventory exceeded ${OBJECT_LIST_MAX_PAGES} pages for project ${projectId}`,
+          'INVENTORY_TOO_LARGE',
+        );
+      }
+    } while (pageToken);
+
+    return { objects, totalBytes: objects.reduce((sum, object) => sum + object.size, 0), pages };
   }
 
   async createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult> {
@@ -395,14 +492,54 @@ export class GcsObjectStorage implements ObjectStorage {
     return { deleted: true, count: 1 };
   }
 
+  /**
+   * Delete EVERY object under a prefix.
+   *
+   * AUDX-024 — this used to list a single 1 000-object page, delete those, and
+   * return `{ deleted: true }`. A prefix holding 2 500 objects therefore left
+   * 1 500 behind while reporting success: worse than a truncated listing,
+   * because the caller believes the data is gone.
+   *
+   * `count` is incremented only AFTER a delete resolves, and a rejection
+   * propagates — a partial delete must never be reported as a completed one.
+   */
   async deletePrefix(projectId: string, input: { prefix: string }) {
     const prefix = assertValidObjectKey(input.prefix);
     const bucket = this._storage.bucket(projectBucketName(projectId));
-    const [files] = await bucket.getFiles({ prefix, autoPaginate: false, maxResults: 1000 });
 
-    await Promise.all(files.map((file) => bucket.file(file.name).delete()));
+    let deleted = 0;
+    let pages = 0;
 
-    return { deleted: true, count: files.length };
+    /*
+     * Re-listing from the start each round rather than following a page token:
+     * the deletes mutate the very listing being walked, so a token captured
+     * before the deletions can skip objects that shifted into an earlier page.
+     */
+    for (;;) {
+      const page = await this._listPage(projectId, { prefix, pageSize: OBJECT_LIST_PAGE_SIZE });
+
+      if (page.objects.length === 0) {
+        break;
+      }
+
+      await Promise.all(
+        page.objects.map(async (object) => {
+          await bucket.file(object.key).delete();
+          deleted += 1;
+        }),
+      );
+
+      pages += 1;
+
+      if (pages > OBJECT_LIST_MAX_PAGES) {
+        throw new ObjectStorageError(
+          `Prefix delete exceeded ${OBJECT_LIST_MAX_PAGES} pages for project ${projectId}`,
+          'INVENTORY_TOO_LARGE',
+        );
+      }
+    }
+
+    return { deleted: true, count: deleted };
   }
 
   async deleteBucket(projectId: string) {

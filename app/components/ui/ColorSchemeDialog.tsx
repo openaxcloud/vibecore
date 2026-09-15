@@ -343,15 +343,26 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
           </IconButton>
         </RadixPopover.Trigger>
         <RadixPopover.Portal>
+          {/*
+           * LA HAUTEUR SUIT LA PLACE RÉELLE, pas l'écran : Radix publie
+           * `--radix-popover-content-available-height` (l'espace du côté choisi,
+           * marge de collision déduite). Mesuré à 390 (07/09, E2E) : 620 px de
+           * contenu pour 469 px au-dessus du menu « ••• » — la palette sortait de
+           * 85 px par le haut. Sur bureau, rien ne change.
+           *
+           * Et 64 px de marge de collision EN HAUT : sur téléphone l'en-tête est
+           * fixé (49 px + zone sûre) et passe devant le popover — mesuré à 390,
+           * la palette posée à 12 px avait son titre sous l'en-tête.
+           */}
           <RadixPopover.Content
             side="top"
             align="end"
             sideOffset={8}
-            collisionPadding={12}
+            collisionPadding={{ top: 64, right: 12, bottom: 12, left: 12 }}
             hideWhenDetached
-            className="z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[min(620px,calc(100dvh-64px))] overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-xl"
+            className="z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[min(620px,var(--radix-popover-content-available-height,calc(100dvh-64px)))] overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-xl"
           >
-            <div className="flex max-h-[min(620px,calc(100dvh-64px))] min-h-0 flex-col gap-4 px-4 py-4 overflow-hidden">
+            <div className="flex max-h-[inherit] min-h-0 flex-col gap-4 px-4 py-4 overflow-hidden">
               <div className="pr-8">
                 <h2 className="text-lg font-semibold text-bolt-elements-textPrimary flex items-center gap-2">
                   <span className="i-ph:palette text-bolt-elements-item-contentAccent text-xl" aria-hidden />
