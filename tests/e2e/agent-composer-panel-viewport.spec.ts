@@ -36,6 +36,20 @@ const RECOUVREMENTS = [
   { label: 'clavier ouvert', pixels: 300 },
 ] as const;
 
+/**
+ * Formats réels, pas seulement celui du projet Playwright.
+ *
+ * Avi : « tous les pop up des menus dans la zone de saisie quand on ouvre ne
+ * sont pas responsive, impossible de les visualiser ». Le test ne couvrait
+ * qu'un seul appareil ; une borne exprimée en `dvh` se comporte différemment
+ * selon la hauteur, et c'est justement sur les écrans COURTS qu'elle mord.
+ */
+const FORMATS = [
+  { label: 'iPhone SE 375', width: 375, height: 667 },
+  { label: 'iPhone 15 Pro 393', width: 393, height: 659 },
+  { label: 'tablette 768', width: 768, height: 1024 },
+] as const;
+
 const PANNEAUX = [
   { label: 'menu d’outils', bouton: /Plus d.options|More options/i, selecteur: '.bolt-chatbox-tools-menu' },
   { label: 'sélecteur de mode', bouton: /^(Agent|Assistant)$/, selecteur: '.bolt-chatbox-mode-menu' },
@@ -173,64 +187,78 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
   let session: { token: string; projectId: string };
 
   test.beforeAll(async ({ playwright }) => {
+    /*
+     * Le montage crée un compte puis un projet ; sous contention, il dépasse le
+     * délai de hook par défaut (30 s) et TOUS les tests du fichier sont alors
+     * marqués en échec sans qu'aucune mesure n'ait été tentée. Le budget porte
+     * sur la précondition, pas sur les assertions.
+     */
+    test.setTimeout(180_000);
+
     const request = await playwright.request.newContext();
     session = await createProjectSession(request);
     await request.dispose();
   });
 
-  for (const recouvrement of RECOUVREMENTS) {
-    test(`aucun panneau n’est coupé — ${recouvrement.label} (${recouvrement.pixels} px)`, async ({ page }) => {
-      /*
-       * Trois panneaux ouverts et mesurés sur un serveur de dev : mesuré à 39 s
-       * pour un seul test. Au délai par défaut de 30 s, la page était démontée
-       * PENDANT l'assertion et l'échec disait « page has been closed » au lieu
-       * de nommer le défaut. On allonge le délai ; on n'allège pas la mesure.
-       */
-      test.setTimeout(180_000);
+  for (const format of FORMATS) {
+    for (const recouvrement of RECOUVREMENTS) {
+      test(`aucun panneau n’est coupé — ${format.label}, ${recouvrement.label} (${recouvrement.pixels} px)`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: format.width, height: format.height });
 
-      // Langue figée : les libellés des trois déclencheurs existent en FR et en EN.
-      await page.context().addCookies([
-        { name: 'vc_session', value: session.token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
-        { name: 'vibecore-auto-lang', value: 'fr', url: appBaseUrl, sameSite: 'Lax' },
-      ]);
-      await page.goto(`/projects/${session.projectId}/ide`, { waitUntil: 'domcontentloaded' });
+        /*
+         * Trois panneaux ouverts et mesurés sur un serveur de dev : mesuré à 39 s
+         * pour un seul test. Au délai par défaut de 30 s, la page était démontée
+         * PENDANT l'assertion et l'échec disait « page has been closed » au lieu
+         * de nommer le défaut. On allonge le délai ; on n'allège pas la mesure.
+         */
+        test.setTimeout(180_000);
 
-      const hauteurFenetre = page.viewportSize()!.height;
-      const basVisible = hauteurFenetre - recouvrement.pixels;
+        // Langue figée : les libellés des trois déclencheurs existent en FR et en EN.
+        await page.context().addCookies([
+          { name: 'vc_session', value: session.token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
+          { name: 'vibecore-auto-lang', value: 'fr', url: appBaseUrl, sameSite: 'Lax' },
+        ]);
+        await page.goto(`/projects/${session.projectId}/ide`, { waitUntil: 'domcontentloaded' });
 
-      await expect(page.locator('.bolt-project-chatbox textarea')).toBeVisible({ timeout: 60_000 });
+        const hauteurFenetre = page.viewportSize()!.height;
+        const basVisible = hauteurFenetre - recouvrement.pixels;
 
-      /*
-       * Attendre l'HYDRATATION, pas seulement le champ.
-       *
-       * Le champ est rendu côté serveur ; les déclencheurs de la barre d'outils
-       * ne sortent que du rendu client. Mesuré : 1 passage sur 6 échouait sur
-       * « element(s) not found » pour un déclencheur, pas pour un panneau —
-       * la spec ouvrait les surfaces avant que leurs boutons existent.
-       * `agent-mode-advanced` sert déjà de signal d'hydratation dans
-       * agent-composer-compact.spec.ts.
-       */
-      await expect(page.getByTestId('agent-mode-advanced')).toBeVisible({ timeout: 60_000 });
+        await expect(page.locator('.bolt-project-chatbox textarea')).toBeVisible({ timeout: 60_000 });
 
-      /*
-       * Le recouvrement est posé par FEUILLE DE STYLE, en `!important`, pas en
-       * style en ligne. L'effet de fenêtre visuelle du produit écrit en ligne et
-       * SANS priorité, et il se déclenche à chaque défilement ou
-       * redimensionnement — donc pendant l'ouverture d'un panneau. Mesuré : posé
-       * en ligne, il était remis à 0 avant la mesure et le panneau retombait à
-       * 571 px. Une déclaration `!important` de feuille de style l'emporte.
-       */
-      await page.addStyleTag({
-        content: `:root { --vc-mobile-visual-viewport-bottom: ${recouvrement.pixels}px !important; }`,
+        /*
+         * Attendre l'HYDRATATION, pas seulement le champ.
+         *
+         * Le champ est rendu côté serveur ; les déclencheurs de la barre d'outils
+         * ne sortent que du rendu client. Mesuré : 1 passage sur 6 échouait sur
+         * « element(s) not found » pour un déclencheur, pas pour un panneau —
+         * la spec ouvrait les surfaces avant que leurs boutons existent.
+         * `agent-mode-advanced` sert déjà de signal d'hydratation dans
+         * agent-composer-compact.spec.ts.
+         */
+        await expect(page.getByTestId('agent-mode-advanced')).toBeVisible({ timeout: 60_000 });
+
+        /*
+         * Le recouvrement est posé par FEUILLE DE STYLE, en `!important`, pas en
+         * style en ligne. L'effet de fenêtre visuelle du produit écrit en ligne et
+         * SANS priorité, et il se déclenche à chaque défilement ou
+         * redimensionnement — donc pendant l'ouverture d'un panneau. Mesuré : posé
+         * en ligne, il était remis à 0 avant la mesure et le panneau retombait à
+         * 571 px. Une déclaration `!important` de feuille de style l'emporte.
+         */
+        await page.addStyleTag({
+          content: `:root { --vc-mobile-visual-viewport-bottom: ${recouvrement.pixels}px !important; }`,
+        });
+
+        for (const panneau of PANNEAUX) {
+          const mesure = await ouvrirEtMesurer(page, panneau.bouton, panneau.selecteur);
+
+          expect(mesure.haut, `${panneau.label} : coupé en haut`).toBeGreaterThanOrEqual(0);
+          expect(mesure.bas, `${panneau.label} : passe sous ${recouvrement.label}`).toBeLessThanOrEqual(basVisible);
+          expect(mesure.debordeSansDefilement, `${panneau.label} : contenu tronqué sans défilement`).toBe(false);
+        }
       });
-
-      for (const panneau of PANNEAUX) {
-        const mesure = await ouvrirEtMesurer(page, panneau.bouton, panneau.selecteur);
-
-        expect(mesure.haut, `${panneau.label} : coupé en haut`).toBeGreaterThanOrEqual(0);
-        expect(mesure.bas, `${panneau.label} : passe sous ${recouvrement.label}`).toBeLessThanOrEqual(basVisible);
-        expect(mesure.debordeSansDefilement, `${panneau.label} : contenu tronqué sans défilement`).toBe(false);
-      }
-    });
+    }
   }
 });

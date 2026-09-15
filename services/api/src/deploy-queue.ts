@@ -1,5 +1,6 @@
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
+import { lireUrlDEnvironnement } from './env-url.js';
 
 /*
  * Durable enqueue path for static deploy builds (#26). The deploy POST persists
@@ -54,7 +55,14 @@ function getQueue(): Queue {
     return sharedQueue;
   }
 
-  const url = process.env.REDIS_URL;
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — citée, l'URL n'échoue pas : `ioredis` la
+   * jette et part sur `localhost:6379`. La file de déploiement se serait donc
+   * connectée à un Redis qui n'est pas le sien, sans un mot.
+   */
+  const url = lireUrlDEnvironnement('REDIS_URL', process.env, (nom) =>
+    console.warn(`[env] ${nom} was wrapped in quotes; they were stripped. Fix the value at its source.`),
+  );
 
   if (!url) {
     throw Object.assign(new Error('REDIS_URL is required to enqueue a deploy build'), {
