@@ -91,7 +91,21 @@ export function useGit() {
          */
         console.error('Failed to start workspace for git operations', error);
 
-        const safeMessage = copyRef.current['gitClone.error.workspaceStart'];
+        /*
+         * BUG-GIT-002 — DIRE CE QUI MANQUE, pas « indisponible ».
+         *
+         * Hors contexte projet il n'y a aucun identifiant d'espace de travail,
+         * et l'appel ne peut pas aboutir : mesuré le 17/08, deux `400
+         * RUNTIME_WORKSPACE_ID_REQUIRED` à chaque chargement de `/git`. Le
+         * message générique laissait croire à une panne passagère et invitait
+         * à réessayer — indéfiniment. Il manque un PROJET, et c'est ce que
+         * l'écran dit maintenant.
+         */
+        const identifiantManquant = (error as { code?: string } | null)?.code === 'RUNTIME_WORKSPACE_ID_REQUIRED';
+
+        const safeMessage = identifiantManquant
+          ? copyRef.current['gitClone.error.projectRequired']
+          : copyRef.current['gitClone.error.workspaceStart'];
 
         setInitializationFailed(true);
         toast.error(safeMessage);

@@ -714,7 +714,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       href={createdRepoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-lg bg-[var(--ecode-accent)] text-white hover:brightness-110 text-sm inline-flex items-center gap-2"
+                      className="px-4 py-2 rounded-lg bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] hover:brightness-110 text-sm inline-flex items-center gap-2"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -803,7 +803,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     </motion.button>
                     <motion.button
                       onClick={() => setShowAuthDialog(true)}
-                      className="px-4 py-2 rounded-lg bg-[var(--ecode-accent)] text-white text-sm hover:brightness-110 inline-flex items-center gap-2"
+                      className="px-4 py-2 rounded-lg bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] text-sm hover:brightness-110 inline-flex items-center gap-2"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -868,7 +868,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                 <div className="flex items-center gap-3 mb-6 p-4 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                   <div className="relative">
                     <img src={user.avatar_url} alt={user.login} className="w-10 h-10 rounded-full" />
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[var(--ecode-accent)] flex items-center justify-center text-white">
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[var(--vc-action-primary)] flex items-center justify-center text-[var(--vc-action-primary-foreground)]">
                       <div className="i-ph:github-logo w-3 h-3" />
                     </div>
                   </div>
@@ -1059,7 +1059,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       type="submit"
                       disabled={isLoading}
                       className={classNames(
-                        'flex-1 px-4 py-2 bg-[var(--ecode-accent)] text-white rounded-lg hover:brightness-110 text-sm inline-flex items-center justify-center gap-2',
+                        'flex-1 px-4 py-2 bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] rounded-lg hover:brightness-110 text-sm inline-flex items-center justify-center gap-2',
                         isLoading ? 'opacity-50 cursor-not-allowed' : '',
                       )}
                       whileHover={!isLoading ? { scale: 1.02 } : {}}
