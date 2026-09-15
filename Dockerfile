@@ -116,6 +116,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
 COPY --from=prod-deps --chown=node:node /app/build /app/build
 COPY --from=prod-deps --chown=node:node /app/node_modules /app/node_modules
 COPY --from=prod-deps --chown=node:node /app/package.json /app/package.json
+# `server.mjs` est le point d'entree : sans cette ligne l'image se construit et le
+# conteneur meurt au demarrage sur ERR_MODULE_NOT_FOUND. Les trois COPY ci-dessus
+# etaient suffisants tant que le lanceur vivait dans node_modules.
+COPY --from=prod-deps --chown=node:node /app/server.mjs /app/server.mjs
+
+# CVE-2026-59873 — `tar` CRITIQUE (bombe gzip) dans le node-tar EMBARQUÉ PAR npm.
+#
+# Mesuré le 2026-09-03 dans l'image réellement servie :
+#   7.5.11  /usr/local/lib/node_modules/npm/node_modules/tar/package.json
+#   7.5.15  /app/node_modules/.pnpm/tar@.../node_modules/tar/package.json
+#
+# La seconde est la nôtre et se corrige par un `override` pnpm. La PREMIÈRE non :
+# elle appartient à l'image de base `node:22-bookworm-slim`, ce n'est pas une
+# dépendance résolue. Elle a bloqué les 7 images à la porte de vulnérabilités et
+# figé toutes les livraisons.
+#
+# npm et corepack ne servent JAMAIS à l'exécution — le conteneur lance `node`
+# directement. Les retirer est un correctif réel, pas un contournement : la
+# vulnérabilité disparaît ET la surface d'attaque diminue. Préféré à une entrée
+# `.trivyignore`, qui aurait affaibli une porte de sécurité pour un outil qui ne
+# s'exécute pas.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 # Run as non-root to satisfy podSecurity `runAsNonRoot: true`.
 USER node
@@ -125,10 +148,22 @@ EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=5 \
   CMD curl -fsS http://localhost:3000/health || exit 1
 
-# RR7 ships its server runner as @react-router/serve (the Remix v2
-# @remix-run/serve package was removed by the migration). Same CLI contract:
-# it serves ./build/server/index.js on $PORT and exposes the app's /health route.
-CMD ["node", "./node_modules/@react-router/serve/dist/cli.js", "./build/server/index.js"]
+# `server.mjs` REMPLACE `@react-router/serve`, dont il est le miroir fidele.
+#
+# Pourquoi remplacer : `GET /api/health` repondait 200, posait un cookie de
+# session et n'avait AUCUN `cache-control`. Les routes `/api/*` sont des routes
+# de ressource : elles ne passent pas par `entry.server.tsx`. Sur 174 fichiers
+# `api.*.ts` il n'existe aucun point de passage commun (114 en `json(`, 20 en
+# `Response.json`) — le serveur est le seul endroit qui les couvre toutes, y
+# compris celles qui n'existent pas encore.
+#
+# Le risque de ce remplacement : c'est `@react-router/serve` qui pose le
+# `immutable` des assets. Un remplacement qui l'oublie DEMARRE PARFAITEMENT et
+# transforme chaque visite en premiere visite. Verifie le 2026-09-07 en lancant
+# les DEUX serveurs sur la MEME construction : 1 398 assets, 0 ecart d'en-tete,
+# 0 asset sans `immutable` (`scripts/parite-serveur-assets.mjs`), et tenu au
+# quotidien par `scripts/serveur-parite-statique.spec.mjs`.
+CMD ["node", "./server.mjs"]
 
 
 # ---- development stage ----

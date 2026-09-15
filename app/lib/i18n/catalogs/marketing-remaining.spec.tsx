@@ -3,11 +3,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { getMarketingProductRemainingCopy } from './marketing-product-remaining';
 import { getMarketingPublicResourceCopy } from './marketing-public-resource';
 import { getMarketingSurfaceCopy } from './marketing-surface';
+import { prechaufferCoquillePublique } from '~/components/dashboard/prechauffer-coquille-publique';
 import {
   EcodeDeploymentsPage,
   EcodeFeaturesPage,
@@ -37,6 +38,8 @@ function renderInFrench(node: ReactNode) {
 }
 
 describe('remaining marketing EN/FR catalogs', () => {
+  beforeAll(prechaufferCoquillePublique);
+
   it('falls back to English and resolves professional French copy', () => {
     expect(getMarketingProductRemainingCopy('de').features.heroTitle).toBe('Features that empower developers');
     expect(getMarketingProductRemainingCopy('fr').deployments.expert).toBe('Parler à un expert');
