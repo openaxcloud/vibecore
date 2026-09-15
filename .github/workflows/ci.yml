@@ -193,6 +193,26 @@ jobs:
         timeout-minutes: 20
         run: pnpm run build
 
+      # BUG-PERF-PRELOAD-ALLROUTES — ce que TOUTE page télécharge, y compris la
+      # page d'accueil marketing d'un visiteur qui n'ouvrira jamais l'IDE.
+      #
+      # `build-config/manual-chunks.spec.ts` teste la FONCTION de découpage.
+      # C'est utile et insuffisant : elle ne dit rien du `root-*.js` réellement
+      # produit. Rollup peut remonter monaco dans le chunk racine par un autre
+      # chemin, et ces tests resteraient verts pendant que 654 Ko reviennent sur
+      # chaque page — c'est exactement ce qui a été mesuré en production le
+      # 2026-08-12 (96 imports statiques sur la racine, dont `vendor-monaco-core`
+      # à 573 Ko servis pour n'appeler qu'une fonction de ~20 lignes).
+      #
+      # Ce contrôle mesure L'ARTEFACT, donc il doit venir APRÈS le build. Il
+      # refuse deux choses : un chunk d'éditeur ou de terminal sur le chemin
+      # critique, et une croissance SILENCIEUSE du total — le vrai défaut, que
+      # personne n'a vu arriver.
+      - name: Le chemin critique de la racine reste maigre
+        run: |
+          node --import tsx scripts/verifier-chemin-critique.ts --self-test
+          node --import tsx scripts/verifier-chemin-critique.ts
+
       - name: Build admin
         timeout-minutes: 10
         run: pnpm --filter @vibecore/admin build

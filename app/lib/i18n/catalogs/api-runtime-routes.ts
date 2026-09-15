@@ -128,6 +128,9 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.sshKeyAmbiguous': 'Several SSH keys are configured, but none matches the origin host ({host}).',
   'apiRuntime.panel.sshOperationFailed': 'The Git {operation} operation over SSH failed (exit {exitCode}).',
   'apiRuntime.panel.scriptRequired': 'Enter a script to run.',
+  'apiRuntime.panel.packageRunFailed': 'The package command failed (exit code {code}). Nothing was installed.',
+  'apiRuntime.panel.packageRunFailedWithOutput':
+    'The package command failed (exit code {code}). Nothing was installed. {output}',
   'apiRuntime.panel.manualCheckpoint': 'Manual checkpoint',
   'apiRuntime.panel.projectWebhook': 'Project webhook',
   'apiRuntime.panel.projectApiKey': 'Project API key',
@@ -306,6 +309,10 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
     'Plusieurs clés SSH sont configurées, mais aucune ne correspond à l’hôte d’origine ({host}).',
   'apiRuntime.panel.sshOperationFailed': 'L’opération Git {operation} via SSH a échoué (code de sortie {exitCode}).',
   'apiRuntime.panel.scriptRequired': 'Saisissez un script à exécuter.',
+  'apiRuntime.panel.packageRunFailed':
+    'La commande de paquets a échoué (code de sortie {code}). Rien n’a été installé.',
+  'apiRuntime.panel.packageRunFailedWithOutput':
+    'La commande de paquets a échoué (code de sortie {code}). Rien n’a été installé. {output}',
   'apiRuntime.panel.manualCheckpoint': 'Point de contrôle manuel',
   'apiRuntime.panel.projectWebhook': 'Webhook du projet',
   'apiRuntime.panel.projectApiKey': 'Clé API du projet',

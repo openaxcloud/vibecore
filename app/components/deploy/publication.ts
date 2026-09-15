@@ -236,3 +236,158 @@ export function invitePourReparerLaPublication(input: {
     .join(' ')
     .trim();
 }
+
+/* ------------------------------------------------------------------ */
+/* RP-PUBLISH-10 — « Configuration de la machine », et son prix RÉEL.  */
+/* ------------------------------------------------------------------ */
+
+export interface GabaritDeMachine {
+  key: string;
+  label: string;
+  vcpu?: number;
+  ramGb?: number;
+  computeUnitsPerSecond?: number;
+  available?: boolean;
+}
+
+export interface CarteTarifaire {
+  currency?: string;
+  defaultMachineSize?: string;
+  machineSizes?: readonly GabaritDeMachine[];
+  compute?: {
+    unitCents?: number;
+    baseCentsPerMonth?: number;
+  };
+}
+
+/** Les gabarits que le plan autorise vraiment — jamais ceux qu'il refuse. */
+export function gabaritsDisponibles(carte: CarteTarifaire | null | undefined): GabaritDeMachine[] {
+  return (carte?.machineSizes ?? []).filter((gabarit) => gabarit && gabarit.available !== false);
+}
+
+/*
+ * Le coût d'un gabarit, calculé depuis la carte tarifaire active :
+ *
+ *   unités/seconde × cents/unité       = cents par seconde
+ *   × 3600                             = cents par heure
+ *   × 730 h + abonnement de base       = cents par mois s'il tourne en continu
+ *
+ * Les 730 heures sont la convention d'un mois moyen — c'est la même que celle
+ * qui permet à Replit d'écrire « $15 per month ($0.0208/hour) ». On l'énonce
+ * dans le libellé (« s'il tourne en continu ») parce que la facturation est à
+ * l'usage : afficher un forfait sans le dire serait faux.
+ *
+ * Sans carte tarifaire, on ne rend RIEN — pas de prix inventé.
+ */
+export const HEURES_PAR_MOIS = 730;
+
+export function tarifDuGabarit(
+  carte: CarteTarifaire | null | undefined,
+  cleDuGabarit: string | undefined,
+): { centsParHeure: number; centsParMois: number } | null {
+  const gabarit = gabaritsDisponibles(carte).find((candidat) => candidat.key === cleDuGabarit);
+  const unites = gabarit?.computeUnitsPerSecond;
+  const centsParUnite = carte?.compute?.unitCents;
+
+  if (!gabarit || typeof unites !== 'number' || typeof centsParUnite !== 'number') {
+    return null;
+  }
+
+  const centsParHeure = unites * centsParUnite * 3600;
+
+  return {
+    centsParHeure,
+    centsParMois: centsParHeure * HEURES_PAR_MOIS + (carte?.compute?.baseCentsPerMonth ?? 0),
+  };
+}
+
+export function formaterMontant(cents: number, langue: string | null | undefined, decimales = 2): string {
+  const locale = (langue ?? '').toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
+
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimales,
+    maximumFractionDigits: decimales,
+  }).format(cents / 100);
+}
+
+/**
+ * BUG-DEPLOY-STATIC-FAIL-001 — « Échec », et rien d'autre.
+ *
+ * Avi, 09/09 : « impossible de déployer en réel, aucun fournisseur ne
+ * fonctionne ». Sa capture montre la carte « Export statique · Aperçu » avec
+ * la pastille Échec, trois boutons — et AUCUNE cause. Pour savoir pourquoi, il
+ * fallait deviner qu'un autre onglet (« Journaux ») existe et aller y lire.
+ *
+ * Or la cause voyage DÉJÀ avec l'enregistrement : la charge utile porte les
+ * journaux du déploiement, et le pipeline y écrit des codes précis
+ * (`INSTALL_FAILED`, `BUILD_FAILED`, `PACKAGE_JSON_MISSING`,
+ * `PROJECT_STORAGE_MISSING`, `BUILD_TIMEOUT`). Elle n'était simplement jamais
+ * affichée là où l'utilisateur regarde.
+ *
+ * On rend la DERNIÈRE ligne d'erreur, celle qui a tué le déploiement — pas la
+ * première, qui n'est souvent qu'un avertissement d'installation.
+ */
+export function causeDeLEchec(deploiement: Deploiement | undefined): string | null {
+  if (!deploiement || deploiement.status !== 'FAILED') {
+    return null;
+  }
+
+  const journaux = Array.isArray((deploiement as { logs?: unknown }).logs)
+    ? ((deploiement as { logs: Array<{ level?: unknown; message?: unknown }> }).logs ?? [])
+    : [];
+
+  const lignes = journaux
+    .filter((ligne) => typeof ligne?.message === 'string' && ligne.message.trim().length > 0)
+    .map((ligne) => ({ niveau: String(ligne.level ?? ''), message: String(ligne.message).trim() }));
+
+  const erreurs = lignes.filter((ligne) => ligne.niveau === 'error');
+  const derniere = erreurs.length > 0 ? erreurs[erreurs.length - 1] : undefined;
+
+  if (derniere) {
+    return derniere.message;
+  }
+
+  /*
+   * Aucune ligne n'est marquée `error` : certains chemins n'écrivent que le
+   * CODE. On le cherche alors dans le texte, plutôt que de ne rien dire.
+   */
+  const codes =
+    /(INSTALL_FAILED|BUILD_FAILED|BUILD_TIMEOUT|PACKAGE_JSON_MISSING|PROJECT_STORAGE_MISSING|AGENT_UNREACHABLE)/u;
+
+  const parCode = lignes.filter((ligne) => codes.test(ligne.message));
+
+  return parCode.length > 0 ? parCode[parCode.length - 1].message : null;
+}
+
+/**
+ * BUG-PUBLISH-NOOP-001 — ce que fait le bouton principal du panneau.
+ *
+ * Il était câblé sur un simple changement d'onglet : il affichait
+ * « Republier », et ne republiait rien. Avi l'a mesuré à l'écran — « quand je
+ * clique sur publish ça lance pas le déploiement ça me renvoi vers gérer ».
+ *
+ * La règle tient en une phrase : **s'il existe un déploiement à rejouer, on le
+ * rejoue** — par l'intention `redeploy`, celle-là même que l'onglet Gérer
+ * envoie déjà, donc aucun second chemin serveur à maintenir. Sinon il n'y a
+ * rien à republier : on ouvre l'assistant de création, et le bouton dit
+ * « Publier », pas « Republier ».
+ *
+ * La décision vit ici, hors du composant, pour qu'un test la tienne sans avoir
+ * à monter le panneau entier.
+ */
+export type IntentionDeRepublication =
+  | { readonly geste: 'redeploy'; readonly deploymentId: string }
+  | { readonly geste: 'assistant' };
+
+export function intentionDeRepublication(deploiements: readonly Deploiement[] | undefined): IntentionDeRepublication {
+  const dernier = Array.isArray(deploiements) ? deploiements[0] : undefined;
+  const identifiant = typeof dernier?.id === 'string' ? dernier.id.trim() : '';
+
+  if (!identifiant) {
+    return { geste: 'assistant' };
+  }
+
+  return { geste: 'redeploy', deploymentId: identifiant };
+}

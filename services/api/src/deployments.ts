@@ -252,6 +252,39 @@ export function deployProviderConfigError(
   };
 }
 
+/**
+ * BUG-DEPLOY-PROVIDERS-UI-001 — « les fournisseurs ne fonctionnent pas ».
+ *
+ * Ils ne pouvaient pas : six des sept demandent des identifiants d'hébergeur
+ * (crochet de build Vercel, jeton GitHub Pages…) et l'interface les proposait
+ * tous, indistinctement. Choisir l'un d'eux menait à un 503 — un mur, après
+ * avoir rempli tout l'assistant.
+ *
+ * Le serveur SAIT lesquels sont utilisables. Il le dit maintenant, pour que
+ * la liste ne promette que ce qu'elle peut tenir.
+ *
+ * On rend des NOMS de variables, jamais des valeurs (règle 12) : `missingEnv`
+ * suffit à dire quoi configurer et ne divulgue rien. Un fournisseur configuré
+ * ne rend PAS la liste de ses variables — inutile ici, et c'est autant de
+ * surface en moins.
+ */
+export interface DisponibiliteFournisseur {
+  readonly provider: (typeof deploymentProviders)[number];
+  readonly configured: boolean;
+  readonly missingEnv: readonly string[];
+}
+
+export function disponibiliteDesFournisseurs(
+  env: NodeJS.ProcessEnv = process.env,
+): readonly DisponibiliteFournisseur[] {
+  return deploymentProviders.map((provider) => {
+    const requises = providerEnvRequirement[provider] ?? [];
+    const manquantes = requises.filter((cle) => !env[cle]);
+
+    return { provider, configured: manquantes.length === 0, missingEnv: manquantes };
+  });
+}
+
 export function assertDeploymentRequestAllowed(
   input: CreateDeploymentRequest,
   planKey: string,

@@ -32,6 +32,23 @@ export interface ProjectAiTranscriptHydrationOptions {
   /** Push the loaded transcript into chat state. */
   applyTranscript: (messages: Message[]) => void | Promise<void>;
 
+  /**
+   * La GÉNÉRATION du fil — lue au DÉPART de la lecture, relue à l'ARRIVÉE.
+   *
+   * Une transcription se lit en deux requêtes ; entre les deux, l'utilisateur
+   * peut avoir vidé le fil (« Effacer l'historique »). Mesuré le 14/09 sur
+   * `main` (run E2E 1969, runner chargé) et rejoué en local avec 2,5 s de
+   * retard réseau : le fil passait à 0 pendant 600 ms puis REVENAIT à ses
+   * 4 messages — la réponse tardive était appliquée telle quelle, puis
+   * persistée et poussée dans la conversation NEUVE. Un défaut de données,
+   * pas seulement d'affichage.
+   *
+   * Quand la génération a changé pendant la lecture, la réponse est jetée et
+   * le verrou reste posé : on ne réhydrate pas une conversation que
+   * l'utilisateur vient de quitter.
+   */
+  generationDuFil?: () => number;
+
   onLoadError: (error: unknown) => void;
 
   /** Called once the bounded auto-retries are exhausted; `retry` restarts them. */
@@ -96,9 +113,14 @@ export function useProjectAiTranscriptHydration(options: ProjectAiTranscriptHydr
     hydratedRef.current = true;
 
     const hydrate = async () => {
+      const generationAuDepart = optionsRef.current.generationDuFil?.();
       const messages = await optionsRef.current.loadTranscript(projectId, conversationId);
 
       if (unmountedRef.current || messages.length === 0) {
+        return;
+      }
+
+      if (generationAuDepart !== optionsRef.current.generationDuFil?.()) {
         return;
       }
 

@@ -87,6 +87,7 @@ import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './comp
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
   decideImageAttachment,
@@ -168,7 +169,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
-import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
+import { panelIcon } from '~/components/project-ide/panel-meta';
 import {
   IdePanelHeader,
   PanelButton,
@@ -186,7 +187,7 @@ import {
   defaultProjectAgentPanelWidth,
   projectAgentStopLabel,
 } from '~/lib/project-agent-layout';
-import type { FileMap } from '~/lib/stores/files';
+import { CODE_CONFLIT_DISTANT, type FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
 import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -294,7 +295,15 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
-import { PublicationReplit } from '~/components/deploy/PublicationReplit';
+import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
+import {
+  detailDeTacheDeReparation,
+  gesteDeLancementDeLAgent,
+  TACHE_DE_REPARATION,
+} from '~/components/deploy/reparation-agent';
+import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
+import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
@@ -498,67 +507,7 @@ const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
-/*
- * UNIF-05 : les icônes viennent du registre unique PANEL_ICONS (panel-meta) —
- * la même icône pour le même outil sur les tuiles mobile, les onglets desktop,
- * le rail et la palette « + ». Deux exceptions volontaires, en littéral :
- * - `agent` (marque, rendue à part) ;
- * - `terminal`/`console`/`shell` : l'onglet Terminal mobile est GELÉ sur la
- *   référence d'Avi (IMG_9149) — son glyphe ne doit jamais dériver via le
- *   registre (même si la valeur actuelle y est identique).
- */
-const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
-  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
-  editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
-  search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
-  locks: { id: 'locks', name: 'Locks', icon: PANEL_ICONS.locks },
-  terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  actions: { id: 'actions', name: 'Agent', icon: 'agent' },
-  assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
-  publishing: { id: 'publishing', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  auth: { id: 'auth', name: 'Settings', icon: PANEL_ICONS.settings },
-  console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  database: { id: 'database', name: 'Database', icon: PANEL_ICONS.database },
-  problems: { id: 'problems', name: 'Problems', icon: PANEL_ICONS.problems },
-  debug: { id: 'debug', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  debugger: { id: 'debugger', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  developer: { id: 'developer', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  git: { id: 'git', name: 'Git', icon: PANEL_ICONS.git },
-  history: { id: 'history', name: 'Activity', icon: PANEL_ICONS.activity },
-  activity: { id: 'activity', name: 'Activity', icon: PANEL_ICONS.activity },
-  integrations: { id: 'integrations', name: 'Integrations', icon: PANEL_ICONS.integrations },
-  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaboration: { id: 'collaboration', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborate: { id: 'collaborate', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborators: { id: 'collaborators', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  packages: { id: 'packages', name: 'Packages', icon: PANEL_ICONS.packages },
-  skills: { id: 'skills', name: 'Skills', icon: PANEL_ICONS.skills },
-  secrets: { id: 'secrets', name: 'Secrets', icon: PANEL_ICONS.secrets },
-  settings: { id: 'settings', name: 'Settings', icon: PANEL_ICONS.settings },
-  workflows: { id: 'workflows', name: 'Workflows', icon: PANEL_ICONS.workflows },
-  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  snapshots: { id: 'snapshots', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  extensions: { id: 'extensions', name: 'Extensions', icon: PANEL_ICONS.extensions },
-  security: { id: 'security', name: 'Security', icon: PANEL_ICONS.security },
-  shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Database', icon: PANEL_ICONS.database },
-  storage: { id: 'storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  env: { id: 'env', name: 'Environment variables', icon: PANEL_ICONS.env },
-  logs: { id: 'logs', name: 'Logs', icon: PANEL_ICONS.logs },
-  monitoring: { id: 'monitoring', name: 'Monitoring', icon: PANEL_ICONS.monitoring },
-  ports: { id: 'ports', name: 'Ports', icon: PANEL_ICONS.ports },
-  domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
-  overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
-  studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
-  web: { id: 'web', name: 'Webview', icon: PANEL_ICONS.webview },
-  tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
-};
+import { ECODE_MOBILE_TAB_META_BASE, outilCanonique } from '~/lib/mobile-tab-meta';
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules(?:\/|$)/,
@@ -2691,6 +2640,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * we simply leave the callback off the context and the command
      * no-ops gracefully (verified in slash-commands.spec.ts).
      */
+    /*
+     * Rappels tenus par RÉFÉRENCE, pas par dépendance.
+     *
+     * `sendMessage` et `isStreaming` changent d'identité à chaque lot de
+     * jetons pendant un tour. Les mettre en dépendance de l'effet ci-dessous
+     * réabonnerait l'écouteur `vibecore:agent-task` en boucle — c'est le
+     * mécanisme exact qui faisait sauter le fil au point 7. La ref donne la
+     * valeur COURANTE sans faire bouger l'effet.
+     */
+    const rappelsAgentTache = useRef({ sendMessage, isStreaming, resetChat });
+
+    useEffect(() => {
+      rappelsAgentTache.current = { sendMessage, isStreaming, resetChat };
+    });
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001 — l'invite qui attend un fil NEUF.
+     *
+     * `resetChat` archive la conversation et vide le fil, mais l'envoi ne peut
+     * pas suivre dans la foulée : `append` poste sur le fil que le crochet
+     * connaît AU MOMENT DE L'APPEL, et à cet instant il n'a pas encore été
+     * vidé. Envoyer tout de suite déposerait la réparation à la fin de la
+     * conversation qu'on venait d'archiver — soit précisément le défaut qu'on
+     * corrige, par un autre chemin.
+     *
+     * On garde donc l'invite ici, et l'effet plus bas l'envoie quand le fil est
+     * RÉELLEMENT vide. Pas de `setTimeout` : la condition est observable.
+     */
+    const [inviteEnAttenteDeFilNeuf, setInviteEnAttenteDeFilNeuf] = useState<string | null>(null);
+
     const insertIntoComposer = useCallback(
       (text: string, opts?: { replace?: boolean }) => {
         if (!handleInputChange) {
@@ -2720,6 +2699,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [handleInputChange, input, textareaRef],
     );
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001, seconde moitié — on envoie QUAND le fil
+     * est vide, pas quand on a demandé qu'il le soit.
+     *
+     * La dépendance est `messages?.length`, pas `messages` : pendant un tour,
+     * le tableau change d'identité à chaque lot de jetons alors que sa longueur
+     * ne bouge pas. Dépendre du tableau relancerait cet effet des centaines de
+     * fois par réponse — le mécanisme exact de BUG-STREAM-JUMP-001.
+     */
+    useEffect(() => {
+      if (!inviteEnAttenteDeFilNeuf) {
+        return;
+      }
+
+      if ((messages?.length ?? 0) > 0) {
+        return;
+      }
+
+      const invite = inviteEnAttenteDeFilNeuf;
+      setInviteEnAttenteDeFilNeuf(null);
+
+      const { sendMessage: envoyer, isStreaming: tourEnCours } = rappelsAgentTache.current;
+
+      if (!envoyer || tourEnCours) {
+        insertIntoComposer(invite, { replace: true });
+        return;
+      }
+
+      void envoyer({} as unknown as React.UIEvent, invite);
+    }, [inviteEnAttenteDeFilNeuf, messages?.length, insertIntoComposer]);
 
     /*
      * Composer draft persistence — the typed-but-unsent prompt survives a
@@ -2795,6 +2805,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               severity?: string;
               source?: string;
               prompt?: string;
+              cible?: string;
               envoyer?: boolean;
             }
           | undefined;
@@ -2822,10 +2833,70 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           );
         };
 
-        /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
-        if (detail?.kind === 'fix-publication' && typeof detail.prompt === 'string' && detail.prompt.trim()) {
+        /*
+         * BUG-SECURITY-FIX-AGENT-001, seconde moitié — Avi (point 5) : « ça
+         * doit me remettre sur le panneau agent ET DÉMARRER l'agent avec le
+         * prompt en question ENVOYÉ par le bouton ».
+         *
+         * La bascule et le pré-remplissage étaient faits ; l'envoi, non.
+         * L'utilisateur arrivait donc sur l'agent devant une invite qu'il
+         * devait poster lui-même — un geste de plus, exactement celui que le
+         * bouton prétendait lui épargner.
+         *
+         * DEUX GARDES, et elles ne sont pas décoratives :
+         *   - `sendMessage` peut être absent (le composant sert aussi hors
+         *     IDE) : on retombe alors sur l'invite préremplie, ce qui reste
+         *     utilisable ;
+         *   - un tour DÉJÀ en cours ne doit pas être doublé. Envoyer par
+         *     dessus une génération en vol produirait deux tours concurrents
+         *     sur le même fil. On dépose alors l'invite sans l'envoyer, et
+         *     l'utilisateur choisit son moment.
+         */
+        const lancerLAgent = (invite: string, cible?: string | null) => {
           allerAuPanneauAgent();
-          insertIntoComposer(detail.prompt, { replace: true });
+
+          const {
+            sendMessage: envoyer,
+            isStreaming: tourEnCours,
+            resetChat: ouvrirUnFilNeuf,
+          } = rappelsAgentTache.current;
+
+          const geste = gesteDeLancementDeLAgent({
+            cible,
+            peutEnvoyer: Boolean(envoyer),
+            tourEnCours: Boolean(tourEnCours),
+            peutOuvrirUnFilNeuf: Boolean(ouvrirUnFilNeuf),
+          });
+
+          if (geste === 'composeur') {
+            insertIntoComposer(invite, { replace: true });
+            return;
+          }
+
+          /*
+           * BUG-PUBLISH-REPARER-CIBLE-001 — « dans une nouvelle tâche » archive
+           * la conversation courante ; l'invite part ensuite, quand le fil vidé
+           * est commis (voir l'effet `inviteEnAttenteDeFilNeuf`).
+           */
+          if (geste === 'fil-neuf') {
+            ouvrirUnFilNeuf?.();
+            setInviteEnAttenteDeFilNeuf(invite);
+
+            return;
+          }
+
+          /*
+           * L'envoi attend la bascule de panneau : le composeur de l'agent
+           * doit être monté quand le tour démarre, sinon la réponse arrive
+           * dans une surface que personne ne regarde — le défaut d'origine,
+           * par un autre chemin.
+           */
+          window.requestAnimationFrame(() => envoyer?.({} as unknown as React.UIEvent, invite));
+        };
+
+        /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
+        if (detail?.kind === TACHE_DE_REPARATION && typeof detail.prompt === 'string' && detail.prompt.trim()) {
+          lancerLAgent(detail.prompt, detail.cible);
 
           return;
         }
@@ -2847,8 +2918,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
           ].join('\n');
 
-          allerAuPanneauAgent();
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
 
           return;
         }
@@ -2867,8 +2937,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .filter(Boolean)
             .join('\n');
 
-          allerAuPanneauAgent();
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
         }
       };
 
@@ -3328,7 +3397,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const ensureMobileOpenTab = useCallback(
       (tabId: string) => {
-        const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        const tab = ECODE_MOBILE_TAB_META[outilCanonique(tabId)] ?? {
           id: tabId,
           name: panelTitle(tabId, t),
           icon: panelIcon(tabId),
@@ -3758,22 +3827,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       appliedToastOpenRef.current = true;
 
-      showCoalescedAppliedToast(files, {
-        onUndoAll: () => {
-          for (const proposalId of proposalIds) {
-            void workbenchStore.revertAgentPatchProposal(proposalId);
-          }
+      showCoalescedAppliedToast(
+        files,
+        {
+          onUndoAll: () => {
+            for (const proposalId of proposalIds) {
+              void workbenchStore.revertAgentPatchProposal(proposalId);
+            }
 
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
+          onDismissAll: () => {
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
         },
-        onDismissAll: () => {
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
-        },
-      });
+
+        /*
+         * LE CONSTAT D'HONNÊTETÉ DU TOUR, LU AU MOMENT DE L'AFFICHAGE.
+         *
+         * `AppliedFilesToast` acceptait déjà une prop `constat` et savait
+         * afficher le message honnête — mais RIEN ne la lui passait : la moitié
+         * visible de la garde était du code mort, et le bandeau annonçait « les
+         * patchs ont bien été appliqués » sur une application sans point
+         * d'entrée. Lecture directe du magasin plutôt qu'abonnement : le bandeau
+         * n'est pas un composant réactif, il est peint une fois par flush, et
+         * c'est l'état À CET INSTANT qui doit être dit.
+         */
+        constatDeGenerationStore.get(),
+      );
     }, []);
 
     const scheduleAppliedFilesToast = useCallback(
@@ -6133,10 +6218,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * runtime write error — left the user believing the file was saved when
      * it was not (silent data loss).
      */
+    /*
+     * BUG-IDE-004 — UN CONFLIT DOIT AVOIR UNE SORTIE.
+     *
+     * Le garde de concurrence protégeait le fichier distant en sacrifiant le
+     * travail de l'utilisateur : mesuré le 06/08, l'onglet restait sale après
+     * le bouton Save, Ctrl+S ET Cmd+S, et l'édition n'était persistée dans
+     * AUCUN des trois magasins. Chaque tentative échouait, indéfiniment, sur
+     * un message générique.
+     *
+     * Un conflit se distingue donc d'une panne d'écriture, il se NOMME, et il
+     * propose le seul geste qui sauve le travail : écrire quand même. Jamais
+     * automatiquement — c'est l'utilisateur qui tranche, en connaissance de
+     * cause.
+     */
     const handleSaveError = useCallback(
-      (error: unknown) => {
+      (error: unknown, filePath?: string) => {
         console.error('Project file save failed', error);
-        toast.error(t('baseChatAst.editor.saveFailed'));
+
+        const conflit = (error as { code?: string } | null)?.code === CODE_CONFLIT_DISTANT;
+        const chemin = filePath ?? (error as { filePath?: string } | null)?.filePath;
+
+        if (!conflit || !chemin) {
+          toast.error(t('baseChatAst.editor.saveFailed'));
+          return;
+        }
+
+        toast.error(
+          ({ closeToast }) => (
+            <div className="bolt-editor-conflit">
+              <p>{t('baseChatAst.editor.saveConflict', { file: chemin.split('/').pop() ?? chemin })}</p>
+              <button
+                type="button"
+                data-testid="editor-conflit-ecraser"
+                onClick={() => {
+                  closeToast?.();
+                  workbenchStore
+                    .saveFile(chemin, { onRemoteConflict: 'overwrite' })
+                    .catch(() => toast.error(t('baseChatAst.editor.saveFailed')));
+                }}
+              >
+                {t('baseChatAst.editor.saveConflictOverwrite')}
+              </button>
+            </div>
+          ),
+          { toastId: `save-conflict-${chemin}`, autoClose: false },
+        );
       },
       [t],
     );
@@ -6153,7 +6280,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const saveProjectEditorFile = useCallback(
       (filePath: string) => {
-        workbenchStore.saveFile(filePath).catch(handleSaveError);
+        workbenchStore.saveFile(filePath).catch((error) => handleSaveError(error, filePath));
       },
       [handleSaveError],
     );
@@ -7479,8 +7606,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * (`state.scrollTop = state.calculatedTargetScrollTop`) : le bas reste
          * collé, sans animation qui court après lui.
          *
-         * `initial` reste en « smooth » : c'est l'animation d'ARRIVÉE sur le
-         * fil, jouée une fois, jamais pendant le stream.
+         * `initial` — l'animation d'ARRIVÉE sur le fil, jouée une fois — reste
+         * en « smooth » sur BUREAU, et passe en « instant » sur TÉLÉPHONE.
+         *
+         * BUG-WEBKIT-SCROLL-FIL-001, mesuré le 2026-09-10 par le canari WebKit
+         * iPhone puis lu ligne à ligne dans `useStickToBottom` : à la première
+         * hauteur de contenu, le ressort (raideur 0,05, masse 1,25) part de
+         * `scrollTop = 0` et ferme ~5 % de la distance par image. Pour un fil
+         * de 2 563 px dans une fenêtre de 599, c'est ~90 images ou plus —
+         * 1,5 s à 60 Hz, le double si le moteur ralentit. Pendant ce temps,
+         * l'utilisateur voit le PREMIER message, puis regarde tout l'historique
+         * défiler devant lui. C'est la même famille que le « ça saute » corrigé
+         * juste au-dessus par `resize="instant"`, et pour la même raison : sur
+         * une fenêtre de lecture courte, une animation qui traverse le fil est
+         * une gêne, pas un agrément.
+         *
+         * Mesuré avant de conclure : la sonde du test rendait `dejaEnHaut` avec
+         * UN SEUL élément défilant sous le panneau (donc pas un défaut de
+         * mesure), neuf échecs sur dix sur WebKit, et la seule réussite est
+         * l'essai qui a mis 45 s — celui qui a laissé le ressort finir.
          */}
         <StickToBottom
           className={classNames('pt-6 px-2 sm:px-6 relative', {
@@ -7488,7 +7632,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'bolt-project-agent-scroll': projectIdeMode,
           })}
           resize="instant"
-          initial="smooth"
+          initial={useMobileIde ? 'instant' : 'smooth'}
         >
           <StickToBottom.Content
             className={classNames('flex flex-col gap-4 relative', {
@@ -9470,8 +9614,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
 
-    const mobileHeaderTab = ECODE_MOBILE_TAB_META[activeMobileOpenTabId] ??
-      ECODE_MOBILE_TAB_META[mobilePanel === 'chat' ? 'agent' : mobilePanel] ?? {
+    const mobileHeaderTab = ECODE_MOBILE_TAB_META[outilCanonique(activeMobileOpenTabId)] ??
+      ECODE_MOBILE_TAB_META[outilCanonique(mobilePanel)] ?? {
         id: activeMobileOpenTabId,
         name: panelTitle(activeMobileOpenTabId),
         icon: panelIcon(activeMobileOpenTabId),
@@ -9489,7 +9633,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy'
-        ? (ECODE_MOBILE_TAB_META[activeMobileServicePanel] ?? {
+        ? (ECODE_MOBILE_TAB_META[outilCanonique(activeMobileServicePanel)] ?? {
             id: activeMobileServicePanel,
             name: panelTitle(activeMobileServicePanel, t),
             icon: panelIcon(activeMobileServicePanel),
@@ -9499,7 +9643,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
           const tool = ECODE_MOBILE_TOOLS.find((item) => item.id === itemId);
-          const meta = ECODE_MOBILE_TAB_META[itemId];
+          const meta = ECODE_MOBILE_TAB_META[outilCanonique(itemId)];
 
           return {
             id: itemId,
@@ -10245,7 +10389,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   aria-label={t('chat.copy.quickAccessTools_3bf4f7bd')}
                 >
                   {['secrets', 'database', 'settings'].map((toolId) => {
-                    const tool = ECODE_MOBILE_TAB_META[toolId];
+                    const tool = ECODE_MOBILE_TAB_META[outilCanonique(toolId)];
 
                     return (
                       <button
@@ -11262,10 +11406,40 @@ function ProjectIdeApiServicePanel({
     });
   }, [collaborationRealtime.snapshot, panel]);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — CE GESTIONNAIRE REÇOIT DEUX CHOSES,
+   * et il n'en acceptait qu'une.
+   *
+   * Les formulaires du panneau l'appellent avec un ÉVÉNEMENT React. Mais les
+   * gestes de la carte « Gérer votre application » — annuler, republier,
+   * revenir en arrière — l'appellent DIRECTEMENT avec un `FormData` déjà
+   * rempli. Or `FormData` n'a pas de `preventDefault` : la toute première
+   * instruction levait un `TypeError`.
+   *
+   * ET CE TypeError ÉTAIT INVISIBLE, pour deux raisons qui s'additionnent :
+   * la fonction est `async`, donc le throw devient une promesse rejetée au
+   * lieu de remonter dans le gestionnaire de clic ; et l'appelant ne faisait
+   * ni `await` ni `.catch`. Résultat : quatre boutons morts, sans un seul
+   * message à l'écran — « aucun bouton fonctionne » (Avi).
+   *
+   * ⚠️ DONT LE MIEN. Le correctif de BUG-PUBLISH-NOOP-001, ce matin, a retiré
+   * le `setTab('manage')` et mis un vrai envoi à la place. Le bouton a donc
+   * cessé de changer d'onglet — et n'a rien déclenché non plus. J'ai déplacé
+   * le défaut au lieu de le corriger, et ma garde ne l'a pas vu parce qu'elle
+   * vérifiait le CÂBLAGE dans la source sans jamais EXÉCUTER l'appel.
+   *
+   * Ce que le type disait déjà, et que personne n'a lu : `ProjectIdePanelContent`
+   * déclare bien `(event: React.FormEvent<HTMLFormElement>) => void`, mais
+   * `ProjectDeploymentsPanel` re-déclarait la même prop `any` — le `any`
+   * éteignait la seule vérification qui aurait attrapé l'écart à la
+   * construction.
+   */
+  async function submit(entree: React.FormEvent<HTMLFormElement> | FormData) {
+    const formulaire = entree instanceof FormData ? null : entree.currentTarget;
 
-    const form = event.currentTarget;
+    if (formulaire) {
+      (entree as React.FormEvent<HTMLFormElement>).preventDefault();
+    }
 
     if (!projectId) {
       return;
@@ -11275,7 +11449,15 @@ function ProjectIdeApiServicePanel({
     setError(undefined);
     setActionNotice(t('baseChatAst.panel.submitting'));
 
-    const formData = new FormData(form);
+    /*
+     * BUG-GIT-001 — l'intention voyage sur le BOUTON d'envoi, et
+     * `new FormData(form)` ne la contient pas. Sans cet appel, tout panneau
+     * dont l'action est portée par un `<button name="intent">` envoyait une
+     * intention vide et recevait un `200` sans que rien ne se passe.
+     */
+    const formData =
+      entree instanceof FormData ? entree : donneesDuFormulaire(entree as React.FormEvent<HTMLFormElement>);
+
     const intent = String(formData.get('intent') ?? 'default');
 
     try {
@@ -11327,8 +11509,9 @@ function ProjectIdeApiServicePanel({
         setActionNotice(formatProjectPanelActionNotice(t, intent));
       }
 
-      if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
-        form.reset();
+      // Il n'y a rien à réinitialiser quand l'appel ne vient pas d'un formulaire.
+      if (formulaire && shouldResetIdePanelFormAfterSubmit(panel, intent)) {
+        formulaire.reset();
       }
 
       window.dispatchEvent(new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: true } }));
@@ -11503,7 +11686,7 @@ function ConfirmSubmitForm({
   children,
   ...formProps
 }: Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'title'> & {
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   title: string;
   description: string;
   confirmLabel: string;
@@ -12077,7 +12260,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       try {
         const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
           method: 'POST',
-          body: new FormData(form),
+          body: donneesDuFormulaire(event),
         });
 
         const result = (await response.json().catch(() => ({}))) as any;
@@ -12129,7 +12312,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     try {
       const response = await fetch(`/api/projects/${projectId}/ide-panel/terminal`, {
         method: 'POST',
-        body: new FormData(form),
+        body: donneesDuFormulaire(event),
       });
 
       const result = (await response.json().catch(() => ({}))) as any;
@@ -13791,7 +13974,7 @@ function ProjectIdePanelContent({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   reload?: () => void | Promise<void>;
   lastLoadedAt?: string;
@@ -15200,7 +15383,7 @@ function ProjectSettingsPanel({
 
   function submitWithNotice(message: string) {
     return (event: React.FormEvent<HTMLFormElement>) => {
-      const formData = new FormData(event.currentTarget);
+      const formData = donneesDuFormulaire(event);
       const intent = String(formData.get('intent') ?? '');
 
       if (intent === 'preferences') {
@@ -22968,7 +23151,15 @@ function ProjectDeploymentsPanel({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: any;
+
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — le contrat est EXPLICITE, plus `any`.
+   * Ce panneau appelle `onSubmit` des deux façons : en gestionnaire de
+   * `<form onSubmit={...}>`, et directement avec un `FormData` pour les gestes
+   * de la carte « Gérer votre application ». Le `any` masquait l'écart ; le
+   * type l'énonce, et le compilateur le vérifie.
+   */
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
 }) {
   const { t, i18n } = useTranslation();
@@ -22990,17 +23181,49 @@ function ProjectDeploymentsPanel({
    * dépose l'invite : même chemin que le bouton de l'onglet Sécurité, une
    * seule règle pour les deux surfaces.
    */
-  const demanderReparationParLAgent = useCallback((invite: string) => {
-    window.dispatchEvent(
-      new CustomEvent('vibecore:agent-task', { detail: { kind: 'fix-publication', prompt: invite } }),
-    );
+  const demanderReparationParLAgent = useCallback((demande: DemandeDeReparation) => {
+    window.dispatchEvent(new CustomEvent('vibecore:agent-task', { detail: detailDeTacheDeReparation(demande) }));
   }, []);
+
+  /*
+   * BUG-PUBLISH-NOOP-001 — « Republier » DÉPLOIE. Il ne changeait que
+   * d'onglet : le bouton principal du panneau promettait une publication et
+   * n'en lançait aucune. Il rejoue maintenant l'intention `redeploy` sur le
+   * dernier déploiement — le MÊME chemin que l'onglet Gérer, donc rien qui
+   * puisse diverger. Sans historique il n'y a rien à rejouer : on ouvre
+   * l'assistant, et le libellé du bouton dit déjà « Publier » dans ce cas.
+   */
+  const republier = useCallback(() => {
+    const intention = intentionDeRepublication(deployments);
+
+    if (intention.geste === 'assistant') {
+      setTab('manage');
+      return;
+    }
+
+    const donnees = new FormData();
+    donnees.set('intent', 'redeploy');
+    donnees.set('deploymentId', intention.deploymentId);
+    onSubmit(donnees);
+  }, [deployments, onSubmit]);
 
   /* La même mise en mots que la fin de tour : une seule implémentation. */
   const ilYADepuis = useCallback(
     (date: string | undefined | null, langue?: string | null) => ilYA(date ?? undefined, langue),
     [],
   );
+
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — ce que le serveur peut réellement déployer.
+   * Sans ce relevé, rien n'est masqué : on préfère un fournisseur offert à
+   * tort qu'un fournisseur qui marche et qu'on aurait caché.
+   */
+  const fournisseurs = useMemo(
+    () => fournisseursOffrables(BOLT_DEPLOY_PROVIDERS, (data as any).providerAvailability),
+    [data],
+  );
+
+  const fournisseurInitial = useMemo(() => fournisseurParDefaut(fournisseurs), [fournisseurs]);
 
   // Real Overview data wired from the deployments loader.
   const gitCommits = Array.isArray((data as any).gitCommits) ? (data as any).gitCommits : [];
@@ -23038,10 +23261,47 @@ function ProjectDeploymentsPanel({
             deployments={deployments}
             language={language}
             ilYA={(date) => ilYADepuis(date, language)}
-            onRepublier={() => setTab('manage')}
-            onAjusterLesReglages={() => setTab('manage')}
+            onRepublier={republier}
             onAjouterUnDomaine={() => setTab('domains')}
+            onAnnuler={(deploymentId) => {
+              /*
+               * BUG-PUBLISH-BOUTONS-001 — `onAnnuler` était déclaré et jamais
+               * passé : la garde `enCours && dernier.id && onAnnuler` du
+               * composant empêchait le bouton d'entrer dans le DOM. Ce n'était
+               * donc pas un bouton inerte, c'était un bouton ABSENT —
+               * l'annulation n'était atteignable qu'en passant par « Ajuster
+               * les réglages ».
+               */
+              const donnees = new FormData();
+              donnees.set('intent', 'cancel');
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
             onReparerAvecAgent={demanderReparationParLAgent}
+            carteTarifaire={(data as any).rateCard ?? null}
+            onOuvrirLesSecrets={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'secrets', toolId: 'secrets' } }),
+              )
+            }
+            onOuvrirLaBaseDeDonnees={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', {
+                  detail: { panel: 'database', toolId: 'database' },
+                }),
+              )
+            }
+            onAction={(intent, deploymentId) => {
+              /*
+               * RP-PUBLISH-12 — les gestes de « Gérer votre application »
+               * passent par les MÊMES intentions que l'onglet Gérer : rien de
+               * neuf côté serveur, donc rien qui puisse diverger.
+               */
+              const donnees = new FormData();
+              donnees.set('intent', intent);
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
           />
 
           {/* Real commit history (hash + author + date) from the git graph. */}
@@ -23136,6 +23396,15 @@ function ProjectDeploymentsPanel({
                     </div>
                     <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
                   </header>
+                  {causeDeLEchec(deployment) ? (
+                    <p
+                      className="bolt-project-deploy-cause break-words [overflow-wrap:anywhere]"
+                      data-testid="deploy-cause-echec"
+                      role="alert"
+                    >
+                      {causeDeLEchec(deployment)}
+                    </p>
+                  ) : null}
                   <div className="bolt-project-deploy-actions">
                     {deployment.url ? (
                       <a href={deployment.url} target="_blank" rel="noreferrer">
@@ -23178,10 +23447,26 @@ function ProjectDeploymentsPanel({
             <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
             <label>
               {t('chat.copy.provider_7ceee3f3')}
-              <select name="provider" defaultValue="static">
-                {BOLT_DEPLOY_PROVIDERS.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name}
+              {/*
+               * BUG-DEPLOY-PROVIDERS-UI-001 — la liste ne propose que ce
+               * qu'elle peut tenir. Un hébergeur sans identifiants reste
+               * visible mais désactivé, en nommant ce qu'il manque : on ne
+               * remplit plus tout l'assistant pour se heurter à un 503.
+               */}
+              <select name="provider" defaultValue={fournisseurInitial} data-testid="deploy-provider-select">
+                {fournisseurs.map(({ fournisseur, utilisable, manquantes }) => (
+                  <option
+                    key={fournisseur.id}
+                    value={fournisseur.id}
+                    disabled={!utilisable}
+                    data-configure={utilisable ? undefined : 'requis'}
+                  >
+                    {utilisable
+                      ? fournisseur.name
+                      : t('chat.copy.providerNeedsConfig_9a1c7f20', {
+                          provider: fournisseur.name,
+                          missing: manquantes.join(', '),
+                        })}
                   </option>
                 ))}
               </select>
@@ -23284,7 +23569,7 @@ function ProjectDeploymentAction({
 }: {
   intent: string;
   deploymentId: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   children: React.ReactNode;
 }) {

@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  HEURES_PAR_MOIS,
+  causeDeLEchec,
   domainesConnectes,
   etapeCourante,
   etapesDePublication,
   etatDePastille,
+  formaterMontant,
+  gabaritsDisponibles,
   invitePourReparerLaPublication,
   lignesDeJournal,
   publicationEnCours,
   resumeDesEchecs,
   revisionCourte,
+  tarifDuGabarit,
 } from './publication';
 
 /*
@@ -156,5 +161,91 @@ describe('« Réparer avec l’agent »', () => {
 
     expect(invite).toContain('ligne 49');
     expect(invite).not.toContain('ligne 29');
+  });
+});
+
+describe('tarif d’un gabarit de machine (RP-PUBLISH-10)', () => {
+  /* La carte réellement servie par l'API locale le 08/09. */
+  const carte = {
+    currency: 'usd',
+    defaultMachineSize: 'shared-0.5',
+    compute: { unitCents: 0.00032, baseCentsPerMonth: 100 },
+    machineSizes: [
+      { key: 'shared-0.25', label: '0.25 vCPU · 1 GiB', vcpu: 0.25, ramGb: 1, computeUnitsPerSecond: 6.5 },
+      { key: 'shared-0.5', label: '0.5 vCPU · 2 GiB', vcpu: 0.5, ramGb: 2, computeUnitsPerSecond: 13 },
+      { key: 'dedicated-8', label: '8 vCPU', vcpu: 8, ramGb: 32, computeUnitsPerSecond: 208, available: false },
+    ],
+  };
+
+  it('ne propose que les gabarits que le plan autorise', () => {
+    expect(gabaritsDisponibles(carte).map((g) => g.key)).toEqual(['shared-0.25', 'shared-0.5']);
+    expect(gabaritsDisponibles(null)).toEqual([]);
+  });
+
+  it('calcule le prix depuis la carte, il ne le recopie pas', () => {
+    const tarif = tarifDuGabarit(carte, 'shared-0.5');
+
+    // 13 unités/s × 0,00032 cent × 3600 s = 14,976 cents l'heure.
+    expect(tarif?.centsParHeure).toBeCloseTo(14.976, 3);
+
+    // × 730 h + 100 cents d'abonnement de base.
+    expect(tarif?.centsParMois).toBeCloseTo(14.976 * HEURES_PAR_MOIS + 100, 2);
+  });
+
+  it('sans carte tarifaire, on n’affiche AUCUN prix plutôt qu’un prix faux', () => {
+    expect(tarifDuGabarit(null, 'shared-0.5')).toBeNull();
+    expect(tarifDuGabarit(undefined, 'shared-0.5')).toBeNull();
+    expect(tarifDuGabarit(carte, 'gabarit-inconnu')).toBeNull();
+    expect(tarifDuGabarit({ machineSizes: [{ key: 'x', label: 'X' }] }, 'x')).toBeNull();
+  });
+
+  it('un gabarit refusé par le plan n’a pas de prix affichable', () => {
+    expect(tarifDuGabarit(carte, 'dedicated-8')).toBeNull();
+  });
+
+  it('met en forme selon la langue', () => {
+    expect(formaterMontant(1500, 'en')).toBe('$15.00');
+    expect(formaterMontant(1500, 'fr').replace(/ | /gu, ' ')).toBe('15,00 $US');
+    expect(formaterMontant(14.976, 'en', 4)).toBe('$0.1498');
+  });
+});
+
+describe('causeDeLEchec — BUG-DEPLOY-STATIC-FAIL-001', () => {
+  /*
+   * La forme RÉELLE d'un journal de déploiement : { timestamp, level, message }.
+   */
+  const echoue = (logs: Array<{ level: string; message: string }>) => ({ id: 'd1', status: 'FAILED', logs }) as never;
+
+  it('rend la DERNIÈRE erreur — celle qui a tué le déploiement', () => {
+    expect(
+      causeDeLEchec(
+        echoue([
+          { level: 'info', message: 'Static export: build started' },
+          { level: 'error', message: 'npm ERR! peer dep missing' },
+          { level: 'error', message: 'vite build failed: Cannot find module @vitejs/plugin-react' },
+        ]),
+      ),
+    ).toBe('vite build failed: Cannot find module @vitejs/plugin-react');
+  });
+
+  it('retombe sur le CODE quand aucune ligne n’est marquée « error »', () => {
+    expect(
+      causeDeLEchec(
+        echoue([
+          { level: 'info', message: 'Static export: install started' },
+          { level: 'info', message: 'BUILD_FAILED' },
+        ]),
+      ),
+    ).toBe('BUILD_FAILED');
+  });
+
+  it('ne dit rien d’un déploiement qui n’a pas échoué — pas de fausse alarme', () => {
+    expect(causeDeLEchec({ id: 'd', status: 'READY', logs: [{ level: 'error', message: 'x' }] } as never)).toBeNull();
+    expect(causeDeLEchec(undefined)).toBeNull();
+  });
+
+  it('rend null plutôt qu’une phrase inventée quand le journal ne dit rien', () => {
+    expect(causeDeLEchec(echoue([{ level: 'info', message: 'Static export: queued' }]))).toBeNull();
+    expect(causeDeLEchec({ id: 'd', status: 'FAILED' } as never)).toBeNull();
   });
 });
