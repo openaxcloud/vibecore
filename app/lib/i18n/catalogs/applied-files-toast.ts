@@ -4,6 +4,14 @@ export const appliedFilesToastEn = {
   'appliedFilesToast.title_one': '{count} file applied',
   'appliedFilesToast.title_other': '{count} files applied',
   'appliedFilesToast.description': 'The agent patches were applied successfully.',
+
+  /*
+   * Le message honnête quand la génération s'est arrêtée en route. Mesuré en
+   * production le 2026-09-08 : deux applications de 24 et 28 fichiers, sans le
+   * module que leur `index.html` réclame, annoncées comme réussies.
+   */
+  'appliedFilesToast.incomplete': 'The generation stopped early — the app cannot start yet.',
+  'appliedFilesToast.missingEntry': 'index.html expects {module}, which was never written.',
   'appliedFilesToast.details': 'View details',
   'appliedFilesToast.remaining_one': '{count} more file',
   'appliedFilesToast.remaining_other': '{count} more files',
@@ -18,6 +26,8 @@ export const appliedFilesToastFr: AppliedFilesToastCopy = {
   'appliedFilesToast.title_one': '{count} fichier appliqué',
   'appliedFilesToast.title_other': '{count} fichiers appliqués',
   'appliedFilesToast.description': 'Les patchs de l’agent ont bien été appliqués.',
+  'appliedFilesToast.incomplete': 'La génération s’est arrêtée en route — l’application ne peut pas encore démarrer.',
+  'appliedFilesToast.missingEntry': 'index.html réclame {module}, qui n’a jamais été écrit.',
   'appliedFilesToast.details': 'Afficher les détails',
   'appliedFilesToast.remaining_one': '{count} fichier supplémentaire',
   'appliedFilesToast.remaining_other': '{count} fichiers supplémentaires',
