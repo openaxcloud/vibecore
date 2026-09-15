@@ -257,8 +257,30 @@ services:
     resources:
       # The API does zip imports / static builds in-process; 512Mi OOMKills it
       # under load. Match staging headroom (1Gi).
-      requests: { cpu: 100m, memory: 384Mi }
-      limits: { cpu: 500m, memory: 1Gi }
+      #
+      # CPU relevé de 500m à 2 le 2026-09-02, sur mesure en production.
+      #
+      # Les 6 pods étaient collés à EXACTEMENT leur plafond de 500m, et le
+      # compteur du noyau donnait `nr_throttled 123671 / nr_periods 134367`,
+      # soit **92 % des périodes d'ordonnancement étranglées** et 8 341 s
+      # d'attente cumulée. Conséquence mesurée : toute requête AUTHENTIFIÉE
+      # coûtait 1,2 à 4,8 s, contre 0,39 s pour `/health` non authentifiée — et
+      # tout ce temps passait AVANT le premier octet.
+      #
+      # Ce n'était pas une route lente : une simple lecture `/projects/<id>`
+      # coûtait autant que `ide-state`. La base répondait en 2-4 ms et Redis en
+      # 1,4 ms ; le travail réel était invisible dans le total.
+      #
+      # `requests.cpu` passe de 100m à 500m : un rapport requête/limite de 5x
+      # laissait l'ordonnanceur ne réserver que 100m, donc l'étranglement
+      # revenait dès que le nœud était sollicité. Réserver ce que le service
+      # consomme réellement est la moitié du correctif.
+      #
+      # Mémoire portée à 1Gi : les pods tenaient 474-498Mi pour une limite de
+      # 512Mi, soit 93-97 %. Aucun OOMKill relevé à ce jour, mais la marge est
+      # d'un pic.
+      requests: { cpu: 500m, memory: 512Mi }
+      limits: { cpu: '2', memory: 1Gi }
   worker:
     enabled: true
     image: worker

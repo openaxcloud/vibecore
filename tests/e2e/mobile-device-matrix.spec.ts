@@ -88,7 +88,7 @@ const compactIdePanels = [
 const compactToolsPaletteItems = [
   { id: 'overview', label: 'Overview' },
   { id: 'preview', label: 'Webview' },
-  { id: 'deployments', label: 'Deployments' },
+  { id: 'deployments', label: 'Publish' },
   { id: 'git', label: 'Git' },
   { id: 'packages', label: 'Packages' },
   { id: 'database', label: 'Database' },
@@ -305,6 +305,13 @@ test.describe('compact IDE shell device matrix', () => {
   let projectId: string;
 
   test.beforeAll(async ({ request }) => {
+    /*
+     * Même piège qu'en 10/09 sur `agent-scroll-pill` : le délai de hook par
+     * défaut (30 s) est plus court que le montage, et un dépassement compte le
+     * test en échec sans qu'aucune assertion n'ait été tentée.
+     */
+    test.setTimeout(180_000);
+
     auth = await authenticate(request);
     projectId = await createProject(request, auth);
   });
@@ -432,7 +439,7 @@ async function assertCompactShellForProfile(
     await expect(page.getByTestId('mobile-more-menu-sheet'), `${profile.name} more menu`).toBeVisible({
       timeout: 10_000,
     });
-    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Publish');
     await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
     await page.getByTestId('mobile-more-menu-close').click({ force: true });
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
