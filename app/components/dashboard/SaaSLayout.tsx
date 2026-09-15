@@ -50,7 +50,7 @@ import {
   SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IconType } from 'react-icons';
@@ -90,7 +90,6 @@ import {
 } from './sidebar-collapse';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
-import { EcodeExactPublicShell } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/components/ui/Card';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -642,8 +641,37 @@ export interface ProjectCard {
   deploymentCount?: number;
 }
 
+/*
+ * LA VITRINE NE VOYAGE PLUS AVEC TOUTES LES PAGES.
+ *
+ * `root.tsx` importe `LinkButton` et `shouldShowUserAreaNavigationSkeleton` de ce
+ * module ; un import STATIQUE de `EcodeExactPublicShell` mettait donc toute la
+ * coquille marketing — et les catalogues i18n qu'elle tire — dans le graphe de
+ * `root`, c'est-à-dire dans le premier chargement de CHAQUE route, IDE compris.
+ *
+ * Mesuré le 2026-09-15 sur l'image servie : `root` tirait 22 modules, dont trois
+ * chunks de copie marketing (`LandingCTA` 32,6 Ko, `LandingTestimonials` 32,3 Ko,
+ * `LandingWorkflow` 28,4 Ko en transfert brotli). Vérifié qu'aucun ne porte de
+ * copie d'IDE : `mobileIdeTabs`, `appliedFilesToast`, `chat.copy` et `Webview` y
+ * sont à ZÉRO occurrence — l'IDE payait 93 Ko de catalogues dont il n'utilise rien.
+ *
+ * Et dans `root`, `PublicShell` ne sert QUE dans `RootErrorView` : la page d'erreur
+ * ou de 404. Toute la vitrine voyageait donc pour un écran qui ne s'affiche
+ * presque jamais.
+ *
+ * L'import différé règle les deux : les ~25 routes publiques qui rendent vraiment
+ * `PublicShell` la chargent à leur tour de rôle, et `root` ne la tire plus.
+ */
+const EcodeExactPublicShell = lazy(async () => ({
+  default: (await import('~/components/marketing/ecode-exact/EcodeExactShell')).EcodeExactPublicShell,
+}));
+
 export function PublicShell({ children }: { children: React.ReactNode }) {
-  return <EcodeExactPublicShell>{children}</EcodeExactPublicShell>;
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-bolt-elements-background-depth-1" aria-busy="true" />}>
+      <EcodeExactPublicShell>{children}</EcodeExactPublicShell>
+    </Suspense>
+  );
 }
 
 function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
