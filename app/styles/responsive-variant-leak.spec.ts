@@ -98,10 +98,14 @@ function fuites() {
  */
 const FUITES_CONNUES = [
   /*
-   * `sm:text-xs` (AgentPowerControls.tsx:251) rattrapé => 15px !important à 390,
-   * alors que l'auteur avait écrit `text-[11px]` pour le mobile.
+   * CORRIGÉE le 2026-09-15 par #388 : le sélecteur porte désormais
+   * `:not([class*=':text-xs'])`, qui empêche la sous-chaîne d'attraper une
+   * variante réservée à un écran plus large. La fuite `sm:text-xs`
+   * (AgentPowerControls.tsx) n'existe plus — l'entrée sort donc de la liste,
+   * parce que c'est ce que ce test exige : la liste des fuites connues doit
+   * rester HONNÊTE. Une exemption qui survit à son défaut protège un trou
+   * qui n'existe plus, et masquerait sa réapparition.
    */
-  '.bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*=text-xs])',
 
   /* `sm:px-6` (BaseChat.tsx) rattrapé => padding du bureau appliqué à 390. */
   '.bolt-project-agent-panel [class*=px-6]',
