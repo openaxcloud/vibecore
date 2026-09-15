@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { discussPrompt } from './discuss-prompt';
 import { getFineTunedPrompt } from './new-prompt';
@@ -168,5 +170,101 @@ describe('<web_reference_instructions>', () => {
       expect(discuss).toContain(WEB_REFERENCE_INSTRUCTIONS_DISCUSS);
       expect(discuss).not.toContain('Rebuild the same page structure');
     }
+  });
+});
+
+/*
+ * BUG-AGENT-WEBCLONE-001 — l'agent se croyait dans un bac à sable navigateur
+ * alors qu'il dispose d'un vrai conteneur Linux, et refusait donc des tâches
+ * que le runtime réel sait faire.
+ *
+ * LE MÉCANISME, et c'est ce que ces cas reproduisent : `vite.config.ts` active
+ * `vite-plugin-node-polyfills` avec `globals.process = true`, donc le bundle
+ * SSR reçoit un SHIM de navigateur dont `env` vaut `{}`. Toute lecture
+ * `process.env.X` y est aveugle. `globalThis.process`, lui, n'est pas réécrit.
+ *
+ * Un test qui poserait simplement `process.env.RUNTIME_MODE` passerait au vert
+ * SANS le correctif — il mesurerait un monde que le pod n'a pas. C'est
+ * pourquoi le shim est monté explicitement ici.
+ */
+describe('BUG-AGENT-WEBCLONE-001 — le mode est lu dans le VRAI environnement', () => {
+  const vraiProcess = globalThis.process;
+
+  afterEach(() => {
+    Object.defineProperty(globalThis, 'process', { value: vraiProcess, configurable: true, writable: true });
+  });
+
+  /** Le pod web tel qu'il est : `process.env` aveugle, vrai environnement peuplé. */
+  function monterLeShim(vraiEnv: Record<string, string | undefined>) {
+    const shim = { ...vraiProcess, env: vraiEnv } as unknown as NodeJS.Process;
+    Object.defineProperty(globalThis, 'process', { value: shim, configurable: true, writable: true });
+  }
+
+  it('témoin positif : sans rien, on retombe bien sur le défaut documenté', () => {
+    monterLeShim({});
+
+    expect(resolvePromptRuntimeMode({})).toBe('webcontainer');
+  });
+
+  /*
+   * ⚠️ CE CAS EST LA VRAIE GARDE, ET IL EST STATIQUE — POUR UNE RAISON MESURÉE.
+   *
+   * Ma première version ne posait que les cas de comportement ci-dessous. Ils
+   * sont restés VERTS quand j'ai retiré le correctif (17/17), donc ils ne
+   * gardaient rien. La cause : sous vitest, `process` et `globalThis.process`
+   * sont LE MÊME objet, et la lecture nue `processEnv?.RUNTIME_MODE` trouve
+   * donc ce que le shim expose. Ce qui distingue les deux mondes n'existe que
+   * dans le pod, où `vite-plugin-node-polyfills` réécrit `process` sans toucher
+   * à `globalThis.process` — un environnement que ce banc ne peut pas fabriquer.
+   *
+   * Ce qui se vérifie ici, alors, c'est que le code CONSULTE le vrai
+   * environnement. Ancré sur l'appel, jamais sur le commentaire (règle 5).
+   */
+  it('la résolution consulte le VRAI environnement, pas seulement `process.env`', () => {
+    const source = readFileSync(join(__dirname, 'runtime-constraints.ts'), 'utf8')
+      .split('\n')
+      .filter((ligne) => {
+        const nu = ligne.trimStart();
+        return !nu.startsWith('*') && !nu.startsWith('/*') && !nu.startsWith('//');
+      })
+      .join('\n');
+
+    const corps = source.slice(source.indexOf('export function resolvePromptRuntimeMode'));
+    const liste = corps.slice(0, corps.indexOf('.find('));
+
+    expect(liste, 'le corps de la résolution est introuvable — la garde ne mesure rien').toContain('candidate');
+    expect(liste).toContain("readRuntimeEnv('RUNTIME_MODE')");
+    expect(liste).toContain("readRuntimeEnv('VITE_RUNTIME_MODE')");
+
+    /* Et AVANT les lectures nues, qui sont aveugles dans le pod. */
+    expect(liste.indexOf("readRuntimeEnv('RUNTIME_MODE')")).toBeLessThan(liste.indexOf('processEnv?.RUNTIME_MODE'));
+  });
+
+  it('RUNTIME_MODE posé dans le vrai environnement est LU', () => {
+    monterLeShim({ RUNTIME_MODE: 'remote-kubernetes' });
+
+    expect(resolvePromptRuntimeMode({})).toBe('remote-kubernetes');
+  });
+
+  it('VITE_RUNTIME_MODE posé dans le vrai environnement est LU aussi', () => {
+    /*
+     * Le pod porte l'une OU l'autre selon la voie (ARG de build, configmap) :
+     * n'en lire qu'une laisserait la moitié des déploiements sur le défaut.
+     */
+    monterLeShim({ VITE_RUNTIME_MODE: 'remote-kubernetes' });
+
+    expect(resolvePromptRuntimeMode({})).toBe('remote-kubernetes');
+  });
+
+  it('une valeur VIDE (clé de configmap non renseignée) ne compte pas', () => {
+    monterLeShim({ RUNTIME_MODE: '   ', VITE_RUNTIME_MODE: 'remote-kubernetes' });
+
+    expect(resolvePromptRuntimeMode({})).toBe('remote-kubernetes');
+  });
+
+  it('l’argument explicite garde la priorité sur l’environnement', () => {
+    monterLeShim({ RUNTIME_MODE: 'remote-kubernetes' });
+
+    expect(resolvePromptRuntimeMode({ RUNTIME_MODE: 'webcontainer' })).toBe('webcontainer');
   });
 });

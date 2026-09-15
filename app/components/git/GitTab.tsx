@@ -25,6 +25,7 @@ import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { commitDemande } from '~/components/workbench/commit-demande';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -793,7 +794,17 @@ export function GitTab({ projectId }: GitTabProps) {
       }
 
       const form = event.currentTarget;
-      const formData = new FormData(form);
+
+      /*
+       * BUG-GIT-001 — « Committer les modifications » répondait 200 et ne
+       * committait rien. L'intention est portée par le BOUTON d'envoi
+       * (`<PanelButton type="submit" name="intent" value="commit">`), et
+       * `new FormData(form)` ne l'inclut pas : elle partait vide, la route ne
+       * reconnaissait aucun cas, n'appelait aucune route git, et répondait
+       * quand même 200. Le panneau annonçait « action effectuée » pendant que
+       * `HEAD` n'avait pas bougé.
+       */
+      const formData = donneesDuFormulaire(event);
       const intent = String(formData.get('intent') ?? 'default');
 
       /*

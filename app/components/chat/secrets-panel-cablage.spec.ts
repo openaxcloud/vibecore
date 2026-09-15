@@ -10,6 +10,13 @@ const composant = readFileSync(new URL('./ProjectSecretsPanel.tsx', import.meta.
 const baseChat = readFileSync(new URL('./BaseChat.tsx', import.meta.url), 'utf8');
 const scss = readFileSync(new URL('../../styles/index.scss', import.meta.url), 'utf8');
 
+/*
+ * La route de révélation ne vit plus dans le panneau : elle est partagée avec
+ * l'onglet Base de données, qui affichait des points et deux boutons éteints
+ * faute de la connaître. C'est ce module qui porte désormais la règle.
+ */
+const revelation = readFileSync(new URL('../../lib/reveler-un-secret.ts', import.meta.url), 'utf8');
+
 describe('onglet Secrets — le panneau branché est le nouveau', () => {
   it('BaseChat importe le composant et ne porte plus l’ancien panneau (quatre boutons empilés)', () => {
     expect(baseChat).toContain("import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';");
@@ -44,7 +51,8 @@ describe('onglet Secrets — le panneau branché est le nouveau', () => {
   });
 
   it('les valeurs ne sont jamais listées : révélation par clé, éditeurs sans valeurs', () => {
-    expect(composant).toContain('reveal=true&confirm=1&key=');
+    expect(revelation).toContain('reveal=true&confirm=1&key=');
+    expect(composant).toContain('revelerUnSecret(projectId, key)');
     expect(composant).toContain('texteEnvDepuisCles(cles) : texteJsonDepuisCles(cles)');
   });
 });

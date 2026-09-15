@@ -232,3 +232,47 @@ describe('BUG-QA-PANEL-429-MASKED-001 — le 429 a sa propre branche', () => {
     expect(catalog.match(/'apiRuntime\.panel\.rateLimited'/g) ?? []).toHaveLength(2);
   });
 });
+
+/**
+ * L'ARRÊT — le trou que les cas ci-dessus ne couvraient pas.
+ *
+ * Toutes les combinaisons y passaient SAUF celle d'un Arrêt :
+ * `{hasActiveWork: true, streaming: false, failed: false}`. C'est pourtant
+ * l'état exact que laisse le bouton Arrêter : le SDK avale l'AbortError sans
+ * appeler `onFinish` ni `onError`, donc `setData(undefined)` — qui ne vit que
+ * dans `onFinish` — ne s'exécute jamais, et la dernière annotation écrite par
+ * le serveur, `{response, in-progress}`, reste dans `data`. `failed` reste
+ * faux : un abandon ne produit aucune erreur.
+ */
+describe('après un Arrêt, une annotation périmée n’est pas du travail vivant', () => {
+  const apresUnArret = { completedCount: 2, totalCount: 3, hasActiveWork: true };
+
+  it('flux mort + travail annoncé vivant = interrompu, pas « en cours »', () => {
+    expect(deriveProgressState({ ...apresUnArret, streaming: false })).toBe('interrupted');
+  });
+
+  it('le flux vivant garde évidemment la main : ce n’est pas une régression du cas normal', () => {
+    expect(deriveProgressState({ ...apresUnArret, streaming: true })).toBe('working');
+  });
+
+  it('signal de flux ABSENT : on ne convertit pas une ignorance en interruption', () => {
+    /*
+     * Un appelant qui ne renseigne pas `streaming` ne dit pas que le flux est
+     * mort — il dit qu'il ne sait pas. L'ancien comportement est conservé pour
+     * lui, sans quoi le correctif transformerait tout appelant partiel en
+     * afficheur d'interruptions permanentes.
+     */
+    expect(deriveProgressState(apresUnArret)).toBe('working');
+  });
+
+  it('une erreur terminale reste prioritaire sur tout le reste', () => {
+    expect(deriveProgressState({ ...apresUnArret, streaming: false, failed: true })).toBe('interrupted');
+  });
+
+  it('sans travail annoncé vivant, le verdict de complétude reprend la main', () => {
+    /* Contre-épreuve : ce n'est pas `streaming: false` seul qui déclenche l'interruption. */
+    expect(deriveProgressState({ completedCount: 3, totalCount: 3, hasActiveWork: false, streaming: false })).toBe(
+      'done',
+    );
+  });
+});

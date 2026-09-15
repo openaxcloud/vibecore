@@ -126,7 +126,20 @@ async function preparer() {
       headers: { authorization: `Bearer ${token}` },
     });
 
-  return { app, lireArbre };
+  /*
+   * BUG-CREATE-006 — LA route que le rapport nomme, et qui n'était pas exercée.
+   * `/files?path=.` et `/files/read?path=tree` sont DEUX handlers distincts
+   * (`services/api/src/app.ts`) : couvrir l'un ne dit rien de l'autre, et c'est
+   * le premier que l'IDE appelle à l'ouverture.
+   */
+  const listerRacine = async () =>
+    app.inject({
+      method: 'GET',
+      url: `/api/runtime/workspaces/${workspace.id}/files?path=.`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+  return { app, lireArbre, listerRacine };
 }
 
 /** Laisse partir le déclenchement en arrière-plan avant d'observer le manager. */
@@ -236,7 +249,42 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
      * mesuré le 2026-09-05 sur la prod : 3 réponses `425` en 6 h, toutes portant
      * `getaddrinfo ENOTFOUND workspace-ws-…`, groupées sur UNE seconde.
      */
-    expect([425, 502]).toContain(reponse.statusCode);
+    /*
+     * ⚠️ CETTE ASSERTION ÉTAIT `expect([425, 502]).toContain(...)`, ce qui passe
+     * dans LES DEUX MONDES — avec et sans le correctif. Une garde qui ne peut
+     * pas rougir ne garde rien (règle 6) : c'est le motif exact que la règle 15
+     * désigne comme le défaut dominant de cette campagne.
+     *
+     * Le `425` est le contrat : `TRANSIENT_CODES` (`app/lib/runtime/retry.ts`)
+     * et `packages/runtime-remote/src/index.ts` s'appuient dessus pour
+     * continuer d'attendre. Un `502` à la place fait remonter l'erreur à
+     * l'utilisateur — les lignes rouges du signalement.
+     */
+    expect(reponse.statusCode).toBe(425);
+
+    /*
+     * Et le CODE, pas seulement le statut : c'est lui que le client consomme.
+     * Un 425 portant un autre code laisserait l'erreur remonter quand même.
+     */
+    expect(reponse.json().code).toBe('WORKSPACE_NOT_STARTED');
+    expect(runtime.demarragesRecus.length).toBeGreaterThan(0);
+  });
+
+  it('la route `/files?path=.` du signalement rend elle aussi 425, pas 502', async () => {
+    /*
+     * Le rapport nomme `GET /api/runtime/workspaces/<id>/files?path=.`, et
+     * aucun cas ne l'exerçait : toute la couverture portait sur
+     * `/files/read?path=tree`. Deux handlers distincts, deux chemins à tenir.
+     */
+    const runtime = await demarrerFauxRuntime('nom-introuvable');
+    const { app, listerRacine } = await preparer();
+    fermetures.push(() => runtime.close(), () => app.close());
+
+    const reponse = await listerRacine();
+    await laisserRespirer();
+
+    expect(reponse.statusCode).toBe(425);
+    expect(reponse.json().code).toBe('WORKSPACE_NOT_STARTED');
     expect(runtime.demarragesRecus.length).toBeGreaterThan(0);
   });
 });

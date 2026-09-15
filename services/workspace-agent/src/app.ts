@@ -2774,14 +2774,33 @@ async function runCommandStream(
   sigkillTimer.unref();
 
   await new Promise<void>((resolvePromise) => {
-    child.on('close', (code) => {
+    child.on('close', (code, signal) => {
       clearTimeout(timeoutTimer);
       clearTimeout(sigkillTimer);
 
       if (options.isOpen()) {
         try {
+          /*
+           * BUG-DEPLOY-010, suspect n°2 — UNE ÉTAPE TUÉE N'EST PAS UNE RÉUSSITE.
+           *
+           * `exitCode: code ?? 0` annonçait **exit 0** pour tout processus mort
+           * par signal : Node donne `code === null` dans ce cas. Une préparation
+           * ou une compilation tuée — OOM du pod, moisson, SIGKILL de délai —
+           * remontait donc à l'API comme un succès, et le déploiement continuait
+           * sur un travail qui n'avait jamais fini.
+           *
+           * Le contrat côté API documente déjà `null` (« null when killed by
+           * signal ») et sait le traiter : c'est l'agent qui ne le respectait
+           * pas. On transmet le code TEL QUEL, et le signal avec lui pour que le
+           * journal dise ce qui a tué l'étape.
+           */
           options.socket.send(
-            JSON.stringify({ type: 'exit', exitCode: code ?? 0, timestamp: new Date().toISOString() }),
+            JSON.stringify({
+              type: 'exit',
+              exitCode: code,
+              signal: signal ?? undefined,
+              timestamp: new Date().toISOString(),
+            }),
           );
         } catch {
           // Socket closed between the isOpen() check and the send; nothing to deliver.

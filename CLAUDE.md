@@ -172,6 +172,120 @@ généraux : ce sont des pièges qui ont déjà coûté.
     ou un push de test sur une branche jetable. Ces trois-là répondent à la
     question sans jamais lire une valeur.
 
+20. **AVANT de chercher dans une cible, VÉRIFIER QUE LA CIBLE EXISTE.** Un `ls`
+    du répertoire avant le `grep`, un `wc -c` du fichier avant le `sed -n`, un
+    `git rev-parse` de la référence avant le `git log`. Une seconde, et toute
+    une classe d'erreurs disparaît.
+
+    C'est un GESTE, pas de la vigilance : la vigilance échoue précisément quand
+    on est pressé, et une recherche sur une cible absente rend exactement ce que
+    rend une recherche honnête qui ne trouve rien — **zéro**.
+
+    Six occurrences mesurées sur la semaine du 2026-09-04 au 2026-09-10, dont
+    deux le seul 10/09 :
+
+    * `grep -rlF "espace-non-stabilise" /app` dans le pod api → 0. Le code de ce
+      conteneur vit dans `/runtime`. Le correctif ÉTAIT servi ; j'ai failli
+      conclure l'inverse.
+    * `sed -n 5989p node_modules/ai/dist/index.mjs` via un glob `ai@*` qui ne
+      s'est pas développé → « ligne absente », « 0 occurrence ». Les deux
+      références citées étaient EXACTES.
+
+    Le contrôle vaut aussi pour le motif : faire rendre au moins un résultat à
+    la même commande sur un cas connu positif (règle 14) répond à « le motif
+    est-il bon ». Celle-ci répond à la question d'avant : **cherche-t-on au bon
+    endroit**.
+
+21. **UN MONITEUR DOIT PROUVER QU'IL OBSERVE, PAS SEULEMENT QU'IL TOURNE.** Il
+    journalise À CHAQUE TOUR ce qu'il a LU — pas seulement quand il conclut.
+
+    Une veille silencieuse n'est pas une veille : c'est une absence
+    d'information déguisée en patience. **Un moniteur qui rend du vide ressemble
+    exactement à un moniteur qui attend**, et on ne peut pas faire la différence
+    au moment précis où on en a besoin.
+
+    Mesuré le 2026-09-10, quatrième occurrence de la semaine : une veille sur une
+    PR bouclait toutes les deux minutes et n'écrivait qu'un horodatage. Son
+    `gh pr view` rendait une chaîne VIDE sous `nohup` — sa condition de sortie
+    (`rouges=0 envol=0`) ne pouvait donc jamais être vraie. Elle n'aurait jamais
+    fusionné, et rien dans son journal ne le disait.
+
+    **Quatrième forme, la plus traître, mesurée le 2026-09-10** : une PR
+    `CONFLICTING` n'exécute AUCUN workflow `pull_request` — GitHub ne peut pas
+    calculer son commit de fusion. Elle affiche donc « 0 rouge », **exactement
+    comme une PR verte**, avec un seul contrôle de titre attaché. Deux de mes PR
+    sont restées ainsi pendant une heure et j'ai failli les compter prêtes. Le
+    contrôle qui tranche : **compter les checks ATTACHÉS avant de lire leur
+    couleur** — moins de trois, c'est qu'on ne mesure rien.
+
+    **La conséquence adoptée : plus de veille sur l'état d'un run.** L'état se
+    lit à la source, au moment où on en a besoin. Quand une veille reste
+    indispensable, deux exigences :
+
+    * elle écrit la VALEUR LUE à chaque tour, jamais un simple battement ;
+    * elle échoue bruyamment si la lecture est vide — une lecture vide est une
+      panne du moniteur, pas un état du monde.
+
+22. **UNE AFFIRMATION QUI DOIT SURVIVRE VA DANS UN TEST, PAS DANS UN
+    COMMENTAIRE.** Les deux vieillissent ; ils ne vieillissent pas de la même
+    façon. **Un commentaire périmé ment en silence et oriente le lecteur
+    suivant ; un test périmé ROUGIT et le convoque.**
+
+    Les deux faces, mesurées le même jour :
+
+    * `api.chat.ts` affirmait en commentaire « ce `flush` NE S'EXÉCUTE JAMAIS :
+      zéro occurrence en production ». Faux — 1 occurrence sur 24 h. Personne ne
+      l'a jamais vérifié, et la phrase a orienté cinq jours d'enquête vers une
+      cause fausse (`model likely too weak`, même fichier).
+    * `anthropic-thinking.spec.ts` portait la même intention SOUS FORME DE TEST :
+      il épinglait `@ai-sdk/anthropic` à `0.0.39` avec le message « SDK monté :
+      retirer le contournement ». Il a rougi **des mois plus tard**, au moment
+      exact de la montée, et a forcé le retrait. Il n'a rien décrit : il a AGI.
+
+    En pratique : quand on s'apprête à écrire « X ne se produit jamais », « Y est
+    temporaire », « à retirer quand Z », se demander d'abord **quel test rougirait
+    le jour où ce n'est plus vrai** — et l'écrire à la place. Le commentaire garde
+    le POURQUOI ; le test garde le FAIT.
+
+23. **AVANT DE CONCEVOIR UN CORRECTIF, CHERCHER SI LE CAS VOISIN EST DÉJÀ
+    TRAITÉ.** Trois fois sur trois cette semaine, le remède était à portée de
+    regard — souvent dans le même fichier, quelques lignes plus haut.
+
+    * `EcodeProductMarketingPages.tsx` — le `<pre>` de la ligne 1623 portait
+      `overflow-x-auto`, celui de la ligne **1748** ne l'a jamais eu. 14 px
+      amputés sur `/mobile`.
+    * Les grilles marketing — deux portaient déjà `grid-cols-[minmax(0,1fr)]`,
+      **huit** ne l'avaient pas. 32 px et 150 px amputés.
+    * La réconciliation d'ouverture — appelée sur deux routes, absente de la
+      troisième.
+
+    **Chercher coûte moins que concevoir**, et c'est en plus le seul moyen de
+    rester cohérent avec ce que le fichier fait déjà : un second remède, écrit
+    sans voir le premier, diverge de lui au premier changement.
+
+    Le geste : `grep` le motif du correctif envisagé dans le fichier, puis dans
+    son répertoire, AVANT d'écrire une ligne. Et quand on trouve le voisin, se
+    demander **combien d'autres cas attendent** — corriger les deux pages rouges
+    aurait laissé huit grilles attendre leur tour.
+
+24. **APRÈS TOUTE RÉSOLUTION DE CONFLIT, VÉRIFIER NOMMÉMENT QUE CE QU'ON AVAIT
+    ÉCRIT EST ENCORE LÀ.** Pas relire le diff : vérifier la PRÉSENCE du contenu,
+    par son identifiant.
+
+    **Une résolution qui protège les lignes NOUVELLES perd les lignes
+    MODIFIÉES.** C'est le piège de toute stratégie « je repars de l'amont et je
+    rajoute ce qui m'est propre » — la bonne stratégie, par ailleurs, quand
+    l'amont porte des réécritures qu'il ne faut pas figer.
+
+    Mesuré le 2026-09-10 : trois fermetures d'entrées du registre, posées une
+    heure plus tôt, étaient revenues à `☐` après une fusion de `main`. Elles
+    modifiaient des lignes existantes, elles n'en ajoutaient pas — ma résolution
+    a donc repris la version de `main` pour ces trois identifiants. **Rien ne
+    l'a signalé** : ni conflit, ni test, ni diff suspect.
+
+    Le geste : lister ce qu'on a écrit AVANT la fusion (identifiants, clés,
+    noms de fonction), et le regreper APRÈS. Ce qui manque se réapplique.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.

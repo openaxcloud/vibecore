@@ -69,7 +69,19 @@ async function seedConversation(request: APIRequestContext) {
       {
         clientId: `a-${turn}`,
         role: 'assistant',
-        content: `Je vais ajouter la page de contact (tour ${turn}).\n\nLa page est créée et la compilation passe.`,
+
+        /*
+         * Le `code` INLINE est délibéré, et il doit le rester : le rendu
+         * Markdown route les blocs clôturés vers `CodeBlock`, dont le `<pre>`
+         * n'apparaît qu'APRÈS une coloration asynchrone — une mesure prise
+         * avant elle lirait un élément absent et rendrait un vert creux
+         * (règle 14). Un `code` inline est rendu au premier passage.
+         *
+         * Il porte la SECONDE moitié de la contre-épreuve de
+         * BUG-SELECT-TOUCH-001 : la bulle ne se sélectionne plus au doigt,
+         * le code s'y sélectionne toujours.
+         */
+        content: `Je vais ajouter la page de contact (tour ${turn}).\n\nLa page est créée et \`pnpm build\` passe.`,
       },
     ]);
 
@@ -261,5 +273,68 @@ test.describe('densité des messages — pointeur grossier', () => {
     const menu = page.locator('.bolt-message-context-menu');
 
     await expect(menu, 'l’appui long n’ouvre pas le menu contextuel').toBeVisible({ timeout: 10_000 });
+
+    /*
+     * BUG-SELECT-TOUCH-001 — L'ASSERTION QUI MANQUAIT, et elle ne pouvait pas
+     * exister avant aujourd'hui.
+     *
+     * Le correctif est en place et déployé depuis le 06/09, mais ses DEUX gardes
+     * (`app/styles/ide-mobile-panels.spec.ts` §10 et
+     * `app/components/chat/MessageContextMenu.spec.tsx`) LISENT LE SCSS. Une
+     * règle trouvée dans un fichier ne prouve pas qu'un moteur l'applique — et
+     * le défaut d'Avi était justement un défaut de MOTEUR : Safari bleuissait
+     * toute la page et posait sa bulle « Copier · ⌘ · › » par-dessus notre menu
+     * (capture 06/09 12:18). Un vert Chromium n'aurait rien dit de cela.
+     *
+     * Ce fichier tourne sous le projet `webkit-iphone` : la mesure ci-dessous
+     * a lieu sur le moteur d'Avi, pas sur un substitut.
+     *
+     * Contre-épreuve dans les deux sens (règle 6) : la bulle ne se sélectionne
+     * plus, ET le code s'y sélectionne toujours. Retirer le bloc
+     * `@media (hover: none)` fait rougir la première ; retirer l'exemption
+     * `:where(pre, code, …)` fait rougir la seconde.
+     */
+    const selection = await rows.nth(1).evaluate((ligne) => {
+      const lire = (element: Element, propriete: string) => {
+        const style = getComputedStyle(element);
+        return style.getPropertyValue(propriete) || style.getPropertyValue(`-webkit-${propriete}`) || '';
+      };
+
+      const bulle = ligne.querySelector('[data-menu-contextuel="true"]');
+      const code = bulle?.querySelector('code') ?? null;
+
+      return {
+        bulleTrouvee: Boolean(bulle),
+        codeTrouve: Boolean(code),
+        bulle: bulle ? lire(bulle, 'user-select') : null,
+        code: code ? lire(code, 'user-select') : null,
+        callout: bulle ? lire(bulle, 'touch-callout') : null,
+        calloutCode: code ? lire(code, 'touch-callout') : null,
+      };
+    });
+
+    const releve = JSON.stringify(selection);
+
+    /*
+     * Règle 14 : un « 0 résultat » n'informe que si la recherche a porté. Sans
+     * ces deux témoins, une bulle ou un `code` introuvables rendraient `null`
+     * et les assertions suivantes mesureraient le vide.
+     */
+    expect(selection.bulleTrouvee, `aucune bulle [data-menu-contextuel] dans la ligne : ${releve}`).toBe(true);
+    expect(selection.codeTrouve, `aucun \`code\` inline dans la bulle : ${releve}`).toBe(true);
+
+    expect(selection.bulle, `la bulle reste sélectionnable au doigt : ${releve}`).toBe('none');
+    expect(selection.code, `le code n'est plus sélectionnable : ${releve}`).toBe('text');
+
+    /*
+     * `-webkit-touch-callout` n'existe que sur WebKit ; Chromium de bureau rend
+     * une chaîne vide. On l'affirme donc là où le moteur le publie — c'est-à-dire
+     * exactement là où la bulle « Copier » d'iOS apparaissait — et le relèvement
+     * complet reste dans le message d'échec pour qu'un silence se voie.
+     */
+    if (selection.callout) {
+      expect(selection.callout, `la bulle « Copier » d'iOS peut encore s'ouvrir : ${releve}`).toBe('none');
+      expect(selection.calloutCode, `le code a perdu son menu système : ${releve}`).toBe('default');
+    }
   });
 });

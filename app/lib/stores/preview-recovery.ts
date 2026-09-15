@@ -56,6 +56,36 @@ export function resolvePreviewBootOverlay(input: {
   return input.reattaching ? 'resume' : 'rebuild';
 }
 
+/*
+ * POURQUOI ON ARRETE — ET LE DEMONTAGE N'EN EST PAS UNE RAISON.
+ *
+ * Mesure du 2026-09-08 en production : serveur de dev vivant (PID 1031), la
+ * page se ferme, cinq minutes plus tard le processus a disparu — alors que la
+ * fenetre de grace du decouplage est a dix minutes. Ce chemin-la ne passe pas
+ * par la socket : il passe par `killProcess`, depuis le nettoyage d'un
+ * `useEffect` (`ProjectWorkspaceProvider.tsx`). Un nettoyage s'execute au
+ * DEMONTAGE — rechargement, changement de route, StrictMode, fermeture
+ * d'onglet. Sur Safari iOS, quitter la page suffit : c'est le vecu d'Avi.
+ *
+ * L'ironie est dans le commentaire voisin : le POD etait deja protege contre
+ * cette destruction au demontage (« Do NOT tear the remote workspace down on
+ * unmount »), mais pas le processus qu'il heberge. La lecon avait ete tiree
+ * pour le conteneur et pas pour son contenu.
+ *
+ * L'EXCES INVERSE SERAIT PIRE : un serveur qu'on ne peut plus arreter. Les
+ * quatre raisons ci-dessous sont exhaustives et seule `demontage` s'abstient.
+ */
+export type RaisonArretPreview = 'utilisateur' | 'redemarrage' | 'reseed' | 'demontage';
+
+export function doitArreterLePreview(raison: RaisonArretPreview | undefined): boolean {
+  /*
+   * `undefined` conserve le comportement historique (arreter). Les appelants
+   * legitimes n'ont ainsi rien a changer, et seul le site fautif declare sa
+   * raison — ce qui rend la correction lisible dans le diff.
+   */
+  return raison !== 'demontage';
+}
+
 export interface PreviewReadiness {
   /*
    * OPTIONNEL A DESSEIN : `undefined` est un etat REEL — un port detecte dont

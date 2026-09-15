@@ -17,6 +17,12 @@ import {
 } from '~/lib/chat/composer-send-guard';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
+import {
+  caracteresDuFil,
+  evenementPersistance,
+  type CiblePersistance,
+  type EtapePersistance,
+} from '~/lib/persistence/journal-persistance';
 import { projectAiTranscriptMessages } from './project-ai-transcript-messages';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -56,6 +62,7 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { partagerLaCreation } from './creation-partagee';
 import { fautIlAdopterLaTranscriptionRestauree } from './late-stored-transcript';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { useProjectAiTranscriptHydration } from './useProjectAiTranscriptHydration';
@@ -447,6 +454,7 @@ export const ChatImpl = memo(
     const handledCompletionsRef = useRef(0);
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
+    const rangPersistanceRef = useRef(0);
 
     /*
      * GÉNÉRATION DU FIL — incrémentée à chaque « Effacer l'historique ».
@@ -460,6 +468,8 @@ export const ChatImpl = memo(
      * synchronise plus.
      */
     const generationDuFilRef = useRef(0);
+    const creationDeConversationRef = useRef<Promise<string> | null>(null);
+    const filVideParLUtilisateurRef = useRef(false);
 
     const backendAiConversationIdRef = useRef<string | undefined>(
       projectIdeMode ? chatMetadata.get()?.aiConversationId : undefined,
@@ -499,38 +509,45 @@ export const ChatImpl = memo(
         return existingConversationId;
       }
 
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: description?.trim() || copy['chatClient.project.agent'] }),
+      /*
+       * Un seul `POST` à la fois : l'effacement du fil et la boucle de
+       * persistance peuvent demander une conversation dans la même seconde
+       * (voir `creation-partagee.ts`).
+       */
+      return partagerLaCreation(creationDeConversationRef, async () => {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ title: description?.trim() || copy['chatClient.project.agent'] }),
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            formatClientAstResidualCopy(astCopy['clientAst.chat.technical.conversationCreate'], {
+              status: response.status,
+            }),
+          );
+        }
+
+        const payload = (await response.json()) as ProjectAiConversationResponse;
+        const conversationId = payload.conversation?.id;
+
+        if (!conversationId) {
+          throw Object.assign(new Error(), { code: 'CHAT_CONVERSATION_ID_MISSING' });
+        }
+
+        const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
+        chatMetadata.set(nextMetadata);
+        backendAiConversationIdRef.current = conversationId;
+
+        await saveProjectIdeMemory(projectId, {
+          chat: {
+            metadata: nextMetadata,
+          },
+        });
+
+        return conversationId;
       });
-
-      if (!response.ok) {
-        throw new Error(
-          formatClientAstResidualCopy(astCopy['clientAst.chat.technical.conversationCreate'], {
-            status: response.status,
-          }),
-        );
-      }
-
-      const payload = (await response.json()) as ProjectAiConversationResponse;
-      const conversationId = payload.conversation?.id;
-
-      if (!conversationId) {
-        throw Object.assign(new Error(), { code: 'CHAT_CONVERSATION_ID_MISSING' });
-      }
-
-      const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
-      chatMetadata.set(nextMetadata);
-      backendAiConversationIdRef.current = conversationId;
-
-      await saveProjectIdeMemory(projectId, {
-        chat: {
-          metadata: nextMetadata,
-        },
-      });
-
-      return conversationId;
     }, [astCopy, copy, description, projectId, projectIdeMode]);
 
     const syncProjectAiTranscript = useCallback(
@@ -542,6 +559,16 @@ export const ChatImpl = memo(
         const transcript = projectAiTranscriptMessages(nextMessages);
 
         if (transcript.length === 0) {
+          return;
+        }
+
+        /*
+         * Un fil d'une génération passée ne se pousse pas — et ne demande pas
+         * non plus de conversation : mesuré le 14/09, la persistance des
+         * messages d'AVANT l'effacement créait une conversation neuve à côté de
+         * celle que l'effacement venait d'ouvrir.
+         */
+        if (generation !== generationDuFilRef.current) {
           return;
         }
 
@@ -590,8 +617,59 @@ export const ChatImpl = memo(
             const snapshot = pendingPersistRef.current;
             const generation = generationDuFilRef.current;
             pendingPersistRef.current = null;
-            await storeMessageHistory(snapshot);
-            void syncProjectAiTranscript(snapshot, generation);
+
+            /*
+             * TROIS HYPOTHÈSES, LE MÊME PROFIL OBSERVABLE.
+             *
+             * `storeMessageHistory` est ATTENDU et `syncProjectAiTranscript` est
+             * en `void` : si le premier ne se résout jamais, la boucle ne repart
+             * pas et le verrou de passage unique reste fermé ; si le second est
+             * rejeté, personne ne l'apprend. Et si la LONGUEUR transportée
+             * plafonne pendant que le flux continue, la perte n'est ni dans l'un
+             * ni dans l'autre mais dans l'assemblage.
+             *
+             * Rien dans les journaux actuels ne sépare ces trois mondes. On
+             * journalise donc entrée, sortie et rejet, avec le rang de l'appel et
+             * le nombre de caractères : une entrée sans sortie est un blocage, un
+             * rejet est un échec silencieux, une longueur qui n'augmente plus est
+             * un défaut d'assemblage.
+             */
+
+            const rang = (rangPersistanceRef.current += 1);
+            const caracteres = caracteresDuFil(snapshot);
+
+            const journal = (cible: CiblePersistance, etape: EtapePersistance, extra?: Record<string, unknown>) =>
+              console.info(
+                evenementPersistance({ rang, cible, etape, caracteres, messages: snapshot.length, ...extra }),
+              );
+
+            const departLocal = Date.now();
+            journal('local', 'entree');
+
+            try {
+              await storeMessageHistory(snapshot);
+              journal('local', 'sortie', { dureeMs: Date.now() - departLocal });
+            } catch (erreur) {
+              journal('local', 'rejet', { dureeMs: Date.now() - departLocal, erreur: String(erreur).slice(0, 200) });
+              throw erreur;
+            }
+
+            const departServeur = Date.now();
+            journal('serveur', 'entree');
+
+            /*
+             * Toujours pas `await` : sérialiser l'écriture durable dans la boucle
+             * changerait le comportement qu'on est en train de mesurer. Mais son
+             * issue n'est plus muette.
+             */
+            void syncProjectAiTranscript(snapshot, generation).then(
+              () => journal('serveur', 'sortie', { dureeMs: Date.now() - departServeur }),
+              (erreur) =>
+                journal('serveur', 'rejet', {
+                  dureeMs: Date.now() - departServeur,
+                  erreur: String(erreur).slice(0, 200),
+                }),
+            );
           }
         };
 
@@ -729,7 +807,18 @@ export const ChatImpl = memo(
       sendExtraMessageFields: true,
 
       /*
-       * DIAGNOSTIC (temporary): wrap the transport fetch so every request the AI
+       * DIAGNOSTIC — ⚠️ « temporary » DEPUIS DEUX MOIS. Introduit le 2026-07-11
+       * (`fix(chat): reopened project append() posted nothing`), et toujours servi :
+       * `[chat-fetch]` est présent dans le chunk `Chat.client` de l'image de
+       * production, vérifié le 2026-09-10. Il écrit donc dans la console de CHAQUE
+       * utilisateur, à CHAQUE requête.
+       *
+       * Le mot « temporary » ne dit plus rien de vrai : soit on le retire, soit on
+       * assume un diagnostic permanent — mais on ne laisse pas un lecteur croire
+       * qu'il va disparaître de lui-même. Le retirer est un changement de
+       * COMPORTEMENT, hors de cette passe qui ne touche qu'aux commentaires.
+       *
+       * Ce qu'il fait : wrap the transport fetch so every request the AI
        * SDK actually dispatches to /api/chat is visible in the console. The SDK
        * builds the request as `fetch(api, { body: JSON.stringify(body), ... })`,
        * so JSON.stringify evaluates BEFORE fetch is called: a non-serializable
@@ -1032,6 +1121,7 @@ export const ChatImpl = memo(
       projectId,
       hasMessages: initialMessages.length > 0 || messages.length > 0,
       conversationId: metadataAiConversationId,
+      generationDuFil: () => generationDuFilRef.current,
       resolveConversationId: () => backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId,
       loadTranscript: async (currentProjectId, conversationId) => {
         const response = await fetch(
@@ -1093,6 +1183,7 @@ export const ChatImpl = memo(
           messagesRestaures: initialMessages.length,
           messagesAffiches: messages.length,
           dejaAdoptee: transcriptionAdoptee.current === initialMessages,
+          filVideParLUtilisateur: filVideParLUtilisateurRef.current,
         })
       ) {
         return;
@@ -2262,6 +2353,7 @@ export const ChatImpl = memo(
            * la réinjectait dans le fil vidé (voir `fautIlAdopterLaTranscriptionRestauree`).
            */
           transcriptionAdoptee.current = initialMessages;
+          filVideParLUtilisateurRef.current = true;
           generationDuFilRef.current += 1;
           setMessages([]);
           latestMessagesRef.current = [];

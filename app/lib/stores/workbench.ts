@@ -14,8 +14,10 @@ import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions
 import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
+  doitArreterLePreview,
   isTransientCommandFailure,
   previewServerLooksRunning,
+  type RaisonArretPreview,
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
@@ -972,7 +974,7 @@ export class WorkbenchStore {
        * holder (including the untracked jsh-PTY dev server that stopPreviewServer's
        * tracked-only kill cannot reap) before binding a fresh, tracked dev server.
        */
-      await this.stopPreviewServer();
+      await this.stopPreviewServer({ raison: 'redemarrage' });
     } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
       return workbenchText('workbenchRuntime.preview.existingResult');
@@ -1215,7 +1217,20 @@ export class WorkbenchStore {
     return Boolean(this.#previewStartPromise) || this.#previewCommandRunning;
   }
 
-  async stopPreviewServer() {
+  async stopPreviewServer(options: { raison?: RaisonArretPreview } = {}) {
+    /*
+     * LE DEMONTAGE N'EST PAS UN ORDRE D'ARRET — voir `doitArreterLePreview`.
+     * On journalise l'abstention : sans trace, un serveur qui survit ressemble
+     * a un serveur qu'on a oublie de tuer.
+     */
+    if (!doitArreterLePreview(options.raison)) {
+      console.info(JSON.stringify({ event: 'preview.arret.refuse', raison: options.raison ?? 'inconnue' }));
+
+      /* Zero processus arrete : la valeur de retour reste homogene avec le cas nominal. */
+      return 0;
+    }
+
+    console.info(JSON.stringify({ event: 'preview.arret.demande', raison: options.raison ?? 'historique' }));
     this.previewServerState.set({ status: 'stopping', command: this.previewServerState.get().command });
 
     const processes = await this.#runtime.listProcesses().catch(() => []);
@@ -1233,6 +1248,19 @@ export class WorkbenchStore {
     });
 
     for (const process of previewProcesses) {
+      /*
+       * CHAQUE MISE A MORT SE NOMME. On a passe une soiree a ignorer QUI tuait
+       * le serveur parce qu'aucun des huit chemins ne le disait. Chaine
+       * litterale + identifiant + raison : le prochain deces se lit d'un coup.
+       */
+      console.info(
+        JSON.stringify({
+          event: 'preview.mort.stopPreviewServer',
+          processId: process.id,
+          commande: [process.command, ...(process.args ?? [])].join(' ').slice(0, 80),
+          raison: options.raison ?? 'historique',
+        }),
+      );
       await this.#runtime.killProcess(process.id).catch((error) => {
         this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
       });
@@ -1258,7 +1286,7 @@ export class WorkbenchStore {
   }
 
   async restartPreviewServer() {
-    await this.stopPreviewServer();
+    await this.stopPreviewServer({ raison: 'redemarrage' });
 
     /*
      * forceRestart: an explicit user Run must relaunch for real — punch through a
@@ -1276,7 +1304,7 @@ export class WorkbenchStore {
    */
   async reinstallDependencies() {
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reinstalling'));
-    await this.stopPreviewServer();
+    await this.stopPreviewServer({ raison: 'redemarrage' });
 
     return this.startPreviewServer({ forceInstall: true, forceRestart: true });
   }

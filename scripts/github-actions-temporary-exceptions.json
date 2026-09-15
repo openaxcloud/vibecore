@@ -34,7 +34,7 @@
   },
   {
     "filename": ".github/workflows/e2e.yml",
-    "location": "$[\"jobs\"][\"e2e\"][\"steps\"][15][\"uses\"]",
+    "location": "$[\"jobs\"][\"e2e\"][\"steps\"][16][\"uses\"]",
     "action": "actions/upload-artifact",
     "ref": "v4",
     "owner": "Claude PR #352",

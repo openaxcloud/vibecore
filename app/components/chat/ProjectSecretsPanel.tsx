@@ -17,6 +17,7 @@ import {
 import { PanelEmptyState } from '~/components/project-ide/PanelPrimitives';
 import { rechercheDemandee } from '~/components/workbench/recherche-demandee';
 import { formatSecretsPanelCopy, getSecretsPanelCopy } from '~/lib/i18n/catalogs/secrets-panel';
+import { revelerUnSecret } from '~/lib/reveler-un-secret';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -121,19 +122,7 @@ export function ProjectSecretsPanel({ projectId, data, onSubmit, busy, reload, l
   }
 
   async function lireLaValeur(key: string): Promise<string | undefined> {
-    if (!projectId) {
-      return undefined;
-    }
-
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(key)}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as { data?: { secret?: { value?: unknown } } } | null;
-    const value = result?.data?.secret?.value;
-
-    return response.ok && typeof value === 'string' ? value : undefined;
+    return revelerUnSecret(projectId, key);
   }
 
   async function basculerLaRevelation(key: string) {
