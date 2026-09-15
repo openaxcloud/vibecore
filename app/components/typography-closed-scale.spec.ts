@@ -20,14 +20,12 @@ const LOT5_FILES = [
   'app/components/@settings/core/ControlPanel.tsx',
   'app/components/auth/AuthScreen.tsx',
   'app/components/deploy/DeploymentOverview.tsx',
-  'app/components/deploy/DeploymentTypeSelector.tsx',
   'app/components/dashboard/SaaSLayout.tsx',
   'app/components/git/GitStatusBadge.tsx',
   'app/components/git/GitBranchSyncControls.tsx',
   'app/components/git/GitSettingsPanel.tsx',
   'app/components/git/GitProviderConnectPanel.tsx',
   'app/components/marketing/ecode-exact/EcodeExactLandingControls.tsx',
-  'app/components/marketing/ecode-exact/pages/Pricing.tsx',
   'app/components/marketing/ecode-exact/pages/AIAgent.tsx',
 ];
 
