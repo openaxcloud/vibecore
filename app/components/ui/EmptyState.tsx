@@ -73,8 +73,15 @@ interface EmptyStateProps {
  * constante ; l'ancien style teinté `bg-bolt-elements-button-primary-*` n'est
  * plus qu'un alias legacy hors panneaux IDE.
  */
+/*
+ * ON-ACCENT-003 — l'encre suit la MÊME structure de repli que l'aplat.
+ * `--vc-cta-accent` vaut l'orange de marque dans l'IDE (#f97316 en sombre, où
+ * le blanc rend 2,79:1) et le ton renforcé #c2410c dans `.vc-user-area-shell`
+ * (où le blanc tient à 5,18 et où l'encre sombre le casserait). Imposer une
+ * encre unique casserait donc l'une des deux coques : chacune fournit la sienne.
+ */
 export const IDE_PRIMARY_ACCENT_CLASSES =
-  'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
+  'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-[var(--vc-cta-accent-ink,var(--vc-ide-on-accent-action))] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
 
 const PRIMARY_CTA_CLASSES = classNames(
   'inline-flex items-center justify-center rounded-md font-medium',

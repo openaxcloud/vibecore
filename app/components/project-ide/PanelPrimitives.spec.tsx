@@ -59,14 +59,18 @@ describe('<PanelButton />', () => {
     const className = screen.getByRole('button', { name: 'Create' }).className;
 
     /*
-     * Style tranché : fond plein + texte blanc (= CTA EmptyState). Depuis
-     * l'audit user area, le fond passe par `--vc-cta-accent`, qui VAUT
-     * `--vc-ide-accent-action` partout (défaut global) et bascule sur le ton
-     * renforcé AA dans la seule coque user area — la couleur rendue dans l'IDE
-     * est donc inchangée, c'est l'indirection qui est nouvelle.
+     * Style tranché : fond plein + encre APPARIÉE au fond (= CTA EmptyState).
+     * Le fond passe par `--vc-cta-accent`, qui vaut `--vc-ide-accent-action`
+     * partout et bascule sur le ton renforcé dans la coque user area.
+     *
+     * ON-ACCENT-003 : l'encre suit désormais la MÊME structure de repli. Le
+     * blanc en dur ne tenait que dans la coque user area (#c2410c, 5,18) ; dans
+     * l'IDE en thème sombre il rendait 2,79:1 sur l'orange de marque — mesuré
+     * en production sur sept boutons de panneau le 2026-09-08.
      */
     expect(className).toContain('bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))]');
-    expect(className).toContain('text-white');
+    expect(className).toContain('text-[var(--vc-cta-accent-ink,var(--vc-ide-on-accent-action))]');
+    expect(className, 'plus de blanc en dur : il ne tient pas sur l’orange de marque').not.toContain('text-white');
 
     // L'ancien style teinté n'est plus émis par les primitives de panneau.
     expect(className).not.toContain('button-primary-background');
