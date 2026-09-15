@@ -1,0 +1,37 @@
+# ARTIFACT_KIND_REGISTRY — les KINDS d'Artifact utilisateur (taxonomie corrigée
+# P0-LS-02). SERVICE/JOB/STATIC_SITE ne sont PAS des Artifacts (composants ou
+# déploiement → COMPONENT_KIND / DEPLOYMENT_TYPE). DOCUMENT/SPREADSHEET ne
+# sont PAS des kinds tant que leur publication autonome n'est pas prouvée
+# (→ CREATION_INTENT + GENERATED_ASSET_KIND). Source : doc du jour + scan
+# (sha256 396b07e2520d1171…).
+schemaVersion: 1
+repoCommit: 42a48091
+kinds:
+  - kind: WEB_APP
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: DEJA_CONSTRUIT
+    note: "Cœur du produit E-Code (create→preview→publish prouvé live)"
+  - kind: MOBILE_APP
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    note: "Replit : Expo/simulateurs (llms-full 20/07 l.2833) ; E-Code : rien"
+  - kind: DATA_VISUALIZATION
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    note: "💰 Core chez Replit"
+  - kind: SLIDE_DECK
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    note: "💰 Core"
+  - kind: ANIMATION_VIDEO
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    note: "💰 Core"
+  - kind: DESIGN
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    note: "Lié à Infinite Canvas (CAPABILITY)"
+  - kind: EXPERIENCE_3D
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+    note: "Chip « 3D Game » landing"

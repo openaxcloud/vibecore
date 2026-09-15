@@ -1,0 +1,148 @@
+# ROUTE_OBSERVATION_REGISTRY — observations de routes (§2.2 plan expert).
+# Source : scan du 20/07 (sha256 396b07e2520d1171…), 20 routes / 21 tentatives
+# (signup x2) / 19 HTTP 200 / 2 blocages anti-bot. Le sujet observé est un
+# VISITEUR ANONYME (P0-LS-01) ; hashes = captures pleine page.
+schemaVersion: 1
+repoCommit: af9e4e83
+observedAt: "2026-07-20T05:43:00Z"
+routes:
+  - routeId: RT-20260720-landing
+    url: "https://replit.com/"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "eaff011fa23b0cda"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-signup
+    url: "https://replit.com/signup"
+    httpStatus: 403
+    outcome: BLOQUEE_ANTIBOT_x2
+    screenshotHash16: "b854d8ebf7cc9715 / a100279612a8a691"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-login
+    url: "https://replit.com/login"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "0fa5718b881fb29d"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-pricing
+    url: "https://replit.com/pricing"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "0dea38e82de4c246"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-templates
+    url: "https://replit.com/templates"
+    httpStatus: 200
+    outcome: RENDUE_SERT_GALLERY
+    screenshotHash16: "5e0cb9bbf4794ce6"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-gallery
+    url: "https://replit.com/gallery"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "5e0cb9bbf4794ce6"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-gallery-detail
+    url: "https://replit.com/gallery/life/education/solar-system-visualizer"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "0497c919bba187b8"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-community
+    url: "https://replit.com/community"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "a2e281d5d30c0193"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-bounties
+    url: "https://replit.com/bounties"
+    httpStatus: 200
+    outcome: RENDUE_EXPERT_NETWORK_CONTRA
+    screenshotHash16: "6beff99f6657f38a"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-ai
+    url: "https://replit.com/ai"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "2ee3dedd9cf4287f"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-desktop
+    url: "https://replit.com/desktop"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "33477c21005aef7f"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-mobile
+    url: "https://replit.com/mobile"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "9bc8b426b1514fd7"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-teams
+    url: "https://replit.com/teams"
+    httpStatus: 200
+    outcome: RENDUE_MARKETING
+    screenshotHash16: "36110602aa3ba732"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-enterprise
+    url: "https://replit.com/enterprise"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "dd8813a27f65b535"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-import
+    url: "https://replit.com/import"
+    httpStatus: 200
+    outcome: REDIRECT_LOGIN
+    screenshotHash16: "0fa5718b881fb29d"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-usage
+    url: "https://replit.com/usage"
+    httpStatus: 200
+    outcome: REDIRECT_LOGIN
+    screenshotHash16: "0fa5718b881fb29d"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-home-authed
+    url: "https://replit.com/~"
+    httpStatus: 200
+    outcome: REDIRECT_LOGIN
+    screenshotHash16: "0fa5718b881fb29d"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-profile-mattpalmer
+    url: "https://replit.com/@mattpalmer"
+    httpStatus: 200
+    outcome: REDIRECT_LOGIN
+    screenshotHash16: "0fa5718b881fb29d"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-docs
+    url: "https://docs.replit.com/"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "bc6ff814a7f387b0"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/
+  - routeId: RT-20260720-status
+    url: "https://status.replit.com/"
+    httpStatus: 200
+    outcome: RENDUE
+    screenshotHash16: "5bb08c718438ced9"
+    authenticated: false
+    archiveUri: docs/parity/livescan-2026-07-20/

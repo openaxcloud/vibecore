@@ -1,18 +1,40 @@
-# PARITY_STATUS — état de parité, 3 états SÉPARÉS par point
+# PARITY_STATUS — vue GÉNÉRÉE (ne pas éditer : modifier les registres ou PARITY_STATUS_NOTES.md puis régénérer)
+
+schemaVersion: 2
+repoCommit: fed58e96
+généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
+
+**Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: documentReconciled`
+**Attestation CI** : run 29718207435 (2026-07-20T05:02:13Z, commit fed58e96) — verte.
+
+| Niveau | État |
+|---|---|
+| documentReconciled | ✅ PASS |
+| sourceBaselineReady | ❌ FAIL (claim GCP-01 cited by the plan but not anchored (UNVERIFIED) … +20) |
+| registryUniverseReady | ✅ PASS |
+| contractsPresent | ✅ PASS |
+| contractsValidated | ❌ FAIL (DOMAIN_MODEL.md: no real reviewer … +18) |
+| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +8) |
+| verticalBackendReady | ✅ PASS |
+| verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
+| betaReady | ❌ FAIL (beta gate capability still unknown: UNK-GIT-RECONCILE-DONE … +5) |
+| publicLaunchReady | ❌ FAIL (betaReady not passed … +71) |
+| parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
+
+**Compteurs (source unique)** : P0 65 (9 OPEN · 56 PROVEN · 0 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 99 work items · claims non ancrées 21 · uiGaps [publish, rollback]
+
+---
+
+# PARITY_STATUS_NOTES — détail par chantier, MAINTENU À LA MAIN (déclaré)
 
 schemaVersion: 1
-repoCommit: b774bfa38e881ebaa071fbf2c2fa9d72ab89efb5
-États: 📤 Dispatché · 💻 Codé (commité+poussé main) · ✅ Testé live (écran +
-greps, web/tablette/mobile). Un point n'est « fait » QUE quand ✅ est coché.
-Règle de ce fichier : on ne coche ✅ QUE ce qui a un `evidenceId` vérifiable —
-jamais par déduction ni « couvert par ailleurs ». Ce qui est codé mais pas
-prouvé reste 💻 avec ✅ ⬜. Sources de détail : `REPLIT_PARITY.md`,
-`PLAN_REMAINING_UNIFIED.md`, `DESIGN_PROGRAM_MASTER.md`, `BUG_INVENTORY_LIVE.md`.
+repoCommit: fed58e96
 
-Plan canonique : `PLAN_PARITE_REPLIT.md` (v2026-07-20.1, audit de réanalyse
-appliqué). Statut global : `APPROVAL_STATUS.json` — **11 niveaux**,
-`overallStatus=NOT_APPROVED` + `highestPassedLevel` (`approvalReady` ET
-`approved.level` interdits par le validateur).
+> Ce fichier est la SEULE partie humaine de la vue PARITY_STATUS : le détail
+> par chantier (états 📤/💻/✅, evidenceIds, sous-tables). Il est embarqué
+> VERBATIM par `scripts/parity/generate-parity-status.mjs` dans
+> `PARITY_STATUS.md` (qui, lui, est GÉNÉRÉ et drift-checké). Règle inchangée :
+> on ne coche ✅ QUE sur artefact vérifiable.
 
 ## Vue par chantier
 

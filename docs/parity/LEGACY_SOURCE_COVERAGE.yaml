@@ -1,0 +1,172 @@
+# LEGACY_SOURCE_COVERAGE — couverture des anciens plans/trackers/dettes
+# (plan §20 Phase 1.10). Sources = les fichiers confrontés par l'audit de
+# couverture du 19/07 (« 29 fichiers lus intégralement, repo + working tree
+# + outputs »). LIMITE DÉCLARÉE (P0-A2-12) : le comptage de constats PAR
+# FICHIER d'origine n'a pas été capturé par l'audit — la traçabilité vit au
+# niveau famille (LEGACY_FINDING_REGISTRY.originRef) ; absorbedFindings est
+# donc UNKNOWN par fichier tant que la passe de provenance n'est pas refaite.
+schemaVersion: 1
+repoCommit: d56931bd
+auditRef: docs/parity/COVERAGE_GAP_AUDIT_2026-07-17.md
+totalSourceFindings: 336
+sources:
+  - sourcePath: ".vibecore-audit/replit-measurements.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "BUG_INVENTORY_LIVE.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "DESIGN_AUDIT_LIVE.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "DESIGN_BATCH_SOLUTIONS_SPEC.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "DESIGN_PROGRAM_MASTER.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "PLAN_REMAINING_UNIFIED.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "REPLIT_PARITY.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "TRIAGE-BUGS-2026-06-19.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/AUDIT_BOLT_HIDDEN_FEATURES.md"
+    family: bolt
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/BOLT_BASELINE_MAP.md"
+    family: bolt
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/BOLT_FEATURE_PLACEMENT_MATRIX.md"
+    family: bolt
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/COMPLETION_MATRIX.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/DEFERRED_HARDENING.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/GO_LIVE_CHECKLIST.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/INTEGRATIONS_MASTER_PLAN.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/MIGRATION_FROM_BOLT.md"
+    family: bolt
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/REMAINING_BLOCKERS.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/REPLIT_BILLING_PARITY.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/REPLIT_PARITY_DELIVERY.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/REPLIT_PARITY_MATRIX.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "docs/REPLIT_PARITY_SPEC.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/BOLT_BACKEND_FRONTEND_GAP.md"
+    family: bolt
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/BOLT_SURFACING_STATUS.md"
+    family: bolt
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/BUG_INVENTORY.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/DESIGN_AUDIT_LIVE.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/ETAT_FINAL_100.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/MASTER_100_PERCENT.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/QA_PANEL_SCENARIOS.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/REPLIT_LEGAL_SECURITY_PARITY_GAP.md"
+    family: production
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/REPLIT_PARITY.md"
+    family: tracking
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/UI_PROOF_SCENARIOS.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"
+  - sourcePath: "outputs/VIBECORE_AUDIT_LOG.md"
+    family: parity-docs
+    coverageState: ABSORBED_VIA_COVERAGE_AUDIT
+    absorbedFindings: UNKNOWN
+    note: "confronté intégralement le 19/07 ; constats versés dans LEGACY_FINDING_REGISTRY (336 au total, familles 47+27+27+169+66)"

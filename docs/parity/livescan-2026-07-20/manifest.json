@@ -1,0 +1,385 @@
+{
+  "collectedAt": "2026-07-20T05:43:01.637Z",
+  "tool": "playwright-chromium 1.59.1 headless",
+  "viewport": "1440x900",
+  "pages": {
+    "home": {
+      "url": "https://replit.com/",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/",
+      "title": "Replit – Build apps and sites with AI - Replit",
+      "screenshot": {
+        "file": "home.png",
+        "sha256": "eaff011fa23b0cda0da4b9657a447dfc57863d60b03b18bf9cac7bba2f8bca1a",
+        "bytes": 767801
+      },
+      "visibleText": {
+        "file": "home.txt",
+        "sha256": "7d5c2dc6eb926e3a6a643ec18541e93201232a21371e0204f8b9e86e84bde51f",
+        "chars": 6073
+      },
+      "linkCount": 56,
+      "status": "RENDERED"
+    },
+    "signup": {
+      "url": "https://replit.com/signup",
+      "httpStatus": 403,
+      "finalUrl": "https://replit.com/signup?__cf_chl_rt_tk=aG25yYCVWGSJFIE60BCRUkZfadjy2vOM97hX7UaGllM-1784526214-1.0.1.1-zbHRjNwvezVYmUrtWuatNyyHQLNBp8BJWgSXnXHg.oE",
+      "title": "Just a moment...",
+      "screenshot": {
+        "file": "signup.png",
+        "sha256": "b854d8ebf7cc97152faa0beef160e148cc69ccc6f0fe4dd63fece86ce2307c94",
+        "bytes": 36917
+      },
+      "visibleText": {
+        "file": "signup.txt",
+        "sha256": "e98e93eb0e1b8a833c6321648d5f8562295be10e71645e364736265f28f82df7",
+        "chars": 258
+      },
+      "linkCount": 2,
+      "status": "BLOCKED_BOT_CHECK"
+    },
+    "login": {
+      "url": "https://replit.com/login",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/login",
+      "title": "Log In - Replit",
+      "screenshot": {
+        "file": "login.png",
+        "sha256": "0fa5718b881fb29d872f89052cbec25715fb85c256edaccfc3d02bb264aa43b0",
+        "bytes": 734552
+      },
+      "visibleText": {
+        "file": "login.txt",
+        "sha256": "f11e2c17e6b60f8e19cd17fb276ac90f70c9b564aecf051ad99da2955dd02fb0",
+        "chars": 239
+      },
+      "linkCount": 2,
+      "status": "RENDERED"
+    },
+    "pricing": {
+      "url": "https://replit.com/pricing",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/pricing",
+      "title": "Pricing - Replit",
+      "screenshot": {
+        "file": "pricing.png",
+        "sha256": "0dea38e82de4c246c64e417b321b301882f9161e214acd2050686a57b5f9392d",
+        "bytes": 309626
+      },
+      "visibleText": {
+        "file": "pricing.txt",
+        "sha256": "702aa81441d3d3ee805496e303cb624a6f2c811499582986e95f2a89e2f6a071",
+        "chars": 2726
+      },
+      "linkCount": 57,
+      "status": "RENDERED"
+    },
+    "templates": {
+      "url": "https://replit.com/templates",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/gallery",
+      "title": "Replit Gallery",
+      "screenshot": {
+        "file": "templates.png",
+        "sha256": "5e0cb9bbf4794ce6a9a4682fc3ea09da0924ddf30fed6dc0fadba27129ff0c9d",
+        "bytes": 1169489
+      },
+      "visibleText": {
+        "file": "templates.txt",
+        "sha256": "583e7ca67b00b0358cf2e3eb215dcaeeae59fe4661ede2cac5e6cb493c203999",
+        "chars": 4170
+      },
+      "linkCount": 96,
+      "status": "RENDERED"
+    },
+    "gallery": {
+      "url": "https://replit.com/gallery",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/gallery",
+      "title": "Replit Gallery",
+      "screenshot": {
+        "file": "gallery.png",
+        "sha256": "5e0cb9bbf4794ce6a9a4682fc3ea09da0924ddf30fed6dc0fadba27129ff0c9d",
+        "bytes": 1169489
+      },
+      "visibleText": {
+        "file": "gallery.txt",
+        "sha256": "583e7ca67b00b0358cf2e3eb215dcaeeae59fe4661ede2cac5e6cb493c203999",
+        "chars": 4170
+      },
+      "linkCount": 96,
+      "status": "RENDERED"
+    },
+    "community": {
+      "url": "https://replit.com/community",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/community",
+      "title": "Replit Community | Connect. Build. Ship.",
+      "screenshot": {
+        "file": "community.png",
+        "sha256": "a2e281d5d30c0193b4669a37af91de4ccb5cfa66556f65509b3ddb68d30d7bee",
+        "bytes": 1229296
+      },
+      "visibleText": {
+        "file": "community.txt",
+        "sha256": "6b55ef768d222932aef317ac40ecd1a11da72ed625e60194159c45aa1a0be023",
+        "chars": 3808
+      },
+      "linkCount": 28,
+      "status": "RENDERED"
+    },
+    "bounties": {
+      "url": "https://replit.com/bounties",
+      "httpStatus": 200,
+      "finalUrl": "https://contra.com/replit?view=people",
+      "title": "Hire Replit Experts for Your Web Project",
+      "screenshot": {
+        "file": "bounties.png",
+        "sha256": "6beff99f6657f38a8f2c8360862f53b2545f4e07bc69cc448155a0f83e165c22",
+        "bytes": 1824904
+      },
+      "visibleText": {
+        "file": "bounties.txt",
+        "sha256": "09bd61cab34573952f7407d4f29226520aac7470b33f6b11b9f145311d95f08c",
+        "chars": 4308
+      },
+      "linkCount": 124,
+      "status": "RENDERED"
+    },
+    "ai-agent": {
+      "url": "https://replit.com/ai",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/ai",
+      "title": "Replit AI – Turn natural language into apps and websites",
+      "screenshot": {
+        "file": "ai-agent.png",
+        "sha256": "2ee3dedd9cf4287ff3ac3c6a229c44739bb9916af012ceae482bcb856d6a7f13",
+        "bytes": 1024255
+      },
+      "visibleText": {
+        "file": "ai-agent.txt",
+        "sha256": "310f498a1d843a1b6783ab06589022d4d9ccd73891f0c0c5356ae6a414f77d6c",
+        "chars": 2068
+      },
+      "linkCount": 58,
+      "status": "RENDERED"
+    },
+    "desktop": {
+      "url": "https://replit.com/desktop",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/desktop",
+      "title": "Replit Desktop App - Replit",
+      "screenshot": {
+        "file": "desktop.png",
+        "sha256": "33477c21005aef7f7202c63eeadf67dc0041526e81ecab4a01b3501fff9b1bd0",
+        "bytes": 337666
+      },
+      "visibleText": {
+        "file": "desktop.txt",
+        "sha256": "d7dac4dc2c754fa24a7bc55a9a966ce7849c6e208a59c294b20ff0491754b6f5",
+        "chars": 655
+      },
+      "linkCount": 54,
+      "status": "RENDERED"
+    },
+    "mobile": {
+      "url": "https://replit.com/mobile",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/mobile",
+      "title": "Replit Mobile App – Join 50+ million creators - Replit",
+      "screenshot": {
+        "file": "mobile.png",
+        "sha256": "9bc8b426b1514fd7bc7717811e2712ef022bc7ceae0a495beccbb2adcd91e2c7",
+        "bytes": 705923
+      },
+      "visibleText": {
+        "file": "mobile.txt",
+        "sha256": "812ee26ce07f3c82c55bacb520fb4ade9bd17f81174f511d72bc6df5f978363f",
+        "chars": 1541
+      },
+      "linkCount": 53,
+      "status": "RENDERED"
+    },
+    "teams": {
+      "url": "https://replit.com/teams",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/pro",
+      "title": "Professional AI Coding Tools | Replit",
+      "screenshot": {
+        "file": "teams.png",
+        "sha256": "36110602aa3ba732c7aabd979cf37bad8d6451c2def64ffcfbf6ac50b097d826",
+        "bytes": 1102036
+      },
+      "visibleText": {
+        "file": "teams.txt",
+        "sha256": "7dc12a2e7c8c003293303582c43f71264723a99df5fbef89be1b2d320d15a839",
+        "chars": 4131
+      },
+      "linkCount": 53,
+      "status": "RENDERED"
+    },
+    "enterprise": {
+      "url": "https://replit.com/enterprise",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/enterprise",
+      "title": "Replit Enterprise — The world's leading AI platform for every team",
+      "screenshot": {
+        "file": "enterprise.png",
+        "sha256": "dd8813a27f65b535e7a8b3b09da72c797a1ae4125e5edb7976771da55a096fae",
+        "bytes": 1444203
+      },
+      "visibleText": {
+        "file": "enterprise.txt",
+        "sha256": "bb99b3125e64e05bcfc8a59f318228109380df61eba673f01f3d3a3e1ed28c76",
+        "chars": 11504
+      },
+      "linkCount": 30,
+      "status": "RENDERED"
+    },
+    "import": {
+      "url": "https://replit.com/import",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/login?source=import&goto=%2Fimport",
+      "title": "Log In - Replit",
+      "screenshot": {
+        "file": "import.png",
+        "sha256": "0fa5718b881fb29d872f89052cbec25715fb85c256edaccfc3d02bb264aa43b0",
+        "bytes": 734552
+      },
+      "visibleText": {
+        "file": "import.txt",
+        "sha256": "f11e2c17e6b60f8e19cd17fb276ac90f70c9b564aecf051ad99da2955dd02fb0",
+        "chars": 239
+      },
+      "linkCount": 2,
+      "status": "RENDERED"
+    },
+    "usage": {
+      "url": "https://replit.com/usage",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/login?source=usage&goto=%2Fusage",
+      "title": "Log In - Replit",
+      "screenshot": {
+        "file": "usage.png",
+        "sha256": "0fa5718b881fb29d872f89052cbec25715fb85c256edaccfc3d02bb264aa43b0",
+        "bytes": 734552
+      },
+      "visibleText": {
+        "file": "usage.txt",
+        "sha256": "f11e2c17e6b60f8e19cd17fb276ac90f70c9b564aecf051ad99da2955dd02fb0",
+        "chars": 239
+      },
+      "linkCount": 2,
+      "status": "RENDERED"
+    },
+    "auth-gate": {
+      "url": "https://replit.com/~",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/login?source=home&goto=%2F%7E",
+      "title": "Log In - Replit",
+      "screenshot": {
+        "file": "auth-gate.png",
+        "sha256": "0fa5718b881fb29d872f89052cbec25715fb85c256edaccfc3d02bb264aa43b0",
+        "bytes": 734552
+      },
+      "visibleText": {
+        "file": "auth-gate.txt",
+        "sha256": "f11e2c17e6b60f8e19cd17fb276ac90f70c9b564aecf051ad99da2955dd02fb0",
+        "chars": 239
+      },
+      "linkCount": 2,
+      "status": "RENDERED"
+    },
+    "docs-home": {
+      "url": "https://docs.replit.com/",
+      "httpStatus": 200,
+      "finalUrl": "https://docs.replit.com/build/welcome",
+      "title": "Replit Docs",
+      "screenshot": {
+        "file": "docs-home.png",
+        "sha256": "bc6ff814a7f387b055b5e97939cdf16aab339a563dd6f9140c5ef29e3dcf34a5",
+        "bytes": 1277135
+      },
+      "visibleText": {
+        "file": "docs-home.txt",
+        "sha256": "6832e3ef8b1c7ee77c8ade37dd10109bc454f2fa68972e624ec8426952ef2d60",
+        "chars": 4013
+      },
+      "linkCount": 48,
+      "status": "RENDERED"
+    },
+    "status-page": {
+      "url": "https://status.replit.com/",
+      "httpStatus": 200,
+      "finalUrl": "https://status.replit.com/",
+      "title": "Replit Status",
+      "screenshot": {
+        "file": "status-page.png",
+        "sha256": "5bb08c718438ced9075a30636b1f9bc6e0522957d06a459b603650a615a5ed17",
+        "bytes": 134290
+      },
+      "visibleText": {
+        "file": "status-page.txt",
+        "sha256": "ee0c13d009847582ffadc1fb2d9daa6b40683c02f000cce1f0b143add0f06398",
+        "chars": 812
+      },
+      "linkCount": 4,
+      "status": "RENDERED"
+    },
+    "gallery-detail": {
+      "url": "https://replit.com/gallery/life/education/solar-system-visualizer",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/gallery/life/education/solar-system-visualizer",
+      "title": "Solar System Visualization - Replit Gallery",
+      "screenshot": {
+        "file": "gallery-detail.png",
+        "sha256": "0497c919bba187b8019544fc0d3f9e746a6030d94657b779a1dd63be8b5147a8",
+        "bytes": 762426
+      },
+      "visibleText": {
+        "file": "gallery-detail.txt",
+        "sha256": "1241160495fecee6953c507694bec846e505a457e3eb0d500b4b49ecfa9b92b2",
+        "chars": 2004
+      },
+      "linkCount": 61,
+      "status": "RENDERED"
+    },
+    "profile-public": {
+      "url": "https://replit.com/@mattpalmer",
+      "httpStatus": 200,
+      "finalUrl": "https://replit.com/login?source=root-profile&goto=%2F%40mattpalmer",
+      "title": "Log In - Replit",
+      "screenshot": {
+        "file": "profile-public.png",
+        "sha256": "0fa5718b881fb29d872f89052cbec25715fb85c256edaccfc3d02bb264aa43b0",
+        "bytes": 734552
+      },
+      "visibleText": {
+        "file": "profile-public.txt",
+        "sha256": "f11e2c17e6b60f8e19cd17fb276ac90f70c9b564aecf051ad99da2955dd02fb0",
+        "chars": 239
+      },
+      "linkCount": 2,
+      "status": "RENDERED"
+    },
+    "signup-retry": {
+      "url": "https://replit.com/signup",
+      "httpStatus": 403,
+      "finalUrl": "https://replit.com/signup?__cf_chl_rt_tk=F4H9kQVlpMROI1l2PVLpiDfga.Q_sXmxr1PXJZtSWNs-1784526602-1.0.1.1-mkzZfk89QmhHEapohFg5JgWcuYGTN7sqLd6WZjPbp34",
+      "title": "Just a moment...",
+      "screenshot": {
+        "file": "signup-retry.png",
+        "sha256": "a100279612a8a69152a595db6ac732e66873f82ae3a85de73a824d0b37e78fd2",
+        "bytes": 36704
+      },
+      "visibleText": {
+        "file": "signup-retry.txt",
+        "sha256": "672ff7cbc8a240aa8d27b2671a62ef1dd3efd0ab745ef1b2fd348cb2cd6dc69b",
+        "chars": 258
+      },
+      "linkCount": 2,
+      "status": "BLOCKED_BOT_CHECK"
+    }
+  }
+}

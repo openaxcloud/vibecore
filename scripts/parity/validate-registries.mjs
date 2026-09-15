@@ -290,6 +290,7 @@ function checkHeader(file, doc) {
     'EVIDENCE_ARTIFACT_CONTRACT.md',
     'REGRESSION_RUN_CONTRACT.md',
     'DEPLOYMENT_TYPES_CONTRACT.md',
+    'IDENTITY_COLLABORATION_CONTRACT.md',
   ];
 
   for (const relative of mdFiles) {
@@ -452,15 +453,18 @@ function checkHeader(file, doc) {
    * P1 de l'audit de couverture (2026-07-19) : même règle de complétude que
    * les P0 — l'ensemble EXACT des IDs attendus doit être présent.
    */
-  const presentP1Ids = new Set((p0.p1s ?? []).map((i) => i.p1Id));
+  const p1docForSet = loadYaml(join(parityRoot, 'P1_REGISTRY.yaml'));
+  const presentP1Ids = new Set((p1docForSet.p1s ?? []).map((i) => i.p1Id));
 
   for (const id of EXPECTED_P1_IDS) {
     if (!presentP1Ids.has(id)) {
-      fail('P0_REGISTRY.yaml', `expected P1 "${id}" is MISSING from p1s — the registry cannot silently shrink`);
+      fail('P0_REGISTRY.yaml', `expected P1 "${id}" is MISSING from P1_REGISTRY — the registry cannot silently shrink`);
     }
   }
 
-  for (const item of p0.p1s ?? []) {
+  const p1doc = loadYaml(join(parityRoot, 'P1_REGISTRY.yaml'));
+
+  for (const item of p1doc.p1s ?? []) {
     requireFields(
       'P0_REGISTRY.yaml',
       item,
@@ -513,7 +517,7 @@ function checkHeader(file, doc) {
   }
 
   checked.push(
-    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length}, p1s: ${(p0.p1s ?? []).length})`,
+    `P0/DECISION/UNKNOWN registries (${(p0.p0s ?? []).length}/${(decisions.decisions ?? []).length}/${(unknowns.unknowns ?? []).length}, P1: ${(p1docForSet.p1s ?? []).length})`,
   );
 
   /*
@@ -743,7 +747,14 @@ function checkHeader(file, doc) {
 
 /* ---- 13. Nouveaux registres (audit de réanalyse) ----------------------- */
 {
-  for (const f of ['LEGACY_FINDING_REGISTRY.yaml', 'WORK_ITEM_REGISTRY.yaml', 'TRACEABILITY_MATRIX.yaml', 'OWNER_ROLES.yaml']) {
+  for (const f of ['LEGACY_FINDING_REGISTRY.yaml', 'WORK_ITEM_REGISTRY.yaml', 'TRACEABILITY_MATRIX.yaml', 'OWNER_ROLES.yaml',
+    // Registres séparés (P0-LS-01) — présence + schemaVersion, cassants.
+    'ARTIFACT_KIND_REGISTRY.yaml', 'COMPONENT_KIND_REGISTRY.yaml', 'CREATION_INTENT_REGISTRY.yaml',
+    'GENERATED_ASSET_KIND_REGISTRY.yaml', 'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
+    'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml', 'OFFERING_ENTITLEMENT_REGISTRY.yaml',
+    'EXTERNAL_ECOSYSTEM_REGISTRY.yaml', 'CI_ATTESTATION.yaml',
+    'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml',
+    'LEGACY_SOURCE_COVERAGE.yaml', 'PRICE_OBSERVATION_REGISTRY.yaml', 'IMPLEMENTATION_STATUS.yaml']) {
     const p = join(parityRoot, f);
 
     if (!existsSync(p)) {
@@ -769,7 +780,110 @@ function checkHeader(file, doc) {
     fail('WORK_ITEM_REGISTRY.yaml', `canonicalWorkItemCount (${work.canonicalWorkItemCount}) ≠ items réels (${(work.workItems ?? []).length})`);
   }
 
+  {
+    const ak = loadYaml(join(parityRoot, 'ARTIFACT_KIND_REGISTRY.yaml'));
+    const kinds = (ak.kinds ?? []).map((k) => k.kind).sort().join(',');
+    const expected = ['ANIMATION_VIDEO', 'DATA_VISUALIZATION', 'DESIGN', 'EXPERIENCE_3D', 'MOBILE_APP', 'SLIDE_DECK', 'WEB_APP'].join(',');
+
+    if (kinds !== expected) {
+      fail('ARTIFACT_KIND_REGISTRY.yaml', `kinds [${kinds}] ≠ taxonomie exacte P0-LS-02 [${expected}] — SERVICE/JOB/STATIC_SITE/DOCUMENT/SPREADSHEET interdits ici`);
+    }
+
+    const ip = loadYaml(join(parityRoot, 'IMPORT_PROVIDER_REGISTRY.yaml'));
+
+    if ((ip.providers ?? []).length !== 12) {
+      fail('IMPORT_PROVIDER_REGISTRY.yaml', `${(ip.providers ?? []).length} providers ≠ 12 (RPL-24)`);
+    }
+
+    if ((ip.providers ?? []).some((x) => x.provider === 'GITLAB')) {
+      fail('IMPORT_PROVIDER_REGISTRY.yaml', 'GITLAB ne doit pas être une tuile (P0-LS-05) — capacité git plus large = UNK-LS-GITLAB-GIT');
+    }
+  }
+
   checked.push(`LEGACY/WORK_ITEM/TRACEABILITY/OWNER_ROLES présents (${(legacy.findings ?? []).length} constats → ${(work.workItems ?? []).length} work items canoniques)`);
+}
+
+/* ---- 14. PARITY_STATUS est GÉNÉRÉE + attestation CI réelle (réconciliation A2) ---- */
+{
+  const genPath = join(here, 'generate-parity-status.mjs');
+
+  if (!existsSync(genPath)) {
+    fail('PARITY_STATUS', 'generator script missing — la vue ne peut pas être « générée » sans générateur');
+  } else {
+    const { computeParityStatus } = await import(genPath);
+    const computed = computeParityStatus();
+    const outPath = join(parityRoot, 'PARITY_STATUS.md');
+    const current = existsSync(outPath) ? readFileSync(outPath, 'utf8') : '';
+
+    if (current !== computed) {
+      fail('PARITY_STATUS.md', 'DRIFT — vue éditée à la main ou non régénérée (éditer PARITY_STATUS_NOTES.md puis régénérer)');
+    } else {
+      checked.push('PARITY_STATUS.md is up to date (computed from registries + NOTES)');
+    }
+  }
+
+  const attPath = join(parityRoot, 'CI_ATTESTATION.yaml');
+
+  if (!existsSync(attPath)) {
+    fail('CI_ATTESTATION.yaml', 'missing — une attestation CI réelle (runId + date + commit) est requise (P0-A2-13)');
+  } else {
+    const att = loadYaml(attPath)?.attestation ?? {};
+
+    if (!/^\d{8,}$/.test(String(att.runId ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'runId manquant/invalide');
+    }
+
+    if (!/^[0-9a-f]{7,40}$/.test(String(att.runCommit ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'runCommit manquant/invalide');
+    }
+
+    if (Number.isNaN(Date.parse(att.runDate ?? ''))) {
+      fail('CI_ATTESTATION.yaml', 'runDate manquante/invalide');
+    }
+
+    if (att.conclusion !== 'success') {
+      fail('CI_ATTESTATION.yaml', `attestation non verte (conclusion=${att.conclusion})`);
+    }
+
+    checked.push(`CI_ATTESTATION (run ${att.runId} @ ${String(att.runCommit).slice(0, 8)}, ${att.runDate}, ${att.conclusion})`);
+  }
+}
+
+/* ---- 15. IMPLEMENTATION_STATUS — règles §23 (CODED=mergé, PROVEN=preuves) ---- */
+{
+  const impl = loadYaml(join(parityRoot, 'IMPLEMENTATION_STATUS.yaml'));
+  const items = impl.items ?? [];
+  const STATUSES = ['NOT_STARTED', 'PARTIAL', 'CODED', 'INTEGRATED', 'PROVEN', 'BLOCKED', 'NOT_APPLICABLE'];
+
+  if (items.length !== 159) {
+    fail('IMPLEMENTATION_STATUS.yaml', `${items.length} items ≠ 159 (univers des candidats surfaces)`);
+  }
+
+  for (const it of items) {
+    if (!STATUSES.includes(it.status)) {
+      fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: status "${it.status}" invalide`);
+    }
+
+    if ((it.status === 'CODED' || it.status === 'PROVEN') && it.mergedToMain !== true) {
+      fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: ${it.status} exige mergedToMain=true (§23)`);
+    }
+
+    if (it.status === 'PROVEN') {
+      const evs = it.evidenceIds ?? [];
+
+      if (evs.length === 0) {
+        fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: PROVEN sans evidenceIds (§23)`);
+      }
+
+      for (const ev of evs) {
+        if (!existsSync(join(repoRoot, ev))) {
+          fail('IMPLEMENTATION_STATUS.yaml', `${it.itemId}: evidence absente du disque (${ev})`);
+        }
+      }
+    }
+  }
+
+  checked.push(`IMPLEMENTATION_STATUS (${items.length} items — règles §23 CODED/PROVEN vérifiées)`);
 }
 
 /* ---- report ------------------------------------------------------------ */

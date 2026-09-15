@@ -23,8 +23,22 @@ de merge 3-way — la protection reste nécessaire, pas optionnelle.)
 - Application : 9/9 `BACKFILLED` — liste de candidats vide après, idempotence prouvée (`backfill-post-verification.txt`)
 - Le backfill TIENT : re-mesuré 2026-07-20 → `{"ready":18,"withDigest":14}`
 
-## Preuve live exigée (après un VRAI helm upgrade) — à compléter
+## Preuve live — FAITE le 2026-07-20, APRÈS le vrai helm upgrade (rev 870, CD run 29716607629)
 
-Rejouer `run.sh` APRÈS l'upgrade CD déclenché par le commit D2 : v1 → v2 →
-suppression révision v1 → rollback sert v1 depuis le digest retenu + 2
-négatifs 409. Artefacts dans ce dossier.
+Scénario exact exigé, rejoué post-upgrade (artefacts bruts dans ce dossier ;
+tokens de compte jetable caviardés — repo public) :
+
+| étape | fait |
+|---|---|
+| v1 | `cmrsrp6d0…` READY, digest `sha256:ea2ffd8a…`, sert « ROLLBACK-PROOF v1 » |
+| v2 | `cmrsrq0u6…` READY, digest `sha256:a093a990…` (différent), sert « ROLLBACK-PROOF v2 » |
+| delete révision v1 | `kubectl delete deploy app-cmrsrp6d0…` → URL v1 = HTTP **410** |
+| rollback(v1) | NOUVEAU deployment `cmrsrr2ey…` READY, `rolledBackFromDigest == digest_v1` **YES**, body servi = **« ROLLBACK-PROOF v1 »** |
+| négatif 1 | digest strippé en DB → **409 `ROLLBACK_NO_RETAINED_DIGEST`** (`13-negative-no-digest.json`) |
+| négatif 2 | secretPolicy=PINNED sans snapshot → **409 `ROLLBACK_SECRET_POLICY_UNSATISFIABLE`** (`14-negative-secret-pinned.json`) |
+| bonus | `rollbackUnavailableReason=NO_RETAINED_DIGEST` visible EN LIVE dans la liste, sur la bonne ligne uniquement (`15-live-annotation.txt`) |
+
+Vérif post-upgrade du flag : configmap `1` + les 2 pods api Running `env=1`
+(la 1ʳᵉ exécution de l'étape CD a false-alarmé sur une erreur transport exec
+avalée — corrigé par retries, commit `59dfdec9`). Le flag a aussi survécu aux
+upgrades 871 et 872 (schema + default + values).

@@ -73,6 +73,69 @@ function makeManager(k8s: WorkspaceK8sClient) {
   return new WorkspaceManager(store, k8s, events, 'test-secret');
 }
 
+class PvcAwareK8sClient extends NodesOnlyK8sClient {
+  constructor(
+    nodes: K8sObject[],
+    readonly objects: Record<string, K8sObject | undefined> = {},
+  ) {
+    super(nodes);
+  }
+
+  override async get(kind: string, _namespace: string, name: string): Promise<K8sObject | undefined> {
+    return this.objects[`${kind}:${name}`];
+  }
+}
+
+describe('workspaceDataZone', () => {
+  it('reads the zone via the PVC selected-node annotation (no PV RBAC needed)', async () => {
+    const k8s = new PvcAwareK8sClient([], {
+      'pvc:pvc-ws1': {
+        apiVersion: 'v1',
+        kind: 'PersistentVolumeClaim',
+        metadata: { name: 'pvc-ws1', annotations: { 'volume.kubernetes.io/selected-node': 'node-b-1' } },
+      } as unknown as K8sObject,
+      'node:node-b-1': node('europe-west9-b'),
+    });
+
+    expect(await makeManager(k8s).workspaceDataZone('workspaces', 'pvc-ws1')).toBe('europe-west9-b');
+  });
+
+  it('falls back to the bound PV nodeAffinity when the annotation is absent', async () => {
+    const k8s = new PvcAwareK8sClient([], {
+      'pvc:pvc-ws1': {
+        apiVersion: 'v1',
+        kind: 'PersistentVolumeClaim',
+        metadata: { name: 'pvc-ws1' },
+        spec: { volumeName: 'pv-1' },
+      } as unknown as K8sObject,
+      'pv:pv-1': {
+        apiVersion: 'v1',
+        kind: 'PersistentVolume',
+        metadata: { name: 'pv-1' },
+        spec: {
+          nodeAffinity: {
+            required: {
+              nodeSelectorTerms: [
+                {
+                  matchExpressions: [
+                    { key: 'topology.kubernetes.io/zone', operator: 'In', values: ['europe-west9-b'] },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      } as unknown as K8sObject,
+    });
+
+    expect(await makeManager(k8s).workspaceDataZone('workspaces', 'pvc-ws1')).toBe('europe-west9-b');
+  });
+
+  it('returns undefined for a fresh workspace (no PVC yet)', async () => {
+    expect(await makeManager(new PvcAwareK8sClient([])).workspaceDataZone('workspaces', 'pvc-new')).toBeUndefined();
+  });
+});
+
 describe('resolveNixStorePlacement (D3 multi-zone)', () => {
   const saved = {
     zones: process.env.NIX_STORE_PVC_ZONES,
@@ -147,6 +210,34 @@ describe('resolveNixStorePlacement (D3 multi-zone)', () => {
         'nix-store-spike-pvc',
       ),
     ).toEqual({ nixStorePvcName: 'nix-store-spike-pvc' });
+  });
+
+  it('PINS to the existing data-disk zone even when capacity prefers another zone (post-restore deadlock fix)', async () => {
+    process.env.NIX_STORE_PVC_ZONES = ZONE_MAP;
+    process.env.NIX_STORE_GENERATION_HASH = HASH;
+
+    /*
+     * Both zones have capacity — zone-a would win the tie — but the workspace's
+     * RWO data disk lives in zone-b, so the placement MUST follow the disk.
+     */
+    const placement = await makeManager(
+      new NodesOnlyK8sClient([node('europe-west9-a'), node('europe-west9-b')]),
+    ).resolveNixStorePlacement('nix-store-v2-pvc', 'europe-west9-b');
+
+    expect(placement).toEqual({
+      nixStorePvcName: 'nix-store-v2-b-pvc',
+      nixStoreZone: 'europe-west9-b',
+      nixStoreGenerationHash: HASH,
+    });
+
+    // A pinned zone with no declared clone falls through to the capacity path.
+    const noClone = await makeManager(new NodesOnlyK8sClient([node('europe-west9-a')])).resolveNixStorePlacement(
+      'nix-store-v2-pvc',
+      'europe-west9-c',
+    );
+    expect(noClone.nixStoreZone).toBe('europe-west9-a');
+
+    delete process.env.NIX_STORE_GENERATION_HASH;
   });
 
   it('falls back to the first configured zone when node listing fails (no refusal)', async () => {

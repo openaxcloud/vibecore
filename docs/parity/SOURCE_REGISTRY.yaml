@@ -151,3 +151,10 @@ sources:
     accessedAt: "2026-07-20T04:20:00Z"
     contentHash: "sha256:daf309ee0b54568f40293dc7f60abd4e350160bd0611db61f68f545c25116a1e"
     snapshot: docs/parity/baseline/sources/2026-07-20-replit-clerk-auth-migration.md
+  - sourceId: SRC-REPLIT-LIVESCAN-2026-07-20
+    url: https://replit.com/ (scan multi-pages rendu JS, anonyme, robots.txt respecté)
+    title: "Replit live scan 2026-07-20 (Playwright/Chromium headless, 19 pages rendues, captures PNG+texte+liens hashées dans livescan-2026-07-20/manifest.json)"
+    publishedAt: "2026-07-20"
+    accessedAt: "2026-07-20T05:43:00Z"
+    contentHash: "sha256:396b07e2520d1171807a7873938d8671e4776076e0902208e31eaa1e4bba1f0f"
+    snapshot: docs/parity/REPLIT_LIVE_SCAN_2026-07-20.md

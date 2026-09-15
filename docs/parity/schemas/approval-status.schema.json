@@ -54,7 +54,7 @@
         "properties": {
           "name": {
             "enum": [
-              "documentCanonicalized",
+              "documentReconciled",
               "sourceBaselineReady",
               "registryUniverseReady",
               "contractsPresent",
@@ -154,7 +154,7 @@
         },
         {
           "enum": [
-            "documentCanonicalized",
+            "documentReconciled",
             "sourceBaselineReady",
             "registryUniverseReady",
             "contractsPresent",

@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ecode/parity/project-manifest",
+  "x-schemaVersion": 1,
+  "x-repoCommit": "PENDING_COMMIT",
+  "title": "ProjectManifest",
+  "description": "Source versionnée des composants, artifacts, bindings et scopes d'un Project (plan §5, P0-EX-08). Consommé par ProjectRevision (manifestDigest).",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "projectId",
+    "artifacts"
+  ],
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "projectId": {
+      "type": "string"
+    },
+    "artifacts": {
+      "type": "array",
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": [
+          "artifactId",
+          "kind",
+          "sourceRoot"
+        ],
+        "properties": {
+          "artifactId": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "WEB_APP",
+              "MOBILE_APP",
+              "DATA_VISUALIZATION",
+              "SLIDE_DECK",
+              "ANIMATION_VIDEO",
+              "DESIGN",
+              "EXPERIENCE_3D"
+            ]
+          },
+          "sourceRoot": {
+            "type": "string"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "componentId",
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "WEB_FRONTEND",
+                    "API",
+                    "SERVICE",
+                    "WORKER",
+                    "JOB",
+                    "SHARED_PACKAGE",
+                    "STATIC_SITE_COMPONENT"
+                  ]
+                }
+              }
+            }
+          },
+          "previewConfig": {
+            "type": "object"
+          },
+          "publishConfig": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "sharedBackendBinding": {
+      "type": "object"
+    },
+    "sharedDataBindings": {
+      "type": "array"
+    },
+    "sharedStorageBindings": {
+      "type": "array"
+    },
+    "scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "entitlementsRef": {
+      "type": "string"
+    }
+  },
+  "allOf": [
+    {
+      "description": "au plus 1 MOBILE_APP par projet (entitlement configurable, jamais codé en dur ailleurs que via entitlementsRef)"
+    }
+  ]
+}

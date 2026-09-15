@@ -269,3 +269,217 @@ Règle: append-only; chaque entrée = date UTC, acteur, événement, artefacts.
   `UNK-NIX-MULTIZONE-IMPL`) restent OUVERTS ici : leur clôture exige la
   vérification des preuves live par leurs sessions — un merge n'est pas une
   preuve.
+
+## 2026-07-20 (réconciliation A2 — les 2 manquants réglés + arbitrage des 5 nuances)
+
+- (manquant #1 — option a) `PARITY_STATUS.md` est désormais RÉELLEMENT
+  générée : `scripts/parity/generate-parity-status.mjs` la produit depuis
+  `APPROVAL_STATUS.json` + `CI_ATTESTATION.yaml`, la partie chantiers venant
+  de `PARITY_STATUS_NOTES.md` (maintenue à la main, DÉCLARÉE comme telle,
+  embarquée verbatim). Drift-check par le validateur : éditer la vue à la
+  main casse le build. §1 du plan mis à jour en conséquence.
+- (manquant #2) Attestation CI RÉELLE enregistrée (`CI_ATTESTATION.yaml`,
+  embarquée dans `DOCUMENT_MANIFEST.yaml` à la place du renvoi) : workflow
+  « Parity registries », run 29718207435, VERT, event pull_request, commit
+  fed58e96, 2026-07-20T05:02:13Z. Le validateur exige présence + format +
+  conclusion=success — les 2 points sont câblés dans le contrôle de
+  complétude.
+- (nuances assumées — arbitrage demandé par l'owner) :
+  1. `statusGeneratorCommit` : ALIGNÉ à la lettre — champ ajouté au §0 (en
+     plus de `statusCommit`, conservé).
+  2. Univers des surfaces dans SURFACE_REGISTRY plutôt que PUBLIC_BASELINE :
+     VARIANTE MAINTENUE — le baseline est le registre des CLAIMS Replit
+     ancrées (URL+hash chacune) ; y verser 159 entrées internes non ancrées
+     briserait la sémantique d'ancrage et gonflerait unanchoredClaims à tort.
+     L'exigence de fond (ensemble exact, égalité vérifiée CI) est satisfaite.
+  3. FAIL au lieu de UNVERIFIED sur les niveaux : VARIANTE MAINTENUE — plus
+     STRICTE que la lettre : un booléen passed=false avec raisons nommées ne
+     laisse aucun état intermédiaire réclamable ; l'échelle contiguë reste
+     binaire et fail-closed.
+  4. TRACEABILITY_MATRIX « amorcée » : VARIANTE MAINTENUE — une matrice
+     complète affirmée d'un coup serait une fausse complétude ; l'état seed
+     est déclaré, la complétion est tracée (P0-A2-02).
+  5. Provenance = plan matérialisant (pas les 29 documents d'origine) :
+     VARIANTE MAINTENUE — la donnée fichier/ligne d'origine n'a jamais été
+     capturée ; l'inventer serait une falsification. Limite déclarée,
+     P0-A2-12 OPEN, échéance 2026-08-15 (complétion ou ACCEPTED_RISK).
+
+## 2026-07-20 (live scan Replit intégré — feu vert Avi)
+
+- (source) REPLIT_LIVE_SCAN_2026-07-20.md (sha256 396b07e2…) + captures
+  hashées livescan-2026-07-20/ ancrés (SRC-REPLIT-LIVESCAN-2026-07-20,
+  claims RPL-27/28/29/30).
+- (univers) +15 surfaces P160–P174 (nouveautés N1–N15 du scan), ensemble
+  EXACT étendu 159→174 ; chacune UNSUPPORTED déclaré (observée chez Replit,
+  pas construite chez nous) + 15 chantiers WI-LS-01…15 NON FAIT
+  (canonicalWorkItemCount 99→114, garde CI EXPECTED_LIVESCAN_WI_IDS).
+- (retraits) 6 retraits PROUVÉS (RPL-29) → HORS PÉRIMÈTRE : P141 Import
+  GitLab reclassé NOT_APPLICABLE « Replit ne le fait plus ». Vérifié : GitLab
+  n'était en « à faire » NULLE PART dans le backlog (les 2 mentions GLC
+  concernent les identifiants OAuth de connexion git — autre sujet, conservées)
+  et le plan §3.3 le disait déjà hors table d'import. Max mode / starter
+  templates / Teams / Bounties / profils anonymes : absents du backlog en
+  « à faire » — rien d'autre à reclasser. ACT-04/ACT-36 (starters→démos)
+  restent alignés avec le retrait des starter templates.
+- (faits) §3.12 : prix mesurés (Starter gratuit / Core $20 / Pro $100 /
+  Enterprise ; Teams n'existe plus) + limites du gratuit (1 app, 30 jours,
+  Lite seul). Note : la doc d'import téléchargée par le scan est OCTET POUR
+  OCTET identique au snapshot RPL-24 du 17/07 (56b14555…) — les 12 entrées
+  d'import tiennent, aucune correction.
+- (inconnues) 28 points « sans trace » → UNK-LS-P004…P158 (owner, date,
+  méthode = vrai compte Replit connecté D5) — ni présents ni absents.
+
+## 2026-07-20 (plan corrigé expert appliqué + overlay code réel — exigences Avi A/B/C)
+
+- (PROVENANCE HONNÊTE) Le fichier « plan corrigé de l'expert » n'a PAS été
+  retrouvé sur la machine : les deux copies PLAN_PARITE_REPLIT_A_JOUR.md
+  (uploads + outputs orchestrateur) sont octet pour octet NOTRE livraison
+  (sha b264f24e…). Les corrections appliquées ici sont la liste A1–A11
+  relayée par l'owner (vérifiée par lui), point par point — pas une copie
+  d'un document introuvable.
+- (CORRECTION DE NOTRE PASSE PRÉCÉDENTE) La passe livescan avait annoncé un
+  §3.12 et un bloc §2.3 qui n'avaient JAMAIS été écrits (script avorté sur
+  une ancre avant écriture — les registres, eux, étaient bien à jour).
+  Réparé et réécrit dans la présente version (2026-07-20.4).
+- (P0-LS-01) Les « 15 nouveautés » ne s'additionnent plus aux surfaces :
+  P160–P174 et WI-LS-01…15 DÉMONTÉS → 15 observations
+  OBS-DELTA-20260720-01…15 (PENDING, classifyInto) + 10 REGISTRES SÉPARÉS
+  créés (ARTIFACT_KIND ×7 exacts, COMPONENT_KIND, CREATION_INTENT ×9,
+  GENERATED_ASSET_KIND, CAPABILITY, DEPLOYMENT_TYPE ×4, IMPORT_PROVIDER ×12,
+  CONNECTOR, OFFERING_ENTITLEMENT, EXTERNAL_ECOSYSTEM) — présence + taxonomie
+  vérifiées par le validateur (SERVICE/JOB/STATIC_SITE interdits comme
+  ArtifactKind ; GITLAB interdit comme tuile).
+- (P0-LS-05) GitLab : « pas une tuile du hub courant » (confirmé — la table
+  du jour est octet pour octet notre snapshot RPL-24) ; capacité d'import
+  Git plus large = UNK-LS-GITLAB-GIT ; l'endpoint /import/gitlab EXISTE dans
+  notre code (non exécuté) → P141 builtState=PARTIEL. JAMAIS « retiré ».
+- (P0-LS-06…09) 4 faux SANS-TRACE reclassés 📘 DOC-JOUR après vérification
+  DIRECTE du corpus hashé du 20/07 : Devtools (l.6116), Library (l.7580),
+  Android Emulator (l.2833), Grouped Publish (l.7605/7634 — publication
+  groupée confirmée, indépendante refusée). UNK-LS correspondants retirés
+  (28→24) ; +UNK-LS-GITLAB-GIT = 25 ouverts pour la session authentifiée.
+- (P0-LS-10) Prix = OBSERVATIONS contextualisées (OFFERING_ENTITLEMENT) :
+  Core $20 (scan anonyme, hash) vs $25 (vérification expert) — divergence
+  CONSERVÉE, jamais une constante ; RATE_CARD.json indépendant.
+- (P0-LS-13/14/15) MCP Server = DOC_CURRENT_BETA, PublicApiStatus=UNKNOWN ;
+  /@user : inférence limitée à la route testée ; Teams : offre retirée,
+  capacités d'équipe conservées (CAP-TEAM-COLLAB). Claims RPL-27/29/30
+  amendés en ce sens.
+- (EXIGENCE AVI B — overlay code) 159/159 surfaces croisées avec le code
+  réel + les 5 inventaires bolt par 6 agents d'exploration :
+  **79 DEJA_CONSTRUIT · 43 PARTIEL · 37 NON_FAIT**, chaque entrée porte
+  builtState + codeRefs + note dans SURFACE_REGISTRY. Règle appliquée :
+  composant bolt présent mais non câblé/factice = PARTIEL (BD-01 sync no-op,
+  BD-03 workflows morts, BD-05 pas de cloche, BD-11 devtools limités, BD-12
+  métriques no-data, BD-20 PITR jamais prouvé… tous respectés). Le plan ne
+  marque plus « à faire » ce qui est déjà construit — ni l'inverse.
+- (EXIGENCE AVI C) Les 24 UNK-LS-P* + UNK-LS-GITLAB-GIT restent UNKNOWN ;
+  verdicts attendus de la session « Scan Replit live » (Chrome connecté).
+- (statut) Niveau 1 renommé documentReconciled ; 18 P0-LS ajoutés (15 PROVEN
+  dont l'overlay, 3 OPEN : classification OBS-DELTA, scan authentifié,
+  + P0-LS-16/17/18 selon état) ; EXPECTED_P0_IDS 35→53.
+
+## 2026-07-20 (ADOPTION VERBATIM du plan corrigé de l'expert — 22 sections)
+
+- (adoption) `PLAN_PARITE_REPLIT_FINAL_LIVRAISON.md` (sha256 8ab9a3ef…,
+  1142 lignes) adopté comme plan canonique : les 22 sections reprises
+  VERBATIM — aucun mot modifié à l'intérieur des sections 0–22.
+- (écarts assumés, AUCUN silencieux) :
+  1. Bandeau de tête : « CANDIDAT DE REMPLACEMENT » → bandeau canonique
+     (le candidat EST adopté ; garder « candidat » aurait été faux).
+  2. ANNEXE E-CODE : l'expert la laissait « EN COURS » — complétée (A.1
+     overlay 79/43/37 ; A.2 recalcul réel du §17.4 ; A.3 registres). Rien
+     inséré dans les sections 0–22 : tout le contenu E-Code vit en annexe.
+  3. §17.4 (statut attendu, yaml statique) : conservé verbatim ; le recalcul
+     RÉEL vit dans APPROVAL_STATUS.json (annexe A.2) — en cas d'écart, le
+     JSON généré fait foi. Vérifié identique ce jour : NOT_APPROVED /
+     documentReconciled / sourceBaseline & registryUniverse & contracts &
+     implementation & userJourney & beta & public & parity = FAIL ;
+     contractsPresent & verticalBackend = PASS chez nous (l'expert les
+     marquait NOT_VERIFIED faute du dépôt — nous l'avons).
+  4. Contenus E-Code préexistants conservés hors plan (claims RPL-17…30,
+     GCP-11…15, décisions, registres) — l'expert ne les contredit pas.
+- (P0-LS RENUMÉROTÉS selon l'expert §19 — ancienne numérotation E-Code du
+  matin SUPERSÉDÉE, mapping sans perte) : ex-01→06/07 · ex-02/03/04→05 ·
+  ex-05→04 · ex-06..09→08 · ex-10→13 · ex-11→16 · ex-12→17 · ex-13→09 ·
+  ex-14→10 · ex-15→12 · ex-16→06 · ex-17→P0-B-01 · ex-18→P0-B-02.
+  NOUVEAUX de l'expert appliqués : LS-01 visiteur anonyme (vs « nouveau
+  compte ») ; LS-02 chiffres scan (21/20/19/16) ; LS-03 paquet d'evidence
+  VALIDÉ PRÉSENT (69 fichiers + manifest 21 entrées) ; LS-08 étendu à
+  Spotlight (l.5911) et Resources (l.5959), vérifiés corpus → UNK-LS-P004/
+  P011 retirés (44 inconnues) ; LS-11 /bounties = EXTERNAL_REDIRECT vers
+  Contra ; LS-14 no-model-selector borné au corpus ; LS-15 lien Parallel
+  Agents=microVM RETIRÉ (isolationRuntimePerTask: UNKNOWN) ; LS-18 recalcul
+  au commit mergé (OPEN par nature). GitLab (LS-04) : « capacité Git
+  confirmée par la doc et le changelog, pas une tuile » (plus fort que notre
+  « UNKNOWN » d'hier) — registre corrigé. Prix (LS-13) : observations expert
+  Core $25/$20-annuel et Pro $100/$95-annuel AJOUTÉES à côté du scan
+  ($20/$18, $100/$90) — divergences conservées.
+- (structure) 3 registres exigés §2.2 créés par MIGRATION sans modification
+  d'entrées : P1_REGISTRY (40 P1, ex-p1s), SERVICE_REGISTRY (56 services,
+  ex-serviceUniverse), ROUTE_OBSERVATION_REGISTRY (20 routes du scan,
+  hashes, authenticated:false). GENERATED_ASSET ×8 et COMPONENT ×7 alignés
+  sur §5.2. EXPECTED_P0_IDS 53→55 (P0-B-01 overlay PROVEN, P0-B-02 scan
+  authentifié OPEN).
+- (gates durcis conformes §6.3) registryUniverseReady ÉCHOUE désormais tant
+  que les OBS-DELTA ne sont pas CLASSIFIÉS (pas seulement présents) ;
+  sourceBaselineReady ÉCHOUE sur la LISTE EXPLICITE des 21 claims hérités
+  non ancrés (le plan adopté ne les cite plus entre crochets — le déficit
+  d'ancrage ne disparaît pas avec la reformulation).
+
+## 2026-07-20 (INSTALLATION du plan EXÉCUTABLE v2026-07-20.4 — schemaVersion 3)
+
+- (installation, Phase 0 §20) INCOMING_PLAN_EXECUTABLE_20260720.md (sha256
+  467608f5…, 1436 lignes, 26 sections 0→25 vérifiées par machine) INSTALLÉ
+  au chemin canonique, remplacement atomique sur la branche dédiée. Il
+  SUPERSÈDE la version « corrigée » du même jour (archivée :
+  history/2026-07-20-PLAN_FINAL_LIVRAISON-superseded.md + diff expert
+  history/2026-07-20-INCOMING_DIFF.patch). Écarts vs version précédente
+  (aucun silencieux) : +§0 activation (canonique SEULEMENT après merge+CI),
+  +règles de vérité 10-12, +§20 ordre contraignant en 5 phases, +§23 overlay
+  généré (annexe manuelle SUPPRIMÉE), +§24 DoD, +§25 handoff, +10 P0-EX,
+  +LEGACY_SOURCE_COVERAGE et IMPLEMENTATION_STATUS au §2.2, +IDENTITY/
+  PROJECT_MANIFEST aux contrats §2.3, montants tarifaires RETIRÉS du plan.
+- (copies interdites, Phase 0.2) racine PLAN_PARITE_REPLIT_FINAL_LIVRAISON.md
+  SUPPRIMÉE de la racine (archivée en history/) ; INCOMING_* retirés du tree
+  local après installation ; aucune autre copie _v6/_FINAL à la racine.
+  PLAN_PARITE_REPLIT_LIVRAISON.md (copie de LECTURE gitignorée demandée par
+  l'owner) rafraîchie = miroir exact de la tête, non normative.
+- (P0-EX-02/§23) IMPLEMENTATION_STATUS.yaml GÉNÉRÉ (159 items SURFACE) :
+  11 PROVEN (evidenceIds sur disque) · 68 CODED (code sur origin/main
+  f69a4b31) · 43 PARTIAL · 37 NOT_STARTED · 0 INTEGRATED/BLOCKED. builtState
+  RETIRÉ de SURFACE_REGISTRY (état unique, jamais dupliqué). Validateur :
+  159 exigés, CODED⇒mergedToMain, PROVEN⇒evidence sur disque.
+- (registres §2.2/2.3) créés : PRICE_OBSERVATION_REGISTRY (9 observations,
+  divergences $20/$25 et $90/$95 conservées ; OFFERING nettoyé de tout
+  montant — P0-EX-06) ; LEGACY_SOURCE_COVERAGE (32 sources confrontées,
+  absorbedFindings=UNKNOWN par fichier — limite P0-A2-12 déclarée) ;
+  IDENTITY_COLLABORATION_CONTRACT.md (P0-EX-07) ; PROJECT_MANIFEST_SCHEMA.json
+  (P0-EX-08) ; DEPLOYMENT_TYPES_CONTRACT §4.1-4.4 par type (P0-EX-09).
+- (P0) +10 P0-EX (7 PROVEN par cette installation, 3 OPEN : EX-04 contrat
+  import à aligner, EX-10 activation au merge, + P0-LS-06/18 et P0-B-02
+  toujours OPEN). EXPECTED_P0_IDS 55→65.
+
+## 2026-07-20 (feux verts Avi — décisions inscrites + lot sans-Avi)
+
+- (GALLERY OPTION B — TEXTE EXACT RETROUVÉ) La décision complète vivait dans
+  le commit LOCAL d232a187 (17/07, jamais poussé — victime du split-brain
+  D1) : « garder notre noyau prouvé + greffer la substance de l'autre
+  session », avec rationale MESURÉ en 3 points (conversion des 6 démos non
+  faite, vue liste cassée, rien de prouvé live côté passation vs noyau
+  GalleryListing prouvé). Cité verbatim dans DEC-OWNER-GALLERY-OPTION-B →
+  DECIDED ; exécution phase 1 déjà commitée (c35b686e, greffe TemplateGallery
+  UI). UNK-GALLERY-OPTION-B-CONTENT RÉSOLU et retiré (44 inconnues).
+- (RÈGLE 30 JOURS — ADOPTÉE) DEC-ECODE-FREE-APP-EXPIRY-30D (ECODE_DECISION,
+  Avi 20/07) : 1 app gratuite publiée, expirée à 30 jours COMME REPLIT, avec
+  la mécanique §16.12 obligatoire (tombstone → fenêtre de récupération →
+  purge → preuve d'effacement, notification avant expiration, upgrade
+  restaure sans perte). Implémentation tracée UNK-FREE-EXPIRY-IMPL.
+- (P0-LS-06 PROVEN) Les 15 OBS-DELTA classifiées TRIAGED avec
+  linkedRegistryIds (capacités ×4, connecteurs ×4, écosystème ×4 dont
+  nouvelle entrée ECO-COMMUNITY-PROFILES, offres, intentions, imports).
+  La déduplication de l'univers (canonicalSurfaceCount) reste ouverte.
+- (P0-EX-04) IMPORT_REMIX_CONTRACT aligné sur la machine §9.2 (branchement
+  clean→READY_TO_COMMIT, quarantaine réservée aux findings bloquants,
+  3 tests négatifs exigés). NUANCE : le code suit encore l'ancienne machine
+  — un contrat n'est pas une implémentation, work item ouvert.

@@ -1,0 +1,2 @@
+{"error":"Rollback target cmrsrq0u6000m0nei1cou6kmc has no retained image digest — cannot re-deploy from the catalog (would point at a possibly-dead URL).","code":"ROLLBACK_NO_RETAINED_DIGEST"}
+HTTP 409

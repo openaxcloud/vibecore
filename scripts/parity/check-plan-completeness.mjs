@@ -71,7 +71,9 @@ export function checkPlanCompleteness() {
     knownIds.add(item.p0Id);
   }
 
-  for (const item of p0.p1s ?? []) {
+  const p1doc = YAML.parse(readFileSync(join(parityRoot, 'P1_REGISTRY.yaml'), 'utf8'));
+
+  for (const item of p1doc.p1s ?? []) {
     knownIds.add(item.p1Id);
   }
 

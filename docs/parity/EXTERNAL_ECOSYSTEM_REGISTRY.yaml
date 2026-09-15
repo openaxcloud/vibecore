@@ -1,0 +1,40 @@
+# EXTERNAL_ECOSYSTEM_REGISTRY — écosystème opéré autour du produit
+# (≠ surfaces produit). Source : scan 20/07 (sha256 396b07e2520d1171…).
+schemaVersion: 1
+repoCommit: 42a48091
+items:
+  - itemId: ECO-EXPERTS
+    title: "Expert Network (ex-route /bounties)"
+    replitStatus: LIVE_OBSERVED
+    legacyRoute: /bounties
+    currentLabel: "Expert Network"
+    provider: Contra
+    behavior: EXTERNAL_REDIRECT
+    legacyDataOrBackendState: UNKNOWN
+    proof: "bounties.png 6beff99f6657f38a… (P0-LS-11, §8.4 verbatim)"
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-04
+  - itemId: ECO-COMMUNITY-OPS
+    title: "Buildathons, Ambassador Program, livestreams, meetups, Discord/Discourse"
+    replitStatus: LIVE_OBSERVED
+    proof: "community.png a2e281d5d30c0193…"
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-12
+  - itemId: ECO-VIBE-CODING-101
+    title: "Vibe Coding 101 / parcours Learn"
+    replitStatus: LIVE_OBSERVED
+    proof: "footer toutes pages rendues"
+    ecodeBuiltState: NON_FAIT
+    sourceObs: OBS-DELTA-20260720-15
+  - itemId: ECO-CHATGPT-CLAUDE-SLACK
+    title: "Entrées ChatGPT / Claude / Slack / Open in Replit"
+    replitStatus: DOC_CURRENT
+    ecodeBuiltState: NON_FAIT
+  - itemId: ECO-COMMUNITY-PROFILES
+    title: "Community Profiles (Claim your profile, community-hub.replit.app)"
+    replitStatus: LIVE_OBSERVED
+    proof: "community.png a2e281d5d30c0193… (OBS-DELTA-20260720-03)"
+    ecodeBuiltState: NON_FAIT
+    note: "Surface candidate — la classification comme surface canonique attend la passe de déduplication de l'univers"
+    sourceObs: OBS-DELTA-20260720-03
+

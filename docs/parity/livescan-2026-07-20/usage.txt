@@ -1,0 +1,14 @@
+Log in to your account
+Email or username
+Password
+Log In
+Forgot password?
+Use SSO login
+Continue with Google
+Continue with GitHub
+Continue with X
+Continue with Apple
+Continue with Facebook
+New to Replit? Sign up
+Get help
+Creativity runs on

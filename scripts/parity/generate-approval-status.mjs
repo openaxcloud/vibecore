@@ -61,6 +61,15 @@ export const EXPECTED_P0_IDS = [
   'P0-A2-01', 'P0-A2-02', 'P0-A2-03', 'P0-A2-04', 'P0-A2-05', 'P0-A2-06',
   'P0-A2-07', 'P0-A2-08', 'P0-A2-09', 'P0-A2-10', 'P0-A2-11', 'P0-A2-12',
   'P0-A2-13', 'P0-A2-14', 'P0-A2-15', 'P0-A2-16',
+  // Corrections livescan (expert, relayées owner 20/07) — 18 P0-LS.
+  'P0-LS-01', 'P0-LS-02', 'P0-LS-03', 'P0-LS-04', 'P0-LS-05', 'P0-LS-06',
+  'P0-LS-07', 'P0-LS-08', 'P0-LS-09', 'P0-LS-10', 'P0-LS-11', 'P0-LS-12',
+  'P0-LS-13', 'P0-LS-14', 'P0-LS-15', 'P0-LS-16', 'P0-LS-17', 'P0-LS-18',
+  // Exigences propriétaire hors-scan (overlay code, scan authentifié).
+  'P0-B-01', 'P0-B-02',
+  // Plan exécutable v2026-07-20.4 — 10 P0-EX.
+  'P0-EX-01', 'P0-EX-02', 'P0-EX-03', 'P0-EX-04', 'P0-EX-05',
+  'P0-EX-06', 'P0-EX-07', 'P0-EX-08', 'P0-EX-09', 'P0-EX-10',
 ];
 
 /*
@@ -117,12 +126,26 @@ export const EXPECTED_PROD_READINESS_IDS = [
  * build. parityBaselineReady exige EN PLUS que chaque entrée soit ÉVALUÉE
  * (availability ≠ UNKNOWN, justifiée).
  */
+// 159 (inventaire IDE). Les deltas du live scan sont des OBSERVATIONS
+// (OBS-DELTA-20260720-*) à classifier vers des registres séparés (P0-LS-01),
+// PAS des surfaces additionnées.
 export const EXPECTED_SURFACE_UNIVERSE_IDS = Array.from({ length: 159 }, (_, i) => `P${String(i + 1).padStart(3, '0')}`);
+export const EXPECTED_OBS_DELTA_IDS = Array.from({ length: 15 }, (_, i) => `OBS-DELTA-20260720-${String(i + 1).padStart(2, '0')}`);
+/** Registres séparés (P0-LS-01) : présence + schemaVersion exigées. */
+export const SEPARATE_REGISTRY_FILES = [
+  'ARTIFACT_KIND_REGISTRY.yaml', 'COMPONENT_KIND_REGISTRY.yaml',
+  'CREATION_INTENT_REGISTRY.yaml', 'GENERATED_ASSET_KIND_REGISTRY.yaml',
+  'CAPABILITY_REGISTRY.yaml', 'DEPLOYMENT_TYPE_REGISTRY.yaml',
+  'IMPORT_PROVIDER_REGISTRY.yaml', 'CONNECTOR_REGISTRY.yaml',
+  'OFFERING_ENTITLEMENT_REGISTRY.yaml', 'EXTERNAL_ECOSYSTEM_REGISTRY.yaml',
+  'SERVICE_REGISTRY.yaml', 'P1_REGISTRY.yaml', 'ROUTE_OBSERVATION_REGISTRY.yaml',
+  'LEGACY_SOURCE_COVERAGE.yaml', 'PRICE_OBSERVATION_REGISTRY.yaml', 'IMPLEMENTATION_STATUS.yaml',
+];
 export const EXPECTED_SERVICE_UNIVERSE_IDS = Array.from({ length: 56 }, (_, i) => `S${String(i + 1).padStart(2, '0')}`);
 
 /** Niveaux nommés v2 (audit de réanalyse 2026-07-20) — ordre strict de l'échelle. */
 export const LEVEL_ORDER = [
-  'documentCanonicalized',
+  'documentReconciled',
   'sourceBaselineReady',
   'registryUniverseReady',
   'contractsPresent',
@@ -265,7 +288,7 @@ function yaml(name) {
 /** Freshness SLA for a public source (days since lastVerified). */
 const SOURCE_FRESHNESS_SLA_DAYS = 30;
 
-export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
+export function computeApprovalStatus(now = '2026-07-20T12:30:00Z') {
   const p0 = yaml('P0_REGISTRY.yaml');
   const decisions = yaml('DECISION_REGISTRY.yaml');
   const unknowns = yaml('UNKNOWN_REGISTRY.yaml');
@@ -496,7 +519,8 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
    * build). Les statuts, eux, restent honnêtes : NON_FAIT tant qu'aucune
    * preuve n'existe.
    */
-  const presentP1Ids = new Set((p0.p1s ?? []).map((i) => i.p1Id));
+  const p1reg = yaml('P1_REGISTRY.yaml');
+  const presentP1Ids = new Set((p1reg.p1s ?? []).map((i) => i.p1Id));
   const missingP1Ids = EXPECTED_P1_IDS.filter((id) => !presentP1Ids.has(id));
   const presentBoltDebtIds = new Set((boltDebt.items ?? []).map((i) => i.id));
   const missingBoltDebtIds = EXPECTED_BOLT_DEBT_IDS.filter((id) => !presentBoltDebtIds.has(id));
@@ -539,7 +563,7 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
 
   const planPath = join(parityRoot, 'PLAN_PARITE_REPLIT.md');
   const planText = existsSync(planPath) ? readFileSync(planPath, 'utf8') : '';
-  const planOk = /schemaVersion:\s*\d+/.test(planText) && /measuredCodeCommit:\s*[0-9a-f]{7,40}/.test(planText);
+  const planOk = /schemaVersion:\s*\d+/.test(planText) && /planVersion:\s*[0-9.\-]+/.test(planText);
 
   /*
    * unanchoredClaims (P0-A2-15 / P1-A2-06) : toute étiquette de claim citée
@@ -550,7 +574,20 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   const anchoredClaimIds = new Set((baseline.claims ?? []).map((c) => c.claimId));
   const citedClaimIds = [...new Set([...planText.matchAll(/\[((?:RPL|GCP|NIX)-[0-9A-Za-z…\-]+)\]/g)].map((m) => m[1]))]
     .filter((id) => !id.includes('…'));
-  const unanchoredClaims = citedClaimIds.filter((id) => !anchoredClaimIds.has(id)).sort();
+  /*
+   * Claims hérités utilisés par les contrats/registres (UNK-CLAIMS-ANCHORING):
+   * tant qu'ils ne sont pas ancrés URL+snapshot+hash dans le baseline, ils
+   * comptent comme UNVERIFIED — même si le plan adopté ne les cite plus entre
+   * crochets (le déficit d'ancrage ne disparaît pas avec la reformulation).
+   */
+  const LEGACY_CLAIM_IDS = [
+    'RPL-01', 'RPL-02', 'RPL-03', 'RPL-04', 'RPL-05', 'RPL-06', 'RPL-09',
+    'RPL-10', 'RPL-13', 'RPL-14', 'RPL-16', 'GCP-01', 'GCP-02', 'GCP-03',
+    'GCP-04', 'GCP-06', 'GCP-07', 'GCP-08', 'GCP-09', 'GCP-10', 'NIX-01',
+  ];
+  const unanchoredClaims = [...new Set([...citedClaimIds, ...LEGACY_CLAIM_IDS])]
+    .filter((id) => !anchoredClaimIds.has(id))
+    .sort();
 
   /* Backlog : source unique = LEGACY_FINDING_REGISTRY (le plan n'affiche qu'un résumé). */
   const backlogCounts = checkPlanCompleteness().counts;
@@ -561,7 +598,7 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   const universe = surfaces.surfaceUniverse ?? [];
   const presentUniverseIds = new Set(universe.map((s) => s.surfaceId));
   const missingUniverseIds = EXPECTED_SURFACE_UNIVERSE_IDS.filter((id) => !presentUniverseIds.has(id));
-  const serviceUniverse = surfaces.serviceUniverse ?? [];
+  const serviceUniverse = yaml('SERVICE_REGISTRY.yaml').serviceUniverse ?? [];
   const presentServiceIds2 = new Set(serviceUniverse.map((s) => s.serviceId));
   const missingServiceUniverseIds = EXPECTED_SERVICE_UNIVERSE_IDS.filter((id) => !presentServiceIds2.has(id));
   const unevaluatedSurfaces = universe.filter((s) => !['SUPPORTED', 'UNSUPPORTED', 'NOT_APPLICABLE'].includes(s.availability));
@@ -569,6 +606,14 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   /* Cross-check findings ↔ work items canoniques. */
   const legacy = yaml('LEGACY_FINDING_REGISTRY.yaml');
   const workItemIds = new Set((workItems.workItems ?? []).map((w) => w.workItemId));
+  const obsIds = new Set((observations.observations ?? []).map((o) => o.observationId));
+  const missingObsDelta = EXPECTED_OBS_DELTA_IDS.filter((id) => !obsIds.has(id));
+  // §6.3 (expert) : registryUniverseReady reste ROUGE tant que les deltas ne
+  // sont pas CLASSIFIÉS et l'univers dédupliqué — pas seulement présents.
+  const unclassifiedDeltas = (observations.observations ?? [])
+    .filter((o) => String(o.observationId).startsWith('OBS-DELTA-') && o.triageState === 'PENDING')
+    .map((o) => `${o.observationId} not classified (triage PENDING)`);
+  const missingSeparateRegistries = SEPARATE_REGISTRY_FILES.filter((f) => !existsSync(join(parityRoot, f)));
   const orphanFindings = (legacy.findings ?? [])
     .filter((f) => !workItemIds.has(f.canonicalWorkItemId))
     .map((f) => `${f.sourceFindingId} → canonicalWorkItemId ${f.canonicalWorkItemId} missing`);
@@ -612,11 +657,11 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
   /* ===== L'échelle à 11 niveaux (audit de réanalyse 2026-07-20) ===== */
 
   const lvlDocumentCanonicalized = {
-    name: 'documentCanonicalized',
+    name: 'documentReconciled',
     passed: cond2.passed && planOk,
     reasons: [
       ...cond2.reasons,
-      ...(planOk ? [] : ['PLAN_PARITE_REPLIT.md missing or lacks schemaVersion/measuredCodeCommit']),
+      ...(planOk ? [] : ['PLAN_PARITE_REPLIT.md missing or lacks schemaVersion/planVersion']),
     ],
   };
   const lvlSourceBaseline = {
@@ -637,6 +682,9 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       missingProdReadinessIds.length === 0 &&
       missingUniverseIds.length === 0 &&
       missingServiceUniverseIds.length === 0 &&
+      missingObsDelta.length === 0 &&
+      unclassifiedDeltas.length === 0 &&
+      missingSeparateRegistries.length === 0 &&
       orphanFindings.length === 0 &&
       forbiddenTargetDates.length === 0 &&
       cond3.passed,
@@ -647,6 +695,9 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       ...missingProdReadinessIds.map((id) => `expected PROD_READINESS missing: ${id}`),
       ...missingUniverseIds.map((id) => `expected surface universe id missing: ${id}`),
       ...missingServiceUniverseIds.map((id) => `expected service universe id missing: ${id}`),
+      ...missingObsDelta.map((id) => `expected OBS-DELTA missing: ${id}`),
+      ...unclassifiedDeltas,
+      ...missingSeparateRegistries.map((f) => `separate registry missing: ${f}`),
       ...orphanFindings,
       ...forbiddenTargetDates,
       ...cond3.reasons,
@@ -781,8 +832,8 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
     e2e: { total: (e2e.proofs ?? []).length, proven: (e2e.proofs ?? []).filter((p) => p.status === 'PROVEN').length },
     // Audit de couverture 2026-07-19 — comptes honnêtes : NON_FAIT domine.
     p1: {
-      total: (p0.p1s ?? []).length,
-      open: (p0.p1s ?? []).filter((i) => i.status === 'OPEN').length,
+      total: (p1reg.p1s ?? []).length,
+      open: (p1reg.p1s ?? []).filter((i) => i.status === 'OPEN').length,
     },
     boltDebt: {
       total: (boltDebt.items ?? []).length,
@@ -820,6 +871,23 @@ export function computeApprovalStatus(now = '2026-07-20T04:20:00Z') {
       present: universe.length,
       evaluated: universe.length - unevaluatedSurfaces.length,
       services: serviceUniverse.length,
+      // Overlay code réel + bolt (exigence Avi B / P0-LS-17) : rien n'est
+      // « fait » sans refs code ; composant présent non câblé = PARTIEL.
+      // §23 : l'état vit dans IMPLEMENTATION_STATUS.yaml (jamais dans les surfaces).
+      implementationStates: (() => {
+        const impl = yaml('IMPLEMENTATION_STATUS.yaml').items ?? [];
+        const by = (st) => impl.filter((i) => i.status === st).length;
+
+        return {
+          items: impl.length,
+          proven: by('PROVEN'),
+          coded: by('CODED'),
+          integrated: by('INTEGRATED'),
+          partial: by('PARTIAL'),
+          notStarted: by('NOT_STARTED'),
+          blocked: by('BLOCKED'),
+        };
+      })(),
     },
     workItems: { sourceFindingCount: backlogCounts.total, canonicalWorkItemCount },
     evidence,

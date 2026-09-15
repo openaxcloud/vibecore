@@ -1,0 +1,18 @@
+# DEPLOYMENT_TYPE_REGISTRY — les 4 types (contrat détaillé :
+# DEPLOYMENT_TYPES_CONTRACT.md). Un type = un mode de mise en production,
+# PAS un ArtifactKind.
+schemaVersion: 1
+repoCommit: 42a48091
+types:
+  - type: AUTOSCALE
+    ecodeBuiltState: DEJA_CONSTRUIT
+    proof: "E2E-PHASEB-NODE + E2E-AUTOSCALE-Z (machine sizes, metering)"
+  - type: STATIC
+    ecodeBuiltState: DEJA_CONSTRUIT
+    proof: "static-deployments en prod (CSP/CORP 45fa55d3) — preuve E2E dédiée à référencer"
+  - type: RESERVED_VM
+    ecodeBuiltState: NON_FAIT
+    proof: "P1-COV-04 / ACT-31"
+  - type: SCHEDULED
+    ecodeBuiltState: DEJA_CONSTRUIT
+    proof: "SCHEDULED-01 (cron + volume réel, 16/07) ; contrat produit UI/coût incomplet"
