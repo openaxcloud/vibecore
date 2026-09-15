@@ -109,7 +109,9 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<FilSer
  *     (ni requête inutile, ni écrasement d'un fil plus frais) ;
  *   - vides, on demande au serveur et on POSE le résultat s'il y en a un ;
  *   - un serveur vide ou en échec ne pose RIEN — l'affichage garde ce qu'il a ;
- *   - et quand on pose un fil, on ADOPTE la conversation d'où il vient.
+ *   - et quand on pose un fil, on ADOPTE la conversation d'où il vient ;
+ *   - une identité qui a changé PENDANT la lecture annule les deux — ni pose,
+ *     ni adoption.
  *
  * Cette dernière ligne est celle qui manquait, et son absence ne se voyait pas
  * à l'écran : le fil s'affichait correctement. Le dégât n'apparaissait qu'au
@@ -126,14 +128,30 @@ export async function completerFilSiVide(
   poser: (messages: Message[]) => void,
   charger: (projectId: string) => Promise<FilServeur> = chargerFilDepuisServeur,
   adopter?: (conversationId: string) => void,
+  lireIdentite?: () => string | undefined,
 ): Promise<void> {
   if (messagesLocaux.length) {
     return;
   }
 
+  const identiteAuDepart = lireIdentite?.();
   const filServeur = await charger(projectId);
 
   if (!filServeur.messages.length) {
+    return;
+  }
+
+  /*
+   * L'IDENTITÉ A-T-ELLE CHANGÉ PENDANT LA LECTURE ? Deux requêtes séparent le
+   * départ de l'arrivée ; entre les deux, « Effacer l'historique » retire
+   * l'identifiant courant puis en pose un NEUF. Poser alors le fil lu — et
+   * surtout l'adopter — ramènerait l'ancienne conversation par-dessus la
+   * neuve. Mesuré le 14/09 (run E2E 1969 sur `main`, runner chargé ; rejoué
+   * en local avec 2 s de retard sur `?limit=1`) : le fil « effacé » revenait.
+   * Une lecture partie sous une identité et arrivée sous une autre ne pose
+   * rien ; l'affichage garde ce qu'il a, comme pour un serveur en échec.
+   */
+  if (lireIdentite && lireIdentite() !== identiteAuDepart) {
     return;
   }
 

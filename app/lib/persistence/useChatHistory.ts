@@ -196,8 +196,13 @@ export function useChatHistory() {
            * Délibérément après le rendu et non devant : un serveur lent doit
            * retarder le COMPLÉMENT du fil, jamais son affichage.
            */
-          void completerFilSiVide(messages, projectId, setInitialMessages, undefined, (conversationId) =>
-            adopterLaConversationServeur(projectId, conversationId),
+          void completerFilSiVide(
+            messages,
+            projectId,
+            setInitialMessages,
+            undefined,
+            (conversationId) => adopterLaConversationServeur(projectId, conversationId),
+            () => chatMetadata.get()?.aiConversationId,
           );
           setUrlId(storedMessages?.urlId);
           description.set(

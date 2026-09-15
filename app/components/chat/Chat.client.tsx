@@ -62,6 +62,7 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { partagerLaCreation } from './creation-partagee';
 import { fautIlAdopterLaTranscriptionRestauree } from './late-stored-transcript';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { useProjectAiTranscriptHydration } from './useProjectAiTranscriptHydration';
@@ -467,6 +468,8 @@ export const ChatImpl = memo(
      * synchronise plus.
      */
     const generationDuFilRef = useRef(0);
+    const creationDeConversationRef = useRef<Promise<string> | null>(null);
+    const filVideParLUtilisateurRef = useRef(false);
 
     const backendAiConversationIdRef = useRef<string | undefined>(
       projectIdeMode ? chatMetadata.get()?.aiConversationId : undefined,
@@ -506,38 +509,45 @@ export const ChatImpl = memo(
         return existingConversationId;
       }
 
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: description?.trim() || copy['chatClient.project.agent'] }),
+      /*
+       * Un seul `POST` à la fois : l'effacement du fil et la boucle de
+       * persistance peuvent demander une conversation dans la même seconde
+       * (voir `creation-partagee.ts`).
+       */
+      return partagerLaCreation(creationDeConversationRef, async () => {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ title: description?.trim() || copy['chatClient.project.agent'] }),
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            formatClientAstResidualCopy(astCopy['clientAst.chat.technical.conversationCreate'], {
+              status: response.status,
+            }),
+          );
+        }
+
+        const payload = (await response.json()) as ProjectAiConversationResponse;
+        const conversationId = payload.conversation?.id;
+
+        if (!conversationId) {
+          throw Object.assign(new Error(), { code: 'CHAT_CONVERSATION_ID_MISSING' });
+        }
+
+        const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
+        chatMetadata.set(nextMetadata);
+        backendAiConversationIdRef.current = conversationId;
+
+        await saveProjectIdeMemory(projectId, {
+          chat: {
+            metadata: nextMetadata,
+          },
+        });
+
+        return conversationId;
       });
-
-      if (!response.ok) {
-        throw new Error(
-          formatClientAstResidualCopy(astCopy['clientAst.chat.technical.conversationCreate'], {
-            status: response.status,
-          }),
-        );
-      }
-
-      const payload = (await response.json()) as ProjectAiConversationResponse;
-      const conversationId = payload.conversation?.id;
-
-      if (!conversationId) {
-        throw Object.assign(new Error(), { code: 'CHAT_CONVERSATION_ID_MISSING' });
-      }
-
-      const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
-      chatMetadata.set(nextMetadata);
-      backendAiConversationIdRef.current = conversationId;
-
-      await saveProjectIdeMemory(projectId, {
-        chat: {
-          metadata: nextMetadata,
-        },
-      });
-
-      return conversationId;
     }, [astCopy, copy, description, projectId, projectIdeMode]);
 
     const syncProjectAiTranscript = useCallback(
@@ -549,6 +559,16 @@ export const ChatImpl = memo(
         const transcript = projectAiTranscriptMessages(nextMessages);
 
         if (transcript.length === 0) {
+          return;
+        }
+
+        /*
+         * Un fil d'une génération passée ne se pousse pas — et ne demande pas
+         * non plus de conversation : mesuré le 14/09, la persistance des
+         * messages d'AVANT l'effacement créait une conversation neuve à côté de
+         * celle que l'effacement venait d'ouvrir.
+         */
+        if (generation !== generationDuFilRef.current) {
           return;
         }
 
@@ -1101,6 +1121,7 @@ export const ChatImpl = memo(
       projectId,
       hasMessages: initialMessages.length > 0 || messages.length > 0,
       conversationId: metadataAiConversationId,
+      generationDuFil: () => generationDuFilRef.current,
       resolveConversationId: () => backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId,
       loadTranscript: async (currentProjectId, conversationId) => {
         const response = await fetch(
@@ -1162,6 +1183,7 @@ export const ChatImpl = memo(
           messagesRestaures: initialMessages.length,
           messagesAffiches: messages.length,
           dejaAdoptee: transcriptionAdoptee.current === initialMessages,
+          filVideParLUtilisateur: filVideParLUtilisateurRef.current,
         })
       ) {
         return;
@@ -2331,6 +2353,7 @@ export const ChatImpl = memo(
            * la réinjectait dans le fil vidé (voir `fautIlAdopterLaTranscriptionRestauree`).
            */
           transcriptionAdoptee.current = initialMessages;
+          filVideParLUtilisateurRef.current = true;
           generationDuFilRef.current += 1;
           setMessages([]);
           latestMessagesRef.current = [];
