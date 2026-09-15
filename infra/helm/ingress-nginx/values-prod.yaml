@@ -1,0 +1,43 @@
+# ingress-nginx — production (release `ingress-nginx`, ns `ingress-nginx`).
+#
+# Ce fichier reproduit EXACTEMENT les valeurs de la révision 2 déployée
+# (relevées par `helm -n ingress-nginx get values ingress-nginx`), plus une
+# seule ligne : `externalTrafficPolicy: Local`.
+#
+# SEC-RATE-001 — avec `Cluster` (le défaut), kube-proxy fait du SNAT dès qu'un
+# paquet franchit un nœud : l'IP du client est remplacée par celle du nœud
+# AVANT que nginx la voie. Mesuré le 2026-08-30 : 60 tentatives depuis un seul
+# client en 21 s, 56 traitées pour un plafond de 10. Le journal nginx ET la
+# table AuditLog ne montraient que des IP de nœuds (10.10.15.212…217).
+# Indexer le compteur sur `X-Forwarded-For` ne corrigerait rien : l'adresse est
+# déjà perdue en amont.
+#
+# ⚠️ Avec `Local`, seuls les nœuds portant un pod nginx acceptent le trafic.
+# C'est sûr ici parce que `replicaCount: 2` est couplé à une anti-affinité
+# REQUISE sur `kubernetes.io/hostname` : les deux pods sont sur deux nœuds
+# distincts, jamais colocalisés.
+#
+# ⚠️ Toujours passer `--version 4.15.1`. Sans lui, Helm prendrait la dernière
+# version du dépôt et embarquerait une montée de l'ingress controller de toute
+# la production dans un changement qui ne devait toucher qu'une ligne.
+controller:
+  replicaCount: 2
+
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/component: controller
+              app.kubernetes.io/instance: ingress-nginx
+              app.kubernetes.io/name: ingress-nginx
+          topologyKey: kubernetes.io/hostname
+
+  service:
+    annotations:
+      cloud.google.com/load-balancer-type: External
+    # IP statique : le DNS de e-code.ai, app.e-code.ai et api.e-code.ai pointe
+    # dessus en direct, sans CDN devant. Elle ne doit pas bouger.
+    loadBalancerIP: 34.1.6.93
+    # La seule ligne qui change par rapport à la révision 2.
+    externalTrafficPolicy: Local

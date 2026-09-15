@@ -77,3 +77,57 @@ ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].each { |f| YAML.l
 asserts least-privilege permissions for deploy/runtime workflows. Deploy and
 runtime validation workflows must keep `contents: read`, required
 `id-token: write`, and must not request `contents: write`.
+
+## Immutable action references
+
+External GitHub Actions are pinned to immutable 40-character commit SHAs; the
+reviewed release remains in an inline comment for maintainability. The strict
+TypeScript regression gate is `scripts/validate-github-actions-pinned.ts`; it
+parses the YAML AST and recursively scans every reachable local composite
+action or reusable workflow, including actions stored outside `.github`.
+Container actions declared as `docker://...` must use an immutable `sha256`
+image digest, including remote images declared in reachable local Docker action
+metadata; only the repository's checked-in `Dockerfile` is exempt. Job
+containers and service containers are held to the same rule; mutable image tags
+and implicit `latest` references fail the gate. Dynamic
+expressions, merge keys, non-literal mapping keys and YAML aliases
+in `uses:` are rejected fail-closed because their executed trust identity cannot
+be proven statically. Invalid, duplicate-key, oversized and symlinked YAML is
+also rejected.
+Local references are resolved from the repository root; missing or ambiguous
+descriptors, traversal, symlinks and dependency cycles fail closed.
+Even a full SHA is rejected when the external action owner is outside the
+reviewed trust policy embedded in the validator; onboarding another owner is a
+security-policy change covered by CODEOWNERS.
+
+CI executes the committed standalone bundle immediately after checkout, before
+Node/pnpm setup and before dependency installation. After the frozen install it
+strict-typechecks the source, runs the hostile Vitest matrix and embedded
+self-test, then rebuilds the source plus YAML parser and compares the result
+byte-for-byte with the bootstrap bundle. A stale or hand-edited bundle fails CI.
+
+Twenty-four exact references are temporarily locked as structural exceptions:
+fifteen in `e2e.yml`, `electron.yml` and `terraform.yml` while Claude PR #352
+owns those files, plus five in the legacy Cloudflare preview workflow pending
+explicit approval of its external deployment boundary, and four in the
+privileged stable-release workflow pending explicit approval of its automated
+tag/release/force-push boundary. The allowlist fixes the file, exact YAML path,
+action and mutable ref. Moving or copying an exempt action therefore creates a
+blocked finding while the original exception becomes stale. A SHA-256 of the
+entire workflow context also invalidates an exception whenever permissions,
+events, environment, conditions, inputs or secrets change. Every record names
+an owner, a verifiable PR and an expiry no more than 30 days after creation.
+Dates are real-calendar validated, an exception cannot activate before its
+`createdOn` date, and only one authorization may occupy a workflow location.
+Strict validation remains red until all blockers are removed and every
+reference is pinned.
+
+```bash
+pnpm exec tsc --project tsconfig.actions-validator.json --noEmit
+pnpm exec vitest run scripts/validate-github-actions-pinned.spec.ts
+node --import tsx scripts/validate-github-actions-pinned.ts --self-test
+node --import tsx scripts/validate-github-actions-pinned.ts --allow-temporary-exceptions
+node --import tsx scripts/build-github-actions-validator.ts --check
+# Expected to fail only on the 24 explicitly recorded temporary references:
+node --import tsx scripts/validate-github-actions-pinned.ts
+```

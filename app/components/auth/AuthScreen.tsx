@@ -148,15 +148,15 @@ export function AuthScreen({
         <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--ecode-orange),#f99d25)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.22),transparent_26%),radial-gradient(circle_at_80%_86%,rgba(10,15,28,0.36),transparent_30%)]" />
         <div className="relative z-10 flex min-h-dvh items-center justify-center p-8 xl:p-12">
-          <div className="max-w-[28rem] text-white xl:max-w-md">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/18 px-4 py-2 text-[13px] font-semibold backdrop-blur-md">
+          <div className="vc-auth-hero-copy max-w-[28rem] xl:max-w-md">
+            <div className="vc-auth-hero-eyebrow mb-6 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold backdrop-blur-md">
               <Sparkles className="h-4 w-4" />
               {resolvedHeroEyebrow}
             </div>
             <h2 className="text-[clamp(2.25rem,4vw,3.25rem)] font-bold leading-[1.03] tracking-normal">
               {resolvedHeroTitle}
             </h2>
-            <p className="mt-5 text-[15px] leading-7 text-white/88">{resolvedHeroBody}</p>
+            <p className="vc-auth-hero-body mt-5 text-[15px] leading-7">{resolvedHeroBody}</p>
             {heroAside}
             <div className="mt-10 overflow-hidden rounded-xl border border-white/25 bg-[rgba(10,15,28,0.24)] shadow-[0_24px_64px_rgba(10,15,28,0.35)]">
               <img src={heroScreenshot} alt="" aria-hidden="true" loading="lazy" className="block w-full" />

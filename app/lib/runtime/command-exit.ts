@@ -13,7 +13,24 @@ import type { CommandEvent } from '@vibecore/runtime-contract';
  */
 export function foldCommandExitCode(current: number, event: CommandEvent): number {
   if (event.type === 'exit') {
-    return event.exitCode ?? 0;
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — un `exit` SANS code n'est pas un exit 0.
+     *
+     * Node rend `code === null` quand le processus meurt par SIGNAL. Le `?? 0`
+     * transformait donc toute commande TUÉE — OOM, moisson du pod, SIGKILL de
+     * délai — en réussite, et l'aperçu partait sur un `node_modules` à moitié
+     * installé. C'est exactement ce que le paragraphe ci-dessus reproche déjà à
+     * l'événement `error` ; le même raisonnement vaut ici, et il manquait.
+     *
+     * On retombe donc sur la MÊME règle que `error` : au moins 1, et on garde un
+     * code déjà non nul plutôt que de l'écraser.
+     *
+     * ⚠️ `current || 1`, PAS `current ?? 1` : `current` vaut 0 dans le cas
+     * normal, et `0 ?? 1` rend 0 — ce qui réintroduirait exactement le défaut
+     * qu'on corrige. Le `||` est ici le bon opérateur, et c'est celui que la
+     * branche `error` utilise déjà.
+     */
+    return event.exitCode ?? (current || 1);
   }
 
   if (event.type === 'error') {

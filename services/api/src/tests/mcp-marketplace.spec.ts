@@ -5,28 +5,22 @@ import { PrismaApiStore } from '../prisma-store.js';
 import { seedMcpCatalog } from '../../../../packages/database/prisma/seed-mcp-catalog.js';
 import type { EmailProvider } from '../email.js';
 import type { GitProvider } from '../project-storage.js';
+import { baseDeDonneesJoignable } from './base-de-donnees-joignable.js';
 import {
   McpMarketplaceService,
   validateConfigAgainstSchema,
   createDefaultMcpMarketplaceService,
 } from '../mcp-marketplace.js';
 
-async function canReachDatabase() {
-  if (!process.env.DATABASE_URL) {
-    return false;
-  }
-
-  const prisma = createDatabaseClient();
-
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+/*
+ * BUG-TEST-DB-HANG-001 — la sonde locale (copiée à l'identique dans six
+ * fichiers) attendait `prisma.$disconnect()` dans son `finally`. Mesuré : cet
+ * appel ne se dénoue JAMAIS quand le client n'a pas pu se connecter, donc la
+ * sonde ne rend pas, le `beforeAll` ne finit pas, et le fichier reste en l'air
+ * — 93 minutes constatées. Le point de passage partagé borne la requête ET la
+ * fermeture (règle 7 : une seule correction pour les huit copies).
+ */
+const canReachDatabase = baseDeDonneesJoignable;
 
 class TestEmailProvider implements EmailProvider {
   async send() {}
