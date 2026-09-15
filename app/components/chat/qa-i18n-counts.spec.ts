@@ -32,6 +32,17 @@ describe('BUG-QA-I18N-COUNT-003 — rendu réel des compteurs, EN et FR', () => 
 
   /** [clé, params, attendu EN, attendu FR] pour le singulier puis le pluriel. */
   const CASES: Array<[string, Record<string, unknown>, string, string]> = [
+    /*
+     * BUG-QA-I18N-COUNT-001/002 — le compteur de fichiers d'origine
+     * (« 7fichiers », « 1 fichiers »). La clé plurielle porte l'espace ET le
+     * pluriel ; on la verrouille sur 0, 1, 2 et 7 dans les deux langues.
+     * Note : en français, Intl.PluralRules classe 0 en « one », d'où
+     * « 0 fichier » (grammaire correcte) contre « 0 files » en anglais.
+     */
+    ['baseChatAst.files.count', { count: 0 }, '0 files', '0 fichier'],
+    ['baseChatAst.files.count', { count: 1 }, '1 file', '1 fichier'],
+    ['baseChatAst.files.count', { count: 2 }, '2 files', '2 fichiers'],
+    ['baseChatAst.files.count', { count: 7 }, '7 files', '7 fichiers'],
     ['baseChatAst.counts.hunks', { count: 1 }, '1 hunk', '1 segment'],
     ['baseChatAst.counts.hunks', { count: 4 }, '4 hunks', '4 segments'],
     [

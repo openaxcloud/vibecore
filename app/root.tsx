@@ -42,13 +42,16 @@ import tailwindReset from '@unocss/reset/tailwind-compat.css?url';
  */
 import { installEditorPwaServiceWorker } from '@vibecore/editor/install-pwa-sw';
 import xtermStyles from '@xterm/xterm/css/xterm.css?url';
-import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
-import { createI18nInstance } from './lib/i18n/runtime';
+import { shouldShowGlobalRouteSplash } from './lib/global-route-splash';
+import { chargerLesCataloguesDuDocument, urlDuCatalogue } from './lib/i18n/catalogues-client';
+import { createI18nInstance, jetonDuRegistre, languesRequises, sabonnerAuRegistre } from './lib/i18n/runtime';
+import { surfacesRequises } from './lib/i18n/surfaces';
 import { resolveLeafDocumentSeoOwnership, type RouteMetaModule } from './lib/i18n/document-seo';
 import { AUTO_LANGUAGE_COOKIE } from './lib/i18n/language';
 import { localeResponseHeaders, resolveRequestLocale } from './lib/i18n/request-locale';
@@ -567,6 +570,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-theme="dark" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
+        {/*
+         * BUG-PERF-I18N-RACINE-001 : le catalogue de la langue du document
+         * part en parallèle du JavaScript, pas après lui. `crossOrigin`
+         * aligne le préchargement sur le `fetch()` de catalogues-client.ts
+         * (mode cors, credentials same-origin) — sans lui, le navigateur
+         * refait la requête.
+         */}
+        {languesRequises(language).flatMap((langue) =>
+          surfacesRequises(location.pathname).map((surface) => (
+            <link
+              key={`${langue}-${surface}`}
+              rel="preload"
+              href={urlDuCatalogue(langue, surface)}
+              as="fetch"
+              crossOrigin="anonymous"
+            />
+          )),
+        )}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {navigatorLocaleFallback ? <script dangerouslySetInnerHTML={{ __html: inlineNavigatorLocaleCode }} /> : null}
         {/* content is intentionally adjusted client-side by the inline theme boot script
@@ -649,7 +670,32 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const matches = useMatches();
   const language = resolveDocumentLanguage(matches);
-  const i18n = useMemo(() => createI18nInstance(language), [language]);
+
+  /*
+   * BUG-PERF-I18N-RACINE-001 : l'instance photographie le registre au moment
+   * de sa création. Le serveur a tout ; le client a chargé la langue du
+   * document AVANT d'hydrater (entry.client.tsx). Si un catalogue arrivait
+   * plus tard — chargement dégradé puis rattrapé — l'abonnement recrée
+   * l'instance au lieu de laisser « Unavailable » à l'écran.
+   */
+  const catalogueCharge = useSyncExternalStore(
+    sabonnerAuRegistre,
+    () => jetonDuRegistre(language),
+    () => 'public,app',
+  );
+
+  const i18n = useMemo(() => createI18nInstance(language), [language, catalogueCharge]);
+
+  /*
+   * BUG-PERF-I18N-SURFACE-001 : une navigation CLIENT ne repasse pas par
+   * `entry.client.tsx`. Aller de la page d'accueil à /ide doit donc réclamer
+   * la tranche `app` ici — le préchargement au repos l'a le plus souvent déjà
+   * mise dans le registre, auquel cas cet appel se résout immédiatement.
+   */
+  useEffect(() => {
+    void chargerLesCataloguesDuDocument(language, location.pathname).catch(() => undefined);
+  }, [language, location.pathname]);
+
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
 
   const serverRendersRoute = matches.some((match) => {
@@ -891,6 +937,10 @@ function GlobalRouteLoader() {
    * Background fetchers and route revalidations must not blank an already
    * rendered page. User-area route transitions also own a local skeleton, so
    * only the slim progress bar remains visible for those navigations.
+   *
+   * BUG-IDE-PANEL-SPLASH — idem pour les navigations « même pathname, seul le
+   * search change » (bascule de panneau IDE via `?panel=`) : le splash plein
+   * écran recouvrait l'IDE déjà rendu et donnait l'impression d'un reload.
    */
 
   const loading = navigation.state !== 'idle';
@@ -901,7 +951,14 @@ function GlobalRouteLoader() {
     navigationState: navigation.state,
   });
 
-  const fullScreenVisible = visible && !localUserAreaSkeletonVisible;
+  const splashAllowed = shouldShowGlobalRouteSplash({
+    navigationState: navigation.state,
+    currentPathname: location.pathname,
+    targetPathname: navigation.location?.pathname,
+    localSkeletonVisible: localUserAreaSkeletonVisible,
+  });
+
+  const fullScreenVisible = visible && splashAllowed;
 
   useEffect(() => {
     if (!loading) {

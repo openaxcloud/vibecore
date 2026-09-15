@@ -1,5 +1,8 @@
 import { timingSafeEqual } from 'node:crypto';
+
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
+
+import { PageRenderError } from './browser.js';
 
 /*
  * screenshotter — a tiny, stateless headless-render service. It turns a URL into
@@ -58,6 +61,7 @@ function hostAllowed(hostname: string, suffixes: string[]): boolean {
 /** Minimal FIFO semaphore so at most `max` renders run at once. */
 function createSemaphore(max: number) {
   let active = 0;
+
   const waiters: Array<() => void> = [];
 
   const acquire = async () => {
@@ -116,6 +120,21 @@ export async function buildScreenshotterApp(options: ScreenshotterOptions): Prom
 
       return reply.code(200).header('content-type', 'image/png').send(png);
     } catch (error) {
+      /*
+       * Une page d'erreur n'est pas une panne du service. Elle est refusée avec
+       * un code distinct et journalisée en `warn` : confondre les deux remplit
+       * l'astreinte d'alertes pour des aperçus qui n'existent simplement pas
+       * encore, et masque les vraies pannes de rendu au milieu.
+       */
+      if (error instanceof PageRenderError) {
+        request.log.warn(
+          { url: parsed.toString(), httpStatus: error.httpStatus },
+          'screenshot refused: target page returned an error status',
+        );
+
+        return reply.code(422).send({ error: 'target page returned an error status', code: 'TARGET_PAGE_ERROR' });
+      }
+
       request.log.error({ err: error }, 'screenshot render failed');
 
       return reply.code(502).send({ error: 'render failed' });

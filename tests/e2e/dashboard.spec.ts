@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
@@ -436,7 +437,8 @@ test('authenticated user area applies the global platform design system', async 
     card: '#1a2030',
     hover: '#2b3245',
     text: '#f5f9fc',
-    action: '#0099ff',
+    // CHARTE-IDE-001 — l'action primaire porte desormais l'orange de marque.
+    action: '#f97316',
     radiusButton: '4px',
     bodyBackground: 'rgb(10, 15, 28)',
     bodyColor: 'rgb(245, 249, 252)',
@@ -961,11 +963,13 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
       borderVisible: '#2b3245',
       textPrimary: '#f5f9fc',
       textSecondary: '#c2c8cc',
-      textMuted: '#7d8590',
+      textMuted: '#949ca6',
       aiStart: '#7b61ff',
       aiEnd: '#ff6b9d',
       success: '#3fb950',
-      action: '#0099ff',
+      // CHARTE-IDE-001 — l'action et la marque convergent vers l'orange ; la
+      // regle d'origine « orange = marque, bleu = action » est renversee.
+      action: '#f97316',
       orange: '#f26207',
       error: '#f85149',
       warning: '#d29922',
@@ -1081,7 +1085,8 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
         card: '#eef2f7',
         hover: '#e2e8f0',
         text: '#111827',
-        action: '#006fd6',
+        // CHARTE-IDE-001 — clair : orange assombri, blanc dessus a 5,18:1.
+        action: '#c2410c',
       },
       root: { background: 'rgb(246, 248, 251)', color: 'rgb(17, 24, 39)' },
       panel: 'rgb(255, 255, 255)',
@@ -1106,7 +1111,8 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
         card: '#1a2030',
         hover: '#2b3245',
         text: '#f5f9fc',
-        action: '#0099ff',
+        // CHARTE-IDE-001 — sombre : orange vif, texte fonce dessus a 6,21:1.
+        action: '#f97316',
       },
       root: { background: 'rgb(10, 15, 28)', color: 'rgb(245, 249, 252)' },
       panel: 'rgb(14, 21, 37)',
@@ -1115,7 +1121,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
       hoverBorder: 'rgb(26, 32, 48)',
       visibleBorder: 'rgb(43, 50, 69)',
       secondaryText: 'rgb(194, 200, 204)',
-      mutedText: 'rgb(125, 133, 144)',
+      mutedText: 'rgb(148, 156, 166)',
       primaryText: 'rgb(245, 249, 252)',
       forbiddenPanelBackgrounds: [] as string[],
     },
@@ -1189,6 +1195,57 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
   }
 });
 
+/**
+ * Ouvre un panneau de l'IDE et attend que le shell soit monté.
+ *
+ * POURQUOI CE HELPER EXISTE — ce test bloquait les livraisons.
+ *
+ * `all IDE service panels keep light theme containers readable` enchaîne VINGT
+ * navigations complètes, chacune rechargeant tout l'IDE. Sous charge CI, l'une
+ * d'elles n'aboutit pas et l'attente du shell expire :
+ *
+ *     expect(locator).toBeVisible() failed
+ *     Expected: visible — Timeout: 30000ms — element(s) not found
+ *        at tests/e2e/dashboard.spec.ts:1260
+ *
+ * L'assertion de couleur n'est alors JAMAIS atteinte : le test échoue sur sa
+ * précondition, en désignant une cause — le thème — qui n'est pas la sienne.
+ *
+ * CE QUI N'EST PAS FAIT, ET POURQUOI. On ne relève pas le budget : quand le
+ * test passe, il traite les vingt panneaux en 54 s, soit ~2,7 s par panneau à
+ * chaud. 30 s est déjà DIX FOIS cela. Le défaut n'est donc pas une lenteur
+ * systématique qu'un plus grand nombre absorberait, c'est un événement de
+ * queue — une navigation perdue. Grossir le nombre masquerait le cas au lieu
+ * de le traiter, et rendrait un vrai blocage indétectable.
+ *
+ * CE QUI EST FAIT. La NAVIGATION est rejouée une fois si le shell n'apparaît
+ * pas. Aucune assertion n'est relâchée : le budget par tentative reste 30 s,
+ * l'assertion de couleur est intacte, et un shell réellement absent échoue
+ * toujours — après deux tentatives, avec un message qui NOMME le panneau et le
+ * temps écoulé, au lieu du « element(s) not found » anonyme d'avant.
+ */
+async function ouvrirPanneauIde(page: Page, projectId: string, panel: string): Promise<void> {
+  const shell = page.locator('.bolt-project-ide-panels');
+  const debut = Date.now();
+
+  for (let tentative = 1; tentative <= 2; tentative += 1) {
+    await page.goto(`/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
+
+    try {
+      await expect(shell).toBeVisible({ timeout: 30_000 });
+      return;
+    } catch {
+      if (tentative === 2) {
+        throw new Error(
+          `Le shell IDE (.bolt-project-ide-panels) n'est pas apparu pour le panneau « ${panel} » ` +
+            `après 2 navigations et ${Math.round((Date.now() - debut) / 1000)} s. ` +
+            `Ce n'est pas un défaut de thème : l'assertion de couleur n'a pas été atteinte.`,
+        );
+      }
+    }
+  }
+}
+
 test('all IDE service panels keep light theme containers readable', async ({ page, isMobile }) => {
   test.setTimeout(300_000);
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
@@ -1251,8 +1308,7 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
   });
 
   for (const [, panel] of panels) {
-    await page.goto(`/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30_000 });
+    await ouvrirPanneauIde(page, projectId, panel);
     await page.evaluate(() => {
       // Cookie wins over localStorage in theme resolution — seed both.
       document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
@@ -1746,8 +1802,10 @@ test(
     await openIdeTool(/Secrets/);
 
     const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]').first();
-    await expect(secretsPanel.locator('.bolt-project-secrets-tool')).toBeVisible({ timeout: 15000 });
-    await expect(secretsPanel.getByRole('button', { name: /New secret/ })).toBeVisible();
+    // RP-SEC-01 : le panneau Replit — en-tête « Secrets », ⋮, « + New Secret », filtre.
+    await expect(secretsPanel.getByTestId('secrets-panel')).toBeVisible({ timeout: 15000 });
+    await expect(secretsPanel.getByTestId('secrets-new')).toBeVisible();
+    await expect(secretsPanel.getByTestId('secrets-filter')).toBeVisible();
 
     await openIdeTool(/Git/);
 

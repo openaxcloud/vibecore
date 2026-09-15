@@ -15,6 +15,7 @@ import { ChatBoxModeDropdown } from './ChatBoxModeDropdown';
 import { ComposerMentionsOverlay } from './ComposerMentionsOverlay';
 import { ComposerSlashOverlay } from './ComposerSlashOverlay';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
+import type { PhaseDictee } from '~/components/chat/dictee-vocale';
 import styles from './BaseChat.module.scss';
 import FilePreview from './FilePreview';
 import { MAX_IMAGE_ATTACHMENTS } from './image-attachments';
@@ -28,6 +29,8 @@ import { SupabaseConnection } from './SupabaseConnection';
 import { WebSearch } from './WebSearch.client';
 import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
+import { createPortal } from 'react-dom';
+import { cibleFeuilleMobile } from './feuille-mobile';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import {
@@ -68,6 +71,7 @@ interface ChatBoxProps {
   isStreaming: boolean;
   handleSendMessage: (event: React.UIEvent, messageInput?: string) => void;
   isListening: boolean;
+  dictationPhase?: PhaseDictee;
   startListening: () => void;
   stopListening: () => void;
   chatStarted: boolean;
@@ -158,6 +162,49 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
   const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
+  const toolsPanelRef = React.useRef<HTMLDivElement>(null);
+
+  /*
+   * UNIF-04 (audit C4) : le feedback de glisser-déposer vit sur la COQUE
+   * (`data-dragover` + CSS), plus en style inline sur le textarea. L'ancienne
+   * implémentation posait un `border: 2px solid` sur le textarea alors que la
+   * bordure visible appartient à `.bolt-chatbox-input-shell` → double bordure
+   * et saut de mise en page à chaque survol de fichier.
+   */
+  const [isComposerDragOver, setIsComposerDragOver] = React.useState(false);
+
+  const handleComposerDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setIsComposerDragOver(false);
+
+    const files = Array.from(event.dataTransfer.files);
+    files.forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+
+        reader.onload = (loadEvent) => {
+          const base64Image = loadEvent.target?.result as string;
+
+          /*
+           * Functional updaters: dropping several images at once spins up
+           * one FileReader per file, and each `onload` fires asynchronously.
+           * Spreading a render-time snapshot (`props.uploadedFiles`) would
+           * make every async callback start from the same stale array and
+           * clobber the others, so only the last image survived. Updating
+           * from the live `prev` accumulates all dropped images.
+           */
+          props.setUploadedFiles?.((prev) => [...prev, file]);
+          props.setImageDataList?.((prev) => [...prev, base64Image]);
+        };
+
+        reader.onerror = () => {
+          console.error('Failed to read dropped file:', file.name, reader.error);
+          toast.error(getChatBoxDroppedImageError(language, reader.error));
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
 
   /*
    * Per-request agent power controls. Parent-controlled when `props.agentPower`
@@ -278,7 +325,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!toolsMenuRef.current?.contains(event.target as Node)) {
+      const cible = event.target as Node;
+
+      /*
+       * Un appui DANS une surface ouverte depuis le menu (dialogue MCP ou
+       * Supabase, palette, rangée « récupérer une URL ») n'est pas « dehors » :
+       * ces surfaces vivent dans les entrées du menu, et fermer le menu les
+       * démonte avec lui. Mesuré le 07/09 (sonde probe-menu-dialogs.mjs) :
+       * un clic dans le dialogue MCP le faisait disparaître.
+       */
+      const dansUneSurfaceDuMenu =
+        cible instanceof Element &&
+        Boolean(cible.closest('[role="dialog"], [data-radix-popper-content-wrapper], .bolt-chatbox-tools-menu'));
+
+      // Sur téléphone le menu est porté hors de son ancre : un appui DEDANS n'est pas « dehors ».
+      if (!dansUneSurfaceDuMenu && !toolsMenuRef.current?.contains(cible) && !toolsPanelRef.current?.contains(cible)) {
         setIsToolsMenuOpen(false);
       }
     };
@@ -316,6 +377,231 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed);
     setIsToolsMenuOpen(false);
   };
+
+  const attachControl = (
+    <>
+      <IconButton
+        title={copy['chatBox.attachments.attach']}
+        tooltip={copy['chatBox.attachments.attach']}
+        className="bolt-chatbox-toolbar-button"
+        onClick={() => props.handleFileUpload()}
+      >
+        <div className="i-ph:paperclip text-lg"></div>
+      </IconButton>
+
+      {props.uploadedFiles.length > 0 ? (
+        <span
+          className="text-xs text-bolt-elements-textTertiary"
+          aria-live="polite"
+          title={formatChatBoxAttachmentSummary(language, props.uploadedFiles.length, MAX_IMAGE_ATTACHMENTS)}
+        >
+          {props.uploadedFiles.length}/{MAX_IMAGE_ATTACHMENTS}
+        </span>
+      ) : null}
+    </>
+  );
+
+  const micControl = (
+    <>
+      {/*
+       * I13: the mic/dictation button belongs on EVERY composer (landing /
+       * new chat), not just the IDE. Its unsupported-browser guard lives
+       * inside SpeechRecognitionButton itself (returns null when the Web
+       * Speech API is missing — same G30 behaviour), and the listening
+       * props come from BaseChat regardless of projectIdeMode, so it is
+       * safe to render unconditionally here.
+       */}
+      <SpeechRecognitionButton
+        isListening={props.isListening}
+        phase={props.dictationPhase}
+        onStart={props.startListening}
+        onStop={props.stopListening}
+        disabled={props.isStreaming}
+        triggerVariant="icon"
+        triggerClassName="bolt-chatbox-toolbar-button"
+      />
+    </>
+  );
+
+  const agentModeControl = (
+    <>
+      {/* Agent/Assistant mode selector. The Plan-first toggle moved up beside
+                the effort/Power control (Replit parity), so it no longer lives here. */}
+      {props.projectIdeMode && props.agentMode && props.setAgentMode ? (
+        <ChatBoxModeDropdown
+          agentMode={props.agentMode}
+          setAgentMode={props.setAgentMode}
+          disabled={props.isStreaming}
+        />
+      ) : null}
+    </>
+  );
+
+  const toolsMenuControl = (
+    <>
+      <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
+        <IconButton
+          title={copy['chatBox.tools.more']}
+          tooltip={copy['chatBox.tools.more']}
+          className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
+          ariaExpanded={isToolsMenuOpen}
+          ariaHasPopup="menu"
+          onClick={() => setIsToolsMenuOpen((open) => !open)}
+        >
+          <div className="i-ph:dots-three-outline text-lg" />
+        </IconButton>
+
+        {isToolsMenuOpen
+          ? /*
+             * SUR TÉLÉPHONE, LA FEUILLE SE REND À LA RACINE DU GABARIT MOBILE —
+             * comme « Agent » et « Économique » depuis le 06/09 (feuille-mobile.ts).
+             * Rendue ici, dans le composeur, elle est bornée par ses ancêtres
+             * (confinement, collant, défilement) : capture d'Avi, 07/09 08:07,
+             * « Ouvrir Supabase » en haut d'une feuille tranchée, posée sur le
+             * composeur — « on ne voit rien ».
+             */
+            porterSurTelephone(
+              <div
+                ref={toolsPanelRef}
+                className="bolt-chatbox-tools-menu"
+                role="menu"
+                aria-label={copy['chatBox.tools.menuAria']}
+                data-testid="composer-tools-menu"
+              >
+                <ColorSchemeDialog
+                  designScheme={props.designScheme}
+                  setDesignScheme={props.setDesignScheme}
+                  triggerVariant="menu"
+                />
+                <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
+                <WebSearch
+                  onSearchResult={(result) => props.onWebSearchResult?.(result)}
+                  disabled={props.isStreaming}
+                  triggerVariant="menu"
+                  triggerLabel={copy['chatBox.tools.fetchUrl']}
+                />
+                {/*
+                 * Le dialogue Supabase vit DANS cette entrée : fermer le menu à
+                 * l'ouverture le démontait aussitôt — « Ouvrir Supabase » n'ouvrait
+                 * rien, sur téléphone comme sur bureau (mesuré le 07/09, sonde
+                 * probe-supabase.mjs : 0 dialogue après le clic). Le menu reste,
+                 * comme pour les outils MCP et la palette.
+                 */}
+                <SupabaseConnection triggerVariant="menu" />
+                <IconButton
+                  title={enhancePromptTitle}
+                  tooltip={enhancePromptTitle}
+                  disabled={props.input.length === 0 || props.enhancingPrompt}
+                  className={classNames('bolt-chatbox-tools-menu-item', props.enhancingPrompt ? 'opacity-100' : '')}
+                  onClick={enhancePrompt}
+                >
+                  <>
+                    {props.enhancingPrompt ? (
+                      <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                    ) : (
+                      <div className="i-bolt:stars text-xl"></div>
+                    )}
+                    <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                      {copy['chatBox.enhance.action']}
+                    </span>
+                  </>
+                </IconButton>
+
+                {/* In the IDE the mic is surfaced directly on the composer bar
+                      (Replit parity), so it's omitted from this menu to avoid a
+                      duplicate; the standalone composer keeps it here. */}
+                {!props.projectIdeMode ? (
+                  <SpeechRecognitionButton
+                    isListening={props.isListening}
+                    phase={props.dictationPhase}
+                    onStart={() => {
+                      props.startListening();
+                      setIsToolsMenuOpen(false);
+                    }}
+                    onStop={() => {
+                      props.stopListening();
+                      setIsToolsMenuOpen(false);
+                    }}
+                    disabled={props.isStreaming}
+                    triggerVariant="menu"
+                    triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
+                  />
+                ) : null}
+
+                {props.chatStarted && !props.projectIdeMode ? (
+                  <IconButton
+                    title={copy['chatBox.discuss.title']}
+                    tooltip={copy['chatBox.discuss.title']}
+                    className={classNames('bolt-chatbox-tools-menu-item', {
+                      'is-active': props.chatMode === 'discuss',
+                    })}
+                    onClick={toggleChatMode}
+                  >
+                    <>
+                      <div className="i-ph:chats text-xl" />
+                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                        {props.chatMode === 'discuss'
+                          ? copy['chatBox.discuss.switchToBuild']
+                          : copy['chatBox.discuss.title']}
+                      </span>
+                    </>
+                  </IconButton>
+                ) : null}
+
+                <IconButton
+                  title={settingsToggleTitle}
+                  tooltip={settingsToggleTitle}
+                  data-testid="composer-tools-menu-settings"
+                  className={classNames('bolt-chatbox-tools-menu-item', {
+                    'is-active': props.isModelSettingsCollapsed,
+                  })}
+                  onClick={toggleModelSettings}
+                  disabled={!props.providerList || props.providerList.length === 0}
+                >
+                  <>
+                    <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
+                    <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                      {settingsToggleTitle}
+                    </span>
+                  </>
+                </IconButton>
+              </div>,
+            )
+          : null}
+      </div>
+    </>
+  );
+
+  /*
+   * Composer compact : les trois modes, les interrupteurs, le coût estimé et le
+   * bouton Planifier tenaient chacun leur rangée au-dessus du champ — cinq
+   * rangées empilées, près de la moitié de l'écran en 390. Tout passe derrière
+   * une étiquette discrète de la rangée de commandes unique.
+   */
+  const agentPowerControl = props.projectIdeMode ? (
+    <ClientOnly>
+      {() => (
+        <AgentPowerControls
+          variant="compact"
+          value={agentPower}
+          onChange={handleAgentPowerChange}
+          estimatedCents={agentPowerEstimateCents}
+          disabled={props.isStreaming}
+          availability={agentModeAvailability}
+          planFirst={
+            props.onPlanFirstChange
+              ? {
+                  enabled: props.planFirstEnabled ?? false,
+                  onChange: (next) => props.onPlanFirstChange?.(next),
+                  label: copy['chatBox.planFirst.label'],
+                  title: copy['chatBox.planFirst.title'],
+                }
+              : undefined
+          }
+        />
+      )}
+    </ClientOnly>
+  ) : null;
 
   return (
     <div
@@ -396,39 +682,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
        * discoverable. ClientOnly because the estimate + persisted state are
        * client-side.
        */}
-      {props.projectIdeMode && (
-        <ClientOnly>
-          {() => (
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-bolt-elements-borderColor px-1 pt-2">
-              <AgentPowerControls
-                value={agentPower}
-                onChange={handleAgentPowerChange}
-                estimatedCents={agentPowerEstimateCents}
-                disabled={props.isStreaming}
-                availability={agentModeAvailability}
-              />
-              {/* Replit parity: the Plan-first toggle sits directly beside the
-                  effort/Power control (shares the projectPlanFirst state — no
-                  dup). Wired to the real plan-first pipeline (create-agent-plan). */}
-              {props.onPlanFirstChange ? (
-                <button
-                  type="button"
-                  className={classNames('bolt-chatbox-plan-toggle', {
-                    'is-active': props.planFirstEnabled ?? false,
-                  })}
-                  aria-pressed={props.planFirstEnabled ?? false}
-                  disabled={props.isStreaming}
-                  title={copy['chatBox.planFirst.title']}
-                  onClick={() => props.onPlanFirstChange?.(!(props.planFirstEnabled ?? false))}
-                >
-                  <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
-                  <span className="bolt-chatbox-plan-toggle-label">{copy['chatBox.planFirst.label']}</span>
-                </button>
-              ) : null}
-            </div>
-          )}
-        </ClientOnly>
-      )}
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
@@ -450,7 +703,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       {props.selectedElement && (
         <div className="mx-1.5 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg rounded-b-none border border-b-0 border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary sm:flex-nowrap">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lowercase">
-            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-accent-500 px-1.5 py-1 text-white">
+            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-[var(--vc-action-primary)] px-1.5 py-1 text-[var(--vc-action-primary-foreground)]">
               {props?.selectedElement?.tagName}
             </code>
             <span className="min-w-0 break-words">{copy['chatBox.inspector.selected']}</span>
@@ -458,7 +711,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <button
             type="button"
             aria-label={copy['chatBox.inspector.clearAria']}
-            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-accent-500"
+            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-[var(--vc-action-primary)]"
             onClick={() => props.setSelectedElement?.(null)}
           >
             {copy['chatBox.inspector.clear']}
@@ -469,10 +722,42 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         className={classNames(
           'bolt-chatbox-input-shell relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg',
         )}
+        data-dragover={isComposerDragOver ? 'true' : undefined}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setIsComposerDragOver(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsComposerDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+
+          // Ignore les dragleave internes (passage d'un enfant à l'autre).
+          if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
+            setIsComposerDragOver(false);
+          }
+        }}
+        onDrop={handleComposerDrop}
       >
         <div className="bolt-chatbox-input-frame relative">
+          {/*
+            Le bouton « i » ne figure plus dans la rangée de commandes de l'IDE :
+            elle porte les sélecteurs à gauche et les actions à droite, et un
+            sixième contrôle purement informatif la faisait déborder. Le raccourci
+            reste porté par le champ (`title`), là où il s'utilise.
+
+            `rows={1}` : sans cet attribut un textarea vaut DEUX lignes par
+            défaut. L'auto-agrandissement remet `height: auto` avant de lire
+            `scrollHeight`, il lisait donc deux lignes pour un champ vide et
+            posait 63 px au repos au lieu d'une. Le composer autonome garde sa
+            taille plus ample.
+          */}
+          {/* BUG-VOICE-INPUT-001 : pendant la dictée, le placeholder dit ce qui se passe et comment arrêter. */}
           <textarea
             ref={props.textareaRef}
+            rows={props.projectIdeMode ? 1 : undefined}
             aria-label={props.projectIdeMode ? copy['chatBox.prompt.agentAria'] : copy['chatBox.prompt.chatAria']}
             className={classNames(
               'block w-full pl-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
@@ -484,52 +769,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                */
               props.projectIdeMode ? 'pt-3 pb-10' : 'pt-4 pb-14',
               'transition-all duration-200',
-              'hover:border-bolt-elements-focus',
             )}
-            onDragEnter={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-
-              const files = Array.from(e.dataTransfer.files);
-              files.forEach((file) => {
-                if (file.type.startsWith('image/')) {
-                  const reader = new FileReader();
-
-                  reader.onload = (e) => {
-                    const base64Image = e.target?.result as string;
-
-                    /*
-                     * Functional updaters: dropping several images at once spins up
-                     * one FileReader per file, and each `onload` fires asynchronously.
-                     * Spreading a render-time snapshot (`props.uploadedFiles`) would
-                     * make every async callback start from the same stale array and
-                     * clobber the others, so only the last image survived. Updating
-                     * from the live `prev` accumulates all dropped images.
-                     */
-                    props.setUploadedFiles?.((prev) => [...prev, file]);
-                    props.setImageDataList?.((prev) => [...prev, base64Image]);
-                  };
-
-                  reader.onerror = () => {
-                    console.error('Failed to read dropped file:', file.name, reader.error);
-                    toast.error(getChatBoxDroppedImageError(language, reader.error));
-                  };
-                  reader.readAsDataURL(file);
-                }
-              });
-            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 if (event.shiftKey) {
@@ -565,11 +805,16 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               maxHeight: props.TEXTAREA_MAX_HEIGHT,
             }}
             placeholder={
-              props.placeholder ??
-              (props.chatMode === 'build'
-                ? copy['chatBox.prompt.buildPlaceholder']
-                : copy['chatBox.prompt.discussPlaceholder'])
+              props.dictationPhase === 'ecoute'
+                ? copy['chatBox.speech.listeningPlaceholder']
+                : props.dictationPhase === 'demande'
+                  ? copy['chatBox.speech.requestingPlaceholder']
+                  : (props.placeholder ??
+                    (props.chatMode === 'build'
+                      ? copy['chatBox.prompt.buildPlaceholder']
+                      : copy['chatBox.prompt.discussPlaceholder']))
             }
+            title={props.projectIdeMode ? copy['chatBox.shortcuts.newLine'] : undefined}
             translate="no"
           />
           {props.textareaRef ? (
@@ -619,174 +864,39 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </div>
         <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
           <div className="bolt-chatbox-toolbar-primary">
-            <IconButton
-              title={copy['chatBox.attachments.attach']}
-              tooltip={copy['chatBox.attachments.attach']}
-              className="bolt-chatbox-toolbar-button"
-              onClick={() => props.handleFileUpload()}
-            >
-              <div className="i-ph:paperclip text-xl"></div>
-            </IconButton>
-
-            {props.uploadedFiles.length > 0 ? (
-              <span
-                className="text-xs text-bolt-elements-textTertiary"
-                aria-live="polite"
-                title={formatChatBoxAttachmentSummary(language, props.uploadedFiles.length, MAX_IMAGE_ATTACHMENTS)}
-              >
-                {props.uploadedFiles.length}/{MAX_IMAGE_ATTACHMENTS}
-              </span>
-            ) : null}
-
-            {/*
-             * I13: the mic/dictation button belongs on EVERY composer (landing /
-             * new chat), not just the IDE. Its unsupported-browser guard lives
-             * inside SpeechRecognitionButton itself (returns null when the Web
-             * Speech API is missing — same G30 behaviour), and the listening
-             * props come from BaseChat regardless of projectIdeMode, so it is
-             * safe to render unconditionally here.
-             */}
-            <SpeechRecognitionButton
-              isListening={props.isListening}
-              onStart={props.startListening}
-              onStop={props.stopListening}
-              disabled={props.isStreaming}
-              triggerVariant="icon"
-              triggerClassName="bolt-chatbox-toolbar-button"
-            />
-
-            {/* Agent/Assistant mode selector. The Plan-first toggle moved up beside
-                the effort/Power control (Replit parity), so it no longer lives here. */}
-            {props.projectIdeMode && props.agentMode && props.setAgentMode ? (
-              <ChatBoxModeDropdown
-                agentMode={props.agentMode}
-                setAgentMode={props.setAgentMode}
-                disabled={props.isStreaming}
-              />
-            ) : null}
-
-            <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
-              <IconButton
-                title={copy['chatBox.tools.more']}
-                tooltip={copy['chatBox.tools.more']}
-                className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
-                ariaExpanded={isToolsMenuOpen}
-                ariaHasPopup="menu"
-                onClick={() => setIsToolsMenuOpen((open) => !open)}
-              >
-                <div className="i-ph:dots-three-outline text-xl" />
-              </IconButton>
-
-              {isToolsMenuOpen ? (
-                <div
-                  className="bolt-chatbox-tools-menu"
-                  role="menu"
-                  aria-label={copy['chatBox.tools.menuAria']}
-                  data-testid="composer-tools-menu"
-                >
-                  <ColorSchemeDialog
-                    designScheme={props.designScheme}
-                    setDesignScheme={props.setDesignScheme}
-                    triggerVariant="menu"
-                  />
-                  <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
-                  <WebSearch
-                    onSearchResult={(result) => props.onWebSearchResult?.(result)}
-                    disabled={props.isStreaming}
-                    triggerVariant="menu"
-                    triggerLabel={copy['chatBox.tools.fetchUrl']}
-                  />
-                  <SupabaseConnection triggerVariant="menu" onOpen={() => setIsToolsMenuOpen(false)} />
-                  <IconButton
-                    title={enhancePromptTitle}
-                    tooltip={enhancePromptTitle}
-                    disabled={props.input.length === 0 || props.enhancingPrompt}
-                    className={classNames('bolt-chatbox-tools-menu-item', props.enhancingPrompt ? 'opacity-100' : '')}
-                    onClick={enhancePrompt}
-                  >
-                    <>
-                      {props.enhancingPrompt ? (
-                        <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-                      ) : (
-                        <div className="i-bolt:stars text-xl"></div>
-                      )}
-                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                        {copy['chatBox.enhance.action']}
-                      </span>
-                    </>
-                  </IconButton>
-
-                  {/* In the IDE the mic is surfaced directly on the composer bar
-                      (Replit parity), so it's omitted from this menu to avoid a
-                      duplicate; the standalone composer keeps it here. */}
-                  {!props.projectIdeMode ? (
-                    <SpeechRecognitionButton
-                      isListening={props.isListening}
-                      onStart={() => {
-                        props.startListening();
-                        setIsToolsMenuOpen(false);
-                      }}
-                      onStop={() => {
-                        props.stopListening();
-                        setIsToolsMenuOpen(false);
-                      }}
-                      disabled={props.isStreaming}
-                      triggerVariant="menu"
-                      triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
-                    />
-                  ) : null}
-
-                  {props.chatStarted && !props.projectIdeMode ? (
-                    <IconButton
-                      title={copy['chatBox.discuss.title']}
-                      tooltip={copy['chatBox.discuss.title']}
-                      className={classNames('bolt-chatbox-tools-menu-item', {
-                        'is-active': props.chatMode === 'discuss',
-                      })}
-                      onClick={toggleChatMode}
-                    >
-                      <>
-                        <div className="i-ph:chats text-xl" />
-                        <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                          {props.chatMode === 'discuss'
-                            ? copy['chatBox.discuss.switchToBuild']
-                            : copy['chatBox.discuss.title']}
-                        </span>
-                      </>
-                    </IconButton>
-                  ) : null}
-
-                  <IconButton
-                    title={settingsToggleTitle}
-                    tooltip={settingsToggleTitle}
-                    data-testid="composer-tools-menu-settings"
-                    className={classNames('bolt-chatbox-tools-menu-item', {
-                      'is-active': props.isModelSettingsCollapsed,
-                    })}
-                    onClick={toggleModelSettings}
-                    disabled={!props.providerList || props.providerList.length === 0}
-                  >
-                    <>
-                      <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                        {settingsToggleTitle}
-                      </span>
-                    </>
-                  </IconButton>
-                </div>
-              ) : null}
-            </div>
+            {props.projectIdeMode ? (
+              <>
+                {agentModeControl}
+                {agentPowerControl ? <span className="bolt-composer-chip-divider" aria-hidden /> : null}
+                {agentPowerControl}
+              </>
+            ) : (
+              <>
+                {attachControl}
+                {micControl}
+                {agentModeControl}
+                {toolsMenuControl}
+              </>
+            )}
           </div>
 
           <div className="bolt-chatbox-toolbar-secondary">
-            <IconButton
-              title={copy['chatBox.shortcuts.title']}
-              tooltip={copy['chatBox.shortcuts.newLine']}
-              tooltipLocked
-              className="bolt-chatbox-toolbar-button bolt-chatbox-toolbar-info"
-            >
-              <div className="i-ph:info text-lg" />
-            </IconButton>
+            {props.projectIdeMode ? (
+              <>
+                {attachControl}
+                {micControl}
+                {toolsMenuControl}
+              </>
+            ) : (
+              <IconButton
+                title={copy['chatBox.shortcuts.title']}
+                tooltip={copy['chatBox.shortcuts.newLine']}
+                tooltipLocked
+                className="bolt-chatbox-toolbar-button bolt-chatbox-toolbar-info"
+              >
+                <div className="i-ph:info text-lg" />
+              </IconButton>
+            )}
             {props.projectIdeMode ? (
               <ClientOnly>
                 {() => (
@@ -816,3 +926,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     </div>
   );
 };
+
+/*
+ * Sur téléphone, une feuille se rend à la racine du gabarit mobile — hors du
+ * composeur et de ses ancêtres qui bornent un élément fixé (feuille-mobile.ts).
+ * Sur bureau, elle reste ancrée à son déclencheur.
+ */
+function porterSurTelephone(menu: React.ReactElement) {
+  const cible = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
+
+  return cible ? createPortal(menu, cible) : menu;
+}

@@ -1,3 +1,4 @@
+import { Mail } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
@@ -6,6 +7,7 @@ import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { Badge } from '~/components/ui/Badge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { EmptyState } from '~/components/ui/EmptyState';
 import {
   apiErrorMessage,
   apiRequest,
@@ -258,8 +260,8 @@ export default function OrganizationInvitationsPage() {
             </p>
           </div>
           {invitations.length === 0 ? (
-            <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">
-              {copy['organizationAccess.invitations.empty']}
+            <div role="status" aria-live="polite" className="p-4 sm:p-6">
+              <EmptyState variant="compact" icon={Mail} title={copy['organizationAccess.invitations.empty']} />
             </div>
           ) : (
             [...invitations]
@@ -278,7 +280,7 @@ export default function OrganizationInvitationsPage() {
                     className="grid gap-3 border-b border-bolt-elements-borderColor px-4 py-4 last:border-b-0 sm:px-6 md:grid-cols-[1fr_auto] md:items-center"
                   >
                     <div className="min-w-0">
-                      <div className="truncate font-medium text-bolt-elements-textPrimary">{invite.email}</div>
+                      <div className="break-all font-medium text-bolt-elements-textPrimary">{invite.email}</div>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
                         <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
                           {roleLabel(invite.roleKey)}
@@ -304,7 +306,7 @@ export default function OrganizationInvitationsPage() {
                         <input type="hidden" name="inviteId" value={invite.id} />
                         <button
                           type="submit"
-                          className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
+                          className="inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
                           aria-label={text(copy['organizationAccess.invitations.resendAria'], {
                             email: invite.email,
                           })}
@@ -325,7 +327,7 @@ export default function OrganizationInvitationsPage() {
                         <input type="hidden" name="inviteId" value={invite.id} />
                         <button
                           type="submit"
-                          className="rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
+                          className="inline-flex min-h-[44px] items-center justify-center whitespace-normal rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
                           aria-label={text(copy['organizationAccess.invitations.expireAria'], {
                             email: invite.email,
                           })}

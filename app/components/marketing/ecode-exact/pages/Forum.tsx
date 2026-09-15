@@ -62,7 +62,8 @@ export default function Forum() {
           <div className="container-responsive">
             <div className="mx-auto max-w-3xl text-center">
               <Users className="mx-auto mb-4 h-12 w-12 text-ecode-accent" aria-hidden="true" />
-              <h1 className="mb-4 break-words text-4xl font-bold leading-tight" data-testid="heading-forum">
+              {/* Échelle h1 des hubs ressources (Help Center / Changelog / Languages) : mkt-h1. */}
+              <h1 className="mkt-h1 mb-4 break-words font-bold [overflow-wrap:anywhere]" data-testid="heading-forum">
                 {copy.hero.title}
               </h1>
               <p className="mb-8 break-words text-[15px] leading-relaxed text-muted-foreground">

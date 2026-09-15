@@ -1,0 +1,41 @@
+{
+  "logicalBarrierId": "bar_0fc19012-3e56-48af-a150-343398032080",
+  "consistencyLevel": "crash-consistent",
+  "consistencyBasis": "niveau du composant le plus faible (FILES) : les écritures API sont gelées sur tous les replicas ; aucun flush applicatif n'est demandé aux écrivains, donc on s'en tient à crash-consistent",
+  "crossComponentAtomic": false,
+  "notClaimed": [
+    "application-consistent",
+    "transaction-consistent"
+  ],
+  "barrierScope": {
+    "apiWritesFrozenAllReplicas": true,
+    "inPodWritersReachable": false,
+    "dbClientWritesReachable": true
+  },
+  "components": [
+    {
+      "componentKind": "FILES",
+      "snapshotId": "snapshot_q6ut4z3olaamsd87lzg",
+      "logicalBarrierId": "bar_0fc19012-3e56-48af-a150-343398032080",
+      "startedAt": "2026-08-03T12:49:27.819Z",
+      "completedAt": "2026-08-03T12:49:27.827Z",
+      "consistencyLevel": "crash-consistent",
+      "consistencyBasis": "les écritures API sont gelées sur tous les replicas ; aucun flush applicatif n'est demandé aux écrivains, donc on s'en tient à crash-consistent",
+      "unfrozenWriters": [],
+      "encryptionKeyVersion": "storage-default",
+      "restoreCompatibility": "project-files-v1",
+      "verified": true,
+      "verificationMethod": "archive-reread-sha256-match"
+    }
+  ],
+  "bestEffortComponents": [],
+  "contentHashes": {
+    "files": "14cd7f18a4a1b41a787f058243256c56ebe845d4cf9fe193a245f15deac272bc"
+  },
+  "restoreCompatibility": {
+    "files": "project-files-v1",
+    "database": "n/a"
+  },
+  "dependenciesDeclared": [],
+  "expiresAt": "2026-09-02T12:49:27.829Z"
+}

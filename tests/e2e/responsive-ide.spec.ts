@@ -1046,7 +1046,7 @@ test.describe('responsive IDE shell', () => {
 
     const toolsSheet = await openMobileToolsSheet(page);
     await expect(toolsSheet).toBeVisible({ timeout: 15_000 });
-    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Publish');
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByTestId('tool-item-commands')).toContainText('Commands');
     await expect(toolsSheet.getByTestId('tool-item-share')).toContainText('Share');
@@ -1074,7 +1074,7 @@ test.describe('responsive IDE shell', () => {
     await expectFloatingSurfaceFitsViewport(page.getByTestId('mobile-more-menu-sheet'), 'tablet more menu', {
       minInteractiveHeight: 44,
     });
-    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Publish');
     await expect(page.getByTestId('mobile-more-menu-object-storage')).toContainText('Object Storage');
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
@@ -1270,13 +1270,18 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide?panel=settings`, { waitUntil: 'domcontentloaded' });
     await expectMobileServicePanel(page, 'settings');
-    await page.getByTestId('ide-panel-actions').click();
 
-    const panelActions = page.locator('.bolt-project-panel-actions-menu').first();
-    await expect(panelActions).toBeVisible({ timeout: 10_000 });
-    await expectFloatingSurfaceFitsViewport(panelActions, 'service panel actions menu', { minInteractiveHeight: 44 });
-    await page.keyboard.press('Escape');
-    await expect(panelActions).toHaveCount(0);
+    /*
+     * AV-UX point 10 — the "Updated …" chip and the ⋮ refresh menu were
+     * removed from every service panel (refresh is automatic). The header
+     * row itself is hidden on mobile: the panel name already lives in the
+     * frozen mobile header.
+     */
+    await expect(page.getByTestId('ide-panel-actions')).toHaveCount(0);
+    await expect(page.getByTestId('ide-panel-updated-at')).toHaveCount(0);
+    await expect(
+      page.locator('.bolt-workbench-mobile-service .bolt-project-service-panel > .bolt-project-ide-panel-header'),
+    ).toBeHidden();
   });
 
   test('mobile and tablet keep AI provider settings controls responsive', async ({ page }, testInfo) => {
@@ -1704,7 +1709,7 @@ createServer((request, response) => {
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
     const toolsSheet = await openMobileToolsSheet(page);
-    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Publish');
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByText('Publishing', { exact: true })).toHaveCount(0);
     await page.keyboard.press('Escape');
@@ -1769,7 +1774,7 @@ createServer((request, response) => {
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
     const toolsSheet = await openMobileToolsSheet(page);
-    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Publish');
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByTestId('tool-item-debugger')).toContainText('Debugger');
     await expect(toolsSheet.getByTestId('tool-item-activity')).toContainText('Activity');
@@ -1816,7 +1821,7 @@ createServer((request, response) => {
 
     await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click();
     await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Publish');
     await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);

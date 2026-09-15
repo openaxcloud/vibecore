@@ -11,6 +11,7 @@ import {
   reseedWorkspacePreservingOnFailure,
   shouldReattachWarmWorkspace,
 } from '~/lib/runtime/workspace-reattach';
+import { archiveFilePaths, clearProjectTreeForReseed } from '~/lib/runtime/workspace-reseed';
 import { readSeedMarker, writeSeedMarker } from '~/lib/runtime/workspace-seed-marker';
 import { workbenchStore } from '~/lib/stores/workbench';
 
@@ -156,6 +157,10 @@ export function ProjectWorkspaceProvider({
          * Signal 1 — marqueur DURABLE. Une `Map` de portée module est vide à
          * chaque chargement de page, donc `seededThisSession` était toujours
          * faux à la réouverture : la réouverture reseedait quoi qu'il arrive.
+         *
+         * Épinglé par `app/lib/runtime/workspace-seed-marker.spec.ts`, qui REJOUE
+         * l'ancien marqueur (« une nouvelle Map par chargement de page ») pour que
+         * le défaut rougisse s’il revient.
          */
         const seedMarker = readSeedMarker(sessionId, Date.now());
         const sessionAlreadySeeded = seedMarker !== undefined;
@@ -257,7 +262,7 @@ export function ProjectWorkspaceProvider({
         if (reattachWarmWorkspace) {
           workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.reattached'));
         } else {
-          await workbenchStore.stopPreviewServer().catch((error) => {
+          await workbenchStore.stopPreviewServer({ raison: 'reseed' }).catch((error) => {
             console.error('Previous preview cleanup failed:', error);
             workbenchStore.appendWorkspaceLog(
               clientStoresServicesText('clientRuntime.workspace.previewCleanupSkipped'),
@@ -279,17 +284,39 @@ export function ProjectWorkspaceProvider({
              * lag — so each remote step retries through that window instead of
              * failing on the first error (which previously tore the pod down).
              */
+            /*
+             * BUG-CREATE-010 — un reseed (typiquement : réouverture sur un
+             * appareil qui n'a pas de marqueur de seed) ne WIPE plus l'arbre.
+             * Les chemins de l'archive canonique sont extraits une fois dans
+             * fetchArchive, puis clearTree ne supprime QUE ce que l'archive ne
+             * couvre pas, en préservant lockfiles/node_modules/.git. Archive
+             * illisible => `undefined` => wipe historique (repli inchangé).
+             */
+            let canonicalArchivePaths: ReadonlySet<string> | undefined;
+
             await reseedWorkspacePreservingOnFailure({
-              fetchArchive: () =>
-                withRuntimeRetry(() => fetchProjectStorageArchive(projectId), {
+              fetchArchive: async () => {
+                const archive = await withRuntimeRetry(() => fetchProjectStorageArchive(projectId), {
                   attempts: 5,
                   baseDelayMs: 1500,
-                }),
+                });
+
+                canonicalArchivePaths = await archiveFilePaths(archive);
+
+                return archive;
+              },
               clearTree: () =>
-                clearRuntimeProjectTree(runtime).catch((error) => {
-                  console.error('Project workspace cleanup failed:', error);
-                  workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'));
-                }),
+                clearProjectTreeForReseed(runtime, canonicalArchivePaths)
+                  .then((outcome) => {
+                    // Trace permanente : même rôle que la trace de la décision de reattach.
+                    console.info('[workspace] reseed clear', outcome);
+                  })
+                  .catch((error) => {
+                    console.error('Project workspace cleanup failed:', error);
+                    workbenchStore.appendWorkspaceLog(
+                      clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'),
+                    );
+                  }),
               applyArchive: (archive) =>
                 withRuntimeRetry(() => applyProjectStorageArchive(runtime, archive), {
                   attempts: 5,
@@ -452,7 +479,22 @@ export function ProjectWorkspaceProvider({
         clearInterval(heartbeat);
       }
 
-      void workbenchStore.stopPreviewServer().catch(() => undefined);
+      /*
+       * LE DEMONTAGE N'EST PAS UN ORDRE D'ARRET.
+       *
+       * Ce nettoyage s'execute au demontage — rechargement, changement de route,
+       * StrictMode, fermeture d'onglet. Sur Safari iOS, quitter la page suffit,
+       * et le serveur de dev d'Avi mourait la (mesure du 2026-09-08 : PID 1031
+       * vivant, page fermee, disparu en moins de cinq minutes alors que la
+       * fenetre de grace est a dix). Le commentaire ci-dessous protegeait deja
+       * le POD contre exactement ce piege ; il manquait au processus qu'il
+       * heberge.
+       *
+       * On DECLARE la raison au lieu de supprimer l'appel : `stopPreviewServer`
+       * journalise son abstention, de sorte qu'un serveur qui survit ne
+       * ressemble pas a un serveur qu'on a oublie de tuer.
+       */
+      void workbenchStore.stopPreviewServer({ raison: 'demontage' }).catch(() => undefined);
 
       /*
        * Do NOT tear the remote workspace down on unmount. A reload / route
@@ -538,14 +580,6 @@ function formatProjectApiError(message: string) {
   }
 
   return clientStoresServicesText('clientRuntime.workspace.projectApiFailed');
-}
-
-async function clearRuntimeProjectTree(runtime: RuntimeAdapter) {
-  const nodes = await runtime.listFiles('.').catch(() => []);
-
-  for (const node of nodes) {
-    await runtime.deleteFile(node.path);
-  }
 }
 
 async function stopRemoteWorkspace(runtime: RuntimeAdapter, workspaceId: string) {

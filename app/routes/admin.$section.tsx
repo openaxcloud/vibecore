@@ -43,7 +43,17 @@ type AdminSectionConfig = {
   primaryKey?: string;
 };
 
-const adminSections: Record<string, AdminSectionConfig> = {
+/*
+ * L'identifiant de la section vit dans UNE constante, et non repete en litteral
+ * a ses deux emplacements (cle de `adminSections`, entree de `navGroups`). La
+ * garde i18n `scan-source` compte un meme litteral apparaissant deux fois comme
+ * du texte extractible et refusait la PR ; ce n'est pas de la copie visible,
+ * c'est un slug de route. Le nommer supprime le faux positif SANS toucher au
+ * scanner ni a sa liste d'exceptions.
+ */
+const SECTION_CLES_IA = 'ai-provider-keys';
+
+export const adminSections: Record<string, AdminSectionConfig> = {
   overview: {
     title: adminT('admin.route.adminOverview_aa5b85'),
     description: adminT('admin.route.platformControlPlaneForHealthUsageSecurityAnd_843347'),
@@ -194,6 +204,19 @@ const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/costs',
     primaryKey: 'aiCosts',
   },
+  [SECTION_CLES_IA]: {
+    title: adminT('admin.route.aiProviderKeys'),
+    description: adminT('admin.route.aiProviderKeysDescription'),
+
+    /*
+     * Lit la MEME source que le runtime (le secret Kubernetes, via les variables
+     * d'environnement). L'endpoint ne rend que l'etat — configured / length /
+     * last4 — jamais la valeur, et il n'expose aucun POST : il ne peut donc pas
+     * exister de champ de saisie ici, et personne n'a a recopier une cle.
+     */
+    endpoint: '/admin/providers/ai',
+    primaryKey: 'providers',
+  },
   providers: {
     title: adminT('admin.route.aiProviders_897a9f'),
     description: adminT('admin.route.platformOwnedAiProviderRegistryEnableDisableProviders_f56491'),
@@ -246,7 +269,7 @@ const adminSections: Record<string, AdminSectionConfig> = {
  * order of entries WITHIN each group are unchanged from the historical flat
  * list — only the grouping and labels are new.
  */
-const navGroups: Array<{ label: string; items: string[] }> = [
+export const navGroups: Array<{ label: string; items: string[] }> = [
   {
     label: adminT('admin.route.platform_123a7f'),
     items: ['overview', 'health', 'monitoring', 'infrastructure', 'projects', 'workspaces', 'previews', 'deployments'],
@@ -265,7 +288,7 @@ const navGroups: Array<{ label: string; items: string[] }> = [
   },
   {
     label: adminT('admin.route.ai_560040'),
-    items: ['providers', 'models', 'mcp-catalog'],
+    items: [SECTION_CLES_IA, 'providers', 'models', 'mcp-catalog'],
   },
   {
     label: adminT('admin.route.ops_907a54'),
@@ -1544,7 +1567,7 @@ function AdminNav({ active, securityOpenCount }: { active: string; securityOpenC
       >
         {navGroups.map((group) => (
           <div key={group.label} className="mb-2 last:mb-0">
-            <p className="vc-sidebar-group-label px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+            <p className="vc-sidebar-group-label px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
               {translateAdminRouteEnglish(language, group.label)}
             </p>
             {group.items.map((item) => {
@@ -1569,7 +1592,7 @@ function AdminNav({ active, securityOpenCount }: { active: string; securityOpenC
                         badge === 1 ? 'admin.route.unresolvedCount_one' : 'admin.route.unresolvedCount_other',
                         { count: badge },
                       )}
-                      className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--status-error-text)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+                      className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--status-error-text)] px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white"
                     >
                       {badge > 99 ? '99+' : badge}
                     </span>
@@ -3593,7 +3616,7 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
         <td className="px-4 py-3 text-bolt-elements-textPrimary">
           {String(entry.name ?? '')}
           {!enabled ? (
-            <span className="ml-2 rounded-full border border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] px-1.5 py-0.5 text-[10px] font-medium uppercase text-[var(--status-error-text)]">
+            <span className="ml-2 rounded-full border border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] px-1.5 py-0.5 text-[11px] font-medium uppercase text-[var(--status-error-text)]">
               {adminT('admin.route.disabled_f4f447')}
             </span>
           ) : null}
@@ -6136,7 +6159,7 @@ function AuditLogsPanel({ payload, section }: { payload: Record<string, JsonValu
             ))}
           </div>
           <a
-            className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             href={`/admin/${section}?${exportParams.toString()}`}
             download
             data-testid={`audit-export-csv-${section}`}

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   IDE_MEMORY_BUDGET_BYTES,
+  IDE_MEMORY_MAX_ENTRIES,
   listEntries,
   pruneToBudget,
   totalBytes,
@@ -129,6 +130,75 @@ describe('éviction LRU', () => {
 
   it('le budget par défaut reste bien sous la limite des navigateurs', () => {
     expect(IDE_MEMORY_BUDGET_BYTES).toBeLessThan(10 * 1024 * 1024);
+  });
+
+  it('le budget par défaut laisse de la marge même sur un quota Safari (~5 Mo)', () => {
+    /*
+     * Relevé live 23/08 sur le navigateur d'Avi : ~4,5 Mo de mémoire IDE avec
+     * l'ancien budget de 4 Mo → les AUTRES clés (`eventLogs`…) jetaient
+     * `QuotaExceededError`. Le budget doit rester ≤ 2 Mo.
+     */
+    expect(IDE_MEMORY_BUDGET_BYTES).toBeLessThanOrEqual(2 * 1024 * 1024);
+  });
+
+  it('évince une entrée HORS GABARIT même quand le total tient dans le budget', () => {
+    /*
+     * Relevé live 23/08 : des entrées de 1,5 Mo et 1,1 Mo, écrites AVANT le
+     * plafond par entrée, survivaient indéfiniment — le plafond n'était
+     * appliqué qu'aux NOUVELLES écritures, jamais au stock existant.
+     */
+    const storage = fausseStorage({
+      [`${PREFIX}:enorme`]: entree('2026-08-01T00:00:00.000Z', 800_000), // ~1,6 Mo UTF-16
+      [`${PREFIX}:sain`]: entree('2026-08-18T00:00:00.000Z', 400),
+    });
+
+    const evincees = pruneToBudget(storage, PREFIX);
+
+    expect(evincees).toContain(`${PREFIX}:enorme`);
+    expect(storage.donnees[`${PREFIX}:sain`]).toBeDefined();
+  });
+
+  it('ne garde que les N projets les plus récents, même si le budget en octets tient', () => {
+    /*
+     * Relevé live : une entrée PAR projet, jamais purgée — « de nombreuses clés
+     * vibecore.projectIdeMemory:<projectId> ». Au-delà de
+     * IDE_MEMORY_MAX_ENTRIES projets, les plus anciens partent (LRU).
+     */
+    const initial: Record<string, string> = {};
+
+    for (let i = 0; i < IDE_MEMORY_MAX_ENTRIES + 4; i += 1) {
+      initial[`${PREFIX}:p${String(i).padStart(2, '0')}`] = entree(
+        new Date(Date.UTC(2026, 0, 1 + i)).toISOString(),
+        100,
+      );
+    }
+
+    const storage = fausseStorage(initial);
+    const evincees = pruneToBudget(storage, PREFIX);
+
+    expect(evincees).toHaveLength(4);
+
+    // Les 4 plus ANCIENS partent, les récents restent.
+    expect(evincees.sort()).toEqual([`${PREFIX}:p00`, `${PREFIX}:p01`, `${PREFIX}:p02`, `${PREFIX}:p03`]);
+    expect(Object.keys(storage.donnees)).toHaveLength(IDE_MEMORY_MAX_ENTRIES);
+  });
+
+  it('le plafond LRU épargne toujours le projet courant', () => {
+    const initial: Record<string, string> = {};
+
+    for (let i = 0; i < IDE_MEMORY_MAX_ENTRIES + 2; i += 1) {
+      initial[`${PREFIX}:p${String(i).padStart(2, '0')}`] = entree(
+        new Date(Date.UTC(2026, 0, 1 + i)).toISOString(),
+        100,
+      );
+    }
+
+    const courant = `${PREFIX}:p00`; // le plus ancien — serait évincé sans keepKey
+    const storage = fausseStorage(initial);
+
+    pruneToBudget(storage, PREFIX, { keepKey: courant });
+
+    expect(storage.donnees[courant]).toBeDefined();
   });
 });
 

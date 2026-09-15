@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
+import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
@@ -25,7 +26,6 @@ import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote
 import { ReconnectionRequiredBanner } from './connector-cards/ReconnectionRequiredBanner';
 import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
-import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
 import {
   formatAssistantCost,
@@ -38,6 +38,8 @@ import {
   selectAssistantMessagePlural,
 } from '~/lib/i18n/catalogs/assistant-message';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
+import { cheminsEcritsParLesLanes } from '~/lib/runtime/agent-lane-writes';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
@@ -60,6 +62,13 @@ export interface AssistantMessageProps {
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+
+  /*
+   * RP-CKPT-01 — dans l'IDE projet, les puces « Léger · ×0.5 » et « 12,4 k
+   * jetons » sont remplacées par le bloc « Worked for … » (FinDeTour) rendu
+   * par la liste des messages ; on ne les pose pas deux fois.
+   */
+  masquerLesPuces?: boolean;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -100,6 +109,7 @@ export const AssistantMessage = memo(
     provider,
     parts,
     addToolResult,
+    masquerLesPuces = false,
   }: AssistantMessageProps) => {
     const { i18n } = useTranslation();
     const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
@@ -139,6 +149,25 @@ export const AssistantMessage = memo(
     const agentExecution = filteredAnnotations.find((annotation) => annotation.type === 'agentExecution') as
       | Extract<ContextAnnotation, { type: 'agentExecution' }>
       | undefined;
+
+    /*
+     * L'ÉCART ENTRE CE QUI A ÉTÉ ANNONCÉ ET CE QUI A ÉTÉ ÉCRIT.
+     *
+     * Mesuré sur les chemins que l'arbitre a réellement attribués — donc sur
+     * des actions APPLIQUÉES — et jamais sur une seconde déclaration des rôles.
+     * C'est toute la différence : le 2026-09-07, quatre rapports se disaient
+     * « complete » pour 90 chemins dont 9 seulement existaient.
+     *
+     * On n'affiche l'avertissement qu'une fois le résultat agrégé arrivé : en
+     * cours de flux, un fichier « manquant » est simplement un fichier pas
+     * encore écrit, et le signaler ferait clignoter une alerte fausse.
+     */
+    const ecartsIncomplets = ecartsAAvertir(
+      agentExecution?.results,
+      messageId ? cheminsEcritsParLesLanes(messageId) : undefined,
+      Boolean(agentExecution && messageId),
+    );
+
     const agentMemory = filteredAnnotations.find((annotation) => annotation.type === 'agentMemory') as
       | Extract<ContextAnnotation, { type: 'agentMemory' }>
       | undefined;
@@ -305,13 +334,48 @@ export const AssistantMessage = memo(
         typeof (annotation.payload as { kind?: unknown }).kind === 'string',
     ) as Array<{ type: 'connector'; payload: import('~/lib/chat/connector-messages').ConnectorAgentMessage }>;
 
+    const menuContextuel = useMenuContextuelDeMessage(messageId ? `assistant:${messageId}` : undefined);
+
     return (
-      <div className="bolt-assistant-message overflow-hidden w-full">
+      <div
+        className="bolt-assistant-message overflow-hidden w-full"
+        ref={menuContextuel.ancre as React.RefObject<HTMLDivElement>}
+        data-menu-contextuel="true"
+        {...menuContextuel.gestes}
+        onKeyDown={menuContextuel.onKeyDown}
+      >
+        {/*
+          CIBLE VISIBLE, SANS COUT AU REPOS.
+          Un appui long est invisible tant qu'on ne l'a pas decouvert. Ce
+          chevron rend la fonction trouvable pour qui ne connait pas le geste,
+          et il ne coute rien a la densite : `position: absolute`, donc il ne
+          pousse jamais le texte a l'apparition — un element qui deplace la
+          mise en page au survol est un defaut visuel a lui seul.
+          Il n'apparait qu'au survol (souris) ou au focus (clavier) ; au doigt,
+          l'appui long suffit, comme sur WhatsApp.
+        */}
+        <button
+          type="button"
+          className="bolt-message-menu-trigger"
+          aria-label={copy['assistantMessage.footer.group']}
+          aria-haspopup="menu"
+          onClick={(evenement) => {
+            const boite = evenement.currentTarget.getBoundingClientRect();
+            menuContextuel.ouvrirEn(boite.left, boite.bottom);
+          }}
+        >
+          <span aria-hidden>⋯</span>
+        </button>
         <>
-          <div className="bolt-assistant-message-mobile-head" aria-hidden>
-            <span className="i-ph:sparkle" />
-            <strong>{copy['assistantMessage.agent']}</strong>
-          </div>
+          {/*
+            Le bandeau « Agent » se répétait au-dessus de CHAQUE réponse, avec un
+            fond plein, et il était `aria-hidden` — donc du bruit visuel qui
+            n'apportait rien à un lecteur d'écran non plus. L'auteur se lit déjà
+            sans lui : le message de l'utilisateur est une bulle teintée alignée
+            à droite, celui de l'agent du texte pleine largeur. On garde
+            l'information pour les lecteurs d'écran, on retire le bandeau.
+          */}
+          <span className="vc-sr-only">{copy['assistantMessage.agent']}</span>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
             {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) && (
               <Popover
@@ -325,8 +389,16 @@ export const AssistantMessage = memo(
                     type="button"
                     className="bolt-message-context-trigger"
                     aria-label={copy['assistantMessage.context.show']}
+                    title={copy['assistantMessage.context.show']}
                   >
                     <span className="i-ph:info" aria-hidden />
+                    {/*
+                     * Le déclencheur n'était qu'une icône « i » posée seule sur
+                     * sa ligne : rien n'indiquait ce qu'elle ouvrait. Le libellé
+                     * devient visible — l'aria-label seul ne sert que ceux qui
+                     * n'ont justement pas besoin de deviner.
+                     */}
+                    <span className="bolt-message-context-trigger-label">{copy['assistantMessage.context.label']}</span>
                   </button>
                 }
               >
@@ -378,7 +450,7 @@ export const AssistantMessage = memo(
                                 {memory.tags.map((tag) => (
                                   <span
                                     key={tag}
-                                    className="rounded border border-bolt-elements-borderColor px-1 py-0.5 text-[10px] text-bolt-elements-textSecondary"
+                                    className="rounded border border-bolt-elements-borderColor px-1 py-0.5 text-[11px] text-bolt-elements-textSecondary"
                                   >
                                     {tag}
                                   </span>
@@ -413,7 +485,7 @@ export const AssistantMessage = memo(
                         {agentRules.files.map((path) => (
                           <span
                             key={path}
-                            className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] font-medium text-bolt-elements-textSecondary"
+                            className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] font-medium text-bolt-elements-textSecondary"
                           >
                             {path}
                           </span>
@@ -457,15 +529,15 @@ export const AssistantMessage = memo(
                               <span
                                 className={
                                   agentExecution.consensus.outcome === 'ACCEPTED'
-                                    ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    ? 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                     : agentExecution.consensus.outcome === 'REJECTED'
-                                      ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-[var(--status-error-text)]'
-                                      : 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      ? 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-[var(--status-error-text)]'
+                                      : 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
                                 }
                               >
                                 {localizeAssistantEnum(copy, 'outcome', agentExecution.consensus.outcome)}
                               </span>
-                              <span className="text-[10px] text-bolt-elements-textTertiary">
+                              <span className="text-[11px] text-bolt-elements-textTertiary">
                                 {text(
                                   selectAssistantMessagePlural(
                                     copy,
@@ -520,11 +592,11 @@ export const AssistantMessage = memo(
                                       }
                                       aria-label={localizeAssistantEnum(copy, 'decision', vote.decision)}
                                     />
-                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
+                                    <span className="font-mono text-[11px] text-bolt-elements-textTertiary">
                                       [{localizeAssistantEnum(copy, 'voteType', vote.type)}]
                                     </span>{' '}
                                     {vote.claim}{' '}
-                                    <span className="text-[10px] text-bolt-elements-textTertiary">
+                                    <span className="text-[11px] text-bolt-elements-textTertiary">
                                       ({vote.supporters.length}/{vote.supporters.length + vote.dissenters.length})
                                     </span>
                                   </li>
@@ -563,7 +635,7 @@ export const AssistantMessage = memo(
                                         severity: localizeAssistantEnum(copy, 'severity', conflict.severity),
                                       })}
                                     />
-                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
+                                    <span className="font-mono text-[11px] text-bolt-elements-textTertiary">
                                       [{localizeAssistantEnum(copy, 'conflictType', conflict.type)}]
                                     </span>{' '}
                                     {conflict.description}
@@ -732,7 +804,7 @@ export const AssistantMessage = memo(
                           ) : (
                             <span className="mt-[1px] shrink-0 text-bolt-elements-textTertiary">{index + 1}.</span>
                           )}
-                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
+                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
                             {localizeAssistantEnum(copy, 'role', task.roleId)}
                           </span>
                           <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">
@@ -792,6 +864,46 @@ export const AssistantMessage = memo(
                       : copy['assistantMessage.lanes.finalizing']}
                 </span>
               </div>
+              {/*
+                 LIVRAISON INCOMPLÈTE, NOMMÉE.
+              
+                 Un rôle qui tombe laisse une application à moitié cohérente : elle
+                 *paraît* finie, elle ne démarre pas, et rien ne dit ce qui manque.
+                 C'est l'espèce dangereuse — le défaut du 2026-09-07 était honnête par
+                 accident (9 fichiers sur 90, l'écart sautait aux yeux) ; 60 sur 90 se
+                 diagnostiquerait beaucoup plus longtemps.
+              
+                 L'écart se mesure sur les chemins RÉELLEMENT écrits — les attributions
+                 de l'arbitre — jamais sur une seconde déclaration des rôles : un
+                 rapport qui se dit complet ne prouve rien sur le disque.
+              */}
+              {ecartsIncomplets.length > 0 && (
+                <div
+                  className="mb-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 text-[11px] text-bolt-elements-textSecondary"
+                  data-testid="agent-lanes-shortfall"
+                >
+                  <div className="mb-1 flex items-center gap-1.5 font-medium text-bolt-elements-textPrimary">
+                    <span className="i-ph:warning-circle" aria-hidden />
+                    <span>{copy['assistantMessage.lanes.shortfallTitle']}</span>
+                  </div>
+                  {ecartsIncomplets.map((ecart) => (
+                    <div key={ecart.roleId} className="mt-1">
+                      <div>
+                        {text(copy['assistantMessage.lanes.shortfallRole'], {
+                          role: ecart.roleId,
+                          written: String(ecart.ecrits),
+                          announced: String(ecart.annonces),
+                        })}
+                      </div>
+                      {ecart.manquants.length > 0 && (
+                        <div className="break-words opacity-80">
+                          {text(copy['assistantMessage.lanes.shortfallMissing'], { files: ecart.manquants.join(', ') })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
                 {lanePanelRoles.map((role) => {
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
@@ -918,7 +1030,7 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
-        {agentModeChipText ? (
+        {agentModeChipText && !masquerLesPuces ? (
           <div
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary"
             style={{ fontFamily: 'var(--vc-font-code)' }}
@@ -928,7 +1040,7 @@ export const AssistantMessage = memo(
             {agentModeChipText}
           </div>
         ) : null}
-        {usageChipText ? (
+        {usageChipText && !masquerLesPuces ? (
           <Link
             to="/usage"
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textSecondary"
@@ -943,7 +1055,21 @@ export const AssistantMessage = memo(
             {usageChipText}
           </Link>
         ) : null}
-        <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        {/*
+          La rangée d'actions n'est plus posée sous chaque message : c'est
+          exactement ce qu'Avi entoure en rouge sur ses captures — « pourquoi
+          perdre tant de place dans les bubbles ». Ce sont les MÊMES boutons,
+          les mêmes gestionnaires et les mêmes libellés, déplacés dans le menu
+          contextuel : appui long au doigt, clic droit à la souris.
+        */}
+        <MenuContextuel
+          ouvert={menuContextuel.ouvert}
+          position={menuContextuel.position}
+          fermer={menuContextuel.fermer}
+          etiquette={copy['assistantMessage.footer.group']}
+        >
+          <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        </MenuContextuel>
       </div>
     );
   },
@@ -1085,66 +1211,63 @@ function AssistantMessageFooter({
 
   return (
     <div className="bolt-assistant-message-footer" role="group" aria-label={copy['assistantMessage.footer.group']}>
-      <WithTooltip tooltip={copied ? copy['assistantMessage.footer.copied'] : copy['assistantMessage.footer.copy']}>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.copy']}
+        className="bolt-assistant-message-action"
+        data-copied={copied ? 'true' : 'false'}
+        onClick={copyMarkdown}
+      >
+        <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+        <span className="bolt-message-action-label">
+          {copied ? copy['assistantMessage.footer.copied'] : copy['assistantMessage.footer.copy']}
+        </span>
+      </button>
+      {onRewind && messageId ? (
         <button
           type="button"
-          aria-label={copy['assistantMessage.footer.copy']}
+          aria-label={copy['assistantMessage.footer.regenerate']}
           className="bolt-assistant-message-action"
-          data-copied={copied ? 'true' : 'false'}
-          onClick={copyMarkdown}
+          onClick={() => onRewind(messageId)}
         >
-          <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+          <span className="i-ph:arrow-counter-clockwise" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.regenerate']}</span>
         </button>
-      </WithTooltip>
-      {onRewind && messageId ? (
-        <WithTooltip tooltip={copy['assistantMessage.footer.regenerate']}>
-          <button
-            type="button"
-            aria-label={copy['assistantMessage.footer.regenerate']}
-            className="bolt-assistant-message-action"
-            onClick={() => onRewind(messageId)}
-          >
-            <span className="i-ph:arrow-counter-clockwise" aria-hidden />
-          </button>
-        </WithTooltip>
       ) : null}
       {onFork && messageId ? (
-        <WithTooltip tooltip={copy['assistantMessage.footer.forkTooltip']}>
-          <button
-            type="button"
-            aria-label={copy['assistantMessage.footer.forkAria']}
-            className="bolt-assistant-message-action"
-            onClick={() => onFork(messageId)}
-          >
-            <span className="i-ph:pencil-simple" aria-hidden />
-          </button>
-        </WithTooltip>
+        <button
+          type="button"
+          aria-label={copy['assistantMessage.footer.forkAria']}
+          className="bolt-assistant-message-action"
+          onClick={() => onFork(messageId)}
+        >
+          <span className="i-ph:pencil-simple" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.forkTooltip']}</span>
+        </button>
       ) : null}
       <span className="bolt-assistant-message-action-divider" aria-hidden />
-      <WithTooltip tooltip={copy['assistantMessage.footer.helpful']}>
-        <button
-          type="button"
-          aria-label={copy['assistantMessage.footer.helpfulAria']}
-          aria-pressed={feedback === 'up'}
-          className="bolt-assistant-message-action"
-          data-active={feedback === 'up' ? 'true' : 'false'}
-          onClick={() => toggleFeedback('up')}
-        >
-          <span className="i-ph:thumbs-up" aria-hidden />
-        </button>
-      </WithTooltip>
-      <WithTooltip tooltip={copy['assistantMessage.footer.improve']}>
-        <button
-          type="button"
-          aria-label={copy['assistantMessage.footer.improveAria']}
-          aria-pressed={feedback === 'down'}
-          className="bolt-assistant-message-action"
-          data-active={feedback === 'down' ? 'true' : 'false'}
-          onClick={() => toggleFeedback('down')}
-        >
-          <span className="i-ph:thumbs-down" aria-hidden />
-        </button>
-      </WithTooltip>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.helpfulAria']}
+        aria-pressed={feedback === 'up'}
+        className="bolt-assistant-message-action"
+        data-active={feedback === 'up' ? 'true' : 'false'}
+        onClick={() => toggleFeedback('up')}
+      >
+        <span className="i-ph:thumbs-up" aria-hidden />
+        <span className="bolt-message-action-label">{copy['assistantMessage.footer.helpful']}</span>
+      </button>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.improveAria']}
+        aria-pressed={feedback === 'down'}
+        className="bolt-assistant-message-action"
+        data-active={feedback === 'down' ? 'true' : 'false'}
+        onClick={() => toggleFeedback('down')}
+      >
+        <span className="i-ph:thumbs-down" aria-hidden />
+        <span className="bolt-message-action-label">{copy['assistantMessage.footer.improve']}</span>
+      </button>
     </div>
   );
 }

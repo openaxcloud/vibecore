@@ -1,5 +1,13 @@
 {
   "en": {
+    "docs-copilot": {
+      "name": "Docs Copilot",
+      "description": "A support assistant that answers from your documentation and shows its work. Ask a question, inspect the cited source, disable stale articles, and escalate safely when the knowledge base has no answer."
+    },
+    "neon-trivia-arena": {
+      "name": "Neon Trivia Arena",
+      "description": "Challenge a live room across six fast trivia rounds. Build a combo, spend your 50:50 lifeline wisely, climb the leaderboard and return to beat your best score."
+    },
     "vendor-risk-review": {
       "name": "Vendor Risk Review",
       "description": "Every new vendor is a risk nobody has time to assess. Score them in five minutes, route approval to the right level, and pull the audit trail the day the regulator asks for it."
@@ -58,6 +66,14 @@
     }
   },
   "fr": {
+    "docs-copilot": {
+      "name": "Docs Copilot",
+      "description": "Un assistant d’assistance qui répond à partir de votre documentation et cite ses sources. Posez une question, examinez le document utilisé, désactivez les articles obsolètes et transmettez à un spécialiste lorsqu’aucune réponse n’est vérifiable."
+    },
+    "neon-trivia-arena": {
+      "name": "Neon Trivia Arena",
+      "description": "Défiez une salle entière en six manches rapides. Enchaînez les bonnes réponses, utilisez judicieusement votre joker 50:50, grimpez au classement et revenez battre votre meilleur score."
+    },
     "vendor-risk-review": {
       "name": "Vendor Risk Review",
       "description": "Chaque nouveau fournisseur représente un risque que personne n’a le temps d’évaluer. Attribuez-lui un score en cinq minutes, dirigez l’approbation vers le bon niveau et retrouvez la piste d’audit dès que le régulateur la demande."

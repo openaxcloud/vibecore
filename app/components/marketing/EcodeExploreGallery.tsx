@@ -73,7 +73,7 @@ function CategoryChip({
       className={classNames(
         'inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-4 text-[13px] font-semibold transition',
         active
-          ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+          ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
           : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-text)]',
       )}
     >

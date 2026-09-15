@@ -5,6 +5,7 @@ import {
   firstOrganization,
   firstOrganizationOrNull,
   loginRedirectFromRequest,
+  requireAuthenticatedUser,
   safeReturnTo,
 } from './enterprise-api.server';
 
@@ -387,6 +388,100 @@ describe('loginRedirectFromRequest', () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get('Location')).toBe('/login');
+  });
+});
+
+/*
+ * BUG-AUTH-001 — la garde EXPLICITE, testée sur ses trois chemins.
+ *
+ * Ce qu'elle remplace : sur les 29 routes de `USER_AREA_ROUTE_PREFIXES`, la
+ * fermeture était un EFFET DE BORD de la récupération de données — `apiRequest`
+ * lève la redirection sur un 401 de navigation. Les deux seules routes dont le
+ * loader ne lit aucune donnée serveur n'étaient donc protégées par rien.
+ */
+describe('requireAuthenticatedUser', () => {
+  let apiBaseUrlOriginal: string | undefined;
+
+  beforeEach(() => {
+    apiBaseUrlOriginal = process.env.API_BASE_URL;
+    delete process.env.SAAS_API_URL;
+    process.env.API_BASE_URL = 'https://api.example.com';
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+
+    if (apiBaseUrlOriginal === undefined) {
+      delete process.env.API_BASE_URL;
+    } else {
+      process.env.API_BASE_URL = apiBaseUrlOriginal;
+    }
+  });
+
+  const jete = async (execution: Promise<unknown>) =>
+    execution.then(
+      () => undefined,
+      (error: unknown) => error,
+    );
+
+  it('renvoie un visiteur sans cookie vers /login SANS toucher au réseau', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const leve = await jete(requireAuthenticatedUser(new Request('https://app.example.com/workspace-settings')));
+
+    expect(leve).toBeInstanceOf(Response);
+    expect((leve as Response).status).toBe(302);
+    expect((leve as Response).headers.get('Location')).toBe(
+      `/login?returnTo=${encodeURIComponent('/workspace-settings')}`,
+    );
+
+    /*
+     * Une page qui n'avait AUCUNE dépendance serveur ne doit pas en gagner une
+     * juste pour dire « va te connecter » au cas le plus courant.
+     */
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('renvoie vers /login quand le cookie porte un jeton que l’API refuse', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ error: 'UNAUTHORIZED', code: 'AUTH_REQUIRED' }), {
+            status: 401,
+            headers: { 'content-type': 'application/json' },
+          }),
+      ),
+    );
+
+    const leve = await jete(
+      requireAuthenticatedUser(
+        new Request('https://app.example.com/desktop-settings', { headers: { cookie: 'vc_session=perime' } }),
+      ),
+    );
+
+    expect(leve).toBeInstanceOf(Response);
+    expect((leve as Response).status).toBe(302);
+  });
+
+  it('laisse passer une session valide, en interrogeant bien /auth/me', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ user: { id: 'u_1' } }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(
+      requireAuthenticatedUser(
+        new Request('https://app.example.com/workspace-settings', { headers: { cookie: 'vc_session=valide' } }),
+      ),
+    ).resolves.toEqual({ id: 'u_1' });
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.example.com/auth/me', expect.anything());
   });
 });
 

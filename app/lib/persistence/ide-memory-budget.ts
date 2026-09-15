@@ -21,11 +21,27 @@
  *      a fallu faire à la main en production.
  */
 
-/** Budget global, en octets. Bien sous les ~10 Mo des navigateurs, marge pour les autres clés. */
-export const IDE_MEMORY_BUDGET_BYTES = 4 * 1024 * 1024;
+/**
+ * Budget global, en octets.
+ *
+ * Abaissé de 4 Mo à 2 Mo le 23/08 : relevé live sur le navigateur d'Avi —
+ * `localStorage` à ~4,5 Mo, dominé par les entrées de mémoire IDE, et
+ * `QuotaExceededError` sur l'écriture d'`eventLogs`. Safari (surtout iOS, où
+ * Avi teste) plafonne autour de ~5 Mo par origine : un budget de 4 Mo laissait
+ * la mémoire IDE consommer presque tout le quota et faisait échouer les AUTRES
+ * clés. 2 Mo laissent une vraie marge quel que soit le navigateur.
+ */
+export const IDE_MEMORY_BUDGET_BYTES = 2 * 1024 * 1024;
 
 /** Plafond par projet : au-delà, une seule entrée pourrait manger tout le budget. */
-export const IDE_MEMORY_ENTRY_CAP_BYTES = 1024 * 1024;
+export const IDE_MEMORY_ENTRY_CAP_BYTES = 512 * 1024;
+
+/**
+ * Nombre maximal de projets gardés en mémoire IDE locale (LRU). Relevé live :
+ * une entrée PAR projet jamais ouverte à nouveau, accumulée pour toujours.
+ * Au-delà de N projets récents, les plus anciens n'apportent plus rien.
+ */
+export const IDE_MEMORY_MAX_ENTRIES = 16;
 
 /** Le sous-ensemble de `Storage` réellement utilisé — facilite l'injection en test. */
 export interface BudgetStorage {
@@ -92,22 +108,48 @@ export function totalBytes(entries: readonly StoredEntry[]): number {
 }
 
 /**
- * Ramène le stockage sous le budget en évinçant les entrées les moins récemment
- * mises à jour. `keepKey` est toujours épargnée. Renvoie les clés évincées.
+ * Ramène le stockage sous les trois plafonds — taille par entrée, nombre
+ * d'entrées, budget global — en évinçant les entrées les moins récemment mises
+ * à jour. `keepKey` est toujours épargnée. Renvoie les clés évincées.
+ *
+ * Le plafond PAR ENTRÉE est appliqué ici aussi (pas seulement à l'écriture) :
+ * relevé live du 23/08 — des entrées de 1,5 Mo et 1,1 Mo, écrites AVANT
+ * l'introduction du plafond, survivaient indéfiniment tant que le total restait
+ * sous le budget, et maintenaient le stockage au bord du quota.
  */
 export function pruneToBudget(
   storage: BudgetStorage,
   prefix: string,
-  options: { budgetBytes?: number; keepKey?: string } = {},
+  options: { budgetBytes?: number; keepKey?: string; entryCapBytes?: number; maxEntries?: number } = {},
 ): string[] {
   const budget = options.budgetBytes ?? IDE_MEMORY_BUDGET_BYTES;
-  const entrees = listEntries(storage, prefix);
+  const entryCap = options.entryCapBytes ?? IDE_MEMORY_ENTRY_CAP_BYTES;
+  const maxEntries = options.maxEntries ?? IDE_MEMORY_MAX_ENTRIES;
 
-  let total = totalBytes(entrees);
+  let entrees = listEntries(storage, prefix);
 
-  if (total <= budget) {
-    return [];
-  }
+  const evincees: string[] = [];
+
+  const evincer = (entree: StoredEntry): boolean => {
+    try {
+      storage.removeItem(entree.key);
+      evincees.push(entree.key);
+
+      return true;
+    } catch {
+      // Un retrait refusé ne doit pas interrompre la purge des suivantes.
+      return false;
+    }
+  };
+
+  // 1. Entrées hors gabarit — héritées d'avant le plafond d'écriture.
+  entrees = entrees.filter((entree) => {
+    if (entree.key !== options.keepKey && entree.bytes > entryCap) {
+      return !evincer(entree);
+    }
+
+    return true;
+  });
 
   /*
    * Les plus anciennes d'abord. À égalité de date — entrées sans `updatedAt` —
@@ -118,19 +160,33 @@ export function pruneToBudget(
     .filter((entree) => entree.key !== options.keepKey)
     .sort((a, b) => a.updatedAt - b.updatedAt || b.bytes - a.bytes);
 
-  const evincees: string[] = [];
+  // 2. LRU : au-delà de `maxEntries` projets, les plus anciens n'apportent rien.
+  let compte = entrees.length;
+
+  for (const candidate of candidates) {
+    if (compte <= maxEntries) {
+      break;
+    }
+
+    if (evincer(candidate)) {
+      compte -= 1;
+    }
+  }
+
+  // 3. Budget global.
+  let total = totalBytes(entrees.filter((entree) => !evincees.includes(entree.key)));
 
   for (const candidate of candidates) {
     if (total <= budget) {
       break;
     }
 
-    try {
-      storage.removeItem(candidate.key);
+    if (evincees.includes(candidate.key)) {
+      continue;
+    }
+
+    if (evincer(candidate)) {
       total -= candidate.bytes;
-      evincees.push(candidate.key);
-    } catch {
-      // Un retrait refusé ne doit pas interrompre la purge des suivantes.
     }
   }
 

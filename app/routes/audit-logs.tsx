@@ -1,4 +1,10 @@
 import { useMemo, useState } from 'react';
+
+/**
+ * Lignes rendues par page. Assez pour remplir un écran défilable, assez peu
+ * pour que le navigateur ne cale pas : le journal peut ramener 2000 lignes.
+ */
+const AUDIT_LOGS_PAGE_SIZE = 50;
 import type { MetaFunction } from 'react-router';
 import { useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
@@ -15,6 +21,7 @@ import {
   auditActionLabel,
   auditResourceLabel,
   formatAuditEventCount,
+  formatAuditLogsCopy,
   formatAuditTimestamp,
   getAuditLogsCopy,
   resolveAuditLogsLanguage,
@@ -22,6 +29,7 @@ import {
   type AuditLogsLanguage,
 } from '~/lib/i18n/catalogs/audit-logs';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 /*
@@ -300,6 +308,34 @@ export default function AuditLogsPage() {
     [auditLogs, selectedAction],
   );
 
+  /*
+   * Le rendu est PAGINÉ, pas seulement plafonné côté données.
+   *
+   * Le store borne déjà la requête à 2000 lignes, mais 2000 lignes rendues d'un
+   * coup — une carte par ligne en mobile, une rangée de tableau en desktop —
+   * suffisent à figer l'onglet pendant plusieurs secondes à l'ouverture de la
+   * page. Le plafond de données protège le serveur ; il ne protège pas le
+   * navigateur.
+   *
+   * 50 lignes par page tiennent dans un écran défilable sans coût de mise en
+   * page perceptible, et le filtre par action reste appliqué AVANT la
+   * pagination — filtrer réduit donc le nombre de pages, comme on s'y attend.
+   */
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(visibleLogs.length / AUDIT_LOGS_PAGE_SIZE));
+
+  /*
+   * Changer de filtre remet au début : rester en page 7 d'un résultat qui n'en
+   * compte plus que 2 afficherait un tableau vide sans rien expliquer.
+   */
+  const safePage = Math.min(page, pageCount - 1);
+  const pageStart = safePage * AUDIT_LOGS_PAGE_SIZE;
+
+  const pagedLogs = useMemo(
+    () => visibleLogs.slice(pageStart, pageStart + AUDIT_LOGS_PAGE_SIZE),
+    [visibleLogs, pageStart],
+  );
+
   if (listError) {
     return (
       <EnterpriseFormPage title={copy['auditLogs.title']} description={copy['auditLogs.description']}>
@@ -378,7 +414,16 @@ export default function AuditLogsPage() {
                 <select
                   className="min-h-[44px] min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
                   value={selectedAction}
-                  onChange={(event) => setSelectedAction(event.currentTarget.value)}
+                  onChange={(event) => {
+                    setSelectedAction(event.currentTarget.value);
+
+                    /*
+                     * Filtrer réduit le nombre de pages : rester en page 7 d'un
+                     * résultat qui n'en compte plus que 2 afficherait un tableau
+                     * vide sans rien expliquer.
+                     */
+                    setPage(0);
+                  }}
                   data-testid="audit-action-filter"
                 >
                   <option value="">{copy['auditLogs.filter.all']}</option>
@@ -399,7 +444,7 @@ export default function AuditLogsPage() {
           ) : (
             <>
               <ul className="grid gap-3 md:hidden" aria-label={copy['auditLogs.table.aria']}>
-                {visibleLogs.map((row, index) => (
+                {pagedLogs.map((row, index) => (
                   <AuditEventCard
                     key={`${row.createdAt ?? ''}-${row.action ?? ''}-${index}`}
                     row={row}
@@ -426,7 +471,7 @@ export default function AuditLogsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visibleLogs.map((row, index) => {
+                    {pagedLogs.map((row, index) => {
                       const action = auditActionLabel(row.action, language);
                       const resource = auditResourceLabel(row.resourceType, language);
 
@@ -456,6 +501,56 @@ export default function AuditLogsPage() {
                   </tbody>
                 </table>
               </div>
+
+              {pageCount > 1 && (
+                <nav
+                  className="flex flex-wrap items-center justify-between gap-3 pt-1"
+                  aria-label={copy['auditLogs.pagination.aria']}
+                >
+                  {/*
+                    `aria-live="polite"` : au changement de page, un lecteur d'écran
+                    doit entendre où il se trouve. Sans cela, seul le focus change et
+                    la liste se renouvelle en silence.
+                  */}
+                  <p className="text-xs text-bolt-elements-textSecondary" aria-live="polite">
+                    {formatAuditLogsCopy(copy['auditLogs.pagination.status'], {
+                      from: formatUserAreaNumber(pageStart + 1, undefined, language),
+                      to: formatUserAreaNumber(pageStart + pagedLogs.length, undefined, language),
+                      total: formatUserAreaNumber(visibleLogs.length, undefined, language),
+                    })}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-bolt-elements-textSecondary">
+                      {formatAuditLogsCopy(copy['auditLogs.pagination.page'], {
+                        page: formatUserAreaNumber(safePage + 1, undefined, language),
+                        pages: formatUserAreaNumber(pageCount, undefined, language),
+                      })}
+                    </span>
+                    {/*
+                      44px de haut : cible tactile conforme sur mobile comme sur
+                      tablette. `disabled` plutôt que masqué — un bouton qui
+                      disparaît fait sauter la mise en page à la première et à la
+                      dernière page.
+                    */}
+                    <button
+                      type="button"
+                      className="min-h-[44px] rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => setPage((current) => Math.max(0, current - 1))}
+                      disabled={safePage === 0}
+                    >
+                      {copy['auditLogs.pagination.previous']}
+                    </button>
+                    <button
+                      type="button"
+                      className="min-h-[44px] rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+                      disabled={safePage >= pageCount - 1}
+                    >
+                      {copy['auditLogs.pagination.next']}
+                    </button>
+                  </div>
+                </nav>
+              )}
             </>
           )}
         </section>

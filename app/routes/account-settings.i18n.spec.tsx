@@ -32,6 +32,12 @@ vi.mock('react-router', async (importOriginal) => {
     ),
     Outlet: () => <div data-testid="account-settings-outlet" />,
     useLoaderData: () => ({ language: routeState.language }),
+
+    /*
+     * L'onglet actif (aria-selected) est dérivé du pathname — cohérent avec le
+     * mock NavLink ci-dessus (isActive = /data).
+     */
+    useLocation: () => ({ pathname: '/account-settings/data' }),
   };
 });
 

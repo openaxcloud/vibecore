@@ -53,11 +53,45 @@ export function redactSecretScanLine(line: string): string {
   return redactBody(line);
 }
 
-export function vulnerabilitiesFromSecretScan(output: string, timestamp: string): SecretScanFinding[] {
+/*
+ * BUG-SEC-SCANNER-PHANTOM-FINDING: the secret and SAST scans shell out to
+ * `grep -RInE …` inside the workspace pod. The runtime command endpoint merges
+ * stdout AND stderr into a single `output` string, and the scan commands end in
+ * `|| true`, so when the pod's grep (BusyBox) rejects an option its error/help
+ * text — `grep: unrecognized option`, `Usage: grep [-HhnlLoqvsrRiwFE] [-m N] …`
+ * and one line per documented flag — landed in `output` with exit code 0 and
+ * every one of those lines was turned into a phantom finding ("LOW · Static
+ * security review item · Usage: grep …") in the Security panel.
+ *
+ * A real `grep -RIn` match ALWAYS carries the `path:lineno:` prefix (grep adds
+ * `-H`-style prefixes for recursive searches and `-n` guarantees the line
+ * number), and that prefix contains no whitespace. Tool noise never has that
+ * shape — `Usage: grep …` and `grep: …` break on the space after the first
+ * colon, and the BusyBox banner's `12:00:00` timestamp sits after a space. So
+ * findings are only ever built from lines in match format; everything else is
+ * scanner noise and MUST be dropped, never reported as a vulnerability.
+ */
+const GREP_MATCH_LINE_PATTERN = /^[^:\s]\S*:\d+:/;
+
+/** True when a scanner output line is a real `grep -RIn` match (`path:lineno:…`). */
+export function isGrepMatchLine(line: string): boolean {
+  return GREP_MATCH_LINE_PATTERN.test(line);
+}
+
+/**
+ * Split raw grep scan output into trimmed match lines, dropping empty lines and
+ * tool error/usage noise (stderr text such as `Usage: grep …`, `grep: …`,
+ * `sh: …`, `Binary file … matches`).
+ */
+export function extractGrepMatchLines(output: string): string[] {
   return output
     .split(/\r?\n/)
     .map((line) => line.trim())
-    .filter(Boolean)
+    .filter((line) => line.length > 0 && isGrepMatchLine(line));
+}
+
+export function vulnerabilitiesFromSecretScan(output: string, timestamp: string): SecretScanFinding[] {
+  return extractGrepMatchLines(output)
     .slice(0, 50)
     .map((line, index) => ({
       id: `secret:${index}:${createHash('sha1').update(line).digest('hex').slice(0, 16)}`,

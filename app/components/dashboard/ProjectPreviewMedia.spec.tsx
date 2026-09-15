@@ -58,11 +58,43 @@ describe('project card media', () => {
       expect(screen.getByRole('img', { name: 'Latest preview of Client portal' })).toBeTruthy();
 
       await act(async () => {
-        vi.advanceTimersByTime(6_000);
+        // AV-UX point 12 : l'échéance passe de 6s à 15s (302 → URL GCS signée, stockage froid).
+        vi.advanceTimersByTime(15_000);
       });
 
       expect(screen.queryByRole('img', { name: 'Latest preview of Client portal' })).toBeNull();
       expect(screen.getByText('No preview yet')).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  /*
+   * AV-UX point 12 — un aperçu qui EXISTE mais arrive après l'échéance doit
+   * finir par s'afficher : l'image reste montée sous le repli et son `onLoad`
+   * la fait reprendre la place du « No preview yet ».
+   */
+  it('remplace le repli par l’aperçu réel quand la vignette finit par charger', async () => {
+    vi.useFakeTimers();
+
+    try {
+      const { container } = renderWithI18n(<ProjectPreviewMedia project={project} />);
+
+      await act(async () => {
+        vi.advanceTimersByTime(15_000);
+      });
+
+      expect(screen.getByText('No preview yet')).toBeTruthy();
+
+      const image = container.querySelector('img');
+      expect(image).not.toBeNull();
+
+      await act(async () => {
+        fireEvent.load(image!);
+      });
+
+      expect(screen.queryByText('No preview yet')).toBeNull();
+      expect(screen.getByRole('img', { name: 'Latest preview of Client portal' })).toBeTruthy();
     } finally {
       vi.useRealTimers();
     }

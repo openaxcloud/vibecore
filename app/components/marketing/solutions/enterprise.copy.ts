@@ -23,7 +23,6 @@ export const ENTERPRISE_COPY = {
       microcopy:
         'Start from the controls your organization already requires. Identity, roles, audit export, and deploy governance stay visible as the rollout expands across teams.',
     },
-    languageSwitch: { label: 'Choose the Enterprise page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'Northwind Platform',
@@ -274,7 +273,6 @@ export const ENTERPRISE_COPY = {
       microcopy:
         'Partez des contrôles que votre organisation exige déjà. Identité, rôles, export d’audit et gouvernance des déploiements restent visibles à mesure que le déploiement s’étend aux équipes.',
     },
-    languageSwitch: { label: 'Choisir la langue de la page Entreprise', english: 'English', french: 'Français' },
     demo: {
       badge: 'Données fictives',
       brand: 'Northwind Platform',

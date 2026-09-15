@@ -1,0 +1,1012 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
+
+/*
+ * Lot IDE-MOBILE-2026-09-05 — cinq captures iPhone d'Avi (22:51–23:05) :
+ *   1. la feuille « Outils MCP » ouverte HORS de l'écran (BUG-MOBILE-MCP-001) ;
+ *   2. la carte de démarrage de la Webview aux étapes tronquées, et un
+ *      « Ancrer à droite » sans volet de droite (BUG-PREVIEW-MOBILE-001) ;
+ *   3. le panneau Journaux dont la barre d'outils mangeait l'écran
+ *      (BUG-LOGS-MOBILE-001).
+ *
+ * Lot IDE-MOBILE-2026-09-06 — quatre captures de plus (« tu as pas réduit
+ * ici… fixe tous les panneaux, tout sans exception ») :
+ *   4. l'échelle du chrome des panneaux (la règle de coquille aplatissait tout
+ *      à 14 px pendant que la légende descendait à 9 px) ;
+ *   5. le bandeau Journaux sur trois rangées, actions en icônes ;
+ *   6. la Webview : barre d'adresse, carte de démarrage (le BON élément,
+ *      `.bolt-preview-loading-steps`), onglets des journaux ;
+ *   7. la feuille « + » et l'état de départ de l'Agent : rien de tronqué.
+ *
+ * Mesuré sur le build de production, Chromium, AVANT correction :
+ *   - modale à 390 px : left = 195 px pour 366 px de large → 171 px hors écran ;
+ *   - modale à 1440 px : left = 720 px, coin haut-gauche au centre, sur bureau
+ *     AUSSI. La cause n'est pas mobile : `@keyframes vc-modal-in` animait
+ *     `transform`, et `animation-fill-mode: both` remplaçait pour toujours le
+ *     `translate(-50%, -50%)` qui centre les modales Radix.
+ */
+
+function sansCommentaires(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+
+const INDEX = sansCommentaires(readFileSync(join(__dirname, 'index.scss'), 'utf8'));
+const BASE_CHAT = readFileSync(join(__dirname, '..', 'components', 'chat', 'BaseChat.tsx'), 'utf8');
+
+function bloc(selecteur: string): string {
+  const debut = INDEX.indexOf(`${selecteur} {`);
+  expect(debut, `règle ${selecteur} introuvable`).toBeGreaterThan(-1);
+
+  return INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+}
+
+/* La DERNIÈRE déclaration d'un sélecteur — celle des requêtes de média étroites, qui gagne. */
+function dernierBloc(selecteur: string): string {
+  const debut = INDEX.lastIndexOf(`${selecteur} {`);
+  expect(debut, `règle ${selecteur} introuvable`).toBeGreaterThan(-1);
+
+  return INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+}
+
+describe('1. modales — l’animation d’entrée ne doit jamais écraser le centrage', () => {
+  it('`vc-modal-in` anime `scale`, pas `transform`', () => {
+    const debut = INDEX.indexOf('@keyframes vc-modal-in {');
+    expect(debut).toBeGreaterThan(-1);
+
+    const fin = INDEX.indexOf('\n}\n', debut);
+    const keyframes = INDEX.slice(debut, fin);
+
+    expect(keyframes).not.toMatch(/transform\s*:/);
+    expect(keyframes).toMatch(/scale\s*:\s*0\.9/);
+    expect(keyframes).toMatch(/scale\s*:\s*1\s*;/);
+  });
+
+  it('les modales portent toujours cette animation en `both` — le piège reste armé, la garde aussi', () => {
+    const regle = bloc("body :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette)");
+
+    expect(regle).toMatch(/animation:\s*vc-modal-in[^;]*both/);
+  });
+});
+
+describe('2. carte de démarrage de la Webview sur téléphone', () => {
+  it('deux colonnes assumées et des libellés qui se replient au lieu d’être tronqués', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-preview-splash-steps')).toMatch(/repeat\(2,/);
+
+    const libelle = bloc('.bolt-responsive-ide-mobile .bolt-preview-splash-steps strong');
+
+    expect(libelle).toMatch(/white-space:\s*normal/);
+    expect(libelle).toMatch(/overflow:\s*visible/);
+  });
+
+  it('la VRAIE carte de démarrage (`loading-steps`) : deux colonnes, libellé entier à 11 px', () => {
+    // 05/09 : seule la `splash` avait été corrigée ; la capture montrait la `loading`.
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-preview-loading-steps')).toMatch(/repeat\(2,/);
+
+    const libelle = bloc(
+      '.bolt-responsive-ide-mobile .bolt-preview-loading-steps strong,\n  .bolt-responsive-ide-mobile .bolt-preview-splash-steps strong',
+    );
+
+    expect(libelle).toMatch(/white-space:\s*normal/);
+    expect(libelle).toMatch(/overflow:\s*visible/);
+    expect(libelle).toMatch(/font-size:\s*11px\s*!important/);
+  });
+
+  it('« Ancrer à droite » est masqué : pas de volet de droite sur un téléphone', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-preview-logs-panel header > button')).toMatch(/display:\s*none/);
+  });
+
+  it('les onglets des journaux de la Webview : 12 px, et le bandeau se replie', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-preview-logs-panel button')).toMatch(
+      /font-size:\s*12px\s*!important/,
+    );
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-preview-logs-panel header')).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  it('la barre d’adresse : 36 px, bouton de port 30 px (mesurés 53 et 44)', () => {
+    // Trois déclarations de ce sélecteur ; la dernière est celle du 06/09.
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar')).toMatch(
+      /min-height:\s*36px/,
+    );
+
+    const port = bloc(
+      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-port-button',
+    );
+
+    expect(port).toMatch(/height:\s*30px\s*!important/);
+  });
+});
+
+describe('3. panneau Journaux sur téléphone', () => {
+  it('une seule famille de boutons : 28 px, 12 px, même bordure', () => {
+    const boutons = bloc(
+      '.bolt-responsive-ide-mobile .bolt-project-console-header button,\n  .bolt-responsive-ide-mobile .bolt-project-console-header .bolt-project-console-status',
+    );
+
+    expect(boutons).toMatch(/height:\s*28px/);
+    expect(boutons).toMatch(/font-size:\s*12px\s*!important/);
+    expect(boutons).toMatch(/border:\s*1px solid/);
+  });
+
+  it('le champ de recherche partage sa ligne avec les actions, au plancher iOS de 16 px', () => {
+    const champ = bloc('.bolt-responsive-ide-mobile .bolt-project-console-header input');
+
+    expect(champ).toMatch(/flex:\s*1 1 auto/);
+    expect(champ).toMatch(/font-size:\s*16px/);
+  });
+
+  it('la vue fractionnée est masquée — deux colonnes n’ont pas de sens sur 390 px', () => {
+    const cache = bloc(
+      ".bolt-responsive-ide-mobile .bolt-project-console-header button[aria-label*='fractionn'],\n  .bolt-responsive-ide-mobile .bolt-project-console-header button[aria-label*='split' i]",
+    );
+
+    expect(cache).toMatch(/display:\s*none/);
+  });
+
+  it('trois rangées : flux et niveaux défilent au doigt, les actions sont des icônes de 32 px', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-project-console-header')).toMatch(/display:\s*grid/);
+
+    const defilent = bloc(
+      '.bolt-responsive-ide-mobile .bolt-project-console-streams,\n  .bolt-responsive-ide-mobile .bolt-project-console-level-chips',
+    );
+
+    expect(defilent).toMatch(/overflow-x:\s*auto/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-project-console-search button')).toMatch(/width:\s*32px/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-project-console-action-label')).toMatch(/display:\s*none/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-project-console-action-icon')).toMatch(/display:\s*inline-block/);
+  });
+
+  it('sur bureau les deux groupes sont transparents et les icônes absentes — rien ne change', () => {
+    expect(bloc('.bolt-project-console-streams,\n.bolt-project-console-search')).toMatch(/display:\s*contents/);
+    expect(bloc('.bolt-project-console-action-icon')).toMatch(/display:\s*none/);
+  });
+
+  it('le balisage porte les deux groupes et une icône par action — la moitié DOM de la garde', () => {
+    expect(BASE_CHAT).toContain('className="bolt-project-console-streams"');
+    expect(BASE_CHAT).toContain('className="bolt-project-console-search"');
+    expect(BASE_CHAT.match(/bolt-project-console-action-icon i-ph:/g)?.length).toBe(6);
+    expect(BASE_CHAT.match(/className="bolt-project-console-action-label"/g)?.length).toBe(6);
+  });
+});
+
+describe('4. échelle du chrome des panneaux sur téléphone', () => {
+  const PANNEAU = '.bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-workbench-mobile\n    ';
+
+  it('la légende ne descend plus à 9 px sous 1024 px : 11 px, pas moins que le bureau', () => {
+    const mobile = INDEX.indexOf('@media (max-width: 1024px) {\n  :root {');
+
+    expect(mobile).toBeGreaterThan(-1);
+
+    const racine = INDEX.slice(mobile, INDEX.indexOf('\n  }\n', mobile));
+
+    expect(racine).toMatch(/--vc-type-label-size:\s*11px/);
+    expect(INDEX).not.toMatch(/--vc-type-label-size:\s*9px/);
+  });
+
+  it('13 / 12 / 11 / 10 px avec `!important`, portés au-dessus de la règle de coquille', () => {
+    expect(
+      bloc(
+        ".bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.text-sm):not([class*='i-'])",
+      ),
+    ).toMatch(/font-size:\s*13px\s*!important/);
+    expect(
+      bloc(`${PANNEAU}:where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-'])`),
+    ).toMatch(/font-size:\s*12px\s*!important/);
+    expect(bloc(`${PANNEAU}:where([class*='text-[10px]'], [class*='text-[11px]']):not([class*='i-'])`)).toMatch(
+      /font-size:\s*11px\s*!important/,
+    );
+    expect(bloc(`${PANNEAU}:where(.uppercase[class*='tracking']):not([class*='i-'])`)).toMatch(
+      /font-size:\s*10px\s*!important/,
+    );
+  });
+
+  it('la règle de coquille qui aplatit tout à 14 px est toujours là — la garde a une raison d’être', () => {
+    expect(INDEX).toMatch(
+      /\.bolt-project-ide-shell\s*:where\(div, span, p, a, li, td, summary, button, input, select, textarea, label, small, strong\):not\(\[class\*='i-'\]\)[\s\S]{0,400}font-size: var\(--vc-type-interface-size\) !important/,
+    );
+  });
+
+  it('un en-tête « titre | bouton » se replie — et les cibles gardent 44 px (aucune règle de hauteur sur h-7 / h-9)', () => {
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.flex.justify-between)'),
+    ).toMatch(/flex-wrap:\s*wrap/);
+
+    // Run 1481 refusé par TACTILE-001 : 36 px sur `h-7` — plus jamais.
+    expect(INDEX).not.toMatch(/\.bolt-workbench-mobile :where\(button\.h-7/);
+    expect(INDEX).not.toMatch(/\.bolt-workbench-mobile :where\(button\.h-9/);
+  });
+});
+
+describe('5. feuille « + » et état de départ de l’Agent : rien de tronqué', () => {
+  it('feuille « + » : titres 13 px, descriptions 12 px sans coupe, une colonne sur téléphone', () => {
+    expect(
+      bloc(".bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-item-copy span:not([class*='i-'])"),
+    ).toMatch(/font-size:\s*13px\s*!important/);
+
+    const description = bloc(
+      ".bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-item-copy small:not([class*='i-'])",
+    );
+
+    expect(description).toMatch(/font-size:\s*12px\s*!important/);
+    expect(description).toMatch(/-webkit-line-clamp:\s*unset/);
+
+    const liste = dernierBloc('.bolt-responsive-ide-mobile .bolt-mobile-more-list');
+
+    expect(liste).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
+    expect(liste).not.toMatch(/repeat\(/);
+  });
+
+  it('état de départ : une action par ligne, libellé qui se replie à 13 px', () => {
+    const grille = dernierBloc('.bolt-mobile-agent-start-actions');
+
+    expect(grille).toMatch(/grid-template-columns:\s*minmax\(0, 1fr\)/);
+
+    const libelle = bloc(
+      ".bolt-project-ide-shell .bolt-mobile-agent-start-actions button span:last-child:not([class*='i-'])",
+    );
+
+    expect(libelle).toMatch(/white-space:\s*normal/);
+    expect(libelle).toMatch(/font-size:\s*13px\s*!important/);
+    expect(dernierBloc('.bolt-mobile-agent-start-actions button')).toMatch(/min-height:\s*var\(--vc-touch-min, 44px\)/);
+  });
+
+  it('composeur : la place pour « Économique » vient des marges des sélecteurs, jamais des cibles de 44 px', () => {
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-chatbox-mode-trigger'),
+    ).toMatch(/padding:\s*0 4px\s*!important/);
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-composer-chip'),
+    ).toMatch(/padding:\s*0 4px\s*!important/);
+
+    // Run 1481 refusé par TACTILE-001 : 40 px de large sur les trois boutons — plus jamais.
+    expect(INDEX).not.toMatch(/\.bolt-chatbox-toolbar-button \{[^}]*width:\s*40px/);
+  });
+
+  it('feuille « Panneaux » (⋮) : libellés entiers à 12 px, plus de coupe à deux lignes', () => {
+    const libelle = bloc(
+      ".bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-menu-item > span:last-child:not([class*='i-'])",
+    );
+
+    expect(libelle).toMatch(/font-size:\s*12px\s*!important/);
+    expect(libelle).toMatch(/-webkit-line-clamp:\s*unset/);
+    expect(libelle).toMatch(/overflow:\s*visible/);
+  });
+});
+
+describe('6. ce que l’audit des 33 panneaux laissait encore tronqué', () => {
+  it('état de départ : les trois étapes se replient à 11 px', () => {
+    const etape = bloc(
+      ".bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-mobile-agent-start-steps\n    span:last-child:not([class*='i-'])",
+    );
+
+    expect(etape).toMatch(/white-space:\s*normal/);
+    expect(etape).toMatch(/font-size:\s*11px\s*!important/);
+  });
+
+  it('tâche de démarrage de la Webview et cartes de chiffres des paquets : repli, pas de coupe', () => {
+    const regle = bloc(
+      '.bolt-responsive-ide-mobile .bolt-preview-splash-task small,\n  .bolt-responsive-ide-mobile .bolt-project-package-stat-grid small',
+    );
+
+    expect(regle).toMatch(/white-space:\s*normal/);
+    expect(regle).toMatch(/overflow:\s*visible/);
+  });
+
+  it('fil de l’agent : le chemin de fichier se replie au lieu d’être coupé, la cible de 44 px reste', () => {
+    const chemin = bloc('.bolt-responsive-ide-mobile .bolt-action-row .bolt-action-file-path');
+
+    expect(chemin).toMatch(/white-space:\s*normal/);
+    expect(chemin).toMatch(/overflow-wrap:\s*anywhere/);
+
+    // Le résumé « Afficher la commande » garde sa cible de 44 px, hors flux de 6 px.
+    const resume = bloc('.bolt-responsive-ide-mobile .bolt-action-row-details > summary');
+
+    expect(resume).toMatch(/margin-block:\s*-6px/);
+    expect(resume).not.toMatch(/min-height/);
+  });
+
+  it('le balisage de la ligne d’action garde la forme que ces règles supposent', () => {
+    const artifact = readFileSync(join(__dirname, '..', 'components', 'chat', 'Artifact.tsx'), 'utf8');
+
+    // Le `truncate` d'origine est toujours là : c'est lui que la règle mobile renverse.
+    expect(artifact).toContain('className="bolt-action-row min-w-0"');
+    expect(artifact).toMatch(/className="bolt-action-file-path truncate/);
+    expect(INDEX).toMatch(/\.bolt-action-target \{[^}]*min-height: 44px/);
+  });
+});
+
+describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèmes, Ports', () => {
+  it('Ports : une URL ou un chemin en monospace se replie sur téléphone', () => {
+    const regle = bloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.truncate.font-mono, code.truncate)');
+
+    expect(regle).toMatch(/white-space:\s*normal/);
+    expect(regle).toMatch(/overflow-wrap:\s*anywhere/);
+  });
+
+  /*
+   * BUG-PORTS-MOBILE-001 — LE PIÈGE : la règle vit dans `index.scss`, l'URL
+   * qu'elle déplie vit dans `BaseChat.tsx`. Retirer `font-mono` de cette URL,
+   * ou renommer le conteneur des outils mobiles, ne rend AUCUN test rouge — la
+   * règle existe toujours, elle ne touche simplement plus rien, et l'URL
+   * redevient tronquée sur l'iPhone. La règle SCSS seule n'est que la MOITIÉ de
+   * la garde (règle 6).
+   */
+  it('le balisage des Ports porte `truncate font-mono` sous `.bolt-workbench-mobile` — la moitié DOM', () => {
+    /* L'URL de l'aperçu, capture du 06/09 : c'est CE couple de classes que le sélecteur vise. */
+    expect(BASE_CHAT).toContain('className="bolt-project-managed-panel bolt-project-ports-panel"');
+    expect(BASE_CHAT).toContain('className="mt-0.5 truncate font-mono text-bolt-elements-textSecondary"');
+
+    /* L'ancêtre : sans lui, le sélecteur ne descend jamais jusqu'à l'URL. */
+    expect(BASE_CHAT).toContain('bolt-workbench-mobile bolt-workbench-mobile-service');
+  });
+
+  it('les journaux du serveur de la Webview et le message d’un problème passent par la lecture humaine', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+
+    expect(preview).toContain("import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';");
+    expect(preview).toMatch(/workspaceLogs\.slice\(-120\)\.map\(\(ligne\) => texteRuntimeLisible\(String\(ligne\)\)\)/);
+    expect(BASE_CHAT).toContain("<p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>");
+  });
+});
+
+describe('8. captures iPhone 06/09 11:01–11:03 : Stockage d’objets, Paramètres, Éditeur', () => {
+  it('barre d’outils d’un panneau : deux boutons par rangée, 44 px, jamais cinq boutons empilés', () => {
+    const bouton = bloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar :where(button)',
+    );
+
+    expect(bouton).toMatch(/width:\s*auto/);
+    expect(bouton).toMatch(/flex:\s*1 1 calc\(50% - 4px\)/);
+    expect(bouton).toMatch(/min-height:\s*var\(--vc-touch-min, 44px\)/);
+    expect(
+      dernierBloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar'),
+    ).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  it('Paramètres : un seul défilement (liste des raccourcis sans hauteur maximale), bande d’onglets compacte', () => {
+    const liste = bloc('.bolt-responsive-ide-mobile .bolt-project-settings-keybindings');
+
+    expect(liste).toMatch(/max-height:\s*none/);
+    expect(liste).toMatch(/overflow:\s*visible/);
+
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-settings-sidebar')).toMatch(/top:\s*-16px/);
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-settings-sidebar button small')).toMatch(
+      /display:\s*none/,
+    );
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-settings-sidebar button')).toMatch(
+      /min-height:\s*var\(--vc-touch-min, 44px\)/,
+    );
+  });
+
+  it('Éditeur : la pastille « Historique » est fixée au-dessus du socle, fenêtre visuelle comprise', () => {
+    const pastille = bloc(".bolt-responsive-ide-mobile [data-testid='file-history-open']");
+
+    expect(pastille).toMatch(/position:\s*fixed/);
+    expect(pastille).toMatch(/--mobile-nav-height/);
+    expect(pastille).toMatch(/--vc-mobile-visual-viewport-bottom/);
+  });
+});
+
+describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’action de l’agent', () => {
+  it('clavier levé : le composeur se colle au clavier, le socle disparaît, la pastille suit', () => {
+    expect(
+      bloc(
+        "html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer",
+      ),
+    ).toMatch(/bottom:\s*0\s*!important/);
+    expect(bloc("html[data-vc-clavier='ouvert'] .bolt-mobile-replit-nav")).toMatch(/display:\s*none/);
+    expect(INDEX).toMatch(
+      /html\[data-vc-clavier='ouvert'\] \.bolt-responsive-ide-mobile\[data-mobile-panel='chat'\] \.bolt-agent-scroll-to-bottom,[\s\S]{0,300}bottom:\s*12px/,
+    );
+  });
+
+  it('l’attribut est posé par BaseChat depuis la mesure de la fenêtre visuelle, et retiré au démontage', () => {
+    // 08/09 (BUG-KEYBOARD-ZOOM-001) : détection par le RÉTRÉCISSEMENT de la fenêtre visuelle, insensible au défilement de Safari.
+    expect(BASE_CHAT).toMatch(
+      /import \{[^}]*clavierProbablementOuvert,[^}]*retrecissementDeLaVue,[^}]*\} from '\.\/visual-viewport-bottom';/u,
+    );
+    expect(BASE_CHAT).toContain(
+      'if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {',
+    );
+    expect(BASE_CHAT).toContain("document.documentElement.setAttribute('data-vc-clavier', 'ouvert');");
+    expect(BASE_CHAT.match(/document\.documentElement\.removeAttribute\('data-vc-clavier'\)/g)?.length).toBe(2);
+  });
+
+  it('carte d’action de l’agent : une rangée, titre 13 px, sous-titre 11 px, bouton à droite', () => {
+    expect(bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card')).toMatch(
+      /grid-template-columns:\s*minmax\(0, 1fr\) auto/,
+    );
+    expect(
+      bloc(
+        ".bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card strong:not([class*='i-'])",
+      ),
+    ).toMatch(/font-size:\s*13px\s*!important/);
+
+    const bouton = bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card button');
+
+    expect(bouton).toMatch(/width:\s*auto/);
+    expect(bouton).toMatch(/white-space:\s*nowrap/);
+  });
+});
+
+describe('10. captures iPhone 06/09 12:17–12:19 : menu de message, sélection, plan, Sécurité', () => {
+  it('le menu contextuel porte de vrais libellés — plus de `::after` que la règle des infobulles éteignait', () => {
+    expect(INDEX).not.toMatch(/bolt-message-context-menu \.bolt-assistant-message-action::after/);
+    expect(bloc('.bolt-message-action-label')).toMatch(/display:\s*none/);
+
+    const libelleDuMenu = bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label');
+
+    expect(libelleDuMenu).toMatch(/display:\s*inline/);
+
+    /*
+     * Capture 06/09 13:35 : « Modifier le prompt et créer une branche de
+     * conversation » fait 414 px pour un menu de 366 px au plus. Il se replie
+     * sur deux lignes ; une ellipse en cachait la fin.
+     */
+    expect(libelleDuMenu).toMatch(/white-space:\s*normal/);
+    expect(
+      bloc('.bolt-message-context-menu'),
+      'la largeur du menu ne doit pas dépendre de `left` — sinon il retouche le bord après recalage',
+    ).toMatch(/width:\s*max-content/);
+    expect(libelleDuMenu).not.toMatch(/text-overflow/);
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit'),
+      'la rangée doit pouvoir grandir avec un libellé sur deux lignes',
+    ).toMatch(/height:\s*auto/);
+
+    const assistant = readFileSync(join(__dirname, '..', 'components', 'chat', 'AssistantMessage.tsx'), 'utf8');
+    const utilisateur = readFileSync(join(__dirname, '..', 'components', 'chat', 'UserMessage.tsx'), 'utf8');
+
+    expect(assistant.match(/className="bolt-message-action-label"/g)?.length).toBe(5);
+    expect(utilisateur.match(/className="bolt-message-action-label"/g)?.length).toBe(1);
+  });
+
+  it('au doigt, la bulle de message n’est plus sélectionnable — le code, si', () => {
+    const debut = INDEX.indexOf("@media (hover: none) {\n  [data-menu-contextuel='true'] {");
+
+    expect(debut).toBeGreaterThan(-1);
+    expect(INDEX.slice(debut, debut + 200)).toMatch(/user-select:\s*none/);
+    expect(bloc("[data-menu-contextuel='true'] :where(pre, code, .bolt-assistant-message-code)")).toMatch(
+      /user-select:\s*text/,
+    );
+  });
+
+  it('plan de l’agent : la tâche passe sous le rôle ; lignes de panneau sur une ligne', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-agent-plan li')).toMatch(/flex-wrap:\s*wrap/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-agent-plan li > span:last-child')).toMatch(/flex:\s*1 1 100%/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-panel-row')).toMatch(/justify-content:\s*space-between/);
+    expect(BASE_CHAT).toContain('className="bolt-panel-row-detail mt-1 text-xs text-bolt-elements-textSecondary"');
+
+    /*
+     * BUG-PLAN-MOBILE-001 — PIÈGE : les quatre lignes ci-dessus ne tiennent que
+     * la FEUILLE. La règle vise `li > span:last-child` ; trois gestes anodins
+     * côté MARQUAGE la débranchent en silence, sans rien casser d'autre —
+     * renommer `.bolt-agent-plan`, ou glisser le moindre élément APRÈS le titre
+     * (pastille d'état, durée), car `:last-child` désigne alors le nouveau venu
+     * et la tâche retombe dans sa colonne de quatre mots, exactement la capture
+     * du 06/09. Les deux moitiés doivent donc rougir ensemble (règle 6).
+     */
+    const assistant = readFileSync(join(__dirname, '..', 'components', 'chat', 'AssistantMessage.tsx'), 'utf8');
+    const debutPlan = assistant.indexOf('className="bolt-agent-plan');
+
+    expect(debutPlan, 'le crochet `.bolt-agent-plan` visé par la feuille a disparu du marquage').toBeGreaterThan(-1);
+
+    const finPlan = assistant.indexOf('</ol>', debutPlan);
+
+    expect(finPlan, 'la liste du plan est introuvable — la garde ne mesure rien').toBeGreaterThan(debutPlan);
+
+    const item = assistant.slice(assistant.indexOf('<li', debutPlan), assistant.indexOf('</li>', debutPlan));
+    const spans = [...item.matchAll(/<span\b[^>]*/g)].map((m) => m[0]);
+
+    expect(spans.length, 'aucun span dans la tâche — la lecture a échoué (règle 14)').toBeGreaterThan(1);
+
+    /*
+     * LE couplage : le DERNIER span de la tâche doit rester celui du titre,
+     * c'est-à-dire celui que la règle CSS élargit à toute la ligne.
+     */
+    expect(
+      spans[spans.length - 1],
+      'un élément a été glissé APRÈS le titre : `span:last-child` ne le vise plus',
+    ).toContain('flex-1');
+  });
+
+  it('« télécommande » ne traduit plus « remote » : dépôt distant', () => {
+    const catalogue = readFileSync(join(__dirname, '..', 'lib', 'i18n', 'catalogs', 'chat.ts'), 'utf8');
+
+    expect(catalogue).not.toContain('télécommande');
+    expect(catalogue).toContain("'Connecter un dépôt distant GitHub'");
+  });
+});
+
+describe('11. capture iPhone 06/09 13:08 : formulaire de pull request du panneau Git', () => {
+  it('les branches source et cible portent un libellé VISIBLE, pas seulement un aria-label', () => {
+    const gitTab = readFileSync(join(__dirname, '..', 'components', 'git', 'GitTab.tsx'), 'utf8');
+
+    expect(gitTab).toMatch(/<label[^>]*>\s*\{t\('idePanels\.git\.sourceBranch'\)\}\s*<PanelInput name="sourceBranch"/);
+    expect(gitTab).toMatch(/<label[^>]*>\s*\{t\('idePanels\.git\.targetBranch'\)\}\s*<PanelInput/);
+    expect(gitTab).not.toContain("aria-label={t('idePanels.git.sourceBranch')}");
+  });
+});
+
+describe('12. capture iPhone 06/09 13:07 : Base de données, « Mes données » coupé à cent pixels', () => {
+  it('sur téléphone, plus aucun bloc `flex-1` ni défilement interne dans la chaîne du studio', () => {
+    const racine = bloc(
+      '.bolt-responsive-ide-mobile .bolt-database-workbench,\n  .bolt-responsive-ide-mobile .bolt-database-studio',
+    );
+
+    expect(racine).toMatch(/display:\s*block/);
+    expect(racine).toMatch(/height:\s*auto/);
+
+    const corps = bloc(
+      '.bolt-responsive-ide-mobile .bolt-database-workbench-body,\n  .bolt-responsive-ide-mobile .bolt-database-studio-main',
+    );
+
+    expect(corps).toMatch(/flex:\s*none/);
+    expect(corps).toMatch(/overflow:\s*visible/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-database-studio-results')).toMatch(/max-height:\s*60vh/);
+  });
+
+  it('les classes existent dans les deux composants — la moitié DOM de la garde', () => {
+    const workbench = readFileSync(join(__dirname, '..', 'components', 'database', 'DatabaseWorkbench.tsx'), 'utf8');
+    const studio = readFileSync(join(__dirname, '..', 'components', 'database', 'DatabaseStudio.tsx'), 'utf8');
+
+    expect(workbench).toContain('className="bolt-database-workbench flex h-full min-h-0 flex-col"');
+    expect(workbench).toContain('className="bolt-database-workbench-body min-h-0 flex-1 overflow-auto"');
+    expect(studio).toContain('className="bolt-database-studio flex h-full min-h-0 flex-col gap-3"');
+    expect(studio).toContain('bolt-database-studio-results min-h-0 flex-1 overflow-auto');
+  });
+});
+
+describe('13. captures iPhone 06/09 14:10 : Déploiements « Gérer »', () => {
+  it('les actions d’un déploiement se partagent la ligne au lieu de s’empiler', () => {
+    /*
+     * Mesuré à 390 (sonde probe-deploy.mjs) : une grille d'une colonne, trois
+     * formulaires de 44 px l'un sous l'autre, chacun avec un bouton étroit. La
+     * règle de conteneur du volet de bureau (`display: grid !important`) gagnait
+     * sur téléphone ; ici elle est battue à (0,3,0), `!important` compris.
+     */
+    const actions = dernierBloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-actions',
+    );
+
+    expect(actions).toMatch(/display:\s*flex\s*!important/);
+    expect(actions).toMatch(/flex-wrap:\s*wrap/);
+
+    const enfants = dernierBloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-actions :where(a, form)',
+    );
+
+    expect(enfants).toMatch(/flex:\s*1 1 \d+px/);
+    expect(enfants).toMatch(/width:\s*auto/);
+  });
+});
+
+describe('14. capture iPhone 06/09 14:10 : « Afficher la commande » après l’appui', () => {
+  it('le fond de survol n’existe pas là où le survol n’existe pas', () => {
+    /*
+     * Mesuré après un appui tactile réel : `:hover` reste vrai sur l'élément
+     * touché, et le résumé gardait le fond gris de survol des boutons. Le
+     * remède vit sous `@media (hover: none)`, pour toute la famille.
+     */
+    const debut = INDEX.indexOf('@media (hover: none) {\n  body\n    :where(button');
+
+    expect(debut, 'la remise à plat du survol tactile est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', INDEX.indexOf('{', debut + 24)) + 1);
+
+    expect(regle).toMatch(/:hover/);
+    expect(regle).toMatch(/background-color:\s*var\(--vc-button-bg\)/);
+  });
+
+  it('la commande dépliée est une ligne de code serrée, pas un bloc Markdown', () => {
+    const pre = bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-action-row-details pre');
+
+    expect(pre).toMatch(/padding:\s*8px 10px/);
+    expect(pre).toMatch(/font-size:\s*12px/);
+
+    const jetons = bloc(
+      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-action-row-details pre :where(span, code)',
+    );
+
+    // La règle de coquille impose 14 px `!important` à tout `span` : seule une règle plus forte et `!important` la bat.
+    expect(jetons).toMatch(/font-size:\s*12px\s*!important/);
+  });
+});
+
+describe('15. captures iPhone 06/09 14:38–14:40 : Studio de l’agent, Intégrations, Extensions', () => {
+  it('une icône masquée a pour fond sa couleur — plus de glyphe blanc sur gris clair', () => {
+    const icone = bloc(
+      ".bolt-project-integrations-grid article > div > span[class*='i-'],\n.bolt-project-integrations-list article > span[class*='i-'],\n.bolt-project-integration-config > div > span[class*='i-']",
+    );
+
+    expect(icone).toMatch(/background-color:\s*currentColor/);
+    expect(icone).toMatch(/mask-position:\s*center/);
+  });
+
+  it('les cartes de la file de révision valent leur contenu, et le Studio ne les rogne pas', () => {
+    const liste = bloc('.bolt-responsive-ide-mobile .bolt-project-agent-patch-review-list');
+
+    expect(liste).toMatch(/grid-auto-rows:\s*max-content/);
+
+    const studio = bloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-agent-patch-review,\n  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-agent-patch-review-list',
+    );
+
+    expect(studio).toMatch(/max-height:\s*none/);
+    expect(studio).toMatch(/overflow:\s*visible/);
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-agent-patch-review-bulk')).toMatch(
+      /repeat\(2, minmax\(0, 1fr\)\)/,
+    );
+  });
+
+  it('les pastilles de domaine des Extensions se replient au lieu de défiler coupées', () => {
+    const pastilles = dernierBloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-categories',
+    );
+
+    expect(pastilles).toMatch(/flex-wrap:\s*wrap/);
+    expect(pastilles).not.toMatch(/overflow-x:\s*auto/);
+  });
+});
+
+describe('16. audit du 06/09 : Sécurité, « Dernière analyse » sort de l’écran à droite', () => {
+  it('les grilles de panneau sur téléphone n’ont plus de piste `1fr` nue', () => {
+    /*
+     * Mesuré : `.bolt-project-security-grid` à 358 px, sa piste unique à
+     * 437 px — `1fr` seul prend pour minimum la largeur min-content du volet.
+     * `minmax(0, 1fr)` rend la piste à l'écran.
+     */
+    const mobile = INDEX.slice(INDEX.indexOf('@media (max-width: 1024px)'));
+
+    expect(mobile).not.toMatch(/grid-template-columns:\s*1fr\s*!important/);
+    expect(
+      (mobile.match(/grid-template-columns:\s*minmax\(0, 1fr\)\s*!important/g) ?? []).length,
+      'les deux blocs de panneaux mobiles utilisent la piste bornée',
+    ).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('17. captures iPhone 06/09 17:56 : « ontexte », onglet « Fabrication » recouvert', () => {
+  it('le déclencheur « Contexte » suit son libellé au lieu d’une boîte de 32 px', () => {
+    const declencheur = dernierBloc('.bolt-message-context-trigger');
+
+    expect(declencheur).toMatch(/width:\s*auto/);
+    expect(declencheur).toMatch(/min-width:\s*32px/);
+    expect(declencheur).not.toMatch(/\n\s*width:\s*32px/);
+  });
+
+  it('les portées des variables d’environnement se replient : bande pleine largeur, bouton dessous', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-scopes')).toMatch(
+      /flex-wrap:\s*wrap/,
+    );
+
+    const debut = INDEX.indexOf(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-scopes .bolt-project-tool-tabs,',
+    );
+
+    expect(debut).toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+
+    expect(regle).toMatch(/flex:\s*1 1 100%/);
+    expect(regle).toMatch(/bolt-project-env-diff-toggle/);
+  });
+
+  it('le bouton « modifier et renvoyer » n’a plus d’infobulle : son libellé est dans le menu', () => {
+    /*
+     * Capture 17:57 : « Modifier et renvoyer ce message » flottait sous le
+     * menu au doigt. Deux verrous : plus d'attribut sur le bouton, et une
+     * règle qui éteint toute infobulle dans le menu.
+     */
+    const utilisateur = readFileSync(join(__dirname, '..', 'components', 'chat', 'UserMessage.tsx'), 'utf8');
+
+    expect(utilisateur).not.toMatch(/data-vc-tooltip=\{copy\['chatResiduals\.user\./);
+    expect(
+      bloc(
+        '.bolt-message-context-menu [data-vc-tooltip]::before,\n.bolt-message-context-menu [data-vc-tooltip]::after',
+      ),
+    ).toMatch(/content:\s*none\s*!important/);
+  });
+});
+
+describe('18. audit WebKitGTK du 06/09 : chemins coupés dans le Studio et dans Git', () => {
+  it('sur téléphone, les chemins du Studio et de Git se replient au lieu d’être coupés', () => {
+    /*
+     * Mesuré sur WebKitGTK à 390 (sonde webkit-probe.mjs) : 510 px de chemin
+     * pour 297 dans une carte de révision, 492 px pour 157 dans l'arbre de
+     * travail Git. La même règle que le fil de l'agent : repli, jamais ellipse.
+     */
+    const debut = INDEX.indexOf(
+      '.bolt-responsive-ide-mobile .bolt-project-agent-patch-card strong,\n  .bolt-responsive-ide-mobile .bolt-git-tab .truncate {',
+    );
+
+    expect(debut, 'la règle de repli des chemins est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+
+    expect(regle).toMatch(/white-space:\s*normal/);
+    expect(regle).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(regle).toMatch(/text-overflow:\s*clip/);
+
+    // La racine de l'onglet Git porte la classe que cette règle vise (`.bolt-project-git-tool` n'existait dans aucun composant).
+    const git = readFileSync(join(__dirname, '..', 'components', 'git', 'GitTab.tsx'), 'utf8');
+
+    expect(git).toContain('className="bolt-git-tab h-full overflow-auto"');
+  });
+});
+
+describe('19. capture iPhone 07/09 07:58 : « ça me paraît bien large » — les feuilles du composeur sur tablette', () => {
+  const SELECTEUR =
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,\n' +
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,\n' +
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover';
+
+  it('pleine largeur sur téléphone, plafonnée et centrée au-delà — le même plafond que les autres feuilles', () => {
+    /*
+     * Mesuré sur Chromium avant correction : 820 px de feuille sur un iPad
+     * portrait, 844 px sur un Pixel en paysage, pour un menu de deux lignes.
+     * Le gabarit mobile sert aussi ces formats ; `width: 100%` y étirait tout.
+     */
+    const regle = bloc(SELECTEUR);
+
+    expect(regle).toMatch(/width:\s*min\(100vw,\s*var\(--vc-mobile-sheet-max-width\)\)\s*!important/);
+    expect(regle).toMatch(
+      /left:\s*max\(0px,\s*calc\(\(100vw - var\(--vc-mobile-sheet-max-width\)\) \/ 2\)\)\s*!important/,
+    );
+    expect(regle).toMatch(/right:\s*auto\s*!important/);
+    expect(regle).not.toMatch(/max-width:\s*none/);
+
+    // Le plafond est partagé avec les feuilles « + » et menus, jamais une valeur locale.
+    expect(INDEX).toMatch(/--vc-mobile-sheet-max-width:\s*760px/);
+    expect(bloc('.bolt-mobile-more-sheet')).toMatch(/var\(--vc-mobile-sheet-max-width\)/);
+  });
+
+  it('plus étroite que l’écran, la feuille arrondit ses quatre coins', () => {
+    const debut = INDEX.indexOf(`@media (min-width: 761px) {\n  ${SELECTEUR.replace(/\n/g, '\n  ')} {`);
+
+    expect(debut, 'la règle des coins sur écran large est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+
+    expect(regle).toMatch(/border-radius:\s*var\(--vc-mobile-sheet-radius\)\s*!important/);
+  });
+});
+
+describe('20. capture iPhone 07/09 07:59 : espace mort sous la zone de saisie, bordure basse invisible', () => {
+  it('le composeur n’a plus de rembourrage bas, s’ancre à 8 px du socle, et son effet lumineux ne déborde plus', () => {
+    /*
+     * Mesuré (Chromium et WebKitGTK, 390) : 18 px de vide entre la bordure du
+     * cadre et le socle, et un composeur défilable en interne (141 px de
+     * contenu pour 125 de boîte) à cause du svg d'effet débordant de 25 px.
+     */
+    // Le PREMIER bloc : le dernier est la variante « clavier ouvert », qui colle le composeur au clavier.
+    const composeur = bloc(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
+
+    /*
+     * 08/09 (RP-CKPT-01) : les 8 px au-dessus du socle sont désormais portés
+     * par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`, et le
+     * composeur colle à 0 — le rectangle de collage étant la boîte de contenu
+     * du conteneur, un `bottom` à `barre + 8px` le faisait remonter de 80 px
+     * de trop, par-dessus la boîte qui défile.
+     */
+    expect(composeur).toMatch(/bottom:\s*0\s*!important/);
+    expect(composeur).not.toMatch(/bottom:\s*calc\(/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-project-agent-scroll')).toMatch(
+      /padding:[^;]*\bcalc\(var\(--mobile-nav-height\) \+ 8px\)\s*!important/,
+    );
+    expect(composeur).toMatch(/padding-bottom:\s*0\b/);
+    expect(composeur).not.toMatch(/padding-bottom:\s*8px/);
+
+    const effet = bloc(".bolt-responsive-ide-mobile .bolt-project-agent-composer svg[class*='PromptEffectContainer']");
+
+    expect(effet).toMatch(/--prompt-container-offset:\s*0px/);
+
+    // Le module dimensionne bien le svg et son trait depuis cette variable : la remettre à zéro suffit.
+    const module = readFileSync(join(__dirname, '..', 'components', 'chat', 'BaseChat.module.scss'), 'utf8');
+
+    expect(module).toMatch(/\.PromptEffectContainer \{[\s\S]*?inset:\s*calc\(var\(--prompt-container-offset\) \/ -2\)/);
+    expect(module).toMatch(/\.PromptEffectLine \{[\s\S]*?x:\s*calc\(var\(--prompt-container-offset\) \/ 2/);
+  });
+});
+
+describe('21. captures iPhone 07/09 08:03 : menu d’un message — barre d’icônes, au-dessus de la zone de saisie', () => {
+  it('sur téléphone, le menu est une rangée de disques de 44 px sans libellé ; le bureau garde ses libellés', () => {
+    const menu = bloc('.bolt-responsive-ide-mobile .bolt-message-context-menu');
+
+    expect(menu).toMatch(/border-radius:\s*999px/);
+    expect(menu).toMatch(/min-width:\s*0\b/);
+
+    const rangee = bloc(
+      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-assistant-message-footer,\n  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-user-message-footer',
+    );
+
+    expect(rangee).toMatch(/flex-direction:\s*row/);
+
+    const action = bloc(
+      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-assistant-message-action,\n  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-user-message-edit',
+    );
+
+    expect(action).toMatch(/width:\s*44px/);
+    expect(action).toMatch(/height:\s*44px/);
+    expect(action).toMatch(/padding:\s*0\b/);
+
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-message-action-label'),
+    ).toMatch(/display:\s*none/);
+
+    // Le bureau : la règle des libellés visibles est toujours là, intacte.
+    expect(bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label')).toMatch(
+      /display:\s*inline/,
+    );
+  });
+
+  it('plus de voile derrière le menu : c’est lui qui avalait le geste suivant et bloquait le défilement (BUG-MESSAGE-MENU-IOS-001)', () => {
+    expect(INDEX).not.toContain('.bolt-message-context-menu-veil');
+    expect(
+      readFileSync(new URL('../components/chat/MessageContextMenu.tsx', import.meta.url).pathname, 'utf8'),
+    ).not.toContain('bolt-message-context-menu-veil');
+  });
+
+  it('le menu se rend à la racine mobile, se place dans la zone utile, et le focus ne fait pas défiler le fil', () => {
+    const composant = readFileSync(join(__dirname, '..', 'components', 'chat', 'MessageContextMenu.tsx'), 'utf8');
+
+    expect(composant).toMatch(/createPortal\(menu, racineMobile\)/);
+    expect(composant).toMatch(/cibleFeuilleMobile\(document\)/);
+    expect(composant).toMatch(/placerLaBarre\(position, taille, \{/);
+    expect(composant).toMatch(/querySelector\('\.bolt-project-agent-composer'\)\?\.getBoundingClientRect\(\)\.top/);
+    expect(composant).toMatch(/focus\(\{ preventScroll: true \}\)/);
+    expect(composant).not.toMatch(/\.focus\(\);/);
+
+    // Échap en phase de capture : le gestionnaire de raccourcis du projet consomme la touche avant le bouillonnement.
+    expect(composant).toMatch(/addEventListener\('keydown', surEchappement, true\)/);
+    expect(composant).toMatch(/removeEventListener\('keydown', surEchappement, true\)/);
+  });
+});
+
+describe('22. captures iPhone 07/09 08:07 : le menu « ••• » du composeur, tranché sur le composeur', () => {
+  it('le menu des outils se rend par portail à la racine mobile, comme « Agent » et « Économique »', () => {
+    const chatBox = readFileSync(join(__dirname, '..', 'components', 'chat', 'ChatBox.tsx'), 'utf8');
+
+    expect(chatBox).toMatch(
+      /porterSurTelephone\(\s*<div\s+ref=\{toolsPanelRef\}\s+className="bolt-chatbox-tools-menu"/,
+    );
+    expect(chatBox).toMatch(/cibleFeuilleMobile\(document\)/);
+    expect(chatBox).toMatch(
+      /!toolsMenuRef\.current\?\.contains\(cible\) && !toolsPanelRef\.current\?\.contains\(cible\)/,
+    );
+  });
+
+  it('une surface ouverte depuis le menu survit à un appui dedans, et « Ouvrir Supabase » ouvre vraiment', () => {
+    const chatBox = readFileSync(join(__dirname, '..', 'components', 'chat', 'ChatBox.tsx'), 'utf8');
+
+    // Mesuré le 07/09 : un clic dans le dialogue MCP le faisait disparaître ; « Ouvrir Supabase » n'ouvrait rien.
+    expect(chatBox).toMatch(
+      /closest\('\[role="dialog"\], \[data-radix-popper-content-wrapper\], \.bolt-chatbox-tools-menu'\)/,
+    );
+    expect(chatBox).toMatch(/<SupabaseConnection triggerVariant="menu" \/>/);
+    expect(chatBox).not.toMatch(/onOpen=\{\(\) => setIsToolsMenuOpen\(false\)\}/);
+  });
+
+  it('un dialogue ouvert depuis une feuille passe devant elle, voile compris', () => {
+    // WebKitGTK 07/09 : le dialogue « Outils MCP » (z 9999) coupé par la feuille « ••• » (z 12022).
+    const dialog = readFileSync(join(__dirname, '..', 'components', 'ui', 'Dialog.tsx'), 'utf8');
+
+    expect(dialog).toMatch(/'bolt-dialog-overlay fixed inset-0/);
+    expect(dialog).toMatch(/'bolt-dialog-content fixed top-1\/2/);
+    expect(bloc('body .bolt-dialog-overlay')).toMatch(/z-index:\s*12059/);
+    expect(bloc('body .bolt-dialog-content')).toMatch(/z-index:\s*12060/);
+  });
+
+  it('la palette de design se borne à la place réelle au-dessus du menu, pas à l’écran', () => {
+    // E2E 07/09 à 390 : 620 px de contenu pour 469 px disponibles — la palette sortait de 85 px par le haut.
+    const palette = readFileSync(join(__dirname, '..', 'components', 'ui', 'ColorSchemeDialog.tsx'), 'utf8');
+
+    expect(palette).toMatch(
+      /max-h-\[min\(620px,var\(--radix-popover-content-available-height,calc\(100dvh-64px\)\)\)\]/,
+    );
+    expect(palette).toMatch(/max-h-\[inherit\]/);
+
+    // Et elle ne passe pas sous l'en-tête fixé du téléphone : 64 px de marge de collision en haut.
+    expect(palette).toMatch(/collisionPadding=\{\{ top: 64, right: 12, bottom: 12, left: 12 \}\}/);
+    expect(palette).not.toMatch(/max-h-\[min\(620px,calc\(100dvh-64px\)\)\]/);
+  });
+});
+
+describe('23. capture iPhone 07/09 08:19 : Webview — URL en grande police, journaux qu’on ne referme pas', () => {
+  it('sur téléphone, l’URL se lit en 13 px hors édition et le champ garde son plancher de 16 px', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+
+    expect(preview).toMatch(/className="bolt-preview-url-text"/);
+    expect(preview).toMatch(/data-edition=\{adresseEnEdition \? 'true' : 'false'\}/);
+    expect(preview).toMatch(/onBlur=\{\(\) => setAdresseEnEdition\(false\)\}/);
+    expect(bloc('.bolt-preview-url-text')).toMatch(/display:\s*none/);
+    expect(
+      bloc(
+        ".bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-workbench-mobile\n    .bolt-preview-addressbar[data-edition='false']\n    .bolt-preview-url-text",
+      ),
+    ).toMatch(/font-size:\s*13px !important/);
+
+    // Mesuré : le plancher tactile de 44 px des boutons gonflait la barre à 50 px.
+    expect(
+      bloc(
+        ".bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-workbench-mobile\n    .bolt-preview-addressbar[data-edition='false']\n    .bolt-preview-url-text",
+      ),
+    ).toMatch(/min-height:\s*28px !important/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar input')).toMatch(
+      /font-size:\s*16px/,
+    );
+  });
+
+  it('les journaux de la Webview ont une croix qui les referme, visible sur téléphone', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+    const catalogue = readFileSync(join(__dirname, '..', 'lib', 'i18n', 'catalogs', 'ide-panels.ts'), 'utf8');
+
+    expect(preview).toMatch(/className="bolt-preview-logs-close"[\s\S]{0,200}onClick=\{\(\) => setLogsOpen\(false\)\}/);
+    expect(catalogue).toContain("'idePanels.preview.hideLogs': 'Masquer les journaux'");
+    expect(
+      bloc('.bolt-responsive-ide-mobile .bolt-preview-logs-panel header > button.bolt-preview-logs-close'),
+    ).toMatch(/display:\s*inline-flex/);
+  });
+});
+
+/*
+ * §24 — BUG-PANEL-BOTTOM-GAP-001 : le voile de la barre du bas ne mange rien
+ * au-dessus de la pastille. Il faisait `nav + 26px` avec un flou d'arrière-plan :
+ * sur iOS, le bord de la boîte floutée est net, et ces 26 px se lisaient comme
+ * une bande vide (capture « Activité », 07/09 08:26).
+ */
+describe('§24 — le voile de la barre du bas s’arrête au bord haut de la pastille', () => {
+  const voile = bloc('.bolt-mobile-replit-nav-bg');
+
+  it('fait exactement la hauteur de la zone de navigation, sans halo au-dessus', () => {
+    expect(voile).toContain('height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));');
+    expect(voile).not.toMatch(/\+ ?26px/);
+  });
+
+  it('garde son flou sous la pastille seulement (la boîte ne dépasse pas)', () => {
+    expect(voile).toContain('inset: auto 0 0;');
+    expect(voile).toContain('backdrop-filter: blur(20px);');
+  });
+});
+
+/*
+ * §25 — BUG-NAV-TABS-CENTER-001 : les onglets fixes sont centrés dans la
+ * rangée de la barre du bas, par des marges automatiques (jamais par
+ * `justify-content: center`, qui couperait le premier onglet en débordement).
+ */
+describe('§25 — les onglets de la barre du bas sont centrés dans leur rangée', () => {
+  it('marges automatiques aux deux bouts de la rangée', () => {
+    expect(bloc('.bolt-mobile-replit-panel-scroll > :first-child')).toContain('margin-inline-start: auto;');
+    expect(bloc('.bolt-mobile-replit-panel-scroll > :last-child')).toContain('margin-inline-end: auto;');
+  });
+
+  it('la rangée reste un défilement ancré sur un onglet (pas de centrage qui coupe)', () => {
+    const rangee = bloc('.bolt-mobile-replit-panel-scroll');
+
+    expect(rangee).toContain('overflow-x: auto;');
+    expect(rangee).toContain('scroll-snap-type: x mandatory;');
+    expect(rangee).not.toContain('justify-content: center');
+  });
+});
+
+describe('§26 — l’état de départ du panneau Agent se pose sous l’en-tête, sans marge morte', () => {
+  /*
+   * BUG-THREAD-TOP-GAP-001 (état de départ). Capture iPhone du 07/09 14:22 :
+   * ~50 px de vide entre l'en-tête et la carte « Agent prêt ». Mesuré Chromium
+   * 390 : marge haute de 55 px, héritée de la bascule de langue retirée
+   * depuis. La marge est une gouttière, plus la barre de contexte si elle est
+   * affichée — jamais un nombre en dur.
+   */
+  const bloc = INDEX.match(/\.bolt-mobile-agent-start-state \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
+
+  it('la marge haute est la gouttière plus la barre de contexte', () => {
+    expect(bloc).toContain(
+      'margin: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) auto 0;',
+    );
+  });
+
+  it('plus de 55 px en dur ni de réserve de bascule de langue', () => {
+    expect(bloc).not.toMatch(/55px/);
+    expect(bloc).not.toMatch(/language-switch-reserved-height/);
+  });
+});

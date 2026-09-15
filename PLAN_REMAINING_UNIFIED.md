@@ -3,6 +3,25 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## Finition des huit pages Solutions — demande Avi du 24/08
+
+Les validations d'une version antérieure de SOL-02→SOL-09 restent historiques. Ce lot n'est terminé qu'après commit+poussé sur `main`, déploiement du SHA exact et matrice navigateur en production. Décision fail-closed : les cartes utilisent des démos E-Code statiques exécutables et des liens directs `/gallery-apps/<id>/preview/`, sans fiche Gallery, sans claim `GalleryListing` publié/remixable et sans seeding. Preuve commune : EN/FR × clair/sombre × 390/768/1024/1440, 0 overflow/pageerror/erreur console, images 1200×675 chargées avec alt localisés, aperçus directs HTTP 200/non blancs, interaction centrale de chaque application vérifiée et cibles ≥44 px.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| SOL-02-APP-REAL — Website Builder : vraies captures de sites/apps web thématiques | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Principal + 2 appuis et previews statiques vérifiés sur la matrice production. |
+| SOL-03-APP-REAL — Game Builder : vrai quiz/jeu navigateur jouable | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Neon Trivia Arena joué jusqu'au résultat et au replay ; aucun visuel App Builder réutilisé. |
+| SOL-04-APP-REAL — Dashboard Builder : vrais dashboards interactifs | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Données, contrôles et trois visuels thématiques vérifiés en production. |
+| SOL-05-APP-REAL — Chatbot Builder : vrai support documentaire conversationnel | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Docs Copilot exercé avec réponses sourcées et états fail-closed. |
+| SOL-06-APP-REAL — Internal AI Builder : vrais workflows IA internes | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Trois cas procédures/incidents/revues vérifiés sur la matrice production. |
+| SOL-07-APP-REAL — Enterprise : vraies apps gouvernance/risque/opérations | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Trois cas Enterprise et leurs aperçus exécutables vérifiés. |
+| SOL-08-APP-REAL — Startups : vraies apps SaaS/go-to-market | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | App SaaS principale et cas complémentaires vérifiés en production. |
+| SOL-09-APP-REAL — Freelancers : vraies apps de livraison client/terrain | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | App terrain principale et deux cas complémentaires vérifiés en production. |
+| SOL-I18N-HEADER-ONLY — supprimer les sélecteurs FR/EN locaux | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | SOL-01→SOL-09 : exactement 1 sélecteur global, 0 dans `<main>` ; bascule/persistance/SSR vérifiés. |
+| SOL-F500-RWD — continuité responsive, proportions tablette, typographie desktop et shell tactile ≥44 px | ✅ 25/08 | ✅ 25/08 `1c158c62` | ✅ 25/08 | Clos en production : déploiement `32859009120`, Helm `1083`, 146/146 tests et 384/384 cellules visuelles. Les seuils 899/900 et 959/960 sont continus, le reflow 1119/1120 garde la carte dans un delta de 9,42 %, sans overflow ni cible shell <44 px. |
+
+Clôture live : matrice exhaustive production **153/153** sur `web:79ec62f442`, 96 captures inspectées et 16/16 URLs clés HTTP 200 ; puis smoke final **48/48** après le remplacement par le descendant `web:7d9a96d36e` (digest `sha256:ff2b506d037d08cd90e75bf171d74a9a48bda8946612c789e7904f3b6259710b`, déploiement `32714604287`, Helm `1065`) en EN/clair + FR/sombre × 390/768/1440, sans défaut responsive, console, réseau ou accessibilité tactile.
+
 ## AUDIT V4 — 4 chantiers + statut calculé (décision Avi 16/07)
 
 Audit externe v4 (15 P0). Priorité 4 (sécu) → 3 (échelle) → 2 → 1. Statut CALCULÉ (jamais écrit à la main).
@@ -162,4 +181,3 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 
 ⚠️ Capacité : demande de quota `SSD_TOTAL_GB` REPORTÉE par Google (« resubmit après 48 h ou avec plus d'historique billing » — pas un refus définitif). État 15/07 soir : 432/500, dont **400 = boot disks pd-balanced des 4 nœuds gvisor** (aucun pd-ssd n'existe ; pd-balanced compte DANS ce quota). Seule sortie structurelle : recréer le pool gvisor avec boot disks **pd-standard 200 Go** (throughput ≈ équivalent, coût identique, `DISKS_TOTAL_GB` 4,2/20 To) → SSD ~32/500 et autoscale débloqué. GO d'Avi requis (drain = redémarrage des pods workspaces). Ménage fait : spike-workspace-pvc (2 Go SSD) + 19 PVC d'orgs de test E2E supprimées.
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
-

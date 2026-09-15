@@ -4,6 +4,7 @@ import { applyEntryExportReconcile } from './entry-export-reconcile';
 import { ensureEntryImportsResolvable } from './entry-placeholder';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
+import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from './preview-dependencies';
 import { workspaceEvents } from './workspace-events';
 import { formatActionRunnerCopy, getActionRunnerCopy, type ActionRunnerKey } from '~/lib/i18n/catalogs/action-runner';
 import { getI18nInstance } from '~/lib/i18n/runtime';
@@ -309,6 +310,43 @@ export function isDevServerStartCommand(command: string): boolean {
   );
 }
 
+/*
+ * BUG-AGENT-007 (chemin de repli) — la commande de `start` embarque-t-elle DÉJÀ
+ * une installation explicite (`npm install && node server.js`) ? Dans ce cas la
+ * garantie d'installation ci-dessous ne doit pas en préfixer une seconde.
+ * Volontairement plus strict que INSTALL_COMMAND_PATTERN : `npx`/`bunx` ne
+ * comptent PAS comme une installation du projet (ils n'installent que l'outil
+ * invoqué, pas les dépendances de l'app).
+ */
+const EXPLICIT_INSTALL_PATTERN = /(^|[\s;&|])(?:npm|pnpm|yarn|bun)\s+(?:install|ci|i|add)\b/i;
+
+export function startCommandAlreadyInstalls(command: string): boolean {
+  return EXPLICIT_INSTALL_PATTERN.test(command ?? '');
+}
+
+/**
+ * BUG-AGENT-007 (chemin de repli) — quelle commande d'installation précéder au
+ * `start` quand node_modules est vide. Déduite du gestionnaire visible dans la
+ * commande elle-même, sinon du champ `packageManager` du package.json, sinon npm.
+ */
+export function installCommandForStartCommand(command: string, packageManager?: string): string {
+  const source = `${command ?? ''} ${packageManager ?? ''}`.toLowerCase();
+
+  if (/(^|[\s;&|])pnpm[\s@]/.test(`${source} `)) {
+    return 'pnpm install';
+  }
+
+  if (/(^|[\s;&|])yarn[\s@]/.test(`${source} `)) {
+    return 'yarn install';
+  }
+
+  if (/(^|[\s;&|])bunx?[\s@]/.test(`${source} `)) {
+    return 'bun install';
+  }
+
+  return 'npm install';
+}
+
 export class ActionRunner {
   #runtime: RuntimeAdapter;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
@@ -347,6 +385,16 @@ export class ActionRunner {
     this.onSupabaseAlert = onSupabaseAlert;
     this.onDeployAlert = onDeployAlert;
     this.onStartDevServer = onStartDevServer;
+  }
+
+  /**
+   * Rebind this runner to a new runtime adapter — same project, new transport
+   * (typically the workspace id becoming known after the first mount). Actions
+   * already recorded keep their state; anything run from now on goes through
+   * the new adapter.
+   */
+  setRuntime(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
   }
 
   addAction(data: ActionCallbackData) {
@@ -492,6 +540,40 @@ export class ActionRunner {
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
 
+    /*
+     * NE PAS RESSUSCITER UNE ACTION DÉJÀ ANNULÉE.
+     *
+     * Vérifié le 2026-09-10 : `#updateAction` (ligne 1642) fusionne
+     * `{ ...current, ...newState }` et n'interdit toujours aucune transition
+     * depuis `complete`/`failed`/`aborted` — il ne fait qu'horodater `finishedAt`.
+     * Épinglé par `app/lib/runtime/action-annulee-non-ressuscitee.spec.ts`.
+     *
+     * `#updateAction` n'interdit aucune transition depuis un état terminal, et
+     * la ligne ci-dessous posait « running » INCONDITIONNELLEMENT, avant tout
+     * contrôle. L'ordonnancement qui déclenchait :
+     *
+     *   1. l'utilisateur appuie sur Arrêter -> `abortAll()` appelle
+     *      `action.abort()` et pose « aborted » ;
+     *   2. jusqu'à 100 ms plus tard, l'appel de QUEUE du `createSampler` qui
+     *      lisse le flux de fichier se déclenche — rien ne l'annule — et
+     *      atteint `runAction(data, true)` puis ce point ;
+     *   3. « running » est reposé ici, `#runActionWithRetry` sort aussitôt sur
+     *      `abortSignal.aborted` sans rien écrire, et la mise à jour terminale
+     *      plus bas reposait encore « running » sur la branche streaming.
+     *
+     * Rien ne le redescendait ensuite : le chien de garde sort d'emblée pour
+     * une action `file` non exécutée, et `abortStreamingFileActions` n'est
+     * appelé que depuis `onFinish`, qui ne s'exécute pas sur un abandon. Le
+     * fichier restait donc « En cours » pour toujours après un Arrêt explicite.
+     */
+    if (action.abortSignal.aborted) {
+      if (action.status !== 'aborted') {
+        this.#updateAction(actionId, { status: 'aborted' });
+      }
+
+      return;
+    }
+
     this.#updateAction(actionId, { status: 'running' });
 
     try {
@@ -502,7 +584,7 @@ export class ActionRunner {
             break;
           }
           case 'file': {
-            await this.#runFileAction(action, isStreaming);
+            await this.#runFileAction(action, isStreaming, actionId);
             break;
           }
           case 'diff': {
@@ -582,8 +664,14 @@ export class ActionRunner {
         return;
       }
 
+      /*
+       * Le contrôle d'annulation existait UNIQUEMENT sur la branche
+       * non-streamée : `isStreaming ? 'running' : aborted ? 'aborted' : …`
+       * reposait « running » quoi qu'il arrive sur un flux de fichier annulé en
+       * cours de route. L'annulation prime maintenant sur les deux branches.
+       */
       this.#updateAction(actionId, {
-        status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',
+        status: action.abortSignal.aborted ? 'aborted' : isStreaming ? 'running' : 'complete',
       });
     } catch (error) {
       /*
@@ -815,6 +903,22 @@ export class ActionRunner {
       unreachable('Shell terminal not found');
     }
 
+    /*
+     * BUG-AGENT-007 (chemin de repli) — garantie d'installation AVANT le launch.
+     * Le chemin délégué ci-dessus (onStartDevServer → startPreviewServer) porte
+     * déjà la « bulletproof install guarantee » du workbench ; ce chemin PTY —
+     * commande non reconnue comme dev-server (`node server.js`, script sur
+     * mesure) ou hook non câblé — lançait la commande BRUTE. Sur un workspace
+     * dont node_modules est vide, elle mourait aussitôt (« command not found » /
+     * « Cannot find module ») et l'aperçu restait vide. On sonde node_modules
+     * via le même helper que le workbench et on installe d'abord si besoin.
+     */
+    await this.#ensureStartDependenciesInstalled(action, shell);
+
+    if (action.abortSignal.aborted) {
+      return { exitCode: 0, output: '' };
+    }
+
     const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
       action.abort();
@@ -831,12 +935,117 @@ export class ActionRunner {
     return resp;
   }
 
-  async #runFileAction(action: ActionState, isStreaming: boolean = false) {
+  /*
+   * BUG-AGENT-007 (chemin de repli) — s'assure que les dépendances du projet
+   * sont installées avant qu'un `start` PTY ne lance son serveur. Sonde en
+   * meilleure-intention : impossible de lire package.json → on ne change RIEN au
+   * comportement historique (la commande part telle quelle). Une installation
+   * qui ÉCHOUE, en revanche, fait échouer l'action avec la vraie erreur npm —
+   * strictement plus actionnable que le « command not found » qui suivrait.
+   */
+  async #ensureStartDependenciesInstalled(action: ActionState, shell: BoltShell) {
+    if (startCommandAlreadyInstalls(action.content)) {
+      return;
+    }
+
+    let pkg: PreviewPackageManifest & { packageManager?: string };
+
+    try {
+      const read = await this.#runtime.readFile('package.json');
+      pkg = JSON.parse(read.content) as PreviewPackageManifest & { packageManager?: string };
+    } catch {
+      // Pas de manifeste lisible → rien à garantir.
+      return;
+    }
+
+    let installed = true;
+
+    try {
+      installed = await hasInstalledPreviewDependencies(pkg, (directory) => this.#runtime.listFiles(directory));
+    } catch {
+      // Sonde indisponible : on n'ajoute pas d'installation sur un doute.
+      return;
+    }
+
+    if (installed || action.abortSignal.aborted) {
+      return;
+    }
+
+    const installCommand = installCommandForStartCommand(action.content, pkg.packageManager);
+    logger.debug(`[start]: node_modules incomplet — exécution de « ${installCommand} » avant « ${action.content} »`);
+
+    const resp = await shell.executeCommand(this.runnerId.get(), installCommand, () => {
+      logger.debug('[start]: Aborting dependency install before start', action);
+      action.abort();
+    });
+
+    if (resp?.exitCode !== 0 && !action.abortSignal.aborted) {
+      throw new ActionCommandError(
+        actionRunnerText('actionRunner.error.startFailed'),
+        resp?.output || actionRunnerText('actionRunner.error.noOutputAvailable'),
+      );
+    }
+  }
+
+  /*
+   * BUG-AGENT-001 — mémo des écritures déjà appliquées, pour ne PUT que sur un
+   * changement réel.
+   *
+   * Mesuré en direct le 21/08 sur `web:405b1f369d`, en interceptant `fetch` et
+   * en relevant la TAILLE du corps de chaque écriture :
+   *
+   *   vite.config.ts   20 écritures — 1 SEULE taille distincte (363)
+   *   index.html        8 écritures — 1 SEULE taille distincte (661)
+   *   package.json     96 écritures — 2 tailles distinctes (69 puis 1015)
+   *
+   * Ce sont donc des répétitions À L'IDENTIQUE, pas de la croissance de
+   * streaming. La garde `if (action.executed) return` de `runAction` empêche
+   * déjà de rejouer un MÊME `actionId` : ces écritures portent donc des
+   * actionId différents pour un contenu identique — des actions ré-émises. La
+   * clé doit être (chemin, contenu), pas l'actionId, sinon elle ne dédoublonne
+   * rien de ce qui se passe réellement.
+   *
+   * Ce qui est sauté est exactement une écriture qui produirait, octet pour
+   * octet, ce que ce runner a déjà écrit à ce chemin — sans effet sur le
+   * disque, mais qui coûtait un aller-retour réseau ET, sur le chemin
+   * non-streaming, un tour de self-repair (donc un appel LLM) par répétition.
+   * Un contenu DIFFÉRENT n'est jamais sauté : la transition 69 → 1015 de
+   * package.json passe. L'entrée n'est posée qu'APRÈS une écriture réussie,
+   * donc un échec laisse le chemin réécrivable.
+   */
+  #lastWrittenFingerprint = new Map<string, number>();
+
+  static #contentFingerprint(content: string): number {
+    let h = 5381;
+
+    for (let i = 0; i < content.length; i++) {
+      h = ((h << 5) + h + content.charCodeAt(i)) | 0;
+    }
+
+    // la longueur discrimine les collisions de contenus courts
+    return (h ^ content.length) | 0;
+  }
+
+  async #runFileAction(action: ActionState, isStreaming: boolean = false, actionId?: string) {
     if (action.type !== 'file') {
       unreachable('Expected file action');
     }
 
     const relativePath = this.#toRuntimePath(action.filePath);
+
+    const contentFingerprint = ActionRunner.#contentFingerprint(action.content);
+
+    /*
+     * On compare au DERNIER contenu écrit à ce chemin, pas à l'ensemble des
+     * contenus déjà vus. La nuance est ce qui sépare un dédoublonnage sûr d'une
+     * perte de fichier : avec un ensemble, la séquence A → B → A saute la
+     * troisième écriture et laisse B sur le disque. Un test dédié couvre ce
+     * retour arrière.
+     */
+    if (this.#lastWrittenFingerprint.get(relativePath) === contentFingerprint) {
+      logger.debug(`Skipping byte-identical rewrite of ${relativePath} (action ${actionId ?? 'n/a'})`);
+      return;
+    }
 
     let folder = nodePath.dirname(relativePath);
 
@@ -929,8 +1138,11 @@ export class ActionRunner {
     }
 
     try {
-      await this.#runtime.writeFile(relativePath, payload);
+      await this.#runtime.writeFile(relativePath, payload, { streaming: isStreaming });
       logger.debug(`File written ${relativePath}`);
+
+      // Après succès seulement : un échec doit laisser le chemin réécrivable.
+      this.#lastWrittenFingerprint.set(relativePath, contentFingerprint);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
       throw error;

@@ -1,5 +1,6 @@
 /* eslint-disable import/order */
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
+import { createSingleFlight } from '~/lib/ide/single-flight';
 import type { CommandEvent, CommandRequest, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
 import fileSaver from 'file-saver';
 import Cookies from 'js-cookie';
@@ -13,10 +14,14 @@ import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions
 import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
+  doitArreterLePreview,
   isTransientCommandFailure,
+  previewServerLooksRunning,
+  type RaisonArretPreview,
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
+import { isPreviewHealthy, shouldAutoDismissPreviewAlert } from './preview-alert-autodismiss';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
@@ -66,6 +71,11 @@ import {
 } from '~/utils/agent-patch-logs';
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
 import { resolveFailedAgentPatchContent } from '~/lib/stores/agent-patch-fallback';
+import {
+  AgentPatchFloodGuard,
+  patchContentFingerprint,
+  type PatchAdmission,
+} from '~/lib/stores/agent-patch-flood-guard';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
 import { KeyedMutex } from '~/lib/common/keyed-mutex';
 import { createSampler } from '~/utils/sampler';
@@ -212,6 +222,15 @@ function workspaceLogLines(event: CommandEvent | string) {
     });
 }
 
+/*
+ * Portée MODULE et non instance : le magasin est un singleton, mais la clé est
+ * l'identifiant de projet — ce qu'on mutualise, c'est un téléchargement pour un
+ * projet donné, pas pour un objet donné.
+ */
+const PROJECT_ARCHIVE_COOLDOWN_MS = 30_000;
+
+const projectStorageFilesInFlight = createSingleFlight<boolean>({ cooldownMs: PROJECT_ARCHIVE_COOLDOWN_MS });
+
 export class WorkbenchStore {
   #runtime: RuntimeAdapter = getRuntimeAdapter();
   #previewsStore = new PreviewsStore(this.#runtime);
@@ -293,6 +312,9 @@ export class WorkbenchStore {
     hotData.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
 
+  /** Last DEFINED project the artifacts belong to — see configureProject. */
+  #artifactsProjectId: string | undefined;
+
   /*
    * Paths already materialized in the runtime by the streaming sampler.
    *
@@ -318,6 +340,31 @@ export class WorkbenchStore {
    * that surfaced as "Remote file changed since it was loaded".
    */
   #agentPatchApplyMutex = new KeyedMutex();
+
+  /*
+   * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — bounded admission for the proposal /
+   * silent auto-apply pipeline. The generator re-emits file actions with fresh
+   * actionIds for identical content (measured: ~90 duplicate proposals for one
+   * CSS file in a single run); without this guard every duplicate became a new
+   * pending proposal, the auto-applier accepted each one ("AI patch accepted"
+   * ×90), and follow-up commands — including `start` — stayed starved behind
+   * the never-draining review queue.
+   */
+  #agentPatchFloodGuard = new AgentPatchFloodGuard();
+
+  /** Paths whose duplicate-skip has already been logged (one line, not a storm). */
+  #agentPatchSkipLogged = new Set<string>();
+
+  /** Halt escalations already surfaced (per scope/path), to alert exactly once. */
+  #agentPatchHaltAlerted = new Set<string>();
+
+  /**
+   * `start` actions skipped because proposals were open for their artifact.
+   * Re-dispatched (via the tracked startPreviewServer launcher) as soon as the
+   * artifact's review queue drains — before this, the skipped start was marked
+   * "complete" ("Start application — Done") while `npm run dev` never ran.
+   */
+  #deferredStartArtifacts = new Set<string>();
   #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
@@ -413,6 +460,31 @@ export class WorkbenchStore {
         estimatedTokensSaved: payload.estimatedTokensSaved,
       });
     });
+
+    /*
+     * BUG-UX-PREVIEW-ERROR-STICKY — la carte « Erreur d'aperçu » se retire toute
+     * seule quand l'aperçu redevient sain. Détection par FRONT malade → sain sur
+     * le store des previews (un port `ready` réapparaît) : voir
+     * preview-alert-autodismiss.ts pour la règle exacte et pourquoi une alerte
+     * posée pendant que l'aperçu est déjà sain n'est jamais balayée.
+     */
+    let previewWasHealthy = isPreviewHealthy(this.previews.get());
+
+    this.previews.subscribe((previews) => {
+      const previewIsHealthy = isPreviewHealthy(previews);
+
+      if (
+        shouldAutoDismissPreviewAlert({
+          wasHealthy: previewWasHealthy,
+          isHealthy: previewIsHealthy,
+          alert: this.actionAlert.get(),
+        })
+      ) {
+        this.actionAlert.set(undefined);
+      }
+
+      previewWasHealthy = previewIsHealthy;
+    });
   }
 
   requestProjectFilesPanel(open?: boolean) {
@@ -428,8 +500,27 @@ export class WorkbenchStore {
     this.#previewsStore.setRuntime(runtime);
     this.#filesStore.setRuntime(runtime);
     this.#terminalStore.setRuntime(runtime);
-    this.artifacts.set({});
-    this.artifactIdList = [];
+
+    /*
+     * REBIND the artifacts already on screen, do not wipe them.
+     *
+     * The provider rebuilds its adapter whenever the workspace id changes —
+     * typically once the workspace is created just after the first mount. This
+     * used to `artifacts.set({})`, which blanked every rendered artifact in the
+     * transcript: the « Créer package.json … Terminé » lists vanished from a
+     * conversation that had already been parsed. Dev builds hid it because
+     * `useMessageParser` does a full reset + reparse on every call there
+     * (`import.meta.env.DEV`); production builds never reparse, so the loss was
+     * permanent until the next message. Measured on the production E2E gate,
+     * commit fafed25: rows present, then 0 within 800 ms, no message change.
+     *
+     * Runners keep their recorded actions and simply execute through the new
+     * adapter from now on. A change of PROJECT still wipes — see configureProject.
+     */
+    for (const artifact of Object.values(this.artifacts.get())) {
+      artifact.runner.setRuntime(runtime);
+    }
+
     this.#snapshottedArtifacts.clear();
   }
 
@@ -443,7 +534,27 @@ export class WorkbenchStore {
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
       this.filesHydrated.set(false);
+    }
 
+    /*
+     * Another project's transcript has nothing to do with this one's artifacts —
+     * but ONLY a switch to a DIFFERENT project wipes them. The provider's effect
+     * cleanup calls `configureProject(undefined)` on every re-run (a runtime
+     * rebind, a StrictMode remount) right before binding the SAME project again:
+     * treating that `undefined` hop as a change would wipe the transcript's
+     * artifacts on the exact path `configureRuntime` stopped wiping.
+     */
+    if (projectId && this.#artifactsProjectId && projectId !== this.#artifactsProjectId) {
+      this.artifacts.set({});
+      this.artifactIdList = [];
+      this.#snapshottedArtifacts.clear();
+    }
+
+    if (projectId) {
+      this.#artifactsProjectId = projectId;
+    }
+
+    if (changed) {
       /*
        * Clear per-project state before (re)hydrating. The workbench is a module
        * singleton, so without this reset project A's pending patch proposals,
@@ -469,6 +580,10 @@ export class WorkbenchStore {
   #resetProjectScopedState() {
     this.agentPatchProposals.set({});
     this.#agentPatchOriginals.clear();
+    this.#agentPatchFloodGuard.reset();
+    this.#agentPatchSkipLogged.clear();
+    this.#agentPatchHaltAlerted.clear();
+    this.#deferredStartArtifacts.clear();
     this.agentPatchSelfRepair.set({});
     this.unsavedFiles.set(new Set<string>());
 
@@ -581,6 +696,18 @@ export class WorkbenchStore {
     this.#dropResolvedMissingImportFailures();
   }
 
+  /*
+   * BUG-PANEL-ZIP-005 — cette méthode télécharge l'archive ENTIÈRE du projet
+   * (5,07 Mio décodés sur un projet de 401 fichiers, mesuré en production).
+   * Elle est appelée depuis deux chemins qui partent en même temps à froid :
+   * l'hydratation prévue par `ProjectWorkspaceProvider`, et le repli de
+   * `loadRuntimeFiles` — lequel ne voit aucun fichier PRÉCISÉMENT parce que la
+   * première est encore en vol. Mesuré : 14 ms d'écart, deux téléchargements
+   * complets. Ce n'est pas une reprise après échec, c'est une course.
+   *
+   * La déduplication par clé de projet fait qu'un seul téléchargement part et
+   * que tous les appelants reçoivent son résultat.
+   */
   async loadProjectStorageFiles() {
     const projectId = this.#projectId;
 
@@ -588,6 +715,10 @@ export class WorkbenchStore {
       return false;
     }
 
+    return projectStorageFilesInFlight.run(projectId, () => this.#loadProjectStorageFilesUncoalesced(projectId));
+  }
+
+  async #loadProjectStorageFilesUncoalesced(projectId: string) {
     const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/export/zip`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
@@ -682,7 +813,15 @@ export class WorkbenchStore {
   async refreshRuntimePorts() {
     await this.#previewsStore.refreshPorts();
 
-    if (this.previews.get().some((preview) => preview.ready !== false)) {
+    /*
+     * BUG-UX-DEV-BLOCKED-STUCK: a latched `error` state (transient "stream
+     * closed" on reopen, a dead first launch…) must RESOLVE the moment a port is
+     * really up. `serving === true` (HTTP answers + live process, server-side
+     * probe) counts even while the aggregate `ready` is still vetoed by a
+     * lagging manager status / stale client beacon — otherwise the status bar
+     * sat on "Dev: blocked" over a serving app.
+     */
+    if (previewServerLooksRunning(this.previews.get())) {
       const current = this.previewServerState.get();
       this.previewServerState.set({ status: 'running', command: current.command });
     }
@@ -732,6 +871,36 @@ export class WorkbenchStore {
         status: 'starting',
         command: previousPreviewState.command ?? workbenchText('workbenchRuntime.preview.detecting'),
       });
+    }
+
+    /*
+     * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — reattach fast-path evaluated
+     * BEFORE any recovery. A redundant, NON-forced start against an
+     * already-serving preview (re-clicking the active Webview tab, a panel
+     * re-activation, a stray auto-kick) must be a strict no-op: no
+     * #ensureWorkspaceProvisioned (a stale stopped/error status in the store
+     * would replace the LIVE pod), no manifest sync, no install and no
+     * stopPreviewServer (which killed the healthy dev command mid-stream).
+     * Live repro (24/08, desktop prod): re-clicking the active Webview tab
+     * reprovisioned the workspace, collapsed the file tree from 12 to 1 file
+     * and killed the running preview command ("Command stream closed before
+     * completion / exited with code 1"). The ports snapshot is refreshed first
+     * so the decision sees reality, and a genuinely dead pod fails the
+     * ready/deps probes and falls through to the recovery path below.
+     */
+    if (!forceInstall && !forceRestart) {
+      await this.refreshRuntimePorts().catch(() => undefined);
+
+      if (this.#previewStartPromise) {
+        return this.#previewStartPromise;
+      }
+
+      if (await this.#canShortCircuitToExistingPreview()) {
+        this.previewServerState.set({ status: 'running' });
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reattached'));
+
+        return workbenchText('workbenchRuntime.preview.reattachedResult');
+      }
     }
 
     /*
@@ -805,7 +974,7 @@ export class WorkbenchStore {
        * holder (including the untracked jsh-PTY dev server that stopPreviewServer's
        * tracked-only kill cannot reap) before binding a fresh, tracked dev server.
        */
-      await this.stopPreviewServer();
+      await this.stopPreviewServer({ raison: 'redemarrage' });
     } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
       return workbenchText('workbenchRuntime.preview.existingResult');
@@ -968,7 +1137,7 @@ export class WorkbenchStore {
 
         if (this.previewServerState.get().status !== 'error') {
           this.previewServerState.set({
-            status: this.previews.get().some((preview) => preview.ready !== false) ? 'running' : 'idle',
+            status: previewServerLooksRunning(this.previews.get()) ? 'running' : 'idle',
             command: command.label,
           });
         }
@@ -998,7 +1167,7 @@ export class WorkbenchStore {
      * project shapes), preserving the prior behaviour for those.
      */
     if (!pkgEntry || pkgEntry[1]?.type !== 'file') {
-      return this.previews.get().some((preview) => preview.ready !== false);
+      return previewServerLooksRunning(this.previews.get());
     }
 
     let pkg: PreviewPackageManifest = {};
@@ -1048,7 +1217,20 @@ export class WorkbenchStore {
     return Boolean(this.#previewStartPromise) || this.#previewCommandRunning;
   }
 
-  async stopPreviewServer() {
+  async stopPreviewServer(options: { raison?: RaisonArretPreview } = {}) {
+    /*
+     * LE DEMONTAGE N'EST PAS UN ORDRE D'ARRET — voir `doitArreterLePreview`.
+     * On journalise l'abstention : sans trace, un serveur qui survit ressemble
+     * a un serveur qu'on a oublie de tuer.
+     */
+    if (!doitArreterLePreview(options.raison)) {
+      console.info(JSON.stringify({ event: 'preview.arret.refuse', raison: options.raison ?? 'inconnue' }));
+
+      /* Zero processus arrete : la valeur de retour reste homogene avec le cas nominal. */
+      return 0;
+    }
+
+    console.info(JSON.stringify({ event: 'preview.arret.demande', raison: options.raison ?? 'historique' }));
     this.previewServerState.set({ status: 'stopping', command: this.previewServerState.get().command });
 
     const processes = await this.#runtime.listProcesses().catch(() => []);
@@ -1066,6 +1248,19 @@ export class WorkbenchStore {
     });
 
     for (const process of previewProcesses) {
+      /*
+       * CHAQUE MISE A MORT SE NOMME. On a passe une soiree a ignorer QUI tuait
+       * le serveur parce qu'aucun des huit chemins ne le disait. Chaine
+       * litterale + identifiant + raison : le prochain deces se lit d'un coup.
+       */
+      console.info(
+        JSON.stringify({
+          event: 'preview.mort.stopPreviewServer',
+          processId: process.id,
+          commande: [process.command, ...(process.args ?? [])].join(' ').slice(0, 80),
+          raison: options.raison ?? 'historique',
+        }),
+      );
       await this.#runtime.killProcess(process.id).catch((error) => {
         this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
       });
@@ -1091,7 +1286,7 @@ export class WorkbenchStore {
   }
 
   async restartPreviewServer() {
-    await this.stopPreviewServer();
+    await this.stopPreviewServer({ raison: 'redemarrage' });
 
     /*
      * forceRestart: an explicit user Run must relaunch for real — punch through a
@@ -1109,7 +1304,7 @@ export class WorkbenchStore {
    */
   async reinstallDependencies() {
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reinstalling'));
-    await this.stopPreviewServer();
+    await this.stopPreviewServer({ raison: 'redemarrage' });
 
     return this.startPreviewServer({ forceInstall: true, forceRestart: true });
   }
@@ -1797,6 +1992,81 @@ export class WorkbenchStore {
     }
   }
 
+  /**
+   * Rend la main quand tout ce qui est en file — clôtures d'artefact, attente
+   * des actions, synchronisation du stockage — est passé. Bornée : une action
+   * « start » qui ne rend jamais la main ne doit pas retenir un point de
+   * restauration pour toujours.
+   */
+  attendreLaFinDesTaches(delaiMaxMs = 90_000): Promise<void> {
+    return Promise.race([
+      this.#globalExecutionQueue,
+      new Promise<void>((resoudre) => {
+        setTimeout(resoudre, delaiMaxMs);
+      }),
+    ]);
+  }
+
+  /**
+   * RP-CKPT-04 — point de restauration AUTOMATIQUE de fin de tour, à la
+   * Replit : attend que les fichiers du tour soient dans le stockage du
+   * projet, puis demande un commit + un instantané reliés au message de
+   * l'agent. Rien n'est demandé à l'utilisateur ; l'échec est journalisé,
+   * jamais montré comme une erreur du tour.
+   */
+  async creerLePointDeRestaurationDuTour(input: {
+    messageId: string;
+    conversationId?: string;
+    turnIndex?: number;
+    label: string;
+    statistiques: unknown;
+  }): Promise<{ ok: boolean; commitSha?: string }> {
+    const projectId = this.#projectId;
+
+    if (!projectId || !input.messageId) {
+      return { ok: false };
+    }
+
+    await this.attendreLaFinDesTaches();
+
+    const form = new FormData();
+    form.set('intent', 'checkpoint');
+    form.set('messageId', input.messageId);
+    form.set('label', input.label);
+
+    if (input.conversationId) {
+      form.set('conversationId', input.conversationId);
+    }
+
+    if (typeof input.turnIndex === 'number' && input.turnIndex >= 0) {
+      form.set('turnIndex', String(input.turnIndex));
+    }
+
+    try {
+      form.set('statistiques', JSON.stringify(input.statistiques ?? {}));
+    } catch {
+      form.set('statistiques', '{}');
+    }
+
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/snapshots`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw Object.assign(new Error(), { code: 'CHECKPOINT_ENDPOINT_HTTP_ERROR', status: response.status });
+    }
+
+    const payload = (await response.json().catch(() => ({}))) as { commitSha?: string | null };
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vibecore:snapshots-changed', { detail: { messageId: input.messageId } }));
+    }
+
+    return { ok: true, commitSha: payload.commitSha ?? undefined };
+  }
+
   addToExecutionQueue(callback: () => Promise<void>) {
     /*
      * Swallow per-task rejections here: a rejected queue promise would skip the `.then`
@@ -2196,6 +2466,7 @@ export class WorkbenchStore {
     });
     this.#syncAgentPatchProposalToServer(proposalId);
     this.#dropResolvedAgentPatchLogs(proposal.relativePath);
+    this.#maybeRunDeferredStart(proposal.artifactId);
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.rejected', { file: proposal.relativePath }));
   }
 
@@ -2260,6 +2531,18 @@ export class WorkbenchStore {
      * interleave; different paths still apply concurrently.
      */
     return this.#agentPatchApplyMutex.run(proposal.filePath, async () => {
+      /*
+       * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — per-file backoff. Once the same file
+       * has been patched several times inside the window, each further apply
+       * waits exponentially longer (capped), so a repair loop drains slowly and
+       * visibly instead of hammering write/reload/checkpoint back-to-back.
+       */
+      const backoffMs = this.#agentPatchFloodGuard.backoffDelayMs(proposal.relativePath);
+
+      if (backoffMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+
       try {
         let acceptedContent = applyReviewableDiffHunks({
           originalContent: proposal.originalContent,
@@ -2362,6 +2645,8 @@ export class WorkbenchStore {
         });
         this.#dropResolvedAgentPatchLogs(proposal.relativePath);
         this.#dropResolvedMissingImportFailures();
+        this.#agentPatchFloodGuard.recordAccepted(proposal.relativePath, patchContentFingerprint(acceptedContent));
+        this.#maybeRunDeferredStart(proposal.artifactId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.accepted', { file: proposal.relativePath }));
 
         await this.#createProjectAgentCheckpoint(
@@ -2380,6 +2665,8 @@ export class WorkbenchStore {
           error: message,
         });
         this.#syncAgentPatchProposalToServer(proposalId);
+        this.#agentPatchFloodGuard.recordFailure(proposal.relativePath);
+        this.#maybeRunDeferredStart(proposal.artifactId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.failedLog', { file: proposal.relativePath }));
 
         return 'failed';
@@ -3066,6 +3353,17 @@ export class WorkbenchStore {
       this.#dropResolvedMissingImportFailures();
     } else {
       if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
+        /*
+         * A skipped `start` is remembered and re-dispatched once the review
+         * queue drains. skipAction marks the action "complete", so without this
+         * the UI showed "Start application — Done" while `npm run dev` never
+         * ran and the preview stayed on `preview.proxy.unreachable` (live
+         * incident 24/08 — see BUG-SELFREPAIR-RUNAWAY-LOOP-001).
+         */
+        if (data.action.type === 'start') {
+          this.#deferredStartArtifacts.add(artifactId);
+        }
+
         artifact.runner.skipAction(data.actionId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.commandReviewPending'));
 
@@ -3186,10 +3484,52 @@ export class WorkbenchStore {
         );
       }
     }
+
+    this.#maybeRunDeferredStart(artifactId);
   }
 
   #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean) {
     if (data.action.type !== 'file') {
+      return;
+    }
+
+    /*
+     * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — admission control BEFORE a proposal is
+     * created. A re-emitted action with byte-identical content (fresh actionId,
+     * same bytes — the measured ×90 duplicate storm) must not spawn yet another
+     * pending proposal for the auto-applier to accept; and a file that keeps
+     * being re-patched without converging must stop cleanly and escalate
+     * instead of looping. The caller (`_runAction`) already skips the action
+     * for the non-streaming close, so returning here is a clean no-op.
+     */
+    const fingerprint = patchContentFingerprint(data.action.content);
+
+    /*
+     * Only the authoritative non-streaming close COUNTS toward the bounds: a
+     * streamed file arrives as dozens of partial chunks (measured: 55 writes
+     * for one file), and counting those would exhaust the per-file budget on a
+     * single legitimate generation. Streaming uses the non-counting probe so a
+     * halted path still stops updating and identical bytes are still skipped.
+     */
+    const admission = isStreaming
+      ? this.#agentPatchFloodGuard.probe(data.action.filePath, fingerprint)
+      : this.#agentPatchFloodGuard.admit(data.action.filePath, fingerprint);
+
+    if (admission.kind === 'skip-identical') {
+      if (!isStreaming && !this.#agentPatchSkipLogged.has(data.action.filePath)) {
+        this.#agentPatchSkipLogged.add(data.action.filePath);
+        this.appendWorkspaceLog(
+          workbenchText('workbenchRuntime.patch.duplicateSkippedLog', { file: data.action.filePath }),
+        );
+      }
+
+      this.#maybeRunDeferredStart(data.artifactId);
+
+      return;
+    }
+
+    if (admission.kind === 'halt') {
+      this.#escalateAgentPatchHalt(data.action.filePath, data.artifactId, admission);
       return;
     }
 
@@ -3239,6 +3579,99 @@ export class WorkbenchStore {
         workbenchText('workbenchRuntime.validation.waitingForReview', { file: data.action.filePath }),
       );
     }
+  }
+
+  /**
+   * A patch-flood bound was hit: stop cleanly and escalate. Any still-open
+   * proposal for the path is failed (so the review queue drains and skipped
+   * commands can unblock), one workspace-log line + one alert are surfaced per
+   * scope/path, and the deferred start is given a chance to run.
+   */
+  #escalateAgentPatchHalt(
+    relativePath: string,
+    artifactId: string,
+    admission: Extract<PatchAdmission, { kind: 'halt' }>,
+  ) {
+    const values = { file: relativePath, attempts: admission.attempts, limit: admission.limit };
+    const alertKey = admission.scope === 'global' ? 'global' : `file:${relativePath}`;
+
+    for (const proposal of Object.values(this.agentPatchProposals.get())) {
+      if (proposal.relativePath !== relativePath || isTerminalAgentPatchStatus(proposal.status)) {
+        continue;
+      }
+
+      const artifact = this.#getArtifact(proposal.artifactId);
+
+      artifact?.runner.skipAction(proposal.actionId);
+      this.agentPatchProposals.setKey(proposal.id, {
+        ...proposal,
+        status: 'failed',
+        updatedAt: new Date().toISOString(),
+        error: workbenchText(
+          admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobal' : 'workbenchRuntime.patch.haltFile',
+          values,
+        ),
+      });
+      this.#syncAgentPatchProposalToServer(proposal.id);
+    }
+
+    if (!this.#agentPatchHaltAlerted.has(alertKey)) {
+      this.#agentPatchHaltAlerted.add(alertKey);
+
+      const description = workbenchText(
+        admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobal' : 'workbenchRuntime.patch.haltFile',
+        values,
+      );
+
+      this.appendWorkspaceLog(
+        workbenchText(
+          admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobalLog' : 'workbenchRuntime.patch.haltFileLog',
+          values,
+        ),
+      );
+      this.actionAlert.set({
+        type: 'error',
+        title: workbenchText('workbenchRuntime.patch.haltTitle'),
+        description,
+        content: description,
+        source: 'preview',
+      });
+    }
+
+    this.#maybeRunDeferredStart(artifactId);
+  }
+
+  /**
+   * Launch the tracked dev-server start that was skipped while the artifact's
+   * review queue was open. Runs at most once per artifact and only when no
+   * proposal for the artifact is still pending/applying; startPreviewServer
+   * itself is guarded/idempotent (in-flight promise + reattach short-circuit).
+   *
+   * NOTE: this deliberately does NOT reuse #hasOpenAgentPatchProposalsForArtifact
+   * — that predicate (via isTerminalAgentPatchStatus) treats a 'failed'
+   * proposal as still open, which is exactly how a failing patch used to
+   * starve the start command FOREVER. A failed proposal must not keep the dev
+   * server from launching.
+   */
+  #maybeRunDeferredStart(artifactId: string) {
+    if (!this.#deferredStartArtifacts.has(artifactId)) {
+      return;
+    }
+
+    const stillBlocking = Object.values(this.agentPatchProposals.get()).some(
+      (proposal) =>
+        proposal.artifactId === artifactId && (proposal.status === 'pending' || proposal.status === 'applying'),
+    );
+
+    if (stillBlocking) {
+      return;
+    }
+
+    this.#deferredStartArtifacts.delete(artifactId);
+    this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.deferredStartLog'));
+    void this.startPreviewServer().catch(() => {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.startFailed'));
+    });
   }
 
   async #refreshPreviewAfterArtifactClose(artifactId: string) {

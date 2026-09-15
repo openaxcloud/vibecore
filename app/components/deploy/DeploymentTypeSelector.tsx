@@ -95,7 +95,7 @@ function TypeCard({
         />
         <span className="min-w-0 break-words text-sm font-medium text-bolt-elements-textPrimary">{type.name}</span>
         {comingSoon ? (
-          <span className="ml-auto shrink-0 rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
+          <span className="ml-auto shrink-0 rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
             {soonLabel}
           </span>
         ) : null}

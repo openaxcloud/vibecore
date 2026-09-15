@@ -23,7 +23,6 @@ export const CHATBOT_BUILDER_COPY = {
       microcopy:
         'Start from the questions your team already answers. Prompts, tool contracts, modeled conversation state, and the running interface remain visible while you iterate.',
     },
-    languageSwitch: { label: 'Choose the Chatbot Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'HelpDesk Copilot',
@@ -274,11 +273,6 @@ export const CHATBOT_BUILDER_COPY = {
       },
       microcopy:
         'Partez des questions auxquelles votre équipe répond déjà. Prompts, contrats d’outils, état de conversation modélisé et interface active restent visibles pendant l’itération.',
-    },
-    languageSwitch: {
-      label: 'Choisir la langue de la page Générateur de chatbot',
-      english: 'English',
-      french: 'Français',
     },
     demo: {
       badge: 'Données fictives',

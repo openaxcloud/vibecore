@@ -429,12 +429,12 @@ function CatalogCard({ entry, installed, onInstall }: CatalogCardProps) {
               {entry.name}
             </h4>
             {entry.featured && (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
                 {t('settings.copy.featured_5af7ed5a')}
               </span>
             )}
             {entry.verified && (
-              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <span className="text-[11px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 {t('settings.copy.verified_8766e017')}
               </span>
             )}
@@ -451,7 +451,7 @@ function CatalogCard({ entry, installed, onInstall }: CatalogCardProps) {
           {entry.tags.slice(0, 4).map((tag) => (
             <span
               key={tag}
-              className="text-[10px] px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary"
+              className="text-[11px] px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-3 text-bolt-elements-textTertiary"
             >
               {tag}
             </span>
@@ -522,7 +522,7 @@ function InstalledCard({ install, onToggle, onUninstall }: InstalledCardProps) {
         </div>
         <span
           className={classNames(
-            'text-[10px] font-medium px-1.5 py-0.5 rounded',
+            'text-[11px] font-medium px-1.5 py-0.5 rounded',
             install.enabled
               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
               : 'bg-zinc-500/10 text-zinc-500',
@@ -693,7 +693,7 @@ function InstallDialog({ entry, onClose, onInstalled }: InstallDialogProps) {
                   className="w-full px-2.5 py-1.5 rounded-md text-sm font-mono bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary focus:outline-none focus:ring-1 focus:ring-bolt-elements-focus"
                 />
                 {prop.description && (
-                  <p className="text-[10px] text-bolt-elements-textTertiary mt-1">{prop.description}</p>
+                  <p className="text-[11px] text-bolt-elements-textTertiary mt-1">{prop.description}</p>
                 )}
               </div>
             ))
