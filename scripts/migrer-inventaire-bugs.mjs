@@ -30,6 +30,33 @@ export const DOSSIER = join('docs', 'bugs');
  * code ; le reste est conservé comme annotation.
  */
 const LIGNE_ENTREE = /^\|\s*(BUG-[A-Z0-9-]+)([^|]*)\|/;
+
+/**
+ * Une entrée est une LIGNE DE TABLEAU : au moins deux barres verticales.
+ *
+ * La ligne 66 de l'inventaire commence par `| BUG-AGENT-` puis bascule en
+ * CITATION (`>`) : c'est un résidu d'édition dans un bloc de prose, pas une
+ * entrée tronquée. La compter comme entrée illisible faisait refuser la
+ * migration pour une ligne qui n'en est pas une ; la réparer à la main aurait
+ * supposé deviner l'intention d'une autre session. L'outil distingue donc les
+ * deux, et laisse le registre intact.
+ */
+function estUneLigneDeTableau(ligne) {
+  return (ligne.match(/\|/gu) ?? []).length >= 2;
+}
+
+/**
+ * Le nombre de lignes d'inventaire ATTENDUES — référence indépendante du
+ * lecteur, avec laquelle on vérifie qu'aucune entrée n'a été perdue en chemin.
+ *
+ * C'est ici que la distinction tableau/citation compte vraiment : sans elle,
+ * la ligne 66 (`| BUG-AGENT->` suivi de prose citée) était comptée comme
+ * attendue mais jamais lue, et la migration se refusait pour une entrée qui
+ * n'existe pas.
+ */
+export function lignesDInventaire(markdown) {
+  return markdown.split('\n').filter((ligne) => /^\|\s*BUG-/u.test(ligne) && estUneLigneDeTableau(ligne)).length;
+}
 const SEPARATEUR = /^\|\s*-{2,}/;
 const ENTETE = /^\|\s*ID\s*\|/;
 
@@ -64,7 +91,7 @@ export function lireLesEntrees(markdown) {
       continue;
     }
 
-    const trouve = LIGNE_ENTREE.exec(ligne);
+    const trouve = estUneLigneDeTableau(ligne) ? LIGNE_ENTREE.exec(ligne) : null;
 
     if (!trouve) {
       continue;
@@ -81,6 +108,34 @@ export function lireLesEntrees(markdown) {
   }
 
   return entrees;
+}
+
+/**
+ * Le nom de fichier de chaque entrée, DÉSAMBIGUÏSÉ par suffixe quand un
+ * identifiant est porté par plusieurs entrées.
+ *
+ * POURQUOI PAS UNE RENUMÉROTATION. C'était mon premier réflexe, par analogie
+ * avec l'entrée 39 renumérotée en 40 sur #474. La mesure l'a démenti : les 14
+ * identifiants concernés sont TOUS cités hors de l'inventaire — de 1 à 7
+ * fichiers et de 3 à 16 commits chacun. `BUG-IDE-001` apparaît dans 6 fichiers
+ * et 16 commits. Renuméroter casserait ces références et la trace historique
+ * avec ; le précédent de l'entrée 39 ne valait que parce qu'elle n'était citée
+ * nulle part.
+ *
+ * L'identifiant reste donc INTACT dans le frontmatter et dans le corps. Seul
+ * le nom de fichier porte un suffixe `-b`, `-c`… dans l'ordre d'apparition.
+ */
+export function nomsDeFichier(entrees) {
+  const vus = new Map();
+
+  return entrees.map((entree) => {
+    const rang = (vus.get(entree.id) ?? 0) + 1;
+    vus.set(entree.id, rang);
+
+    const suffixe = rang === 1 ? '' : `-${String.fromCharCode(96 + rang)}`;
+
+    return `${entree.id}${suffixe}.md`;
+  });
 }
 
 /** Le fichier d'une entrée — le contenu d'origine est conservé tel quel. */
@@ -117,7 +172,7 @@ function principal() {
    * par un code de bug. Compter avec le motif du lecteur reviendrait à
    * comparer l'instrument à lui-même — un contrôle qui ne peut pas échouer.
    */
-  const attendues = (markdown.match(/^\|\s*BUG-/gmu) ?? []).length;
+  const attendues = lignesDInventaire(markdown);
 
   console.log(`  entrées lues        : ${entrees.length}`);
   console.log(`  lignes d'inventaire : ${attendues}`);
@@ -139,15 +194,11 @@ function principal() {
 
   if (doublons.length > 0) {
     const uniques = [...new Set(doublons)];
-    console.error(`::error::${uniques.length} identifiant(s) porté(s) par plusieurs entrées — migration refusée.`);
-    console.error('::error::un fichier par entrée suppose un identifiant par entrée ; il faut renuméroter,');
-    console.error('::error::comme l’entrée 39 l’avait été en 40 sur #474 — jamais écraser l’une par l’autre.');
+    console.log(`  identifiants portés par plusieurs entrées : ${uniques.length} — désambiguïsés par SUFFIXE`);
 
     for (const id of uniques) {
-      console.error(`::error::  ${id} — ${ids.filter((autre) => autre === id).length} fois`);
+      console.log(`    ${id} — ${ids.filter((autre) => autre === id).length} fois`);
     }
-
-    process.exit(1);
   }
 
   if (verifier) {
@@ -157,8 +208,10 @@ function principal() {
 
   mkdirSync(DOSSIER, { recursive: true });
 
-  for (const entree of entrees) {
-    writeFileSync(join(DOSSIER, `${entree.id}.md`), fichierDeLEntree(entree));
+  const noms = nomsDeFichier(entrees);
+
+  for (const [index, entree] of entrees.entries()) {
+    writeFileSync(join(DOSSIER, noms[index]), fichierDeLEntree(entree));
   }
 
   console.log(`  ${entrees.length} fichiers écrits dans ${DOSSIER}/`);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { fichierDeLEntree, lireLesEntrees } from './migrer-inventaire-bugs.mjs';
+import { fichierDeLEntree, lignesDInventaire, lireLesEntrees, nomsDeFichier } from './migrer-inventaire-bugs.mjs';
 
 /**
  * Ce que la migration doit tenir AVANT de toucher au registre.
@@ -65,10 +65,40 @@ describe('le migrateur du registre de bugs', () => {
     expect(lireLesEntrees(ampute).map((e) => e.id)).not.toContain('BUG-B-002');
   });
 
-  it('CONTRE-ÉPREUVE — une ligne mal formée n’est PAS lue en silence', () => {
-    // La forme exacte trouvée ligne 66 du registre réel : cellule jamais refermée.
-    const casse = `${INVENTAIRE}| BUG-E-> **une cellule jamais refermée**\n`;
+  it('ne prend PAS une citation pour une entrée', () => {
+    /*
+     * Ligne 66 du registre réel : `| BUG-AGENT-> **Les dix conversations…**`,
+     * suivie de lignes `>`. C'est un résidu d'édition dans un bloc de prose,
+     * pas une entrée tronquée — une seule barre verticale. La compter faisait
+     * refuser la migration pour une ligne qui n'en est pas une.
+     */
+    const avecCitation = `${INVENTAIRE}| BUG-E-> **une citation, pas une ligne de tableau**\n`;
 
-    expect(lireLesEntrees(casse)).toHaveLength(3);
+    // Lue comme entrée : non. ATTENDUE comme entrée : non plus — c'est là que
+    // se jouait le refus de migration, et c'est donc là qu'il faut le tenir.
+    expect(lireLesEntrees(avecCitation)).toHaveLength(3);
+    expect(lignesDInventaire(avecCitation)).toBe(3);
+    expect(lignesDInventaire(INVENTAIRE)).toBe(lireLesEntrees(INVENTAIRE).length);
+  });
+
+  it('désambiguïse les identifiants répétés par SUFFIXE, sans toucher à l’identifiant', () => {
+    /*
+     * Les 14 identifiants répétés du registre sont TOUS cités hors de
+     * l'inventaire — de 1 à 7 fichiers et de 3 à 16 commits chacun.
+     * Renuméroter casserait ces références : seul le nom de fichier change.
+     */
+    const repete = INVENTAIRE.replace(
+      '| BUG-C-003 / BUG-D-004 | **Un identifiant composé.** | ☐ | ☐ | ☐ | — |',
+      '| BUG-A-001 | **Le même identifiant, une autre entrée.** | ☐ | ☐ | ☐ | — |',
+    );
+
+    const entrees = lireLesEntrees(repete);
+    const noms = nomsDeFichier(entrees);
+
+    expect(noms).toEqual(['BUG-A-001.md', 'BUG-B-002.md', 'BUG-A-001-b.md']);
+
+    // L'identifiant reste INTACT dans le fichier produit — c'est tout l'enjeu.
+    expect(fichierDeLEntree(entrees[2])).toContain('id: BUG-A-001');
+    expect(new Set(noms).size).toBe(noms.length);
   });
 });
