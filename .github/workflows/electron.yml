@@ -45,13 +45,35 @@ jobs:
 
     env:
       NODE_OPTIONS: --max_old_space_size=8192
-      CSC_LINK: ${{ secrets.DESKTOP_CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.DESKTOP_CSC_KEY_PASSWORD }}
-      APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
-      WIN_CSC_LINK: ${{ secrets.DESKTOP_WIN_CSC_LINK }}
-      WIN_CSC_KEY_PASSWORD: ${{ secrets.DESKTOP_WIN_CSC_KEY_PASSWORD }}
+
+      # Code-signing and notarization material is released to RELEASE builds only
+      # (tag push / workflow_dispatch), never to `pull_request`.
+      #
+      # This workflow triggers on pull_request and previously exported the Apple
+      # and Windows signing identities — the private key itself (DESKTOP_CSC_LINK
+      # is a base64 .p12), its password, and the Apple app-specific password —
+      # into the environment of a job that builds and RUNS PR-authored code
+      # (`pnpm install` + `pnpm desktop:test` + electron-builder all execute
+      # scripts from the PR). Any of those could read the .p12 out of the
+      # environment and exfiltrate it. Unlike e2e.yml, this workflow had no
+      # fork guard at all.
+      #
+      # A PR build does not need to be signed: an unsigned artifact still proves
+      # the thing compiles and packages on all three platforms, which is the
+      # whole point of the PR check. Signing happens on release.
+      CSC_LINK: ${{ github.event_name != 'pull_request' && secrets.DESKTOP_CSC_LINK || '' }}
+      CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.DESKTOP_CSC_KEY_PASSWORD || '' }}
+      APPLE_ID: ${{ github.event_name != 'pull_request' && secrets.DESKTOP_APPLE_ID || '' }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD || '' }}
+      APPLE_TEAM_ID: ${{ github.event_name != 'pull_request' && secrets.DESKTOP_APPLE_TEAM_ID || '' }}
+      WIN_CSC_LINK: ${{ github.event_name != 'pull_request' && secrets.DESKTOP_WIN_CSC_LINK || '' }}
+      WIN_CSC_KEY_PASSWORD: ${{ github.event_name != 'pull_request' && secrets.DESKTOP_WIN_CSC_KEY_PASSWORD || '' }}
+
+      # Without this, electron-builder falls back to searching the runner's
+      # keychain for a signing identity when CSC_LINK is empty, and a macOS PR
+      # build fails on a missing identity instead of producing an unsigned app.
+      CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.event_name != 'pull_request' }}
+
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:

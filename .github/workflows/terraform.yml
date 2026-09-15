@@ -14,16 +14,64 @@ on:
       - .github/workflows/terraform.yml
   workflow_dispatch:
 
+# Deny-by-default at the workflow level. `id-token: write` is granted ONLY to the
+# `plan` job below, which never runs on `pull_request` — see the comment there.
 permissions:
   contents: read
-  id-token: write
-  pull-requests: write
 
 jobs:
-  terraform:
-    name: Terraform fmt, validate, plan
+  # Static checks. Runs on every event, INCLUDING pull_request, with no cloud
+  # credentials and no OIDC token: `terraform init -backend=false` needs neither.
+  validate:
+    name: Terraform fmt, validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [staging, prod]
+
+    defaults:
+      run:
+        working-directory: infra/terraform/envs/${{ matrix.env }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive ../..
+
+      - name: Terraform init (no backend)
+        run: terraform init -backend=false
+
+      - name: Terraform validate
+        run: terraform validate
+
+  # Plan needs the real backend, so it needs GCP credentials, so it needs an OIDC
+  # token. It is gated on `github.event_name != 'pull_request'`.
+  #
+  # The permission itself — not just the auth step — is what has to be gated. The
+  # previous single-job workflow granted `id-token: write` at the WORKFLOW level
+  # while only the auth STEP was `if: github.event_name != 'pull_request'`. A
+  # pull_request run therefore still carried a mintable OIDC token that no step
+  # used: a free credential handed to PR-controlled code. `permissions:` accepts
+  # no expressions, so the only way to gate it is to put the privileged steps in
+  # their own job.
+  plan:
+    name: Terraform plan
+    if: github.event_name != 'pull_request'
+    needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -41,27 +89,18 @@ jobs:
           terraform_version: 1.9.8
 
       - name: Authenticate to Google Cloud
-        if: github.event_name != 'pull_request'
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_TERRAFORM_SERVICE_ACCOUNT }}
 
-      - name: Terraform fmt
-        run: terraform fmt -check -recursive ../..
-
       - name: Terraform init
-        run: terraform init -backend=${{ github.event_name != 'pull_request' }}
-
-      - name: Terraform validate
-        run: terraform validate
+        run: terraform init
 
       - name: Terraform plan ${{ matrix.env }}
-        if: github.event_name != 'pull_request'
         run: terraform plan -input=false -out=tfplan
 
       - name: Upload plan ${{ matrix.env }}
-        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: terraform-${{ matrix.env }}-plan
