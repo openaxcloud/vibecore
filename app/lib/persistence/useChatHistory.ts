@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import { generateId, type JSONValue, type Message } from 'ai';
 import { atom } from 'nanostores';
 import { useState, useEffect, useCallback } from 'react';
@@ -18,6 +19,7 @@ import {
 } from './db';
 import { getProjectIdeMemory, saveProjectIdeMemory } from './projectIdeMemory';
 import { completerFilSiVide } from './serveur-fil-projet';
+import { chargementMemoireProjetEnEchec, nouvelEssaiMemoireProjet } from './projectMemoryLoadFailure';
 import type { Snapshot } from './types';
 import {
   getChatHistoryCopy,
@@ -149,6 +151,13 @@ export function useChatHistory() {
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
 
+  /*
+   * Souscrit, pas lu au vol : c'est ce compteur qui rouvre la porte quand
+   * l'utilisateur clique « réessayer ». Sans dépendance réactive, l'effet ne
+   * serait jamais rejoué et le bouton ne ferait rien.
+   */
+  const essaiDemande = useStore(nouvelEssaiMemoireProjet);
+
   useEffect(() => {
     if (!db && !projectId) {
       setReady(true);
@@ -214,6 +223,7 @@ export function useChatHistory() {
             ),
           );
           chatId.set(projectChatId);
+          chargementMemoireProjetEnEchec.set(false);
           chatMetadata.set(storedMessages?.metadata ?? memory.chat?.metadata);
 
           if (!storedMessages && db) {
@@ -236,6 +246,7 @@ export function useChatHistory() {
           toast.error(message, {
             toastId: `project-ide-memory-load-${projectId}`,
           });
+          chargementMemoireProjetEnEchec.set(true);
           chatId.set(`project:${projectId}`);
           description.set(copy['chatHistory.fallback.projectAssistant']);
           setReady(true);
@@ -389,7 +400,7 @@ ${value.content}
       warnLocalChatPersistence(copy['chatHistory.warning.localOnly']);
       setReady(true);
     }
-  }, [mixedId, projectId, db, navigate, searchParams, copy, safeError]);
+  }, [essaiDemande, mixedId, projectId, db, navigate, searchParams, copy, safeError]);
 
   const takeSnapshot = useCallback(
     async (chatIdx: string, files: FileMap, _chatId?: string | undefined, chatSummary?: string) => {
