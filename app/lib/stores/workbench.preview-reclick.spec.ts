@@ -275,6 +275,40 @@ describe('startPreviewServer — re-click / redundant start against a serving pr
     expect(store.workspaceStatus.get()?.status).toBe('stopped');
   });
 
+  /*
+   * DEUX CLICS RAPIDES SUR « DÉMARRER L'APPLICATION ».
+   *
+   * Ce bouton ne lançait rien — il basculait la vue — donc ce chemin n'avait
+   * jamais été emprunté par un humain. Maintenant qu'il lance vraiment, un
+   * double-clic devient atteignable : deux `startPreviewServer()` peuvent
+   * partir avant que le premier n'ait rendu la main.
+   *
+   * Le dédoublonnage vit dans `startPreviewServer` AVANT le premier `await`
+   * (`#previewStartPromise` / `#previewStarting`) : le second appel doit rendre
+   * la promesse en vol, pas provisionner une seconde fois. Sur un espace de
+   * travail à l'arrêt — le cas où un démarrage a réellement lieu — un second
+   * `startWorkspace` remplacerait un pod en train de naître.
+   */
+  it("deux démarrages concurrents ne provisionnent qu'une fois (double-clic)", async () => {
+    seedInstalledViteProject();
+
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+    store.workspaceStatus.set(staleStoppedStatus());
+    store.previews.set([]);
+
+    // Les deux clics partent AVANT tout await du premier.
+    const premier = store.startPreviewServer();
+    const second = store.startPreviewServer();
+
+    await Promise.all([premier, second]);
+
+    expect(
+      runtimeAdapterMock.startWorkspace.mock.calls.length,
+      "un double-clic ne doit provisionner qu'une seule fois",
+    ).toBe(1);
+  });
+
   it('still reprovisions a stopped workspace when NOTHING is serving (recovery path preserved)', async () => {
     seedInstalledViteProject();
 
