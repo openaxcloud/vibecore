@@ -5,6 +5,18 @@ import type { FileMap } from '~/lib/stores/files';
 
 interface GenerateAppCtaProps {
   files: FileMap | undefined;
+
+  /*
+   * Le prompt tel qu'il vit RÉELLEMENT aujourd'hui : dans
+   * `ProjectIdeState.chat` (`pendingPrompt`, puis `consumedPrompt`).
+   *
+   * Le bouton le cherchait uniquement dans le README. Or BUG-QA-PROMPT-IN-README
+   * l'a retiré du README — à juste titre, il y fuyait des clés d'API — sans
+   * mettre ce site d'appel à jour. Résultat mesuré le 2026-09-06 : le secours ne
+   * pouvait plus s'afficher pour AUCUN projet créé depuis ce changement. Le
+   * README reste un dernier recours pour les projets antérieurs.
+   */
+  promptDeSecours?: string;
   hasMessages: boolean;
   isGenerating: boolean;
   onGenerate: (prompt: string) => void;
@@ -19,7 +31,7 @@ interface GenerateAppCtaProps {
  * nothing once a conversation exists, while the agent is working, or once real
  * app files are present.
  */
-export function GenerateAppCta({ files, hasMessages, isGenerating, onGenerate }: GenerateAppCtaProps) {
+export function GenerateAppCta({ files, promptDeSecours, hasMessages, isGenerating, onGenerate }: GenerateAppCtaProps) {
   const { i18n } = useTranslation();
   const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
 
@@ -27,7 +39,7 @@ export function GenerateAppCta({ files, hasMessages, isGenerating, onGenerate }:
     return null;
   }
 
-  const prompt = extractGenerationPrompt(files);
+  const prompt = promptDeSecours?.trim() || extractGenerationPrompt(files);
 
   if (!prompt) {
     return null;

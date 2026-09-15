@@ -32,10 +32,26 @@
 # node base image's own npm install (usr/local/lib/node_modules/npm), not from
 # our dependency tree — we cannot bump it without a new base image. Impact is a
 # DoS reachable only by feeding a crafted archive to npm itself.
-CVE-2026-59873 exp:2026-09-03
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ces exceptions ont EXPIRE le 2026-09-03 — et c'est ce qui a ferme la chaine
+# de livraison ce jour-la : plus rien n'atteignait la production depuis 36 h,
+# alors que six correctifs attendaient. Personne n'a fait le lien pendant des
+# heures, parce qu'une date d'expiration ne previent pas avant d'echoir.
+#
+# Elles ne sont PAS prolongees ici. Elles sont remplacees par des exceptions
+# PAR IMAGE (`.trivyignore.<service>`), plus etroites : chacune ne couvre que
+# son image, avec sa justification propre. Une CVE ouverte pour `admin` ne
+# peut plus couvrir `web`.
+#
+# LECON : une exception GLOBALE a date fixe ferme la chaine du jour au
+# lendemain, partout a la fois. Une exception par image porte la meme date
+# mais son perimetre est borne et sa justification lisible sur place.
+# ─────────────────────────────────────────────────────────────────────────────
+# (expiree, remplacee par .trivyignore.<service>) CVE-2026-59873 exp:2026-09-03
 
 # Go stdlib 1.20.12, carried by a Go-built binary inside the base image, not by
 # any code we compile. We ship no Go source; there is nothing for us to rebuild
 # short of a base-image bump.
-CVE-2024-24790 exp:2026-09-03
-CVE-2025-68121 exp:2026-09-03
+# (expiree, remplacee par .trivyignore.<service>) CVE-2024-24790 exp:2026-09-03
+# (expiree, remplacee par .trivyignore.<service>) CVE-2025-68121 exp:2026-09-03
