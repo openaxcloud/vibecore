@@ -15,6 +15,14 @@ import {
 const EN_FILE = 'app/lib/i18n/messages/en.ts';
 const FR_FILE = 'app/lib/i18n/messages/fr.ts';
 const RUNTIME_FILE = 'app/lib/i18n/runtime.ts';
+/*
+ * BUG-PERF-I18N-RACINE-001 : les catalogues ne sont plus « spread » dans
+ * `runtime.ts` (qui n'en importe plus aucun, pour que le navigateur ne les
+ * télécharge pas) mais dans `runtime-resources.ts`, que seuls le serveur, le
+ * build et les tests lisent. Le contrôle d'enregistrement regarde donc ce
+ * fichier-là ; celui du repli de clé manquante reste sur `runtime.ts`.
+ */
+const RESOURCES_FILE = 'app/lib/i18n/runtime-resources.ts';
 const CATALOG_DIRECTORY = 'app/lib/i18n/catalogs';
 
 function formatIssue(issue) {
@@ -23,10 +31,11 @@ function formatIssue(issue) {
 }
 
 export async function validateRepositoryCatalogs() {
-  const [enSource, frSource, runtimeSource, catalogEntries] = await Promise.all([
+  const [enSource, frSource, runtimeSource, resourcesSource, catalogEntries] = await Promise.all([
     readFile(EN_FILE, 'utf8'),
     readFile(FR_FILE, 'utf8'),
     readFile(RUNTIME_FILE, 'utf8'),
+    readFile(RESOURCES_FILE, 'utf8'),
     readdir(CATALOG_DIRECTORY, { withFileTypes: true }),
   ]);
   const pairs = [
@@ -149,9 +158,9 @@ export async function validateRepositoryCatalogs() {
   result.issues.push(...validateRuntimeMissingKeyFallback(runtimeSource, RUNTIME_FILE));
   result.issues.push(
     ...validateCatalogRegistration(
-      runtimeSource,
+      resourcesSource,
       pairs.filter((pair) => pair.runtimeRegistration),
-      RUNTIME_FILE,
+      RESOURCES_FILE,
     ),
   );
 

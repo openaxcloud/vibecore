@@ -23,6 +23,7 @@
  */
 
 import { classifyTask, type OutputBudgetInput, type TaskClass } from './output-budget';
+import { readRuntimeEnvBag } from '~/lib/modules/llm/runtime-env';
 import { AUTO_MODEL } from '~/utils/constants';
 
 /**
@@ -57,21 +58,19 @@ export const DEFAULT_ROUTE_TABLE: Record<string, ProviderRoute> = {
 };
 
 /**
- * Reads an env bag defensively. In client bundles Vite shims `process.env` to
- * `{}` (see MEMORY: "SSR process.env empty"), and `process` may be undefined
- * entirely; either way we fall back to the default. Never throws.
+ * Le sac d'environnement du VRAI processus Node.
+ *
+ * Ce lecteur passait par `process.env` nu. MESURÉ : dans le bundle SSR du pod
+ * web, `vite-plugin-node-polyfills` (`globals.process = true`) remplace
+ * `process` par un shim de navigateur dont `env` est `{}` — la lecture rendait
+ * donc TOUJOURS un sac vide en production, et `MODEL_ROUTING_TABLE` n'a jamais
+ * pu surcharger quoi que ce soit. Le commentaire d'origine disait « client
+ * bundles » ; la mesure montre que le bundle SERVEUR est touché aussi.
+ *
+ * `readRuntimeEnvBag` lit `globalThis.process.env`, que le polyfill ne réécrit
+ * pas, et rend toujours un objet. Never throws.
  */
-function readProcessEnv(): Record<string, string | undefined> {
-  try {
-    if (typeof process !== 'undefined' && process && process.env) {
-      return process.env as Record<string, string | undefined>;
-    }
-  } catch {
-    // process not defined in this environment — fall through
-  }
-
-  return {};
-}
+const readProcessEnv = readRuntimeEnvBag;
 
 /** True for a plain, non-null object (a valid `ProviderRoute` container). */
 function isPlainObject(value: unknown): value is Record<string, unknown> {

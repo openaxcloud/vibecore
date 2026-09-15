@@ -741,14 +741,29 @@ export default function ProjectSnapshotsPage() {
         title={formatProjectSnapshotsCopy(copy['projectSnapshots.restore.title'], { label: pendingLabel })}
         description={
           pendingRestore ? (
-            <RestorePreviewBody
-              expectedSnapshotId={pendingRestore.id}
-              state={previewFetcher.state !== 'idle' ? 'loading' : 'idle'}
-              data={previewFetcher.data}
-              restoreErrorCode={currentRestoreError}
-              copy={copy}
-              language={language}
-            />
+            <span className="block space-y-3 text-left">
+              {/*
+               * R-9 — the scope warning belongs to the DIALOG, not to the
+               * diffstat. Placed inside `RestorePreviewBody` it only appeared
+               * once the preview had loaded, i.e. never on the loading or
+               * preview-unavailable paths — exactly the moments a user is most
+               * likely to confirm blind. Its own guard caught that.
+               */}
+              <span
+                className="block break-words text-sm text-bolt-elements-textSecondary"
+                data-testid="restore-database-untouched"
+              >
+                {copy['projectSnapshots.restore.databaseUntouched']}
+              </span>
+              <RestorePreviewBody
+                expectedSnapshotId={pendingRestore.id}
+                state={previewFetcher.state !== 'idle' ? 'loading' : 'idle'}
+                data={previewFetcher.data}
+                restoreErrorCode={currentRestoreError}
+                copy={copy}
+                language={language}
+              />
+            </span>
           ) : (
             copy['projectSnapshots.restore.loadingPreview']
           )

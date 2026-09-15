@@ -5,6 +5,8 @@ export const projectDomainsEn = {
   'projectDomains.meta.description': 'Connect project deployments to verified custom domains with TLS readiness.',
   'projectDomains.error.projectNotFound': 'Project not found.',
   'projectDomains.error.serviceUnavailable': 'The domains service is unavailable. Wait a moment, then try again.',
+  'projectDomains.error.organizationMissing':
+    'This project is not attached to an organization, so its domains cannot be listed.',
   'projectDomains.error.verificationFailed':
     'Domain verification failed. Check the DNS record, wait for propagation, then try again.',
   'projectDomains.error.addFailed': 'The domain could not be added. Check the value, then try again.',
@@ -13,6 +15,8 @@ export const projectDomainsEn = {
   'projectDomains.tls.pending': 'TLS pending domain verification',
   'projectDomains.page.title': 'Custom domains',
   'projectDomains.page.description': 'Map project deployments to verified domains with TLS readiness.',
+  'projectDomains.scope.notice':
+    'Domains are verified once for your organization and can then be used by any of its projects. This list is shared across the organization — it is not specific to this project.',
   'projectDomains.activity.verified': 'Verified {date}',
   'projectDomains.activity.dateUnavailable': 'date unavailable',
   'projectDomains.activity.pending': 'Pending DNS verification',
@@ -43,6 +47,8 @@ export const projectDomainsFr: ProjectDomainsCopy = {
   'projectDomains.error.projectNotFound': 'Projet introuvable.',
   'projectDomains.error.serviceUnavailable':
     'Le service des domaines est indisponible. Patientez quelques instants, puis réessayez.',
+  'projectDomains.error.organizationMissing':
+    "Ce projet n'est rattaché à aucune organisation : ses domaines ne peuvent pas être listés.",
   'projectDomains.error.verificationFailed':
     'La vérification du domaine a échoué. Vérifiez l’enregistrement DNS, attendez sa propagation, puis réessayez.',
   'projectDomains.error.addFailed': 'Impossible d’ajouter le domaine. Vérifiez la valeur, puis réessayez.',
@@ -51,6 +57,8 @@ export const projectDomainsFr: ProjectDomainsCopy = {
   'projectDomains.tls.pending': 'TLS en attente de vérification du domaine',
   'projectDomains.page.title': 'Domaines personnalisés',
   'projectDomains.page.description': 'Associez les déploiements du projet à des domaines vérifiés et prêts pour TLS.',
+  'projectDomains.scope.notice':
+    "Les domaines sont vérifiés une fois pour votre organisation et peuvent ensuite servir à tous ses projets. Cette liste est commune à l'organisation : elle n'est pas propre à ce projet.",
   'projectDomains.activity.verified': 'Vérifié le {date}',
   'projectDomains.activity.dateUnavailable': 'date indisponible',
   'projectDomains.activity.pending': 'Vérification DNS en attente',
