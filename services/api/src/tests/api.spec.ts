@@ -4861,6 +4861,93 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  /**
+   * R-1 bis, isolation half. The user-area page used to resolve the
+   * organization from the CALLER rather than from the project, which raised the
+   * question of whether one organization could ever read another's domains.
+   * The answer is no — `requireOrg` checks membership before every domain
+   * route — but nothing pinned it: the suite had only happy-path coverage on a
+   * single organization, where a missing check is invisible.
+   *
+   * This is the discriminating test. Same request, same shape, only the
+   * caller's organization differs.
+   */
+  it('refuses domain reads and writes from a member of another organization', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const owner = await register(app, { email: 'owner@example.com', organizationName: 'Owner Org' });
+    const outsider = await register(app, { email: 'outsider@example.com', organizationName: 'Outsider Org' });
+
+    expect(owner.organization.id).not.toBe(outsider.organization.id);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${owner.organization.id}/domains`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { domain: 'private.example.com' },
+    });
+    expect(created.statusCode).toBe(201);
+
+    // Read: the outsider must not even learn that the organization exists.
+    const read = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}/domains`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(read.statusCode).toBe(404);
+    expect(read.body).not.toContain('private.example.com');
+
+    // Write: create, reconfigure and verify are all refused.
+    for (const attempt of [
+      { method: 'POST' as const, url: `/orgs/${owner.organization.id}/domains`, payload: { domain: 'x.example.com' } },
+      {
+        method: 'PATCH' as const,
+        url: `/orgs/${owner.organization.id}/domains/private.example.com`,
+        payload: { redirectWww: false },
+      },
+      {
+        method: 'POST' as const,
+        url: `/orgs/${owner.organization.id}/domains/private.example.com/verify`,
+        payload: undefined,
+      },
+    ]) {
+      const response = await app.inject({
+        method: attempt.method,
+        url: attempt.url,
+        headers: { authorization: `Bearer ${outsider.token}` },
+        ...(attempt.payload ? { payload: attempt.payload } : {}),
+      });
+      expect(response.statusCode, `${attempt.method} ${attempt.url} was not refused`).toBe(404);
+    }
+
+    // Counter-proof: the owner's own list is untouched by every refused attempt.
+    const ownerList = await app.inject({
+      method: 'GET',
+      url: `/orgs/${owner.organization.id}/domains`,
+      headers: { authorization: `Bearer ${owner.token}` },
+    });
+    expect(ownerList.statusCode).toBe(200);
+    expect(ownerList.json().domains).toHaveLength(1);
+    expect(ownerList.json().domains[0]).toEqual(
+      expect.objectContaining({ domain: 'private.example.com', redirectWww: true, sslStatus: 'pending_dns' }),
+    );
+
+    // The refused PATCH must not have flipped redirectWww, nor the refused verify the TLS state.
+    expect(ownerList.json().domains[0].verifiedAt).toBeFalsy();
+
+    // And the outsider's own organization never received the writes either.
+    const outsiderList = await app.inject({
+      method: 'GET',
+      url: `/orgs/${outsider.organization.id}/domains`,
+      headers: { authorization: `Bearer ${outsider.token}` },
+    });
+    expect(outsiderList.statusCode).toBe(200);
+    expect(outsiderList.json().domains).toEqual([]);
+
+    await app.close();
+  });
+
   it('rolls back, redeploys and cancels deployment records', async () => {
     const store = new TestApiStore();
 
@@ -5038,6 +5125,123 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       payload: { title: 'Ship project', sourceBranch: 'main', targetBranch: 'main' },
     });
     expect(pullRequest.statusCode).toBe(201);
+    await app.close();
+  });
+
+  it('BUG-AI-002 — un 403 « plan » de la passerelle atteint l’utilisateur au lieu d’un 502 opaque', async () => {
+    /*
+     * Mesuré en production le 2026-09-01 : la passerelle renvoyait
+     * `403 AI_MODEL_PLAN_BLOCKED` et l'utilisateur recevait
+     * `502 {"error":"Internal server error"}` — impossible de comprendre qu'il
+     * suffisait de changer de modèle ou de forfait.
+     *
+     * Ce test porte sur le SITE D'APPEL : le module de traduction peut être
+     * juste et la route continuer d'écraser.
+     */
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'ai-plan@example.com', organizationName: 'AI Plan Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'AI Plan Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const conversation = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/conversations`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { title: 'Plan' },
+    });
+    const conversationId = conversation.json().conversation.id as string;
+
+    const vraiFetch = globalThis.fetch;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+
+      if (url.endsWith('/chat/completions')) {
+        return new Response(
+          JSON.stringify({
+            error: 'No model from this provider is available on your plan.',
+            code: 'AI_MODEL_PLAN_BLOCKED',
+          }),
+          { status: 403, headers: { 'content-type': 'application/json' } },
+        );
+      }
+
+      return vraiFetch(input as never, init as never);
+    });
+
+    try {
+      const reponse = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/conversations/${conversationId}/messages`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { content: 'Bonjour' },
+      });
+
+      expect(reponse.statusCode).toBe(403);
+      expect(reponse.json()).toMatchObject({ code: 'AI_MODEL_PLAN_BLOCKED' });
+      expect(JSON.stringify(reponse.json())).not.toContain('Internal server error');
+    } finally {
+      vi.restoreAllMocks();
+      await app.close();
+    }
+  });
+
+  it('BUG-DB-003 — joint le statut de l’instance gérée à la connexion qu’elle alimente', async () => {
+    /*
+     * Mesuré en production le 2026-09-01 : un projet dont l'instance est ACTIVE
+     * affichait « Status unavailable ». La route renvoyait des connexions sans
+     * aucun champ `status`, et `DatabaseWorkbench` ne renseigne `env.status`
+     * que `if (o.status)` — il tombait donc dans sa branche `default`.
+     *
+     * Ce test porte sur le SITE D'APPEL, pas sur le module : c'est la route qui
+     * avait le trou, et un module correct non câblé ne corrige rien.
+     */
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'db-status@example.com', organizationName: 'DB Status Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'DB Status Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const instance = await store.createDatabaseInstance({
+      projectId,
+      organizationId: auth.organization.id,
+      retentionDays: 7,
+      environment: 'development',
+    });
+    await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' });
+
+    await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/secrets`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { key: 'DATABASE_URL', value: 'postgres://user:pw@localhost:5432/app' },
+    });
+
+    const databases = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/databases`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(databases.statusCode).toBe(200);
+
+    const connexion = databases.json().connections.find((c: { key: string }) => c.key === 'DATABASE_URL');
+
+    // Témoin : sans cette connexion, l'assertion suivante passerait à vide.
+    expect(connexion).toBeDefined();
+    expect(connexion.status).toBe('active');
+
     await app.close();
   });
 

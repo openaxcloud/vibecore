@@ -560,7 +560,7 @@ export const Workbench = memo(
 
       if (isMobilePreviewRunActive) {
         setMobilePreviewRunFeedbackState('stopping');
-        void workbenchStore.stopPreviewServer().catch(() => {
+        void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch(() => {
           setMobilePreviewRunFeedbackState(null);
           toast.error(copy['workbenchSurface.preview.stopFailed']);
         });
