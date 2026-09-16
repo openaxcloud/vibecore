@@ -42,6 +42,30 @@ describe('BUG-QA-CI-NO-MOBILE-COVERAGE-001 — l’étape « mobile » du e2e to
     expect(bloc).toMatch(/devices\['(Pixel|iPhone|Galaxy)[^']*'\]/);
   });
 
+  /*
+   * Mesuré le 16/09 (run 35108180557) : sans plafond propre, l'étape mobile a
+   * duré 20,5 min et le job entier a été tué par son budget de 75 min pendant
+   * le canari iOS — « cancelled », PR bloquée. Un canari non bloquant doit
+   * porter son plafond, et la somme des plafonds doit tenir dans le budget du
+   * job avec les ~35 min des flux principaux.
+   */
+  it('chaque canari non bloquant porte son propre plafond, et le job garde une marge au-dessus', () => {
+    const plafond = (nom) => Number(etape(nom).match(/timeout-minutes:\s*(\d+)/)?.[1] ?? 0);
+    const mobile = plafond('Playwright mobile viewport tests');
+    const ios = plafond('Canari iOS — Playwright WebKit iPhone (non bloquant)');
+    const job = Number(workflow.match(/name: Playwright local stack[\s\S]*?timeout-minutes:\s*(\d+)/)?.[1] ?? 0);
+
+    expect(mobile, 'plafond de l’étape mobile').toBeGreaterThan(0);
+    expect(ios, 'plafond du canari iOS').toBeGreaterThan(0);
+    expect(etape('Playwright mobile viewport tests')).toContain('continue-on-error: true');
+    expect(etape('Canari iOS — Playwright WebKit iPhone (non bloquant)')).toContain('continue-on-error: true');
+
+    /* 35 min de flux principaux mesurés + 5 de mise en place, puis les deux canaris. */
+    expect(job, 'budget du job').toBeGreaterThanOrEqual(40 + mobile + ios);
+    expect(workflow).toContain('steps.mobile_viewport.outcome');
+    expect(workflow).toContain('steps.canari_ios.outcome');
+  });
+
   it('les gardes des tests reconnaissent bien ce nom de projet (contrôle positif)', () => {
     const spec = readFileSync(join(process.cwd(), 'tests/e2e/responsive-ide.spec.ts'), 'utf8');
 
