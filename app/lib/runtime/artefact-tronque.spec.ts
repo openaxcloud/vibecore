@@ -16,6 +16,7 @@ import { StreamingMessageParser } from './message-parser';
  */
 function contenuLivre(chunks: string[]): Record<string, string> {
   const fichiers: Record<string, string> = {};
+
   const parser = new StreamingMessageParser({
     callbacks: {
       onActionClose: ({ action }) => {
@@ -37,8 +38,7 @@ function contenuLivre(chunks: string[]): Record<string, string> {
 }
 
 const OUVERTURE =
-  '<boltArtifact id="a1" title="app" type="bundled">' +
-  '<boltAction type="file" filePath="src/index.css">';
+  '<boltArtifact id="a1" title="app" type="bundled">' + '<boltAction type="file" filePath="src/index.css">';
 
 describe('BUG-AGENT-005 — le balisage plateforme ne doit jamais finir dans le CSS', () => {
   it('redémarrage avec <boltAction seul : la prose et la reprise sont écartées', () => {
@@ -81,8 +81,10 @@ describe('BUG-AGENT-005 — le balisage plateforme ne doit jamais finir dans le 
   it('troncature SÈCHE (aucune reprise) : pas de balise fermante partielle dans le fichier', () => {
     const f = contenuLivre([OUVERTURE + '.card { color: red; }\n</bo']);
 
-    // Rien ne se ferme, donc rien n'est livré par onActionClose — c'est correct :
-    // un fichier incomplet ne doit pas être présenté comme complet.
+    /*
+     * Rien ne se ferme, donc rien n'est livré par onActionClose — c'est correct :
+     * un fichier incomplet ne doit pas être présenté comme complet.
+     */
     expect(f['src/index.css']).toBeUndefined();
   });
 });
