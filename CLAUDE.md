@@ -361,7 +361,16 @@ Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vér
 
 **Design** — Dès qu'Avi donne des points « Claude design » (batchs A/B/C/D/E/F/G ou nouveaux), les ajouter IMMÉDIATEMENT dans `DESIGN_PROGRAM_MASTER.md`. La vérification d'un point design doit se faire EN RÉEL sur TOUTES les pages marketing ET user area, dans TOUS les formats web / tablette / mobile, en confirmant que la page s'adapte automatiquement au screen (responsive niveau Fortune-500). Un point design ne passe ✅ que si le responsive est validé sur les 3 formats.
 
-**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT dans `BUG_INVENTORY_LIVE.md`.
+**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT : **un fichier
+par entrée** dans `docs/bugs/<ID>.md`, puis régénérer l'index avec
+`node scripts/migrer-inventaire-bugs.mjs --index`.
+
+`BUG_INVENTORY_LIVE.md` reste le point d'entrée — dix-neuf fichiers le citent —
+mais c'est désormais un **index dérivé** : ne jamais l'éditer à la main, il se
+régénère depuis `docs/bugs/`. `scripts/index-a-jour.spec.mjs` rougit dès qu'il
+diverge du dossier. Le tableau monolithique était le point de contention le plus
+chaud du dépôt : quatre pertes silencieuses y ont déjà été attrapées, et chaque
+session qui y touchait entrait en conflit avec les autres.
 
 **Plan** — un point n'est ✅ que s'il est 100% surfacé ET marche en réel à 100%.
 
