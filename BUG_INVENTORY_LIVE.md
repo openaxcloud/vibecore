@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-351 entrées.
+357 entrées.
 
 ## Sans section
 
@@ -354,6 +354,12 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA-THUMBNAIL-404-CAPTURE-001](docs/bugs/BUG-QA-THUMBNAIL-404-CAPTURE-001.md) — P1 — La vignette stockée d'un projet est la capture d'écran d'une page d'erreur JSON 404 : c'est le « rectangle vide » vu sur les cartes du tableau de bord.
 - [BUG-QA-THUMBNAIL-500-001](docs/bugs/BUG-QA-THUMBNAIL-500-001.md) — 3 vignettes de projet sur 6 renvoient HTTP 500 avec un corps vide en production.
 - [BUG-QA-THUMBNAIL-SLOW-PAGE-001](docs/bugs/BUG-QA-THUMBNAIL-SLOW-PAGE-001.md) — Sur le tableau de bord, une vignette pourtant valide met plus de 20 secondes à apparaître ; pendant tout ce temps la carte affiche « No preview yet ».
+- [BUG-QA-SONDE-001](docs/bugs/BUG-QA-SONDE-001.md) — Note de méthode — trois faux positifs de MA sonde, écartés avant de rien consigner comme défaut produit.
+- [BUG-THEME-006](docs/bugs/BUG-THEME-006.md) — P1 — PANNEAU GIT : le libellé « Commit changes » est BLEU sur le bouton ORANGE — 1,07:1 en sombre, 1,54:1 en clair.
+- [BUG-THEME-007](docs/bugs/BUG-THEME-007.md) — P2 — le gris discret restait sous le seuil sur les surfaces SURÉLEVÉES de l'IDE, dans les deux thèmes.
+- [BUG-THEME-008](docs/bugs/BUG-THEME-008.md) — P2 — les QUATRE couleurs de statut sont sous le seuil AA en thème clair, sur leur propre fond teinté.
+- [BUG-THEME-009](docs/bugs/BUG-THEME-009.md) — P1 — BADGE DE HÉROS `/about` ET `/careers` : couleur codée en dur par-dessus la paire du thème → 1,73:1 en clair, illisible.
+- [BUG-THEME-010](docs/bugs/BUG-THEME-010.md) — P2 — le gris discret du marketing tombait à 3,57:1 sur les surfaces surélevées, en sombre.
 - [BUG-ADMIN-002](docs/bugs/BUG-ADMIN-002.md) — P2 — le panneau « Fournisseurs d'IA » annonce « aucune cle » pour les 30 fournisseurs, y compris les 4 qui font tourner la plateforme.
 - [BUG-AGENT-009](docs/bugs/BUG-AGENT-009.md) — DOUBLON de la cause traitee par #312 — mon diagnostic initial etait FAUX.
 - [BUG-AI-001](docs/bugs/BUG-AI-001.md) — P0 — la generation IA etait MORTE en production : chaque appel s'auto-annulait.

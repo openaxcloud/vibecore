@@ -1901,6 +1901,13 @@ const aiRecordUsageSchema = z.object({
   finishReason: z.string().optional(),
   source: z.string().min(1).default('remix-chat'),
 
+  /*
+   * AUDX-018 — the hold taken at check-quota, handed back so it can be settled
+   * against the real cost. Opaque and single-use: settling is conditional on
+   * status = 'HELD', so replaying an id cannot release credits twice.
+   */
+  reservationId: z.string().min(1).optional(),
+
   // Replit-parity per-request power controls (effort-based checkpoint).
   highPowerModel: z.boolean().optional(),
   extendedThinking: z.boolean().optional(),
@@ -2171,6 +2178,120 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
 }
 
 /*
+ * AUDX-004 — runtime tickets.
+ *
+ * `/api/runtime-token` used to hand the browser `readSessionToken(request)` —
+ * the SESSION COOKIE VALUE itself. That defeats httpOnly entirely: any XSS could
+ * fetch the route and walk away with a full-privilege, full-lifetime session
+ * credential good for billing, admin surfaces and project deletion.
+ *
+ * A runtime ticket replaces it: short-lived, scoped to one project, and accepted
+ * ONLY on /api/runtime/* routes. Stealing one buys ~2 minutes of that project's
+ * runtime, not the account.
+ *
+ * Same construction as the collaboration WS ticket above (base64url payload +
+ * constant-time HMAC) so there is one ticket shape in this service, not two.
+ *
+ * ⚠️ KNOWN LIMIT, deliberate: a ticket is not revoked by logout — it simply
+ * expires. There is no findSessionById on the store, so binding to live session
+ * state would mean widening the store interface; the 2-minute TTL bounds the
+ * window instead. This is the ordinary short-lived-access-token trade-off, but
+ * it IS a difference from the session token it replaces, which died with the
+ * session.
+ */
+const RUNTIME_TICKET_PREFIX = 'vcrt_';
+
+/** Short enough that a stolen ticket is near-worthless; long enough to survive a slow request. */
+const RUNTIME_TICKET_TTL_MS = 120_000;
+
+function runtimeTicketSecret() {
+  const secret = process.env.RUNTIME_TICKET_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      // A literal 'dev' fallback in prod would make runtime tickets forgeable.
+      throw new Error(appPublicEnglish('INTERNAL_COLLAB_HMAC_SECRET_REQUIRED'));
+    }
+
+    return 'dev';
+  }
+
+  return secret;
+}
+
+function signRuntimeTicketPayload(payload: string) {
+  /*
+   * Domain-separated from the collaboration ticket. Both derive from the same
+   * env secret, so without a distinct label a collaboration ticket payload and a
+   * runtime ticket payload could be made to collide and cross-redeem.
+   */
+  return createHmac('sha256', runtimeTicketSecret()).update(`runtime-ticket/v1:${payload}`).digest('base64url');
+}
+
+export function createRuntimeTicket(input: { userId: string; projectId: string }) {
+  const payload = Buffer.from(
+    JSON.stringify({
+      userId: input.userId,
+      projectId: input.projectId,
+      expiresAt: Date.now() + RUNTIME_TICKET_TTL_MS,
+
+      /*
+       * AUDX-004 — unique id, so a ticket presented on an UPGRADE can be burned
+       * after its first use. Query-string credentials are the ones that leak:
+       * access logs, Referer headers to third-party origins, browser history,
+       * intermediary proxies. bearerToken() only honours `?token=` for upgrades
+       * precisely because of that, and this makes a leaked one worthless.
+       */
+      jti: randomUUID(),
+    }),
+  ).toString('base64url');
+
+  return `${RUNTIME_TICKET_PREFIX}${payload}.${signRuntimeTicketPayload(payload)}`;
+}
+
+export function verifyRuntimeTicket(ticket: string) {
+  if (!ticket.startsWith(RUNTIME_TICKET_PREFIX)) {
+    return undefined;
+  }
+
+  const [payload, signature] = ticket.slice(RUNTIME_TICKET_PREFIX.length).split('.');
+
+  if (!payload || !signature) {
+    return undefined;
+  }
+
+  /*
+   * Compare on BYTE length, not string .length — the signature is
+   * attacker-controlled and a multibyte string of equal char length would hand
+   * timingSafeEqual two different-sized buffers and throw (500 instead of 401).
+   * Same reasoning as verifyCollaborationWebSocketTicket.
+   */
+  const expectedBuf = Buffer.from(signRuntimeTicketPayload(payload));
+  const signatureBuf = Buffer.from(signature);
+
+  if (expectedBuf.length !== signatureBuf.length || !timingSafeEqual(expectedBuf, signatureBuf)) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      userId?: string;
+      projectId?: string;
+      expiresAt?: number;
+      jti?: string;
+    };
+
+    if (!parsed.userId || !parsed.projectId || typeof parsed.expiresAt !== 'number' || parsed.expiresAt < Date.now()) {
+      return undefined;
+    }
+
+    return parsed as { userId: string; projectId: string; expiresAt: number; jti?: string };
+  } catch {
+    return undefined;
+  }
+}
+
+/*
  * Chat-share tokens (audit M5/M7). The stored snapshot is keyed by a random,
  * unguessable token; we additionally HMAC-sign the public token so the /share
  * view can reject tampered/garbage tokens before any DB lookup and so a token
@@ -2305,6 +2426,185 @@ async function authenticateCollaborationWebSocketTicket(request: FastifyRequest,
    * from outside the allowlist. Resolve the project's org and check it.
    */
   const ticketedProject = await store.getProject(match[1]).catch(() => undefined);
+
+  if (ticketedProject?.organizationId) {
+    const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
+
+    if (!isIpAllowed(request.ip, settings.ipAllowlist)) {
+      reply.code(403).send({ error: appPublicEnglish('IP_ALLOWLIST_BLOCKED'), code: 'IP_ALLOWLIST_BLOCKED' });
+      return 'rejected' as const;
+    }
+  }
+
+  request.currentUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    emailVerifiedAt: user.emailVerifiedAt,
+    mfaEnabled: user.mfaEnabled,
+    platformAdmin: user.platformAdmin,
+  };
+
+  return 'authenticated' as const;
+}
+
+/*
+ * AUDX-004 — accept a runtime ticket, and ONLY on runtime routes.
+ *
+ * Fail-closed by construction: a ticket presented anywhere outside
+ * /api/runtime/* is not "ignored and retried as a session" — requireAuth would
+ * then reject it as an unknown session token anyway, but the explicit prefix
+ * check here means a ticket can never widen into general API access.
+ *
+ * ⚠️ The IP-allowlist re-check below is not decoration. The main preHandler
+ * returns EARLY for any ticket-authenticated request, which skips its allowlist
+ * block — that exact omission already shipped once on the collaboration WS
+ * ticket and had to be fixed. Same shape here, same enforcement.
+ */
+/*
+ * AUDX-004 — one-shot consumption for tickets presented on an UPGRADE.
+ *
+ * Scope of the guarantee, stated plainly: single-use is applied where a ticket
+ * travels in a QUERY STRING (WebSocket/SSE upgrades), because that is the form
+ * that leaks — access logs, Referer, history, proxies. It is deliberately NOT
+ * applied to ordinary HTTP requests: the runtime adapter reuses one ticket
+ * across every file/port/logs call for its 2-minute life, and burning it per
+ * request would force a mint round-trip before each one. That is not a security
+ * improvement, it is a self-inflicted outage on the IDE's hot path.
+ *
+ * Backed by Redis so replicas share the burn list. With no REDIS_URL (dev,
+ * single replica) an in-process set is used — honest about being per-process,
+ * and never silently pretending to be cluster-wide.
+ */
+const runtimeTicketBurnedLocally = new Set<string>();
+
+let runtimeTicketRedis: import('ioredis').Redis | undefined;
+let runtimeTicketRedisTried = false;
+
+function runtimeTicketStore(): import('ioredis').Redis | undefined {
+  if (runtimeTicketRedisTried) {
+    return runtimeTicketRedis;
+  }
+
+  runtimeTicketRedisTried = true;
+
+  /*
+   * `lireUrlDEnvironnement` et non une lecture nue : une valeur entre
+   * guillemets dans un configmap donne une URL que `new Redis()` refuse, et le
+   * magasin de tickets retombe alors en silence sur « pas de Redis ». Les trois
+   * autres lectures de REDIS_URL de ce fichier passent déjà par là ; celle-ci
+   * l'avait oublié, et `env-url.spec.ts` l'a attrapée.
+   */
+  const url = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    runtimeTicketRedis = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: false });
+    runtimeTicketRedis.on('error', () => undefined);
+  } catch {
+    runtimeTicketRedis = undefined;
+  }
+
+  return runtimeTicketRedis;
+}
+
+/**
+ * Burn a ticket id. Returns false when it was already used.
+ *
+ * Fails CLOSED on a Redis error: if we cannot tell whether a ticket was already
+ * spent, treating it as fresh would make the whole one-shot property optional
+ * exactly when the infrastructure is unhealthy — which is when replay matters.
+ * A refused upgrade is recoverable (the client re-mints); a replayed one is not.
+ */
+async function consumeRuntimeTicketId(jti: string, expiresAt: number): Promise<boolean> {
+  const ttlSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    if (runtimeTicketBurnedLocally.has(jti)) {
+      return false;
+    }
+
+    runtimeTicketBurnedLocally.add(jti);
+    setTimeout(() => runtimeTicketBurnedLocally.delete(jti), ttlSeconds * 1000).unref?.();
+
+    return true;
+  }
+
+  try {
+    // SET NX is the atomic primitive: it succeeds only for the FIRST caller.
+    const result = await redis.set(`runtime-ticket:${jti}`, '1', 'EX', ttlSeconds, 'NX');
+
+    return result === 'OK';
+  } catch {
+    return false;
+  }
+}
+
+async function authenticateRuntimeTicket(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
+  const pathname = new URL(request.url, 'http://vibecore.local').pathname;
+
+  if (!pathname.startsWith('/api/runtime/')) {
+    return 'not-ticketed' as const;
+  }
+
+  const presented = bearerToken(request);
+
+  if (!presented?.startsWith(RUNTIME_TICKET_PREFIX)) {
+    return 'not-ticketed' as const;
+  }
+
+  const payload = verifyRuntimeTicket(presented);
+
+  if (!payload) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  /*
+   * One-shot, upgrades only — see consumeRuntimeTicketId for why this is
+   * deliberately not applied to ordinary HTTP requests.
+   */
+  const isUpgradeRequest =
+    request.headers.upgrade?.toLowerCase() === 'websocket' ||
+    (typeof request.headers.accept === 'string' && request.headers.accept.includes('text/event-stream'));
+
+  if (isUpgradeRequest) {
+    if (!payload.jti || !(await consumeRuntimeTicketId(payload.jti, payload.expiresAt))) {
+      authError(reply);
+      return 'rejected' as const;
+    }
+  }
+
+  /*
+   * Scope enforcement. The ticket names ONE project; a runtime route names a
+   * workspace. Resolve the workspace and require it to belong to that project,
+   * otherwise a ticket for a project the user owns would drive the runtime of
+   * any other workspace id they can guess — which would make "scoped" a label
+   * rather than a control.
+   */
+  const workspaceId = (request.params as { workspaceId?: string } | undefined)?.workspaceId;
+
+  if (workspaceId) {
+    const workspace = await store.getWorkspace(workspaceId).catch(() => undefined);
+
+    if (!workspace || workspace.projectId !== payload.projectId) {
+      authError(reply);
+      return 'rejected' as const;
+    }
+  }
+
+  const user = await store.findUserById(payload.userId);
+
+  if (!user || (await isUserSuspended(store, user.id))) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  const ticketedProject = await store.getProject(payload.projectId).catch(() => undefined);
 
   if (ticketedProject?.organizationId) {
     const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
@@ -3652,6 +3952,33 @@ async function requirePlatformAdmin(request: FastifyRequest) {
  * Fails closed when no secret is configured.
  */
 /*
+ * AUDX-018 — how long a credit hold survives before the sweep reclaims it.
+ * Long enough for a slow generation, short enough that a crashed request does
+ * not strand a user's credits for any meaningful time.
+ */
+const AI_RESERVATION_TTL_MS = 15 * 60_000;
+
+/*
+ * Cost to hold for a request we have not made yet. Deliberately an ESTIMATE:
+ * the input tokens we know about plus a modest output allowance. The hold is
+ * provisional and settled against the real cost afterwards, so erring slightly
+ * HIGH is the correct direction — a hold that is too small lets the wallet go
+ * negative, which is the failure this exists to prevent.
+ */
+function estimateAiReservationCents(inputTokens: number, model?: string, provider?: string): number {
+  const assumedOutputTokens = Math.max(256, Math.ceil(inputTokens / 2));
+
+  const { costCents } = computeAiCostCents({
+    model: model ?? 'unknown',
+    provider: provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+    inputTokens: Math.max(0, inputTokens),
+    outputTokens: assumedOutputTokens,
+  });
+
+  return Math.max(1, costCents);
+}
+
+/*
  * AUDX-017 — provenance marker for a report that ALSO carries a user session.
  *
  * requireInternalSecret() reads the Authorization header, which on this route is
@@ -3676,8 +4003,7 @@ function hasInternalSecretHeader(request: FastifyRequest): boolean {
   const expectedBuf = Buffer.from(expected);
   const providedBuf = Buffer.from(provided);
 
-  return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);
-}
+  return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);}
 
 function requireInternalSecret(request: FastifyRequest) {
   const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
@@ -11404,6 +11730,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const collaborationTicketAuth = await authenticateCollaborationWebSocketTicket(request, reply, store);
 
     if (collaborationTicketAuth !== 'not-ticketed') {
+      return;
+    }
+
+    const runtimeTicketAuth = await authenticateRuntimeTicket(request, reply, store);
+
+    if (runtimeTicketAuth !== 'not-ticketed') {
       return;
     }
 
@@ -20024,6 +20356,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { revoked };
     },
   );
+
+  /*
+   * AUDX-004 — mint a runtime ticket for one project.
+   *
+   * Session-authenticated (the normal preHandler), rate-limited, and gated by
+   * the SAME project permission the runtime routes require, so a ticket can
+   * never grant access the caller does not already have. Replaces
+   * /api/runtime-token handing the browser the raw session cookie value.
+   */
+  app.post(
+    '/auth/runtime-ticket',
+    { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = z.object({ projectId: z.string().min(1) }).safeParse(request.body);
+
+      if (!body.success) {
+        return reply.code(400).send({
+          error: appPublicEnglish('WORKSPACE_OR_PROJECT_ID_REQUIRED'),
+          code: 'PROJECT_ID_REQUIRED',
+        });
+      }
+
+      const project = await requireProject(request, store, body.data.projectId, 'workspaces:read');
+
+      return {
+        ticket: createRuntimeTicket({ userId: request.currentUser!.id, projectId: project.id }),
+        expiresInMs: RUNTIME_TICKET_TTL_MS,
+      };
+    },
+  );
+
   app.post('/auth/reauth', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     if (!request.currentSession) {
       return reply
@@ -27924,6 +28287,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * can render a "X tokens left this month" hint. The plan-resolution
      * path is shared with ensureQuota so the override table is honoured.
      */
+    /*
+     * AUDX-018 — reserve credits BEFORE the provider call.
+     *
+     * Metering debits only when usage is REPORTED, i.e. after the call already
+     * cost money. A report that never arrives (crash, closed tab, a caller that
+     * simply omits it) is free AI, and N concurrent calls each clear this same
+     * pre-check and collectively overspend. A hold moves the decision before the
+     * spend and is released on settle, on failure, or by the expiry sweep.
+     *
+     * ⚠️ Inert unless BILLING_CREDITS_ENABLED === 'true' — credits are ~90%
+     * SHADOW today, and enforcing a hold while the wallet is dormant would
+     * refuse every chat on the platform. Same gate the rest of credits uses.
+     */
+    let reservation: { id: string; amountCents: number } | undefined;
+
+    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
+      const estimatedCostCents = estimateAiReservationCents(estimated, body.model, body.provider);
+
+      if (estimatedCostCents > 0) {
+        reservation = await store
+          .reserveCredits({
+            organizationId: project.organizationId,
+            projectId: project.id,
+            amountCents: estimatedCostCents,
+            expiresAtMs: Date.now() + AI_RESERVATION_TTL_MS,
+          })
+          .catch(() => undefined);
+
+        if (!reservation) {
+          throw Object.assign(new Error(appPublicEnglish('CREDITS_RESERVATION_REFUSED')), {
+            statusCode: 402,
+            code: 'CREDITS_RESERVATION_REFUSED',
+          });
+        }
+      }
+    }
+
     const state = await billingState(project.organizationId);
     const { limits, plan } = state;
     const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
@@ -27966,6 +28366,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       ok: true,
+
+      /*
+       * AUDX-018 — hand back the hold so the caller can settle it after the
+       * provider call. Undefined when credits are dormant or nothing was held.
+       */
+      reservationId: reservation?.id,
       ai: {
         inputTokens: {
           used: tokenUsed,
@@ -28278,6 +28684,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       reason: `chat.completion.${body.source}`,
       source: usageSource,
     });
+
+    /*
+     * AUDX-018 — settle the hold taken at check-quota against the REAL cost.
+     *
+     * Without this the hold sits until the expiry sweep, so a busy project would
+     * watch its available credits shrink with every message and eventually
+     * refuse to start anything — a guard that breaks normal work gets reverted,
+     * not fixed. Best-effort: a settle failure must never fail the usage
+     * recording, and the sweep is the backstop.
+     */
+    if (process.env.BILLING_CREDITS_ENABLED === 'true' && body.reservationId) {
+      await store.settleCreditReservation({ id: body.reservationId, actualCents: costCents }).catch(() => false);
+    }
 
     /*
      * AGM per-call log (admin-only): stamp the REAL provider+model this call
