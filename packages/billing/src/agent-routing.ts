@@ -185,8 +185,17 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       label: agentRoutingLabel('turbo'),
       provider: 'openai',
       model: 'gpt-5.6-sol',
-      costInCentsPerM: 500,
-      costOutCentsPerM: 3000,
+
+      /*
+       * 400 / 2000, pas 500 / 3000 : relevé le 2026-09-16 sur la grille
+       * publique d'OpenAI ($4 en entrée, $20 en sortie par million). Le chiffre
+       * précédent surestimait notre coût de revient de 25 % en entrée et de
+       * 50 % en sortie — un coût surestimé ne nous fait pas perdre d'argent,
+       * il nous fait REFUSER des configurations rentables et sous-estimer la
+       * marge affichée à l'administrateur.
+       */
+      costInCentsPerM: 400,
+      costOutCentsPerM: 2000,
       multiplier: 2,
       billedToUser: true,
       availablePlans: PAID_PLANS,
@@ -227,6 +236,14 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       label: agentRoutingLabel('fallback'),
       provider: 'google',
       model: 'gemini-2.5-pro',
+
+      /*
+       * ⚠️ Google facture ce modèle PAR PALIER : 125 / 1000 jusqu'à 200 000
+       * jetons de prompt, 250 / 1500 au-delà. La carte ne sait pas exprimer un
+       * barème — voir docs/TARIFS_PAR_PALIER.md. Le chiffre ci-dessous est
+       * celui du PETIT prompt : la marge calculée pour cette ligne est un
+       * plafond, pas une valeur.
+       */
       costInCentsPerM: 125,
       costOutCentsPerM: 1000,
       multiplier: 1,
