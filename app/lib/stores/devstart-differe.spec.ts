@@ -42,7 +42,7 @@ describe('BUG-DEVSTART — un start sauté est relancé, jamais annoncé comme f
     expect(appels.length, '#maybeRunDeferredStart est défini mais jamais appelé').toBeGreaterThan(0);
   });
 
-  it("une proposition ÉCHOUÉE ne doit pas affamer le démarrage pour toujours", () => {
+  it('une proposition ÉCHOUÉE ne doit pas affamer le démarrage pour toujours', () => {
     /*
      * Régression connue : réutiliser #hasOpenAgentPatchProposalsForArtifact ici
      * traiterait un correctif 'failed' comme encore ouvert, et le serveur de dev
@@ -52,8 +52,6 @@ describe('BUG-DEVSTART — un start sauté est relancé, jamais annoncé comme f
 
     expect(drain).toMatch(/'pending'/);
     expect(drain).toMatch(/'applying'/);
-    expect(drain, 'le prédicat trop large réintroduit la famine').not.toMatch(
-      /#hasOpenAgentPatchProposalsForArtifact/,
-    );
+    expect(drain, 'le prédicat trop large réintroduit la famine').not.toMatch(/#hasOpenAgentPatchProposalsForArtifact/);
   });
 });
