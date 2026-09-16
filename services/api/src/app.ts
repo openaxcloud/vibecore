@@ -1918,7 +1918,7 @@ const aiRecordUsageSchema = z.object({
       highEffort: z.boolean().default(false),
       escalated: z.boolean().default(false),
       turbo: z.boolean().default(false),
-      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
       source: z.string().min(1).default('chat'),
     })
     .optional(),
@@ -30512,7 +30512,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   const adminAgentRoutingLineSchema = z.object({
-    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
     label: z.string().min(1),
     provider: z.string().min(1),
     model: z.string().min(1),
