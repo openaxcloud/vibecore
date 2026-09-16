@@ -193,6 +193,7 @@ import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import { slugify, slugifyRouteSegment } from './slugify.js';
+import { publicErrorCode } from './public-error-code.js';
 import { acquireTerminalSlot, releaseTerminalSlot } from './terminal-concurrency.js';
 import {
   checkServiceShutdown,
@@ -374,6 +375,7 @@ import {
   type ProjectStorage,
   type StoredArchive,
   sonderEcritureStockage,
+  supprimerFichiersDuProjet,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
@@ -609,6 +611,15 @@ export interface ApiAppOptions {
    * ne serait prouvable qu'en théorie.
    */
   databaseProvisioner?: DatabaseProvisioner;
+
+  /*
+   * Les trois démontages ajoutés le 2026-09-07, injectables pour que les tests
+   * prouvent le CHAÎNAGE sans cluster : chaque défaut mesuré était une capacité
+   * correcte que personne n'appelait, donc c'est l'appel qu'il faut tenir.
+   */
+  demonterWorkspace?: (workspaceId: string) => Promise<void>;
+  demonterApplicationPubliee?: (deploymentId: string) => Promise<void>;
+  supprimerFichiersDuProjet?: (projectId: string) => Promise<void>;
 
   /**
    * Applicateur SQL des migrations de projet. Par défaut le vrai applicateur
@@ -3673,6 +3684,33 @@ function estimateAiReservationCents(inputTokens: number, model?: string, provide
 
   return Math.max(1, costCents);
 }
+
+/*
+ * AUDX-017 — provenance marker for a report that ALSO carries a user session.
+ *
+ * requireInternalSecret() reads the Authorization header, which on this route is
+ * already the user's session bearer — using it here would make the trusted path
+ * UNREACHABLE (the auth preHandler would have 401'd an internal-secret bearer
+ * long before the route ran). A distinct header lets a server-to-server caller
+ * prove it is the platform while still forwarding the user's session for
+ * org/project resolution.
+ *
+ * Deliberately NOT in the CORS allowedHeaders list, so a browser cannot send it
+ * cross-origin.
+ */
+function hasInternalSecretHeader(request: FastifyRequest): boolean {
+  const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
+  const header = request.headers['x-vibecore-internal'];
+  const provided = typeof header === 'string' ? header.trim() : '';
+
+  if (!expected || !provided) {
+    return false;
+  }
+
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+
+  return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);}
 
 function requireInternalSecret(request: FastifyRequest) {
   const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
@@ -7670,6 +7708,33 @@ async function startServerDeploymentViaManager(payload: {
   return (await response.json()) as { ready: boolean; url: string; name: string; readyReplicas: number };
 }
 
+/*
+ * Démonter un workspace via le manager — Pod, Service, Secret ET le PVC.
+ *
+ * Le manager est le seul à connaître le vrai nom du volume (`workspace.pvcName`
+ * dans SON magasin) : l'API ne peut pas le deviner, et son port Kubernetes est
+ * volontairement restreint au namespace des bases par `dbResourceGuard`. On
+ * demande donc au propriétaire de la ressource plutôt que de s'octroyer sa clé.
+ *
+ * L'échec REMONTE (contrairement à l'arrêt d'un déploiement, best-effort) : un
+ * volume de 100 Gi qui survit en silence est précisément ce qu'on corrige ici.
+ * Le rapport de démontage le nomme, et la suppression du projet aboutit quand
+ * même — c'est le contrat de `teardownProjectExternalResources`.
+ */
+async function deleteWorkspaceViaManager(workspaceId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`${appPublicEnglish('TEARDOWN_WORKSPACE_REFUSED')} (${workspaceId}, ${response.status})`);
+  }
+}
+
 /* Tear down a server deployment (Deployment/Service/Secret/Ingress) best-effort. */
 async function stopServerDeploymentViaManager(deploymentId: string): Promise<void> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
@@ -9610,9 +9675,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       statusCode >= 500 ? (error.publicMessage ?? appPublicEnglish('INTERNAL_SERVER_ERROR')) : error.message;
     const appLocalized = localizeAppPublicMessage(englishFallback, locale);
 
+    /*
+     * Le code EXPOSÉ passe par le filtre : `code` reste le code INTERNE, qui
+     * sert au journal, aux métriques et à la recherche du message localisé.
+     * Voir `public-error-code.ts` pour les deux règles.
+     */
     return reply.code(statusCode).send({
       error: appLocalized.matched ? appLocalized.value : publicErrorMessage({ code, locale, englishFallback }),
-      code,
+      code: publicErrorCode({ code, statusCode, hasPublicMessage: Boolean(error.publicMessage) }),
     });
   });
 
@@ -25511,15 +25581,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Fait AVANT la suppression de la ligne : le nom du PVC vit sur cette ligne,
      * et une fois la ligne partie la poignée est perdue avec elle.
      */
+    /*
+     * Les POIGNÉES d'abord, la ligne ensuite. Les identifiants des workspaces et
+     * des déploiements vivent sur des lignes qui cascadent avec le projet : les
+     * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
+     * démonter avant de supprimer.
+     */
+    const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+    const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
+
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
+        supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
       {
         id: project.id,
         organizationId: project.organizationId,
         persistentVolumeClaim: project.persistentVolumeClaim,
+        workspaceIds,
+        deploymentIds,
       },
     );
 
@@ -28221,6 +28305,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
+
+    /*
+     * AUDX-017 — is this report the platform's own, or a caller's claim?
+     *
+     * This route is session-authenticated, so its token counts are DECLARED by
+     * whoever holds a session: `inputTokens: 0` bills nothing, and simply never
+     * calling it bills nothing at all. The LLM call does not yet go through the
+     * ai-gateway (see the C1.b.4 note in app/lib/.server/ai-usage.ts), so the
+     * counts cannot be recomputed here.
+     *
+     * What CAN be established is provenance. A report carrying the internal
+     * shared secret is server-to-server — no user session can produce it — and
+     * is recorded as 'trusted'. Everything else is recorded as 'declared' and
+     * stays reconcilable instead of being silently believed. Declared rows are
+     * still written: losing them would be strictly worse than marking them.
+     */
+    const usageSource: 'trusted' | 'declared' = hasInternalSecretHeader(request) ? 'trusted' : 'declared';
+
     const project = await requireProject(request, store, projectId, 'workspaces:read');
 
     /*
@@ -28250,6 +28352,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       outputTokens: body.outputTokens,
       costCents,
       reason: `chat.completion.${body.source}`,
+      source: usageSource,
     });
 
     /*
@@ -29998,15 +30101,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * Les POIGNÉES d'abord, la ligne ensuite. Les identifiants des workspaces et
+     * des déploiements vivent sur des lignes qui cascadent avec le projet : les
+     * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
+     * démonter avant de supprimer.
+     */
+    const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+    const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
+
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
+        supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
       {
         id: project.id,
         organizationId: project.organizationId,
         persistentVolumeClaim: project.persistentVolumeClaim,
+        workspaceIds,
+        deploymentIds,
       },
     );
 
