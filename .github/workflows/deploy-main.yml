@@ -535,12 +535,11 @@ jobs:
             else
               RUNTIME=false; WEB=false; WSAGENT=false; ADMIN=false
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
-              # AUDX-173 — `apps/admin/` compte dans le tier web. Il n'etait dans
-              # AUCUN motif : une modification de l'admin ne declenchait donc
-              # aucun tier, et l'image n'etait de toute facon pas construite par
-              # les fichiers de tier (elle ne l'etait que par le `cloudbuild.yaml`
-              # racine, reserve aux builds manuels).
-              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|apps/admin/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
+              # AUDX-173 — `apps/admin/` n'est PLUS dans ce motif : il a son propre
+              # etage, plus bas. Premiere version de ce correctif : le rattacher au
+              # tier web, faute de mieux. L'etage dedie le rend inutile, et le garder
+              # faisait reconstruire ET redeployer le web a chaque changement d'admin.
+              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
               # `apps/admin/` ne matchait AUCUN motif : un changement admin tombait dans
               # le repli « web+runtime » ci-dessous, et l'image n'etait jamais reconstruite.
