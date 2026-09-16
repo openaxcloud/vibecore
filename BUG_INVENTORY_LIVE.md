@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-337 entrées.
+338 entrées.
 
 ## Sans section
 
@@ -354,6 +354,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA-THUMBNAIL-404-CAPTURE-001](docs/bugs/BUG-QA-THUMBNAIL-404-CAPTURE-001.md) — P1 — La vignette stockée d'un projet est la capture d'écran d'une page d'erreur JSON 404 : c'est le « rectangle vide » vu sur les cartes du tableau de bord.
 - [BUG-QA-THUMBNAIL-500-001](docs/bugs/BUG-QA-THUMBNAIL-500-001.md) — 3 vignettes de projet sur 6 renvoient HTTP 500 avec un corps vide en production.
 - [BUG-QA-THUMBNAIL-SLOW-PAGE-001](docs/bugs/BUG-QA-THUMBNAIL-SLOW-PAGE-001.md) — Sur le tableau de bord, une vignette pourtant valide met plus de 20 secondes à apparaître ; pendant tout ce temps la carte affiche « No preview yet ».
+
+## Balayage QA du 2026-09-04 — panneaux instables, lenteur, archive, état de l'IDE
+
+- [BUG-QA-MOBILE-CLIP-004](docs/bugs/BUG-QA-MOBILE-CLIP-004.md) — P1 — en FRANÇAIS, à 1024 px, `/projects/:id/collaborators` ampute son contenu : `body.scrollWidth` 1034 pour 1024 (clair et sombre), sans défilement possible.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

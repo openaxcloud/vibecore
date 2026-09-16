@@ -182,7 +182,8 @@ export default function ProjectEnvPage() {
         })}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      {/* Même piste clampée que la page des collaborateurs (min-content d'un contrôle en français). */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
           {rows.map((row, index) => (
             <div

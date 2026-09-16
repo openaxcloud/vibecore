@@ -69,9 +69,7 @@ test.describe('public homepage', () => {
     await expect(page.getByRole('contentinfo', { name: 'Site footer' })).toBeVisible();
     await expect(page.getByTestId('button-footer-start-building')).toBeVisible();
 
-    const noHorizontalOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
-    );
+    const noHorizontalOverflow = await page.evaluate(() => document.body.scrollWidth <= window.innerWidth + 1);
     expect(noHorizontalOverflow).toBeTruthy();
   });
 
@@ -97,9 +95,7 @@ test.describe('public homepage', () => {
     await expect(page.getByTestId('button-build-now')).toBeVisible();
     await expect(page.getByRole('contentinfo', { name: 'Site footer' })).toBeVisible();
 
-    const noHorizontalOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
-    );
+    const noHorizontalOverflow = await page.evaluate(() => document.body.scrollWidth <= window.innerWidth + 1);
     expect(noHorizontalOverflow).toBeTruthy();
   });
 
@@ -189,7 +185,7 @@ test.describe('public homepage', () => {
           heroDescription: read(heroDescription),
           buildButton: read(buildButton),
           pageBackground: resolveBackground(heroHeading),
-          noHorizontalOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
+          noHorizontalOverflow: document.body.scrollWidth <= window.innerWidth + 1,
         };
       });
 

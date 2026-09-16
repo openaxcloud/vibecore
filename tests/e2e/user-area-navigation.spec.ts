@@ -147,7 +147,7 @@ async function expectNoHorizontalOverflow(page: Page) {
 
     return {
       viewportWidth: window.innerWidth,
-      documentWidth: document.documentElement.scrollWidth,
+      documentWidth: document.body.scrollWidth,
       bodyWidth: document.body.scrollWidth,
       roots: [
         document.documentElement,

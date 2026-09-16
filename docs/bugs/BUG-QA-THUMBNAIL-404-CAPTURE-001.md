@@ -8,15 +8,15 @@ id: BUG-QA-THUMBNAIL-404-CAPTURE-001
 
 ## 📤
 
-☐
+☑ — porté par #346 (01/09).
 
 ## 💻
 
-☐
+☑ 01/09 — **corrigé côté capture, là où était le défaut** (`services/screenshotter/src/browser.ts`, arrivé sur cet historique avec #346 `73073359`) : la réponse du document principal rendue par `page.goto` n'est plus ignorée — un statut ≥ 400 fait **refuser la capture** (`PageRenderError('refusing to capture an error page (HTTP 404)', 404)`), avec un code distinct du 502 de panne ; une réponse absente (cache, `about:blank`) reste légitime. Le repli « No preview yet » du tableau de bord, qui fonctionnait déjà, redevient donc ce que l'utilisateur voit à la place d'une photo de JSON. **Épinglé par `services/screenshotter/src/error-pages.spec.ts`** (vert le 16/09).
 
 ## ✅
 
-✅ **27/08** reproduit live prod, contenu de la vignette lu au zoom
+☐ — défaut constaté live le 27/08 ; le correctif reste **à constater en prod** : les vignettes déjà stockées ne se corrigent pas d'elles-mêmes (elles sont des fichiers) — après un `POST /projects/:id/thumbnail/refresh` (ou une nouvelle capture), la carte doit montrer soit l'aperçu réel, soit le repli « No preview yet », jamais une image blanche à une ligne de JSON.
 
 ## Preuve
 

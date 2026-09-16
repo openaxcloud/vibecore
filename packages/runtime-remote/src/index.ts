@@ -7,6 +7,7 @@ import {
   type FileNode,
   type FileSearchMatch,
   type FileSearchOptions,
+  type ListFilesOptions,
   type PreviewRoute,
   type RuntimeAdapter,
   type RuntimeCapability,
@@ -404,9 +405,12 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     return session;
   }
 
-  async listFiles(path = '.'): Promise<FileNode[]> {
+  async listFiles(path = '.', options?: ListFilesOptions): Promise<FileNode[]> {
+    // `reparer=1` : l'API force la réconciliation stockage → pod avant de lister (BUG-IDE-007).
+    const reparation = options?.reparer ? '&reparer=1' : '';
+
     return this.#request<FileNode[]>(
-      `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`,
+      `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}${reparation}`,
       {},
       { retryReads: true },
     );

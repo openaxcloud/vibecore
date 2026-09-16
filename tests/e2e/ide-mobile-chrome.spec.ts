@@ -2591,6 +2591,7 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
 
     // Mesuré avant : quatre messages avant, quatre après — le fil « effacé » revenait.
     await expect(lignes).toHaveCount(0, { timeout: 15_000 });
+
     // 6 s : la fenêtre doit couvrir l'arrivée du traînard retardé ci-dessus.
     await page.waitForTimeout(6000);
     await expect(lignes, 'le fil ne doit pas se remplir à nouveau').toHaveCount(0);
@@ -2933,7 +2934,7 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
             segment: taille('.bolt-publication-segment'),
             bouton: taille('.bolt-publication-republier'),
             deborde,
-            scrollWidth: document.documentElement.scrollWidth,
+            scrollWidth: document.body.scrollWidth,
             innerWidth: window.innerWidth,
           };
         });

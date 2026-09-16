@@ -15616,6 +15616,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
 
+  /*
+   * Une réparation ÉCRIT dans le pod. Un collaborateur en lecture seule (rôle
+   * `viewer`) peut lister les fichiers, pas les réécrire — même par le détour
+   * d'une route de lecture (revue de #559). La sonde ne lève pas : un refus
+   * d'écrire (403) rend simplement « pas de réparation », le listing reste dû ;
+   * toute autre erreur (401, 404, 5xx) se propage, comme dans
+   * `requireAnyOrgPermission`.
+   */
+  const peutEcrireLeRuntimeWorkspace = async (request: any, workspaceId: string) => {
+    try {
+      await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+      return true;
+    } catch (error: any) {
+      if (error?.statusCode !== 403) {
+        throw error;
+      }
+
+      return false;
+    }
+  };
+
   const ensureRuntimeWorkspaceRecord = async (workspaceId: string, project: ProjectRecord) => {
     const existing = await store.getWorkspace(workspaceId);
 
@@ -15841,6 +15863,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * minuteur raterait précisément l'ouverture qui compte.
    */
   const reconciliationUneFois = new ReconciliationUneFois();
+
+  // Borne d'attente d'une réparation forcée par l'utilisateur (BUG-IDE-007) — ~105 ms par fichier présent, mesuré.
+  const RECONCILIATION_FORCEE_BORNE_MS = 8_000;
 
   const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string, options: { chaud?: boolean } = {}) => {
     try {
@@ -17834,8 +17859,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
   app.get('/api/runtime/workspaces/:workspaceId/files', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
-    const { path = '.' } = parse(z.object({ path: z.string().default('.') }), request.query);
+
+    const { path = '.', reparer } = parse(
+      z.object({ path: z.string().default('.'), reparer: z.enum(['1']).optional() }),
+      request.query,
+    );
+
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    /*
+     * BUG-IDE-007 — « Actualiser les fichiers » ne réparait rien.
+     *
+     * Mesuré le 2026-08-15 : Bibliothèque « 9 fichiers », clic sur Actualiser →
+     * « 10 », pendant que Git en comptait 20 et que le stockage du projet en
+     * avait 20. La réconciliation ci-dessous n'est déclenchée qu'UNE fois par
+     * workspace, à l'ouverture, en arrière-plan — une désynchronisation
+     * survenue APRÈS (une génération dont des écritures n'ont pas atteint le
+     * pod) n'était donc jamais réparée, et le listing partiel remplaçait
+     * l'arbre à chaque clic.
+     *
+     * Un rafraîchissement demandé par l'utilisateur (`reparer=1`) force la
+     * réconciliation, limitée à une par 10 s, et l'ATTEND, bornée : c'est le
+     * seul moyen que le listing rendu reflète l'état réparé. Au-delà de la
+     * borne, elle continue en arrière-plan et l'écoute de fichiers du client
+     * surfacera le reste.
+     *
+     * La réparation est une ÉCRITURE : elle exige `workspaces:write`, vérifié
+     * AVANT de consommer la limitation. Un lecteur qui clique « Actualiser »
+     * obtient le listing, jamais la réparation.
+     */
+    if (
+      reparer === '1' &&
+      path === '.' &&
+      authorized.projectId &&
+      (await peutEcrireLeRuntimeWorkspace(request, workspaceId)) &&
+      reconciliationUneFois.peutForcer(authorized.workspaceId)
+    ) {
+      await Promise.race([
+        reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId, { chaud: true }),
+        new Promise<void>((resolve) => setTimeout(resolve, RECONCILIATION_FORCEE_BORNE_MS)),
+      ]);
+    }
 
     const nodes = await agentRequest<AgentNode[]>(
       authorized.workspaceId,

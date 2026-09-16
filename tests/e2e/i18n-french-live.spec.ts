@@ -535,7 +535,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
     };
   });
   const layout = await page.evaluate(() => ({
-    documentWidth: document.documentElement.scrollWidth,
+    documentWidth: document.body.scrollWidth,
     viewportWidth: window.innerWidth,
     bodyHeight: document.body.getBoundingClientRect().height,
     bodyTextLength: document.body.innerText.trim().length,

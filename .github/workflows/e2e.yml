@@ -47,7 +47,12 @@ jobs:
   e2e:
     name: Playwright local stack
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    # Mesuré le 16/09 (run 35108180557, tête 7703df1a) : flux principaux 34,8 min,
+    # étape mobile 20,5 min, canari iOS tué à 15 min par le budget de 75 min du
+    # job → job « cancelled », PR bloquée. Chaque canari porte désormais son
+    # propre plafond (ci-dessous), et le job garde une marge au-dessus de leur
+    # somme : 35 + 15 + 20 + ~5 de mise en place < 90.
+    timeout-minutes: 90
     # Forked PRs can't read the AI provider secrets (so the run would hard-fail
     # on the secret-validation step anyway), and same-repo PR branches run
     # arbitrary code with the real prod keys injected. Restrict to non-fork
@@ -205,8 +210,47 @@ jobs:
       - name: E2E gate (bounded waiver)
         run: node scripts/e2e-gate.mjs playwright-results.json
 
+      # BUG-QA-CI-NO-MOBILE-COVERAGE-001 — cette étape s'appelait « mobile » et
+      # lançait `--project=chromium` (Desktop Chrome, 1280×720, isMobile:false) :
+      # les assertions gardées par `test.skip(!isMobile)` et
+      # `isCompactIdeProject` (project.name === 'mobile' | 'tablet') étaient
+      # TOUTES ignorées — 2 tests exécutés sur 21, aucun à une largeur de
+      # téléphone. Le projet `mobile` (Pixel 7) existe dans playwright.config.ts
+      # depuis le début ; c'est lui qui donne un signal à la largeur d'un
+      # téléphone. Le passage Chromium desktop du même spec est déjà couvert par
+      # l'étape principale, qui lance tout tests/e2e avec --project=chromium.
+      #
+      # ⚠️ NON BLOQUANT POUR L'INSTANT, comme le canari iOS ci-dessous, et pour
+      # la même raison : ces 16 assertions n'ont JAMAIS tourné à cette largeur.
+      # Première exécution locale le 16/09 (Pixel 7) : sur 18 tests, une partie
+      # rougit — sélecteurs périmés corrigés dans le même lot, un vrai défaut
+      # de plancher tactile corrigé (puce « AI » 40 px), et des reliquats
+      # consignés dans BUG-QA-CI-NO-MOBILE-COVERAGE-001. Le résultat est
+      # imprimé dans le résumé du run pour qu'un rouge se VOIE. À basculer en
+      # bloquant (retirer `continue-on-error` et le `set +e`) quand le
+      # résumé est vert sur quelques runs.
+      #
+      # Plafond propre : un canari NON BLOQUANT ne doit jamais consommer le budget
+      # du job. Mesuré le 16/09 : cette étape a duré 20,5 min (les tests rouges
+      # attendent 180 s chacun avant d'échouer) et le job a été tué à 75 min
+      # pendant le canari iOS. Une étape tuée par son plafond est « failure »,
+      # `continue-on-error` laisse le job continuer, et le bilan `if: always()`
+      # plus bas imprime son sort — un canari tué en silence ne vaut rien.
       - name: Playwright mobile viewport tests
-        run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
+        id: mobile_viewport
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          set +e
+          pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=mobile --grep-invert @runtime --reporter=list
+          code=$?
+          echo "mobile viewport exit: $code"
+          if [ "$code" = "0" ]; then
+            echo "✅ Mobile (Pixel 7, projet \`mobile\`) : vert." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ Mobile (Pixel 7, projet \`mobile\`) : ROUGE (sortie $code) — non bloquant, mais à regarder." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
 
       # LE MOTEUR D'AVI. `playwright.config.ts` définit un projet `webkit-iphone`
       # (iPhone 15 Pro) pour les quatre specs dont le sujet EST une interaction
@@ -230,6 +274,7 @@ jobs:
       - name: Canari iOS — Playwright WebKit iPhone (non bloquant)
         id: canari_ios
         continue-on-error: true
+        timeout-minutes: 20
         run: |
           set +e
           pnpm exec playwright test tests/e2e --project=webkit-iphone --reporter=list
@@ -241,6 +286,17 @@ jobs:
             echo "❌ Canari iOS (WebKit iPhone) : ROUGE (sortie $code) — non bloquant, mais à regarder." >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 0
+
+      # Un canari tué par son plafond n'écrit pas son propre résumé (le shell est
+      # interrompu avant). Ce bilan lit le SORT de chaque étape et l'imprime
+      # toujours, pour qu'un « timed out » se voie comme un rouge.
+      - name: Bilan des canaris (toujours imprimé)
+        if: always()
+        run: |
+          echo "Sort des canaris — mobile : ${{ steps.mobile_viewport.outcome }} · iOS : ${{ steps.canari_ios.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.mobile_viewport.outcome }}" != "success" ] || [ "${{ steps.canari_ios.outcome }}" != "success" ]; then
+            echo "⚠️ Un canari n'a pas rendu « success » (plafond atteint ou rouge) : lire son journal — non bloquant." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload E2E traces
         if: always()

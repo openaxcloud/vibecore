@@ -38,8 +38,11 @@
  * qui est sans conséquence pour un projet qu'on vient d'ouvrir.
  */
 
+export const INTERVALLE_FORCAGE_MS = 10_000;
+
 export class ReconciliationUneFois {
   readonly #faits = new Set<string>();
+  readonly #forcees = new Map<string, number>();
 
   /**
    * Vrai UNE SEULE FOIS par workspace. Les appels suivants rendent faux tant
@@ -63,6 +66,34 @@ export class ReconciliationUneFois {
    */
   oublier(workspaceId: string): void {
     this.#faits.delete(workspaceId);
+    this.#forcees.delete(workspaceId);
+  }
+
+  /**
+   * BUG-IDE-007 — un « Actualiser les fichiers » demandé par l'UTILISATEUR est
+   * une demande de réparation : il a le droit de réconcilier même si
+   * l'ouverture l'a déjà fait. Mais pas cinquante fois : un double-clic, ou
+   * les relances en boucle d'un panneau, ne doivent pas relire tout le projet
+   * à chaque fois (~105 ms par fichier présent, mesuré en production). Une
+   * réparation forcée par workspace toutes les `INTERVALLE_FORCAGE_MS`.
+   */
+  peutForcer(workspaceId: string, maintenant: number = Date.now()): boolean {
+    if (!workspaceId) {
+      return false;
+    }
+
+    const derniere = this.#forcees.get(workspaceId);
+
+    if (derniere !== undefined && maintenant - derniere < INTERVALLE_FORCAGE_MS) {
+      return false;
+    }
+
+    this.#forcees.set(workspaceId, maintenant);
+
+    // Une réparation forcée vaut aussi pour la réconciliation d'ouverture.
+    this.#faits.add(workspaceId);
+
+    return true;
   }
 
   get taille(): number {

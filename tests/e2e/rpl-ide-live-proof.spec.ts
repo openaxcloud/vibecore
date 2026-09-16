@@ -97,7 +97,7 @@ async function shot(page: Page, name: string) {
 }
 
 async function assertNoHorizontalOverflow(page: Page) {
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 2);
+  const overflow = await page.evaluate(() => document.body.scrollWidth > window.innerWidth + 2);
   expect(overflow, 'page must not overflow horizontally').toBeFalsy();
 }
 

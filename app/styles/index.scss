@@ -25750,7 +25750,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
     .bolt-responsive-ide-mobile .bolt-project-settings-sidebar button {
       width: auto;
-      min-width: 0 !important;
+
+      /*
+       * BUG-QA-CI-NO-MOBILE-COVERAGE-001 — mesuré le 16/09 au Pixel 7, première
+       * exécution de la garde à une largeur de téléphone : la puce « AI » rendait
+       * 40 × 44 px. Une puce suit son libellé, mais jamais sous le plancher
+       * tactile — dans les DEUX sens, comme la hauteur juste en dessous.
+       */
+      min-width: var(--vc-touch-min, 44px) !important;
       max-width: none;
       min-height: var(--vc-touch-min, 44px);
       flex: 0 0 auto;

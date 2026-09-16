@@ -143,6 +143,12 @@ import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
+import {
+  deposerDisposition,
+  lireDispositionTransmise,
+  porteeDisposition,
+  useLayoutHandoffEffect,
+} from './ide-layout-handoff';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import {
@@ -3620,7 +3626,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
-    const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
+
+    /*
+     * BUG-IDE-SPLIT-EFFACE-001 — la disposition transmise par la coquille qui
+     * vient d'être démontée (voir `ide-layout-handoff.ts`). Lue SANS consommation
+     * ici, parce qu'un rendu peut être rejoué ; elle se périme d'elle-même.
+     */
+    const porteeDeLaDisposition = porteeDisposition(
+      projectId,
+      searchParams.get(PROJECT_EDITOR_WINDOW_PARAM) || DEFAULT_PROJECT_EDITOR_WINDOW,
+    );
+
+    const [dispositionTransmise] = useState(() =>
+      lireDispositionTransmise<IdePaneNode, IdeFloatingPane>(porteeDeLaDisposition),
+    );
+
+    const [paneTree, setPaneTree] = useState<IdePaneNode>(
+      () => dispositionTransmise?.paneTree ?? cloneDefaultPaneTree(),
+    );
 
     /*
      * Miroir de la disposition COURANTE, lisible depuis une réponse asynchrone.
@@ -3631,11 +3654,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     paneTreeRef.current = paneTree;
 
-    const [activePaneId, setActivePaneId] = useState('pane-main');
+    const [activePaneId, setActivePaneId] = useState(dispositionTransmise?.activePaneId ?? 'pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
     /** RPL-IDE-001.3 — panes popped out of the docked tree in this window. */
-    const [floatingPanes, setFloatingPanes] = useState<IdeFloatingPane[]>([]);
+    const [floatingPanes, setFloatingPanes] = useState<IdeFloatingPane[]>(
+      () => dispositionTransmise?.floatingPanes ?? [],
+    );
 
     /** RPL-IDE-001.1 — last layout signature applied, to skip redundant cross-tab echoes. */
     const projectEditorWindowSyncRef = useRef<string>('');
@@ -3651,6 +3676,35 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const isSecondaryProjectEditorWindow = projectEditorWindowId !== DEFAULT_PROJECT_EDITOR_WINDOW;
+
+    /*
+     * BUG-IDE-SPLIT-EFFACE-001 — dépôt de la disposition courante pour la
+     * coquille suivante (ou le vrai composant), en phase layout. Le dépôt au
+     * démontage lit la disposition COURANTE via un miroir, pas celle capturée
+     * au lancement de l'effet.
+     */
+    const dispositionCouranteRef = useRef({ paneTree, activePaneId, floatingPanes });
+
+    dispositionCouranteRef.current = { paneTree, activePaneId, floatingPanes };
+
+    /*
+     * Le dépôt se fait À CHAQUE changement, pas seulement au démontage : le vrai
+     * composant lit la disposition pendant son RENDU, qui précède le commit où
+     * la coquille est démontée — un dépôt fait au démontage seul arriverait
+     * après la lecture (mesuré : rouge sur le premier essai). Le dépôt au
+     * démontage reste pour la dernière valeur, celle que le rendu a pu manquer.
+     */
+    useLayoutHandoffEffect(() => {
+      if (!projectIdeMode) {
+        return undefined;
+      }
+
+      deposerDisposition(porteeDeLaDisposition, { paneTree, activePaneId, floatingPanes });
+
+      return () => {
+        deposerDisposition(porteeDeLaDisposition, dispositionCouranteRef.current);
+      };
+    }, [activePaneId, floatingPanes, paneTree, porteeDeLaDisposition, projectIdeMode]);
 
     const [agentWidth, setAgentWidth] = useState(() =>
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
@@ -6455,7 +6509,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const runProjectKeybindingAction = useCallback(
       (action: string, _binding: Keybinding, event: KeyboardEvent) => {
         if (action === 'overlay.close') {
-          if (keyboardShortcutsOpen) {
+          /*
+           * BUG-QA-CI-NO-MOBILE-COVERAGE-001 — mesuré le 16/09 au Pixel 7 : ce
+           * gestionnaire possède Échap en phase CAPTURE sur window et arrête sa
+           * propagation (`useKeybindings`), donc l'écouteur de bulle des
+           * feuilles mobiles, plus haut, ne le recevait JAMAIS — la feuille
+           * « more » restait ouverte après deux Échap. La feuille mobile ouverte
+           * est l'overlay le plus haut : elle se ferme ici, en priorité.
+           */
+          if (
+            useMobileIde &&
+            (mobileToolsSheetOpen || mobileTabSwitcherOpen || mobileMoreMenuOpen || mobileAgentMenuOpen)
+          ) {
+            closeMobileOverlays();
+          } else if (keyboardShortcutsOpen) {
             setKeyboardShortcutsOpen(false);
           } else if (commandPaletteOpen) {
             setCommandPaletteOpen(false);
@@ -6549,9 +6616,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         activePaneId,
         activeWorkspacePanel,
         closeActivePaneTab,
+        closeMobileOverlays,
         commandPaletteOpen,
         focusAgentPanel,
         keyboardShortcutsOpen,
+        mobileAgentMenuOpen,
+        mobileMoreMenuOpen,
+        mobileTabSwitcherOpen,
+        mobileToolsSheetOpen,
         onProjectEditorSave,
         openBottomTerminal,
         openCommandPalette,
@@ -6560,6 +6632,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recentTabIds,
         reopenLastClosedTab,
         runProjectEditorCommand,
+        useMobileIde,
       ],
     );
 
@@ -12966,7 +13039,7 @@ function ProjectFilesTool({
             type="button"
             aria-label={t('chat.copy.refreshFiles_75bfab07')}
             title={t('chat.copy.refreshFiles_75bfab07')}
-            onClick={() => void workbenchStore.loadRuntimeFiles('.')}
+            onClick={() => void workbenchStore.loadRuntimeFiles('.', { reparer: true })}
           >
             <span className="i-ph:arrow-clockwise" aria-hidden />
           </button>
