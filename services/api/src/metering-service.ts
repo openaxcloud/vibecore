@@ -23,6 +23,7 @@ import {
   type ReservedVmTier,
 } from '@vibecore/billing';
 import { debitCredits } from './credits-service.js';
+import type { ObjectStorage } from './object-storage.js';
 import type { ApiStore } from './store.js';
 
 export interface MeterResult {
@@ -166,12 +167,119 @@ const BYTES_PER_GIB = 1024 ** 3;
  * monthly total accrues across daily runs). Idempotent at the day granularity:
  * run once per day from the cron. SHADOW-safe via the `shadow` flag.
  */
+/**
+ * AUDX-023 — walk every project's REAL GCS bucket and persist what is there.
+ *
+ * `aggregateStorageBytesByOrg` sums `ProjectStorageObject.byteLength`: base64
+ * archives held in PostgreSQL, written only by the snapshot/export path. The
+ * `/object-storage/*` routes write to GCS and never touch that table, so bytes
+ * uploaded through a signed URL were counted by nobody — while the sweep's own
+ * comment claimed it summed "the REAL stored bytes".
+ *
+ * Uses `listAllObjects`, which pages to the end. `listObjects` returns ONE page
+ * and stops at 1 000 objects (AUDX-024); an inventory built on it would swap one
+ * wrong number for another.
+ *
+ * A project whose bucket does not exist yet contributes 0 and is NOT recorded —
+ * absence of a bucket is not a measurement of zero, and writing 0 would let a
+ * later quota check treat "never provisioned" as "measured empty".
+ */
+export async function inventoryObjectStorage(
+  store: ApiStore,
+  objectStorage: Pick<ObjectStorage, 'listAllObjects'>,
+  input: { nowMs: number },
+): Promise<{ projectsMeasured: number; projectsSkipped: number; bytesByOrg: Map<string, number>; totalBytes: number }> {
+  const projects = await store.listAllProjectsForStorageInventory();
+  const bytesByOrg = new Map<string, number>();
+  const measuredAt = new Date(input.nowMs);
+
+  let projectsMeasured = 0;
+  let projectsSkipped = 0;
+  let totalBytes = 0;
+
+  for (const project of projects) {
+    let inventory: Awaited<ReturnType<ObjectStorage['listAllObjects']>>;
+
+    try {
+      inventory = await objectStorage.listAllObjects(project.id);
+    } catch {
+      /*
+       * No bucket, or GCS refused. Skipped and COUNTED as skipped: a sweep that
+       * silently treated an unreadable bucket as empty would under-report usage
+       * and under-bill, which is the very defect being fixed. The caller must be
+       * able to see that the inventory was incomplete.
+       */
+      projectsSkipped += 1;
+      continue;
+    }
+
+    projectsMeasured += 1;
+    totalBytes += inventory.totalBytes;
+    bytesByOrg.set(project.organizationId, (bytesByOrg.get(project.organizationId) ?? 0) + inventory.totalBytes);
+
+    // Written only AFTER a successful listing, never on the failure path above.
+    await store.recordProjectObjectStorageUsage({
+      projectId: project.id,
+      bytes: inventory.totalBytes,
+      objectCount: inventory.objects.length,
+      measuredAt,
+    });
+  }
+
+  return { projectsMeasured, projectsSkipped, bytesByOrg, totalBytes };
+}
+
 export async function meterAllObjectStorage(
   store: ApiStore,
-  input: { shadow?: boolean; nowMs: number; daysInPeriod?: number },
-): Promise<{ orgsMetered: number; totalBytes: number; shadow: boolean }> {
+  input: {
+    shadow?: boolean;
+    nowMs: number;
+    daysInPeriod?: number;
+    /*
+     * AUDX-023 — when given, the sweep inventories the REAL GCS buckets and adds
+     * those bytes to the PostgreSQL archive total.
+     *
+     * ⚠️ OPT-IN, and it must stay opt-in until someone decides the billing
+     * question: turning it on starts counting bytes that were NEVER counted, so
+     * metered storage rises for anyone using object storage. That is a pricing
+     * decision (D-03 = Avi), not an engineering one. With this absent the sweep
+     * behaves exactly as before, to the byte.
+     */
+    objectStorage?: Pick<ObjectStorage, 'listAllObjects'>;
+  },
+): Promise<{
+  orgsMetered: number;
+  totalBytes: number;
+  shadow: boolean;
+  gcsBytes?: number;
+  projectsMeasured?: number;
+  projectsSkipped?: number;
+}> {
   const days = input.daysInPeriod && input.daysInPeriod > 0 ? input.daysInPeriod : 30;
-  const rows = await store.aggregateStorageBytesByOrg();
+  const archiveRows = await store.aggregateStorageBytesByOrg();
+
+  const inventory = input.objectStorage
+    ? await inventoryObjectStorage(store, input.objectStorage, { nowMs: input.nowMs })
+    : undefined;
+
+  /*
+   * Merge the two sources per org. An org holding ONLY GCS objects has no row in
+   * `aggregateStorageBytesByOrg` at all — iterating the archive rows alone would
+   * silently skip it, which is exactly how the GCS bytes went unbilled.
+   */
+  const merged = new Map<string, number>();
+
+  for (const row of archiveRows) {
+    merged.set(row.organizationId, (merged.get(row.organizationId) ?? 0) + row.bytes);
+  }
+
+  if (inventory) {
+    for (const [organizationId, bytes] of inventory.bytesByOrg) {
+      merged.set(organizationId, (merged.get(organizationId) ?? 0) + bytes);
+    }
+  }
+
+  const rows = [...merged.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
 
   let totalBytes = 0;
   let orgsMetered = 0;
@@ -224,7 +332,18 @@ export async function meterAllObjectStorage(
     }
   }
 
-  return { orgsMetered, totalBytes, shadow: Boolean(input.shadow) };
+  return {
+    orgsMetered,
+    totalBytes,
+    shadow: Boolean(input.shadow),
+    ...(inventory
+      ? {
+          gcsBytes: inventory.totalBytes,
+          projectsMeasured: inventory.projectsMeasured,
+          projectsSkipped: inventory.projectsSkipped,
+        }
+      : {}),
+  };
 }
 
 /** Meter database compute by active hours. */
