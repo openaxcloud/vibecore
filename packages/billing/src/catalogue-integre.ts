@@ -23,9 +23,27 @@ const LITE: CatalogueDuMode = {
   mode: 'lite',
   automatique: { politique: 'moins-cher' },
   modeles: [
-    { model: 'gpt-5.6-luna', provider: 'openai', costInCentsPerM: 20, costOutCentsPerM: 120 },
-    { model: 'claude-haiku-4-5', provider: 'anthropic', costInCentsPerM: 100, costOutCentsPerM: 500 },
-    { model: 'gemini-2.5-pro', provider: 'google', costInCentsPerM: 125, costOutCentsPerM: 1000 },
+    {
+      model: 'gpt-5.6-luna',
+      provider: 'openai',
+      costInCentsPerM: 20,
+      costOutCentsPerM: 120,
+      repli: { model: 'gemini-2.5-pro' },
+    },
+    {
+      model: 'claude-haiku-4-5',
+      provider: 'anthropic',
+      costInCentsPerM: 100,
+      costOutCentsPerM: 500,
+      repli: { model: 'gpt-5.6-luna' },
+    },
+    {
+      model: 'gemini-2.5-pro',
+      provider: 'google',
+      costInCentsPerM: 125,
+      costOutCentsPerM: 1000,
+      repli: { model: 'gpt-5.6-luna' },
+    },
   ],
 };
 
@@ -36,10 +54,35 @@ const POWER: CatalogueDuMode = {
   mode: 'power',
   automatique: { politique: 'moins-cher' },
   modeles: [
-    { model: 'gpt-5.6-luna', provider: 'openai', costInCentsPerM: 40, costOutCentsPerM: 240, serviceTier: 'fast' },
-    { model: 'claude-sonnet-5', provider: 'anthropic', costInCentsPerM: 200, costOutCentsPerM: 1000 },
-    { model: 'gpt-5.6-terra', provider: 'openai', costInCentsPerM: 200, costOutCentsPerM: 1200 },
-    { model: 'claude-sonnet-4-6', provider: 'anthropic', costInCentsPerM: 300, costOutCentsPerM: 1500 },
+    {
+      model: 'gpt-5.6-luna',
+      provider: 'openai',
+      costInCentsPerM: 40,
+      costOutCentsPerM: 240,
+      serviceTier: 'fast',
+      repli: { model: 'claude-sonnet-5' },
+    },
+    {
+      model: 'claude-sonnet-5',
+      provider: 'anthropic',
+      costInCentsPerM: 200,
+      costOutCentsPerM: 1000,
+      repli: { model: 'gpt-5.6-terra' },
+    },
+    {
+      model: 'gpt-5.6-terra',
+      provider: 'openai',
+      costInCentsPerM: 200,
+      costOutCentsPerM: 1200,
+      repli: { model: 'claude-sonnet-5' },
+    },
+    {
+      model: 'claude-sonnet-4-6',
+      provider: 'anthropic',
+      costInCentsPerM: 300,
+      costOutCentsPerM: 1500,
+      repli: { model: 'gpt-5.6-terra' },
+    },
   ],
 };
 
@@ -54,17 +97,57 @@ const MAX: CatalogueDuMode = {
   mode: 'max',
   automatique: { politique: 'moins-cher' },
   modeles: [
-    { model: 'kimi-k3', provider: 'moonshot', costInCentsPerM: 300, costOutCentsPerM: 1500 },
-    { model: 'gpt-5.6-sol', provider: 'openai', costInCentsPerM: 400, costOutCentsPerM: 2000 },
-    { model: 'claude-opus-5', provider: 'anthropic', costInCentsPerM: 500, costOutCentsPerM: 2500 },
-    { model: 'claude-fable-5-1', provider: 'anthropic', costInCentsPerM: 1000, costOutCentsPerM: 5000 },
-    { model: 'gpt-6-astra', provider: 'openai', costInCentsPerM: 1000, costOutCentsPerM: 5000 },
+    {
+      model: 'kimi-k3',
+      provider: 'moonshot',
+      costInCentsPerM: 300,
+      costOutCentsPerM: 1500,
+      repli: { model: 'gpt-5.6-sol' },
+    },
+    {
+      model: 'gpt-5.6-sol',
+      provider: 'openai',
+      costInCentsPerM: 400,
+      costOutCentsPerM: 2000,
+      repli: { model: 'claude-opus-5' },
+    },
+    {
+      model: 'claude-opus-5',
+      provider: 'anthropic',
+      costInCentsPerM: 500,
+      costOutCentsPerM: 2500,
+      repli: { model: 'gpt-6-astra' },
+    },
+    {
+      model: 'claude-fable-5-1',
+      provider: 'anthropic',
+      costInCentsPerM: 1000,
+      costOutCentsPerM: 5000,
+
+      /*
+       * LA RÈGLE D'AVI, mot pour mot : « utilise le modèle Opus si le modèle
+       * Fable n'est plus disponible ». Elle vise une panne PROPRE AU MODÈLE ;
+       * elle ne protège pas d'un compte Anthropic à sec, qui couperait les deux
+       * d'un coup. C'est assumé : la règle est celle qu'Avi a donnée.
+       */
+      repli: { model: 'claude-opus-5' },
+    },
+    {
+      model: 'gpt-6-astra',
+      provider: 'openai',
+      costInCentsPerM: 1000,
+      costOutCentsPerM: 5000,
+      repli: { model: 'claude-opus-5' },
+    },
     {
       model: 'claude-opus-5',
       provider: 'anthropic',
       costInCentsPerM: 1000,
       costOutCentsPerM: 5000,
       serviceTier: 'fast',
+
+      /* Même modèle, vitesse standard : le plus proche en capacité qui existe. */
+      repli: { model: 'claude-opus-5' },
     },
   ],
 };
