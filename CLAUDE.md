@@ -286,6 +286,70 @@ généraux : ce sont des pièges qui ont déjà coûté.
     Le geste : lister ce qu'on a écrit AVANT la fusion (identifiants, clés,
     noms de fonction), et le regreper APRÈS. Ce qui manque se réapplique.
 
+26. **L'ABSENCE DE VERDICT N'EST JAMAIS UN VERDICT.** Une commande dont on
+    tronque la sortie peut rendre des lignes parfaitement rassurantes sans
+    contenir la moindre conclusion. Lire ces lignes comme un succès, c'est
+    conclure à partir de ce qui a été COUPÉ.
+
+    Vécu le 2026-09-15 : `prisma generate` échouait parce que
+    `generated/client/package.json` portait encore des marqueurs de conflit —
+    donc du JSON invalide. Son message était
+    `Error: Expected property name or '}' in JSON at position 2`. Mais je
+    filtrais sa sortie sur `tail -4`, qui m'a rendu une ligne générique de
+    Prisma (« Start by importing your Prisma Client »), que j'ai prise pour une
+    confirmation. J'ai ensuite poussé un client généré INUTILISABLE, avec ses
+    marqueurs, sur la branche d'une autre session.
+
+    La règle 14 bis dit qu'un résultat NOYÉ trompe autant qu'un résultat
+    absent. Celle-ci vise le cas symétrique et plus insidieux : la sortie n'est
+    pas noyée, elle est **amputée de sa conclusion**, et ce qui reste ressemble
+    à du succès.
+
+    En pratique, sur toute commande dont on lit le résultat :
+    * **filtrer sur la ligne de verdict, jamais sur une position** — `grep -E
+      'Generated|Error|✔|✖'` plutôt que `tail -4` ou `head -N` ;
+    * **lire le code de sortie** quand il existe : `prisma generate` rendait un
+      code non nul que mon filtre ne pouvait pas montrer ;
+    * **si aucune ligne de verdict n'apparaît, le dire** — « la commande n'a
+      pas rendu de conclusion » est une information ; « ça a l'air d'être
+      passé » n'en est pas une.
+
+    Corollaire déjà coûteux deux fois dans la même heure : mes propres
+    contrôles avaient affiché `marqueurs : 1` et je ne m'y suis pas arrêté. Un
+    contrôle qu'on écrit puis qu'on ne lit pas ne vaut pas mieux qu'un contrôle
+    absent.
+
+27. **UNE MESURE QUI SORT DU PÉRIMÈTRE OÙ ELLE EST VALIDE N'EST PAS UNE
+    MESURE.** Un outil peut s'exécuter, ne rien signaler d'anormal, et lire un
+    tout autre fichier que celui qu'on croit lui donner.
+
+    Vécu le 2026-09-15 : `tsc` signalait deux erreurs de type sur une clé de
+    routage que je venais d'ajouter. La clé était bien là — vérifiée dans la
+    source ET sur la branche poussée. La cause : **le worktree n'a aucun paquet
+    installé**, `node_modules` ne contenant que `.cache` et `.vite`. `tsc`
+    remontait donc au checkout PRINCIPAL, dont `@vibecore/billing` est un lien
+    vers `../../packages/billing` — une copie sans ma modification. Le rapport
+    était exact sur ce qu'il avait lu, et faux sur ce que je croyais mesurer.
+
+    Ce qui rend le piège coûteux, c'est qu'il est SÉLECTIF : le même `tsc`, sur
+    le même arbre, était parfaitement valide pour tout ce qui vit sous `app/`,
+    parce que `paths` y mappe `~/*` vers le worktree. Seules les mesures qui
+    traversent une frontière de PAQUET étaient faussées. Une moitié juste, une
+    moitié fausse, aucun signal pour les distinguer.
+
+    En pratique :
+    * **avant de croire un outil, savoir ce qu'il a résolu** — `--traceResolution`
+      pour `tsc`, `readlink -f` sur le lien du paquet, ou une SONDE : un fichier
+      jetable qui affirme la propriété attendue et qu'on regarde rougir ;
+    * **énoncer le périmètre avec le résultat** — « 0 erreur dans les fichiers
+      touchés » ne vaut que si les fichiers touchés sont dans le périmètre
+      résolu ;
+    * **une mesure qui franchit une frontière de paquet dans un worktree sans
+      dépendances installées est à refaire ailleurs**, pas à interpréter.
+
+    Corollaire de la règle 26 : là où celle-ci vise la sortie amputée de sa
+    conclusion, celle-ci vise la conclusion complète… portant sur autre chose.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
@@ -328,7 +392,16 @@ Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vér
 
 **Design** — Dès qu'Avi donne des points « Claude design » (batchs A/B/C/D/E/F/G ou nouveaux), les ajouter IMMÉDIATEMENT dans `DESIGN_PROGRAM_MASTER.md`. La vérification d'un point design doit se faire EN RÉEL sur TOUTES les pages marketing ET user area, dans TOUS les formats web / tablette / mobile, en confirmant que la page s'adapte automatiquement au screen (responsive niveau Fortune-500). Un point design ne passe ✅ que si le responsive est validé sur les 3 formats.
 
-**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT dans `BUG_INVENTORY_LIVE.md`.
+**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT : **un fichier
+par entrée** dans `docs/bugs/<ID>.md`, puis régénérer l'index avec
+`node scripts/migrer-inventaire-bugs.mjs --index`.
+
+`BUG_INVENTORY_LIVE.md` reste le point d'entrée — dix-neuf fichiers le citent —
+mais c'est désormais un **index dérivé** : ne jamais l'éditer à la main, il se
+régénère depuis `docs/bugs/`. `scripts/index-a-jour.spec.mjs` rougit dès qu'il
+diverge du dossier. Le tableau monolithique était le point de contention le plus
+chaud du dépôt : quatre pertes silencieuses y ont déjà été attrapées, et chaque
+session qui y touchait entrait en conflit avec les autres.
 
 **Plan** — un point n'est ✅ que s'il est 100% surfacé ET marche en réel à 100%.
 
