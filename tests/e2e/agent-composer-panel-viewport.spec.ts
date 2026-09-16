@@ -261,4 +261,69 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
       });
     }
   }
+
+  /*
+   * La largeur RENDUE doit égaler la largeur DÉCLARÉE.
+   *
+   * Mesuré le 2026-09-16 sur la feuille de style de production, à 390 px : la
+   * case à cocher de « High effort » déclare `w-4` — 16 px — et rendait 7,6 px.
+   * Dans une rangée `flex justify-between`, un enfant sans `shrink-0` cède sa
+   * largeur au texte voisin. Avi voyait un fil vertical à la place d'une case.
+   *
+   * La garde unitaire jumelle
+   * (app/components/chat/agent-power-boites-non-ecrasables.spec.tsx) vérifie la
+   * CLASSE ; celle-ci vérifie les PIXELS, sur le moteur d'Avi. Les deux sont
+   * nécessaires : jsdom n'a pas de mise en page, et une classe juste peut être
+   * défaite par une règle CSS concurrente.
+   */
+  test('les boîtes à largeur fixe du panneau rendent la largeur qu’elles déclarent', async ({ page, context }) => {
+    test.setTimeout(120_000);
+
+    await context.addCookies([
+      { name: 'vc_session', value: session.token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
+      { name: 'vibecore-auto-lang', value: 'fr', url: appBaseUrl, sameSite: 'Lax' },
+    ]);
+    await page.goto(`/projects/${session.projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.locator('.bolt-project-chatbox textarea')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('agent-mode-advanced')).toBeVisible({ timeout: 60_000 });
+
+    await ouvrirEtMesurer(page, /Mode de l.agent|Agent mode/i, '.bolt-agent-power-popover');
+
+    const ecarts = await page
+      .locator('.bolt-agent-power-popover')
+      .first()
+      .evaluate((panneau) => {
+        /* L'échelle utilitaire : `w-<n>` vaut n × 0,25 rem, soit n × 4 px. */
+        const resultats: Array<{ classe: string; declaree: number; rendue: number }> = [];
+
+        for (const element of panneau.querySelectorAll('*')) {
+          const classe = typeof element.className === 'string' ? element.className : '';
+          const trouve = /(?:^|\s)w-(\d+)(?:\s|$)/.exec(classe);
+
+          if (!trouve) {
+            continue;
+          }
+
+          const declaree = Number(trouve[1]) * 4;
+          const rendue = Number(element.getBoundingClientRect().width.toFixed(1));
+
+          if (Math.abs(rendue - declaree) > 0.5) {
+            resultats.push({ classe: classe.trim().slice(0, 80), declaree, rendue });
+          }
+        }
+
+        return { ecarts: resultats, examinees: [...panneau.querySelectorAll('*')].length };
+      });
+
+    // Contrôle positif : un panneau vide rendrait « 0 écart » sans rien prouver.
+    expect(ecarts.examinees, 'le panneau est vide — la mesure ne prouverait rien').toBeGreaterThan(5);
+
+    expect(
+      ecarts.ecarts,
+      `largeur rendue ≠ largeur déclarée : ${ecarts.ecarts
+        .map((e) => `${e.classe} déclare ${e.declaree}px et rend ${e.rendue}px`)
+        .join(' | ')}`,
+    ).toEqual([]);
+  });
 });
