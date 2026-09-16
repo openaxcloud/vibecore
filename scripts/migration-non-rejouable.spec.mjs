@@ -149,3 +149,69 @@ describe('relancer la migration ne vide pas le registre', () => {
     expect(index()).toContain('0 entrées.');
   });
 });
+
+/*
+ * LE MODE QUI DÉSAMORCE LES NEUF CONFLITS.
+ *
+ * Neuf propositions ouvertes ajoutent des lignes à `BUG_INVENTORY_LIVE.md`
+ * pendant que la migration le remplace par un index. Huit sont de PURES
+ * additions. `--ajouter` prend leurs lignes et en fait des fichiers d'entrée :
+ * la résolution du conflit tient en une commande au lieu de neuf recopies à la
+ * main — neuf occasions de perdre une ligne.
+ */
+describe('--ajouter reprend des lignes de tableau dans un registre déjà migré', () => {
+  const FRAGMENT = [
+    '| ID | Bug | Preuve |',
+    '| --- | --- | --- |',
+    '| BUG-TROIS-003 | **un défaut tout neuf** | preuve neuve |',
+    '| BUG-UN-001 | **un TROISIÈME homonyme** | preuve homonyme |',
+    '',
+  ].join('\n');
+
+  const ecrireFragment = () => {
+    const chemin = join(racine, 'fragment.md');
+    writeFileSync(chemin, FRAGMENT);
+
+    return chemin;
+  };
+
+  it('ajoute les fichiers et désambiguïse contre CE QUI EXISTE DÉJÀ', () => {
+    lancer();
+
+    const ajout = lancer('--ajouter', ecrireFragment());
+
+    expect(ajout.code).toBe(0);
+    // BUG-UN-001.md et -b.md existent déjà : l'homonyme doit prendre -c, pas écraser.
+    expect(fichiers()).toEqual(['BUG-DEUX-002.md', 'BUG-TROIS-003.md', 'BUG-UN-001-b.md', 'BUG-UN-001-c.md', 'BUG-UN-001.md']);
+    expect(readFileSync(join(racine, 'docs', 'bugs', 'BUG-UN-001-c.md'), 'utf8')).toContain('un TROISIÈME homonyme');
+    expect(index()).toContain('5 entrées.');
+  });
+
+  it("REFUSE un fragment sans sa ligne d'en-tête, au lieu d'écrire des fichiers vides", () => {
+    lancer();
+
+    const chemin = join(racine, 'sans-entete.md');
+    writeFileSync(chemin, '| BUG-TROIS-003 | **un défaut tout neuf** | preuve neuve |\n');
+
+    const avant = fichiers();
+    const ajout = lancer('--ajouter', chemin);
+
+    expect(ajout.code).toBe(1);
+    expect(ajout.sortie).toContain('sans aucun contenu');
+    expect(fichiers()).toEqual(avant);
+  });
+
+  it('refuse un fragment dont une ligne n’a pas été lue', () => {
+    lancer();
+
+    const chemin = join(racine, 'partiel.md');
+    // La seconde ligne porte un identifiant tronqué : comptée, non lue.
+    writeFileSync(chemin, ['| ID | Bug |', '| --- | --- |', '| BUG-TROIS-003 | **lisible** |', '| BUG-CASSE | ', ''].join('\n'));
+
+    const avant = fichiers();
+    const ajout = lancer('--ajouter', chemin);
+
+    expect(ajout.code).toBe(1);
+    expect(fichiers()).toEqual(avant);
+  });
+});

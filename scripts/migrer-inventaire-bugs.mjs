@@ -249,11 +249,119 @@ function regenererLIndex() {
   console.log(`  index régénéré depuis ${DOSSIER}/ : ${fichiers.length} entrées.`);
 }
 
+/**
+ * Le nom de fichier d'une entrée AJOUTÉE, en tenant compte de ce que le dossier
+ * contient déjà.
+ *
+ * `nomsDeFichier` désambiguïse à l'intérieur d'un lot ; ici le lot arrive APRÈS
+ * 314 fichiers. Réutiliser `nomsDeFichier` tel quel écraserait `BUG-IDE-001.md`
+ * au lieu de créer `BUG-IDE-001-c.md`.
+ */
+export function nomLibre(id, occupes) {
+  for (let rang = 1; rang < 27; rang += 1) {
+    const nom = rang === 1 ? `${id}.md` : `${id}-${String.fromCharCode(96 + rang)}.md`;
+
+    if (!occupes.has(nom)) {
+      return nom;
+    }
+  }
+
+  throw new Error(`plus de suffixe libre pour ${id}`);
+}
+
+/**
+ * Ajoute au registre MIGRÉ les entrées d'un fragment de tableau.
+ *
+ * Pourquoi ce mode existe : neuf propositions ouvertes ajoutent des lignes à
+ * `BUG_INVENTORY_LIVE.md` pendant que la migration le remplace par un index.
+ * Huit d'entre elles sont de PURES additions. Sans ce mode, chacune doit
+ * recopier ses lignes à la main dans un fichier par entrée — neuf fois le même
+ * geste, neuf occasions de perdre une ligne. Avec, la résolution du conflit
+ * tient en une commande.
+ */
+function ajouterDesEntrees(chemin) {
+  const fragment = readFileSync(chemin, 'utf8');
+  const entrees = lireLesEntrees(fragment);
+  const attendues = lignesDInventaire(fragment);
+
+  console.log(`  entrées lues        : ${entrees.length}`);
+  console.log(`  lignes du fragment  : ${attendues}`);
+
+  if (entrees.length !== attendues) {
+    console.error(`  ${attendues - entrees.length} ligne(s) NON lue(s) — rien écrit.`);
+    process.exitCode = 1;
+
+    return;
+  }
+
+  if (entrees.length === 0) {
+    console.error('  aucune entrée dans ce fragment — rien écrit.');
+    process.exitCode = 1;
+
+    return;
+  }
+
+  /*
+   * Un fragment SANS sa ligne d'en-tête se lit quand même : les identifiants
+   * sortent, mais aucune colonne n'a de nom, donc `champs` est vide et le
+   * fichier écrit ne porte que son frontmatter. Trouvé en essayant le mode sur
+   * les deux lignes réelles de #379 : `BUG-IDE-014.md` faisait trois lignes,
+   * dont zéro de contenu. Un outil qui écrit un fichier vide est pire que
+   * celui qui s'arrête : il a l'air d'avoir travaillé.
+   *
+   * On regarde le CONTENU des colonnes, pas leur présence. Première version :
+   * je comptais les clés de `champs`. Une ligne `| BUG-CASSE | ` porte bien la
+   * clé `Bug` — vide — et passait la garde. C'est le troisième cas de la spec
+   * qui l'a trouvé.
+   */
+  const vides = entrees.filter((entree) =>
+    Object.entries(entree.champs).every(([nom, valeur]) => nom === 'ID' || !valeur.trim()),
+  );
+
+  if (vides.length > 0) {
+    console.error(`  ${vides.length} entrée(s) sans aucun contenu : ${vides.map((e) => e.id).join(', ')}`);
+    console.error("  Fragment sans ligne d'en-tête, ou ligne vide. Rien écrit.");
+    process.exitCode = 1;
+
+    return;
+  }
+
+  mkdirSync(DOSSIER, { recursive: true });
+
+  const occupes = new Set(readdirSync(DOSSIER).filter((nom) => nom.endsWith('.md')));
+
+  for (const entree of entrees) {
+    const nom = nomLibre(entree.id, occupes);
+    occupes.add(nom);
+    writeFileSync(join(DOSSIER, nom), fichierDeLEntree(entree));
+    console.log(`    + ${nom}`);
+  }
+
+  regenererLIndex();
+}
+
 function principal() {
   const verifier = process.argv.includes('--verifier');
 
   if (process.argv.includes('--index')) {
     regenererLIndex();
+
+    return;
+  }
+
+  const rangAjout = process.argv.indexOf('--ajouter');
+
+  if (rangAjout !== -1) {
+    const chemin = process.argv[rangAjout + 1];
+
+    if (!chemin) {
+      console.error('  --ajouter attend un chemin de fragment markdown.');
+      process.exitCode = 1;
+
+      return;
+    }
+
+    ajouterDesEntrees(chemin);
 
     return;
   }
