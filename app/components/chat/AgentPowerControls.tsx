@@ -6,7 +6,7 @@ import { cibleFeuilleMobile } from './feuille-mobile';
 import { formatChatControlsCopy, formatChatControlsCost, getChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 import { classNames } from '~/utils/classNames';
 
-export type AgentBuildTier = 'lite' | 'economy' | 'power';
+export type AgentBuildTier = 'lite' | 'power' | 'max';
 
 export interface AgentPowerControlsValue {
   /** High effort: escalate genuinely hard tasks to a more capable model. */
@@ -74,7 +74,7 @@ export interface AgentPowerControlsProps {
  * anywhere in this component, ever: a mode is a promise (speed/depth/cost),
  * the platform decides how to keep it.
  */
-const BUILD_TIER_IDS: AgentBuildTier[] = ['lite', 'economy', 'power'];
+const BUILD_TIER_IDS: AgentBuildTier[] = ['lite', 'power', 'max'];
 
 /**
  * Agent mode controls (AGM): a segmented Lite / Economy / Power control —
@@ -105,14 +105,14 @@ export function AgentPowerControls({
       hint: copy['chatControls.power.tier.liteHint'],
     },
     {
-      id: 'economy',
-      label: copy['chatControls.power.tier.economy'],
-      hint: copy['chatControls.power.tier.economyHint'],
-    },
-    {
       id: 'power',
       label: copy['chatControls.power.tier.power'],
       hint: copy['chatControls.power.tier.powerHint'],
+    },
+    {
+      id: 'max',
+      label: copy['chatControls.power.tier.max'],
+      hint: copy['chatControls.power.tier.maxHint'],
     },
   ];
 
@@ -145,7 +145,7 @@ export function AgentPowerControls({
       // High effort never survives into Lite; Turbo only exists in Power.
       highEffort: mode === 'lite' ? false : value.highEffort,
       highPowerModel: mode === 'lite' ? false : value.highEffort,
-      turboMode: mode === 'power' ? value.turboMode : false,
+      turboMode: mode === 'max' ? value.turboMode : false,
     });
   };
 
@@ -158,7 +158,7 @@ export function AgentPowerControls({
   };
 
   const setTurbo = (next: boolean) => {
-    if (disabled || value.buildTier !== 'power' || !turboAvailable) {
+    if (disabled || value.buildTier !== 'max' || !turboAvailable) {
       return;
     }
 
@@ -444,12 +444,12 @@ export function AgentPowerControls({
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={value.turboMode && value.buildTier === 'power'}
-                  disabled={disabled || value.buildTier !== 'power' || !turboAvailable}
+                  aria-checked={value.turboMode && value.buildTier === 'max'}
+                  disabled={disabled || value.buildTier !== 'max' || !turboAvailable}
                   onClick={() => setTurbo(!value.turboMode)}
                   data-testid="agent-switch-turbo"
                   title={
-                    value.buildTier !== 'power'
+                    value.buildTier !== 'max'
                       ? copy['chatControls.power.turboPower']
                       : turboAvailable
                         ? copy['chatControls.power.turboAvailable']
@@ -457,7 +457,7 @@ export function AgentPowerControls({
                   }
                   className={classNames(
                     'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
-                    value.buildTier !== 'power' || !turboAvailable
+                    value.buildTier !== 'max' || !turboAvailable
                       ? 'opacity-60'
                       : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
                     value.turboMode ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
@@ -476,7 +476,7 @@ export function AgentPowerControls({
                       {copy['chatControls.power.turboDescription']}
                     </span>
                   </span>
-                  {!turboAvailable && value.buildTier === 'power' ? (
+                  {!turboAvailable && value.buildTier === 'max' ? (
                     <span className="shrink-0 rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
                       {copy['chatControls.power.organizationBadge']}
                     </span>
@@ -484,17 +484,17 @@ export function AgentPowerControls({
                     <span
                       className={classNames(
                         'flex h-4 w-4 shrink-0 items-center justify-center rounded border',
-                        value.turboMode && value.buildTier === 'power'
+                        value.turboMode && value.buildTier === 'max'
                           ? 'border-transparent'
                           : 'border-bolt-elements-borderColor',
                       )}
                       style={
-                        value.turboMode && value.buildTier === 'power'
+                        value.turboMode && value.buildTier === 'max'
                           ? { background: 'var(--vc-ide-accent-action)' }
                           : undefined
                       }
                     >
-                      {value.turboMode && value.buildTier === 'power' ? (
+                      {value.turboMode && value.buildTier === 'max' ? (
                         <span className="i-ph:check-bold text-xs text-white" aria-hidden />
                       ) : null}
                     </span>
@@ -502,7 +502,7 @@ export function AgentPowerControls({
                 </button>
               </div>
 
-              {!highEffortAvailable || (!turboAvailable && value.buildTier === 'power') ? (
+              {!highEffortAvailable || (!turboAvailable && value.buildTier === 'max') ? (
                 <button
                   type="button"
                   onClick={() => onUpgrade?.()}
