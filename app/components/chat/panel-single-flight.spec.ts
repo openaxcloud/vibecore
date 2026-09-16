@@ -46,13 +46,15 @@ describe('chargement des panneaux — appels en vol mutualisés', () => {
   it('la requête du panneau passe PAR la mise en commun, et non en direct', () => {
     const debut = SOURCE.indexOf('const loadPanel');
     expect(debut).toBeGreaterThan(-1);
+
     const corps = SOURCE.slice(debut, debut + 4000);
     expect(corps, 'loadPanel ne mutualise pas son appel').toContain('panneauEnVol.run(');
+
     // le fetch doit être DANS la fonction mutualisée, pas à côté
     const iRun = corps.indexOf('panneauEnVol.run(');
     const iFetch = corps.indexOf('fetchPanel(`/api/projects/');
     expect(iFetch, 'appel réseau introuvable').toBeGreaterThan(-1);
-    expect(iFetch, "le fetch est hors de la mise en commun").toBeGreaterThan(iRun);
+    expect(iFetch, 'le fetch est hors de la mise en commun').toBeGreaterThan(iRun);
   });
 
   it('la garde de ré-entrance est CONSERVÉE — les deux ne couvrent pas le même cas', () => {

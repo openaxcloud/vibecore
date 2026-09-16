@@ -11304,6 +11304,7 @@ function ProjectIdeApiServicePanel({
         });
 
         const response = { status: partage.status, ok: partage.ok };
+
         const result = partage.corps as {
           error?: { code: string; message: string; retryable: boolean } | string;
           status?: 'ok' | 'empty' | 'error';
