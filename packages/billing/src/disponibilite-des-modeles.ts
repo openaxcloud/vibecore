@@ -21,21 +21,21 @@ import type { CatalogueDuMode, ModeleDuCatalogue } from './catalogue-de-modeles.
 
 export type Fournisseur = ModeleDuCatalogue['provider'];
 
-export type EtatDuFournisseur =
-  /** Un appel réel a abouti. */
-  | 'joignable'
-
-  /** La clé est bonne, le compte est à sec ou suspendu. Un rechargement suffit. */
-  | 'sans-credit'
-
-  /** Aucune clé configurée pour ce fournisseur. */
-  | 'sans-cle'
-
-  /** L'appel a échoué pour une autre raison : réseau, panne, quota de débit. */
-  | 'injoignable'
-
-  /** Pas encore sondé depuis le démarrage. */
-  | 'inconnu';
+/*
+ * Les cinq états d'un fournisseur. Les commentaires sont ICI et non entre les
+ * membres de l'union : un commentaire au milieu d'une expression met
+ * `@blitz/lines-around-comment` et prettier en désaccord, et leur correction
+ * automatique tourne en rond.
+ *
+ *   joignable    un appel réel a abouti ;
+ *   sans-credit  la clé est bonne, le compte est à sec ou suspendu — un
+ *                rechargement suffit, aucun déploiement ;
+ *   sans-cle     aucune clé configurée pour ce fournisseur ;
+ *   injoignable  échec pour une autre raison : réseau, panne, quota de débit ;
+ *   inconnu      pas encore sondé. Ce n'est PAS « indisponible » : l'absence de
+ *                verdict n'est jamais un verdict.
+ */
+export type EtatDuFournisseur = 'joignable' | 'sans-credit' | 'sans-cle' | 'injoignable' | 'inconnu';
 
 export interface SondeFournisseur {
   fournisseur: Fournisseur;
