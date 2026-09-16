@@ -1,4 +1,5 @@
 import { hashPassword } from '@vibecore/auth';
+import type { InjectOptions } from 'fastify';
 import { describe, expect, it } from 'vitest';
 
 import { buildApiApp } from '../app.js';
@@ -72,7 +73,15 @@ type Probe = {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   /** Construit l'URL depuis la VICTIME — c'est ce que l'attaquant vise. */
   url: (victim: Tenant) => string;
-  payload?: unknown;
+
+  /*
+   * Le type de `inject`, pas `unknown`. Avec `unknown`, l'objet construit plus
+   * bas porte `payload?: {} | null | undefined`, que TypeScript refuse
+   * d'assigner à `InjectOptions` — il retombe alors sur la surcharge sans
+   * argument et `response` devient `void & Promise<Response> & Chain`, d'où
+   * neuf erreurs dont six ne parlent même pas de `payload`.
+   */
+  payload?: InjectOptions['payload'];
 };
 
 /*
