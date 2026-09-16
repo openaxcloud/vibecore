@@ -214,7 +214,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
      * de routage — ni prix, ni journal, ni télémétrie. La redondance existait
      * sans jamais pouvoir être constatée.
      *
-     * Elle n'est PAS un mode : `AGENT_MODES` reste `lite | economy | power`, et
+     * Elle n'est PAS un mode : `AGENT_MODES` reste `lite | power | max`, et
      * `AgentPowerControls` ne l'offre pas à l'utilisateur. C'est une
      * destination de routage, comme `classifier` et `turbo`.
      *
