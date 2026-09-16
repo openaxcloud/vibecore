@@ -6509,7 +6509,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const runProjectKeybindingAction = useCallback(
       (action: string, _binding: Keybinding, event: KeyboardEvent) => {
         if (action === 'overlay.close') {
-          if (keyboardShortcutsOpen) {
+          /*
+           * BUG-QA-CI-NO-MOBILE-COVERAGE-001 — mesuré le 16/09 au Pixel 7 : ce
+           * gestionnaire possède Échap en phase CAPTURE sur window et arrête sa
+           * propagation (`useKeybindings`), donc l'écouteur de bulle des
+           * feuilles mobiles, plus haut, ne le recevait JAMAIS — la feuille
+           * « more » restait ouverte après deux Échap. La feuille mobile ouverte
+           * est l'overlay le plus haut : elle se ferme ici, en priorité.
+           */
+          if (
+            useMobileIde &&
+            (mobileToolsSheetOpen || mobileTabSwitcherOpen || mobileMoreMenuOpen || mobileAgentMenuOpen)
+          ) {
+            closeMobileOverlays();
+          } else if (keyboardShortcutsOpen) {
             setKeyboardShortcutsOpen(false);
           } else if (commandPaletteOpen) {
             setCommandPaletteOpen(false);
@@ -6603,9 +6616,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         activePaneId,
         activeWorkspacePanel,
         closeActivePaneTab,
+        closeMobileOverlays,
         commandPaletteOpen,
         focusAgentPanel,
         keyboardShortcutsOpen,
+        mobileAgentMenuOpen,
+        mobileMoreMenuOpen,
+        mobileTabSwitcherOpen,
+        mobileToolsSheetOpen,
         onProjectEditorSave,
         openBottomTerminal,
         openCommandPalette,
@@ -6614,6 +6632,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recentTabIds,
         reopenLastClosedTab,
         runProjectEditorCommand,
+        useMobileIde,
       ],
     );
 
