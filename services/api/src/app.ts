@@ -2470,7 +2470,14 @@ function runtimeTicketStore(): import('ioredis').Redis | undefined {
 
   runtimeTicketRedisTried = true;
 
-  const url = process.env.REDIS_URL;
+  /*
+   * `lireUrlDEnvironnement` et non une lecture nue : une valeur entre
+   * guillemets dans un configmap donne une URL que `new Redis()` refuse, et le
+   * magasin de tickets retombe alors en silence sur « pas de Redis ». Les trois
+   * autres lectures de REDIS_URL de ce fichier passent déjà par là ; celle-ci
+   * l'avait oublié, et `env-url.spec.ts` l'a attrapée.
+   */
+  const url = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
 
   if (!url) {
     return undefined;
