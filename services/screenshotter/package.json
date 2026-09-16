@@ -5,7 +5,8 @@
   "dependencies": {
     "fastify": "^5.8.5",
     "playwright-core": "^1.59.1",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "@vibecore/security": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.2.6"
