@@ -1085,7 +1085,7 @@
       "id": "object-storage-sdk-token-verification-reasons",
       "path": "packages/sdk/src/token.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:missing|malformed|invalid_signature|expired|project_mismatch)$",
+      "textPattern": "^(?:missing|malformed|invalid_signature|expired|project_mismatch|insufficient_scope)$",
       "justification": "These union members are object-storage HMAC verification machine outcomes. API authorization maps failure to stable localized public contracts and does not render the raw reason.",
       "owner": "sdk-platform-and-security",
       "expiresOn": "2027-08-05"
