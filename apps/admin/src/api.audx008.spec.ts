@@ -1,3 +1,14 @@
+/**
+ * @vitest-environment jsdom
+ *
+ * Cette spec vérifie qu'AUCUN jeton n'atterrit dans `localStorage`. Elle a donc
+ * besoin d'un `localStorage` pour le constater : sans DOM, l'accès jette avant
+ * l'assertion et le test rougit sur son instrument, pas sur le code.
+ *
+ * `apps/admin` n'a pas de configuration vitest propre — ses specs tournent dans
+ * la passe racine, en environnement node. Le docbloc est l'idiome du dépôt pour
+ * ce cas : 322 fichiers le portent déjà.
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
