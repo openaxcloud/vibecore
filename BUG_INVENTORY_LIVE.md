@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-314 entrées.
+337 entrées.
 
 ## Sans section
 
@@ -328,6 +328,32 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-CHAT-THINKING-002](docs/bugs/BUG-CHAT-THINKING-002.md) — P0 latent — le contournement de `BUG-CHAT-THINKING-001` est INERTE, et il le sera au retour du crédit Anthropic.
 - [BUG-ALIAS-TROIS-TABLES-001](docs/bugs/BUG-ALIAS-TROIS-TABLES-001.md) — Dette de conception — TROIS vocabulaires d'alias de panneaux, à trois étages, dans trois fichiers.
 - [BUG-MESURE-AXE-AVEUGLE-001](docs/bugs/BUG-MESURE-AXE-AVEUGLE-001.md) — Neuvième forme du faux négatif de mesure, et la plus retorse : une mesure techniquement CORRECTE sur un axe qui ne discrimine rien.
+
+## Sans section
+
+- [BUG-QA-AGENT-TRUNCATION-002](docs/bugs/BUG-QA-AGENT-TRUNCATION-002.md) — s'arrête net sur `disab`
+- [BUG-QA-AUDIT-LOGS-NO-PAGINATION-001](docs/bugs/BUG-QA-AUDIT-LOGS-NO-PAGINATION-001.md) — P1 — `/audit-logs` rend jusqu'à 2000 entrées d'un seul bloc, sans pagination ni virtualisation : sur la production, l'onglet du navigateur se fige.
+- [BUG-QA-AUDIT-RELEASE-NAME-COLLISION-001](docs/bugs/BUG-QA-AUDIT-RELEASE-NAME-COLLISION-001.md) — Constaté : sur le cluster d'audit, `helm list -n vibecore` rend
+- [BUG-QA-BREAKPOINTS-INCOHERENTS-001](docs/bugs/BUG-QA-BREAKPOINTS-INCOHERENTS-001.md) — `/projects/new` : l'accordéon est un CHOIX ASSUMÉ, mais son seuil (640 px) ne correspond pas à celui de l'IDE (1199 px) — d'où l'écart 390 ↔ 768.
+- [BUG-QA-BUILD-PAYLOAD-264MB-001](docs/bugs/BUG-QA-BUILD-PAYLOAD-264MB-001.md) — Chaque build Cloud Build téléverse ~264 Mo d'artefacts de preuve qui ne servent à aucun Dockerfile.
+- [BUG-QA-CI-NO-MOBILE-COVERAGE-001](docs/bugs/BUG-QA-CI-NO-MOBILE-COVERAGE-001.md) — (1) `i18n-live-audit.yml`
+- [BUG-QA-CONTRASTE-ACCENT-ORANGE-001](docs/bugs/BUG-QA-CONTRASTE-ACCENT-ORANGE-001.md) — L'orange de marque échoue au niveau AA dans les DEUX sens : en texte sur fond clair, et en fond de bouton sous du texte blanc.
+- [BUG-QA-DEPLOY-BASEPATH-404-001](docs/bugs/BUG-QA-DEPLOY-BASEPATH-404-001.md) — ✅ RÉSOLU — corrigé sur `main` le 13/08 (`949f0748`), certifié en prod le 20/08 (voir « CERTIFICATION PROD » en fin de preuve).
+- [BUG-QA-GIT-ROUTE-SLOW-001](docs/bugs/BUG-QA-GIT-ROUTE-SLOW-001.md) — `/git` reste visuellement vide 7 à 18 s, puis affiche le chat générique au lieu d'une UI d'import Git.
+- [BUG-QA-I18N-COUNT-002](docs/bugs/BUG-QA-I18N-COUNT-002.md) — Le défaut d'espace/pluriel des compteurs est systémique, pas isolé.
+- [BUG-QA-IDENTIFIANTS-BRUTS-UI-001](docs/bugs/BUG-QA-IDENTIFIANTS-BRUTS-UI-001.md) — P1 finition — l'identifiant technique d'un utilisateur (cuid de 25 caractères) est affiché À LA PLACE de son nom, à 7 endroits de l'interface.
+- [BUG-QA-LENTEUR-DASHBOARD-001](docs/bugs/BUG-QA-LENTEUR-DASHBOARD-001.md) — Le tableau de bord met 37 secondes à se stabiliser en 390 px — c'est la première page que voit un utilisateur qui revient.
+- [BUG-QA-OAUTH-REGISTER-NON-GATE-001](docs/bugs/BUG-QA-OAUTH-REGISTER-NON-GATE-001.md) — Parcours reproduit de bout en bout : bouton « S'inscrire avec Google » sur `/register` →
+- [BUG-QA-PANEL-AGENT-FALLBACK-001](docs/bugs/BUG-QA-PANEL-AGENT-FALLBACK-001.md) — Deux défauts se combinent.
+- [BUG-QA-PANEL-META-ORPHANS-001](docs/bugs/BUG-QA-PANEL-META-ORPHANS-001.md) — Deux incohérences mineures dans les registres de panneaux.
+- [BUG-QA-PRISMA-CODE-LEAK-001](docs/bugs/BUG-QA-PRISMA-CODE-LEAK-001-b.md) — Le gestionnaire d'erreurs global de l'API renvoie au client le code d'erreur Prisma brut.
+- [BUG-QA-REM-BASE-12-14PX-001](docs/bugs/BUG-QA-REM-BASE-12-14PX-001.md) — Vérifié dans `app/styles/index.scss` : `:root { --vc-type-interface-size: 12px }` (
+- [BUG-QA-SLUG-ACCENTS-001](docs/bugs/BUG-QA-SLUG-ACCENTS-001.md) — Le nom d'un projet accentué produit une URL mutilée et définitive : « Crée une page web simple » devient `/@org/cr-e-une-page-web-simple`.
+- [BUG-QA-TABLET-MOBILE-DIVERGENCE-APP-001](docs/bugs/BUG-QA-TABLET-MOBILE-DIVERGENCE-APP-001.md) — Écarts de traitement 390 ↔ 768 dans l'espace utilisateur — la tablette montre des commandes que le mobile n'a pas, sur TOUTES les routes.
+- [BUG-QA-TABLET-MOBILE-PARITY-001](docs/bugs/BUG-QA-TABLET-MOBILE-PARITY-001.md) — Contrôle de parité tablette 768 ↔ mobile 390 sur les 25 panneaux de l'IDE — exigence posée par Avi le 27/08 : « pour tablet ce doit être comme mobile ».
+- [BUG-QA-THUMBNAIL-404-CAPTURE-001](docs/bugs/BUG-QA-THUMBNAIL-404-CAPTURE-001.md) — P1 — La vignette stockée d'un projet est la capture d'écran d'une page d'erreur JSON 404 : c'est le « rectangle vide » vu sur les cartes du tableau de bord.
+- [BUG-QA-THUMBNAIL-500-001](docs/bugs/BUG-QA-THUMBNAIL-500-001.md) — 3 vignettes de projet sur 6 renvoient HTTP 500 avec un corps vide en production.
+- [BUG-QA-THUMBNAIL-SLOW-PAGE-001](docs/bugs/BUG-QA-THUMBNAIL-SLOW-PAGE-001.md) — Sur le tableau de bord, une vignette pourtant valide met plus de 20 secondes à apparaître ; pendant tout ce temps la carte affiche « No preview yet ».
 
 ## Résidus non tabulaires — reportés mot pour mot
 
