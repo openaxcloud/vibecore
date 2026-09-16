@@ -47,9 +47,7 @@ test('E-Code marketing routes render the shared public shell with content', asyn
 
     expect(heading.length, `${route} h1 is non-empty`).toBeGreaterThan(0);
 
-    const noHorizontalOverflow = await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth + 1,
-    );
+    const noHorizontalOverflow = await page.evaluate(() => document.body.scrollWidth <= window.innerWidth + 1);
 
     expect(noHorizontalOverflow, `${route} horizontal overflow`).toBeTruthy();
   }

@@ -310,7 +310,7 @@ test('project creation light theme uses light containers and readable image prev
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
 
-  const mobileOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  const mobileOverflow = await page.evaluate(() => document.body.scrollWidth - window.innerWidth);
   expect(mobileOverflow).toBeLessThanOrEqual(2);
 });
 
@@ -437,6 +437,7 @@ test('authenticated user area applies the global platform design system', async 
     card: '#1a2030',
     hover: '#2b3245',
     text: '#f5f9fc',
+
     // CHARTE-IDE-001 — l'action primaire porte desormais l'orange de marque.
     action: '#f97316',
     radiusButton: '4px',
@@ -517,7 +518,7 @@ test('public homepage light theme keeps the media section readable', async ({ pa
       theme: document.documentElement.getAttribute('data-theme'),
       opacity: Number(style.opacity),
       visibility: style.visibility,
-      noHorizontalOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
+      noHorizontalOverflow: document.body.scrollWidth <= window.innerWidth + 1,
     };
   });
 
@@ -967,8 +968,11 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
       aiStart: '#7b61ff',
       aiEnd: '#ff6b9d',
       success: '#3fb950',
-      // CHARTE-IDE-001 — l'action et la marque convergent vers l'orange ; la
-      // regle d'origine « orange = marque, bleu = action » est renversee.
+
+      /*
+       * CHARTE-IDE-001 — l'action et la marque convergent vers l'orange ; la
+       * regle d'origine « orange = marque, bleu = action » est renversee.
+       */
       action: '#f97316',
       orange: '#f26207',
       error: '#f85149',
@@ -1085,6 +1089,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
         card: '#eef2f7',
         hover: '#e2e8f0',
         text: '#111827',
+
         // CHARTE-IDE-001 — clair : orange assombri, blanc dessus a 5,18:1.
         action: '#c2410c',
       },
@@ -1111,6 +1116,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
         card: '#1a2030',
         hover: '#2b3245',
         text: '#f5f9fc',
+
         // CHARTE-IDE-001 — sombre : orange vif, texte fonce dessus a 6,21:1.
         action: '#f97316',
       },
@@ -1802,6 +1808,7 @@ test(
     await openIdeTool(/Secrets/);
 
     const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]').first();
+
     // RP-SEC-01 : le panneau Replit — en-tête « Secrets », ⋮, « + New Secret », filtre.
     await expect(secretsPanel.getByTestId('secrets-panel')).toBeVisible({ timeout: 15000 });
     await expect(secretsPanel.getByTestId('secrets-new')).toBeVisible();

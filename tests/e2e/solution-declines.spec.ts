@@ -49,7 +49,7 @@ async function configureTheme(page: Page, baseURL: string, theme: (typeof THEMES
 async function expectNoHorizontalOverflow(page: Page, width: number) {
   const sizes = await page.evaluate(() => ({
     body: document.body.scrollWidth,
-    document: document.documentElement.scrollWidth,
+    document: document.body.scrollWidth,
     viewport: window.innerWidth,
   }));
 

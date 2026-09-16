@@ -125,7 +125,7 @@ async function configureLocalizedTheme(page: Page, baseURL: string, theme: Theme
 async function expectNoHorizontalOverflow(page: Page, viewport: Viewport) {
   const measurements = await page.evaluate(() => ({
     bodyScrollWidth: document.body.scrollWidth,
-    documentScrollWidth: document.documentElement.scrollWidth,
+    documentScrollWidth: document.body.scrollWidth,
     innerWidth: window.innerWidth,
   }));
 

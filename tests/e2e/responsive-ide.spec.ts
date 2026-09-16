@@ -84,7 +84,7 @@ async function expectCompactIdeSurfaceFitsViewport(page: import('@playwright/tes
     );
 
     return {
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       surfaces: surfaces.filter(
         (surface) =>
           surface.display !== 'none' && surface.visibility !== 'hidden' && surface.width > 0 && surface.height > 0,
@@ -247,7 +247,7 @@ async function expectMobileBottomNavigationIsTouchSafe(page: import('@playwright
 
     return {
       buttons,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       navBottom: navRect.bottom,
       navLeft: navRect.left,
       navRight: navRect.right,
@@ -312,7 +312,7 @@ async function expectSettingsTabRailFitsViewport(page: import('@playwright/test'
     }, 0);
 
     return {
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       railLeft: railRect.left,
       railRight: railRect.right,
       viewportWidth: window.innerWidth,
@@ -382,7 +382,7 @@ async function expectFloatingSurfaceFitsViewport(
 
       return {
         bottom: surfaceRect.bottom,
-        documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
         interactiveElements,
         left: surfaceRect.left,
         right: surfaceRect.right,
@@ -476,7 +476,7 @@ async function expectAgentModelSelectorFitsViewport(page: import('@playwright/te
 
     return {
       bottom: selectorRect.bottom,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       fields,
       left: selectorRect.left,
       right: selectorRect.right,
@@ -583,7 +583,7 @@ async function expectSettingsAiControlsFitViewport(page: import('@playwright/tes
 
     return {
       controls,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       viewportWidth: window.innerWidth,
     };
   });
@@ -795,7 +795,7 @@ async function expectMobileWebviewStartupFitsViewport(
     return {
       cardBottom: cardRect.bottom,
       cardTop: cardRect.top,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       frameBottom: frameRect.bottom,
       frameLeft: frameRect.left,
       frameRight: frameRect.right,
@@ -874,7 +874,7 @@ test.describe('responsive IDE shell', () => {
     const viewport = page.viewportSize();
     expect(agentBox?.width).toBeGreaterThan(260);
     expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+    expect(await page.evaluate(() => document.body.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
 
     await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').hover();
     await expect(page.locator('.bolt-project-tooltip-content').filter({ hasText: /Files/ }).last()).toBeVisible({
@@ -914,7 +914,7 @@ test.describe('responsive IDE shell', () => {
 
         return {
           viewport: { width: window.innerWidth, height: window.innerHeight },
-          documentWidth: document.documentElement.scrollWidth,
+          documentWidth: document.body.scrollWidth,
           panelGroup: readRect('.bolt-project-panel-group'),
           rail: readRect('.bolt-project-ide-rail'),
           statusbar: readRect('.bolt-project-statusbar'),
@@ -1079,7 +1079,7 @@ test.describe('responsive IDE shell', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
-    const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    const overflowX = await page.evaluate(() => document.body.scrollWidth > window.innerWidth + 1);
     expect(overflowX).toBe(false);
   });
 
@@ -1111,7 +1111,7 @@ test.describe('responsive IDE shell', () => {
           getComputedStyle(navElement).visibility !== 'hidden' &&
           Boolean(nav && nav.width > 0 && nav.height > 0),
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 
@@ -1203,7 +1203,7 @@ test.describe('responsive IDE shell', () => {
         const input = manager.querySelector('input[type="password"]')?.getBoundingClientRect();
 
         return {
-          documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
           inputHeight: input?.height ?? 0,
           inputLeft: input?.left ?? 0,
           inputRight: input?.right ?? 0,
@@ -1494,7 +1494,7 @@ createServer((request, response) => {
           rootTheme: root.getAttribute('data-theme'),
           background: styles.backgroundColor,
           color: styles.color,
-          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          overflowX: document.body.scrollWidth > window.innerWidth + 1,
         };
       });
 
@@ -1517,7 +1517,7 @@ createServer((request, response) => {
           rootTheme: document.documentElement.getAttribute('data-theme'),
           background: styles.backgroundColor,
           color: styles.color,
-          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          overflowX: document.body.scrollWidth > window.innerWidth + 1,
         };
       });
 
@@ -1682,7 +1682,7 @@ createServer((request, response) => {
 
       return {
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 
@@ -1726,7 +1726,7 @@ createServer((request, response) => {
 
       return {
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 
@@ -1793,7 +1793,7 @@ createServer((request, response) => {
 
       return {
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 

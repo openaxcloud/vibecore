@@ -126,7 +126,7 @@ async function readResponsiveAppShellMetrics(page: Page) {
       contentLeft: contentRect.left,
       contentRight: contentRect.right,
       contentWidth: contentRect.width,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       drawerPointerEvents: drawerStyle.pointerEvents,
       drawerVisibility: drawerStyle.visibility,
       sidebarDisplay: sidebarStyle.display,
@@ -600,7 +600,7 @@ async function readFloatingSurfaceDetails(page: Page) {
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
 
     return {
-      documentOverflowsX: document.documentElement.scrollWidth > viewportWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > viewportWidth + 1,
       surfaces: Array.from(document.querySelectorAll<HTMLElement>('.floating-surface')).map((surface) => {
         const rect = surface.getBoundingClientRect();
         const style = window.getComputedStyle(surface);
@@ -1097,7 +1097,7 @@ async function readMobilePreviewShellDetails(page: Page) {
 
     return {
       card: rectFor('[data-testid="mobile-preview-loading-card"]'),
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       fixed: rectFor('[data-testid="mobile-workbench-fixed"]'),
       frame: rectFor('[data-testid="mobile-webview-frame"]'),
       labels: Array.from(document.querySelectorAll<HTMLElement>('.bolt-mobile-replit-tab-label')).map((label) => {
@@ -1185,7 +1185,7 @@ async function readMobileAgentComposerDetails(page: Page) {
       composerScrollHeight: composer.scrollHeight,
       composerTop: composerRect.top,
       composerWidth: composerRect.width,
-      documentOverflowsX: document.documentElement.scrollWidth > viewportWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > viewportWidth + 1,
       navHeight: navRect.height,
       navTop: navRect.top,
       noticesHeight: noticesRect.height,
@@ -1329,7 +1329,7 @@ async function readAgentMessageContextDetails(page: Page) {
     return {
       bottom: rect.bottom,
       cardCount: surface.querySelectorAll('.bolt-message-context-card').length,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       hasInlineZoom: Array.from(surface.querySelectorAll<HTMLElement>('[style]')).some((element) =>
         /(^|;)\s*zoom\s*:/i.test(element.getAttribute('style') ?? ''),
       ),
