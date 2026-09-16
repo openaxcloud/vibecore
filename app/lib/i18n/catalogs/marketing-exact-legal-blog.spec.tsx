@@ -213,10 +213,7 @@ describe('exact legal registry and blog catalogs', () => {
   it('leaves no hard-coded visible copy in the Blog component or the authorized Blog route', async () => {
     const { scanSource } = await import('../../../../scripts/i18n/source-scanner.mjs');
 
-    const files = [
-      'app/components/marketing/ecode-exact/pages/Blog.tsx',
-      'app/routes/blog.tsx',
-    ];
+    const files = ['app/components/marketing/ecode-exact/pages/Blog.tsx', 'app/routes/blog.tsx'];
 
     for (const file of files) {
       const source = readFileSync(resolve(process.cwd(), file), 'utf8');

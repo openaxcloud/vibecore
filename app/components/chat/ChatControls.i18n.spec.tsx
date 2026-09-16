@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,8 +8,6 @@ vi.mock('~/lib/stores/settings', () => ({ LOCAL_PROVIDERS: ['Ollama'] }));
 
 import { AgentPowerControls, type AgentPowerControlsValue } from './AgentPowerControls';
 import { createI18nInstance } from '~/lib/i18n/runtime';
-import type { ModelInfo } from '~/lib/modules/llm/types';
-import type { ProviderInfo } from '~/types/model';
 
 const powerValue: AgentPowerControlsValue = {
   highEffort: false,
@@ -26,7 +24,6 @@ function withLocale(language: 'en' | 'fr', node: React.ReactNode) {
 afterEach(cleanup);
 
 describe('chat controls i18n', () => {
-
   it('renders agent power controls, long hints, and costs in French', () => {
     render(withLocale('fr', <AgentPowerControls value={powerValue} onChange={vi.fn()} estimatedCents={125} />));
 
