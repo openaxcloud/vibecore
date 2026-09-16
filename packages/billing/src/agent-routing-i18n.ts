@@ -10,6 +10,7 @@ const labels: Readonly<Record<AgentRoutingLocale, Readonly<Record<AgentRoutingLi
     'high-effort': 'High effort (escalation)',
     turbo: 'Turbo',
     classifier: 'Harness classifier',
+    fallback: 'Redundancy (secondary provider)',
   },
   fr: {
     lite: 'Léger',
@@ -18,6 +19,7 @@ const labels: Readonly<Record<AgentRoutingLocale, Readonly<Record<AgentRoutingLi
     'high-effort': 'Effort élevé (escalade)',
     turbo: 'Turbo',
     classifier: 'Classificateur du moteur d’agents',
+    fallback: 'Redondance (fournisseur secondaire)',
   },
 };
 
