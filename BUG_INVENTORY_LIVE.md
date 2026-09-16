@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-314 entrées.
+326 entrées.
 
 ## Sans section
 
@@ -328,6 +328,21 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-CHAT-THINKING-002](docs/bugs/BUG-CHAT-THINKING-002.md) — P0 latent — le contournement de `BUG-CHAT-THINKING-001` est INERTE, et il le sera au retour du crédit Anthropic.
 - [BUG-ALIAS-TROIS-TABLES-001](docs/bugs/BUG-ALIAS-TROIS-TABLES-001.md) — Dette de conception — TROIS vocabulaires d'alias de panneaux, à trois étages, dans trois fichiers.
 - [BUG-MESURE-AXE-AVEUGLE-001](docs/bugs/BUG-MESURE-AXE-AVEUGLE-001.md) — Neuvième forme du faux négatif de mesure, et la plus retorse : une mesure techniquement CORRECTE sur un axe qui ne discrimine rien.
+
+## Sans section
+
+- [BUG-MKT-012](docs/bugs/BUG-MKT-012.md) — P1 — le corps des pages marketing n'est pas rendu côté serveur.
+- [BUG-MKT-013](docs/bugs/BUG-MKT-013.md) — P2 — décalage de mise en page sur les captures produit.
+- [BUG-MKT-014](docs/bugs/BUG-MKT-014.md) — P1 — la désinscription à la newsletter ne désinscrit personne.
+- [BUG-THEME-006](docs/bugs/BUG-THEME-006.md) — P1 — Thème CLAIR : l'orange de marque `#f26207` utilisé comme TEXTE tombe à 3.03–3.22:1
+- [BUG-THEME-007](docs/bugs/BUG-THEME-007.md) — P2 — Thème SOMBRE : texte blanc sur le bleu d'action `#0099ff` = 3.00:1
+- [BUG-THEME-008](docs/bugs/BUG-THEME-008.md) — P1 — Zone CONNECTÉE, thème SOMBRE : les CTA d'action (« Créer un projet », « Créer une clé », « Obtenir l'app bureau », « Créer ») affichent du blanc sur l'oran
+- [BUG-THEME-009](docs/bugs/BUG-THEME-009.md) — P2 — Zone CONNECTÉE, thème CLAIR : les libellés d'état succès/avertissement passent juste sous AA
+- [BUG-THEME-010](docs/bugs/BUG-THEME-010.md) — P1 (défaut de RENDU, pas seulement de contraste) — 66 utilitaires perdaient SILENCIEUSEMENT leur opacité.
+- [BUG-THEME-011](docs/bugs/BUG-THEME-011.md) — P2 — le token shadcn `--primary` était déclaré à l'IDENTIQUE dans les deux thèmes
+- [BUG-THEME-012](docs/bugs/BUG-THEME-012.md) — P2 — trois surfaces INVARIANTES par thème portaient un premier plan qui, lui, suivait le thème
+- [BUG-THEME-013](docs/bugs/BUG-THEME-013.md) — P2 — pastilles/onglets « actifs » : l'accent lu sur SA PROPRE teinte passe sous AA en thème clair
+- [BUG-THEME-014](docs/bugs/BUG-THEME-014.md) — INFO — 3 remontées du balayage étaient de FAUX POSITIFS du harnais, écartées avant correction inutile.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
