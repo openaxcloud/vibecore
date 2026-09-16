@@ -29,6 +29,11 @@
       "schedule" "*/15 * * * *"
       "queue" "workspace-jobs"
       "job" "workspace.gc")
+    "workspaceFreezeReconcile" (dict
+      "enabled" true
+      "schedule" "20 * * * *"
+      "queue" "workspace-jobs"
+      "job" "workspace.freezeReconcile")
     "connectorHealth" (dict
       "enabled" true
       "schedule" "*/30 * * * *"
@@ -44,6 +49,11 @@
       "schedule" "0 4 * * *"
       "queue" "enterprise-jobs"
       "job" "inactivity.gc")
+    "accountPurge" (dict
+      "enabled" true
+      "schedule" "30 4 * * *"
+      "queue" "enterprise-jobs"
+      "job" "account.purge")
     "objectStorageMetering" (dict
       "enabled" true
       "schedule" "15 2 * * *"
