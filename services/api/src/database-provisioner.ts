@@ -761,6 +761,27 @@ export class CnpgProvisioner implements DatabaseProvisioner {
       const cluster = clusterName(input.projectId, environment);
       await this.k8s.delete('Cluster', DB_NAMESPACE, cluster).catch(() => {});
       await this.k8s.delete('ScheduledBackup', DB_NAMESPACE, `${cluster}-daily`).catch(() => {});
+
+      /*
+       * La CR `Database` du tier PARTAGÉ, oubliée jusqu'ici.
+       *
+       * Un projet en tier partagé ne reçoit PAS de `Cluster` dédié : il reçoit
+       * une CR `Database` qui lie une base logique au cluster partagé
+       * (`buildDatabaseCrManifest`). Le démontage ne supprimait que `Cluster` et
+       * `ScheduledBackup` — donc, pour ces projets, il ne supprimait RIEN, et la
+       * base survivait à son projet.
+       *
+       * Constaté en production le 2026-09-01 : 2 CR `Database` `APPLIED=true`
+       * dans `project-databases` dont le projet n'existe plus et qu'aucune
+       * `DatabaseInstance` ne référence — `db-cmshm3gni00400nai23ilaq9f` et
+       * `db-cmtfxq12z00170ndhhz666nrx-prod`. Fuite de ressources dans le cluster
+       * partagé, et question de rétention : les données d'un projet supprimé y
+       * restent.
+       *
+       * Le nom est le MÊME que celui du `Cluster` (`clusterName(...)`), ce qui
+       * rendait l'oubli facile à ne pas voir : la ligne semblait déjà couverte.
+       */
+      await this.k8s.delete('Database', DB_NAMESPACE, cluster).catch(() => {});
     }
   }
 }
