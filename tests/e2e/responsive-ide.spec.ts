@@ -1847,7 +1847,8 @@ createServer((request, response) => {
     for (const [itemId, label] of [
       ['overview', 'Overview'],
       ['preview', 'Webview'],
-      ['deployments', 'Deployments'],
+      // L'outil s'appelle « Publish » (parité Replit), l'identifiant reste `deployments`.
+      ['deployments', 'Publish'],
       ['object-storage', 'Object Storage'],
       ['locks', 'Locks'],
       ['env', 'Environment variables'],
@@ -1880,10 +1881,10 @@ createServer((request, response) => {
     const deploymentsToolItem = reopenedToolsSheet.getByTestId('tool-item-deployments');
 
     await expect(deploymentsToolItem).toBeVisible({ timeout: 15_000 });
-    await expect(deploymentsToolItem).toContainText('Deployments');
+    await expect(deploymentsToolItem).toContainText('Publish');
     await deploymentsToolItem.click();
     await expectMobileServicePanel(page, 'deployments');
-    await expect(page.getByTestId('mobile-ide-header')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Publish');
 
     const finalToolsSheet = await openMobileToolsSheet(page);
 
