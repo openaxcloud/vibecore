@@ -1904,7 +1904,7 @@ const aiRecordUsageSchema = z.object({
   // Replit-parity per-request power controls (effort-based checkpoint).
   highPowerModel: z.boolean().optional(),
   extendedThinking: z.boolean().optional(),
-  buildTier: z.enum(['lite', 'economy', 'power']).optional(),
+  buildTier: z.enum(['lite', 'power', 'max']).optional(),
   turboMode: z.boolean().optional(),
 
   /*
@@ -1914,11 +1914,11 @@ const aiRecordUsageSchema = z.object({
    */
   agentRouting: z
     .object({
-      mode: z.enum(['lite', 'economy', 'power']),
+      mode: z.enum(['lite', 'power', 'max']),
       highEffort: z.boolean().default(false),
       escalated: z.boolean().default(false),
       turbo: z.boolean().default(false),
-      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
+      lineKey: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
       source: z.string().min(1).default('chat'),
     })
     .optional(),
@@ -28105,7 +28105,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const query = parse(
       z.object({
-        mode: z.enum(['lite', 'economy', 'power']).default(DEFAULT_AGENT_MODE),
+        mode: z.enum(['lite', 'power', 'max']).default(DEFAULT_AGENT_MODE),
         highEffort: queryBool.default(false),
         turbo: queryBool.default(false),
       }),
@@ -30512,7 +30512,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   const adminAgentRoutingLineSchema = z.object({
-    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
+    key: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
     label: z.string().min(1),
     provider: z.string().min(1),
     model: z.string().min(1),
