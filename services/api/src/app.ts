@@ -28151,8 +28151,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let classifier: { provider: string; model: string } | undefined;
 
     if (query.turbo) {
-      // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
-      if (requestedMode !== 'power') {
+      /*
+       * Turbo : mode MAX uniquement, puis porte de plan ET porte d'organisation
+       * (drapeau `agent_turbo`, éteint par défaut).
+       *
+       * ⚠️ Le renommage du 2026-09-16 a failli inverser cette garde : `power`
+       * désignait le SOMMET, il désigne le MILIEU. Laissée telle quelle, elle
+       * aurait ouvert Turbo au mode médian et l'aurait refusé au mode haut —
+       * c'est-à-dire facturé le multiplicateur ×2 à des utilisateurs qui ne
+       * l'avaient pas choisi. Troisième fois que ce piège se referme : il ne se
+       * voit qu'au comportement, jamais au typage.
+       */
+      if (requestedMode !== 'max') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_TURBO_REQUIRES_POWER'),
           code: 'AGENT_TURBO_POWER_ONLY',
@@ -28184,7 +28194,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (query.highEffort) {
-      // High effort: Economy and Power only — NEVER Lite — and plan-gated.
+      // Effort élevé : modes Power et Max seulement — JAMAIS Lite — et porte de plan.
       if (requestedMode === 'lite') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_HIGH_EFFORT_UNAVAILABLE_IN_LITE'),
