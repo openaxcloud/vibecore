@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { canonicalProjectPath, projectIdePath } from '~/utils/project-url';
-
 import { SEGMENTS_PUBLICS, surfaceDeLaCle, surfacesRequises } from './surfaces';
+import { canonicalProjectPath, projectIdePath } from '~/utils/project-url';
 
 /*
  * LE PIÈGE QUE CE FICHIER GARDE.
@@ -33,8 +32,10 @@ const SLUGS_PIEGEUX = SEGMENTS_PUBLICS.slice(0, 6);
 
 describe("aucune URL d'IDE ne charge la seule tranche publique", () => {
   it('la mesure discrimine : un vrai segment public ne charge QUE la tranche publique', () => {
-    // Sans ce contrôle, les assertions suivantes passeraient même si
-    // `surfacesRequises` rendait toujours les deux tranches.
+    /*
+     * Sans ce contrôle, les assertions suivantes passeraient même si
+     * `surfacesRequises` rendait toujours les deux tranches.
+     */
     expect(SLUGS_PIEGEUX.length).toBeGreaterThan(3);
     expect(surfacesRequises(`/${SLUGS_PIEGEUX[0]}`)).toEqual(['public']);
     expect(surfacesRequises(`/${SLUGS_PIEGEUX[0]}/mon-projet/ide`)).toEqual(['public']);
@@ -49,7 +50,9 @@ describe("aucune URL d'IDE ne charge la seule tranche publique", () => {
       const chemin = canonicalProjectPath({ id: 'p1', slug: 'mon-projet', organizationSlug: slug });
 
       expect(surfacesRequises(chemin), `${chemin} doit charger la tranche app`).toContain('app');
-      expect(surfacesRequises(projectIdePath({ id: 'p1', slug: 'mon-projet', organizationSlug: slug }))).toContain('app');
+      expect(surfacesRequises(projectIdePath({ id: 'p1', slug: 'mon-projet', organizationSlug: slug }))).toContain(
+        'app',
+      );
     }
   });
 
@@ -58,6 +61,7 @@ describe("aucune URL d'IDE ne charge la seule tranche publique", () => {
       const canonique = canonicalProjectPath({ id: 'p1', slug: 'mon-projet', organizationSlug: slug });
 
       expect(canonique.startsWith(`/@${slug}`), `${canonique} doit porter le @`).toBe(true);
+
       // Retirer le sigle rouvre le trou — la preuve que la protection est bien là.
       expect(surfacesRequises(canonique.replace('/@', '/'))).toEqual(['public']);
     }
