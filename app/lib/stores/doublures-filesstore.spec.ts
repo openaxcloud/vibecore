@@ -56,7 +56,9 @@ const STORES = new URL('.', import.meta.url).pathname;
 function membresAppeles(): string[] {
   const source = readFileSync(join(STORES, 'workbench.ts'), 'utf8');
 
-  return [...new Set([...source.matchAll(/this\.#filesStore\.([A-Za-z_$][\w$]*)/gu)].map((trouve) => trouve[1]))].sort();
+  return [
+    ...new Set([...source.matchAll(/this\.#filesStore\.([A-Za-z_$][\w$]*)/gu)].map((trouve) => trouve[1])),
+  ].sort();
 }
 
 function specsAvecDoublure(): string[] {
