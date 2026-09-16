@@ -2,6 +2,8 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
+import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
+
 /**
  * Pin the surface to the light theme before the first navigation.
  *
@@ -1317,7 +1319,15 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
       document.documentElement.classList.remove('dark');
     });
 
-    const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
+    /*
+     * An ALIASED tool lands on the tool that owns its screen: `?panel=domains`
+     * opens Deploy on its Domains tab, because both rendered the very same
+     * `ProjectDomainsPanel`. The rendered container therefore carries the
+     * OWNER's `data-panel`. Resolved through the app's alias table rather than
+     * a second copy of it here, so the two cannot drift apart.
+     */
+    const renderedPanel = resolveProjectEditorToolOpen(panel as never).panel;
+    const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${renderedPanel}"]`).first();
     await expect(servicePanel).toBeVisible({ timeout: 15_000 });
 
     /*
