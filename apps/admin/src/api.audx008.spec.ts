@@ -130,7 +130,19 @@ describe('AUDX-007 no provider store persists a credential', () => {
    * separate piece of work. This test freezes that list so the debt cannot GROW
    * while the migration happens: a NEW store that persists a token fails here.
    */
-  const KNOWN_LEGACY = ['github.ts', 'gitlabConnection.ts', 'netlify.ts', 'supabase.ts', 'vercel.ts'];
+  /*
+   * Le cliquet se RESSERRE : quatre des cinq magasins ont migré (#373 pour
+   * Vercel, AUDX-007 pour les autres), et la liste suit. Laisser cinq noms
+   * quand il n'en reste qu'un, c'est autoriser quatre régressions gratuites.
+   *
+   * `vercel.ts` reste listé pour une raison qui n'est PAS une persistance : son
+   * seul `setItem` est la migration qui RETIRE le jeton —
+   * `delete parsed.token` juste avant l'écriture. L'heuristique voit
+   * « setItem + token » et ne peut pas distinguer les deux ; le cas est donc
+   * épinglé nommément ci-dessous, pour qu'un vrai retour en arrière dans ce
+   * fichier rougisse malgré son inscription ici.
+   */
+  const KNOWN_LEGACY = ['vercel.ts'];
 
   /*
    * Detect a real credential FIELD, not the word "token" in prose. Comments are
@@ -175,5 +187,26 @@ describe('AUDX-007 no provider store persists a credential', () => {
     }
 
     expect(offenders.sort()).toEqual(KNOWN_LEGACY.sort());
+  });
+
+  it('le seul magasin encore listé écrit SANS le jeton — sinon son inscription le couvrirait', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { dirname, join } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+
+    const source = await readFile(
+      join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'app', 'lib', 'stores', 'vercel.ts'),
+      'utf8',
+    );
+
+    /*
+     * `vercel.ts` figure dans KNOWN_LEGACY parce que l'heuristique voit
+     * « setItem + token ». Ce qui rend le cas bénin, c'est que le jeton est
+     * RETIRÉ avant l'écriture. Sans cette assertion, son inscription
+     * couvrirait une vraie persistance ajoutée plus tard.
+     */
+    const ecriture = source.indexOf('localStorage.setItem(LEGACY_CONNECTION_STORAGE_KEYS.vercel');
+    expect(ecriture, 'la migration attendue est introuvable').toBeGreaterThan(0);
+    expect(source.slice(0, ecriture)).toContain('delete parsed.token;');
   });
 });
