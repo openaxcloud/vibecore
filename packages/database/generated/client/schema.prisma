@@ -899,6 +899,18 @@ model RateCard {
   @@index([active])
 }
 
+// AUDX-011 — append-only, ENFORCED in the database by migration
+// 0084_auditlog_append_only, not merely asserted here. Before that migration this
+// was an ordinary table: `action` could be rewritten, `actorUserId` reattributed,
+// and the whole trail deleted or truncated by anything holding the app connection.
+//
+// The trigger allows exactly three things, because each already existed on main:
+//   - redacting `ipAddress` to NULL (GDPR, services/api/src/prisma-store.ts);
+//   - detaching `organizationId` / `actorUserId` to NULL, which is what the
+//     `onDelete: SetNull` relations below do when an org or user is erased;
+//   - DELETE by the retention purge, which must DECLARE itself with
+//     `SET LOCAL vibecore.audit_retention = 'on'` (services/worker/src/index.ts).
+// Everything else — including reattributing a row to a different actor — is refused.
 model AuditLog {
   id             String        @id @default(cuid())
   organizationId String?
