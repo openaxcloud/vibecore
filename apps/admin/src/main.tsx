@@ -15,6 +15,7 @@ import {
   clearAdminToken,
   exportCsv,
   getAdminToken,
+  hasAdminSession,
   reauthAdmin,
   setAdminToken,
   type AdminOverview,
@@ -46,12 +47,34 @@ function App() {
   const [tokenMessage, setTokenMessage] = useState<string>();
   const [reauthPassword, setReauthPassword] = useState('');
 
+  /*
+   * AUDX-008: signed-in state comes from the httpOnly session cookie, not from a
+   * token read out of localStorage. Without this probe, removing the stored
+   * bearer would log every operator out on reload — a guard that breaks normal
+   * work gets reverted, not fixed (CLAUDE.md rule 19).
+   */
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void hasAdminSession().then((live) => {
+      if (!cancelled) {
+        setHasSession(live);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authRevision]);
+
   // F23: live count of unresolved security events, badged on the sidebar item.
   const [securityOpenCount, setSecurityOpenCount] = useState(0);
   const section = adminSections.find((item) => item.id === sectionId) ?? adminSections[0];
 
   useEffect(() => {
-    if (!token.trim()) {
+    if (!token.trim() && !hasSession) {
       setSecurityOpenCount(0);
       return undefined;
     }
@@ -72,7 +95,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [token, authRevision, sectionId]);
+  }, [token, hasSession, authRevision, sectionId]);
 
   function useToken() {
     const normalizedToken = token.trim();
@@ -141,13 +164,17 @@ function App() {
 
               if (loginEmail || loginPassword) {
                 try {
-                  const result = await apiJson<{ token: string }>('/auth/login', {
+                  await apiJson<{ token: string }>('/auth/login', {
                     method: 'POST',
                     body: JSON.stringify(buildAdminLoginBody(loginEmail, loginPassword, loginMfaCode)),
                   });
-                  setAdminToken(result.token);
-                  setToken(result.token);
+
+                  /*
+                   * The login response also set the httpOnly cookie; that is what
+                   * authenticates from here on. Nothing is persisted.
+                   */
                   setLoginMfaCode('');
+                  setHasSession(true);
                   setTokenMessage(adminT('admin.standalone.loginSaved'));
                   setAuthRevision((value) => value + 1);
                 } catch (error) {
@@ -209,6 +236,7 @@ function App() {
               onClick={() => {
                 clearAdminToken();
                 setToken('');
+                setHasSession(false);
                 setTokenMessage(adminT('admin.standalone.tokenCleared'));
                 setAuthRevision((value) => value + 1);
               }}
