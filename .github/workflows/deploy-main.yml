@@ -1798,6 +1798,7 @@ jobs:
           #        passait pour un refus (fail-OPEN).
           PROBE="sec9-probe-${GITHUB_RUN_ID}"
           PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
+          PROBE_CMD='code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d "{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}" || true)"; echo "http ${code:-none}"; printf "%s" "$code" > /dev/termination-log 2>/dev/null || true; case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac'
           kubectl -n "${HELM_NAMESPACE}" delete pod "${PROBE}" --ignore-not-found --wait=true
           # MANIFESTE COMPLET, pas `kubectl run` avec des surcharges JSON : elles
           # forment un merge patch, et une liste `containers` y REMPLACE la liste
@@ -1809,7 +1810,12 @@ jobs:
           # parce que `runAsNonRoot` ne se vérifie pas sur un USER symbolique.
           # Heredoc CITÉ : rien ne s'expanse côté runner, le script du pod garde
           # ses `$`. Les deux valeurs du runner entrent par des marqueurs.
-          sed -e "s|__PROBE__|${PROBE}|g" -e "s|__PROBE_URL__|${PROBE_URL}|g" <<'MANIFEST' | kubectl -n "${HELM_NAMESPACE}" create -f -
+          # La stderr de la création est CAPTURÉE, pas jetée (apport de #440) : c'est
+          # elle qui portait « image: Required value » et « violates PodSecurity »,
+          # les deux causes réelles des quatre déploiements perdus le 2026-09-04.
+          # Sans ce test, un pod jamais admis rendrait un verdict qui n'a interrogé
+          # personne — et ce verdict-là se lit comme un succès.
+          MANIFESTE="$(sed -e "s|__PROBE__|${PROBE}|g" -e "s|__PROBE_URL__|${PROBE_URL}|g" <<'MANIFEST'
           apiVersion: v1
           kind: Pod
           metadata:
@@ -1851,6 +1857,13 @@ jobs:
                     cpu: 100m
                     memory: 64Mi
           MANIFEST
+          )"
+          if ! CREATION="$(printf '%s\n' "${MANIFESTE}" | kubectl -n "${HELM_NAMESPACE}" create -f - 2>&1)"; then
+            echo "::error::SONDE NON CREEE — le pod de la sonde n'a pas ete admis par le cluster." >&2
+            echo "::error::l'api n'a donc PAS ete interrogee : ce verdict ne dit rien de l'api." >&2
+            echo "::error::reponse de l'apiserver : ${CREATION}" >&2
+            exit 1
+          fi
 
           PHASE=""
           for _ in $(seq 1 45); do
