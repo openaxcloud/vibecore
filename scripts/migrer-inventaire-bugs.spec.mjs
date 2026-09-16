@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { fichierDeLEntree, lignesDInventaire, lireLesEntrees, nomsDeFichier } from './migrer-inventaire-bugs.mjs';
+import {
+  fichierDeLEntree,
+  indexDeLInventaire,
+  lignesDInventaire,
+  lireLesEntrees,
+  nomsDeFichier,
+  residusNonTabulaires,
+  entreeDuFichier,
+  sectionDesResidus,
+} from './migrer-inventaire-bugs.mjs';
 
 /**
  * Ce que la migration doit tenir AVANT de toucher au registre.
@@ -100,5 +109,90 @@ describe('le migrateur du registre de bugs', () => {
     // L'identifiant reste INTACT dans le fichier produit — c'est tout l'enjeu.
     expect(fichierDeLEntree(entrees[2])).toContain('id: BUG-A-001');
     expect(new Set(noms).size).toBe(noms.length);
+  });
+});
+
+/*
+ * Le compteur de référence a rendu 315 quand la migration en écrivait 314. Une
+ * ligne commençait comme une entrée (`| BUG-AGENT-`) sans en être une : un
+ * identifiant tronqué collé à un bloc de citation. L'écart d'une unité se lit
+ * comme un arrondi si rien ne le nomme.
+ */
+describe('une ligne qui ressemble à une entrée sans en être une', () => {
+  const MALFORMEE = [
+    '| ID | Bug |',
+    '| --- | --- |',
+    '| BUG-VRAI-001 | une vraie entrée |',
+    '| BUG-TRONQUE-> **une décision collée au tableau**',
+    '> sa première ligne de citation',
+    '> sa seconde ligne de citation',
+    '',
+    'du texte qui ne la suit plus',
+  ].join('\n');
+
+  it("n'est pas lue comme une entrée", () => {
+    expect(lireLesEntrees(MALFORMEE).map((entree) => entree.id)).toEqual(['BUG-VRAI-001']);
+  });
+
+  it('est reportée mot pour mot, avec son bloc de citation et rien de plus', () => {
+    const residus = residusNonTabulaires(MALFORMEE);
+
+    expect(residus).toHaveLength(1);
+    expect(residus[0].ligne).toBe(4);
+    expect(residus[0].texte).toBe(
+      ['| BUG-TRONQUE-> **une décision collée au tableau**', '> sa première ligne de citation', '> sa seconde ligne de citation'].join(
+        '\n',
+      ),
+    );
+    expect(residus[0].texte).not.toContain('du texte qui ne la suit plus');
+  });
+
+  it("atterrit dans l'index, sinon la migration la perdrait", () => {
+    const entrees = lireLesEntrees(MALFORMEE);
+    const index = indexDeLInventaire(entrees, nomsDeFichier(entrees), residusNonTabulaires(MALFORMEE));
+
+    expect(index).toContain('| BUG-TRONQUE-> **une décision collée au tableau**');
+    expect(index).toContain('> sa seconde ligne de citation');
+  });
+
+  it("une entrée bien formée n'est JAMAIS prise pour un résidu", () => {
+    expect(residusNonTabulaires('| ID | Bug |\n| --- | --- |\n| BUG-VRAI-001 | une vraie entrée |')).toEqual([]);
+  });
+});
+
+/*
+ * L'index se régénère depuis `docs/bugs/`. Il faut donc que ce qu'un fichier
+ * PORTE suffise à reconstruire sa ligne — sinon la régénération appauvrit le
+ * registre à chaque passage.
+ *
+ * Trouvé en comparant l'index régénéré à celui de la migration : cinq entrées
+ * perdaient leur résumé, parce que leur colonne ne s'appelait pas « Bug » mais
+ * « Bug (mots d'Avi) ». Une comparaison qui ne rend RIEN n'aurait rien dit.
+ */
+describe("un fichier d'entrée se relit sans rien perdre", () => {
+  const ALLER = (champs) =>
+    entreeDuFichier(
+      fichierDeLEntree({ id: 'BUG-X-001', section: 'Lot du 16/09', annotation: '', champs: { ID: 'BUG-X-001', ...champs } }),
+    );
+
+  it("retrouve l'identifiant et la section", () => {
+    const relu = ALLER({ Bug: '**le défaut**' });
+
+    expect(relu.id).toBe('BUG-X-001');
+    expect(relu.section).toBe('Lot du 16/09');
+  });
+
+  it("retrouve le texte quelle que soit la colonne qui le portait", () => {
+    expect(ALLER({ Bug: '**par la colonne Bug**' }).champs.Bug).toBe('**par la colonne Bug**');
+    expect(ALLER({ "Bug (mots d'Avi)": '**par les mots d Avi**' }).champs["Bug (mots d'Avi)"]).toBe('**par les mots d Avi**');
+    expect(ALLER({ Constat: '**par un constat**' }).champs.Constat).toBe('**par un constat**');
+  });
+
+  it("la section des résidus se retrouve dans un index, et vaut vide s'il n'y en a pas", () => {
+    const entrees = [{ id: 'BUG-X-001', section: '', champs: { Bug: '**x**' }, ligne: '' }];
+    const avec = indexDeLInventaire(entrees, ['BUG-X-001.md'], [{ ligne: 66, texte: '| BUG-TRONQUE-> **gardé**' }]);
+
+    expect(sectionDesResidus(avec)).toContain('| BUG-TRONQUE-> **gardé**');
+    expect(sectionDesResidus(indexDeLInventaire(entrees, ['BUG-X-001.md']))).toBe('');
   });
 });
