@@ -22,10 +22,20 @@ export type LangueEmise = (typeof LANGUES_EMISES)[number];
 export type SurfaceEmise = (typeof SURFACES_EMISES)[number];
 
 /**
- * Les minimums viennent de la mesure du 2026-09-15 sur le build de production
- * (en/fr : 2 280 clés publiques + 8 268 clés d'application ; es/ar : 45 clés,
- * toutes publiques), arrondis bas. Un JSON de 12 clés serait un build qui a
- * évalué le mauvais module, pas un catalogue.
+ * Les minimums viennent d'une mesure du découpage réel, arrondie bas en gardant
+ * la même marge (~12 %). Un JSON de 12 clés serait un build qui a évalué le
+ * mauvais module, pas un catalogue — c'est CELA que ce plancher attrape, et
+ * rien d'autre : ce n'est pas un contrat sur le contenu de la tranche, qui est
+ * tenu par `temoinDansLaTranchePublique`.
+ *
+ * Mesures, `node --import tsx` sur `cataloguesJson(RESOURCES)`, arbre propre :
+ *   2026-09-15, avant le retrait d'`idePanels`  en/public 2 280 — plancher 2 000
+ *   2026-09-16, après                           en/public 1 827 — plancher 1 600
+ *
+ * Le plancher a suivi parce que la livraison déplace délibérément 453 clés
+ * d'`idePanels` de `public` vers `app` : l'ancienne valeur mesurait un
+ * découpage qui n'existe plus. Le pouvoir de discrimination est inchangé — un
+ * build qui évalue le mauvais module rend une douzaine de clés, pas 1 600.
  *
  * `es`/`ar` n'ont AUCUNE clé d'application : leur catalogue ne porte que les
  * 45 clés de langue, tout le reste vient du repli anglais. Leur minimum est
@@ -33,8 +43,8 @@ export type SurfaceEmise = (typeof SURFACES_EMISES)[number];
  * clés espagnoles ne fasse pas rougir une garde qui n'a rien à dire.
  */
 export const MINIMUM_DE_CLES: Record<LangueEmise, Record<SurfaceEmise, number>> = {
-  en: { public: 2_000, app: 8_000 },
-  fr: { public: 2_000, app: 8_000 },
+  en: { public: 1_600, app: 8_000 },
+  fr: { public: 1_600, app: 8_000 },
   es: { public: 40, app: 0 },
   ar: { public: 40, app: 0 },
 };
