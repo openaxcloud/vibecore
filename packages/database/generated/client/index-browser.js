@@ -799,6 +799,7 @@ exports.Prisma.AiCostLedgerScalarFieldEnum = {
   outputTokens: 'outputTokens',
   costCents: 'costCents',
   reason: 'reason',
+  source: 'source',
   createdAt: 'createdAt'
 };
 
