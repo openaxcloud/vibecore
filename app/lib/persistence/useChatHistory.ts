@@ -18,8 +18,8 @@ import {
   type IChatMetadata,
 } from './db';
 import { getProjectIdeMemory, saveProjectIdeMemory } from './projectIdeMemory';
-import { completerFilSiVide } from './serveur-fil-projet';
 import { chargementMemoireProjetEnEchec, nouvelEssaiMemoireProjet } from './projectMemoryLoadFailure';
+import { completerFilSiVide } from './serveur-fil-projet';
 import type { Snapshot } from './types';
 import {
   getChatHistoryCopy,
