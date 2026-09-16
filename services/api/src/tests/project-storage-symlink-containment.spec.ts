@@ -61,7 +61,7 @@ describe('AUDX-001 project-storage symlink containment', () => {
    */
   it('conflict-file refuses to read through a repo-planted symlink', async () => {
     const name = await plantSymlink();
-    const git = new GitCliProvider(new LocalProjectStorage());
+    const git = new GitCliProvider();
 
     await expect(git.conflictFile(projectId, name)).rejects.toThrow();
   });
@@ -69,7 +69,7 @@ describe('AUDX-001 project-storage symlink containment', () => {
   it('conflict-file still reads an ordinary file', async () => {
     await writeFile(join(storageRoot, projectId, 'ok.txt'), 'MERGE <<<<<<< MARKERS', 'utf8');
 
-    const git = new GitCliProvider(new LocalProjectStorage());
+    const git = new GitCliProvider();
 
     await expect(git.conflictFile(projectId, 'ok.txt')).resolves.toMatchObject({
       content: 'MERGE <<<<<<< MARKERS',
@@ -79,7 +79,7 @@ describe('AUDX-001 project-storage symlink containment', () => {
   /* FLOW 2 — mark-resolved writes the merged buffer back through the same path. */
   it('mark-resolved refuses to write through a repo-planted symlink', async () => {
     const name = await plantSymlink();
-    const git = new GitCliProvider(new LocalProjectStorage());
+    const git = new GitCliProvider();
 
     await expect(git.markResolved({ projectId, filePath: name, content: 'overwritten' })).rejects.toThrow();
 
@@ -102,7 +102,7 @@ describe('AUDX-001 project-storage symlink containment', () => {
     const storage = new LocalProjectStorage();
 
     await expect(
-      storage.restoreSnapshot({ projectId, files: [{ path: '.git/hooks/escape', content: 'overwritten' }] }),
+      storage.restoreSnapshot({ projectId, files: [{ path: '.git/hooks/escape', content: 'overwritten', updatedAt: new Date(0).toISOString() }] }),
     ).rejects.toThrow();
 
     expect(await readFile(outsideFile, 'utf8')).toBe('CROSS-TENANT-SECRET');
