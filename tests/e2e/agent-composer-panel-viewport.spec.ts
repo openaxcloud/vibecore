@@ -324,9 +324,24 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
         }
 
         const declaree = Number(trouve[1]) * 4;
-        const rendue = Number(element.getBoundingClientRect().width.toFixed(1));
 
-        if (Math.abs(rendue - declaree) > 0.5) {
+        /*
+         * La largeur UTILISÉE, pas la largeur PEINTE.
+         *
+         * `getBoundingClientRect()` rend des pixels d'écran : un ancêtre mis à
+         * l'échelle les réduit sans que la mise en page ait bougé. Mesuré en CI
+         * le 2026-09-16, la case correctement protégée par `shrink-0` rendait
+         * 13,6 / 13,5 / 13,8 px pour 16 déclarés — trois valeurs différentes au
+         * même endroit, signature d'un facteur d'échelle, pas d'un écrasement.
+         *
+         * `getComputedStyle().width` rend la largeur utilisée après mise en
+         * page : elle CHANGE quand un enfant flexible est écrasé — le défaut
+         * qu'on traque — et ne change PAS sous une mise à l'échelle visuelle.
+         * C'est le bon instrument, et l'ancien mesurait autre chose.
+         */
+        const rendue = Number.parseFloat(getComputedStyle(element).width);
+
+        if (!Number.isFinite(rendue) || Math.abs(rendue - declaree) > 0.5) {
           resultats.push({ classe: classe.trim().slice(0, 80), declaree, rendue });
         }
       }
