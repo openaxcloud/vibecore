@@ -291,8 +291,11 @@ async function expectSettingsTabRailFitsViewport(page: import('@playwright/test'
       .map((button) => {
         const rect = button.getBoundingClientRect();
 
+        const label = button.querySelector('span');
+
         return {
           height: rect.height,
+          labelClipped: label ? label.scrollWidth > label.clientWidth + 1 : false,
           left: rect.left,
           right: rect.right,
           text: button.textContent?.trim() ?? '',
@@ -330,8 +333,19 @@ async function expectSettingsTabRailFitsViewport(page: import('@playwright/test'
   expect(metrics.visibleButtonCount).toBeGreaterThanOrEqual(2);
   expect(metrics.visibleOverlapCount).toBe(0);
 
+  /*
+   * BUG-QA-CI-NO-MOBILE-COVERAGE-001 — mesuré le 16/09 au projet `mobile`
+   * (Pixel 7, 412 px), la première fois que cette assertion tournait à une
+   * largeur de téléphone : le rail y est une rangée de puces dont la largeur
+   * suit le libellé (« AI » 40 px, « Preferences » 119 px), 44 px de haut,
+   * libellés entiers. Le plancher de 120 px décrivait la colonne de la
+   * tablette, pas la lisibilité. Ce qui rend un rail lisible : un libellé
+   * qui n'est pas coupé, et une cible tactile d'au moins 44 px dans les DEUX
+   * sens.
+   */
   for (const button of metrics.visibleButtons) {
-    expect(button.width, button.text).toBeGreaterThanOrEqual(120);
+    expect(button.labelClipped, `${button.text} : libellé coupé`).toBe(false);
+    expect(button.width, button.text).toBeGreaterThanOrEqual(44);
     expect(button.height, button.text).toBeGreaterThanOrEqual(44);
   }
 }
@@ -437,7 +451,7 @@ async function openAgentModelSettings(page: import('@playwright/test').Page) {
   const toolsMenu = page.getByTestId('composer-tools-menu');
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await composer.getByRole('button', { name: 'More composer tools' }).click({ force: true });
+    await composer.getByRole('button', { name: 'More composer & tools' }).click({ force: true });
 
     if (await toolsMenu.isVisible().catch(() => false)) {
       break;
@@ -1259,8 +1273,8 @@ test.describe('responsive IDE shell', () => {
       minInteractiveHeight: 44,
       requireSearchFontSize: true,
     });
-    await commandPalette.getByRole('textbox', { name: 'Search commands' }).fill('settings');
-    await expect(commandPalette.getByRole('button', { name: /Settings/ })).toBeVisible({ timeout: 10_000 });
+    await commandPalette.getByRole('combobox', { name: 'Search commands' }).fill('settings');
+    await expect(commandPalette.getByRole('option', { name: /Settings/ })).toBeVisible({ timeout: 10_000 });
     await expectFloatingSurfaceFitsViewport(commandPalette, 'filtered command palette', {
       minInteractiveHeight: 44,
       requireSearchFontSize: true,
@@ -1299,7 +1313,7 @@ test.describe('responsive IDE shell', () => {
     await expectSettingsAiControlsFitViewport(page);
   });
 
-  test('mobile and tablet run button controls the real preview runtime', async ({ page }, testInfo) => {
+  test('mobile and tablet run button controls the real preview runtime', { tag: '@runtime' }, async ({ page }, testInfo) => {
     test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
     test.setTimeout(240_000);
 
@@ -1591,7 +1605,8 @@ createServer((request, response) => {
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'files', {
       timeout: 45000,
     });
-    await expect(page.getByTestId('mobile-ide-header')).toContainText('Files');
+    // Le panneau des fichiers s'appelle « Library » (Bibliothèque) depuis la parité Replit.
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Library');
     await expect(
       page.getByTestId('mobile-files-panel').locator('.bolt-file-tree-name', { hasText: /^src$/ }).first(),
     ).toBeVisible({

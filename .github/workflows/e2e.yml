@@ -205,8 +205,39 @@ jobs:
       - name: E2E gate (bounded waiver)
         run: node scripts/e2e-gate.mjs playwright-results.json
 
+      # BUG-QA-CI-NO-MOBILE-COVERAGE-001 — cette étape s'appelait « mobile » et
+      # lançait `--project=chromium` (Desktop Chrome, 1280×720, isMobile:false) :
+      # les assertions gardées par `test.skip(!isMobile)` et
+      # `isCompactIdeProject` (project.name === 'mobile' | 'tablet') étaient
+      # TOUTES ignorées — 2 tests exécutés sur 21, aucun à une largeur de
+      # téléphone. Le projet `mobile` (Pixel 7) existe dans playwright.config.ts
+      # depuis le début ; c'est lui qui donne un signal à la largeur d'un
+      # téléphone. Le passage Chromium desktop du même spec est déjà couvert par
+      # l'étape principale, qui lance tout tests/e2e avec --project=chromium.
+      #
+      # ⚠️ NON BLOQUANT POUR L'INSTANT, comme le canari iOS ci-dessous, et pour
+      # la même raison : ces 16 assertions n'ont JAMAIS tourné à cette largeur.
+      # Première exécution locale le 16/09 (Pixel 7) : sur 18 tests, une partie
+      # rougit — sélecteurs périmés corrigés dans le même lot, un vrai défaut
+      # de plancher tactile corrigé (puce « AI » 40 px), et des reliquats
+      # consignés dans BUG-QA-CI-NO-MOBILE-COVERAGE-001. Le résultat est
+      # imprimé dans le résumé du run pour qu'un rouge se VOIE. À basculer en
+      # bloquant (retirer `continue-on-error` et le `set +e`) quand le
+      # résumé est vert sur quelques runs.
       - name: Playwright mobile viewport tests
-        run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
+        id: mobile_viewport
+        continue-on-error: true
+        run: |
+          set +e
+          pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=mobile --grep-invert @runtime --reporter=list
+          code=$?
+          echo "mobile viewport exit: $code"
+          if [ "$code" = "0" ]; then
+            echo "✅ Mobile (Pixel 7, projet \`mobile\`) : vert." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ Mobile (Pixel 7, projet \`mobile\`) : ROUGE (sortie $code) — non bloquant, mais à regarder." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
 
       # LE MOTEUR D'AVI. `playwright.config.ts` définit un projet `webkit-iphone`
       # (iPhone 15 Pro) pour les quatre specs dont le sujet EST une interaction
