@@ -32,6 +32,21 @@ export interface ModeleDuCatalogue {
    * `fast` = `speed: "fast"` chez Anthropic, `service_tier: "fast"` chez OpenAI.
    */
   serviceTier?: 'fast';
+
+  /**
+   * Le modèle servi quand celui-ci ne répond pas. DONNÉE, jamais du code.
+   *
+   * Règle d'Avi : « utilise le modèle Opus si le modèle Fable n'est plus
+   * disponible ». Elle est ici une ligne de catalogue parmi d'autres, pas un
+   * cas particulier enfoui dans une fonction — la changer est un changement de
+   * carte, pas un chantier.
+   *
+   * Deux contraintes que `catalogue-repli.spec.ts` fait respecter :
+   *   le repli doit exister dans le catalogue DU MÊME MODE ;
+   *   sa marge doit rester positive au multiplicateur de ce mode. Un repli qui
+   *   nous fait vendre à perte est pire que l'indisponibilité.
+   */
+  repli?: { model: string; serviceTier?: 'fast' };
 }
 
 /**

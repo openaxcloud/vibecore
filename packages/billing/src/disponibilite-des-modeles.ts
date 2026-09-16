@@ -151,3 +151,140 @@ export function etatDepuisReponse(statut: number, corps: string): EtatDuFourniss
 
   return 'injoignable';
 }
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LE REPLI — un seul saut, visible, et jamais à perte.
+ *
+ * L'utilisateur a choisi un modèle. Quand il ne répond pas, lui servir autre
+ * chose EN SILENCE serait le tromper ; lui rendre une erreur alors qu'un modèle
+ * comparable est disponible serait une panne qu'on s'inflige. Le repli résout
+ * les deux, à trois conditions :
+ *
+ *   1. il est DÉCLARÉ dans le catalogue, donc modifiable sans redéployer ;
+ *   2. il ne fait qu'UN saut. Pas de cascade, pas de boucle : si le repli est
+ *      lui aussi en panne, on l'annonce honnêtement ;
+ *   3. il est VISIBLE — la résolution dit ce qui a été demandé et ce qui sera
+ *      servi, pour que la surface l'affiche.
+ *
+ * ⚠️ Une limite à dire plutôt qu'à masquer : un repli chez le MÊME fournisseur
+ * ne survit pas à la seule panne qu'on ait réellement mesurée — un compte à
+ * sec coupe tous ses modèles d'un coup. `claude-fable-5-1 → claude-opus-5` est
+ * la règle d'Avi et elle est appliquée telle quelle ; elle protège d'une panne
+ * propre au modèle, pas d'une panne de fournisseur. Les autres replis du
+ * catalogue visent donc un fournisseur DIFFÉRENT quand il en existe un dont la
+ * marge tient.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+export interface Resolution {
+  /** Ce que l'utilisateur avait demandé. */
+  demande: { model: string; serviceTier?: 'fast' };
+
+  /** Ce qui sera réellement appelé. Absent = rien de joignable. */
+  servi?: ModeleAvecEtat;
+
+  /** Vrai quand `servi` n'est pas `demande` : la surface doit le dire. */
+  repliApplique: boolean;
+
+  /** Pourquoi le demandé n'a pas pu servir. */
+  raison?: ModeleAvecEtat['raison'];
+}
+
+/**
+ * Le modèle réellement servi pour un choix donné, repli compris.
+ *
+ * Un seul saut : on ne suit jamais le repli du repli. C'est ce qui rend la
+ * boucle impossible même si deux entrées se désignent l'une l'autre, et c'est
+ * aussi ce qui garde la promesse lisible — l'utilisateur voit au plus un
+ * remplacement, pas une chaîne dont personne ne sait où elle s'arrête.
+ */
+export function resoudreAvecRepli(
+  catalogue: CatalogueDuMode,
+  sondes: SondeFournisseur[],
+  demande: { model: string; serviceTier?: 'fast' },
+): Resolution {
+  const avecEtats = catalogueAvecEtats(catalogue, sondes);
+
+  const memeEntree = (a: { model: string; serviceTier?: 'fast' }, b: { model: string; serviceTier?: 'fast' }) =>
+    a.model === b.model && a.serviceTier === b.serviceTier;
+
+  const choisi = avecEtats.find((m) => memeEntree(m, demande));
+
+  if (!choisi) {
+    return { demande, repliApplique: false, raison: 'jamais-sonde' };
+  }
+
+  if (choisi.etat === 'disponible') {
+    return { demande, servi: choisi, repliApplique: false };
+  }
+
+  const declare = choisi.repli;
+
+  if (!declare) {
+    return { demande, repliApplique: false, raison: choisi.raison };
+  }
+
+  const repli = avecEtats.find((m) => memeEntree(m, declare));
+
+  /*
+   * Le repli est en panne lui aussi : on s'arrête là. Suivre SON repli
+   * fabriquerait une cascade dont la longueur dépend de l'état du monde, et
+   * l'utilisateur ne saurait plus ce qu'il paie.
+   */
+  if (!repli || repli.etat !== 'disponible') {
+    return { demande, repliApplique: false, raison: choisi.raison };
+  }
+
+  return { demande, servi: repli, repliApplique: true, raison: choisi.raison };
+}
+
+/** Un repli déclaré qui ne tient pas ses deux promesses. */
+export interface RepliInvalide {
+  mode: string;
+  model: string;
+  repli: string;
+  faute: 'absent-du-catalogue' | 'marge-negative';
+}
+
+/**
+ * Les replis déclarés qui pointent à côté.
+ *
+ * Deux fautes possibles, et la seconde est la coûteuse : un repli vers une
+ * entrée dont la marge est négative au multiplicateur du mode nous ferait
+ * vendre à perte au moment précis où on croit rendre service.
+ */
+export function replisInvalides(
+  catalogues: CatalogueDuMode[],
+  margeNegative: (mode: string, model: string, serviceTier?: 'fast') => boolean,
+): RepliInvalide[] {
+  const fautes: RepliInvalide[] = [];
+
+  for (const catalogue of catalogues) {
+    for (const modele of catalogue.modeles) {
+      if (!modele.repli) {
+        continue;
+      }
+
+      const cible = catalogue.modeles.find(
+        (m) => m.model === modele.repli!.model && m.serviceTier === modele.repli!.serviceTier,
+      );
+
+      if (!cible) {
+        fautes.push({
+          mode: catalogue.mode,
+          model: modele.model,
+          repli: modele.repli.model,
+          faute: 'absent-du-catalogue',
+        });
+        continue;
+      }
+
+      if (margeNegative(catalogue.mode, cible.model, cible.serviceTier)) {
+        fautes.push({ mode: catalogue.mode, model: modele.model, repli: cible.model, faute: 'marge-negative' });
+      }
+    }
+  }
+
+  return fautes;
+}
