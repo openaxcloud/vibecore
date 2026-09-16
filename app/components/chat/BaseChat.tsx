@@ -12966,7 +12966,7 @@ function ProjectFilesTool({
             type="button"
             aria-label={t('chat.copy.refreshFiles_75bfab07')}
             title={t('chat.copy.refreshFiles_75bfab07')}
-            onClick={() => void workbenchStore.loadRuntimeFiles('.')}
+            onClick={() => void workbenchStore.loadRuntimeFiles('.', { reparer: true })}
           >
             <span className="i-ph:arrow-clockwise" aria-hidden />
           </button>
