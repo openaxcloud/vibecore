@@ -46,7 +46,7 @@ const DEFAULT_AGENT_POWER: AgentPowerControlsValue = {
   highPowerModel: false,
   extendedThinking: false,
   turboMode: false,
-  buildTier: 'economy',
+  buildTier: 'power',
 };
 
 const AGENT_POWER_STORAGE_KEY = 'vibecore.agentPower';

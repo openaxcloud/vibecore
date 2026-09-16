@@ -25,16 +25,16 @@
  */
 import { agentRoutingLabel, agentRoutingValidationMessage, type AgentRoutingLocale } from './agent-routing-i18n.js';
 
-export type AgentMode = 'lite' | 'economy' | 'power';
+export type AgentMode = 'lite' | 'power' | 'max';
 
 export type AgentRoutingLineKey = AgentMode | 'high-effort' | 'turbo' | 'classifier' | 'fallback';
 
-export const AGENT_MODES: AgentMode[] = ['lite', 'economy', 'power'];
+export const AGENT_MODES: AgentMode[] = ['lite', 'power', 'max'];
 
 export const AGENT_ROUTING_LINE_KEYS: AgentRoutingLineKey[] = [
   'lite',
-  'economy',
   'power',
+  'max',
   'high-effort',
   'turbo',
   'classifier',
@@ -96,7 +96,7 @@ export interface AgentRoutingCard {
   lines: AgentRoutingLine[];
 }
 
-export const DEFAULT_AGENT_MODE: AgentMode = 'economy';
+export const DEFAULT_AGENT_MODE: AgentMode = 'power';
 
 const ALL_PLANS = ['free', 'starter', 'core', 'pro', 'team', 'enterprise'];
 const PAID_PLANS = ['core', 'pro', 'team', 'enterprise'];
@@ -145,8 +145,8 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       active: true,
     },
     {
-      key: 'economy',
-      label: agentRoutingLabel('economy'),
+      key: 'power',
+      label: agentRoutingLabel('power'),
       provider: 'anthropic',
       model: 'claude-opus-5',
       costInCentsPerM: 500,
@@ -157,8 +157,8 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       active: true,
     },
     {
-      key: 'power',
-      label: agentRoutingLabel('power'),
+      key: 'max',
+      label: agentRoutingLabel('max'),
       provider: 'anthropic',
       model: 'claude-opus-5',
       costInCentsPerM: 500,
@@ -475,11 +475,66 @@ export function validateAgentRoutingCard(
     }
   }
 
-  const economy = routingLine(card, 'economy');
+  const economy = routingLine(card, 'power');
 
   if (economy && (!economy.active || economy.multiplier !== 1)) {
-    errors.push({ line: 'economy', message: agentRoutingValidationMessage('economyInvariant', locale) });
+    errors.push({ line: 'power', message: agentRoutingValidationMessage('economyInvariant', locale) });
   }
 
   return errors;
+}
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LE RENOMMAGE DES MODES, 2026-09-16 — et pourquoi il ne peut pas être naïf.
+ *
+ * Ancien vocabulaire : lite | economy | power        (power = le SOMMET)
+ * Nouveau            : lite | power   | max          (power = le MILIEU)
+ *
+ * Le piège : `power` existe des deux côtés et CHANGE DE SENS. Une substitution
+ * en place, clé par clé, écrase l'ancien sommet avec l'ancien milieu et
+ * facture silencieusement le tarif du milieu à qui a choisi le sommet — une
+ * erreur qui ne se voit qu'à la facture.
+ *
+ * La migration reconstruit donc une liste NEUVE à partir des anciennes clés,
+ * sans jamais écrire dans celle qu'elle lit.
+ *
+ * Les cartes déjà en base portent l'ancien vocabulaire. Elles n'ont pas de
+ * marqueur de version de vocabulaire — leur absence EST le marqueur : une
+ * carte qui contient `economy` est forcément ancienne, puisque cette clé
+ * n'existe plus. C'est ce que teste `vocabulaireAncien`.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+/** Ancienne clé → nouvelle clé. L'ordre de lecture n'a aucune importance : on n'écrit jamais en place. */
+export const RENOMMAGE_DES_MODES: Readonly<Record<string, AgentRoutingLineKey>> = {
+  economy: 'power',
+  power: 'max',
+};
+
+/** Vrai quand la donnée porte encore l'ancien vocabulaire. */
+export function vocabulaireAncien(donnees: unknown): boolean {
+  const lignes = (donnees as { lines?: Array<{ key?: string }> } | null)?.lines;
+
+  return Array.isArray(lignes) && lignes.some((ligne) => ligne?.key === 'economy');
+}
+
+/**
+ * Traduit une carte stockée vers le vocabulaire courant.
+ *
+ * Rend la donnée TELLE QUELLE si elle est déjà à jour : la migration doit être
+ * idempotente, parce qu'elle s'applique à chaque lecture et qu'une carte
+ * fraîchement publiée passe par le même chemin.
+ */
+export function migrerVocabulaireDesCles<T>(donnees: T): T {
+  if (!vocabulaireAncien(donnees)) {
+    return donnees;
+  }
+
+  const carte = donnees as unknown as { lines: Array<{ key: string }> };
+
+  return {
+    ...(donnees as object),
+    lines: carte.lines.map((ligne) => ({ ...ligne, key: RENOMMAGE_DES_MODES[ligne.key] ?? ligne.key })),
+  } as T;
 }

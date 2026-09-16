@@ -106,7 +106,7 @@ export interface RecordChatUsageInput {
    * (credits + margin are recomputed server-side from the active routing card).
    */
   agentRouting?: {
-    mode: 'lite' | 'economy' | 'power';
+    mode: 'lite' | 'power' | 'max';
     highEffort: boolean;
     escalated: boolean;
     turbo: boolean;
