@@ -93,7 +93,6 @@ export const PREFIXES_PUBLICS: readonly string[] = [
   'root',
   'share',
   'shareButton',
-  'sharedUi',
   'slashCommands',
   'starterTemplates',
   'surfaceDynamic',
