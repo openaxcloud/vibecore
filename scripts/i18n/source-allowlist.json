@@ -767,6 +767,15 @@
       "expiresOn": "2026-11-05"
     },
     {
+      "id": "workspace-agent-secret-derivation-invariants",
+      "path": "packages/workspace-sdk/src/index.ts",
+      "rule": "error-message",
+      "textPattern": "^deriveWorkspaceAgentSecret requires a non-empty (?:root secret|workspaceId)$",
+      "justification": "Programmer-error invariants on a server-internal function. Both call sites are in services/workspace-manager (manager.ts:670 and :1506); rootSecret comes from the manager's configured token secret and workspaceId from an internal identifier, so neither argument is reachable from user input. Throwing here means a misconfigured deployment, not a user action, and the message never crosses a rendered surface.",
+      "owner": "workspace-platform",
+      "expiresOn": "2027-08-05"
+    },
+    {
       "id": "skill-audit-proof-cli-diagnostics",
       "path": "services/api/scripts/skill-audit-proof.ts",
       "rule": "error-message",
