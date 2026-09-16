@@ -10,7 +10,14 @@
 import { CATALOGUE_INTEGRE, type SondeFournisseur } from '@vibecore/billing';
 import { describe, expect, it } from 'vitest';
 
-import { entreesDuMode, etatDuCurseur, ligneDeMode, lignesDuSelecteur, type ChoixDuMode } from './feuille-des-modes';
+import {
+  entreesDuMode,
+  etatDuCurseur,
+  ligneDeMode,
+  lignesDuSelecteur,
+  resolutionDuChoix,
+  type ChoixDuMode,
+} from './feuille-des-modes';
 
 const catalogue = (mode: string) => CATALOGUE_INTEGRE.find((c) => c.mode === mode);
 
@@ -149,5 +156,34 @@ describe('le curseur d’effort', () => {
 
     expect(etat.actif).toBe(false);
     expect(etat.valeur).toBeUndefined();
+  });
+});
+
+describe('ce qui sera réellement appelé', () => {
+  it('sans choix, « Auto » élit déjà un modèle joignable : rien à replier', () => {
+    const resolution = resolutionDuChoix(catalogue('max'), EN_PANNE, undefined)!;
+
+    expect(resolution.repliApplique).toBe(false);
+    expect(resolution.servi!.model).toBe('gpt-5.6-sol');
+  });
+
+  it('un modèle choisi puis tombé se replie, et l’écran peut le dire', () => {
+    const moonshotASec: SondeFournisseur[] = TOUT_VA_BIEN.map((s) =>
+      s.fournisseur === 'moonshot' ? { ...s, etat: 'sans-credit' } : s,
+    );
+
+    const resolution = resolutionDuChoix(catalogue('max'), moonshotASec, { modele: 'kimi-k3' })!;
+
+    expect(resolution.demande.model).toBe('kimi-k3');
+    expect(resolution.servi!.model).toBe('gpt-5.6-sol');
+    expect(resolution.repliApplique).toBe(true);
+  });
+
+  it('quand le repli est en panne lui aussi, l’écran annonce l’indisponibilité', () => {
+    const resolution = resolutionDuChoix(catalogue('max'), EN_PANNE, { modele: 'claude-fable-5-1' })!;
+
+    expect(resolution.servi).toBeUndefined();
+    expect(resolution.repliApplique).toBe(false);
+    expect(resolution.raison).toBe('credit-fournisseur');
   });
 });

@@ -20,10 +20,12 @@ import {
   cransPour,
   modeleAutomatiqueJoignable,
   catalogueAvecEtats,
+  resoudreAvecRepli,
   type AgentMode,
   type CatalogueDuMode,
   type CranEffort,
   type ModeleAvecEtat,
+  type Resolution,
   type SondeFournisseur,
 } from '@vibecore/billing';
 
@@ -193,4 +195,38 @@ export function etatDuCurseur(
     conseille,
     valeur: choix?.effort && crans.includes(choix.effort) ? choix.effort : conseille,
   };
+}
+
+/**
+ * Ce qui sera RÉELLEMENT appelé pour le choix courant, repli compris.
+ *
+ * L'écran doit pouvoir dire « vous avez demandé X, c'est Y qui répond » : un
+ * remplacement silencieux trahit le choix de l'utilisateur, et une erreur alors
+ * qu'un modèle comparable est joignable est une panne qu'on s'inflige.
+ *
+ * Sans choix explicite, il n'y a rien à replier : « Choisir pour moi » élit
+ * déjà parmi les modèles qui répondent.
+ */
+export function resolutionDuChoix(
+  catalogue: CatalogueDuMode | undefined,
+  sondes: SondeFournisseur[],
+  choix: ChoixDuMode | undefined,
+): Resolution | undefined {
+  if (!catalogue) {
+    return undefined;
+  }
+
+  if (!choix?.modele) {
+    const automatique = modeleAutomatiqueJoignable(catalogue, sondes, coutMelange);
+
+    return automatique
+      ? {
+          demande: { model: automatique.model, serviceTier: automatique.serviceTier },
+          servi: automatique,
+          repliApplique: false,
+        }
+      : undefined;
+  }
+
+  return resoudreAvecRepli(catalogue, sondes, { model: choix.modele, serviceTier: choix.serviceTier });
 }
