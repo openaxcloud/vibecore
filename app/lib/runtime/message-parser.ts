@@ -60,6 +60,13 @@ function withoutTrailingCloseTagPrefix(content: string): string {
 }
 
 export interface ArtifactCallbackData extends BoltArtifactData {
+  /**
+   * `true` quand l'artefact a été fermé par le FILET DE FIN DE FLUX et non par
+   * une balise `</boltArtifact>` reçue. Sert à mesurer la fréquence réelle des
+   * flux tronqués : sans cette distinction, une fermeture de secours est
+   * indiscernable d'une fermeture normale et le chiffre reste introuvable.
+   */
+  fermetureDeSecours?: boolean;
   messageId: string;
   artifactId?: string;
 }
@@ -102,6 +109,27 @@ interface MessageState {
   currentArtifact?: BoltArtifactData;
   currentAction: BoltActionData;
   actionId: number;
+
+  /**
+   * Texte BRUT de l'action en cours, tel qu'il a streamé, tant qu'aucune
+   * balise `</boltAction>` n'a été trouvée.
+   *
+   * Pourquoi ce champ existe : la branche de streaming ci-dessous n'écrit
+   * JAMAIS dans `currentAction.content` — elle recalcule le contenu depuis
+   * `input.slice(i)` à chaque passe et sort par `break`, en laissant
+   * `state.position` au DÉBUT du contenu. `currentAction.content` ne reçoit
+   * quelque chose qu'au moment où la balise fermante est trouvée. Mesuré sur
+   * le parseur réel : à la coupure, `currentAction.content` vaut `''`.
+   *
+   * Conséquence : le filet de fin de flux, qui n'a pas `input`, n'avait aucun
+   * moyen de retrouver le travail déjà streamé — il aurait fermé l'action sur
+   * un fichier VIDE, ce qui est pire que de ne pas la fermer.
+   *
+   * L'affectation est idempotente : `state.position` ne bouge pas tant que
+   * l'action n'est pas fermée, donc chaque passe réécrit le même préfixe
+   * étendu. Remis à `undefined` à chaque fermeture ou redémarrage d'action.
+   */
+  contenuBrutEnCours?: string;
 }
 
 function cleanoutMarkdownSyntax(content: string) {
@@ -148,11 +176,45 @@ function cleanHighlightedCodeMarkup(content: string) {
    */
   const colorTokenSpans = content.match(/<span\b[^>]*\b(?:class|className)=["'][^"']*\btext-[a-z]+-\d{2,3}\b/gi);
 
+  /*
+   * MESURÉ, ET C'EST LE CŒUR DU CORRECTIF : exiger « 3 spans colorés + un
+   * <br/> » ne suffisait PAS. Un composant React parfaitement ordinaire
+   *
+   *     <span className="text-slate-500">Total</span>
+   *     <br />
+   *     <span className="text-green-600">{montant}</span>
+   *     <span className="text-gray-400">{devise}</span>
+   *
+   * franchit ce seuil, et le nettoyage lui ARRACHE ses balises : les trois
+   * `<span>` et le `<br />` disparaissent du fichier écrit. C'est la deuxième
+   * fois que ce même mécanisme mord — le commentaire au-dessus raconte la
+   * première, où un seul `text-*` suffisait. Monter le seuil ne fait que
+   * déplacer la frontière ; il en faut une qui ne dépende pas du nombre.
+   *
+   * LA VRAIE DIFFÉRENCE n'est pas la quantité de spans, c'est ce qu'il y a
+   * AUTOUR. Une sortie de coloration syntaxique enveloppe CHAQUE jeton : ses
+   * lignes commencent par `<span …>`, jamais par un mot-clé nu. Un module
+   * source, lui, porte sa structure en clair — `import`, `export`, une
+   * déclaration, une fermeture de bloc — hors de toute balise.
+   *
+   * Cette marque-là ne se contourne pas en ajoutant un span de plus, et elle
+   * n'affecte QUE la branche fragile : les deux signatures certaines (une
+   * classe de coloriseur connue, un `style="color:"` en ligne) continuent de
+   * décider seules, parce qu'elles ne se produisent pas dans du code écrit à
+   * la main.
+   */
+  const porteUneStructureDeModule =
+    /^\s*(?:import|export)\s/m.test(content) ||
+    /^\s*(?:const|let|var|function|class|async\s+function)\s/m.test(content) ||
+    /^\s*(?:def|package|using|#include)\s/m.test(content);
+
+  const signatureCertaine =
+    /(?:class|className)=["'][^"']*\b(?:shiki|hljs|token|highlight)\b/i.test(content) ||
+    /<span\b[^>]*\bstyle=["'][^"']*color\s*:/i.test(content);
+
   const looksLikeHighlightedSource =
     /&nbsp;|<br\s*\/?>/i.test(content) &&
-    (/(?:class|className)=["'][^"']*\b(?:shiki|hljs|token|highlight)\b/i.test(content) ||
-      /<span\b[^>]*\bstyle=["'][^"']*color\s*:/i.test(content) ||
-      (colorTokenSpans?.length ?? 0) >= 3);
+    (signatureCertaine || ((colorTokenSpans?.length ?? 0) >= 3 && !porteUneStructureDeModule));
 
   if (!looksLikeHighlightedSource) {
     return content;
@@ -272,6 +334,38 @@ export class StreamingMessageParser {
         if (state.insideAction) {
           const closeIndex = input.indexOf(ARTIFACT_ACTION_TAG_CLOSE, i);
 
+          /*
+           * BUG-AGENT-004 — the model restarted mid-action.
+           *
+           * When generation hits the token cap inside a file, the model
+           * continues in the SAME message: prose ("Je continue la génération…")
+           * followed by a fresh <boltArtifact>/<boltAction> re-emitting the
+           * whole file. `insideAction` was still true, so all of that — prose
+           * AND literal markup — was appended as FILE CONTENT. Proven live
+           * (2026-08-15): src/App.tsx shipped with its import block twice, the
+           * sentence, and a literal `<boltAction …>` line at line 23; Vite
+           * answered 500 on it and the preview stayed blank.
+           *
+           * A new action opening before the current one ever closed means the
+           * partial is abandoned output. Drop it and reparse from the new tag —
+           * the re-emission that follows is the content the model actually
+           * meant to deliver.
+           *
+           * Caveat accepted: a file whose own content contains a literal
+           * `<boltAction` opener is cut short here. That is strictly better
+           * than the previous behaviour, which corrupted the file outright.
+           */
+          const restartIndex = input.indexOf(ARTIFACT_ACTION_TAG_OPEN, i);
+
+          if (restartIndex !== -1 && (closeIndex === -1 || restartIndex < closeIndex)) {
+            state.insideAction = false;
+            state.currentAction = { content: '' };
+            state.contenuBrutEnCours = undefined;
+            i = restartIndex;
+
+            continue;
+          }
+
           const currentAction = state.currentAction;
 
           if (closeIndex !== -1) {
@@ -317,9 +411,20 @@ export class StreamingMessageParser {
 
             state.insideAction = false;
             state.currentAction = { content: '' };
+            state.contenuBrutEnCours = undefined;
 
             i = closeIndex + ARTIFACT_ACTION_TAG_CLOSE.length;
           } else {
+            /*
+             * Mémoriser le partiel BRUT avant toute mise en forme, et pour
+             * TOUS les types d'action — les deux branches ci-dessous ne
+             * couvrent que `file` et `diff`, une action `shell` tronquée ne
+             * passerait nulle part. Affectation et non concaténation : la
+             * position de reprise ne bouge pas tant que l'action est ouverte,
+             * chaque passe re-slice donc le même contenu, en plus long.
+             */
+            state.contenuBrutEnCours = input.slice(i);
+
             if ('type' in currentAction && currentAction.type === 'file') {
               /*
                * Hold back a trailing PARTIAL close tag (`</bo`, `</`, `<`, …) so a
@@ -522,6 +627,132 @@ export class StreamingMessageParser {
     state.position = i;
 
     return output;
+  }
+
+  /**
+   * FILET DE FIN DE FLUX — ferme un artefact resté ouvert.
+   *
+   * `onArtifactClose` n'est émis QUE sur une balise `</boltArtifact>` trouvée
+   * dans le flux (voir la boucle de `parse`). C'est l'unique site du dépôt qui
+   * pose `closed: true`, et il n'a aucun repli. Si le modèle termine sans
+   * fermer — flux tronqué par une limite de jetons, erreur de fournisseur,
+   * abandon de l'utilisateur — l'artefact reste ouvert POUR TOUJOURS.
+   *
+   * Ce qui pend à cette fermeture, et ne s'exécute alors jamais :
+   *
+   *   - **la persistance des fichiers vers le stockage durable** — le travail
+   *     de l'agent n'est jamais enregistré. C'est la conséquence grave : du
+   *     code produit, affiché, et perdu ;
+   *   - la réparation du manifeste d'aperçu, d'où l'épinglage de port perdu
+   *     (mesuré : 193 projets sur 289 en production) ;
+   *   - la validation des imports et le redémarrage de l'aperçu.
+   *
+   * Même mécanisme que le défaut de juillet sur `</boltAction>` (« Agent edit
+   * truncation », perte de données) — une balise plus haut, jamais vérifiée
+   * quand celle du dessous a été corrigée.
+   *
+   * Rend `true` si un artefact a effectivement été fermé, pour que l'appelant
+   * puisse le journaliser et compter.
+   */
+  fermerArtefactsOuverts(messageId: string): boolean {
+    const state = this.#messages.get(messageId);
+
+    if (!state?.insideArtifact || !state.currentArtifact) {
+      return false;
+    }
+
+    const artefact = state.currentArtifact;
+
+    /*
+     * FERMER D'ABORD L'ACTION, PUIS L'ARTEFACT — dans cet ordre, et pas
+     * l'inverse.
+     *
+     * Ce filet ne fermait que l'artefact. MESURÉ sur le parseur réel, flux
+     * coupé au milieu du second fichier :
+     *
+     *   ouvertes ..  actionOpen:src/App.tsx  +  actionOpen:src/main.tsx
+     *   fermées ...  actionClose:src/App.tsx  — SEULEMENT
+     *
+     * Le fichier en cours au moment de la coupure — le dernier écrit, donc
+     * très souvent le point d'entrée — n'était jamais finalisé : `onActionClose`
+     * est ce qui déclenche l'exécution NON streamée de l'action
+     * (`workbenchStore.runAction(data)`), et il ne partait pas. Cela explique
+     * la mesure de production « l'index.html réclame /src/main.tsx qui
+     * n'existe pas » : ce n'est pas le fichier qui manque au plan du modèle,
+     * c'est sa fermeture qui manque au nôtre.
+     *
+     * Le commentaire de cette méthode nommait déjà la parenté : « même
+     * mécanisme que le défaut de juillet sur </boltAction> ». Le filet avait
+     * été posé une balise trop haut.
+     *
+     * Le contenu subit EXACTEMENT le même traitement que sur le chemin normal
+     * — `trim`, nettoyage de fichier hors markdown, saut de ligne final — sans
+     * quoi le fichier finalisé par le filet différerait de celui finalisé par
+     * une balise reçue, et le filet introduirait sa propre corruption.
+     */
+    if (state.insideAction && state.currentAction) {
+      const action = state.currentAction as BoltAction & { content: string };
+
+      /*
+       * Récupérer le travail DÉJÀ STREAMÉ. `action.content` vaut `''` à cet
+       * instant — la branche de streaming de `parse` ne l'alimente jamais (voir
+       * `contenuBrutEnCours`). Fermer sans cette ligne écrirait un fichier VIDE
+       * par-dessus le code affiché à l'écran : une perte de données pire que
+       * l'action laissée ouverte.
+       *
+       * `withoutTrailingCloseTagPrefix` retire une balise fermante coupée en
+       * plein milieu (`</bo`, `</antml`, …) : sur un flux tronqué elle n'arrivera
+       * jamais, et sans ce retrait elle finirait littéralement dans le fichier.
+       */
+      action.content += withoutTrailingCloseTagPrefix(state.contenuBrutEnCours ?? '');
+
+      let content = action.content.trim();
+
+      if ('type' in action && action.type === 'file') {
+        if (!action.filePath?.endsWith('.md')) {
+          content = cleanFileActionContent(content, action.filePath);
+
+          /*
+           * La clôture ``` n'arrivera pas non plus : `cleanoutMarkdownSyntax`
+           * exige les DEUX barrières et laisse donc la première en place. Sur
+           * une fermeture normale c'est sans objet ; ici le fichier finalisé
+           * commencerait par une ligne ```lang. Même retrait que la branche de
+           * streaming, pour la même raison.
+           */
+          content = content.replace(/^\s*```[a-zA-Z0-9]*\n/, '');
+        }
+
+        content += '\n';
+      }
+
+      action.content = content;
+
+      state.insideAction = false;
+      state.currentAction = { content: '' };
+      state.contenuBrutEnCours = undefined;
+
+      this._options.callbacks?.onActionClose?.({
+        artifactId: artefact.id,
+        messageId,
+
+        /* Même décrément que le chemin normal : l'identifiant a déjà été incrémenté à l'ouverture. */
+        actionId: String(state.actionId - 1),
+
+        action,
+      });
+    }
+
+    state.insideArtifact = false;
+    state.currentArtifact = undefined;
+
+    this._options.callbacks?.onArtifactClose?.({
+      messageId,
+      artifactId: artefact.id,
+      ...artefact,
+      fermetureDeSecours: true,
+    });
+
+    return true;
   }
 
   reset() {

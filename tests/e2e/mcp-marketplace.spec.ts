@@ -17,6 +17,7 @@ async function registerAndAuthenticate(page: import('@playwright/test').Page) {
   });
 
   expect(response.ok(), await response.text()).toBeTruthy();
+
   const payload = (await response.json()) as { token: string };
 
   await page.context().addCookies([
@@ -39,23 +40,27 @@ test.describe('MCP marketplace API contract', () => {
 
     const catalog = await page.request.get(`${apiBaseUrl}/mcp/catalog?limit=10`, { headers: auth });
     expect(catalog.ok()).toBeTruthy();
+
     const catalogBody = (await catalog.json()) as { items: Array<{ slug: string; domain: string }> };
     expect(catalogBody.items.length).toBeGreaterThan(0);
 
     const domains = await page.request.get(`${apiBaseUrl}/mcp/catalog/domains`, { headers: auth });
     expect(domains.ok()).toBeTruthy();
+
     const domainsBody = (await domains.json()) as { domains: Array<{ domain: string; count: number }> };
     expect(domainsBody.domains.length).toBeGreaterThan(5);
     expect(domainsBody.domains.every((row) => row.count > 0)).toBeTruthy();
 
     const databasesOnly = await page.request.get(`${apiBaseUrl}/mcp/catalog?domain=DATABASES`, { headers: auth });
     expect(databasesOnly.ok()).toBeTruthy();
+
     const dbBody = (await databasesOnly.json()) as { items: Array<{ slug: string; domain: string }> };
     expect(dbBody.items.length).toBeGreaterThan(0);
     expect(dbBody.items.every((entry) => entry.domain === 'DATABASES')).toBeTruthy();
 
     const search = await page.request.get(`${apiBaseUrl}/mcp/catalog?search=postgres`, { headers: auth });
     expect(search.ok()).toBeTruthy();
+
     const searchBody = (await search.json()) as { items: Array<{ slug: string }> };
     expect(searchBody.items.some((entry) => entry.slug === 'postgres')).toBeTruthy();
   });
@@ -69,6 +74,7 @@ test.describe('MCP marketplace API contract', () => {
       data: { catalogEntrySlug: 'github', alias: 'gh-bad', config: {} },
     });
     expect(bad.status()).toBe(400);
+
     const body = (await bad.json()) as { code: string };
     expect(body.code).toBe('MCP_CONFIG_INVALID');
   });
@@ -86,12 +92,14 @@ test.describe('MCP marketplace API contract', () => {
       },
     });
     expect(install.status()).toBe(201);
+
     const installBody = (await install.json()) as { install: { id: string; alias: string; enabled: boolean } };
     expect(installBody.install.alias).toBe('fs-e2e');
     expect(installBody.install.enabled).toBe(true);
 
     const list = await page.request.get(`${apiBaseUrl}/mcp/installs`, { headers: auth });
     expect(list.ok()).toBeTruthy();
+
     const listBody = (await list.json()) as { installs: Array<{ id: string }> };
     expect(listBody.installs).toHaveLength(1);
 
@@ -100,6 +108,7 @@ test.describe('MCP marketplace API contract', () => {
       data: { enabled: false },
     });
     expect(patch.ok()).toBeTruthy();
+
     const patchBody = (await patch.json()) as { install: { enabled: boolean } };
     expect(patchBody.install.enabled).toBe(false);
 
@@ -144,9 +153,9 @@ test.describe('MCP marketplace UI', () => {
     // Switch to Configuration sub-tab and verify the JSON editor renders.
     const configTab = page.getByRole('tab', { name: /configuration/i });
     await configTab.click();
-    await expect(
-      page.getByRole('heading', { name: 'MCP Servers Configured', level: 2 }),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole('heading', { name: 'MCP Servers Configured', level: 2 })).toBeVisible({
+      timeout: 10_000,
+    });
     await expect(page.getByLabel(/Configuration JSON/i)).toBeVisible({ timeout: 5_000 });
   });
 });

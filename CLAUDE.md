@@ -2,16 +2,418 @@
 
 ## Règles
 
+### Méthode — dix-neuf règles tirées d'erreurs réelles
+
+Chacune vient d'une faute commise sur ce projet. Elles ne sont pas des principes
+généraux : ce sont des pièges qui ont déjà coûté.
+
+1. **Mesurer le chemin réel avant d'écrire une ligne de correctif.** Un correctif
+   posé sur une route déduite de la lecture du code, sans avoir tracé le trajet
+   de bout en bout, corrige un chemin que personne n'emprunte.
+2. **Relancer le même commit avant d'accuser un changement.** Un test rouge sur
+   votre commit et vert sur les précédents ne prouve rien. Une relance coûte
+   quelques minutes ; un revert inutile coûte une journée.
+3. **Distinguer « rien trouvé » de « rien exécuté ».** 50 runs `cancelled` ne
+   disent rien sur le code. Un `grep` à zéro résultat peut être un motif mal
+   échappé.
+4. **Vérifier qu'une mesure a bien mesuré quelque chose.** Un corps tronqué à
+   exactement 4000 octets, un cache d'outil, une fenêtre de lecture trop courte :
+   tous rendent un « absent » qui n'en est pas un.
+5. **Ancrer les tests sur du code, jamais sur de la prose.** Un test qui lit
+   l'inventaire passe au vert quand on réécrit l'inventaire.
+6. **Contre-épreuve dans les deux sens.** Retirer le correctif doit faire rougir.
+   Retirer ce que le correctif protège doit faire rougir aussi. Sinon les deux
+   moitiés ne sont pas couplées.
+7. **Viser la règle, pas la première occurrence.** Trois symptômes du même
+   mécanisme se corrigent une fois.
+8. **Chercher s'il existe déjà une PR** avant d'en ouvrir une.
+9. **Vérifier ce qu'un état de base déclenche avant de l'écrire.** Réconcilier
+   196 lignes vers `STOPPED` arme une suppression de disques 24 h plus tard.
+10. **Vérifier l'existence de ce qu'on croit protéger.** Un avertissement sur des
+    disques qui n'existent pas est du bruit ; un correctif qui route vers un
+    panneau vide ne corrige rien.
+11. **Une mesure sans son environnement consigné n'est pas une mesure.** Noter le
+    commit exact, l'état de l'arbre (propre ou non) et la commande complète.
+    Sinon on ne peut ni la refaire ni la réfuter — et une conclusion bâtie
+    dessus est à refaire.
+12. **Ne jamais imprimer une VALEUR de secret, même filtrée.** La rédaction par
+    sous-chaîne ne tient pas : sur les 49 clés du Secret de production, 25 sont
+    sensibles et un filtre sur « SECRET » n'en masque que 14. Vérifier la
+    PRÉSENCE et la LONGUEUR, ou comparer une empreinte `shasum`. Cela suffit à
+    diagnostiquer une variable manquante ou tronquée.
+
+13. **Ne jamais masquer la sortie d'erreur d'une commande de diagnostic.**
+    `2>/dev/null` sur un diagnostic transforme un échec en résultat vide, et un
+    résultat vide se lit comme une réponse. Mesuré : huit tentatives de rebase
+    ont rendu « branche introuvable » alors que git disait
+    `cannot lock ref 'refs/heads/tmp': 'refs/heads/tmp/102-rebase' exists` — le
+    message était supprimé. Rediriger la sortie d'erreur est acceptable pour
+    du bruit connu ; jamais pour la commande dont on lit le résultat.
+14. **Vérifier qu'un « 0 résultat » vient d'une recherche qui a fonctionné.**
+    Zéro n'est une information que si la recherche s'est exécutée sur la bonne
+    cible avec le bon motif. Trois occurrences mesurées sur ce projet :
+    `grep -rl '--vc-…'` où le motif a été pris pour des options ;
+    `grep -c 'DEP_IMAGE="$(kubectl'` rendant 0 par artefact de quoting alors
+    que `grep -F` en trouvait 1 ; et des corps tronqués à exactement 4000
+    octets rendant un « marqueur absent » faux. Contrôle systématique : faire
+    rendre au moins un résultat à la même commande sur un cas connu positif,
+    ou utiliser `grep -F` avec le motif dans un fichier.
+
+14 bis. **Un résultat NOYÉ trompe autant qu'un résultat absent.** La règle 14
+    vise le « 0 résultat » ; celle-ci vise le résultat qu'on ne lit pas parce
+    qu'il est enseveli. Mesuré le 2026-09-01 : une contre-épreuve dont la sortie
+    portait 81 lignes de tests sautés n'a jamais affiché sa ligne `Tests` — le
+    silence se lisait comme un succès. Même classe : une sortie tronquée, un
+    `head -N` qui coupe avant l'information, des journaux `stdout` d'erreurs
+    volontaires pris pour de vrais échecs. **Filtrer sur la ligne de verdict**,
+    et vérifier qu'elle est bien apparue — l'absence de verdict n'est jamais un
+    verdict.
+
+12 bis. **INTERDICTION ABSOLUE — ne jamais lancer `printenv`, `env`, ni aucune
+    commande listant les variables d'environnement dans un pod de production,
+    même filtrée par un motif.** Deux fuites de clés de production dans un
+    transcript ont suivi cette commande, la seconde après que la règle 12
+    (« ne jamais imprimer une valeur de secret ») ait déjà été écrite : filtrer
+    ne suffit pas, parce qu'on ne connaît pas d'avance ce que le filtre laissera
+    passer.
+
+    **Ce qui remplace ces commandes :**
+    * pour savoir si une variable EXISTE — `kubectl get secret <nom> -o json`
+      puis lire les **clés** de `.data` (jamais les valeurs), ou l'endpoint
+      `/admin/providers/ai` qui rend `configured` / `length` / `last4` ;
+    * pour comparer une valeur sans l'afficher — son empreinte :
+      `… -o jsonpath='{.data.X}' | base64 -d | shasum -a 256` ;
+    * pour le **SHA déployé** — le registre d'images ou les annotations du
+      Deployment :
+      `kubectl -n vibecore get deploy <nom> -o jsonpath='{.spec.template.spec.containers[0].image}'`,
+      jamais une variable d'environnement.
+
+    Cette règle n'a pas d'exception « juste pour vérifier ».
+
+15. **Un correctif sans test qui le tienne est considéré comme NON LIVRÉ.**
+    C'est la règle qui casse la boucle « corrigé → revenu → recorrigé ».
+    Mesuré le 2026-09-01 sur les points de tête de l'analyse des recoupements :
+    le code était déjà bon dans **six cas sur sept**. Le défaut dominant n'est
+    plus la correction manquante, c'est la **garde manquante** — des correctifs
+    justes, souvent documentés en commentaire, que rien n'empêche de défaire.
+
+    Trois exemples du même jour :
+    * `BUG-CREATE-004` — tout le correctif tient dans l'**ordre de deux
+      branches `if`**. Un réordonnancement anodin le réintroduisait sans un
+      seul test rouge.
+    * `BUG-AGENT-005` — la garde ne cherche que `'<boltAction'` ; le cas
+      `'<boltArtifact'` n'était couvert par **aucun** test.
+    * `BUG-DEVSTART-…-001` — `#deferredStartArtifacts` n'apparaissait que
+      dans son implémentation, et aucun spec ne contenait « Start application ».
+
+    Un commentaire qui explique le piège ne protège personne : il se supprime
+    aussi facilement que le code qu'il décrit. Seul un test rouge arrête un
+    refactor.
+
+16. **Fermer un point d'inventaire exige la RÉFÉRENCE DU TEST qui l'épingle**,
+    pas seulement la preuve que ça marche aujourd'hui. Une preuve live date du
+    jour où elle a été prise ; un test vaut pour tous les jours suivants.
+
+    Format imposé dans la colonne Preuve : `preuve live … + épinglé par
+    <chemin/du/test.spec.ts>`. Sans référence de test, le point reste ouvert —
+    même si la vérification en réel est concluante.
+
+    **Exception unique** : un point établi comme NON-DÉFAUT ou comme DOUBLON se
+    ferme sans test, puisqu'il n'y a rien à tenir. Il doit alors le dire
+    explicitement.
+
+17. **Un test qui cesse d'être intermittent ne se diagnostique plus comme une
+    course.** Tant qu'il passe au retry, l'hypothèse « race » tient. Le jour où
+    il échoue sur TOUTES les tentatives, cette hypothèse est morte : soit le
+    comportement a réellement changé, soit la course s'est élargie au point de
+    ne plus se refermer. Continuer à le traiter en flake — le relancer, le
+    tolérer — c'est laisser passer un vrai défaut.
+
+    Vérifié le 2026-09-01 sur `agent-message-density.spec.ts` : `flaky (passed
+    on retry): 1` pendant plusieurs runs, puis `failing: 1, flaky: 0`. Le
+    compteur du garde-fou E2E distingue déjà les deux — il suffit de le lire.
+
+    **Le corollaire vaut aussi** : un test qu'on croit déterministe et qui
+    passe une fois sur trois n'est pas un défaut produit. Mesurer AVANT de
+    conclure, dans les deux sens.
+
+18. **Avant de faire un rollback, distinguer une MONTÉE EN CHARGE d'une
+    défaillance.** Des `readyReplicas < replicas` juste après un déploiement ne
+    prouvent rien à eux seuls. Trois signaux tranchent, et ils se lisent en
+    trente secondes :
+
+    - **l'âge des pods** — quelques secondes = ils démarrent ;
+    - **le compteur de redémarrages** — `0` = rien ne plante ;
+    - **l'état de l'HPA** — au-dessus de sa cible = il monte volontairement.
+
+    Une sonde de disponibilité qui répond `connection refused` sur un pod de
+    vingt secondes est NORMALE : le processus n'a pas encore ouvert son port.
+
+    Vérifié le 2026-09-01 : `api 4/6` et `workspace-manager 8/10` après le
+    déploiement de #329. HPA à **97 % de CPU** pour une cible de 70 %, pods de
+    **18 secondes**, **0 redémarrage**, anciens pods tous prêts, `e-code.ai` en
+    200. Trente secondes plus tard : **8/8**. Un rollback réflexe aurait annulé
+    une livraison saine pendant que la plateforme absorbait sa charge.
+
+19. **Ne JAMAIS interroger le trousseau ni un magasin d'identifiants — filtrer
+    ne protège pas.** Pas `security find-internet-password`, pas
+    `security find-generic-password`, pas de lecture d'un fichier de credentials,
+    même en ne demandant que des noms de champs.
+
+    Un secret peut vivre dans un champ qu'on croit anodin. Vécu le 2026-09-01 :
+    je filtrais la sortie sur les champs `acct` / `srvr` / `ptcl` — des
+    métadonnées, en apparence — et le jeton GitHub était **dans `acct`**. Il
+    s'est retrouvé en clair dans le transcript, et la seule mesure qui vaille
+    ensuite est de le RÉVOQUER : un transcript ne se nettoie pas.
+
+    **Seule l'abstention protège.** Pour diagnostiquer un chemin
+    d'authentification, on interroge le COMPORTEMENT, jamais le magasin :
+    `gh auth status` (qui masque), `git config --get credential.helper`,
+    ou un push de test sur une branche jetable. Ces trois-là répondent à la
+    question sans jamais lire une valeur.
+
+20. **AVANT de chercher dans une cible, VÉRIFIER QUE LA CIBLE EXISTE.** Un `ls`
+    du répertoire avant le `grep`, un `wc -c` du fichier avant le `sed -n`, un
+    `git rev-parse` de la référence avant le `git log`. Une seconde, et toute
+    une classe d'erreurs disparaît.
+
+    C'est un GESTE, pas de la vigilance : la vigilance échoue précisément quand
+    on est pressé, et une recherche sur une cible absente rend exactement ce que
+    rend une recherche honnête qui ne trouve rien — **zéro**.
+
+    Six occurrences mesurées sur la semaine du 2026-09-04 au 2026-09-10, dont
+    deux le seul 10/09 :
+
+    * `grep -rlF "espace-non-stabilise" /app` dans le pod api → 0. Le code de ce
+      conteneur vit dans `/runtime`. Le correctif ÉTAIT servi ; j'ai failli
+      conclure l'inverse.
+    * `sed -n 5989p node_modules/ai/dist/index.mjs` via un glob `ai@*` qui ne
+      s'est pas développé → « ligne absente », « 0 occurrence ». Les deux
+      références citées étaient EXACTES.
+
+    Le contrôle vaut aussi pour le motif : faire rendre au moins un résultat à
+    la même commande sur un cas connu positif (règle 14) répond à « le motif
+    est-il bon ». Celle-ci répond à la question d'avant : **cherche-t-on au bon
+    endroit**.
+
+21. **UN MONITEUR DOIT PROUVER QU'IL OBSERVE, PAS SEULEMENT QU'IL TOURNE.** Il
+    journalise À CHAQUE TOUR ce qu'il a LU — pas seulement quand il conclut.
+
+    Une veille silencieuse n'est pas une veille : c'est une absence
+    d'information déguisée en patience. **Un moniteur qui rend du vide ressemble
+    exactement à un moniteur qui attend**, et on ne peut pas faire la différence
+    au moment précis où on en a besoin.
+
+    Mesuré le 2026-09-10, quatrième occurrence de la semaine : une veille sur une
+    PR bouclait toutes les deux minutes et n'écrivait qu'un horodatage. Son
+    `gh pr view` rendait une chaîne VIDE sous `nohup` — sa condition de sortie
+    (`rouges=0 envol=0`) ne pouvait donc jamais être vraie. Elle n'aurait jamais
+    fusionné, et rien dans son journal ne le disait.
+
+    **Quatrième forme, la plus traître, mesurée le 2026-09-10** : une PR
+    `CONFLICTING` n'exécute AUCUN workflow `pull_request` — GitHub ne peut pas
+    calculer son commit de fusion. Elle affiche donc « 0 rouge », **exactement
+    comme une PR verte**, avec un seul contrôle de titre attaché. Deux de mes PR
+    sont restées ainsi pendant une heure et j'ai failli les compter prêtes. Le
+    contrôle qui tranche : **compter les checks ATTACHÉS avant de lire leur
+    couleur** — moins de trois, c'est qu'on ne mesure rien.
+
+    **La conséquence adoptée : plus de veille sur l'état d'un run.** L'état se
+    lit à la source, au moment où on en a besoin. Quand une veille reste
+    indispensable, deux exigences :
+
+    * elle écrit la VALEUR LUE à chaque tour, jamais un simple battement ;
+    * elle échoue bruyamment si la lecture est vide — une lecture vide est une
+      panne du moniteur, pas un état du monde.
+
+22. **UNE AFFIRMATION QUI DOIT SURVIVRE VA DANS UN TEST, PAS DANS UN
+    COMMENTAIRE.** Les deux vieillissent ; ils ne vieillissent pas de la même
+    façon. **Un commentaire périmé ment en silence et oriente le lecteur
+    suivant ; un test périmé ROUGIT et le convoque.**
+
+    Les deux faces, mesurées le même jour :
+
+    * `api.chat.ts` affirmait en commentaire « ce `flush` NE S'EXÉCUTE JAMAIS :
+      zéro occurrence en production ». Faux — 1 occurrence sur 24 h. Personne ne
+      l'a jamais vérifié, et la phrase a orienté cinq jours d'enquête vers une
+      cause fausse (`model likely too weak`, même fichier).
+    * `anthropic-thinking.spec.ts` portait la même intention SOUS FORME DE TEST :
+      il épinglait `@ai-sdk/anthropic` à `0.0.39` avec le message « SDK monté :
+      retirer le contournement ». Il a rougi **des mois plus tard**, au moment
+      exact de la montée, et a forcé le retrait. Il n'a rien décrit : il a AGI.
+
+    En pratique : quand on s'apprête à écrire « X ne se produit jamais », « Y est
+    temporaire », « à retirer quand Z », se demander d'abord **quel test rougirait
+    le jour où ce n'est plus vrai** — et l'écrire à la place. Le commentaire garde
+    le POURQUOI ; le test garde le FAIT.
+
+23. **AVANT DE CONCEVOIR UN CORRECTIF, CHERCHER SI LE CAS VOISIN EST DÉJÀ
+    TRAITÉ.** Trois fois sur trois cette semaine, le remède était à portée de
+    regard — souvent dans le même fichier, quelques lignes plus haut.
+
+    * `EcodeProductMarketingPages.tsx` — le `<pre>` de la ligne 1623 portait
+      `overflow-x-auto`, celui de la ligne **1748** ne l'a jamais eu. 14 px
+      amputés sur `/mobile`.
+    * Les grilles marketing — deux portaient déjà `grid-cols-[minmax(0,1fr)]`,
+      **huit** ne l'avaient pas. 32 px et 150 px amputés.
+    * La réconciliation d'ouverture — appelée sur deux routes, absente de la
+      troisième.
+
+    **Chercher coûte moins que concevoir**, et c'est en plus le seul moyen de
+    rester cohérent avec ce que le fichier fait déjà : un second remède, écrit
+    sans voir le premier, diverge de lui au premier changement.
+
+    Le geste : `grep` le motif du correctif envisagé dans le fichier, puis dans
+    son répertoire, AVANT d'écrire une ligne. Et quand on trouve le voisin, se
+    demander **combien d'autres cas attendent** — corriger les deux pages rouges
+    aurait laissé huit grilles attendre leur tour.
+
+24. **APRÈS TOUTE RÉSOLUTION DE CONFLIT, VÉRIFIER NOMMÉMENT QUE CE QU'ON AVAIT
+    ÉCRIT EST ENCORE LÀ.** Pas relire le diff : vérifier la PRÉSENCE du contenu,
+    par son identifiant.
+
+    **Une résolution qui protège les lignes NOUVELLES perd les lignes
+    MODIFIÉES.** C'est le piège de toute stratégie « je repars de l'amont et je
+    rajoute ce qui m'est propre » — la bonne stratégie, par ailleurs, quand
+    l'amont porte des réécritures qu'il ne faut pas figer.
+
+    Mesuré le 2026-09-10 : trois fermetures d'entrées du registre, posées une
+    heure plus tôt, étaient revenues à `☐` après une fusion de `main`. Elles
+    modifiaient des lignes existantes, elles n'en ajoutaient pas — ma résolution
+    a donc repris la version de `main` pour ces trois identifiants. **Rien ne
+    l'a signalé** : ni conflit, ni test, ni diff suspect.
+
+    Le geste : lister ce qu'on a écrit AVANT la fusion (identifiants, clés,
+    noms de fonction), et le regreper APRÈS. Ce qui manque se réapplique.
+
+26. **L'ABSENCE DE VERDICT N'EST JAMAIS UN VERDICT.** Une commande dont on
+    tronque la sortie peut rendre des lignes parfaitement rassurantes sans
+    contenir la moindre conclusion. Lire ces lignes comme un succès, c'est
+    conclure à partir de ce qui a été COUPÉ.
+
+    Vécu le 2026-09-15 : `prisma generate` échouait parce que
+    `generated/client/package.json` portait encore des marqueurs de conflit —
+    donc du JSON invalide. Son message était
+    `Error: Expected property name or '}' in JSON at position 2`. Mais je
+    filtrais sa sortie sur `tail -4`, qui m'a rendu une ligne générique de
+    Prisma (« Start by importing your Prisma Client »), que j'ai prise pour une
+    confirmation. J'ai ensuite poussé un client généré INUTILISABLE, avec ses
+    marqueurs, sur la branche d'une autre session.
+
+    La règle 14 bis dit qu'un résultat NOYÉ trompe autant qu'un résultat
+    absent. Celle-ci vise le cas symétrique et plus insidieux : la sortie n'est
+    pas noyée, elle est **amputée de sa conclusion**, et ce qui reste ressemble
+    à du succès.
+
+    En pratique, sur toute commande dont on lit le résultat :
+    * **filtrer sur la ligne de verdict, jamais sur une position** — `grep -E
+      'Generated|Error|✔|✖'` plutôt que `tail -4` ou `head -N` ;
+    * **lire le code de sortie** quand il existe : `prisma generate` rendait un
+      code non nul que mon filtre ne pouvait pas montrer ;
+    * **si aucune ligne de verdict n'apparaît, le dire** — « la commande n'a
+      pas rendu de conclusion » est une information ; « ça a l'air d'être
+      passé » n'en est pas une.
+
+    Corollaire déjà coûteux deux fois dans la même heure : mes propres
+    contrôles avaient affiché `marqueurs : 1` et je ne m'y suis pas arrêté. Un
+    contrôle qu'on écrit puis qu'on ne lit pas ne vaut pas mieux qu'un contrôle
+    absent.
+
+27. **UNE MESURE QUI SORT DU PÉRIMÈTRE OÙ ELLE EST VALIDE N'EST PAS UNE
+    MESURE.** Un outil peut s'exécuter, ne rien signaler d'anormal, et lire un
+    tout autre fichier que celui qu'on croit lui donner.
+
+    Vécu le 2026-09-15 : `tsc` signalait deux erreurs de type sur une clé de
+    routage que je venais d'ajouter. La clé était bien là — vérifiée dans la
+    source ET sur la branche poussée. La cause : **le worktree n'a aucun paquet
+    installé**, `node_modules` ne contenant que `.cache` et `.vite`. `tsc`
+    remontait donc au checkout PRINCIPAL, dont `@vibecore/billing` est un lien
+    vers `../../packages/billing` — une copie sans ma modification. Le rapport
+    était exact sur ce qu'il avait lu, et faux sur ce que je croyais mesurer.
+
+    Ce qui rend le piège coûteux, c'est qu'il est SÉLECTIF : le même `tsc`, sur
+    le même arbre, était parfaitement valide pour tout ce qui vit sous `app/`,
+    parce que `paths` y mappe `~/*` vers le worktree. Seules les mesures qui
+    traversent une frontière de PAQUET étaient faussées. Une moitié juste, une
+    moitié fausse, aucun signal pour les distinguer.
+
+    En pratique :
+    * **avant de croire un outil, savoir ce qu'il a résolu** — `--traceResolution`
+      pour `tsc`, `readlink -f` sur le lien du paquet, ou une SONDE : un fichier
+      jetable qui affirme la propriété attendue et qu'on regarde rougir ;
+    * **énoncer le périmètre avec le résultat** — « 0 erreur dans les fichiers
+      touchés » ne vaut que si les fichiers touchés sont dans le périmètre
+      résolu ;
+    * **une mesure qui franchit une frontière de paquet dans un worktree sans
+      dépendances installées est à refaire ailleurs**, pas à interpréter.
+
+    Corollaire de la règle 26 : là où celle-ci vise la sortie amputée de sa
+    conclusion, celle-ci vise la conclusion complète… portant sur autre chose.
+
+**Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
+campagne, mes commandes de mesure m'ont plus souvent trompé que le code
+lui-même.
+
+### Une interaction tactile se vérifie sur le moteur de l'appareil cible
+
+**Un vert Chromium ne prouve rien pour iOS.** Nos tests tournent sur Chromium ;
+Avi est sur Safari iOS. Les deux moteurs ne traitent pas le toucher de la même
+façon, et l'écart est silencieux : le test passe, l'utilisateur ne voit rien.
+
+Cas mesuré le 2026-09-01, panneau Agent. La barre d'actions d'un message se
+révélait via `:focus-within` sur une ligne rendue focalisable par
+`tabIndex={-1}`. **Chromium focalise un conteneur non interactif au toucher ;
+Safari iOS ne le fait pas.** La barre était donc morte sur l'iPhone d'Avi
+pendant qu'un test Chromium la voyait s'ouvrir — un vert sur une surface qui
+n'a pas le problème, la pire espèce de faux vert.
+
+En pratique :
+
+1. **Ne jamais faire dépendre une révélation tactile d'un effet de bord du
+   focus.** Le focus d'un élément non interactif au toucher n'est pas un contrat
+   entre moteurs. Poser un attribut explicite depuis le gestionnaire d'événement,
+   et accrocher le style dessus ; `:hover` et `:focus-within` restent pour la
+   souris et le clavier, jamais comme chemin unique.
+2. **Écrire l'assertion qui distingue les deux mondes.** Retirer le focus après
+   le geste et vérifier que l'état tient : c'est ce qui attrape le cas Safari.
+   Un test qui se contente de « après le tap, c'est visible » passe sur Chromium
+   par la voie du focus et ne dit rien d'iOS.
+3. **Quand le moteur réel est disponible, l'utiliser.** `npx playwright install
+   webkit` puis un projet `webkit` avec un profil iPhone. À défaut, dire
+   explicitement que la vérification n'a pas eu lieu sur le moteur cible — ne
+   jamais présenter un vert Chromium comme une preuve pour iOS.
+4. **Toute révélation au survol est suspecte par défaut.** `hover` n'existe pas
+   au doigt : si une action n'est atteignable QUE par `:hover`, elle est
+   inatteignable sur mobile. Vérifier qu'un chemin tactile existe.
+
+
 ## Suivi (règle permanente)
 Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vérité unique ; specs détaillées dans `DESIGN_BATCH_*_SPEC.md`, état par point dans `DESIGN_AUDIT_LIVE.md`), `BUG_INVENTORY_LIVE.md` (bugs), `PLAN_REMAINING_UNIFIED.md` (plan), `REPLIT_PARITY.md` (parité Replit, fonctionnelle ET pixel).
 
 **Design** — Dès qu'Avi donne des points « Claude design » (batchs A/B/C/D/E/F/G ou nouveaux), les ajouter IMMÉDIATEMENT dans `DESIGN_PROGRAM_MASTER.md`. La vérification d'un point design doit se faire EN RÉEL sur TOUTES les pages marketing ET user area, dans TOUS les formats web / tablette / mobile, en confirmant que la page s'adapte automatiquement au screen (responsive niveau Fortune-500). Un point design ne passe ✅ que si le responsive est validé sur les 3 formats.
 
-**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT dans `BUG_INVENTORY_LIVE.md`.
+**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT : **un fichier
+par entrée** dans `docs/bugs/<ID>.md`, puis régénérer l'index avec
+`node scripts/migrer-inventaire-bugs.mjs --index`.
+
+`BUG_INVENTORY_LIVE.md` reste le point d'entrée — dix-neuf fichiers le citent —
+mais c'est désormais un **index dérivé** : ne jamais l'éditer à la main, il se
+régénère depuis `docs/bugs/`. `scripts/index-a-jour.spec.mjs` rougit dès qu'il
+diverge du dossier. Le tableau monolithique était le point de contention le plus
+chaud du dépôt : quatre pertes silencieuses y ont déjà été attrapées, et chaque
+session qui y touchait entrait en conflit avec les autres.
 
 **Plan** — un point n'est ✅ que s'il est 100% surfacé ET marche en réel à 100%.
 
 **Parité Replit** — suivi dans `REPLIT_PARITY.md` (parité fonctionnelle ET pixel). Un point n'y passe ✅ qu'après test réel live (à l'écran + greps) sur web / tablette / mobile — jamais sur « dispatché » ni « codé ».
+
+**Garde obligatoire (règle 16)** — la colonne Preuve d'un point fermé doit
+porter la **référence du test** qui l'épingle, en plus de la preuve live :
+`preuve live … + épinglé par <chemin/du/test.spec.ts>`. Une preuve live vaut
+pour le jour où elle a été prise ; un test vaut pour tous les jours suivants.
+C'est ce qui empêche un défaut corrigé de revenir. Sans référence de test, le
+point reste OUVERT même si la vérification en réel est concluante — seules
+exceptions : un NON-DÉFAUT ou un DOUBLON établi, qui doit le dire explicitement.
 
 **États** — chaque point des 4 fichiers de suivi (`DESIGN_PROGRAM_MASTER`, `BUG_INVENTORY_LIVE`, `PLAN_REMAINING_UNIFIED`, `REPLIT_PARITY`) trace **3 états séparés**, affichés côte à côte par point pour voir précisément où il en est :
 - 📤 **Dispatché** — envoyé à une session
@@ -26,8 +428,8 @@ Un point n'est « fait » QUE quand ✅ Testé live est coché ; 📤 Dispatché
 
 **Runbook complet + commandes exactes : [`docs/DEPLOY_RUNBOOK.md`](docs/DEPLOY_RUNBOOK.md).** Vérité terrain reconstituée le 2026-07-07.
 
-- **Auto** : chaque push sur `main` déclenche GitHub Actions **`.github/workflows/deploy-main.yml`** (repo `openaxcloud/vibecore` — ⚠️ `gh` pointe par défaut sur l'upstream `stackblitz-labs/bolt.diy`, toujours passer `-R openaxcloud/vibecore`). Il **build** via `gcloud builds submit --config=cloudbuild.yaml --region=europe-west9` (7 images taggées `git rev-parse --short=10` du SHA) puis **déploie** via `helm upgrade vibecore infra/helm/platform -n vibecore --reuse-values --atomic --timeout 10m --set services.<tier>.imageTag=<SHA>`.
+- **Auto** : chaque push sur `main` déclenche GitHub Actions **`.github/workflows/deploy-main.yml`** (repo `openaxcloud/vibecore` — ⚠️ `gh` pointe par défaut sur l'upstream `stackblitz-labs/bolt.diy`, toujours passer `-R openaxcloud/vibecore`). Il **build** via **trois** configurations Cloud Build régionales — `infra/cloudbuild/runtime-tier.yaml`, **`infra/cloudbuild/single-web.yaml`** et `infra/cloudbuild/workspace-agent.yaml` (images taggées `git rev-parse --short=10` du SHA) — et **JAMAIS** le `cloudbuild.yaml` racine. ⚠️ L'image `web` a sa propre configuration parce que `VITE_RUNTIME_MODE` et `VITE_RUNTIME_API_BASE_URL` sont **inlinées dans le bundle au build** : une valeur de configmap Helm n'atteint jamais le navigateur, et une image construite sans elles livre WebContainer en silence — l'IDE n'appelle alors plus jamais workspace-manager (mesuré le 2026-09-05 : 24 × `425`, zéro démarrage demandé en 6 h) puis **déploie** via `helm upgrade vibecore infra/helm/platform -n vibecore --reuse-values --atomic --timeout 10m --set services.<tier>.imageTag=<SHA>`.
 - **Pas de GitOps** (ni Argo CD ni Flux). Release Helm **`vibecore`** / ns `vibecore` sur GKE `vibecore-prod-app` (europe-west9, projet `vibecore-495216`). Contexte kube : `connectgateway_vibecore-495216_europe-west9_vibecore-prod-app`. Ingress = ingress-nginx (LB `34.1.6.93`, DNS direct, pas de CDN).
-- **Manuel** (ce que font les sessions) : `gh workflow run deploy-main.yml -R openaxcloud/vibecore -f short_sha=<sha>` OU build+helm à la main (voir runbook). ⚠️ `--reuse-values` fige `values-prod.yaml` (re-`--set` requis) mais applique bien les changements de **template**.
+- **Manuel** (ce que font les sessions) : `gh workflow run deploy-main.yml -R openaxcloud/vibecore --ref main` (tête de `main`) ou `-f target_sha=<40 hex>` pour un commit précis, qui doit être un ancêtre d'`origin/main` ⚠️ **l'entrée `short_sha` n'existe plus** — un `-f short_sha=…` est refusé par `HTTP 422: Unexpected inputs provided`, mesuré le 2026-09-06. `workflow_dispatch` ignore le filtre `paths-ignore`, ce qui est la seule façon de déployer un commit documentaire OU build+helm à la main (voir runbook). ⚠️ `--reuse-values` fige `values-prod.yaml` (re-`--set` requis) mais applique bien les changements de **template**.
 - **Rollback** : `helm -n vibecore rollback vibecore <REV>` (l'upgrade est `--atomic` → rollback auto si le rollout échoue).
 - **Zéro-downtime** actif depuis `5c2c3586` (strategy maxUnavailable:0 + preStop, tous les Deployments).

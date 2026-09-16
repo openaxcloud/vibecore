@@ -1,0 +1,3 @@
+c0cd4cdfa76b1c571a17debccc524a824304d20a0e815a550f73af304cad6a52  0082_db_migration_execution.sql
+beeb2c49915ac22bb12ce2dd01e0cf1bc06d5b90854fcb04185c2b01a160a0b6  migration-tests.txt
+42c3e5414c42420e2ec267928e33b5692e575788c35c26380ede21382e09b9e5  postgres-version-and-state.txt

@@ -98,7 +98,7 @@ export function DeploymentOverview({
             <span className="text-[var(--vc-ide-accent-action)] hover:underline">
               {t('idePanels.deployment.buyDomain')}
             </span>
-            <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-bolt-elements-textTertiary">
+            <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-bolt-elements-textTertiary">
               {t('idePanels.deployment.beta')}
             </span>
           </button>

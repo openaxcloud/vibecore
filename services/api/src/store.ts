@@ -3,7 +3,7 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import type { PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
-
+import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 export interface UserRecord {
   id: string;
   email: string;
@@ -50,6 +50,8 @@ export interface SessionRecord {
   userAgent?: string;
   revokedAt?: string;
   lastReauthAt?: string;
+  /** Last authenticated activity; drives the idle timeout. Null ⇒ use createdAt. */
+  lastActiveAt?: string | null;
   /** Set when an admin is impersonating another user; value = admin's user id. */
   impersonatedBy?: string;
 }
@@ -143,6 +145,61 @@ export interface SnapshotRecord {
    */
   turnIndex?: number;
   createdAt: string;
+}
+
+/**
+ * PANEL-PERF — projection du manifeste dans une LISTE d'instantanés.
+ *
+ * Mesuré en production le 2026-09-08 sur un projet de 355 instantanés :
+ * la réponse complète pèse 1 281 Ko, dont 1 139 Ko pour le seul `manifest.files`.
+ * La requête SQL correspondante prend 29 à 47 ms — le coût est la charge utile,
+ * pas la base.
+ *
+ * - `full` (défaut) : contrat historique, INCHANGÉ. `BaseChat.tsx` lit
+ *   `manifest.files` dans `snapshotFiles()` pour l'écran des fichiers d'un
+ *   instantané et pour le diff entre deux instantanés.
+ * - `without-files` : garde le manifeste, retire `files` (−88,9 %).
+ * - `omit` : aucun manifeste (−90,1 %). Suffisant pour un écran qui ne lit que
+ *   id / label / kind / byteLength / createdAt, comme `DatabaseRollbackPanel`.
+ */
+export type SnapshotManifestProjection = 'full' | 'without-files' | 'omit';
+
+export interface SnapshotListOptions {
+  /** Taille de page. Absent = aucune troncature (contrat historique). */
+  take?: number;
+  /** Id du dernier instantané de la page précédente ; la suite commence APRÈS lui. */
+  cursor?: string;
+  manifest?: SnapshotManifestProjection;
+}
+
+/**
+ * Source UNIQUE de la projection, partagée par le magasin Prisma et le magasin
+ * de test — pour qu'un garde-fou ne puisse pas tenir sa propre copie de la
+ * règle et rester vert pendant que le produit diverge.
+ */
+export function projectSnapshotManifest<T extends { manifest?: unknown }>(
+  snapshot: T,
+  projection: SnapshotManifestProjection = 'full',
+): T {
+  if (projection === 'full') {
+    return snapshot;
+  }
+
+  if (projection === 'omit') {
+    const { manifest: _ignore, ...reste } = snapshot;
+
+    return reste as T;
+  }
+
+  const manifest = snapshot.manifest;
+
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    return snapshot;
+  }
+
+  const { files: _fichiers, ...manifestSansFichiers } = manifest as Record<string, unknown>;
+
+  return { ...snapshot, manifest: manifestSansFichiers };
 }
 
 export interface GalleryListingRecord {
@@ -707,6 +764,9 @@ export interface AiCostLedgerRecord {
   outputTokens: number;
   costCents: number;
   reason: string;
+
+  /** AUDX-017 — 'trusted' (server-to-server) or 'declared' (user session). */
+  source?: string;
   createdAt: string;
 }
 
@@ -1301,6 +1361,8 @@ export interface ApiStore {
   listSessions(userId: string): Promise<SessionRecord[]>;
   revokeSession(userId: string, sessionId: string): Promise<boolean>;
   revokeAllSessions(userId: string, exceptSessionId?: string): Promise<number>;
+  /** Refresh a session's lastActiveAt (idle-timeout heartbeat); throttled write. */
+  touchSession(sessionId: string, nowMs: number, throttleMs?: number): Promise<void>;
   markSessionReauthenticated(sessionId: string): Promise<SessionRecord | undefined>;
   createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }): Promise<void>;
   consumeEmailVerification(token: string): Promise<UserRecord | undefined>;
@@ -1309,6 +1371,16 @@ export interface ApiStore {
   setRecoveryCodes(userId: string, codeHashes: string[]): Promise<RecoveryCodeRecord[]>;
   consumeRecoveryCode(userId: string, codeHash: string): Promise<boolean>;
   countUnusedRecoveryCodes(userId: string): Promise<number>;
+
+  /*
+   * Per-account brute-force lock (login-throttle). getLoginLockout reads the
+   * current state; recordFailedLogin atomically increments the failed counter
+   * (serialized per-user so concurrent attempts can't race it) and returns the
+   * new state; clearLoginLockout resets it on a successful login.
+   */
+  getLoginLockout(userId: string): Promise<LoginLockoutState | undefined>;
+  recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState>;
+  clearLoginLockout(userId: string): Promise<void>;
   createOrganization(input: { name: string; slug: string; ownerUserId: string }): Promise<OrganizationRecord>;
   listOrganizations(userId: string): Promise<OrganizationRecord[]>;
   getOrganization(id: string): Promise<OrganizationRecord | undefined>;
@@ -1418,6 +1490,48 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  /** Checkpoint PROJET coordonné (plan §15). */
+  createProjectCheckpoint(input: {
+    projectId: string;
+    createdByUserId?: string;
+  }): Promise<{ id: string; state: string }>;
+  updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      /** Barrier lease deadline; `null` thaws. Persisted so ALL replicas see it. */
+      barrierExpiresAt?: string | null;
+    },
+  ): Promise<void>;
+  /**
+   * The write barrier in force for a project, read from the DATABASE so every
+   * API replica observes it (an in-process barrier freezes only its own pod).
+   * Rows whose lease has expired are treated as thawed — expiry is the
+   * guaranteed thaw when the orchestrating process dies mid-checkpoint.
+   */
+  getActiveCheckpointBarrier(
+    projectId: string,
+  ): Promise<{ checkpointId: string; barrierId: string; expiresAt: string } | undefined>;
+  getProjectCheckpoint(id: string): Promise<
+    | {
+        id: string;
+        projectId: string;
+        state: string;
+        logicalBarrierId?: string;
+        consistencyLevel?: string;
+        manifest?: unknown;
+        error?: string;
+        expiresAt?: string;
+        createdAt: string;
+      }
+    | undefined
+  >;
+
   /** Create a remix-job row (state machine + audit of the secure fork pipeline). */
   createRemixJob(input: {
     sourceProjectId: string;
@@ -1519,7 +1633,37 @@ export interface ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    /** AUDX-014 — durable idempotency, unique per (organizationId, key). */
+    idempotencyKey?: string;
   }): Promise<{ id: string; state: string }>;
+
+  /**
+   * AUDX-014 — find a job by its client idempotency key.
+   *
+   * This replaces the in-process `importIdemIndex`, which was per-pod: a retried
+   * create landing on another replica did not see the key and created a SECOND
+   * job with a SECOND credit reservation.
+   */
+  findImportJobByIdempotencyKey(organizationId: string, idempotencyKey: string): Promise<{ id: string } | undefined>;
+
+  /**
+   * AUDX-014 — durable, shared import staging.
+   *
+   * Replaces the in-process `importStaging` Map. The import flow is two HTTP
+   * hops and the api runs 2+ replicas with no session affinity, so a commit
+   * routed to another pod found nothing and returned 409 IMPORT_STAGING_GONE.
+   *
+   * Still EPHEMERAL: cleared on every non-committed exit and after a successful
+   * commit. Nothing is written to the target project before COMMITTED.
+   */
+  putImportStagedFiles(
+    importJobId: string,
+    files: Array<{ path: string; content: string; encoding?: string }>,
+  ): Promise<void>;
+  getImportStagedFiles(
+    importJobId: string,
+  ): Promise<Array<{ path: string; content: string; encoding?: string }> | undefined>;
+  deleteImportStagedFiles(importJobId: string): Promise<void>;
   updateImportJob(
     id: string,
     patch: {
@@ -1778,7 +1922,8 @@ export interface ApiStore {
    * api record) so they stop consuming the workspaces.active quota slot.
    */
   listActiveWorkspaces(organizationId: string): Promise<WorkspaceRecord[]>;
-  countSnapshots(organizationId: string): Promise<number>;
+  /** `since` borne le compte à la période d'usage courante — voir `countDeployments`. */
+  countSnapshots(organizationId: string, since?: Date): Promise<number>;
   countDeployments(organizationId: string, since?: Date): Promise<number>;
   /**
    * Count an organization's concurrently-published apps — distinct projects with
@@ -1825,7 +1970,7 @@ export interface ApiStore {
     turnIndex?: number;
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
-  listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
+  listSnapshots(projectId: string, options?: SnapshotListOptions): Promise<SnapshotRecord[]>;
   putProjectStorageObject(input: {
     projectId?: string;
     key: string;
@@ -1847,6 +1992,68 @@ export interface ApiStore {
    * database-rollback-service.ts + migration 0040.
    */
   getDatabaseInstanceByProject(projectId: string, environment?: string): Promise<DatabaseInstanceRecord | undefined>;
+  /**
+   * Exécution de migration au Publish (P0-V3-11, CTR-DATABASE).
+   *
+   * `activeLock` porte le verrou « une seule migration active par (projet,
+   * environnement) » via un index UNIQUE : l'insertion d'une 2e migration
+   * concurrente ÉCHOUE côté base (P2002/23505). C'est volontaire — un contrôle
+   * applicatif « lister puis décider » laisse une fenêtre de course et ne voit
+   * pas les autres replicas de l'API.
+   */
+  createMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    activeLock: string;
+    state: string;
+    statementsSha256: string;
+    statementCount: number;
+    backwardCompatible: string;
+    forwardCompatible: string;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }): Promise<{ id: string; state: string }>;
+  updateMigrationExecution(
+    id: string,
+    patch: {
+      state?: string;
+      /** `null` LIBÈRE le verrou ; l'omettre le laisse tel quel. */
+      activeLock?: string | null;
+      backupId?: string;
+      backupVerifiedAt?: string;
+      backupVerificationMethod?: string;
+      appliedStatements?: number;
+      error?: string;
+      completedAt?: string;
+    },
+  ): Promise<void>;
+  /** Rejouer une clé déjà vue renvoie l'exécution existante — jamais un ré-apply. */
+  getMigrationExecutionByIdempotencyKey(
+    projectId: string,
+    idempotencyKey: string,
+  ): Promise<{ id: string; state: string; appliedStatements: number } | undefined>;
+  getMigrationExecution(id: string): Promise<
+    | {
+        id: string;
+        projectId: string;
+        environment: string;
+        state: string;
+        idempotencyKey: string;
+        backupId?: string;
+        backupVerifiedAt?: string;
+        backupVerificationMethod?: string;
+        statementCount: number;
+        appliedStatements: number;
+        backwardCompatible: string;
+        forwardCompatible: string;
+        error?: string;
+        startedAt: string;
+        completedAt?: string;
+      }
+    | undefined
+  >;
   listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]>;
   listDatabaseRestores(databaseInstanceId: string): Promise<DatabaseRestoreRecord[]>;
   createDatabaseRestore(input: {
@@ -1910,9 +2117,7 @@ export interface ApiStore {
     canceledAt?: string;
   }): Promise<DeploymentRecord>;
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
-  getDeploymentOwnerStatus(
-    deploymentId: string,
-  ): Promise<
+  getDeploymentOwnerStatus(deploymentId: string): Promise<
     | {
         projectId: string;
         status: string;
@@ -1927,6 +2132,19 @@ export interface ApiStore {
         organizationId?: string;
         /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
         planKey?: string;
+        /*
+         * P104: the metadata JSON so the static-serve path can read the access
+         * config (metadata.access) without a second query.
+         *
+         * REQUIRED for the gate to work at all. `accessConfigFromMetadata`
+         * treats an absent `access` key as PUBLIC (the legitimate default for a
+         * deployment that was never gated), so if this field silently stops
+         * being selected, every password-protected deployment is served openly
+         * with no error anywhere. That exact fail-open happened when P104 was
+         * reverted from main and re-applied: the call sites came back, this
+         * contract did not. Covered by deployment-password.spec.ts.
+         */
+        metadata?: Record<string, unknown>;
       }
     | undefined
   >;
@@ -2313,6 +2531,12 @@ export interface ApiStore {
     content: string;
   }): Promise<AiMessageRecord>;
   listAiMessages(conversationId: string): Promise<AiMessageRecord[]>;
+
+  /**
+   * Ids only. The transcript sync needs to know which rows already belong to a
+   * conversation without pulling every message body over the wire on each save.
+   */
+  listAiMessageIds(conversationId: string): Promise<string[]>;
   createAiToolCall(input: {
     messageId: string;
     name: string;
@@ -2363,6 +2587,14 @@ export interface ApiStore {
     outputTokens: number;
     costCents: number;
     reason: string;
+
+    /*
+     * AUDX-017 — provenance of the token counts. 'trusted' = reported
+     * server-to-server; 'declared' = reported under a user session and therefore
+     * forgeable. Defaults to 'declared': the untrusted value is the safe default
+     * for a caller that has not said which it is.
+     */
+    source?: 'trusted' | 'declared';
   }): Promise<AiCostLedgerRecord>;
   listAiCosts(organizationId: string, range?: { from?: string; to?: string }): Promise<AiCostLedgerRecord[]>;
 

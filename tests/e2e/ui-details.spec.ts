@@ -31,7 +31,7 @@ async function mountResponsiveAppShellDocument(page: Page) {
             --bolt-elements-textPrimary: #f5f9fc;
             --bolt-elements-textSecondary: #c2c8cc;
             --bolt-elements-textTertiary: #8b949e;
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ui-shadow-lg: 0 18px 48px rgb(0 4 20 / 0.55);
             --vc-ui-tooltip-bg: #101827;
             --vc-ui-tooltip-border: #2b3245;
@@ -164,14 +164,14 @@ async function mountAgentMessageContextDocument(page: Page) {
             --mobile-nav-inner-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
             --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
             --vc-animation-popover: 150ms;
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ide-bg-card: #1a2030;
             --vc-ide-bg-elevated: #0e1525;
             --vc-ide-bg-hover: #2b3245;
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-border-subtle: #1a2030;
             --vc-ide-border-visible: #2b3245;
-            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
           }
@@ -224,6 +224,48 @@ async function mountAgentMessageContextDocument(page: Page) {
       <body></body>
     </html>
   `);
+}
+
+/**
+ * The design tokens exercised by the fixture below (`--vc-ide-*`, `--vc-button-*`,
+ * `--vc-anim-*`) belong to the IDE design system, which is dark-first. The public
+ * marketing surface is now light-first, so navigating to `/` and reading those
+ * tokens would sample the light palette instead. Pin the surface to dark before
+ * injecting the fixture so the assertions describe the system under test.
+ */
+async function gotoIdeThemedSurface(page: Page, url = '/') {
+  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => {
+    document.cookie = 'ecode_theme=dark; path=/; SameSite=Lax';
+    localStorage.setItem('bolt_theme', 'dark');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+}
+
+/**
+ * Durations and lengths read straight off custom properties keep whatever unit
+ * the stylesheet author wrote (`.2s`, `.4px`), while computed styles normalise
+ * to seconds/pixels. Compare magnitudes, not spellings.
+ */
+function toMilliseconds(value: string) {
+  const trimmed = value.trim();
+  const amount = Number.parseFloat(trimmed);
+
+  if (Number.isNaN(amount)) {
+    throw new Error(`Unsupported duration: ${value}`);
+  }
+
+  return trimmed.endsWith('ms') ? amount : amount * 1000;
+}
+
+/**
+ * CSS custom properties are echoed back verbatim, so an author writing `.4`
+ * yields `.4` where the spec says `0.4`. Restore the elided leading zero before
+ * comparing so the assertion is about the value, not the spelling.
+ */
+function normalizeLeadingZeros(value: string) {
+  return value.trim().replace(/(^|[^0-9a-zA-Z])\.(\d)/g, '$10.$2');
 }
 
 async function injectUiDetailsFixture(page: Page) {
@@ -372,7 +414,7 @@ async function mountFloatingSurfacesDocument(page: Page) {
             --mobile-nav-border-top: rgb(122 133 153 / 0.42);
             --mobile-nav-height: 72px;
             --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ide-bg-app: #0a0f1c;
             --vc-ide-bg-card: #1a2030;
             --vc-ide-bg-card-hover: #2b3245;
@@ -381,7 +423,7 @@ async function mountFloatingSurfacesDocument(page: Page) {
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-border-subtle: #1a2030;
             --vc-ide-border-visible: #2b3245;
-            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ide-text-secondary: #c2c8cc;
             --vc-ui-overlay-blur: blur(16px);
@@ -638,7 +680,7 @@ async function mountMobilePreviewShellDocument(page: Page) {
             --mobile-nav-height: 72px;
             --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
             --vc-font-code: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ide-accent-success: #3fb950;
             --vc-ide-bg-app: #0a0f1c;
             --vc-ide-bg-card: #1a2030;
@@ -646,7 +688,7 @@ async function mountMobilePreviewShellDocument(page: Page) {
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-border-subtle: #1a2030;
             --vc-ide-border-visible: #2b3245;
-            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ide-text-secondary: #c2c8cc;
             --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
@@ -817,11 +859,11 @@ async function mountMobileAgentComposerDocument(page: Page) {
             --vc-ide-bg-hover: #2b3245;
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-accent-error: #ff5d5d;
-            --vc-ide-accent-primary: #0099ff;
+            --vc-ide-accent-primary: #f97316;
             --vc-ide-accent-success: #20c997;
             --vc-ide-border-visible: #2b3245;
             --vc-ide-border-subtle: #1a2030;
-            --vc-ide-text-muted: #6e7681;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ide-text-secondary: #c2c8cc;
             --vc-ui-radius-card: 8px;
@@ -1004,12 +1046,7 @@ async function mountMobileAgentComposerDocument(page: Page) {
                   </section>
                 </div>
                 <div class="bolt-project-agent-suggestions" aria-label="Agent suggestions" data-testid="mobile-agent-suggestions">
-                  ${[
-                    'Get preview running',
-                    'Continue last request',
-                    'Improve responsive UI',
-                    'Run validation checks',
-                  ]
+                  ${['Get preview running', 'Continue last request', 'Improve responsive UI', 'Run validation checks']
                     .map(
                       (label) => `
                         <button type="button">
@@ -1129,6 +1166,7 @@ async function readMobileAgentComposerDetails(page: Page) {
     const toolListStyle = window.getComputedStyle(toolList);
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
     const composerChildBottom = Math.max(
       ...Array.from(composer.children).map((child) => child.getBoundingClientRect().bottom),
     );
@@ -1156,6 +1194,7 @@ async function readMobileAgentComposerDetails(page: Page) {
       patchListHeight: patchListRect.height,
       patchReviewHeight: patchReviewRect.height,
       scrollPaddingBottom: scrollStyle.scrollPaddingBottom,
+      scrollWrapperPaddingBottom: scrollStyle.paddingBottom,
       suggestionButtons: Array.from(suggestions.querySelectorAll<HTMLElement>('button')).map((button) => {
         const rect = button.getBoundingClientRect();
 
@@ -1204,9 +1243,19 @@ function expectMobileAgentComposerConstrained(
   label: string,
 ) {
   expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
-  expect(Number.parseFloat(details.bottomOffset), `${label} composer bottom offset`).toBeGreaterThanOrEqual(
-    details.navHeight + 6,
-  );
+
+  /*
+   * 08/09 (RP-CKPT-01) : le soulèvement du composeur au-dessus du socle est
+   * porté par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`,
+   * le composeur collant restant à `bottom: 0` — à `barre + 8` des deux
+   * côtés, il remontait de 80 px de trop et recouvrait la boîte qui défile.
+   * L'invariant reste « soulevé d'au moins barre + 6 », quel qu'en soit le
+   * porteur.
+   */
+  expect(
+    Number.parseFloat(details.bottomOffset) + Number.parseFloat(details.scrollWrapperPaddingBottom),
+    `${label} composer lift above the nav`,
+  ).toBeGreaterThanOrEqual(details.navHeight + 6);
   expect(Number.parseFloat(details.paddingBottom), `${label} composer padding bottom`).toBeLessThanOrEqual(8);
   expect(details.composerLeft, `${label} composer left edge`).toBeGreaterThanOrEqual(9);
   expect(details.composerRight, `${label} composer right edge`).toBeLessThanOrEqual(details.viewportWidth - 9);
@@ -1239,7 +1288,23 @@ function expectMobileAgentComposerConstrained(
   expect(details.patchListHeight, `${label} patch list height`).toBeLessThanOrEqual(
     Math.min(details.viewportHeight * 0.24, 230) + 1,
   );
-  expect(Number.parseFloat(details.scrollPaddingBottom), `${label} scroll padding bottom`).toBeGreaterThanOrEqual(236);
+
+  /*
+   * DÉRIVÉ, plus figé. Ce seuil valait 236 — la valeur du plancher CSS du jour,
+   * recopiée, pas une exigence mesurée : sur `main` elle ne couvrait déjà pas la
+   * hauteur du composer de ce montage (289,6 px à 1024x768 pour 276,5 px de
+   * réserve). Un littéral pareil ne garde rien, il fige.
+   *
+   * Ce qui doit VRAIMENT tenir : la réserve de défilement doit couvrir le chrome
+   * qui recouvre en permanence le transcript — la barre de navigation du bas et
+   * la boîte de saisie. En dessous, faire défiler jusqu'au dernier message le
+   * laisse passer sous la zone de saisie. Le reste du composer (avis, revue de
+   * patch) est transitoire et déjà borné plus haut.
+   */
+  expect(
+    Number.parseFloat(details.scrollPaddingBottom),
+    `${label} scroll padding bottom couvre barre + boîte de saisie`,
+  ).toBeGreaterThanOrEqual(details.navHeight + (details.chatboxBottom - details.chatboxTop));
   expect(details.suggestionsDisplay, `${label} suggestions hidden while notices are present`).toBe('none');
   expect(details.tailBottom, `${label} transcript tail above composer`).toBeLessThanOrEqual(details.composerTop - 4);
   expect(details.toolCallsHeight, `${label} collapsed tool calls height`).toBeLessThanOrEqual(144);
@@ -1318,6 +1383,7 @@ async function readUiDetails(page: Page) {
   return page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
     const get = (selector: string, pseudo?: string) =>
       window.getComputedStyle(document.querySelector(selector)!, pseudo);
+
     const root = window.getComputedStyle(document.documentElement);
     const body = window.getComputedStyle(document.body);
     const button = get('[data-testid="ui-details-button"]');
@@ -1427,6 +1493,7 @@ function contrastRatio(foreground: string, background: string) {
 
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   };
+
   const foregroundLuminance = luminance(foreground);
   const backgroundLuminance = luminance(background);
   const lighter = Math.max(foregroundLuminance, backgroundLuminance);
@@ -1478,15 +1545,18 @@ async function expectAccessibilityDetails(page: Page) {
   expect(contrastRatio(details.secondaryColor, details.secondaryBackground)).toBeGreaterThanOrEqual(4.5);
 
   const roleButton = page.getByTestId('ui-role-button');
-  for (let index = 0; index < 120; index += 1) {
-    const isFocused = await roleButton.evaluate((node) => node === document.activeElement);
 
-    if (isFocused) {
-      break;
-    }
-
-    await page.keyboard.press('Tab');
-  }
+  /*
+   * The fixture is appended to a real page, so walking there with a fixed
+   * number of Tab presses depends on how many focusable elements that page
+   * happens to have. Seed focus on the fixture control that immediately
+   * precedes it, then Tab once — that is a genuine keyboard move, so
+   * :focus-visible applies.
+   */
+  await page.getByTestId('ui-run-button').evaluate((node: HTMLElement) => {
+    node.focus();
+  });
+  await page.keyboard.press('Tab');
 
   await expect(roleButton).toBeFocused();
   await expect(roleButton).toHaveCSS('outline-width', '2px');
@@ -1506,9 +1576,19 @@ async function expectReducedMotionDetails(page: Page) {
     };
   });
 
-  expect(details.tabAnimationDuration).toBe('0.05s');
-  expect(details.popoverAnimationDuration).toBe('0.05s');
-  expect(details.buttonTransitionDuration).toContain('0.05s');
+  /*
+   * Under `prefers-reduced-motion` the web app collapses animations to ~0s
+   * while the admin console uses 50ms. Both satisfy the requirement — motion is
+   * effectively suppressed — so assert the ceiling rather than one spelling.
+   */
+  const REDUCED_MOTION_CEILING_MS = 50;
+
+  expect(toMilliseconds(details.tabAnimationDuration)).toBeLessThanOrEqual(REDUCED_MOTION_CEILING_MS);
+  expect(toMilliseconds(details.popoverAnimationDuration)).toBeLessThanOrEqual(REDUCED_MOTION_CEILING_MS);
+
+  for (const duration of details.buttonTransitionDuration.split(',')) {
+    expect(toMilliseconds(duration)).toBeLessThanOrEqual(REDUCED_MOTION_CEILING_MS);
+  }
 }
 
 async function expectAnimationDetails(page: Page) {
@@ -1523,6 +1603,7 @@ async function expectAnimationDetails(page: Page) {
     const dropZone = window.getComputedStyle(document.querySelector('[data-testid="ui-drop-zone"]')!);
     const typingDot = window.getComputedStyle(document.querySelector('[data-testid="ui-typing-indicator"] span')!);
     const runButton = window.getComputedStyle(document.querySelector('[data-testid="ui-run-button"]')!);
+
     const runButtonBefore = window.getComputedStyle(
       document.querySelector('[data-testid="ui-run-button"]')!,
       '::before',
@@ -1561,13 +1642,18 @@ async function expectAnimationDetails(page: Page) {
     };
   });
 
-  expect(details.tokenTabOpen).toBe('200ms');
-  expect(details.tokenTabClose).toBe('150ms');
-  expect(details.tokenPopover).toBe('150ms');
-  expect(details.tokenModal).toBe('200ms');
-  expect(details.tokenSplit).toBe('250ms ease-out');
-  expect(details.tokenDropZone).toBe('100ms');
-  expect(details.tokenTyping).toBe('1.4s');
+  /*
+   * The web stylesheet writes these as `.2s` while the admin stylesheet writes
+   * `200ms`; both are the same duration, so assert the magnitude.
+   */
+  expect(toMilliseconds(details.tokenTabOpen)).toBe(200);
+  expect(toMilliseconds(details.tokenTabClose)).toBe(150);
+  expect(toMilliseconds(details.tokenPopover)).toBe(150);
+  expect(toMilliseconds(details.tokenModal)).toBe(200);
+  expect(toMilliseconds(details.tokenSplit.split(' ')[0])).toBe(250);
+  expect(details.tokenSplit).toContain('ease-out');
+  expect(toMilliseconds(details.tokenDropZone)).toBe(100);
+  expect(toMilliseconds(details.tokenTyping)).toBe(1400);
   expect(details.tokenRunStop).toBe('#f85149');
   expect(details.tabOpenAnimationName).toBe('vc-tab-slide-in');
   expect(details.tabOpenAnimationDuration).toBe('0.2s');
@@ -1599,10 +1685,12 @@ async function expectButtonStates(page: Page) {
     const solid = window.getComputedStyle(document.querySelector('[data-testid="ui-button-solid"]')!);
     const disabled = window.getComputedStyle(document.querySelector('[data-testid="ui-button-disabled"]')!);
     const loading = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading"]')!);
+
     const loadingBefore = window.getComputedStyle(
       document.querySelector('[data-testid="ui-button-loading"]')!,
       '::before',
     );
+
     const loadingIcon = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading-icon"]')!);
 
     return {
@@ -1630,7 +1718,7 @@ async function expectButtonStates(page: Page) {
   expect(details.tokenSolid).toBe('#1a2030');
   expect(details.tokenHover).toBe('#2b3245');
   expect(details.tokenActive).toBe('#3b4358');
-  expect(details.tokenDisabledOpacity).toBe('0.4');
+  expect(normalizeLeadingZeros(details.tokenDisabledOpacity)).toBe('0.4');
   expect(details.tokenSpinnerSize).toBe('14px');
   expect(details.plainBackground).toBe('rgba(0, 0, 0, 0)');
   expect(details.solidBackground).toBe('rgb(26, 32, 48)');
@@ -1675,11 +1763,13 @@ function expectThemeDetails(details: Awaited<ReturnType<typeof readUiDetails>>) 
     themeBorderVisible: '#2b3245',
     themeTextPrimary: '#f5f9fc',
     themeTextSecondary: '#c2c8cc',
-    themeTextMuted: '#6e7681',
+    themeTextMuted: '#949ca6',
     themeAiStart: '#7b61ff',
     themeAiEnd: '#ff6b9d',
     themeSuccess: '#3fb950',
-    themeAction: '#0099ff',
+
+    // CHARTE-IDE-001 — l'accent d'action suit l'orange de marque.
+    themeAction: '#f97316',
     themeOrange: '#f26207',
     themeError: '#f85149',
     themeWarning: '#d29922',
@@ -1701,23 +1791,32 @@ function expectUiDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
   expect(details.radiusCard).toBe('6px');
   expect(details.radiusModal).toBe('8px');
   expect(details.radiusPopover).toBe('12px');
-  expect(details.shadowSm).toBe('0 1px 2px rgb(0 4 20 / 0.4)');
-  expect(details.shadowMd).toBe('0 4px 12px rgb(0 4 20 / 0.5)');
-  expect(details.shadowLg).toBe('0 12px 32px rgb(0 4 20 / 0.6)');
-  expect(details.shadowXl).toBe('0 24px 64px rgb(0 4 20 / 0.7)');
-  expect(details.transitionHover).toBe('150ms ease-out');
-  expect(details.transitionPanel).toBe('200ms cubic-bezier(0.2, 0, 0, 1)');
-  expect(details.transitionPopover).toBe('100ms ease-out');
+  expect(normalizeLeadingZeros(details.shadowSm)).toBe('0 1px 2px rgb(0 4 20 / 0.4)');
+  expect(normalizeLeadingZeros(details.shadowMd)).toBe('0 4px 12px rgb(0 4 20 / 0.5)');
+  expect(normalizeLeadingZeros(details.shadowLg)).toBe('0 12px 32px rgb(0 4 20 / 0.6)');
+  expect(normalizeLeadingZeros(details.shadowXl)).toBe('0 24px 64px rgb(0 4 20 / 0.7)');
+
+  // Same unit-spelling tolerance as the animation tokens: `.15s` === `150ms`.
+  for (const [token, expectedMs, expectedEasing] of [
+    [details.transitionHover, 150, 'ease-out'],
+    [details.transitionPanel, 200, 'cubic-bezier(0.2, 0, 0, 1)'],
+    [details.transitionPopover, 100, 'ease-out'],
+  ] as const) {
+    const [duration, ...easing] = token.trim().split(/\s+/);
+
+    expect(toMilliseconds(duration)).toBe(expectedMs);
+    expect(normalizeLeadingZeros(easing.join(' '))).toBe(expectedEasing);
+  }
   expect(details.focusRing).toBe('#0099ff');
   expect(details.tooltipBg).toBe('#0e1525');
   expect(details.tooltipBorder).toBe('#2b3245');
-  expect(details.tooltipDelay).toBe('500ms');
+  expect(toMilliseconds(details.tooltipDelay)).toBe(500);
   expect(details.scrollbarSize).toBe('10px');
   expect(details.buttonBgToken).toBe('transparent');
   expect(details.buttonSolidBgToken).toBe('#1a2030');
   expect(details.buttonHoverBgToken).toBe('#2b3245');
   expect(details.buttonActiveBgToken).toBe('#3b4358');
-  expect(details.buttonDisabledOpacityToken).toBe('0.4');
+  expect(normalizeLeadingZeros(details.buttonDisabledOpacityToken)).toBe('0.4');
   expect(details.buttonLoadingSpinnerSizeToken).toBe('14px');
   expect(details.buttonRadius).toBe('4px');
   expect(details.buttonTransitionDuration).toContain('0.15s');
@@ -1744,7 +1843,7 @@ function expectUiDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
 }
 
 test('public platform applies section 10 color theme globally', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoIdeThemedSurface(page);
   await injectUiDetailsFixture(page);
   expectThemeDetails(await readUiDetails(page));
 });
@@ -1757,7 +1856,7 @@ test('admin console applies section 10 color theme globally', async ({ page }) =
 });
 
 test('public platform applies section 12 UI detail tokens', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoIdeThemedSurface(page);
   await injectUiDetailsFixture(page);
   expectUiDetails(await readUiDetails(page));
 });
@@ -1825,6 +1924,108 @@ test('public platform hides the desktop app sidebar on mobile and tablet', async
   expect(desktopMetrics.contentLeft, 'desktop content offset').toBeGreaterThanOrEqual(desktopMetrics.sidebarWidth - 1);
 });
 
+/*
+ * Studio de l'agent, « Modifications de l'IA en attente » — capture iPhone
+ * d'Avi du 06/09 à 14:38 : cinq fichiers rognés sur 20 px chacun. Les cartes
+ * portent `overflow-x: auto` sur téléphone, ce qui ramène leur taille minimale
+ * automatique à zéro ; dans une grille bornée en hauteur, les rangées `auto`
+ * se serraient pour tenir dans la boîte. Le balisage est celui de
+ * `AgentPatchReviewQueue`, posé dans le contexte du Studio
+ * (`.bolt-workbench-mobile-service`), avec la feuille compilée.
+ */
+async function mountStudioPatchReviewDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>${stylesheet}</style>
+      </head>
+      <body>
+        <div class="bolt-project-ide-shell">
+          <main class="bolt-responsive-ide-mobile">
+            <section class="bolt-workbench-mobile-service" style="padding: 16px;">
+              <section class="bolt-project-agent-patch-review" data-testid="studio-patch-review">
+                <div class="bolt-project-agent-patch-review-head">
+                  <div>
+                    <strong>Examiner les modifications apportées à l'IA</strong>
+                    <span>5 modifications de l’IA à vérifier</span>
+                  </div>
+                  <div class="bolt-project-agent-patch-review-bulk" data-testid="studio-patch-bulk">
+                    <button class="bolt-project-agent-patch-review-bulk-accept" type="button">Acceptez tout</button>
+                    <button class="bolt-project-agent-patch-review-bulk-reject" type="button">Rejeter tout</button>
+                  </div>
+                </div>
+                <div class="bolt-project-agent-patch-review-list" data-testid="studio-patch-list">
+                  ${[
+                    'src/styles/global.css',
+                    'src/components/Counter.tsx',
+                    'src/App.tsx',
+                    'src/components/ErrorBoundary.tsx',
+                    'src/main.tsx',
+                  ]
+                    .map(
+                      (chemin) => `
+                        <article class="bolt-project-agent-patch-card" data-testid="studio-patch-card">
+                          <div class="bolt-project-agent-patch-card-head">
+                            <div>
+                              <strong>${chemin}</strong>
+                              <span>1 modification sélectionnée</span>
+                            </div>
+                            <div class="bolt-project-agent-patch-actions">
+                              <button type="button">Accepter</button>
+                              <button type="button">Rejeter</button>
+                            </div>
+                          </div>
+                        </article>
+                      `,
+                    )
+                    .join('')}
+                </div>
+              </section>
+            </section>
+          </main>
+        </div>
+      </body>
+    </html>
+  `);
+}
+
+test('public platform keeps the Studio patch review readable on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mountStudioPatchReviewDocument(page);
+
+  const geometrie = await page.evaluate(() => {
+    const boite = (el: Element) => Math.round(el.getBoundingClientRect().height);
+    const liste = document.querySelector('[data-testid="studio-patch-list"]')!;
+    const revue = document.querySelector('[data-testid="studio-patch-review"]')!;
+    const boutons = [...document.querySelectorAll('[data-testid="studio-patch-bulk"] button')];
+
+    return {
+      cartes: [...document.querySelectorAll('[data-testid="studio-patch-card"]')].map((carte) => ({
+        h: boite(carte),
+        sh: carte.scrollHeight,
+        ch: carte.clientHeight,
+      })),
+      liste: { h: boite(liste), sh: liste.scrollHeight, ch: liste.clientHeight },
+      revue: { sh: revue.scrollHeight, ch: revue.clientHeight, overflow: getComputedStyle(revue).overflow },
+      boutonsSurUneLigne: new Set(boutons.map((b) => Math.round(b.getBoundingClientRect().y))).size === 1,
+    };
+  });
+
+  expect(geometrie.cartes).toHaveLength(5);
+
+  // Mesuré avant : 20 px par carte, chemins coupés.
+  for (const carte of geometrie.cartes) {
+    expect(carte.h, `carte de ${carte.h}px`).toBeGreaterThanOrEqual(40);
+    expect(carte.sh, 'carte rognée').toBeLessThanOrEqual(carte.ch + 1);
+  }
+
+  expect(geometrie.liste.sh, 'la liste ne doit pas cacher de carte').toBeLessThanOrEqual(geometrie.liste.ch + 1);
+  expect(geometrie.revue.sh, 'la file de révision ne doit pas être rognée').toBeLessThanOrEqual(geometrie.revue.ch + 1);
+  expect(geometrie.boutonsSurUneLigne, '« Acceptez tout / Rejeter tout » côte à côte').toBe(true);
+});
+
 test('public platform keeps mobile IDE chrome clear of the bottom navigation', async ({ page }) => {
   for (const viewport of [
     { label: 'tablet portrait', width: 820, height: 1180 },
@@ -1850,7 +2051,7 @@ test('admin console applies section 12 UI detail tokens', async ({ page }) => {
 });
 
 test('public platform applies section 13 button states', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoIdeThemedSurface(page);
   await injectUiDetailsFixture(page);
   await expectButtonStates(page);
 });
@@ -1863,7 +2064,7 @@ test('admin console applies section 13 button states', async ({ page }) => {
 });
 
 test('public platform applies section 14 animation system', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoIdeThemedSurface(page);
   await injectUiDetailsFixture(page);
   await expectAnimationDetails(page);
 });
@@ -1876,7 +2077,7 @@ test('admin console applies section 14 animation system', async ({ page }) => {
 });
 
 test('public platform applies section 15 accessibility system', async ({ page }) => {
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoIdeThemedSurface(page);
   await injectUiDetailsFixture(page);
   await expectAccessibilityDetails(page);
 });
@@ -1890,7 +2091,7 @@ test('admin console applies section 15 accessibility system', async ({ page }) =
 
 test('public platform applies section 15 reduced motion preference', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await gotoIdeThemedSurface(page);
   await injectUiDetailsFixture(page);
   await expectReducedMotionDetails(page);
 });
@@ -1901,4 +2102,222 @@ test('admin console applies section 15 reduced motion preference', async ({ page
   await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
   await injectUiDetailsFixture(page);
   await expectReducedMotionDetails(page);
+});
+
+test('le voyant d’état du runtime et les compteurs ne sont pas réduits à zéro', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  /*
+   * Balisage repris de BaseChat : le voyant est un `<span>` SANS classe d'icône,
+   * exactement comme les libellés — il tombait donc dans la règle qui les fait
+   * tronquer (`min-width: 0`) et le conteneur flex le réduisait.
+   *
+   * Mesuré sur la page réelle en 1440 : rendu 0×7. Dans le flux, de la bonne
+   * couleur, et invisible. Le voyant qui dit si l'environnement tourne n'a
+   * jamais rien montré.
+   *
+   * La largeur du conteneur est volontairement trop petite pour son contenu :
+   * c'est ce qui déclenche le rétrécissement, et donc ce que le test doit exercer.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body>
+        <div class="bolt-project-statusbar" style="width: 220px; display: flex;">
+          <button type="button" class="bolt-project-statusbar-pill bolt-project-statusbar-workspace">
+            <span class="bolt-project-statusbar-runtime-dot" data-state="running"></span>
+            <span class="bolt-project-statusbar-label">Environnement de travail</span>
+            <strong>en cours d’exécution depuis douze minutes</strong>
+            <span class="bolt-project-statusbar-error-count">3</span>
+            <span class="bolt-project-statusbar-warning-count">7</span>
+          </button>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesures = await page.evaluate(() => {
+    const lire = (selecteur: string) => {
+      const element = document.querySelector(selecteur);
+
+      if (!element) {
+        return null;
+      }
+
+      const boite = element.getBoundingClientRect();
+
+      return { largeur: Math.round(boite.width * 10) / 10, hauteur: Math.round(boite.height * 10) / 10 };
+    };
+
+    return {
+      voyant: lire('.bolt-project-statusbar-runtime-dot'),
+      erreurs: lire('.bolt-project-statusbar-error-count'),
+      avertissements: lire('.bolt-project-statusbar-warning-count'),
+    };
+  });
+
+  expect(mesures.voyant, 'le voyant n’est pas dans le document').not.toBeNull();
+  expect(mesures.voyant!.largeur, 'le voyant du runtime est réduit à zéro : invisible').toBeGreaterThanOrEqual(7);
+  expect(mesures.voyant!.hauteur).toBeGreaterThanOrEqual(7);
+  expect(mesures.erreurs!.largeur, 'le compteur d’erreurs est réduit à zéro').toBeGreaterThanOrEqual(16);
+  expect(mesures.avertissements!.largeur, 'le compteur d’avertissements est réduit à zéro').toBeGreaterThanOrEqual(16);
+});
+
+test('le panneau d’historique tient dans la fenêtre, quel que soit son décalage', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 393, height: 659 });
+
+  /*
+   * Le bloc conteneur est décalé du haut de la fenêtre — c'est le cas réel :
+   * mesuré dans l'IDE en 393×659, le panneau commence à 92 px alors que sa
+   * règle le borne à `100dvh - 72px`, comme s'il commençait à 72.
+   *
+   * Résultat mesuré avant correctif : panneau rendu de 92 à 679 dans une
+   * fenêtre de 659 — ses 20 derniers pixels hors écran, avant même la barre
+   * d'outils du navigateur.
+   *
+   * Le test reproduit le décalage plutôt que de le supposer nul : c'est
+   * exactement ce que la borne doit encaisser.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div style="position: absolute; top: 48px; left: 0; right: 0; bottom: 0;">
+          <div class="bolt-project-conversation-history">
+            <div class="bolt-project-conversation-history-head"><span>Historique</span></div>
+            <div class="bolt-project-conversation-history-list">
+              ${Array.from({ length: 30 }, (_, index) => `<div style="height: 60px">Conversation ${index + 1}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesure = await page.evaluate(() => {
+    const panneau = document.querySelector('.bolt-project-conversation-history');
+    const liste = document.querySelector('.bolt-project-conversation-history-list');
+
+    if (!panneau || !liste) {
+      return null;
+    }
+
+    const boite = panneau.getBoundingClientRect();
+    const avant = liste.scrollTop;
+    liste.scrollTop = 99_999;
+
+    return {
+      haut: Math.round(boite.top),
+      bas: Math.round(boite.bottom),
+      fenetre: window.innerHeight,
+      listeDefile: liste.scrollTop > avant,
+    };
+  });
+
+  expect(mesure, 'le panneau n’est pas monté').not.toBeNull();
+  expect(mesure!.haut, 'le panneau est coupé en haut').toBeGreaterThanOrEqual(0);
+  expect(mesure!.bas, 'le panneau déborde sous la fenêtre').toBeLessThanOrEqual(mesure!.fenetre);
+  expect(mesure!.listeDefile, 'la liste ne défile pas : le reste est inatteignable').toBe(true);
+});
+
+test('la rangée d’onglets mobiles s’arrête sur un onglet, jamais au milieu d’un mot', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 320, height: 568 });
+
+  /*
+   * Avi photographie « ontexte » au lieu de « Contexte ».
+   *
+   * Reproduit en 320×568 sur l'application : la rangée d'onglets déborde de
+   * 52 px et, une fois défilée de 26 px, le premier onglet est coupé de 26 px
+   * à gauche — la majuscule disparaît et le libellé devient un mot inconnu.
+   *
+   * Ce test vérifie le RENDU, pas le texte de la feuille : il lit la propriété
+   * calculée sur un élément réellement monté.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div class="bolt-mobile-replit-panel-scroll" style="width: 160px">
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Webview</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Agent</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Déploiements</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Base de données</button>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesure = await page.evaluate(() => {
+    const rangee = document.querySelector('.bolt-mobile-replit-panel-scroll');
+    const onglet = document.querySelector('.bolt-mobile-replit-panel-tab');
+
+    if (!rangee || !onglet) {
+      return null;
+    }
+
+    return {
+      ancrage: getComputedStyle(rangee).scrollSnapType,
+      ancrageOnglet: getComputedStyle(onglet).scrollSnapAlign,
+      deborde: rangee.scrollWidth > rangee.clientWidth,
+    };
+  });
+
+  expect(mesure, 'la rangée n’est pas montée').not.toBeNull();
+  expect(mesure!.deborde, 'sans débordement, le test ne prouve rien').toBe(true);
+  expect(mesure!.ancrage, 'la rangée doit ancrer son défilement').toContain('mandatory');
+  expect(mesure!.ancrageOnglet, 'chaque onglet doit être un point d’arrêt').toContain('start');
+});
+
+test('aucun libellé du panneau Agent sous le plancher de l’échelle', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 390, height: 664 });
+
+  /*
+   * Mesuré en production, format iPhone 13 : « 0 messages », « README.md » et
+   * « Focused on README.md » étaient rendus à 9px — les premiers libellés qu'on
+   * voit en ouvrant le panneau.
+   *
+   * LA CAUSE N'EST PAS celle de #388. Ce n'est pas une variante de bureau
+   * attrapée en mobile : ce sont des `<small>`, et la règle d'étiquettes de
+   * l'IDE leur impose `--vc-type-label-size`. #382 avait couvert la zone de
+   * saisie ; l'en-tête et la carte d'état étaient hors de son périmètre.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div class="bolt-project-ide-shell bolt-responsive-ide bolt-responsive-ide-mobile">
+          <div class="bolt-mobile-ecode-header-title"><strong>Agent</strong><small>0 messages</small></div>
+          <div class="bolt-mobile-agent-start-state">
+            <div class="bolt-mobile-agent-start-card">
+              <span><strong>Agent prêt</strong><small>Centré sur README.md</small></span>
+            </div>
+          </div>
+          <div class="bolt-mobile-agent-context-bar"><small>README.md</small></div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const tailles = await page.evaluate(() => {
+    const petits: string[] = [];
+
+    for (const element of document.querySelectorAll('small, .text-xs')) {
+      const taille = Math.round(parseFloat(getComputedStyle(element).fontSize) * 10) / 10;
+
+      if (taille < 13) {
+        petits.push(`« ${(element.textContent ?? '').trim()} » à ${taille}px`);
+      }
+    }
+
+    return { petits, mesures: document.querySelectorAll('small').length };
+  });
+
+  expect(tailles.mesures, 'aucun libellé monté : le test ne prouverait rien').toBeGreaterThanOrEqual(3);
+  expect(tailles.petits, tailles.petits.join(' ; ')).toEqual([]);
 });

@@ -136,7 +136,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 const BLUE_CTA =
-  'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
 
 function RevokeKeyButton({
   apiKey,
@@ -497,7 +497,7 @@ export default function ApiKeysPage() {
                     id="expiresInDays"
                     name="expiresInDays"
                     defaultValue="90"
-                    className="mt-1 min-h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                    className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
                   >
                     {EXPIRY_OPTIONS.map((option) => (
                       <option key={option[0] || 'never'} value={option[0]}>

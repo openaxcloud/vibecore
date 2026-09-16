@@ -177,18 +177,21 @@ async function assertPanelRendered(page: Page, projectId: string, panel: IdePane
   if (panel === 'preview') {
     await expect(page.locator('.bolt-project-webview-tool').first()).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('.bolt-project-webview-toolbar').first()).toBeVisible({ timeout: 45_000 });
+
     return;
   }
 
   if (panel === 'files') {
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('.bolt-project-files-tool').first()).toBeVisible({ timeout: 45_000 });
+
     return;
   }
 
   if (panel === 'search') {
     await expect(page.getByPlaceholder('Search files')).toBeVisible({ timeout: 45_000 });
     await expect(page.getByPlaceholder('Replace')).toBeVisible({ timeout: 45_000 });
+
     return;
   }
 
@@ -200,6 +203,7 @@ async function assertPanelRendered(page: Page, projectId: string, panel: IdePane
   if (panel === 'terminal') {
     await assertServicePanelBackend(page, projectId, panel);
     await expect(page.getByRole('region', { name: 'Interactive terminal' })).toBeVisible({ timeout: 45_000 });
+
     return;
   }
 

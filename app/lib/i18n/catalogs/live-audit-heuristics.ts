@@ -106,8 +106,14 @@ const FRENCH_QUEUE_IN_PROSE = /\bfile\s+d[’']attente\b/giu;
  * They are intentionally independent from the language score: a sentence can
  * be grammatically French and still violate the product terminology contract.
  */
+/*
+ * `\b` se définit sur `[A-Za-z0-9_]` : une lettre accentuée n'est donc PAS un
+ * caractère de mot, et `\bbranch\b` accepterait « branché », `\btag\b` « taggé ».
+ * Les bornes ci-dessous refusent toute lettre adjacente, accents compris, pour
+ * ne signaler que le terme anglais isolé et jamais un dérivé français.
+ */
 const FORBIDDEN_FRENCH_TERM =
-  /\b(?:accounts?|activities|activity|alerts?|apps?|backends?|billing|branch|builds?|changelog|code[ -]reviews?|collaborators?|command palettes?|dashboards?|databases?|deployments?|docs|editors?|environment variables?|feature flags?|features?|files?|folders?|forks?|frontends?|full-stack|histories|history|invoices?|issues?|loading|logs?|marketplace|members?|monitorings?|onboarding|organizations?|packages?|permissions?|previews?|pricing|problems?|projects?|providers?|qa|quality assurance|responsives?|roles?|roll[ -]?backs?|runtimes?|settings|snapshots?|stacks?|starters?|storage|streamings?|subscriptions?|tags?|teams?|templates?|tokens?|typechecks?|workflows?|workspaces?)\b/iu;
+  /(?<![\p{L}\p{N}_])(?:accounts?|activities|activity|alerts?|apps?|backends?|billing|branch|builds?|changelog|code[ -]reviews?|collaborators?|command palettes?|dashboards?|databases?|deployments?|docs|editors?|environment variables?|feature flags?|features?|files?|folders?|forks?|frontends?|full-stack|histories|history|invoices?|issues?|loading|logs?|marketplace|members?|monitorings?|onboarding|organizations?|packages?|permissions?|previews?|pricing|problems?|projects?|providers?|qa|quality assurance|responsives?|roles?|roll[ -]?backs?|runtimes?|settings|snapshots?|stacks?|starters?|storage|streamings?|subscriptions?|tags?|teams?|templates?|tokens?|typechecks?|workflows?|workspaces?)(?![\p{L}\p{N}_])/iu;
 
 const ENGLISH_GRAMMAR = new Set([
   'and',

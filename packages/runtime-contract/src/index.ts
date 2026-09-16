@@ -89,6 +89,20 @@ export interface CommandRequest {
    * already occupies the single slot and the user shell can never connect.
    */
   managed?: boolean;
+
+  /*
+   * Stable identity of the terminal PANE, reused across every reconnect and
+   * remount. The workspace agent keys its persistent shell on `?sessionId`, so a
+   * caller that supplies the same `sessionKey` reattaches to its existing shell
+   * (scrollback intact) instead of spawning a new one and burning a slot of the
+   * per-workspace session budget.
+   *
+   * Omit it and the adapter falls back to a random per-call id — correct but
+   * non-reattachable, which is what BUG-TERM-002 was: every `openTerminal()`
+   * minted a fresh identity, so the IDE piled up orphan shells until the budget
+   * ran out and every further terminal was rejected with 429.
+   */
+  sessionKey?: string;
 }
 
 export interface CommandEvent {
@@ -220,7 +234,20 @@ export interface RuntimeAdapter {
    * hydrate a file-store entry must set `isBinary` from `encoding === 'base64'`.
    */
   readFile(path: string): Promise<{ content: string; encoding?: 'utf8' | 'base64' }>;
-  writeFile(path: string, content: string): Promise<void>;
+
+  /**
+   * Le troisième paramètre est UNION et non remplacé, pour ne pas casser le
+   * chemin des binaires : les adaptateurs locaux y reçoivent déjà un encodage
+   * (`'base64'` pour les images, décodé avant écriture — un test le garde).
+   *
+   * La forme OBJET porte le marqueur de BUG-CREATE-010 : `streaming: true` sur
+   * une écriture émise pendant le flux de génération. L'API rend l'archive du
+   * projet durable sur une écriture humaine et PAS sur une écriture de flux, où
+   * il y a une requête par fragment et par fichier. Une implémentation qui
+   * ignore le marqueur reste correcte : l'écriture est alors traitée comme
+   * humaine, ce qui est le défaut sûr.
+   */
+  writeFile(path: string, content: string, options?: 'utf8' | 'base64' | { streaming?: boolean }): Promise<void>;
   createFile(path: string, content?: string): Promise<void>;
   createDirectory(path: string): Promise<void>;
   deleteFile(path: string): Promise<void>;

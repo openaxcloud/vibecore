@@ -893,7 +893,7 @@ export const TerminalTabs = memo(({ panelDefaultSize = DEFAULT_TERMINAL_SIZE }: 
                           terminalProfiles.find((item) => item.id === paneProfileId) ?? terminalProfiles[0];
                         paneProfiles.current.set(index, paneProfileId);
                         terminal.write(buildConnectingNotice(paneProfileId));
-                        workbenchStore.attachTerminal(terminal, paneProfile.command);
+                        workbenchStore.attachTerminal(terminal, paneProfile.command, index);
                       }}
                       onTerminalResize={(cols, rows) => {
                         setTerminalSize({ cols, rows });

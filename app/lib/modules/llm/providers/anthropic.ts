@@ -214,11 +214,39 @@ function markMessageCacheBreakpoint(message: Record<string, unknown>): boolean {
 
 export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fetch {
   return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+    /*
+     * BUG-AGENT-008 — la désactivation de la réflexion étendue est posée ICI,
+     * dans le corps de la requête, et non via `providerOptions`.
+     *
+     * `@ai-sdk/anthropic@0.0.39` ne lit JAMAIS `providerOptions` (`grep -c` rend
+     * 0 sur le paquet installé) : le contournement de BUG-CHAT-THINKING-001
+     * écrivait donc une option que rien ne consommait, et sept tests verts ne le
+     * disaient pas — ils vérifiaient la forme de l'objet, pas qu'il atteignait le
+     * fournisseur.
+     *
+     * Conséquence mesurée en production le 31/08 : `claude-opus-5` émet des blocs
+     * `thinking` par défaut — omettre le paramètre ne veut plus dire « off »,
+     * `output-budget.ts` le documente déjà — le SDK ne sait pas les valider, le
+     * flux meurt, l'utilisateur voit « Service unavailable ». 4 générations,
+     * 10 erreurs, 0 succès.
+     *
+     * À retirer quand le SDK sera monté : `anthropic-thinking-effectivity.spec.ts`
+     * passera au rouge ce jour-là.
+     */
     try {
-      if (init && typeof init.body === 'string' && init.body.includes('"system"')) {
+      if (
+        init &&
+        typeof init.body === 'string' &&
+        (init.body.includes('"system"') || init.body.includes('"messages"'))
+      ) {
         const parsed = JSON.parse(init.body);
 
         let mutated = false;
+
+        if (parsed && typeof parsed === 'object' && parsed.thinking === undefined) {
+          parsed.thinking = { type: 'disabled' };
+          mutated = true;
+        }
 
         if (parsed && typeof parsed.system === 'string' && parsed.system.includes(ANTHROPIC_CACHE_BREAKPOINT)) {
           /*
@@ -287,7 +315,30 @@ export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fet
        */
     }
 
-    const response = await baseFetch(input as any, init);
+    let response = await baseFetch(input as any, init);
+
+    /*
+     * AUTO-CORRECTION plutôt qu'une liste de modèles à maintenir.
+     *
+     * Tous les modèles Anthropic n'acceptent pas `thinking` ; les plus anciens
+     * rendent un 400. Plutôt que de tenir une liste — le motif qui a déjà produit
+     * un garde-fou surveillant la mauvaise famille — on renvoie la requête SANS
+     * le paramètre quand, et seulement quand, l'API le refuse explicitement.
+     * Coût : un aller-retour de plus, dans le seul cas qui échouait de toute façon.
+     */
+    if (response.status === 400 && init && typeof init.body === 'string' && init.body.includes('"thinking"')) {
+      const detail = await response.clone().text();
+
+      if (detail.includes('thinking')) {
+        try {
+          const parsed = JSON.parse(init.body);
+          delete parsed.thinking;
+          response = await baseFetch(input as any, { ...init, body: JSON.stringify(parsed) });
+        } catch {
+          /* corps illisible : on garde la réponse d'origine, qui porte l'erreur réelle. */
+        }
+      }
+    }
 
     // Only the streaming /v1/messages call carries usage worth tracing.
     const url = typeof input === 'string' ? input : ((input as Request)?.url ?? String(input));
@@ -309,6 +360,23 @@ export default class AnthropicProvider extends BaseProvider {
   };
 
   staticModels: ModelInfo[] = [
+    {
+      /*
+       * Platform default generation model (agent routing card v3). 1M context,
+       * 128k output. Opus 5 runs ADAPTIVE THINKING BY DEFAULT — unlike Opus 4.8,
+       * omitting the `thinking` param no longer means "no thinking" — and those
+       * thinking tokens share the same `max_tokens` ceiling as the visible answer.
+       * `@ai-sdk/anthropic@0.0.39` exposes no `thinking` knob, so we cannot pin it
+       * off; the declared 128k completion ceiling plus the existing
+       * finishReason:'length' auto-continue is what keeps a long build from
+       * stopping mid-file.
+       */
+      name: 'claude-opus-5',
+      label: 'Claude Opus 5',
+      provider: 'Anthropic',
+      maxTokenAllowed: 1_000_000,
+      maxCompletionTokens: 128000,
+    },
     {
       name: 'claude-fable-5',
       label: 'Claude Fable 5',
@@ -403,7 +471,11 @@ export default class AnthropicProvider extends BaseProvider {
 
       if (m.max_input_tokens) {
         contextWindow = m.max_input_tokens;
-      } else if (m.id?.includes('claude-opus-4-8') || m.id?.includes('claude-sonnet-4-6')) {
+      } else if (
+        m.id?.includes('claude-opus-5') ||
+        m.id?.includes('claude-opus-4-8') ||
+        m.id?.includes('claude-sonnet-4-6')
+      ) {
         contextWindow = 1_000_000;
       } else if (m.id?.includes('claude-3-5-sonnet')) {
         contextWindow = 200000; // Claude 3.5 Sonnet has 200k context

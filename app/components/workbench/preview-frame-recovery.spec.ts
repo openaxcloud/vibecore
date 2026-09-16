@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAX_PREVIEW_BOOT_ATTEMPTS,
+  beginPreviewFrameReload,
   MAX_PREVIEW_LOAD_RETRIES,
   decidePreviewLoadOutcome,
   shouldAutoRunPreview,
+  shouldHoldPreviewLoadingOverlay,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
 } from './preview-frame-recovery';
@@ -64,6 +66,70 @@ describe('decidePreviewLoadOutcome', () => {
     expect(decision.treatAsRendered).toBe(true);
     expect(decision.scheduleReload).toBe(false);
     expect(decision.nextAttempt).toBe(MAX_PREVIEW_LOAD_RETRIES);
+  });
+
+  /*
+   * BUG-UX-PREVIEW-OVERLAY-LAG (live 24/08): the aggregate `ready` stays false
+   * on reopen (manager status lags, client beacon reflects the previous page)
+   * while the port genuinely serves 200s. Every real render was discarded as a
+   * "502 holding page" and reloaded — the overlay never dropped.
+   */
+  it('trusts a load when the server reports the port SERVING, even while the aggregate ready is still false', () => {
+    const decision = decidePreviewLoadOutcome({ attempt: 2, ready: false, serving: true, erroredLoad: false });
+
+    expect(decision.treatAsRendered).toBe(true);
+    expect(decision.scheduleReload).toBe(false);
+    expect(decision.nextAttempt).toBe(0);
+  });
+
+  it('still retries a frame ERROR even while the port reports serving (network-level failure, nothing rendered)', () => {
+    const decision = decidePreviewLoadOutcome({ attempt: 0, ready: false, serving: true, erroredLoad: true });
+
+    expect(decision.treatAsRendered).toBe(false);
+    expect(decision.scheduleReload).toBe(true);
+  });
+
+  it('keeps distrusting a not-ready load when serving is unknown (the original 502 race is unchanged)', () => {
+    const decision = decidePreviewLoadOutcome({ attempt: 0, ready: false, serving: undefined, erroredLoad: false });
+
+    expect(decision.treatAsRendered).toBe(false);
+    expect(decision.scheduleReload).toBe(true);
+  });
+});
+
+describe('shouldHoldPreviewLoadingOverlay (BUG-UX-PREVIEW-OVERLAY-LAG)', () => {
+  const base = {
+    hasActivePreview: true,
+    hasIframeUrl: true,
+    frameLoaded: true,
+    loadedUrlMatches: true,
+  };
+
+  it('drops the overlay once the frame loaded and the port is SERVING, even while the aggregate ready is still false', () => {
+    // The measured live state: URL renders the app in a plain tab, overlay still said "Starting".
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: false, serving: true })).toBe(false);
+  });
+
+  it('keeps the overlay while the frame has not loaded the current URL yet', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: true, serving: true, frameLoaded: false })).toBe(true);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: true, serving: true, loadedUrlMatches: false })).toBe(
+      true,
+    );
+  });
+
+  it('keeps the overlay over a loaded frame only when the port is not-ready AND not serving (the real 502 page)', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: false, serving: undefined })).toBe(true);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: false, serving: false })).toBe(true);
+  });
+
+  it('drops the overlay for a loaded frame with a ready (or unknown) port', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: true })).toBe(false);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: undefined })).toBe(false);
+  });
+
+  it('never shows without an active preview or iframe URL', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, hasActivePreview: false, ready: false })).toBe(false);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, hasIframeUrl: false, ready: false })).toBe(false);
   });
 });
 
@@ -166,5 +232,82 @@ describe('shouldReloadPreviewOnReadyEdge', () => {
   it('never reloads when there was no ready edge, regardless of render state', () => {
     expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: false, frameRendered: false })).toBe(false);
     expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: false, frameRendered: true })).toBe(false);
+  });
+});
+
+describe('beginPreviewFrameReload (BUG-A — "Refresh preview" must force a REAL iframe reload)', () => {
+  /*
+   * Live 23/08: dev server serving on 5173 (app rendered fine in a standalone
+   * tab), embedded Webview blank, "Refresh preview" a silent no-op. The old
+   * inline handler only forced a navigation when contentWindow.location.reload()
+   * THREW (cross-origin); a frame parked on about:blank reloads "successfully"
+   * — and stays blank.
+   */
+
+  function fakeFrame(input: { href?: string; crossOrigin?: boolean; noWindow?: boolean }) {
+    const reloadCalls: string[] = [];
+
+    const frame = {
+      src: input.href ?? '',
+      contentWindow: input.noWindow
+        ? null
+        : {
+            location: {
+              get href(): string {
+                if (input.crossOrigin) {
+                  throw new DOMException('Blocked a frame from accessing a cross-origin frame.', 'SecurityError');
+                }
+
+                return input.href ?? 'about:blank';
+              },
+              reload() {
+                if (input.crossOrigin) {
+                  throw new DOMException('Blocked a frame from accessing a cross-origin frame.', 'SecurityError');
+                }
+
+                reloadCalls.push('reload');
+              },
+            },
+          },
+    };
+
+    return { frame, reloadCalls };
+  }
+
+  it('forces a navigation when the frame is parked on about:blank — the silent no-op that left the Webview blank', () => {
+    const { frame, reloadCalls } = fakeFrame({ href: 'about:blank' });
+
+    expect(beginPreviewFrameReload(frame)).toBe('force-navigation');
+
+    // The frame is parked for the bounce; the caller re-assigns the target src.
+    expect(frame.src).toBe('about:blank');
+
+    // Reloading about:blank is NOT a real reload and must never count as one.
+    expect(reloadCalls).toHaveLength(0);
+  });
+
+  it('forces a navigation when contentWindow is missing (the optional chain used to skip the reload entirely)', () => {
+    const { frame } = fakeFrame({ noWindow: true, href: 'https://ws-x-5173.preview.e-code.ai/' });
+
+    expect(beginPreviewFrameReload(frame)).toBe('force-navigation');
+    expect(frame.src).toBe('about:blank');
+  });
+
+  it('forces a navigation for a cross-origin frame (reload() throws — the one case the old code did handle)', () => {
+    const { frame, reloadCalls } = fakeFrame({ crossOrigin: true, href: 'https://ws-x-5173.preview.e-code.ai/' });
+
+    expect(() => beginPreviewFrameReload(frame)).not.toThrow();
+    expect(beginPreviewFrameReload(frame)).toBe('force-navigation');
+    expect(reloadCalls).toHaveLength(0);
+  });
+
+  it('keeps the same-origin fast path: a genuinely loaded page is reloaded in place, without a src bounce', () => {
+    const { frame, reloadCalls } = fakeFrame({ href: 'http://localhost:5173/' });
+
+    expect(beginPreviewFrameReload(frame)).toBe('same-origin-reload');
+    expect(reloadCalls).toEqual(['reload']);
+
+    // No bounce: the frame keeps its src (no flicker on the healthy path).
+    expect(frame.src).toBe('http://localhost:5173/');
   });
 });

@@ -205,7 +205,7 @@ export default function Mobile() {
                   <Button
                     size="lg"
                     onClick={() => navigate('/signup')}
-                    className="gap-2 bg-ecode-accent text-white hover:bg-ecode-accent-hover"
+                    className="gap-2 bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90"
                     data-testid="button-mobile-hero-start"
                   >
                     {copy.hero.primary}
@@ -257,7 +257,9 @@ export default function Mobile() {
                     >
                       <span
                         className={`mt-0.5 inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                          isActive ? 'bg-ecode-accent text-white' : 'bg-muted text-[var(--ecode-accent)]'
+                          isActive
+                            ? 'bg-[var(--vc-action-primary-strong)] text-white'
+                            : 'bg-muted text-[var(--ecode-accent)]'
                         }`}
                       >
                         {highlight.icon}
@@ -416,7 +418,7 @@ export default function Mobile() {
               <Button
                 size="lg"
                 onClick={() => navigate('/signup')}
-                className="gap-2 bg-ecode-accent text-white hover:bg-ecode-accent-hover"
+                className="gap-2 bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90"
                 data-testid="button-mobile-cta-start"
               >
                 {copy.cta.primary}

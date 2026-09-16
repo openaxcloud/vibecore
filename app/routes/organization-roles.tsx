@@ -201,7 +201,7 @@ export default function OrganizationRolesPage() {
 
   return (
     <AppShell title={copy['organizationAccess.roles.title']} description={copy['organizationAccess.roles.description']}>
-      <div className="grid gap-6">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
         {actionData?.status ? (
           <p
             role="status"
@@ -242,7 +242,7 @@ export default function OrganizationRolesPage() {
                       className="whitespace-nowrap px-3 py-2 text-center font-medium text-bolt-elements-textPrimary"
                     >
                       {role.name}
-                      <span className="ml-1 text-[10px] font-normal text-bolt-elements-textSecondary">
+                      <span className="ml-1 text-[11px] font-normal text-bolt-elements-textSecondary">
                         {role.builtin
                           ? copy['organizationAccess.roles.builtin']
                           : copy['organizationAccess.roles.custom']}

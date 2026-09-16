@@ -16,13 +16,7 @@ export function loader({ request }: LoaderFunctionArgs) {
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const seo = getMarketingExactPartnersBountiesCopy(data?.language).exactBounties.seo;
 
-  return [
-    { title: seo.title },
-    { name: 'description', content: seo.description },
-    ...socialMetaTags(seo),
-    { name: 'twitter:title', content: seo.title },
-    { name: 'twitter:description', content: seo.description },
-  ];
+  return [{ title: seo.title }, { name: 'description', content: seo.description }, ...socialMetaTags(seo)];
 };
 
 export default function MarketingBountiesRoute() {

@@ -52,6 +52,45 @@ interface LogDetails extends Record<string, any> {
 const MAX_LOGS = 1000; // Maximum number of logs to keep in memory
 const LOG_STORAGE_KEY = 'eventLogs';
 
+/*
+ * BUG-B (live 23/08) — the persisted `eventLogs` key grew to ~0.4 MB (entries
+ * embed full API request/response payloads; MAX_LOGS only bounds the COUNT, not
+ * the bytes) and, on a browser whose localStorage was already crowded, threw
+ * `QuotaExceededError: setItem 'eventLogs' exceeded the quota` on every write.
+ * Cap the SERIALIZED size before writing, and treat storage as best-effort:
+ * when the browser still refuses, purge our own key and retry once with a
+ * minimal tail — never let diagnostics break the IDE.
+ */
+export const MAX_LOGS_STORAGE_CHARS = 128 * 1024; // ~256 KB in UTF-16 storage
+
+const EMERGENCY_LOGS_STORAGE_CHARS = 16 * 1024; // retry size once the quota already blew
+
+/**
+ * Serialize the newest logs so the payload stays under `maxChars`, dropping the
+ * oldest entries first. Pure and exported so the cap is unit-testable.
+ */
+export function serializeLogsWithinBudget(
+  logs: Record<string, LogEntry>,
+  maxChars: number = MAX_LOGS_STORAGE_CHARS,
+): { serialized: string; dropped: number } {
+  let entries = Object.entries(logs).sort(
+    ([, a], [, b]) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  ); // oldest first
+
+  let serialized = JSON.stringify(Object.fromEntries(entries));
+  let dropped = 0;
+
+  while (serialized.length > maxChars && entries.length > 0) {
+    // Drop the oldest half each round: converges in O(log n) serializations.
+    const dropCount = Math.max(1, Math.ceil(entries.length / 2));
+    entries = entries.slice(dropCount);
+    dropped += dropCount;
+    serialized = JSON.stringify(Object.fromEntries(entries));
+  }
+
+  return { serialized, dropped };
+}
+
 export type AuthLogAction = 'login' | 'logout' | 'token_refresh' | 'key_validation';
 export type NetworkLogStatus = 'online' | 'offline' | 'reconnecting' | 'connected';
 
@@ -208,12 +247,28 @@ class LogStore {
     /*
      * Persist to localStorage, NOT a cookie: these client-only diagnostic logs
      * (up to MAX_LOGS entries embedding full API request/response payloads) must
-     * never be attached to outgoing HTTP requests.
+     * never be attached to outgoing HTTP requests. The payload is capped in
+     * bytes BEFORE the write (see serializeLogsWithinBudget).
      */
     try {
-      localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(this._logs.get()));
+      const { serialized } = serializeLogsWithinBudget(this._logs.get());
+      localStorage.setItem(LOG_STORAGE_KEY, serialized);
     } catch (error) {
-      // QuotaExceeded etc. — logging must never throw into the caller.
+      /*
+       * QuotaExceeded etc. — logging must never throw into the caller. And the
+       * storage is FULL: leaving the old oversized value in place would make
+       * every future write fail too (live 23/08). Auto-purge our own key and
+       * retry once with a minimal tail; if even that fails, give up persisting.
+       */
+      try {
+        localStorage.removeItem(LOG_STORAGE_KEY);
+
+        const { serialized: tail } = serializeLogsWithinBudget(this._logs.get(), EMERGENCY_LOGS_STORAGE_CHARS);
+        localStorage.setItem(LOG_STORAGE_KEY, tail);
+      } catch {
+        // Storage is unusable; in-memory logs keep working.
+      }
+
       logger.error('Failed to persist logs to storage:', error);
     }
   }
@@ -223,7 +278,16 @@ class LogStore {
       return;
     }
 
-    localStorage.setItem('bolt_read_logs', JSON.stringify(Array.from(this._readLogs)));
+    try {
+      localStorage.setItem('bolt_read_logs', JSON.stringify(Array.from(this._readLogs)));
+    } catch (error) {
+      /*
+       * This setItem was UNPROTECTED: `_addLog` → `_trimLogs` → `_saveReadLogs`,
+       * so on a saturated browser a QuotaExceededError here propagated into
+       * whatever component merely tried to LOG something (BUG-B, live 23/08).
+       */
+      logger.error('Failed to persist read-marker logs to storage:', error);
+    }
   }
 
   private _generateId(): string {

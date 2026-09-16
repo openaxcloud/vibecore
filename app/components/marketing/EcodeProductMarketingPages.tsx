@@ -326,7 +326,7 @@ export function EcodeAiAgentPage() {
       <MarketingMain>
         <section className="relative overflow-hidden bg-gradient-to-b from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-2 py-16 sm:py-20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(242,98,7,0.16),transparent_34%),radial-gradient(circle_at_80%_15%,rgba(249,157,37,0.14),transparent_28%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <Badge icon={Sparkles}>{copy.badge}</Badge>
               <h1 className="mt-6 max-w-3xl mkt-h1 text-bolt-elements-textPrimary">
@@ -379,7 +379,7 @@ export function EcodeAiAgentPage() {
 
         <Section id="agent-demo">
           <SectionIntro title={copy.demoIntro.title} description={copy.demoIntro.description} />
-          <div className="grid gap-8 lg:grid-cols-[1.5fr_0.85fr]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[1.5fr_0.85fr]">
             <DemoFrame
               compact
               eyebrow={copy.segmentLabel(selectedSegment.timestamp)}
@@ -588,7 +588,7 @@ export function EcodeAiPlatformPage() {
 
         <Section>
           <SectionIntro title={copy.capabilitiesIntro.title} description={copy.capabilitiesIntro.description} />
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-4">
               {copy.features.map((feature) => {
                 const Icon = aiPlatformFeatureIcons[feature.key];
@@ -686,7 +686,7 @@ export function EcodeFeaturesPage() {
     <PublicShell>
       <MarketingMain>
         <section className="py-16 sm:py-24">
-          <Container className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+          <Container className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <Badge icon={Layers}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">{copy.heroTitle}</h1>
@@ -729,7 +729,7 @@ export function EcodeFeaturesPage() {
 
         <Section id="ide">
           <SectionIntro title={copy.ideIntro.title} description={copy.ideIntro.description} />
-          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
             <WorkspaceMockup large />
             <div className="grid gap-4">
               {copy.ideCards.map(([title, description]) => (
@@ -769,7 +769,7 @@ export function EcodeMobilePage() {
       <MarketingMain>
         <section className="relative overflow-hidden py-16 sm:py-24">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(249,157,37,0.16),transparent_32%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Smartphone}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">{copy.heroTitle}</h1>
@@ -792,7 +792,7 @@ export function EcodeMobilePage() {
 
         <Section tone="muted">
           <SectionIntro title={copy.intro.title} description={copy.intro.description} />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {copy.features.map((feature) => {
               const Icon = mobileFeatureIcons[feature.id];
               return (
@@ -817,7 +817,7 @@ export function EcodeMobilePage() {
         </Section>
 
         <Section>
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <Panel>
               <h2 className="text-3xl font-bold text-bolt-elements-textPrimary">{activeFeature.title}</h2>
               <p className="mt-3 text-bolt-elements-textSecondary">{activeFeature.description}</p>
@@ -869,7 +869,7 @@ export function EcodePricingPage() {
                   className={classNames(
                     'min-h-11 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]',
                     billingPeriod === period
-                      ? 'bg-[var(--ecode-accent)] text-white'
+                      ? 'bg-[var(--vc-action-primary-strong)] text-white'
                       : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
                   )}
                 >
@@ -891,12 +891,23 @@ export function EcodePricingPage() {
                 )}
               >
                 {plan.popular ? (
-                  <span className="absolute -top-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--ecode-accent)] px-4 py-1 text-xs font-semibold text-white">
+                  <span className="absolute -top-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-4 py-1 text-xs font-semibold text-white">
                     <Star className="h-3 w-3 fill-current" aria-hidden />
                     {copy.recommended}
                   </span>
                 ) : null}
-                <div className={classNames('inline-flex rounded-xl bg-gradient-to-br p-3 text-white', plan.gradient)}>
+                {/*
+                 * `self-start` is load-bearing: this chip is a direct child of a
+                 * `flex-col` card, so its `inline-flex` blockifies to `flex` and
+                 * the default `align-items: stretch` blew the 48px icon badge up
+                 * into a full-width gradient bar across the top of every plan.
+                 */}
+                <div
+                  className={classNames(
+                    'inline-flex self-start rounded-xl bg-gradient-to-br p-3 text-white',
+                    plan.gradient,
+                  )}
+                >
                   {plan.icon}
                 </div>
                 <h2 className="mt-5 break-words text-2xl font-bold text-bolt-elements-textPrimary">{plan.name}</h2>
@@ -960,12 +971,18 @@ export function EcodePricingPage() {
               <thead className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
                 <tr>
                   <th className="p-5 text-left font-semibold text-bolt-elements-textPrimary">{copy.featuresLabel}</th>
+                  {/*
+                   * SCR-007 : le libellé de la colonne accentuée est du TEXTE sur fond
+                   * clair. `--ecode-accent` (#f26207) y plafonne à 3,22:1 — mesuré live
+                   * le 20/08 à 390 ET 1440. `--ecode-accent-text` (#c74e00 en thème
+                   * clair) est le jeton prévu pour l'orange porteur de texte.
+                   */}
                   {(['free', 'core', 'pro', 'enterprise'] as const).map((planKey) => (
                     <th
                       key={planKey}
                       className={classNames(
                         'p-5 text-center font-semibold',
-                        planKey === 'core' ? 'text-[var(--ecode-accent)]' : 'text-bolt-elements-textPrimary',
+                        planKey === 'core' ? 'text-[var(--ecode-accent-text)]' : 'text-bolt-elements-textPrimary',
                       )}
                     >
                       {planCopy[planKey].name}
@@ -1081,7 +1098,7 @@ export function EcodeDeploymentsPage() {
       <MarketingMain>
         <section className="relative overflow-hidden py-16 sm:py-24">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(242,98,7,0.14),transparent_32%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Rocket}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">{copy.heroTitle}</h1>
@@ -1126,7 +1143,7 @@ export function EcodeDeploymentsPage() {
           <div className="grid gap-5 md:grid-cols-4">
             {copy.workflow.map(([title, description], index) => (
               <Panel key={title}>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ecode-accent)] text-sm font-bold text-white">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] text-sm font-bold text-white">
                   {index + 1}
                 </span>
                 <h3 className="mt-4 text-lg font-semibold text-bolt-elements-textPrimary">{title}</h3>
@@ -1161,7 +1178,7 @@ export function EcodeBountiesPage() {
       <MarketingMain>
         <section className="relative overflow-hidden bg-slate-950 py-16 text-white sm:py-24">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(242,98,7,0.22),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(249,157,37,0.18),transparent_28%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <div>
               <Badge icon={Handshake}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1">{copy.heroTitle}</h1>
@@ -1215,7 +1232,7 @@ export function EcodeBountiesPage() {
           <div className="grid gap-5 md:grid-cols-3">
             {copy.workflow.map(([title, description], index) => (
               <Panel key={title}>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ecode-accent)] font-bold text-white">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] font-bold text-white">
                   {index + 1}
                 </span>
                 <h3 className="mt-4 text-lg font-semibold text-bolt-elements-textPrimary">{title}</h3>
@@ -1400,13 +1417,19 @@ function SectionIntro({
   );
 }
 
+/*
+ * `flex-wrap` pushed the icon onto a line of its own as soon as the label
+ * outgrew the row (every uppercase eyebrow does, below ~430px), turning the
+ * `rounded-full` pill into a multi-line slab with a stranded icon. Keep the
+ * icon beside the text and let the LABEL wrap inside the pill instead.
+ */
 function Badge({ children, icon }: { children: ReactNode; icon: LucideIcon }) {
   const IconComponent = icon;
 
   return (
-    <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-[var(--ecode-accent)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
+    <span className="inline-flex max-w-full flex-nowrap items-center justify-center gap-2 rounded-full bg-[var(--vc-action-primary-strong)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
       <IconComponent className="h-4 w-4 shrink-0" aria-hidden />
-      {children}
+      <span className="min-w-0 break-words">{children}</span>
     </span>
   );
 }
@@ -1425,7 +1448,7 @@ function ActionLink({
   const className = classNames(
     'inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-5 py-2 text-center text-sm font-semibold leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]',
     fullWidth && 'w-full',
-    variant === 'default' && 'bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)]',
+    variant === 'default' && 'bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90',
     variant === 'outline' &&
       'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
     variant === 'outlineDark' && 'border border-white/25 text-white hover:bg-white/10',
@@ -1578,8 +1601,16 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
         <span className="h-3 w-3 rounded-full bg-emerald-400" />
         <span className="ml-3 text-xs text-white/50">{workspacePreviewUrl}</span>
       </div>
-      <div className="grid min-h-[inherit] grid-cols-[0.32fr_0.68fr]">
-        <aside className="border-r border-white/10 bg-white/[0.03] p-4 text-xs text-white/55">
+      {/*
+       * An `fr` track keeps an implicit `min-width: min-content`, and the code
+       * block below is `white-space: pre` — so its ~340px min-content width
+       * forced this grid WIDER than its `overflow-hidden` shell on a phone and
+       * the mockup got clipped on both edges (sidebar labels sheared to
+       * "ments", code running off-screen). Stack to one column below `sm`, and
+       * let the panes actually shrink via `min-w-0`.
+       */}
+      <div className="grid min-h-[inherit] grid-cols-1 sm:grid-cols-[0.32fr_0.68fr]">
+        <aside className="min-w-0 border-b border-white/10 bg-white/[0.03] p-4 text-xs text-white/55 sm:border-b-0 sm:border-r">
           {['app', 'components', 'routes', 'api', 'deployments'].map((item) => (
             <div key={item} className="mb-3 flex items-center gap-2">
               <Layers className="h-3.5 w-3.5" aria-hidden />
@@ -1587,8 +1618,9 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
             </div>
           ))}
         </aside>
-        <div className="p-4">
-          <pre className="rounded-lg border border-white/10 bg-black/35 p-4 font-mono text-xs leading-6 text-emerald-200">
+        <div className="min-w-0 p-4">
+          {/* `overflow-x-auto` keeps a long line inside the panel instead of widening the grid. */}
+          <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/35 p-4 font-mono text-xs leading-6 text-emerald-200">
             <code>
               {'import { Dashboard } from "./components";\n'}
               {'export default function App() {\n'}
@@ -1713,7 +1745,7 @@ function MobileFeatureDemo({ copy, featureId }: { copy: RemainingProductCopy['mo
 
   return (
     <Panel dark className="bg-slate-950">
-      <pre className="rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-xs leading-6 text-emerald-200">
+      <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-xs leading-6 text-emerald-200">
         <code>
           {'import Workspace from "@ecode/mobile";\n'}
           {'const session = Workspace.resume("inventory-app");\n'}

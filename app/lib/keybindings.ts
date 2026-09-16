@@ -128,8 +128,25 @@ export const defaultProjectKeybindings: Keybinding[] = [
      * (clear, handled by the terminal's own key handler) — the palette stays
      * reachable via ⌘⇧P. Without this guard the window-level capture listener
      * would swallow the event before xterm ever sees it.
+     *
+     * SCR-006 — cette sémantique ne tient PAS sur les coques mobile et tablette,
+     * et la garde y rendait ⌘K purement décoratif. Mesuré live le 20/08 sur prod
+     * `web:73c4edc166`, projet réel : au CHARGEMENT, sans que l'utilisateur ait
+     * touché à quoi que ce soit, `document.activeElement` est déjà le
+     * `textarea.xterm-helper-textarea` caché de xterm — à 390 le `.xterm` est la
+     * surface d'accueil (`390×631` à `y=141`, `display:block`, `visibility:visible`)
+     * et à 768 il est monté hors écran (`x=-768`) tout en gardant le focus.
+     * `focusTarget` valait donc 'terminal' AVANT toute intention de l'utilisateur,
+     * et ⌘K n'ouvrait jamais la palette. Preuve du diagnostic : ⌘⇧P, qui vise la
+     * même action SANS garde, l'ouvrait bien dans la même page.
+     *
+     * Une garde sur la VISIBILITÉ du terminal ne suffirait pas : elle corrigerait
+     * 768 (hors écran) mais pas 390, où le terminal est réellement à l'écran.
+     * On lève donc la garde sur les coques mobile/tablette — où ⌘⇧P n'est de
+     * toute façon pas une porte de sortie praticable — et on la garde au bureau,
+     * où elle a du sens et où ⌘⇧P reste disponible.
      */
-    when: (ctx) => ctx.focusTarget !== 'terminal',
+    when: (ctx) => ctx.useMobileIde === true || ctx.focusTarget !== 'terminal',
     preventDefault: true,
   },
   {

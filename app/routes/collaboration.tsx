@@ -19,13 +19,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
       : tag;
   });
 
-  return [
-    { title: seo.title },
-    { name: 'description', content: seo.description },
-    ...social,
-    { name: 'twitter:title', content: seo.title },
-    { name: 'twitter:description', content: seo.description },
-  ];
+  return [{ title: seo.title }, { name: 'description', content: seo.description }, ...social];
 };
 
 export default function CollaborationRoute() {

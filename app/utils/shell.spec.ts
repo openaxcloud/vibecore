@@ -266,6 +266,88 @@ describe('newShellProcess jsh handshake (bug 1)', () => {
   });
 });
 
+describe('newShellProcess input reaches the PTY (BUG-TERM-001)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  /**
+   * Le trou de couverture qui a laissé passer BUG-TERM-001 : aucun test ne
+   * suivait une frappe depuis `terminal.onData` jusqu'à `session.write`. Le
+   * terminal pouvait donc rester ouvert, afficher son invite, et avaler
+   * silencieusement chaque touche.
+   */
+  it('forwards a keystroke to the session once the handshake arrived', async () => {
+    const session = new FakeSession();
+    const runtime = { openTerminal: vi.fn().mockResolvedValue(session) } as unknown as RuntimeAdapter;
+    const terminal = makeTerminal();
+
+    const ready = newShellProcess(runtime, terminal);
+    await flush();
+    session.emit('\x1b]654;interactive\x07');
+    await ready;
+
+    terminal.input('ls\n');
+
+    expect(session.written).toEqual(['ls\n']);
+  });
+
+  /**
+   * Cas réel de reattach : `interactive` n'est PAS le premier marqueur du chunk.
+   * L'ancienne détection ne lisait que le premier et restait fermée à jamais.
+   */
+  it('forwards input when interactive is not the FIRST marker of the chunk', async () => {
+    const session = new FakeSession();
+    const runtime = { openTerminal: vi.fn().mockResolvedValue(session) } as unknown as RuntimeAdapter;
+    const terminal = makeTerminal();
+
+    const ready = newShellProcess(runtime, terminal);
+    await flush();
+    session.emit('\x1b]654;exit=0:0\x07\x1b]654;prompt\x07\x1b]654;interactive\x07/workspace $ ');
+    await ready;
+
+    terminal.input('whoami\n');
+
+    expect(session.written).toEqual(['whoami\n']);
+  });
+
+  /** Marqueur coupé entre deux frames WebSocket. */
+  it('forwards input when the interactive marker is SPLIT across two chunks', async () => {
+    const session = new FakeSession();
+    const runtime = { openTerminal: vi.fn().mockResolvedValue(session) } as unknown as RuntimeAdapter;
+    const terminal = makeTerminal();
+
+    const ready = newShellProcess(runtime, terminal);
+    await flush();
+    session.emit('\x1b]654;inter');
+    await flush();
+    session.emit('active\x07/workspace $ ');
+    await ready;
+
+    terminal.input('pwd\n');
+
+    expect(session.written).toEqual(['pwd\n']);
+  });
+
+  /** Garantie centrale : une frappe reçue AVANT le marqueur n'est pas perdue. */
+  it('queues a keystroke typed before the handshake and flushes it after', async () => {
+    const session = new FakeSession();
+    const runtime = { openTerminal: vi.fn().mockResolvedValue(session) } as unknown as RuntimeAdapter;
+    const terminal = makeTerminal();
+
+    const ready = newShellProcess(runtime, terminal);
+    await flush();
+
+    terminal.input('echo tot\n');
+    expect(session.written).toEqual([]);
+
+    session.emit('\x1b]654;interactive\x07');
+    await ready;
+
+    expect(session.written).toEqual(['echo tot\n']);
+  });
+});
+
 describe('BoltShell.executeCommand abort (bug 2)', () => {
   beforeEach(() => {
     vi.clearAllMocks();

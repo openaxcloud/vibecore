@@ -20,7 +20,19 @@ describe('projects/new responsive UI contract', () => {
 
     expect(routeSource).toContain('const [advancedOpen, setAdvancedOpen] = useState(false)');
     expect(routeSource).toContain('aria-expanded={advancedOpen}');
-    expect(routeSource).toContain('aria-controls="vc-new-project-advanced-content vc-new-project-templates"');
+
+    /*
+     * Le dépliant ne contrôle QUE les options avancées.
+     *
+     * Il annonçait aussi `vc-new-project-templates`, et la feuille masquait cette
+     * section sous 640px tant que le dépliant restait fermé. Or son libellé et
+     * son résumé parlent du type d'artefact, jamais de modèles : mesuré en 390,
+     * les quatre boutons « Utiliser le modèle » étaient dans le DOM à 0×0 px sous
+     * un ancêtre `display: none`. Créer depuis un modèle était donc impossible
+     * sur téléphone. Le regroupement « une seule révélation » reste vrai pour les
+     * métadonnées et les exemples — c'est bien ce que vérifie l'ordre ci-dessous.
+     */
+    expect(routeSource).toContain('aria-controls="vc-new-project-advanced-content"');
     expect(routeSource).toContain("data-open={advancedOpen ? 'true' : 'false'}");
     expect(composerIndex).toBeGreaterThan(-1);
     expect(disclosureIndex).toBeGreaterThan(composerIndex);
@@ -39,7 +51,9 @@ describe('projects/new responsive UI contract', () => {
       /@media \(max-width:\s*640px\)[\s\S]*\.vc-new-project-advanced-toggle\s*{[^}]*display:\s*flex;/,
     );
     expect(stylesSource).toMatch(/\.vc-new-project-advanced-content\[data-open='true'\]\s*{\s*display:\s*flex;/);
-    expect(stylesSource).toMatch(/\.vc-new-project-templates\[data-open='true'\]\s*{\s*display:\s*flex;/);
+
+    // …mais la galerie de modèles, elle, reste visible en mobile (voir ci-dessus).
+    expect(stylesSource).not.toContain(".vc-new-project-templates[data-open='true']");
   });
 
   it('only reveals keyboard hints when the browser reports desktop-style input', () => {

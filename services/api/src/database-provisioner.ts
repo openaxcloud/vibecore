@@ -372,12 +372,21 @@ export function buildScheduledBackupManifest(projectId: string, environment?: Da
 }
 
 /** On-demand base backup (manual snapshot). */
+/**
+ * Nom du CR `Backup` d'un snapshot. Extrait de `buildOnDemandBackupManifest`
+ * pour que la RELECTURE du statut vise exactement l'objet créé — le recalculer
+ * à la main ailleurs finirait par diverger et « vérifier » un autre backup.
+ */
+export function onDemandBackupName(projectId: string, snapshotId: string): string {
+  return `${clusterName(projectId)}-${snapshotId}`.toLowerCase().slice(0, 53);
+}
+
 export function buildOnDemandBackupManifest(projectId: string, snapshotId: string): K8sManifest {
   return {
     apiVersion: CNPG_API,
     kind: 'Backup',
     metadata: {
-      name: `${clusterName(projectId)}-${snapshotId}`.toLowerCase().slice(0, 53),
+      name: onDemandBackupName(projectId, snapshotId),
       namespace: DB_NAMESPACE,
       labels: dbLabels(projectId),
     },
@@ -472,6 +481,21 @@ export interface DatabaseProvisioner {
     environment?: DatabaseEnvironment;
   }): Promise<string | undefined>;
   takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }>;
+  /**
+   * ÉTAT RÉEL d'un backup, par lecture du `status` du CR `Backup` CNPG.
+   *
+   * `takeSnapshot` rend la main dès que le CR est ACCEPTÉ : il ne dit rien de
+   * l'aboutissement. Sans cette lecture, « backup vérifié » ne voudrait dire que
+   * « backup demandé » — et une migration partirait sur un filet qui n'existe
+   * peut-être pas (I-MIG-1, P0-V3-11).
+   *
+   * `phase` est la phase CNPG brute (`completed`, `failed`, `running`, …) ;
+   * `completed` n'est vrai que sur la phase terminale de succès.
+   */
+  backupStatus(input: {
+    projectId: string;
+    snapshotId: string;
+  }): Promise<{ found: boolean; phase?: string; completed: boolean; error?: string }>;
   startRestore(input: {
     projectId: string;
     organizationId?: string;
@@ -497,6 +521,15 @@ export class NoopProvisioner implements DatabaseProvisioner {
 
   async takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }> {
     return { applied: false };
+  }
+
+  /*
+   * Provisionneur inerte : aucun backup n'existe, donc `completed` est FAUX.
+   * Renvoyer `true` par commodité ferait passer la garde I-MIG-1 sans backup —
+   * exactement le scénario de perte de données que la garde existe pour empêcher.
+   */
+  async backupStatus(): Promise<{ found: boolean; phase?: string; completed: boolean; error?: string }> {
+    return { found: false, completed: false, error: 'provisionneur inactif : aucun backup réel' };
   }
 
   async startRestore(input: {
@@ -666,6 +699,30 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     return { applied: true };
   }
 
+  async backupStatus(input: { projectId: string; snapshotId: string }) {
+    const name = onDemandBackupName(input.projectId, input.snapshotId);
+    /*
+     * Kind `Backup` exactement : le workspace-manager filtre sur une allowlist
+     * (`DB_ROLLBACK_KINDS`) et refuse 403 toute autre forme, y compris le nom
+     * pleinement qualifié. Même convention que `restoreProgress`, qui lit `Cluster`.
+     */
+    const object = await this.k8s.get('Backup', DB_NAMESPACE, name).catch(() => undefined);
+
+    if (!object) {
+      return { found: false, completed: false, error: `Backup CR ${name} introuvable` };
+    }
+
+    /*
+     * CNPG écrit la phase terminale de succès en `completed`. On compare en
+     * minuscules mais on n'accepte QUE cette valeur : traiter `running` ou une
+     * phase inconnue comme un succès reviendrait à migrer sans filet.
+     */
+    const phase = typeof object.status?.phase === 'string' ? object.status.phase : undefined;
+    const error = typeof object.status?.error === 'string' ? object.status.error : undefined;
+
+    return { found: true, phase, completed: phase?.toLowerCase() === 'completed', error };
+  }
+
   async startRestore(input: {
     projectId: string;
     organizationId?: string;
@@ -704,6 +761,27 @@ export class CnpgProvisioner implements DatabaseProvisioner {
       const cluster = clusterName(input.projectId, environment);
       await this.k8s.delete('Cluster', DB_NAMESPACE, cluster).catch(() => {});
       await this.k8s.delete('ScheduledBackup', DB_NAMESPACE, `${cluster}-daily`).catch(() => {});
+
+      /*
+       * La CR `Database` du tier PARTAGÉ, oubliée jusqu'ici.
+       *
+       * Un projet en tier partagé ne reçoit PAS de `Cluster` dédié : il reçoit
+       * une CR `Database` qui lie une base logique au cluster partagé
+       * (`buildDatabaseCrManifest`). Le démontage ne supprimait que `Cluster` et
+       * `ScheduledBackup` — donc, pour ces projets, il ne supprimait RIEN, et la
+       * base survivait à son projet.
+       *
+       * Constaté en production le 2026-09-01 : 2 CR `Database` `APPLIED=true`
+       * dans `project-databases` dont le projet n'existe plus et qu'aucune
+       * `DatabaseInstance` ne référence — `db-cmshm3gni00400nai23ilaq9f` et
+       * `db-cmtfxq12z00170ndhhz666nrx-prod`. Fuite de ressources dans le cluster
+       * partagé, et question de rétention : les données d'un projet supprimé y
+       * restent.
+       *
+       * Le nom est le MÊME que celui du `Cluster` (`clusterName(...)`), ce qui
+       * rendait l'oubli facile à ne pas voir : la ligne semblait déjà couverte.
+       */
+      await this.k8s.delete('Database', DB_NAMESPACE, cluster).catch(() => {});
     }
   }
 }

@@ -22,6 +22,32 @@ const ECODE_AUTHOR = Object.freeze({
 
 const SUMMARY_SEEDS = Object.freeze([
   {
+    id: 'docs-copilot',
+    key: 'demo-docs-copilot',
+    slug: 'docs-copilot',
+    artifactType: 'productivity-app',
+    category: 'productivity',
+    technologies: ['React', 'TypeScript', 'Vite', 'Document Retrieval'],
+    publishedAt: '2026-08-24T10:00:00.000Z',
+    remixCount: 41,
+    featured: true,
+    remixAllowed: true,
+    moderationStatus: 'approved',
+  },
+  {
+    id: 'neon-trivia-arena',
+    key: 'demo-neon-trivia-arena',
+    slug: 'neon-trivia-arena',
+    artifactType: 'game',
+    category: 'gaming',
+    technologies: ['React', 'TypeScript', 'Vite', 'Web Storage'],
+    publishedAt: '2026-08-24T09:00:00.000Z',
+    remixCount: 34,
+    featured: true,
+    remixAllowed: true,
+    moderationStatus: 'approved',
+  },
+  {
     id: 'vendor-risk-review',
     key: 'demo-vendor-risk-review',
     slug: 'vendor-risk-review',

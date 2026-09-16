@@ -5,8 +5,8 @@ export function SectionSkeleton({ height = 'h-96' }: { height?: string }) {
     <div className={`${height} w-full bg-[var(--ecode-surface)] animate-pulse rounded-lg`}>
       <div className="container-responsive max-w-7xl py-12">
         <div className="text-center space-y-6">
-          <Skeleton className="h-10 w-64 mx-auto" />
-          <Skeleton className="h-6 w-96 mx-auto" />
+          <Skeleton className="h-10 w-full max-w-[16rem] mx-auto" />
+          <Skeleton className="h-6 w-full max-w-[24rem] mx-auto" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
             <Skeleton className="h-48 rounded-xl" />
             <Skeleton className="h-48 rounded-xl" />
@@ -41,8 +41,8 @@ export function FeaturesSkeleton() {
     <div className="py-24 bg-[var(--ecode-surface)]">
       <div className="container-responsive max-w-7xl">
         <div className="text-center space-y-4 mb-16">
-          <Skeleton className="h-12 w-80 mx-auto" />
-          <Skeleton className="h-6 w-96 mx-auto" />
+          <Skeleton className="h-12 w-full max-w-[20rem] mx-auto" />
+          <Skeleton className="h-6 w-full max-w-[24rem] mx-auto" />
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map((i) => (

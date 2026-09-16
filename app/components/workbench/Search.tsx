@@ -3,6 +3,7 @@ import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { rechercheDemandee } from './recherche-demandee';
 import {
   computeReplacement,
   hasUnsavedEdits,
@@ -10,6 +11,7 @@ import {
   needsContentHydration,
   toRuntimeRelativePath,
 } from './search-replace';
+import { IdePanelHeader, PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -48,6 +50,7 @@ export function Search() {
    */
   const runtimeAdapter = useRuntimeAdapter();
   const [searchQuery, setSearchQuery] = useState('');
+  const demande = useStore(rechercheDemandee);
   const [replaceQuery, setReplaceQuery] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [isRegex, setIsRegex] = useState(false);
@@ -192,6 +195,34 @@ export function Search() {
   useEffect(() => {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch, caseSensitive, isRegex]);
+
+  /*
+   * « Trouver les usages » d'un secret (RP-SEC-08) : un autre panneau a posé
+   * la requête ; on la prend, on cherche, et on remet l'atome à zéro pour que
+   * la prochaine ouverture du panneau ne la rejoue pas.
+   */
+  const handleSearchRef = useRef(handleSearch);
+  handleSearchRef.current = handleSearch;
+
+  const demandeTraiteeRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    /*
+     * Garde-fou mesuré : un harnais de test remplace `useStore` par une valeur
+     * qui n'est pas une chaîne et change à chaque rendu ; sans ce filtre et
+     * sans mémoire de la dernière demande, l'effet relançait une recherche à
+     * chaque rendu et le test ne finissait jamais (CI 4282df9, worker vitest
+     * à court de mémoire après 8 min).
+     */
+    if (typeof demande !== 'string' || !demande.trim() || demandeTraiteeRef.current === demande) {
+      return;
+    }
+
+    demandeTraiteeRef.current = demande;
+    setSearchQuery(demande);
+    rechercheDemandee.set(null);
+    void handleSearchRef.current(demande);
+  }, [demande]);
 
   const handleResultClick = (filePath: string, line?: number) => {
     workbenchStore.setSelectedFile(resolveWorkbenchPath(filePath) ?? filePath);
@@ -373,6 +404,9 @@ export function Search() {
 
   return (
     <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
+      {/* UNIF-06 (audit H1) : Search n'avait AUCUNE tête de panneau — il adopte
+          l'en-tête commun (même icône que l'onglet/rail, mêmes paddings). */}
+      <IdePanelHeader icon="i-ph:magnifying-glass" title={t('workbenchSearch.panel.title')} />
       <ConfirmationDialog
         isOpen={confirmReplaceAllOpen}
         onClose={() => setConfirmReplaceAllOpen(false)}
@@ -391,13 +425,14 @@ export function Search() {
       {/* Search Bar */}
       <div className="space-y-2 border-b border-bolt-elements-borderColor px-3 py-3">
         <div className="relative flex items-center gap-2">
-          <input
+          {/* UNIF lot 5 : input partagé PanelInput au lieu du champ ad hoc (fond depth-3, ring). */}
+          <PanelInput
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('workbenchSearch.search.placeholder')}
             aria-label={t('workbenchSearch.search.aria')}
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+            className="w-full"
           />
           <button
             type="button"
@@ -421,22 +456,25 @@ export function Search() {
           </button>
         </div>
         <div className="relative flex items-center gap-2">
-          <input
+          <PanelInput
             type="text"
             value={replaceQuery}
             onChange={(e) => setReplaceQuery(e.target.value)}
             placeholder={t('workbenchSearch.replace.placeholder')}
             aria-label={t('workbenchSearch.replace.aria')}
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+            className="w-full"
           />
-          <button
+          {/* UNIF lot 5 : « Replace all » = PanelButton primaire partagé ; `!h-auto`
+              + whitespace-normal pour laisser le libellé FR long passer sur 2 lignes
+              (même recette que les CTA de SelectionDialog). */}
+          <PanelButton
             type="button"
-            className="min-h-7 whitespace-normal rounded-md bg-bolt-elements-item-backgroundAccent px-2 py-1 text-center text-xs font-medium text-bolt-elements-item-contentAccent disabled:cursor-not-allowed disabled:opacity-50"
+            className="!h-auto min-h-9 shrink-0 whitespace-normal py-1 text-center disabled:cursor-not-allowed"
             disabled={isReplacing || searchResults.length === 0}
             onClick={() => void replaceAll()}
           >
             {isReplacing ? t('workbenchSearch.replace.replacing') : t('workbenchSearch.replace.all')}
-          </button>
+          </PanelButton>
         </div>
       </div>
 
@@ -467,7 +505,7 @@ export function Search() {
               type="button"
               onClick={saveAllAndRetry}
               disabled={isReplacing}
-              className="mt-2 inline-flex min-h-9 items-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 py-1 text-left text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 inline-flex min-h-9 items-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 py-1 text-left text-xs font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t('workbenchSearch.pending.saveRetry')}
             </button>
@@ -483,8 +521,9 @@ export function Search() {
             {t('workbenchSearch.errors.search')}
           </div>
         )}
+        {/* UNIF lot 4 (audit E1) — état vide canonique au lieu du texte gris nu. */}
         {!isSearching && !searchError && hasSearched && searchResults.length === 0 && searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-center h-32 text-gray-500">{t('workbenchSearch.noResults')}</div>
+          <PanelEmptyState icon="i-ph:magnifying-glass" title={t('workbenchSearch.noResults')} className="mx-3" />
         )}
         {!isSearching &&
           Object.keys(groupedResults).map((file) => (

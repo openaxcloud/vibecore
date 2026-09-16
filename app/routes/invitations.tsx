@@ -1,3 +1,4 @@
+import { Mail } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
@@ -17,6 +18,7 @@ import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { Badge } from '~/components/ui/Badge';
 import { Dialog, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { EmptyState } from '~/components/ui/EmptyState';
 import {
   apiRequest,
   firstOrganizationOrNull,
@@ -463,7 +465,7 @@ export default function InvitationsPage() {
           </p>
         ) : null}
 
-        <section className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-6">
+        <section className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           <h2 className="break-words font-semibold text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
             {copy['invitations.form.title']}
           </h2>
@@ -519,13 +521,13 @@ export default function InvitationsPage() {
           </div>
 
           {invitations.length === 0 ? (
-            <div className="px-4 py-6 text-center sm:px-6" role="status" aria-live="polite">
-              <h3 className="break-words font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
-                {copy['invitations.list.empty.title']}
-              </h3>
-              <p className="mx-auto mt-1 max-w-xl break-words text-sm leading-6 text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
-                {copy['invitations.list.empty.description']}
-              </p>
+            <div className="p-4 sm:p-6" role="status" aria-live="polite">
+              <EmptyState
+                variant="compact"
+                icon={Mail}
+                title={copy['invitations.list.empty.title']}
+                description={copy['invitations.list.empty.description']}
+              />
             </div>
           ) : (
             <div role="list">

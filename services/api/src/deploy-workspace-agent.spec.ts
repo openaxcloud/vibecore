@@ -81,14 +81,25 @@ describe('streamAgentCommand', () => {
       fakeSocket([
         { type: 'stdout', data: 'building...\n' },
         { type: 'stderr', data: 'warn: x\n' },
+        { type: 'stderr', data: 'npm error code ENOENT\n' },
         { type: 'exit', exitCode: 0 },
       ]),
     );
 
     expect(result).toEqual({ exitCode: 0, timedOut: false });
+
+    /*
+     * This assertion used to demand `['error', 'warn: x']`. The point of the test
+     * is that stderr lines are COLLECTED — the sample just happened to be a
+     * warning, and the expectation froze "every stderr line is an error". npm
+     * sends its warnings to stderr, so that painted working installs red and
+     * buried the one line that explained a real failure. Levels are now
+     * classified by what the line says, and both cases are covered here.
+     */
     expect(lines).toEqual([
       ['info', 'building...'],
-      ['error', 'warn: x'],
+      ['info', 'warn: x'],
+      ['error', 'npm error code ENOENT'],
     ]);
   });
 

@@ -95,7 +95,8 @@ export default function StudentDpa() {
               {copy.hero.badge}
             </Badge>
 
-            <h1 className="text-4xl md:text-6xl font-bold mb-6" data-testid="heading-student-dpa">
+            {/* Échelle h1 de la famille légale (alignée sur DPA.tsx) : text-responsive-2xl, pas 60px. */}
+            <h1 className="break-words text-responsive-2xl font-bold mb-6" data-testid="heading-student-dpa">
               {copy.hero.title}
             </h1>
 

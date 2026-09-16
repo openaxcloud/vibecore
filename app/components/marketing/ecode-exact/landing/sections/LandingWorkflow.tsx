@@ -92,7 +92,7 @@ export default function LandingWorkflow() {
                   aria-hidden="true"
                 >
                   <Icon className="h-8 w-8 text-white" aria-hidden="true" />
-                  <span className="absolute -top-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-ecode-accent text-[13px] font-bold text-white">
+                  <span className="absolute -top-2 -right-2 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] text-[13px] font-bold text-white">
                     {formatMarketingLandingWorkflowNumber(index + 1, language)}
                   </span>
                 </div>

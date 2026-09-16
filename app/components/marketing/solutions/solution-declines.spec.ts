@@ -10,7 +10,7 @@ import type { SolutionCopy, SolutionCopyByLanguage } from './solution-copy';
 import { STARTUPS_COPY } from './startups.copy';
 import { WEBSITE_BUILDER_COPY } from './website-builder.copy';
 
-const DECLINES: Record<string, SolutionCopyByLanguage> = {
+const SOLUTION_COPY: Record<string, SolutionCopyByLanguage> = {
   'website-builder': WEBSITE_BUILDER_COPY,
   'game-builder': GAME_BUILDER_COPY,
   'dashboard-builder': DASHBOARD_BUILDER_COPY,
@@ -21,10 +21,7 @@ const DECLINES: Record<string, SolutionCopyByLanguage> = {
   freelancers: FREELANCERS_COPY,
 };
 
-const HONEST_BADGE = { en: 'Fictional demo data', fr: 'Données fictives' } as const;
-const HONEST_DISCLAIMER = { en: 'not a generation record', fr: 'pas une trace de génération' } as const;
-
-const REQUIRED_PROMPTS: Readonly<Partial<Record<keyof typeof DECLINES, Readonly<Record<'en' | 'fr', string>>>>> = {
+const REQUIRED_PROMPTS: Readonly<Partial<Record<keyof typeof SOLUTION_COPY, Readonly<Record<'en' | 'fr', string>>>>> = {
   'website-builder': {
     en: 'Build a showcase website for my architecture firm, with a portfolio, contact page, and blog.',
     fr: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
@@ -48,45 +45,22 @@ const REQUIRED_PROMPTS: Readonly<Partial<Record<keyof typeof DECLINES, Readonly<
 };
 
 function assertStructure(copy: SolutionCopy) {
-  expect(copy.demo.nav).toHaveLength(3);
-  expect(copy.demo.primaryRows).toHaveLength(3);
-  expect(copy.demo.asideRows).toHaveLength(3);
   expect(copy.problem.obstacles).toHaveLength(3);
   expect(copy.build.outputs).toHaveLength(4);
   expect(copy.deliverables.items).toHaveLength(6);
   expect(copy.features.items).toHaveLength(6);
   expect(copy.useCases.items).toHaveLength(4);
   expect(copy.faq.items).toHaveLength(5);
-  expect(copy.proofLink.preview.alt.length).toBeGreaterThan(20);
-  expect(copy.proofLink.iteration.alt.length).toBeGreaterThan(20);
 }
 
-describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
-  for (const [slug, byLanguage] of Object.entries(DECLINES)) {
+describe('solution sales pages (SOL-02 → SOL-09)', () => {
+  for (const [slug, byLanguage] of Object.entries(SOLUTION_COPY)) {
     describe(slug, () => {
       for (const language of ['en', 'fr'] as const) {
         const copy = byLanguage[language];
 
         it(`${language}: has the exact section structure`, () => {
           assertStructure(copy);
-        });
-
-        it(`${language}: carries the honest demo labelling`, () => {
-          expect(copy.demo.badge).toBe(HONEST_BADGE[language]);
-          expect(copy.demo.disclaimer.toLowerCase()).toContain(HONEST_DISCLAIMER[language].toLowerCase());
-        });
-
-        it(`${language}: separates the real App Builder reference capture from the scripted page demo`, () => {
-          const proof = JSON.stringify(copy.proofLink).toLowerCase();
-
-          const appBuilderReference = /app builder|salon/.test(proof);
-
-          const scriptedDemo = language === 'fr' ? /scénaris|ficti/.test(proof) : /scripted|fictional/.test(proof);
-
-          expect(appBuilderReference).toBe(true);
-          expect(scriptedDemo).toBe(true);
-          expect(copy.proofLink.galleryLabel.length).toBeGreaterThan(20);
-          expect(copy.proofLink.openFullSizeLabel.length).toBeGreaterThan(0);
         });
 
         it(`${language}: fills every headline and body`, () => {
@@ -113,14 +87,13 @@ describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
 
   for (const language of ['en', 'fr'] as const) {
     it(`${language}: keeps every page recognisable without its route title`, () => {
-      const signatures = Object.values(DECLINES).map((byLanguage) => {
+      const signatures = Object.values(SOLUTION_COPY).map((byLanguage) => {
         const copy = byLanguage[language];
 
         return [
-          copy.demo.brand,
+          copy.hero.title,
           copy.problem.title,
           copy.build.promptText,
-          copy.proofLink.title,
           copy.deliverables.title,
           copy.features.title,
           copy.useCases.title,
@@ -128,7 +101,7 @@ describe('declined solution sales pages (SOL-02 → SOL-09)', () => {
         ].join('|');
       });
 
-      expect(new Set(signatures).size).toBe(Object.keys(DECLINES).length);
+      expect(new Set(signatures).size).toBe(Object.keys(SOLUTION_COPY).length);
     });
   }
 });

@@ -25,18 +25,24 @@ import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
 import {
+  beginPreviewFrameReload,
   decidePreviewLoadOutcome,
+  shouldHoldPreviewLoadingOverlay,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
   MAX_PREVIEW_BOOT_ATTEMPTS,
 } from './preview-frame-recovery';
+import { previewStartStatus } from './preview-start-status';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+import { demarrageBloque, msDepuisLeDernierProgres } from '~/lib/ide/demarrage-bloque';
+import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
 import {
+  canKickDeadPreview,
   resolvePreviewBootOverlay,
   shouldKickReopenPreview,
   shouldLatchPreviewStartFailure,
@@ -296,8 +302,31 @@ export function shouldShowStartupOverlay(input: {
   isRefreshingPorts: boolean;
   workspaceReady: boolean;
   previewStatus?: string;
+
+  /**
+   * BUG-PREVIEW-REMOUNT-001 — cette application a DÉJÀ rendu dans cet onglet.
+   *
+   * Avi, 09/09 : l'application s'affichait, il change d'onglet, il revient, et
+   * l'écran de démarrage en quatre étapes recommence — « on va pas l'app fixe ».
+   *
+   * Le mécanisme n'est PAS un démontage (le keep-alive du Workbench tient
+   * déjà) : c'est l'URL du cadre qui se perd un instant au retour. L'effet qui
+   * la surveille repose alors `previewStatus` sur « Chargement de la webview… »,
+   * et ce simple statut suffisait à faire revenir TOUT l'écran de démarrage.
+   * D'où la capture : les trois premières étapes cochées, « Prêt » en attente,
+   * et un rouet — sur une application qui tournait déjà.
+   *
+   * Une réadoption n'est pas un démarrage à froid. Quand l'espace de travail
+   * est prêt et qu'aucun démarrage n'est en cours, on ne rejoue pas la séquence
+   * d'installation : le squelette léger de réattachement s'en charge.
+   */
+  hasServedBefore?: boolean;
 }): boolean {
   if (input.previewRunFailed || input.hasWorkspaceError) {
+    return false;
+  }
+
+  if (input.hasServedBefore && !input.isStartingPreview && input.workspaceReady) {
     return false;
   }
 
@@ -319,6 +348,17 @@ export function shouldShowStartupOverlay(input: {
  */
 const INSPECTOR_MESSAGE_TYPES_OWNED_BY_INSPECTOR = new Set(['INSPECTOR_CLICK', 'INSPECTOR_HOVER', 'INSPECTOR_LEAVE']);
 
+/*
+ * BUG-IDE-006 — cadence de relecture du silence de démarrage.
+ *
+ * Le seuil vit dans `~/lib/ide/demarrage-bloque` (3 min) ; ce battement ne sert
+ * qu'à REGARDER l'horloge. Quinze secondes suffisent : la bascule se voit au
+ * plus tard un quart de minute après le seuil, pour un rendu toutes les quinze
+ * secondes le temps d'un démarrage — et zéro dès qu'un aperçu répond, puisque
+ * l'intervalle est démonté avec l'écran.
+ */
+const BATTEMENT_DEMARRAGE_MS = 15_000;
+
 /**
  * Whether Preview's own window `message` handler should process a given message
  * type. Inspector selection/hover events are owned solely by the Inspector
@@ -333,15 +373,29 @@ export function shouldPreviewHandleInspectorMessage(messageType: unknown): boole
   return !INSPECTOR_MESSAGE_TYPES_OWNED_BY_INSPECTOR.has(messageType);
 }
 
-function resolvePreviewBootProgress(input: {
+export function resolvePreviewBootProgress(input: {
   workspaceReady: boolean;
   previewsLength: number;
   isStartingPreview: boolean;
   isRefreshingPorts: boolean;
   previewRunFailed: boolean;
   previewStatus?: string;
+  upstreamNotReady?: boolean;
 }) {
   const status = input.previewStatus?.toLowerCase() ?? '';
+
+  /*
+   * A registered preview entry is NOT proof the dev server answers. When the
+   * iframe reports the upstream is not up yet, the panel already tells the user
+   * "Preview server is still starting; retrying…" — claiming step `ready` at
+   * 100% at the same time put two contradictory statements in the same panel
+   * (and the state could stay frozen there when no server ever came up).
+   * Whatever the panel says in its task line wins over the mere existence of a
+   * preview entry.
+   */
+  if (input.upstreamNotReady) {
+    return { activeStep: 'server' as PreviewBootStepId, progress: 76 };
+  }
 
   if (input.previewsLength > 0) {
     return { activeStep: 'ready' as PreviewBootStepId, progress: 100 };
@@ -756,7 +810,32 @@ export const Preview = memo(
     const [previewFrameLoaded, setPreviewFrameLoaded] = useState(false);
     const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | undefined>();
     const previewLoadIdentityRef = useRef<string | undefined>();
+
+    /*
+     * BUG-PREVIEW-REMOUNT-001 — « cette application a déjà rendu ici ».
+     * Remis à zéro quand on change de projet : un autre projet n'hérite pas
+     * du crédit du précédent, sinon son vrai démarrage à froid serait masqué.
+     */
+    const aDejaServiRef = useRef(false);
+    const projetServiRef = useRef<string | undefined>();
+
+    if (projetServiRef.current !== projectId) {
+      projetServiRef.current = projectId;
+      aDejaServiRef.current = false;
+    }
+
     const [logsOpen, setLogsOpen] = useState(false);
+
+    /*
+     * SUR TÉLÉPHONE, L'URL SE LIT EN 13 PX ET S'ÉDITE EN 16 PX. Le champ garde
+     * le plancher iOS de 16 px (IOS-ZOOM-001 : en dessous, Safari zoome au focus
+     * et ne dézoome jamais) ; mais Avi, 07/09 08:19 : « tu as réduit la police
+     * du contenu comme le reste, où il y a l'URL ». Hors édition, c'est un
+     * bouton en 13 px qui montre l'adresse ; un appui révèle le champ, à 16 px,
+     * et le focalise — la police rendue au focus reste au plancher, donc pas de
+     * zoom. Sur bureau, le bouton n'existe pas (CSS) et le champ reste seul.
+     */
+    const [adresseEnEdition, setAdresseEnEdition] = useState(false);
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
     const [devToolsOpen, setDevToolsOpen] = useState(false);
     const [capturingThumbnail, setCapturingThumbnail] = useState(false);
@@ -801,8 +880,16 @@ export const Preview = memo(
           isRefreshingPorts,
           previewRunFailed,
           previewStatus,
+
+          /*
+           * Compared against the same translations the panel renders, so this
+           * stays correct in every locale without a second source of truth.
+           */
+          upstreamNotReady:
+            previewStatus === t('idePanels.preview.serverStartingRetry') ||
+            previewStatus === t('idePanels.preview.serverUnreachableRetry'),
         }),
-      [isRefreshingPorts, isStartingPreview, previews.length, previewRunFailed, previewStatus, workspaceReady],
+      [isRefreshingPorts, isStartingPreview, previews.length, previewRunFailed, previewStatus, t, workspaceReady],
     );
     const recentPreviewLogs = useMemo(
       () =>
@@ -812,11 +899,21 @@ export const Preview = memo(
           .slice(-4),
       [workspaceLogs],
     );
-    const shouldShowPreviewLoadingOverlay = Boolean(
-      activePreview &&
-        iframeUrl &&
-        (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
-    );
+
+    /*
+     * BUG-UX-PREVIEW-OVERLAY-LAG: `serving` (HTTP answers + live process, the
+     * server-side probe) beats a lagging aggregate `ready`, so the overlay
+     * drops as soon as the port actually serves and the frame has loaded —
+     * instead of sitting on "Starting dev server" over a rendered app.
+     */
+    const shouldShowPreviewLoadingOverlay = shouldHoldPreviewLoadingOverlay({
+      hasActivePreview: Boolean(activePreview),
+      hasIframeUrl: Boolean(iframeUrl),
+      ready: activePreview?.ready,
+      serving: activePreview?.serving,
+      frameLoaded: previewFrameLoaded,
+      loadedUrlMatches: loadedPreviewUrl === iframeUrl,
+    });
 
     /*
      * Reopen resume vs cold rebuild. When the workspace pod is genuinely running
@@ -831,7 +928,19 @@ export const Preview = memo(
       overlayVisible: shouldShowPreviewLoadingOverlay,
       reattaching: reattachingRunningPreview,
     });
+
+    /*
+     * Mémoire de session : une fois qu'un aperçu vivant a été servi pour ce
+     * projet, la perte PASSAGÈRE de l'URL au retour d'onglet ne doit plus être
+     * confondue avec un démarrage à froid. Une ref, pas un état : ce fait ne
+     * doit pas provoquer de rendu, seulement être consulté.
+     */
+    if (activePreview) {
+      aDejaServiRef.current = true;
+    }
+
     const shouldShowPreviewStartupOverlay = shouldShowStartupOverlay({
+      hasServedBefore: aDejaServiRef.current,
       hasActivePreview: Boolean(activePreview),
       hasStaticPreview,
       autoStart,
@@ -858,6 +967,68 @@ export const Preview = memo(
         setPreviewStatus(t('idePanels.preview.loadingWebview'));
       }
     }, [iframeUrl, projectId, t]);
+
+    /*
+     * BUG-IDE-006 — DIRE quand le démarrage n'avance plus.
+     *
+     * Le 2026-08-12, cet écran a tourné ~20 minutes sur « Dév. : démarrage » et
+     * « Aperçu — Détection » pendant que le pod n'avait ni `node_modules` ni
+     * processus vite : l'installation ne POUVAIT pas aboutir. Rien ne le
+     * signalait — un rouet qui tourne dit « ça avance », et l'écran d'un
+     * démarrage impossible était identique à celui d'un démarrage lent.
+     *
+     * On mesure le silence depuis le dernier CHANGEMENT D'ÉTAPE, jamais depuis
+     * l'ouverture : un démarrage lent mais qui progresse passe d'étape en étape
+     * et ne bascule donc jamais. C'est ce qui empêche d'annoncer « bloqué » sur
+     * une installation saine — un faux « c'est planté » serait un mensonge
+     * d'état de plus, très exactement ce qu'on corrige ici.
+     */
+    const dernierProgresRef = useRef<number | undefined>(undefined);
+    const [horlogeDeDemarrage, setHorlogeDeDemarrage] = useState<number | undefined>(undefined);
+    const etapeDeDemarrage = previewBootProgress.activeStep;
+    const unEcranDeDemarrageEstVisible = !activePreview && !previewRunFailed && !workspaceError;
+
+    useEffect(() => {
+      if (!unEcranDeDemarrageEstVisible) {
+        dernierProgresRef.current = undefined;
+        setHorlogeDeDemarrage(undefined);
+
+        return undefined;
+      }
+
+      // Tout changement d'étape EST un progrès : le compteur repart de zéro.
+      dernierProgresRef.current = Date.now();
+      setHorlogeDeDemarrage(Date.now());
+
+      const battement = window.setInterval(() => setHorlogeDeDemarrage(Date.now()), BATTEMENT_DEMARRAGE_MS);
+
+      return () => window.clearInterval(battement);
+    }, [etapeDeDemarrage, unEcranDeDemarrageEstVisible]);
+
+    const demarrageEstBloque =
+      unEcranDeDemarrageEstVisible &&
+      demarrageBloque(msDepuisLeDernierProgres(dernierProgresRef.current, horlogeDeDemarrage ?? 0));
+
+    /*
+     * Le MÊME geste que « Relancer » de l'écran d'échec, extrait pour être
+     * offert aussi quand le démarrage se tait (BUG-IDE-006). Deux copies du
+     * même geste divergent ; une seule ne peut pas.
+     */
+    const relancerLeDemarrage = useCallback(() => {
+      setIsStartingPreview(true);
+      setPreviewRunFailed(false);
+      setPreviewStatus(t('idePanels.preview.restartStatus'));
+      toast.info(t('idePanels.preview.restartStarted'), { toastId: 'preview-build-restart' });
+      void workbenchStore
+        .restartPreviewServer()
+        .catch(() => {
+          setPreviewStatus(t('idePanels.preview.restartFailed'));
+          setPreviewRunFailed(true);
+        })
+        .finally(() => {
+          window.setTimeout(() => setIsStartingPreview(false), 2500);
+        });
+    }, [t]);
 
     const openPreviewLogs = useCallback(() => {
       setActiveLogTab('server');
@@ -1123,18 +1294,15 @@ export const Preview = memo(
           return;
         }
 
-        try {
-          iframe.contentWindow?.location.reload();
-        } catch {
-          /*
-           * Cross-origin previews block contentWindow.location.reload(). A bare
-           * `iframe.src = currentSrc` does NOT force a fresh navigation when the
-           * frame is parked on a chrome-error page (e.g. it loaded a transient
-           * 502 while the dev server was still starting) — the browser keeps the
-           * error. Bounce through about:blank so the next assignment is always a
-           * new navigation that picks up the now-healthy server.
-           */
-          iframe.src = 'about:blank';
+        /*
+         * BUG-A (live 23/08): a same-origin reload() of a frame parked on
+         * about:blank "succeeds" silently and leaves the Webview blank — the
+         * forced about:blank → target bounce is the only reload that always
+         * works. beginPreviewFrameReload keeps the same-origin fast path for a
+         * genuinely-loaded page and forces a real navigation everywhere else
+         * (cross-origin frame, blank frame, missing contentWindow).
+         */
+        if (beginPreviewFrameReload(iframe) === 'force-navigation') {
           window.setTimeout(() => {
             if (iframeRef.current) {
               iframeRef.current.src = target;
@@ -1247,7 +1415,14 @@ export const Preview = memo(
 
       try {
         const label = await workbenchStore.startPreviewServer();
-        setPreviewStatus(t('idePanels.preview.startingCommand', { label }));
+        const runningCommand = workbenchStore.previewServerState.get()?.command;
+
+        // Une phrase de statut n'est pas une commande : voir preview-start-status.ts.
+        setPreviewStatus(
+          previewStartStatus(label, runningCommand, (command) =>
+            t('idePanels.preview.startingCommand', { label: command }),
+          ),
+        );
         toast.info(t('idePanels.preview.buildStarted', { label }), { toastId: 'preview-build-started' });
         window.setTimeout(() => setIsStartingPreview(false), 2500);
       } catch (error) {
@@ -1343,13 +1518,41 @@ export const Preview = memo(
      */
     const reopenKickedSessionRef = useRef<string | null>(null);
     useEffect(() => {
-      if (!shouldKickReopenPreview({ autoStart, hasProject: Boolean(projectId), isStartingPreview, workspaceStatus })) {
+      /*
+       * BUG-AGENT-007 : `serving` (le port répond ET un processus vivant le
+       * détient) et NON `ready` — ce dernier agrège le statut manager et le
+       * beacon client, et l'événement de port ment (il annonçait 5173 alors que
+       * rien n'écoutait).
+       */
+      const hasServingPreview = previews.some((preview) => preview.serving === true);
+
+      if (
+        !shouldKickReopenPreview({
+          autoStart,
+          hasProject: Boolean(projectId),
+          isStartingPreview,
+          workspaceStatus,
+          hasServingPreview,
+        })
+      ) {
         return;
       }
 
       const sessionKey = workspaceStatus?.id ?? 'unknown';
 
       if (reopenKickedSessionRef.current === sessionKey) {
+        return;
+      }
+
+      /*
+       * Plafond dur, EN PLUS du garde par session. Le garde par session suffit
+       * pour un pod qui redémarre, mais pas pour un workspace qui reste
+       * `running` en servant un aperçu mort : l'id de session ne change pas, or
+       * un remontage du composant remet la ref à zéro. Sans ce plafond, chaque
+       * remontage relancerait le serveur — la boucle de redémarrage que le
+       * chemin de l'aperçu a déjà connue.
+       */
+      if (!canKickDeadPreview()) {
         return;
       }
 
@@ -1361,7 +1564,7 @@ export const Preview = memo(
         .startPreviewServer()
         .catch(() => undefined)
         .finally(() => window.setTimeout(() => setIsStartingPreview(false), 2500));
-    }, [autoStart, projectId, isStartingPreview, workspaceStatus, t]);
+    }, [autoStart, projectId, isStartingPreview, workspaceStatus, previews, t]);
 
     /*
      * A detected port means the loop succeeded — reset the relaunch budget so a
@@ -1408,7 +1611,7 @@ export const Preview = memo(
          * relaunching), so this cap is what terminates it.
          */
         if (bootAttemptsRef.current >= MAX_PREVIEW_BOOT_ATTEMPTS) {
-          setPreviewStatus('The dev server did not come up after several attempts. Try Run / Reinstall.');
+          setPreviewStatus(t('idePanels.preview.startExhausted'));
           setPreviewRunFailed(true);
           setIsStartingPreview(false);
           window.clearInterval(interval);
@@ -2251,6 +2454,7 @@ export const Preview = memo(
         const decision = decidePreviewLoadOutcome({
           attempt: previewLoadRetryRef.current,
           ready: activePreview?.ready,
+          serving: activePreview?.serving,
           erroredLoad: false,
         });
         previewLoadRetryRef.current = decision.nextAttempt;
@@ -2301,7 +2505,7 @@ export const Preview = memo(
         setIsStartingPreview(false);
         setPreviewStatus(t('idePanels.preview.rendered'));
       },
-      [activePreview?.ready, reloadPreview, visiblePreviewUrl, t],
+      [activePreview?.ready, activePreview?.serving, reloadPreview, visiblePreviewUrl, t],
     );
 
     const handlePreviewFrameError = useCallback(() => {
@@ -2315,6 +2519,7 @@ export const Preview = memo(
       const decision = decidePreviewLoadOutcome({
         attempt: previewLoadRetryRef.current,
         ready: activePreview?.ready,
+        serving: activePreview?.serving,
         erroredLoad: true,
       });
       previewLoadRetryRef.current = decision.nextAttempt;
@@ -2335,7 +2540,7 @@ export const Preview = memo(
         setPreviewRunFailed(true);
         setIsStartingPreview(false);
       }
-    }, [activePreview?.ready, reloadPreview, t]);
+    }, [activePreview?.ready, activePreview?.serving, reloadPreview, t]);
 
     const previewViewportWidth = isDeviceModeOn
       ? showDeviceFrameInPreview
@@ -2363,7 +2568,7 @@ export const Preview = memo(
           />
         )}
         <div className="bolt-project-webview-toolbar">
-          <div className="flex items-center gap-1">
+          <div className="bolt-preview-toolbar-tools flex items-center gap-1">
             <IconButton
               icon="i-ph:arrow-left"
               onClick={() => navigatePreviewHistory('back')}
@@ -2399,7 +2604,10 @@ export const Preview = memo(
             />
           </div>
 
-          <div className="bolt-preview-addressbar flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
+          <div
+            className="bolt-preview-addressbar flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive"
+            data-edition={adresseEnEdition ? 'true' : 'false'}
+          >
             <PortDropdown
               activePreviewIndex={Math.max(normalizedActivePreviewIndex, 0)}
               setActivePreviewIndex={setActivePreviewIndex}
@@ -2408,6 +2616,18 @@ export const Preview = memo(
               setIsDropdownOpen={setIsPortDropdownOpen}
               previews={previews}
             />
+            <button
+              type="button"
+              className="bolt-preview-url-text"
+              aria-label={t('idePanels.preview.url')}
+              disabled={!activePreview}
+              onClick={() => {
+                setAdresseEnEdition(true);
+                window.requestAnimationFrame(() => inputRef.current?.focus());
+              }}
+            >
+              {addressInput}
+            </button>
             <input
               title={t('idePanels.preview.url')}
               aria-label={t('idePanels.preview.url')}
@@ -2424,11 +2644,12 @@ export const Preview = memo(
                   resolveAddressInput();
                 }
               }}
+              onBlur={() => setAdresseEnEdition(false)}
               disabled={!activePreview}
             />
             <button
               type="button"
-              className="bolt-preview-toolbar-button"
+              className="bolt-preview-toolbar-button bolt-preview-copy-url"
               disabled={!visiblePreviewUrl}
               onClick={() => void copyPreviewUrl()}
               title={t('idePanels.preview.copyUrl')}
@@ -2440,7 +2661,7 @@ export const Preview = memo(
             </button>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="bolt-preview-toolbar-tools flex items-center gap-1">
             <select
               aria-label={t('idePanels.preview.device')}
               value={previewDevice}
@@ -2524,7 +2745,7 @@ export const Preview = memo(
             />
             <button
               type="button"
-              className="bolt-preview-toolbar-button"
+              className="bolt-preview-toolbar-button bolt-preview-open-external"
               onClick={openInNewTab}
               disabled={!activePreview}
               title={t('idePanels.preview.openBrowser')}
@@ -2823,21 +3044,7 @@ export const Preview = memo(
                     detail={previewStatus ?? (workspaceError ? t('idePanels.preview.workspaceFailed') : undefined)}
                     isRunning={isStartingPreview}
                     logs={workspaceLogs.slice(-8)}
-                    onRun={() => {
-                      setIsStartingPreview(true);
-                      setPreviewRunFailed(false);
-                      setPreviewStatus(t('idePanels.preview.restartStatus'));
-                      toast.info(t('idePanels.preview.restartStarted'), { toastId: 'preview-build-restart' });
-                      void workbenchStore
-                        .restartPreviewServer()
-                        .catch(() => {
-                          setPreviewStatus(t('idePanels.preview.restartFailed'));
-                          setPreviewRunFailed(true);
-                        })
-                        .finally(() => {
-                          window.setTimeout(() => setIsStartingPreview(false), 2500);
-                        });
-                    }}
+                    onRun={relancerLeDemarrage}
                     onReinstall={() => {
                       setIsStartingPreview(true);
                       setPreviewRunFailed(false);
@@ -2879,6 +3086,8 @@ export const Preview = memo(
                         logs={recentPreviewLogs}
                         steps={previewBootSteps}
                         onViewLogs={openPreviewLogs}
+                        bloque={demarrageEstBloque}
+                        onRelancer={relancerLeDemarrage}
                       />
                     ) : null}
                     {shouldShowPreviewStartupOverlay ? (
@@ -2894,6 +3103,8 @@ export const Preview = memo(
                         progress={Math.min(previewBootProgress.progress, 84)}
                         steps={previewBootSteps}
                         onViewLogs={openPreviewLogs}
+                        bloque={demarrageEstBloque}
+                        onRelancer={relancerLeDemarrage}
                       />
                     ) : null}
                   </>
@@ -2956,6 +3167,21 @@ export const Preview = memo(
                 <span className="i-ph:sidebar-simple" aria-hidden />
                 {t('idePanels.preview.dockRight')}
               </button>
+              {/*
+               * FERMER, partout. Sur téléphone « Ancrer à droite » est caché (pas de
+               * volet de droite) et il ne restait AUCUN moyen de refermer les
+               * journaux — Avi, 07/09 08:19 : « quand j'ouvre les journaux je ne
+               * peux pas les fermer ». Une croix, visible sur tous les formats.
+               */}
+              <button
+                type="button"
+                className="bolt-preview-logs-close"
+                aria-label={t('idePanels.preview.hideLogs')}
+                title={t('idePanels.preview.hideLogs')}
+                onClick={() => setLogsOpen(false)}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
             </header>
             <pre>
               {(activeLogTab === 'webview'
@@ -2972,7 +3198,8 @@ export const Preview = memo(
                     }),
                   ]
                 : workspaceLogs.length
-                  ? workspaceLogs.slice(-120)
+                  ? // L'agent journalise en JSON : on montre ce qu'un humain lit (capture iPhone 06/09 10:35).
+                    workspaceLogs.slice(-120).map((ligne) => texteRuntimeLisible(String(ligne)))
                   : [t('idePanels.preview.noServerLogs')]
               ).join('\n')}
             </pre>
@@ -3223,18 +3450,22 @@ function useReducedMotion(): boolean {
 function PreviewSplashSequence({
   appName,
   activeStep,
+  bloque,
   currentTask,
   isBusy,
   logs,
+  onRelancer,
   onViewLogs,
   progress,
   steps,
 }: {
   appName?: string;
   activeStep: PreviewBootStepId;
+  bloque?: boolean;
   currentTask: string;
   isBusy: boolean;
   logs?: string[];
+  onRelancer?: () => void;
   onViewLogs?: () => void;
   progress: number;
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
@@ -3283,15 +3514,30 @@ function PreviewSplashSequence({
         <div key={slide.headline} className="bolt-preview-splash-slide" aria-hidden>
           <PreviewSplashSlide slide={slide} />
         </div>
-        <div className="bolt-preview-splash-task">
-          {isBusy ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : null}
+        <div className="bolt-preview-splash-task" data-vc-demarrage={bloque ? 'bloque' : undefined}>
+          {/*
+            BUG-IDE-006 — le rouet s'efface dès que plus rien n'avance : un
+            rouet qui tourne AFFIRME une progression. C'est ce qui rendait un
+            démarrage impossible indiscernable d'un démarrage lent.
+          */}
+          {bloque ? <span className="i-ph:warning-circle" aria-hidden /> : null}
+          {isBusy && !bloque ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : null}
           <span>
-            <strong>{steps.find((step) => step.id === activeStep)?.label ?? t('idePanels.preview.preparing')}</strong>
-            <small>{currentTask}</small>
+            <strong>
+              {bloque
+                ? t('idePanels.preview.stalledTitle')
+                : (steps.find((step) => step.id === activeStep)?.label ?? t('idePanels.preview.preparing'))}
+            </strong>
+            <small>{bloque ? t('idePanels.preview.stalledBody') : currentTask}</small>
           </span>
           {onViewLogs ? (
             <button type="button" onClick={onViewLogs}>
               {t('idePanels.preview.viewLogs')}
+            </button>
+          ) : null}
+          {bloque && onRelancer ? (
+            <button type="button" data-testid="preview-splash-demarrage-relancer" onClick={onRelancer}>
+              {t('idePanels.preview.stalledRestart')}
             </button>
           ) : null}
         </div>
@@ -3369,15 +3615,19 @@ function PreviewResumeSkeleton({ currentTask }: { currentTask: string }) {
 
 function PreviewLoadingOverlay({
   activeStep,
+  bloque,
   currentTask,
   logs,
+  onRelancer,
   onViewLogs,
   progress,
   steps,
 }: {
   activeStep: PreviewBootStepId;
+  bloque?: boolean;
   currentTask: string;
   logs: string[];
+  onRelancer?: () => void;
   onViewLogs?: () => void;
   progress: number;
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
@@ -3392,8 +3642,17 @@ function PreviewLoadingOverlay({
       role="status"
       aria-live="polite"
     >
-      <div className="bolt-preview-loading-card">
-        <span className="bolt-preview-loading-spinner i-ph:circle-notch animate-spin" aria-hidden />
+      <div className="bolt-preview-loading-card" data-vc-demarrage={bloque ? 'bloque' : undefined}>
+        {/*
+          BUG-IDE-006 — le rouet DISPARAÎT quand plus rien n'avance. Le laisser
+          tourner sous un message « ça ne progresse plus » remettrait les deux
+          affirmations contradictoires que ce point corrige.
+        */}
+        {bloque ? (
+          <span className="bolt-preview-loading-spinner i-ph:warning-circle" aria-hidden />
+        ) : (
+          <span className="bolt-preview-loading-spinner i-ph:circle-notch animate-spin" aria-hidden />
+        )}
         <div className="bolt-preview-loading-copy">
           <span>{t('idePanels.preview.webviewStartup')}</span>
           <h3 data-testid="preview-loading-current-step">{activeLabel}</h3>
@@ -3423,10 +3682,20 @@ function PreviewLoadingOverlay({
             );
           })}
         </ol>
+        {bloque ? (
+          <p className="bolt-preview-demarrage-bloque" data-testid="preview-demarrage-bloque" role="alert">
+            {t('idePanels.preview.stalledBody')}
+          </p>
+        ) : null}
         {logs.length ? <pre data-testid="preview-loading-log">{logs.join('\n')}</pre> : null}
         {onViewLogs ? (
           <button type="button" onClick={onViewLogs}>
             {t('idePanels.preview.viewLogs')}
+          </button>
+        ) : null}
+        {bloque && onRelancer ? (
+          <button type="button" data-testid="preview-demarrage-relancer" onClick={onRelancer}>
+            {t('idePanels.preview.stalledRestart')}
           </button>
         ) : null}
       </div>

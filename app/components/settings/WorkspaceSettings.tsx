@@ -30,7 +30,14 @@ import {
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
     <section className="min-w-0 border-b border-bolt-elements-borderColor py-5 last:border-b-0">
-      <h3 className="break-words text-[14px] font-semibold text-bolt-elements-textPrimary">{title}</h3>
+      {/*
+       * `h2` : les sections viennent directement sous le `h1` de la page. En `h3`
+       * elles créaient un saut h1→h3, mesuré aux trois formats après le passage
+       * du titre en `h1` — un niveau sauté reste un défaut WCAG 1.3.1, au même
+       * titre que l'absence de niveau 1 qu'on venait de corriger. La taille est
+       * portée par la classe, l'apparence ne bouge pas.
+       */}
+      <h2 className="break-words text-[14px] font-semibold text-bolt-elements-textPrimary">{title}</h2>
       {description ? (
         <p className="mt-0.5 break-words text-[12px] leading-5 text-bolt-elements-textSecondary">{description}</p>
       ) : null}
@@ -73,7 +80,14 @@ export function WorkspaceSettings({ language }: { language?: string }) {
   return (
     <div className="mx-auto w-full max-w-2xl min-w-0 px-4 py-2 sm:px-5">
       <header className="py-4">
-        <h2 className="break-words text-[16px] font-semibold text-bolt-elements-textPrimary">{copy.header.title}</h2>
+        {/*
+         * `h1` et non `h2` : la route monte la coque avec `hideHeader`, donc rien
+         * d'autre ne fournit de titre de niveau 1. La page démarrait au niveau 2,
+         * ce qui laisse un lecteur d'écran sans point d'entrée dans le document
+         * (WCAG 1.3.1). L'apparence ne bouge pas — la taille reste portée par la
+         * classe, pas par le niveau de titre.
+         */}
+        <h1 className="break-words text-[16px] font-semibold text-bolt-elements-textPrimary">{copy.header.title}</h1>
         <p className="break-words text-[12px] leading-5 text-bolt-elements-textSecondary">{copy.header.description}</p>
       </header>
 

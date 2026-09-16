@@ -110,3 +110,65 @@ describe('project file route i18n boundary', () => {
     expect(JSON.stringify(body)).not.toContain('internal failure');
   });
 });
+
+describe('425 — l’espace de travail démarre, le fichier n’est pas en cause', () => {
+  /*
+   * Mesuré en production sur un projet créé la minute d'avant : CHAQUE fichier de
+   * l'arbre répondait « Impossible de lire le fichier du projet » tant que
+   * l'espace de travail démarrait. Le fichier existait, il était listé, et il
+   * s'est ouvert quelques secondes plus tard.
+   *
+   * 425 « Too Early » a un sens précis, et le message doit le porter : accuser le
+   * FICHIER pour un état transitoire de l'ESPACE DE TRAVAIL apprend à
+   * l'utilisateur à se méfier de son propre projet.
+   */
+  beforeEach(() => {
+    apiRequestMock.mockReset();
+  });
+
+  async function readWithUpstreamStatus(status: number, lang: 'fr' | 'en' = 'fr') {
+    apiRequestMock.mockRejectedValueOnce(new Response(null, { status }));
+
+    const { loader } = await import('./api.projects.$id.files.$');
+
+    const request =
+      lang === 'fr'
+        ? frenchRequest('/api/projects/project-1/files/README.md')
+        : new Request('https://e-code.ai/api/projects/project-1/files/README.md');
+
+    return thrownResponse(loader({ request, params: { id: 'project-1', '*': 'README.md' }, context: {} } as never));
+  }
+
+  it('rend un code dédié, pas l’échec de lecture générique', async () => {
+    const response = await readWithUpstreamStatus(425);
+
+    expect(response.status).toBe(425);
+    await expect(response.json()).resolves.toMatchObject({
+      ok: false,
+      code: 'PROJECT_FILE_WORKSPACE_STARTING',
+    });
+  });
+
+  it('dit que l’espace de travail démarre, dans les deux langues', async () => {
+    const en = await (await readWithUpstreamStatus(425, 'en')).json();
+    const fr = await (await readWithUpstreamStatus(425, 'fr')).json();
+
+    expect(String(en.error)).toMatch(/workspace is still starting/i);
+    expect(String(fr.error)).toMatch(/espace de travail démarre/i);
+
+    // Surtout pas l'ancien message, qui accusait le fichier.
+    expect(String(fr.error)).not.toMatch(/Impossible de lire le fichier/i);
+  });
+
+  it('laisse les autres statuts sur leur code d’origine', async () => {
+    await expect((await readWithUpstreamStatus(502)).json()).resolves.toMatchObject({
+      code: 'PROJECT_FILE_READ_FAILED',
+    });
+    await expect((await readWithUpstreamStatus(403)).json()).resolves.toMatchObject({
+      code: 'PROJECT_FILE_AUTH_REQUIRED',
+    });
+    await expect((await readWithUpstreamStatus(404)).json()).resolves.toMatchObject({
+      code: 'PROJECT_FILE_NOT_FOUND',
+    });
+  });
+});

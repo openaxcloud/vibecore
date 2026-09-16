@@ -47,10 +47,10 @@ export const loader: LoaderFunction = async ({ context, request }) => {
    *    `globalThis.process.env`.
    * 4. LLMManager environment variables
    *
-   * Step 3 goes through `readRuntimeEnv`, not a bare `process.env` read: the same
-   * SSR trap as api.configured-providers — `process.env` is shimmed to `{}` by
-   * vite-plugin-node-polyfills in the SSR bundle, so a bare read reports the key as
-   * absent even when it is set and working (BUG-QA-PROVIDERS-SSR-ENV-001).
+   * Step 3 goes through `readRuntimeEnv`, not a bare `process.env` read: the
+   * same SSR trap as api.configured-providers — `process.env` is shimmed to `{}`
+   * by vite-plugin-node-polyfills in the SSR bundle, so a direct read reports the
+   * key as absent even when it is set and working (BUG-QA-PROVIDERS-SSR-ENV-001).
    */
   const rawValue =
     apiKeys?.[provider] ||

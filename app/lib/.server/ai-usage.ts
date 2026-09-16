@@ -10,6 +10,20 @@ const logger = createScopedLogger('ai-usage');
 const IN_CLUSTER_API_URL = 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001';
 const WEB_SESSION_COOKIE_NAME = 'vc_session';
 
+/*
+ * ⚠️ vite-plugin-node-polyfills shims `process.env` to {} in the SSR bundle, so
+ * a bare `process.env.X` reads undefined in production. Read off globalThis —
+ * the same reason apiBaseUrl() below does it.
+ */
+function readServerEnv(name: string): string {
+  const env = ((globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {}) as Record<
+    string,
+    string | undefined
+  >;
+
+  return (env[name] ?? '').trim();
+}
+
 function apiBaseUrl() {
   /*
    * vite-plugin-node-polyfills shims `process.env` to {} in the SSR bundle, so
@@ -265,14 +279,20 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
   }
 }
 
-export async function recordChatUsage(input: RecordChatUsageInput): Promise<void> {
+/** Ce que le registre rend après avoir facturé l'appel — le coût sert au bloc « Worked for » du fil (RP-CKPT-02). */
+export interface RecordChatUsageResult {
+  costCents?: number;
+  creditCents?: number;
+}
+
+export async function recordChatUsage(input: RecordChatUsageInput): Promise<RecordChatUsageResult | undefined> {
   if (!input.projectId) {
-    return;
+    return undefined;
   }
 
   if (input.inputTokens === 0 && input.outputTokens === 0) {
     // Nothing to bill, no point bouncing through api.
-    return;
+    return undefined;
   }
 
   const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/record-usage`;
@@ -282,6 +302,24 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
     accept: 'application/json',
   };
 
+  /*
+   * AUDX-017 — prove this report is the platform's own, not a caller's claim.
+   *
+   * /ai/record-usage is session-authenticated, so anyone holding a session can
+   * post `inputTokens: 0`. This header (checked constant-time by the api) is
+   * something only a server-side caller holding the internal secret can send, so
+   * the api records the row as 'trusted' rather than 'declared'.
+   *
+   * Absent secret = no header = the row is still recorded, just marked
+   * 'declared'. Metering must not stop because provenance cannot be proven.
+   */
+  const internalSecret =
+    readServerEnv('INTERNAL_API_SHARED_SECRET') || readServerEnv('WORKSPACE_MANAGER_SHARED_SECRET');
+
+  if (internalSecret) {
+    headers['x-vibecore-internal'] = internalSecret;
+  }
+
   if (!applyApiAuthHeaders(headers, input)) {
     logger.warn(
       JSON.stringify({
@@ -290,7 +328,7 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
         projectId: input.projectId,
       }),
     );
-    return;
+    return undefined;
   }
 
   try {
@@ -323,8 +361,13 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
           outputTokens: input.outputTokens,
         }),
       );
-      return;
+      return undefined;
     }
+
+    const facture = (await response.json().catch(() => null)) as {
+      costCents?: unknown;
+      creditCents?: unknown;
+    } | null;
 
     /*
      * Trace-level acknowledgement so we can correlate the local C1.a log
@@ -340,6 +383,11 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
         outputTokens: input.outputTokens,
       }),
     );
+
+    return {
+      costCents: typeof facture?.costCents === 'number' ? facture.costCents : undefined,
+      creditCents: typeof facture?.creditCents === 'number' ? facture.creditCents : undefined,
+    };
   } catch (error) {
     logger.warn(
       JSON.stringify({
@@ -349,6 +397,8 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
       }),
     );
   }
+
+  return undefined;
 }
 
 /** Input to {@link recordProviderMetric} (F18 admin p95/error-rate metrics). */
