@@ -15616,6 +15616,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
 
+  /*
+   * Une réparation ÉCRIT dans le pod. Un collaborateur en lecture seule (rôle
+   * `viewer`) peut lister les fichiers, pas les réécrire — même par le détour
+   * d'une route de lecture (revue de #559). La sonde ne lève pas : un refus
+   * d'écrire (403) rend simplement « pas de réparation », le listing reste dû ;
+   * toute autre erreur (401, 404, 5xx) se propage, comme dans
+   * `requireAnyOrgPermission`.
+   */
+  const peutEcrireLeRuntimeWorkspace = async (request: any, workspaceId: string) => {
+    try {
+      await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+      return true;
+    } catch (error: any) {
+      if (error?.statusCode !== 403) {
+        throw error;
+      }
+
+      return false;
+    }
+  };
+
   const ensureRuntimeWorkspaceRecord = async (workspaceId: string, project: ProjectRecord) => {
     const existing = await store.getWorkspace(workspaceId);
 
@@ -17861,11 +17883,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * seul moyen que le listing rendu reflète l'état réparé. Au-delà de la
      * borne, elle continue en arrière-plan et l'écoute de fichiers du client
      * surfacera le reste.
+     *
+     * La réparation est une ÉCRITURE : elle exige `workspaces:write`, vérifié
+     * AVANT de consommer la limitation. Un lecteur qui clique « Actualiser »
+     * obtient le listing, jamais la réparation.
      */
     if (
       reparer === '1' &&
       path === '.' &&
       authorized.projectId &&
+      (await peutEcrireLeRuntimeWorkspace(request, workspaceId)) &&
       reconciliationUneFois.peutForcer(authorized.workspaceId)
     ) {
       await Promise.race([

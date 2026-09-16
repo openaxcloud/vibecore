@@ -83,7 +83,8 @@ async function demarrerRuntime() {
 
 async function contexte() {
   const runtime = await demarrerRuntime();
-  const app = await buildApiApp({ store: new TestApiStore() });
+  const store = new TestApiStore();
+  const app = await buildApiApp({ store });
 
   const inscription = await app.inject({
     method: 'POST',
@@ -111,6 +112,37 @@ async function contexte() {
 
   return {
     runtime,
+
+    /** Un collaborateur en LECTURE SEULE sur ce projet, membre d'aucune organisation du propriétaire. */
+    async lecteur() {
+      const inscription = await app.inject({
+        method: 'POST',
+        url: '/auth/register',
+        payload: {
+          email: `lecteur-${Math.random().toString(36).slice(2, 10)}@example.com`,
+          password: 'password123',
+          name: 'Lecteur',
+          organizationName: 'Lecteur Org',
+        },
+      });
+
+      await store.addProjectCollaborator({
+        projectId,
+        userId: inscription.json().user.id as string,
+        roleKey: 'viewer',
+      });
+
+      return { authorization: `Bearer ${inscription.json().token as string}` };
+    },
+    listerEnTantQue: async (entetesDuLecteur: { authorization: string }, reparer = false) => {
+      const reponse = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/files?path=.${reparer ? '&reparer=1' : ''}`,
+        headers: entetesDuLecteur,
+      });
+
+      return { statut: reponse.statusCode, chemins: (reponse.json() as Array<{ path: string }>).map((n) => n.path) };
+    },
     ecrire: (path: string, content: string) =>
       app.inject({
         method: 'PUT',
@@ -201,6 +233,46 @@ describe('BUG-IDE-007 — un « Actualiser » demandé par l’utilisateur répa
       c.runtime.fichiers.delete('src/main.tsx');
       expect(await c.lister(true)).not.toContain('src/main.tsx');
       expect(c.runtime.ecrituresRecues(), 'un double-clic ne force pas deux fois').toBe(ecrituresApresOuverture + 2);
+    } finally {
+      await c.fermer();
+    }
+  }, 30_000);
+
+  /*
+   * Revue de #559 (Codex, P1) : `reparer=1` sur une route de LECTURE déclenchait
+   * des écritures dans le pod pour un collaborateur en lecture seule. Le lecteur
+   * garde son listing ; la réparation, elle, exige le droit d'écrire.
+   */
+  it('un collaborateur en lecture seule obtient le listing, jamais la réparation ; le propriétaire, si', async () => {
+    const c = await contexte();
+
+    try {
+      expect((await c.ecrire('src/App.tsx', 'export default function App() {}')).statusCode).toBe(204);
+      expect(await c.lister()).toContain('src/App.tsx');
+
+      /*
+       * Le workspace d'exécution est PAR UTILISATEUR (`resolveProjectWorkspaceId`) :
+       * la première lecture du lecteur ouvre le sien, avec SA réconciliation
+       * d'ouverture — un comportement d'ouverture, pas une réparation. On la
+       * laisse passer avant de prendre la ligne de base, sinon on la compterait.
+       */
+      const lecteur = await c.lecteur();
+      expect((await c.listerEnTantQue(lecteur)).statut).toBe(200);
+      await laisserRespirer();
+
+      const ecrituresApresOuverture = c.runtime.ecrituresRecues();
+      c.runtime.fichiers.delete('src/App.tsx');
+
+      const vuParLeLecteur = await c.listerEnTantQue(lecteur, true);
+
+      expect(vuParLeLecteur.statut, 'le listing reste dû au lecteur').toBe(200);
+      expect(vuParLeLecteur.chemins, 'le pod amputé est rendu tel quel').not.toContain('src/App.tsx');
+      await laisserRespirer();
+      expect(c.runtime.ecrituresRecues(), 'un lecteur ne fait rien écrire dans le pod').toBe(ecrituresApresOuverture);
+
+      /* Contrôle positif : la même demande par le propriétaire répare bien. */
+      expect(await c.lister(true)).toContain('src/App.tsx');
+      expect(c.runtime.ecrituresRecues(), 'le propriétaire déclenche la réécriture').toBe(ecrituresApresOuverture + 1);
     } finally {
       await c.fermer();
     }
