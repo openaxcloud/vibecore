@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AGENT_MODES,
   AGENT_ROUTING_LINE_KEYS,
   BUILTIN_AGENT_ROUTING_CARD,
   DEFAULT_AGENT_MODE,
@@ -16,10 +17,41 @@ import {
 } from './agent-routing.js';
 
 describe('BUILTIN_AGENT_ROUTING_CARD', () => {
-  it('is version 3, sourced 2026-08-20, with all six lines', () => {
-    expect(BUILTIN_AGENT_ROUTING_CARD.version).toBe(3);
-    expect(BUILTIN_AGENT_ROUTING_CARD.sourceDate).toBe('2026-08-20');
+  it('is version 4, sourced 2026-09-15, with all seven lines', () => {
+    expect(BUILTIN_AGENT_ROUTING_CARD.version).toBe(4);
+    expect(BUILTIN_AGENT_ROUTING_CARD.sourceDate).toBe('2026-09-15');
     expect(BUILTIN_AGENT_ROUTING_CARD.lines.map((l) => l.key).sort()).toEqual([...AGENT_ROUTING_LINE_KEYS].sort());
+  });
+
+  it('carries a SECOND PROVIDER — la redondance cesse d’être invisible', () => {
+    /*
+     * Avant la v4, Google n'était atteignable que par `PROVIDER_FALLBACK_CHAIN`,
+     * une constante de l'app que la carte ne connaît pas : un repli réussi vers
+     * Gemini ne correspondait à aucune ligne, donc ni prix, ni journal, ni
+     * télémétrie. La redondance existait sans pouvoir être constatée.
+     */
+    const repli = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'fallback')!;
+
+    expect(repli.provider).toBe('google');
+    expect(repli.model).toBe('gemini-2.5-pro');
+    expect(repli.active).toBe(true);
+
+    // Un repli ne se facture pas plus cher : l'utilisateur subit la panne, il ne la paie pas.
+    expect(repli.multiplier).toBe(1);
+
+    // Et la carte porte bien DEUX fournisseurs distincts, pas un seul décliné.
+    const fournisseurs = new Set(BUILTIN_AGENT_ROUTING_CARD.lines.map((l) => l.provider));
+    expect(fournisseurs.size).toBeGreaterThanOrEqual(3);
+    expect([...fournisseurs].sort()).toContain('google');
+  });
+
+  it('la redondance n’est PAS un mode offert à l’utilisateur', () => {
+    /*
+     * `AgentPowerControls` n'expose que lite/economy/power ; une 7e ligne
+     * n'a pas à apparaître dans le sélecteur.
+     */
+    expect(AGENT_MODES).toEqual(['lite', 'economy', 'power']);
+    expect(AGENT_MODES).not.toContain('fallback');
   });
 
   it("matches Avi's target config: Opus 5 is the principal generation model, turbo=gpt-5.6 ×2", () => {
@@ -91,7 +123,7 @@ describe('computeAgentCallBilling', () => {
     expect(billing.creditCents).toBe(98);
     expect(billing.marginCents).toBeCloseTo(23, 5);
     expect(billing.billedToUser).toBe(true);
-    expect(billing.routingCardVersion).toBe(3);
+    expect(billing.routingCardVersion).toBe(4);
   });
 
   it('bills power/high-effort at 2x economy for the same tokens', () => {

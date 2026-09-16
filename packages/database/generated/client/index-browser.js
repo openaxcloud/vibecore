@@ -1099,6 +1099,7 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   podName: 'podName',
   serviceName: 'serviceName',
   agentTokenSecretName: 'agentTokenSecretName',
+  agentTokenScheme: 'agentTokenScheme',
   error: 'error',
   createdAt: 'createdAt',
   lastActiveAt: 'lastActiveAt',

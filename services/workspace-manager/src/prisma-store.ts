@@ -40,6 +40,7 @@ interface PrismaRuntimeRow {
   podName: string;
   serviceName: string;
   agentTokenSecretName: string;
+  agentTokenScheme: string | null;
   error: string | null;
   createdAt: Date;
   lastActiveAt: Date;
@@ -57,6 +58,7 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     podName: row.podName,
     serviceName: row.serviceName,
     agentTokenSecretName: row.agentTokenSecretName,
+    agentTokenScheme: row.agentTokenScheme ?? undefined,
     createdAt: row.createdAt.toISOString(),
     lastActiveAt: row.lastActiveAt.toISOString(),
     ...(row.error ? { error: row.error } : {}),
@@ -96,6 +98,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         podName: input.podName,
         serviceName: input.serviceName,
         agentTokenSecretName: input.agentTokenSecretName,
+        agentTokenScheme: input.agentTokenScheme ?? undefined,
         error: input.error ?? null,
         createdAt: now,
         lastActiveAt: now,
@@ -128,6 +131,10 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     if (patch.serviceName !== undefined) {
       data.serviceName = patch.serviceName;
     }
+    if (patch.agentTokenScheme !== undefined) {
+      data.agentTokenScheme = patch.agentTokenScheme;
+    }
+
     if (patch.agentTokenSecretName !== undefined) {
       data.agentTokenSecretName = patch.agentTokenSecretName;
     }
