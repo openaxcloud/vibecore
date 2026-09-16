@@ -64,7 +64,7 @@ function draftFromBuiltin() {
 }
 
 describe('GET /projects/:id/agent/routing (client-safe mode availability)', () => {
-  it('returns the three modes with economy default and NEVER leaks a model name', async () => {
+  it('returns the three modes with power default and NEVER leaks a model name', async () => {
     const { app, project } = await setup();
 
     const res = await app.inject({
@@ -76,8 +76,8 @@ describe('GET /projects/:id/agent/routing (client-safe mode availability)', () =
     expect(res.statusCode).toBe(200);
 
     const body = res.json();
-    expect(body.defaultMode).toBe('economy');
-    expect(body.modes.map((m: { mode: string }) => m.mode)).toEqual(['lite', 'economy', 'power']);
+    expect(body.defaultMode).toBe('power');
+    expect(body.modes.map((m: { mode: string }) => m.mode)).toEqual(['lite', 'power', 'max']);
 
     // The whole payload must be model-name free — this is the product rule.
     expect(res.body).not.toMatch(/claude|gpt|anthropic|openai|haiku|opus|fable|sol/i);
@@ -132,33 +132,33 @@ describe('record-usage AGM per-call log', () => {
         headers: auth('agm-token'),
         payload: {
           provider: 'anthropic',
-          model: lineKey === 'economy' ? 'claude-opus-5' : 'claude-opus-5',
+          model: lineKey === 'power' ? 'claude-opus-5' : 'claude-opus-5',
           inputTokens: 100_000,
           outputTokens: 10_000,
           agentRouting: { mode, lineKey, highEffort: false, escalated: false, turbo: false, source: 'chat' },
         },
       });
 
-    expect((await record('economy', 'economy')).statusCode).toBe(200);
     expect((await record('power', 'power')).statusCode).toBe(200);
+    expect((await record('max', 'max')).statusCode).toBe(200);
 
     const calls = await store.listAgentCalls();
     expect(calls).toHaveLength(2);
 
-    const economy = calls.find((c) => c.lineKey === 'economy')!;
-    const power = calls.find((c) => c.lineKey === 'power')!;
+    const milieu = calls.find((c) => c.lineKey === 'power')!;
+    const sommet = calls.find((c) => c.lineKey === 'max')!;
 
     /*
-     * (d) the cost DIFFERS by mode: power bills 2x economy (before rounding:
-     * economy raw 97.5 -> ceil 98; power raw exactly 195).
+     * (d) the cost DIFFERS by mode: power bills 2x power (before rounding:
+     * power raw 97.5 -> ceil 98; power raw exactly 195).
      */
-    expect(economy.creditCents).toBe(98);
-    expect(power.creditCents).toBe(195);
-    expect(power.model).toBe('claude-opus-5');
-    expect(economy.model).toBe('claude-opus-5');
-    expect(economy.costMillicents).toBe(75_000);
-    expect(economy.marginMillicents).toBe(98_000 - 75_000);
-    expect(economy.routingCardVersion).toBe(BUILTIN_AGENT_ROUTING_CARD.version);
+    expect(milieu.creditCents).toBe(98);
+    expect(sommet.creditCents).toBe(195);
+    expect(sommet.model).toBe('claude-opus-5');
+    expect(milieu.model).toBe('claude-opus-5');
+    expect(milieu.costMillicents).toBe(75_000);
+    expect(milieu.marginMillicents).toBe(98_000 - 75_000);
+    expect(milieu.routingCardVersion).toBe(BUILTIN_AGENT_ROUTING_CARD.version);
   });
 
   it('records the classifier as unbilled operating cost', async () => {
@@ -173,7 +173,7 @@ describe('record-usage AGM per-call log', () => {
         model: 'claude-haiku-4-5',
         inputTokens: 2_000,
         outputTokens: 50,
-        agentRouting: { mode: 'economy', lineKey: 'classifier', highEffort: true, source: 'classifier' },
+        agentRouting: { mode: 'power', lineKey: 'classifier', highEffort: true, source: 'classifier' },
       },
     });
     expect(res.statusCode).toBe(200);
@@ -200,7 +200,7 @@ describe('admin agent routing', () => {
         model: 'claude-opus-4-8',
         inputTokens: 1_000_000,
         outputTokens: 100_000,
-        agentRouting: { mode: 'economy', lineKey: 'economy' },
+        agentRouting: { mode: 'power', lineKey: 'power' },
       },
     });
 
@@ -211,12 +211,12 @@ describe('admin agent routing', () => {
     expect(body.card.version).toBe(BUILTIN_AGENT_ROUTING_CARD.version);
     expect(body.negativeLines).toEqual([]);
 
-    const economy = body.lines.find((line: { key: string }) => line.key === 'economy');
-    expect(economy.model).toBe('claude-opus-5');
-    expect(economy.userPrice).toEqual({ inCentsPerM: 650, outCentsPerM: 3250 });
-    expect(economy.margins.negative).toBe(false);
-    expect(economy.volume30d.calls).toBe(1);
-    expect(economy.volume30d.tokensIn).toBe(1_000_000);
+    const milieu = body.lines.find((line: { key: string }) => line.key === 'power');
+    expect(milieu.model).toBe('claude-opus-5');
+    expect(milieu.userPrice).toEqual({ inCentsPerM: 650, outCentsPerM: 3250 });
+    expect(milieu.margins.negative).toBe(false);
+    expect(milieu.volume30d.calls).toBe(1);
+    expect(milieu.volume30d.tokensIn).toBe(1_000_000);
   });
 
   it('refuses the anonymous and non-admin caller', async () => {
@@ -232,7 +232,7 @@ describe('admin agent routing', () => {
     const { app, store } = await setup();
 
     const draft = draftFromBuiltin();
-    draft.lines.find((line) => line.key === 'economy')!.costInCentsPerM = 100_000; // way above price
+    draft.lines.find((line) => line.key === 'power')!.costInCentsPerM = 100_000; // way above price
 
     const blocked = await app.inject({
       method: 'POST',
@@ -242,7 +242,7 @@ describe('admin agent routing', () => {
     });
     expect(blocked.statusCode).toBe(409);
     expect(blocked.json().code).toBe('AGENT_ROUTING_NEGATIVE_MARGIN');
-    expect(blocked.json().negativeLines).toEqual(['economy']);
+    expect(blocked.json().negativeLines).toEqual(['power']);
 
     const confirmed = await app.inject({
       method: 'POST',
@@ -261,9 +261,9 @@ describe('admin agent routing', () => {
     const { app, project } = await setup();
 
     const draft = draftFromBuiltin();
-    draft.lines.find((line) => line.key === 'economy')!.model = 'claude-sonnet-5';
-    draft.lines.find((line) => line.key === 'economy')!.costInCentsPerM = 300;
-    draft.lines.find((line) => line.key === 'economy')!.costOutCentsPerM = 1500;
+    draft.lines.find((line) => line.key === 'power')!.model = 'claude-sonnet-5';
+    draft.lines.find((line) => line.key === 'power')!.costInCentsPerM = 300;
+    draft.lines.find((line) => line.key === 'power')!.costOutCentsPerM = 1500;
 
     const published = await app.inject({
       method: 'POST',
@@ -276,7 +276,7 @@ describe('admin agent routing', () => {
     resetAgentRoutingCache();
 
     const table = await app.inject({ method: 'GET', url: '/admin/agent-routing', headers: auth('agm-admin-token') });
-    expect(table.json().lines.find((line: { key: string }) => line.key === 'economy').model).toBe('claude-sonnet-5');
+    expect(table.json().lines.find((line: { key: string }) => line.key === 'power').model).toBe('claude-sonnet-5');
 
     // The client-safe surface still leaks nothing after the change.
     const client = await app.inject({
@@ -299,7 +299,7 @@ describe('admin agent routing', () => {
         model: 'claude-opus-4-8',
         inputTokens: 1_000_000,
         outputTokens: 100_000,
-        agentRouting: { mode: 'economy', lineKey: 'economy' },
+        agentRouting: { mode: 'power', lineKey: 'power' },
       },
     });
 
@@ -317,12 +317,12 @@ describe('admin agent routing', () => {
     expect(res.statusCode).toBe(200);
 
     const body = res.json();
-    const economy = body.lines.find((line: { lineKey: string }) => line.lineKey === 'economy');
+    const milieu = body.lines.find((line: { lineKey: string }) => line.lineKey === 'power');
 
     // actual: credit ceil(650+325)=975; simulated: 1300+650=1950 exactly.
-    expect(economy.actualCreditCents).toBe(975);
-    expect(economy.simulatedCreditCents).toBeCloseTo(1950, 5);
-    expect(economy.simulatedCostCents).toBeCloseTo(750, 5);
+    expect(milieu.actualCreditCents).toBe(975);
+    expect(milieu.simulatedCreditCents).toBeCloseTo(1950, 5);
+    expect(milieu.simulatedCostCents).toBeCloseTo(750, 5);
     expect(body.totals.simulatedMarginCents).toBeCloseTo(1200, 5);
   });
 
@@ -338,7 +338,7 @@ describe('admin agent routing', () => {
         model: 'gpt-5.6-sol',
         inputTokens: 10_000,
         outputTokens: 1_000,
-        agentRouting: { mode: 'power', lineKey: 'turbo', turbo: true },
+        agentRouting: { mode: 'max', lineKey: 'turbo', turbo: true },
       },
     });
 
@@ -372,21 +372,21 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
   it('resolves each mode to its concrete provider+model from the active card', async () => {
     const { app, project } = await setup();
 
-    const economy = (await resolve(app, project.id, '?mode=economy')).json();
-    expect(economy.base).toMatchObject({ provider: 'anthropic', model: 'claude-opus-5', multiplier: 1 });
+    const milieu = (await resolve(app, project.id, '?mode=power')).json();
+    expect(milieu.base).toMatchObject({ provider: 'anthropic', model: 'claude-opus-5', multiplier: 1 });
 
     const lite = (await resolve(app, project.id, '?mode=lite')).json();
     expect(lite.base).toMatchObject({ model: 'claude-haiku-4-5', multiplier: 0.5 });
 
-    const power = (await resolve(app, project.id, '?mode=power')).json();
-    expect(power.base).toMatchObject({ model: 'claude-opus-5', multiplier: 2 });
-    expect(power.escalation).toBeUndefined();
+    const sommet = (await resolve(app, project.id, '?mode=max')).json();
+    expect(sommet.base).toMatchObject({ model: 'claude-opus-5', multiplier: 2 });
+    expect(sommet.escalation).toBeUndefined();
   });
 
   it('refuses high effort on the free plan (403, explicit code) and in Lite mode', async () => {
     const { app, store, org, project } = await setup();
 
-    const freeRefusal = await resolve(app, project.id, '?mode=economy&highEffort=true');
+    const freeRefusal = await resolve(app, project.id, '?mode=power&highEffort=true');
     expect(freeRefusal.statusCode).toBe(403);
     expect(freeRefusal.json().code).toBe('AGENT_HIGH_EFFORT_NOT_ALLOWED');
 
@@ -396,7 +396,7 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
     expect(liteRefusal.statusCode).toBe(403);
     expect(liteRefusal.json().code).toBe('AGENT_HIGH_EFFORT_LITE');
 
-    const granted = await resolve(app, project.id, '?mode=economy&highEffort=true');
+    const granted = await resolve(app, project.id, '?mode=power&highEffort=true');
     expect(granted.statusCode).toBe(200);
     expect(granted.json().escalation).toMatchObject({ model: 'claude-opus-5', multiplier: 2 });
     expect(granted.json().classifier).toMatchObject({ model: 'claude-haiku-4-5' });
@@ -406,7 +406,7 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
     const { app, store, org, project } = await setup();
     await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
 
-    const wrongMode = await resolve(app, project.id, '?mode=economy&turbo=true');
+    const wrongMode = await resolve(app, project.id, '?mode=power&turbo=true');
     expect(wrongMode.statusCode).toBe(403);
     expect(wrongMode.json().code).toBe('AGENT_TURBO_POWER_ONLY');
 
@@ -423,7 +423,7 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
 
   it('treats the literal string "false" as false (query-string boolean trap)', async () => {
     const { app, project } = await setup();
-    const res = await resolve(app, project.id, '?mode=economy&highEffort=false&turbo=false');
+    const res = await resolve(app, project.id, '?mode=power&highEffort=false&turbo=false');
     expect(res.statusCode).toBe(200);
     expect(res.json().escalation).toBeUndefined();
   });
