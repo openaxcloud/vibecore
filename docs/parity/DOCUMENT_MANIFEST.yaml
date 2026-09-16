@@ -2,15 +2,15 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 173
-generatedAt: "2026-08-30T15:22:13Z"
-generatedFromCommit: 6709d2cc56a33bf8975d2bb6a10359169b87fd69
-mergedCommit: 6709d2cc56a33bf8975d2bb6a10359169b87fd69
+fileCount: 174
+generatedAt: "2026-09-16T10:35:42Z"
+generatedFromCommit: f49c83457765c2b29f5ca022f95ba33094927925
+mergedCommit: f49c83457765c2b29f5ca022f95ba33094927925
 validation:
   workflow: Parity registries
-  runId: 33317678364
-  runDate: "2026-08-30T15:22:13Z"
-  runCommit: 6709d2cc56a33bf8975d2bb6a10359169b87fd69
+  runId: 35061039059
+  runDate: "2026-09-16T10:35:42Z"
+  runCommit: f49c83457765c2b29f5ca022f95ba33094927925
   source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: A2_12_DEDUP_SEMANTIQUE_20260720.md
@@ -43,6 +43,11 @@ documents:
     schemaVersion: 1
     repoCommit: 42a48091
     reviewer: UNKNOWN
+  - file: AUDIT_A2_RECONCILIATION.md
+    sha256: "eb33c4931e7d5ce5fbca215495ec2a8b1a6bcb47735a920ccf8af08567a12e77"
+    schemaVersion: null
+    repoCommit: b774bfa3
+    reviewer: UNKNOWN
   - file: AUTH_ACCESS_CONTRACT.md
     sha256: "4e8339a8e06e67fba7465a1bf54c13aee73836e26a9c94e65b597867ff5391fb"
     schemaVersion: 1
@@ -74,9 +79,9 @@ documents:
     repoCommit: 912c9b33
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "0b66cf91680a323f45fa2d0a4d0b35090c9f30e4fa4ee9e39d84aa6f0bec5a8a"
+    sha256: "5051e79b7396a425b8195248520ff92e4827bbf0758001c52bc4f419a521d929"
     schemaVersion: 1
-    repoCommit: 6709d2cc
+    repoCommit: f49c8345
     reviewer: UNKNOWN
   - file: COMPONENT_KIND_REGISTRY.yaml
     sha256: "8c7c016fb581d5ecfecc6b054f834a3b099c32c361229ffdaf84f86b54dc0891"
@@ -179,7 +184,7 @@ documents:
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "1cc1f5eead15a5aecad4bae6d658db3e4f224da75c3db3693d5bb021208b79cf"
+    sha256: "63c34ba27e08ed09b822ee53d350808d7dab0b230c48e3b90b396e1a2a3f8c54"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -234,9 +239,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "a54e66bad2b92aba324d98571c2764bf5ee243f25188d3eacd5f10bced8b668d"
+    sha256: "0906c60258ce1de1a1652dcb004eda4670a1865c7fc005eec22407f962f43c5d"
     schemaVersion: 2
-    repoCommit: 6709d2cc
+    repoCommit: f49c8345
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
     sha256: "a14ce6eade730143bea186e3e22042efd9a2b3300248fe80b0faeb32d75f58cd"
