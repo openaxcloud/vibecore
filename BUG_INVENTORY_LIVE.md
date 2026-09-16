@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-314 entrées.
+320 entrées.
 
 ## Sans section
 
@@ -328,6 +328,15 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-CHAT-THINKING-002](docs/bugs/BUG-CHAT-THINKING-002.md) — P0 latent — le contournement de `BUG-CHAT-THINKING-001` est INERTE, et il le sera au retour du crédit Anthropic.
 - [BUG-ALIAS-TROIS-TABLES-001](docs/bugs/BUG-ALIAS-TROIS-TABLES-001.md) — Dette de conception — TROIS vocabulaires d'alias de panneaux, à trois étages, dans trois fichiers.
 - [BUG-MESURE-AXE-AVEUGLE-001](docs/bugs/BUG-MESURE-AXE-AVEUGLE-001.md) — Neuvième forme du faux négatif de mesure, et la plus retorse : une mesure techniquement CORRECTE sur un axe qui ne discrimine rien.
+
+## Sans section
+
+- [BUG-QA-SONDE-001](docs/bugs/BUG-QA-SONDE-001.md) — Note de méthode — trois faux positifs de MA sonde, écartés avant de rien consigner comme défaut produit.
+- [BUG-THEME-006](docs/bugs/BUG-THEME-006.md) — P1 — PANNEAU GIT : le libellé « Commit changes » est BLEU sur le bouton ORANGE — 1,07:1 en sombre, 1,54:1 en clair.
+- [BUG-THEME-007](docs/bugs/BUG-THEME-007.md) — P2 — le gris discret restait sous le seuil sur les surfaces SURÉLEVÉES de l'IDE, dans les deux thèmes.
+- [BUG-THEME-008](docs/bugs/BUG-THEME-008.md) — P2 — les QUATRE couleurs de statut sont sous le seuil AA en thème clair, sur leur propre fond teinté.
+- [BUG-THEME-009](docs/bugs/BUG-THEME-009.md) — P1 — BADGE DE HÉROS `/about` ET `/careers` : couleur codée en dur par-dessus la paire du thème → 1,73:1 en clair, illisible.
+- [BUG-THEME-010](docs/bugs/BUG-THEME-010.md) — P2 — le gris discret du marketing tombait à 3,57:1 sur les surfaces surélevées, en sombre.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
