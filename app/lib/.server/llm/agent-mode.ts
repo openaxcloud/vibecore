@@ -21,9 +21,9 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('agent-mode');
 
-export type AgentMode = 'lite' | 'economy' | 'power';
+export type AgentMode = 'lite' | 'power' | 'max';
 
-export const DEFAULT_AGENT_MODE: AgentMode = 'economy';
+export const DEFAULT_AGENT_MODE: AgentMode = 'power';
 
 export interface AgentModeSelection {
   mode: AgentMode;
@@ -42,12 +42,12 @@ export function normalizeAgentSelection(agentPower?: {
   turboMode?: boolean;
 }): AgentModeSelection {
   const mode =
-    agentPower?.buildTier === 'lite' || agentPower?.buildTier === 'power' ? agentPower.buildTier : DEFAULT_AGENT_MODE;
+    agentPower?.buildTier === 'lite' || agentPower?.buildTier === 'max' ? agentPower.buildTier : DEFAULT_AGENT_MODE;
 
   return {
     mode,
     highEffort: mode !== 'lite' && Boolean(agentPower?.highEffort ?? agentPower?.highPowerModel),
-    turbo: mode === 'power' && Boolean(agentPower?.turboMode),
+    turbo: mode === 'max' && Boolean(agentPower?.turboMode),
   };
 }
 
