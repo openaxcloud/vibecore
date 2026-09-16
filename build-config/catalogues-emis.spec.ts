@@ -56,7 +56,7 @@ describe('les catalogues JSON émis par le build', () => {
 
     expect(catalogueTropPetit('en', 'app', grand)).toBeUndefined();
     expect(catalogueTropPetit('en', 'app', '{"a":"b"}')).toMatch(/1 clés, en dessous du minimum 8000/);
-    expect(catalogueTropPetit('en', 'public', '{"a":"b"}')).toMatch(/1 clés, en dessous du minimum 2000/);
+    expect(catalogueTropPetit('en', 'public', '{"a":"b"}')).toMatch(/1 clés, en dessous du minimum 1600/);
     expect(catalogueTropPetit('fr', 'public', 'pas du json')).toMatch(/illisible/);
     expect(catalogueTropPetit('fr', 'public', '[]')).toMatch(/pas un objet/);
   });

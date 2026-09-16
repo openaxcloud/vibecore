@@ -111701,6 +111701,7 @@ export namespace Prisma {
     podName: string | null
     serviceName: string | null
     agentTokenSecretName: string | null
+    agentTokenScheme: string | null
     error: string | null
     createdAt: Date | null
     lastActiveAt: Date | null
@@ -111717,6 +111718,7 @@ export namespace Prisma {
     podName: string | null
     serviceName: string | null
     agentTokenSecretName: string | null
+    agentTokenScheme: string | null
     error: string | null
     createdAt: Date | null
     lastActiveAt: Date | null
@@ -111734,6 +111736,7 @@ export namespace Prisma {
     podName: number
     serviceName: number
     agentTokenSecretName: number
+    agentTokenScheme: number
     error: number
     createdAt: number
     lastActiveAt: number
@@ -111752,6 +111755,7 @@ export namespace Prisma {
     podName?: true
     serviceName?: true
     agentTokenSecretName?: true
+    agentTokenScheme?: true
     error?: true
     createdAt?: true
     lastActiveAt?: true
@@ -111768,6 +111772,7 @@ export namespace Prisma {
     podName?: true
     serviceName?: true
     agentTokenSecretName?: true
+    agentTokenScheme?: true
     error?: true
     createdAt?: true
     lastActiveAt?: true
@@ -111785,6 +111790,7 @@ export namespace Prisma {
     podName?: true
     serviceName?: true
     agentTokenSecretName?: true
+    agentTokenScheme?: true
     error?: true
     createdAt?: true
     lastActiveAt?: true
@@ -111875,6 +111881,7 @@ export namespace Prisma {
     podName: string
     serviceName: string
     agentTokenSecretName: string
+    agentTokenScheme: string
     error: string | null
     createdAt: Date
     lastActiveAt: Date
@@ -111909,6 +111916,7 @@ export namespace Prisma {
     podName?: boolean
     serviceName?: boolean
     agentTokenSecretName?: boolean
+    agentTokenScheme?: boolean
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
@@ -111926,6 +111934,7 @@ export namespace Prisma {
     podName?: boolean
     serviceName?: boolean
     agentTokenSecretName?: boolean
+    agentTokenScheme?: boolean
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
@@ -111943,6 +111952,7 @@ export namespace Prisma {
     podName?: boolean
     serviceName?: boolean
     agentTokenSecretName?: boolean
+    agentTokenScheme?: boolean
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
@@ -111960,6 +111970,7 @@ export namespace Prisma {
     podName?: boolean
     serviceName?: boolean
     agentTokenSecretName?: boolean
+    agentTokenScheme?: boolean
     error?: boolean
     createdAt?: boolean
     lastActiveAt?: boolean
@@ -111967,7 +111978,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
+  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "agentTokenScheme" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
 
   export type $WorkspaceRuntimePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "WorkspaceRuntime"
@@ -111982,6 +111993,7 @@ export namespace Prisma {
       podName: string
       serviceName: string
       agentTokenSecretName: string
+      agentTokenScheme: string
       error: string | null
       createdAt: Date
       lastActiveAt: Date
@@ -112419,6 +112431,7 @@ export namespace Prisma {
     readonly podName: FieldRef<"WorkspaceRuntime", 'String'>
     readonly serviceName: FieldRef<"WorkspaceRuntime", 'String'>
     readonly agentTokenSecretName: FieldRef<"WorkspaceRuntime", 'String'>
+    readonly agentTokenScheme: FieldRef<"WorkspaceRuntime", 'String'>
     readonly error: FieldRef<"WorkspaceRuntime", 'String'>
     readonly createdAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly lastActiveAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
@@ -161077,6 +161090,7 @@ export namespace Prisma {
     podName: 'podName',
     serviceName: 'serviceName',
     agentTokenSecretName: 'agentTokenSecretName',
+    agentTokenScheme: 'agentTokenScheme',
     error: 'error',
     createdAt: 'createdAt',
     lastActiveAt: 'lastActiveAt',
@@ -168812,6 +168826,7 @@ export namespace Prisma {
     podName?: StringFilter<"WorkspaceRuntime"> | string
     serviceName?: StringFilter<"WorkspaceRuntime"> | string
     agentTokenSecretName?: StringFilter<"WorkspaceRuntime"> | string
+    agentTokenScheme?: StringFilter<"WorkspaceRuntime"> | string
     error?: StringNullableFilter<"WorkspaceRuntime"> | string | null
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
@@ -168829,6 +168844,7 @@ export namespace Prisma {
     podName?: SortOrder
     serviceName?: SortOrder
     agentTokenSecretName?: SortOrder
+    agentTokenScheme?: SortOrder
     error?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
@@ -168849,6 +168865,7 @@ export namespace Prisma {
     podName?: StringFilter<"WorkspaceRuntime"> | string
     serviceName?: StringFilter<"WorkspaceRuntime"> | string
     agentTokenSecretName?: StringFilter<"WorkspaceRuntime"> | string
+    agentTokenScheme?: StringFilter<"WorkspaceRuntime"> | string
     error?: StringNullableFilter<"WorkspaceRuntime"> | string | null
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
@@ -168866,6 +168883,7 @@ export namespace Prisma {
     podName?: SortOrder
     serviceName?: SortOrder
     agentTokenSecretName?: SortOrder
+    agentTokenScheme?: SortOrder
     error?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
@@ -168889,6 +168907,7 @@ export namespace Prisma {
     podName?: StringWithAggregatesFilter<"WorkspaceRuntime"> | string
     serviceName?: StringWithAggregatesFilter<"WorkspaceRuntime"> | string
     agentTokenSecretName?: StringWithAggregatesFilter<"WorkspaceRuntime"> | string
+    agentTokenScheme?: StringWithAggregatesFilter<"WorkspaceRuntime"> | string
     error?: StringNullableWithAggregatesFilter<"WorkspaceRuntime"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
@@ -179663,6 +179682,7 @@ export namespace Prisma {
     podName: string
     serviceName: string
     agentTokenSecretName: string
+    agentTokenScheme?: string
     error?: string | null
     createdAt?: Date | string
     lastActiveAt?: Date | string
@@ -179680,6 +179700,7 @@ export namespace Prisma {
     podName: string
     serviceName: string
     agentTokenSecretName: string
+    agentTokenScheme?: string
     error?: string | null
     createdAt?: Date | string
     lastActiveAt?: Date | string
@@ -179697,6 +179718,7 @@ export namespace Prisma {
     podName?: StringFieldUpdateOperationsInput | string
     serviceName?: StringFieldUpdateOperationsInput | string
     agentTokenSecretName?: StringFieldUpdateOperationsInput | string
+    agentTokenScheme?: StringFieldUpdateOperationsInput | string
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -179714,6 +179736,7 @@ export namespace Prisma {
     podName?: StringFieldUpdateOperationsInput | string
     serviceName?: StringFieldUpdateOperationsInput | string
     agentTokenSecretName?: StringFieldUpdateOperationsInput | string
+    agentTokenScheme?: StringFieldUpdateOperationsInput | string
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -179731,6 +179754,7 @@ export namespace Prisma {
     podName: string
     serviceName: string
     agentTokenSecretName: string
+    agentTokenScheme?: string
     error?: string | null
     createdAt?: Date | string
     lastActiveAt?: Date | string
@@ -179748,6 +179772,7 @@ export namespace Prisma {
     podName?: StringFieldUpdateOperationsInput | string
     serviceName?: StringFieldUpdateOperationsInput | string
     agentTokenSecretName?: StringFieldUpdateOperationsInput | string
+    agentTokenScheme?: StringFieldUpdateOperationsInput | string
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -179765,6 +179790,7 @@ export namespace Prisma {
     podName?: StringFieldUpdateOperationsInput | string
     serviceName?: StringFieldUpdateOperationsInput | string
     agentTokenSecretName?: StringFieldUpdateOperationsInput | string
+    agentTokenScheme?: StringFieldUpdateOperationsInput | string
     error?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -188540,6 +188566,7 @@ export namespace Prisma {
     podName?: SortOrder
     serviceName?: SortOrder
     agentTokenSecretName?: SortOrder
+    agentTokenScheme?: SortOrder
     error?: SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
@@ -188556,6 +188583,7 @@ export namespace Prisma {
     podName?: SortOrder
     serviceName?: SortOrder
     agentTokenSecretName?: SortOrder
+    agentTokenScheme?: SortOrder
     error?: SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
@@ -188572,6 +188600,7 @@ export namespace Prisma {
     podName?: SortOrder
     serviceName?: SortOrder
     agentTokenSecretName?: SortOrder
+    agentTokenScheme?: SortOrder
     error?: SortOrder
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
