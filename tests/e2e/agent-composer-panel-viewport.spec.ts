@@ -279,6 +279,18 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
   test('les boîtes à largeur fixe du panneau rendent la largeur qu’elles déclarent', async ({ page, context }) => {
     test.setTimeout(120_000);
 
+    /*
+     * 390 px EXPLICITEMENT, et pas la fenêtre par défaut du projet.
+     *
+     * Le défaut est un défaut de 390 px : c'est la rangée étroite qui écrase la
+     * case. Mesuré en CI le 2026-09-16, la première version de ce test tournait
+     * à la fenêtre par défaut du projet `chromium` — 1280 de large — où le
+     * composeur rend sa variante LARGE : le panneau visé n'y existe pas sous ce
+     * nom, et le test échouait en 2,3 s sans jamais mesurer une case. Un échec
+     * qui ne mesure rien ne prouve rien (règle 3).
+     */
+    await page.setViewportSize({ width: 390, height: 844 });
+
     await context.addCookies([
       { name: 'vc_session', value: session.token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
       { name: 'vibecore-auto-lang', value: 'fr', url: appBaseUrl, sameSite: 'Lax' },
@@ -286,35 +298,41 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
     await page.goto(`/projects/${session.projectId}/ide`, { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('.bolt-project-chatbox textarea')).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByTestId('agent-mode-advanced')).toBeVisible({ timeout: 60_000 });
 
-    await ouvrirEtMesurer(page, /Mode de l.agent|Agent mode/i, '.bolt-agent-power-popover');
+    /*
+     * On ouvre par l'IDENTIFIANT DE TEST, pas par le nom accessible : ce dernier
+     * change avec la variante du composeur et avec la langue, et il a déjà
+     * coûté un faux rouge.
+     */
+    const declencheur = page.getByTestId('agent-mode-advanced');
+    await expect(declencheur).toBeVisible({ timeout: 60_000 });
+    await declencheur.tap();
 
-    const ecarts = await page
-      .locator('.bolt-agent-power-popover')
-      .first()
-      .evaluate((panneau) => {
-        /* L'échelle utilitaire : `w-<n>` vaut n × 0,25 rem, soit n × 4 px. */
-        const resultats: Array<{ classe: string; declaree: number; rendue: number }> = [];
+    const panneau = page.locator('.bolt-agent-power-popover').first();
+    await expect(panneau, 'le panneau des réglages ne s’ouvre pas à 390 px').toBeVisible({ timeout: 15_000 });
 
-        for (const element of panneau.querySelectorAll('*')) {
-          const classe = typeof element.className === 'string' ? element.className : '';
-          const trouve = /(?:^|\s)w-(\d+)(?:\s|$)/.exec(classe);
+    const ecarts = await panneau.evaluate((racine) => {
+      /* L'échelle utilitaire : `w-<n>` vaut n × 0,25 rem, soit n × 4 px. */
+      const resultats: Array<{ classe: string; declaree: number; rendue: number }> = [];
 
-          if (!trouve) {
-            continue;
-          }
+      for (const element of racine.querySelectorAll('*')) {
+        const classe = typeof element.className === 'string' ? element.className : '';
+        const trouve = /(?:^|\s)w-(\d+)(?:\s|$)/.exec(classe);
 
-          const declaree = Number(trouve[1]) * 4;
-          const rendue = Number(element.getBoundingClientRect().width.toFixed(1));
-
-          if (Math.abs(rendue - declaree) > 0.5) {
-            resultats.push({ classe: classe.trim().slice(0, 80), declaree, rendue });
-          }
+        if (!trouve) {
+          continue;
         }
 
-        return { ecarts: resultats, examinees: [...panneau.querySelectorAll('*')].length };
-      });
+        const declaree = Number(trouve[1]) * 4;
+        const rendue = Number(element.getBoundingClientRect().width.toFixed(1));
+
+        if (Math.abs(rendue - declaree) > 0.5) {
+          resultats.push({ classe: classe.trim().slice(0, 80), declaree, rendue });
+        }
+      }
+
+      return { ecarts: resultats, examinees: [...racine.querySelectorAll('*')].length };
+    });
 
     // Contrôle positif : un panneau vide rendrait « 0 écart » sans rien prouver.
     expect(ecarts.examinees, 'le panneau est vide — la mesure ne prouverait rien').toBeGreaterThan(5);
