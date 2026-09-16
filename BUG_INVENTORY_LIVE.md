@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-314 entrées.
+328 entrées.
 
 ## Sans section
 
@@ -328,6 +328,23 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-CHAT-THINKING-002](docs/bugs/BUG-CHAT-THINKING-002.md) — P0 latent — le contournement de `BUG-CHAT-THINKING-001` est INERTE, et il le sera au retour du crédit Anthropic.
 - [BUG-ALIAS-TROIS-TABLES-001](docs/bugs/BUG-ALIAS-TROIS-TABLES-001.md) — Dette de conception — TROIS vocabulaires d'alias de panneaux, à trois étages, dans trois fichiers.
 - [BUG-MESURE-AXE-AVEUGLE-001](docs/bugs/BUG-MESURE-AXE-AVEUGLE-001.md) — Neuvième forme du faux négatif de mesure, et la plus retorse : une mesure techniquement CORRECTE sur un axe qui ne discrimine rien.
+
+## Sans section
+
+- [BUG-ADMIN-002](docs/bugs/BUG-ADMIN-002.md) — P2 — le panneau « Fournisseurs d'IA » annonce « aucune cle » pour les 30 fournisseurs, y compris les 4 qui font tourner la plateforme.
+- [BUG-AGENT-009](docs/bugs/BUG-AGENT-009.md) — DOUBLON de la cause traitee par #312 — mon diagnostic initial etait FAUX.
+- [BUG-AI-001](docs/bugs/BUG-AI-001.md) — P0 — la generation IA etait MORTE en production : chaque appel s'auto-annulait.
+- [BUG-AI-002](docs/bugs/BUG-AI-002.md) — P1 — un `403 AI_MODEL_PLAN_BLOCKED` arrivait a l'utilisateur en « Internal server error ».
+- [BUG-AI-003](docs/bugs/BUG-AI-003.md) — Conclusion PRECEDENTE ERRONEE, corrigee ici
+- [BUG-CI-003](docs/bugs/BUG-CI-003-b.md) — P2 — les builds bureau tournaient jusqu'au bout sur des commits deja depasses.
+- [BUG-CI-004](docs/bugs/BUG-CI-004-b.md) — P2 — `Quality Gates` echoue quand une execution HOMONYME depassee a ete annulee.
+- [BUG-IDE-PANEL-RESOLUTION-001](docs/bugs/BUG-IDE-PANEL-RESOLUTION-001.md) — `?panel=…` ne résout pas vers le panneau demandé ; en-tête et contenu peuvent désigner deux panneaux différents.
+- [BUG-REL-002](docs/bugs/BUG-REL-002.md) — P1 — la protection des images en service est MORTE depuis au moins le 29/08 : 4 des 5 images qui tournent en production ne portent aucun tag `running-*`. Le job
+- [BUG-REL-003](docs/bugs/BUG-REL-003.md) — P2 — le job « Roll CI attestation » ne peut PAS pousser sur `main` : refuse par la protection de branche.
+- [BUG-RUNTIME-COLD-START-001](docs/bugs/BUG-RUNTIME-COLD-START-001.md) — Le chemin d'écriture constatait l'absence d'espace de travail sans jamais le créer.
+- [BUG-RUNTIME-STATUS-DRIFT-001](docs/bugs/BUG-RUNTIME-STATUS-DRIFT-001.md) — 125 espaces de travail se déclarent `RUNNING` en base ; il en tourne UN dans le cluster.
+- [BUG-THEME-011](docs/bugs/BUG-THEME-011.md) — P1 — PANNEAU D'ACCROCHE DE `/login` ET `/register` : tout le texte est BLANC sur l'orange de marque, dans les DEUX thèmes.
+- [BUG-THEME-012](docs/bugs/BUG-THEME-012.md) — P2 — mention légale et « Back to home » des pages d'auth sous AA en thème clair.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
