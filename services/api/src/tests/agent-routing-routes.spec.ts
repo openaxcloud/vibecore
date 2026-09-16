@@ -406,17 +406,19 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
     const { app, store, org, project } = await setup();
     await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
 
+    /* Turbo hors du mode Max : refusé par le mode, avant toute question de plan. */
     const wrongMode = await resolve(app, project.id, '?mode=power&turbo=true');
     expect(wrongMode.statusCode).toBe(403);
     expect(wrongMode.json().code).toBe('AGENT_TURBO_POWER_ONLY');
 
-    const noFlag = await resolve(app, project.id, '?mode=power&turbo=true');
+    /* En Max, le mode passe : c'est le drapeau d'organisation qui refuse. */
+    const noFlag = await resolve(app, project.id, '?mode=max&turbo=true');
     expect(noFlag.statusCode).toBe(403);
     expect(noFlag.json().code).toBe('AGENT_TURBO_NOT_ALLOWED');
 
     await store.setFeatureFlag({ key: 'agent_turbo', enabled: true, organizationId: org.id });
 
-    const granted = await resolve(app, project.id, '?mode=power&turbo=true');
+    const granted = await resolve(app, project.id, '?mode=max&turbo=true');
     expect(granted.statusCode).toBe(200);
     expect(granted.json().base).toMatchObject({ lineKey: 'turbo', provider: 'openai', model: 'gpt-5.6-sol' });
   });
