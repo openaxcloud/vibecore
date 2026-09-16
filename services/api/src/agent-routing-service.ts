@@ -15,7 +15,7 @@ import { z } from 'zod';
 import type { ApiStore } from './store.js';
 
 const routingLineSchema = z.object({
-  key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+  key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
   label: z.string().min(1),
   provider: z.string().min(1),
   model: z.string().min(1),

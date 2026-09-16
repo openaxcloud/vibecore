@@ -23789,7 +23789,7 @@ function panelTitle(panel: string, t?: TFunction) {
     locks: 'baseChatAst.common.locks',
     overview: 'baseChatAst.common.overview',
     problems: 'baseChatAst.common.problems',
-    deployments: 'baseChatAst.common.deployments',
+    deployments: 'baseChatAst.common.publish',
     security: 'baseChatAst.common.security',
     env: 'baseChatAst.common.environmentVariables',
     secrets: 'baseChatAst.common.secrets',
