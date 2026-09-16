@@ -85,3 +85,41 @@ describe("l'index de l'inventaire ne diverge pas de docs/bugs/", () => {
     expect(Number(annonce[1])).toBe(fichiersDuDossier().length);
   });
 });
+
+/*
+ * L'ENTRÉE QUE LA MIGRATION AURAIT PERDUE.
+ *
+ * Le compteur de référence rendait 315 quand la migration en écrivait 314.
+ * L'écart tenait à une seule ligne de l'inventaire d'origine : un identifiant
+ * tronqué (`| BUG-AGENT-`) collé à un bloc de citation, donc une seule barre
+ * verticale — pas une ligne de tableau, et le lecteur l'écarte à raison.
+ *
+ * C'était pourtant une DÉCISION d'Avi, qui se termine par « Ne pas reposer la
+ * question ». La perdre, c'était la reposer.
+ *
+ * Ce test épingle son texte, mot pour mot, dans le vrai index. Pas dans un jeu
+ * d'essai : un jeu d'essai prouve que le mécanisme sait reporter, il ne prouve
+ * pas que CE contenu-là est arrivé.
+ */
+const RESIDU_ATTENDU = [
+  "| BUG-AGENT-> **Les dix conversations a reponses vides : DECISION PRISE, on n y touche pas.**",
+  "> Supprimer des lignes de donnees pour un defaut cosmetique qui ne se reproduit",
+  "> plus, c est un risque reel contre un benefice nul. Elles restent comme temoins",
+  "> de la periode fautive. Mesure a l appui : 77 % de messages assistant vides le",
+  "> 01/09, 9 % le 04/09, **0 % le 05/09** — le defaut est eteint, pas masque.",
+  "> Ne pas reposer la question.",
+].join('\n');
+
+describe("la décision restée hors du tableau est conservée mot pour mot", () => {
+  it("figure dans l'index, à la ligne près", () => {
+    expect(readFileSync(INDEX, 'utf8')).toContain(RESIDU_ATTENDU);
+  });
+
+  it('est annoncée comme un résidu, pas glissée dans la liste des entrées', () => {
+    const contenu = readFileSync(INDEX, 'utf8');
+
+    expect(contenu).toContain('## Résidus non tabulaires');
+    expect(contenu.indexOf(RESIDU_ATTENDU)).toBeGreaterThan(contenu.indexOf('## Résidus non tabulaires'));
+    expect(contenu).toContain("<!-- inventaire d'origine, ligne 66 -->");
+  });
+});
