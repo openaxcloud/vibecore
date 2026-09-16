@@ -284,7 +284,7 @@
       "id": "deploy-build-machine-error-codes",
       "path": "services/api/src/deploy-workspace-build.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:AGENT_UNREACHABLE|INSTALL_FAILED|BUILD_FAILED|BUILD_TIMEOUT|PULL_FAILED|OUTPUT_DIRECTORY_MISSING|NOT_STATIC_SITE|ARTIFACT_TOO_LARGE|ARTIFACT_FILE_TOO_LARGE)$",
+      "textPattern": "^(?:AGENT_UNREACHABLE|SANDBOX_EMPTY|SOURCE_EMPTY|INSTALL_FAILED|BUILD_FAILED|BUILD_TIMEOUT|PULL_FAILED|OUTPUT_DIRECTORY_MISSING|NOT_STATIC_SITE|ARTIFACT_TOO_LARGE|ARTIFACT_FILE_TOO_LARGE)$",
       "justification": "These uppercase values are stable deployment state-machine codes, not rendered prose. The API keeps the code invariant and localizes the accompanying deployment logs/message at response time.",
       "owner": "deploy-platform-and-i18n",
       "expiresOn": "2027-08-04"
@@ -734,9 +734,18 @@
       "id": "security-config-and-crypto-invariants",
       "path": "packages/security/src/index.ts",
       "rule": "error-message",
-      "textPattern": "^(?:\\{…\\} must be set when NODE_ENV=production|CONFIG_ENCRYPTION_KEY is required in production|Invalid encrypted payload)$",
-      "justification": "Production-secret checks abort startup; invalid ciphertext is caught inside connector/config trust boundaries and mapped to stable localized public errors. Raw secret/config diagnostics are never serialized.",
+      "textPattern": "^(?:\\{…\\} must be set when NODE_ENV=production|CONFIG_ENCRYPTION_KEY is required in production|Invalid encrypted payload|CONFIG_ENCRYPTION_KEYS must be a JSON object of keyId -> secret|CONFIG_ENCRYPTION_KEYS holds an invalid key id: \\{…\\}|CONFIG_ENCRYPTION_KEYS holds an empty secret for key id: \\{…\\}|CONFIG_ENCRYPTION_PRIMARY_KEY_ID is required when CONFIG_ENCRYPTION_KEYS is set|CONFIG_ENCRYPTION_PRIMARY_KEY_ID=\\{…\\} is not present in CONFIG_ENCRYPTION_KEYS|No encryption key available for keyId \\{…\\})$",
+      "justification": "Production-secret checks abort startup; invalid ciphertext is caught inside connector/config trust boundaries and mapped to stable localized public errors. Raw secret/config diagnostics are never serialized. AUDX-010 adds the multi-key rotation members of the same family: they are validated at configuration load, before any request is served, and an operator reading a boot failure is the only audience.",
       "owner": "security-platform",
+      "expiresOn": "2027-08-05"
+    },
+    {
+      "id": "encryption-rotation-operator-diagnostics",
+      "path": "services/api/src/encryption-rotation.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:ENCRYPTED_COLUMNS is out of sync with schema\\.prisma\\.\\{…\\}\\{…\\}|Not covered by rotation: \\{…\\}\\.|No longer in the schema: \\{…\\}\\.|Prisma client has no delegate for model \\{…\\})$",
+      "justification": "Operator diagnostics for the AUDX-010 rotation sweep. The module has no production caller today: services/api/src/encryption-rotation.spec.ts is its only importer, verified by grep across the repo. The two messages compare ENCRYPTED_COLUMNS against schema.prisma and name the drifting columns; the third reports a missing Prisma delegate. All three are read by whoever runs the sweep, never by an end user, and none is reachable from an HTTP route.",
+      "owner": "platform-security",
       "expiresOn": "2027-08-05"
     },
     {
@@ -1130,7 +1139,7 @@
       "id": "api-audit-and-runtime-machine-reasons",
       "path": "services/api/src/app.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:token_expired_or_revoked|agent-unreachable|persisted-read-failed|no-persisted-files|already-synced|reconciled-from-persisted|missing_storage_key|durable_archive_missing|checksum_mismatch|manager_failed)$",
+      "textPattern": "^(?:token_expired_or_revoked|agent-unreachable|persisted-read-failed|no-persisted-files|espace-non-stabilise|already-synced|reconciled-from-persisted|missing_storage_key|durable_archive_missing|checksum_mismatch|manager_failed)$",
       "justification": "These are audit metadata, reconciliation state, metrics or storage-fallback dimensions. Every related HTTP failure uses a catalogued code/message; the raw identifiers are never rendered.",
       "owner": "api-platform-and-i18n",
       "expiresOn": "2027-08-05"
@@ -1474,6 +1483,15 @@
       "rule": "*",
       "textPattern": "^target page returned an error status$",
       "justification": "Internal service-to-service refusal message. The screenshotter is never reached by a browser: only the API calls it, and the API converts the 422 into its own catalogued copy before anything reaches a screen. The stable code TARGET_PAGE_ERROR is what callers branch on; the text exists for logs and on-call.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "i18n-catalogue-fetch-diagnostic",
+      "path": "app/lib/i18n/catalogues-client.ts",
+      "rule": "error-message",
+      "textPattern": "^i18n-catalogue-\\{…\\}-http-\\{…\\}$",
+      "justification": "BUG-PERF-I18N-RACINE-001 : code de diagnostic du chargement du catalogue JSON, consigné en console par entry.client.tsx avant d'hydrater quand même ; jamais affiché à l'utilisateur.",
       "owner": "i18n",
       "expiresOn": "2027-08-04"
     }

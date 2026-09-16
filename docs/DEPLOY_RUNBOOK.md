@@ -7,9 +7,19 @@ aspirational design.
 ## TL;DR
 
 - **Trigger:** every push to `main` runs GitHub Actions **`.github/workflows/deploy-main.yml`** (repo `openaxcloud/vibecore` — NOT the `stackblitz-labs/bolt.diy` upstream; `gh` defaults to upstream, so always pass `-R openaxcloud/vibecore`).
-- **Build:** it calls **`gcloud builds submit --config=cloudbuild.yaml`** in region **`europe-west9`**, producing 7 images tagged with the commit's **`git rev-parse --short=10`** SHA.
+- **Build:** it calls **three** regional Cloud Build configs in **`europe-west9`** — `infra/cloudbuild/runtime-tier.yaml`, **`infra/cloudbuild/single-web.yaml`** and `infra/cloudbuild/workspace-agent.yaml` — each tagged with the commit's **`git rev-parse --short=10`** SHA. It does **NOT** use root `cloudbuild.yaml` (verified 2026-09-06: `--config=` appears three times in the workflow, none of them the root file). The `web` image has its own config **because `VITE_RUNTIME_MODE` / `VITE_RUNTIME_API_BASE_URL` are inlined into the client bundle at build time** — a Helm/configmap value is a no-op for the browser, and an image built without them silently ships WebContainer.
 - **Deploy:** **`helm upgrade vibecore infra/helm/platform -n vibecore --reuse-values --atomic --timeout 10m --set services.<tier>.imageTag=<SHA>`**.
 - **No GitOps** (no Argo CD / Flux). **Helm release `vibecore`** in namespace `vibecore` on GKE `vibecore-prod-app` (europe-west9).
+
+> **`_DEPS_TAG` was removed from the manual commands above (2026-09-06).** Cloud
+> Build is strict about substitutions: a key that is passed but **not referenced
+> by any step** fails the submission outright — measured, the error names every
+> offending key. Root `cloudbuild.yaml` never referenced `_DEPS_TAG`, so the
+> documented command could not run at all. `_VITE_RUNTIME_MODE`,
+> `_VITE_RUNTIME_API_BASE_URL` and `_VITE_BYOK_DISABLED` are now **declared and
+> consumed** by its `build-web` step, which **refuses to build** when the mode is
+> empty or unrecognised. Dropping those flags to make the command "work" would
+> ship a WebContainer IDE tagged `:latest`; the step now fails instead.
 
 ## Facts (verified live)
 
@@ -124,7 +134,7 @@ Push to `main` → `deploy-main.yml` does:
    ```bash
    gcloud builds submit --config=cloudbuild.yaml \
      --project=vibecore-495216 --region=europe-west9 \
-     --substitutions=_SHORT_SHA="${SHORT_SHA}",_DEPS_TAG="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
+     --substitutions=_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
    ```
    → pushes `…/<service>:${SHORT_SHA}` (+ `:latest`) for the 7 platform images.
 4. Resolve **every** service to an immutable digest — the tiers just built, plus the
@@ -156,6 +166,63 @@ Push to `main` → `deploy-main.yml` does:
 8. Upload the manifest + SBOMs as run artifacts (also on failure).
 
 `--reuse-values` means **a change to `values-prod.yaml` alone never reaches prod** — it must be re-asserted via `--set` (that's why `previewUrlTemplate` is always re-set). A **template** change (e.g. the zero-downtime strategy) *does* take effect on the next upgrade.
+
+## ⚠️ `kubectl set image` skips the schema migration — and the symptom lies
+
+**Any image switch that does not go through Helm leaves the database schema
+behind.** The Prisma `migrate deploy` step is a Helm **pre-install / pre-upgrade
+hook** (`infra/helm/platform/templates/migrations-job.yaml`). `kubectl set image`,
+`kubectl rollout restart`, `kubectl edit deploy` and friends never fire it, so a
+newer image starts against an older schema.
+
+**The symptom does not name the cause.** The API answers `500` with a *generic*
+body — the message is sanitised. Measured on the audit environment on 2026-09-01,
+rolling `web` and `api` from `040dd2976d` to `fce8639ab3` with `kubectl set image`:
+
+```
+POST /auth/register  ->  500  {"error":"Internal server error","code":"P2022"}
+```
+
+Nothing in that response says "migration". `P2022` is Prisma for *the column does
+not exist in the current database*; the environment was **four migrations behind**
+(`0081_project_checkpoint`, `0082_db_migration_execution`, `0083_account_lockout`,
+`0083_session_idle_timeout`). Pods were `Running` and `/ready` answered `200`
+throughout — readiness probes do not exercise the columns the app needs, so
+**every health signal stayed green while registration was dead**.
+
+**If you must switch images by hand**, run the same migration the hook runs, from
+the *new* api image, before or right after the rollout:
+
+```bash
+AUDIT_CTX=...            # ALWAYS pass --context explicitly; see the warning below
+kubectl --context "$AUDIT_CTX" -n vibecore create job qa-migrate-<SHA> --dry-run=client -o yaml ... 
+# container: api:<NEW_SHA>, envFrom secretRef vibecore-platform-secrets, and:
+#   DB_DIR=$(node -e "process.stdout.write(require('path').dirname(require.resolve('@vibecore/database/package.json')))")
+#   cd "$DB_DIR" && node "$(node -e "process.stdout.write(require.resolve('prisma/build/index.js'))")" migrate deploy
+```
+
+Two gotchas met while doing exactly this:
+
+* **PodSecurity `restricted` rejects a naive Job.** The pod is refused with
+  `FailedCreate` and the Job sits at zero pods with **no status at all** — easy to
+  read as "still starting". The pod template needs `runAsNonRoot: true`,
+  `allowPrivilegeEscalation: false`, `capabilities.drop: ["ALL"]` and
+  `seccompProfile.type: RuntimeDefault`.
+* **Quote the image reference.** `"$REGISTRY/$tier:$SHA"` can lose the `:` and the
+  first characters of the tag under some shells (observed: `web:fce8639ab3` became
+  `webe8639ab3`), producing an `ImagePullBackOff` whose message points at a tag
+  nobody wrote. Use `"${REGISTRY}/${tier}:${SHA}"`.
+
+**Preferred alternative**: use `helm upgrade`, which runs the hook for you. Reach
+for `kubectl set image` only when you deliberately want to change *nothing but the
+image* — and then own the migration yourself.
+
+> **Context safety.** The ambient `kubectl` context on a maintainer machine is
+> frequently **production** (verified 2026-09-01). Pass `--kube-context` /
+> `--context` explicitly on every `helm` and `kubectl` command, and guard scripts
+> with a refusal on any context containing `vibecore-prod`. The Helm *release
+> name* protects nothing: the audit release is also called `vibecore`, in a
+> namespace also called `vibecore`.
 
 ## Manual path (what to run by hand — ad-hoc / hotfix / re-deploy a SHA)
 
@@ -196,7 +263,7 @@ SHORT_SHA="$(git rev-parse --short=10 HEAD)"
 # 1) build + push images (regional Cloud Build)
 gcloud builds submit --config=cloudbuild.yaml \
   --project=vibecore-495216 --region=europe-west9 \
-  --substitutions=_SHORT_SHA="${SHORT_SHA}",_DEPS_TAG="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
+  --substitutions=_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
 
 # (single service only: `make deploy-<svc> SHORT_SHA=${SHORT_SHA}` — build+push only, no deploy)
 
@@ -586,3 +653,60 @@ repeat the upgrade with `=1`.
 `docs/GCP_DEPLOYMENT.md` (initial provisioning), `docs/GCP_RUNBOOK.md`,
 `docs/RELEASE_PROCESS.md`, `docs/infra-deploy-tiers.md` (compute deploy tiers).
 This file is the **app-image build+deploy** ground truth those don't spell out.
+
+## La porte de release n'accepte qu'un contrôle déclenché par un `push`
+
+**Vécu le 2026-09-15, et ça a coûté une demi-journée.**
+
+`scripts/release-gate/verify-required-checks.mjs` refuse tout run dont
+l'événement n'est pas dans `allowedEvents`, qui vaut `['push']` par défaut :
+
+```
+Production E2E : run event 'workflow_dispatch' is not in allowedEvents [push]
+```
+
+C'est un garde-fou **délibéré** : sans lui, n'importe qui pourrait fabriquer un
+vert à la demande sur le commit de son choix, puis déployer dessus.
+
+### Le piège
+
+Quand le run E2E déclenché par le `push` reste coincé — ce jour-là, `queued`
+pendant plus de cinq heures sans runner assigné — le réflexe est de le relancer
+à la main avec `gh workflow run e2e.yml`. **Ce vert-là ne sert à rien.** Il
+apparaît vert dans l'interface, il est vert pour `gh pr checks`, et la porte le
+refuse quand même, parce que son événement est `workflow_dispatch`.
+
+Le déploiement échoue alors à l'étape « Release gate », avec les trois autres
+contrôles au vert — ce qui fait chercher la cause du mauvais côté.
+
+### Ce qu'il faut faire à la place
+
+**Relancer le run d'origine**, pas en créer un nouveau :
+
+```bash
+# retrouver le run E2E porté par le push sur le SHA visé
+gh run list -R openaxcloud/vibecore --workflow e2e.yml --branch main \
+  --json databaseId,event,headSha,conclusion \
+  --jq '.[] | select(.headSha=="<SHA 40 hex>" and .event=="push")'
+
+# le relancer : une relance CONSERVE l'événement d'origine
+gh run rerun <databaseId> -R openaxcloud/vibecore
+```
+
+Vérifier après coup que l'événement est resté `push` :
+
+```bash
+gh run view <databaseId> -R openaxcloud/vibecore --json event,attempt,status
+```
+
+### Le contrôle qui évite d'y revenir
+
+Avant de choisir un contournement pour obtenir un vert, lire ce que la porte
+**accepte**, pas seulement ce qu'elle exige :
+
+```bash
+grep -n "allowedEvents\|requiredHeadBranch" scripts/release-gate/verify-required-checks.mjs
+```
+
+Vérifier qu'une cible existe ne suffit pas — encore faut-il vérifier qu'elle
+*compte*.

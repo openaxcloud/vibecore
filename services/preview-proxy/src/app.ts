@@ -481,6 +481,13 @@ export function sanitizePreviewFramingHeader(name: string, value: string): strin
  * the header is absent or the named cookie is not present. Tolerant of the
  * surrounding `; ` separators and missing values.
  */
+/*
+ * How long a KNOWN-GOOD port-access answer is reused. Short enough that flipping
+ * a port to private takes effect quickly, long enough that an api blip is
+ * absorbed without changing anyone's access.
+ */
+const PORT_ACCESS_CACHE_TTL_MS = 10_000;
+
 export function readCookie(cookieHeader: string | undefined, name: string): string | undefined {
   if (!cookieHeader) {
     return undefined;
@@ -564,30 +571,164 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     );
   }
 
-  /* Is this workspace's port marked private? Fail-open on any lookup error. */
+  /*
+   * AUDX-005 — is this workspace's port marked private?
+   *
+   * This used to return false (= "public, proxy it") on ANY lookup failure: a
+   * non-2xx, a timeout, a DNS blip. An authorization decision that answers
+   * "allow" when it does not know is fail-OPEN: one api hiccup turned every
+   * private port on the platform public, silently, for the duration.
+   *
+   * It now fails CLOSED — unknown is treated as private.
+   *
+   * ⚠️ Why that does not break the owner (rule 19): "private" does not mean
+   * "nobody"; it means "a valid vc_preview session is required". The owner
+   * viewing their own preview HAS that cookie, so during an api outage they are
+   * unaffected. Only unauthenticated third parties are turned away — which is
+   * precisely the population that must not be guessing at private ports.
+   *
+   * And to avoid manufacturing unknowns out of ordinary noise, a failed lookup
+   * is retried once, and the last KNOWN-GOOD answer is reused for a short window
+   * so a transient blip does not flip anything at all.
+   */
+  const portAccessCache = new Map<string, { private: boolean; expiresAt: number }>();
+
   const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
     if (!enforcePrivatePorts || !apiBaseUrl || !proxySharedSecret) {
       return false;
     }
 
-    try {
-      const response = await fetchImpl(
-        `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
-        { headers: { authorization: `Bearer ${proxySharedSecret}` } },
-      );
+    const cacheKey = `${workspaceId}:${port}`;
+    const cached = portAccessCache.get(cacheKey);
 
-      if (!response.ok) {
-        return false;
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.private;
+    }
+
+    const lookup = async (): Promise<boolean | undefined> => {
+      try {
+        const response = await fetchImpl(
+          `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
+          { headers: { authorization: `Bearer ${proxySharedSecret}` } },
+        );
+
+        if (!response.ok) {
+          return undefined;
+        }
+
+        return ((await response.json()) as { private?: boolean })?.private === true;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const answer = (await lookup()) ?? (await lookup());
+
+    if (answer === undefined) {
+      /*
+       * Genuinely unknown. Prefer a recently-known answer over a blanket deny so
+       * a blip is invisible to everyone; otherwise deny.
+       */
+      if (cached) {
+        return cached.private;
       }
 
-      return ((await response.json()) as { private?: boolean })?.private === true;
-    } catch {
-      return false;
+      return true;
     }
+
+    portAccessCache.set(cacheKey, { private: answer, expiresAt: Date.now() + PORT_ACCESS_CACHE_TTL_MS });
+
+    return answer;
   };
 
   /* Login-required page shown when a private port is hit without a session. */
   const app = Fastify({ logger: options.logger ?? false });
+
+  /*
+   * LE PROXY NE DOIT JAMAIS MOURIR D'UNE REPONSE MAL FORMEE.
+   *
+   * Mesure du 2026-09-08, production. Les deux pods `preview-proxy` portaient
+   * SEPT redemarrages. Le journal du conteneur mort, dans l'ordre :
+   *
+   *   GET /@vite/client   -> "Route GET:/@vite/client not found"
+   *                       -> 404, "stream closed prematurely"
+   *   FastifyError: Attempted to send payload of invalid type 'object'.
+   *     code: 'FST_ERR_REP_INVALID_PAYLOAD_TYPE'   -> exit 1
+   *
+   * L'enchainement : le crochet `onRequest` appelle `handlePreviewRequest` puis
+   * laisse la requete poursuivre son cycle. Quand l'amont ferme le flux
+   * prematurement — precisement ce que fait un serveur de dev instable — la
+   * reponse n'est pas terminee, Fastify retombe sur son 404 par defaut, et ce
+   * 404 envoie un OBJET alors que le `content-type` copie de l'amont n'est pas
+   * du JSON. Fastify leve ; il n'y avait ni `setErrorHandler` ni
+   * `setNotFoundHandler` dans tout ce service ; le rejet non gere tue le
+   * processus.
+   *
+   * CONSEQUENCE MESUREE : un seul espace de travail au serveur de dev instable
+   * faisait tomber l'apercu de TOUS les utilisateurs. Le pod redemarre, nginx
+   * n'a plus d'amont sain, et l'URL publique rend 503 — meme pour les apercus
+   * qui, eux, fonctionnaient. C'est la seconde couche du defaut d'apercu, et
+   * elle est INDEPENDANTE du demarrage du serveur de dev.
+   *
+   * Les deux gardes ci-dessous n'ajoutent aucune permissivite : elles ne
+   * changent aucun code de statut ni aucune decision d'autorisation. Elles
+   * garantissent seulement qu'une reponse d'erreur est TOUJOURS une chaine, et
+   * qu'une reponse deja commencee se termine au lieu de lever.
+   */
+  const repondreSansJamaisLever = (reply: FastifyReply, statut: number, texte: string) => {
+    /*
+     * Reponse deja commencee (l'amont avait pousse des octets avant de couper) :
+     * il n'y a plus rien a negocier, on ferme. Tenter un `send` ici leverait.
+     */
+    if (reply.raw.headersSent) {
+      reply.raw.destroy();
+
+      return reply;
+    }
+
+    /*
+     * Le `content-type` peut avoir ete recopie de l'amont (`text/javascript`
+     * pour `/@vite/client`). C'est LUI qui rend le payload objet invalide. On le
+     * remplace explicitement — jamais on ne laisse celui de l'amont decider du
+     * format d'un message d'erreur du proxy.
+     */
+    reply.raw.removeHeader?.('content-type');
+    reply.header('content-type', 'text/plain; charset=utf-8');
+    reply.header('cache-control', 'no-store');
+
+    return reply.code(statut).send(texte);
+  };
+
+  app.setNotFoundHandler((request, reply) => {
+    app.log.warn(
+      JSON.stringify({
+        event: 'preview.proxy.route.absente',
+        method: request.method,
+        path: request.url.split('?')[0],
+        headersDejaEnvoyes: reply.raw.headersSent,
+      }),
+    );
+
+    return repondreSansJamaisLever(reply, 404, 'Not Found');
+  });
+
+  app.setErrorHandler((erreur: unknown, request, reply) => {
+    const error = erreur as { code?: string; message?: string; statusCode?: number };
+    app.log.error(
+      JSON.stringify({
+        event: 'preview.proxy.erreur.capturee',
+        method: request.method,
+        path: request.url.split('?')[0],
+        code: error.code,
+        message: error.message,
+        headersDejaEnvoyes: reply.raw.headersSent,
+      }),
+    );
+
+    const statut = typeof error.statusCode === 'number' && error.statusCode >= 400 ? error.statusCode : 502;
+
+    return repondreSansJamaisLever(reply, statut, 'Preview temporarily unavailable');
+  });
 
   /*
    * We stream request.raw straight to the upstream agent, so Fastify's default
@@ -1890,6 +2031,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   attachPreviewWebSocketProxy(app.server, {
     previewDomain,
     resolveAgent,
+
+    /*
+     * AUDX-005 — hand the WS path the SAME gates the HTTP path uses. They were
+     * absent here, so every control below was enforced on the front door only.
+     */
+    enforceTenant,
+    resolveRequesterOrgId: (cookieHeader) =>
+      tenantSecret
+        ? verifyPreviewTenantToken(readCookie(cookieHeader, 'vc_preview'), tenantSecret, Date.now())
+        : undefined,
+    enforcePrivatePorts,
+    isPortPrivate,
     logger: { warn: (message) => app.log.warn(message) },
   });
 

@@ -100,7 +100,20 @@ export function FilterChip({
   const chipClasses = classNames(
     'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
     active
-      ? 'border border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+      ? /*
+         * TEXTE SUR UNE TEINTE DE SA PROPRE COULEUR : variante `-on-tint`.
+         *
+         * La puce active pose l'accent SUR un fond `color-mix(… 12%)` du même
+         * accent (voir `activeBackground` juste en dessous). Mesuré au pixel
+         * RENDU le 2026-09-08, iPhone 390, thème clair, page /projects :
+         * `rgb(194,65,12)` sur `248,232,225` donne 4,35 pour 4,5 exigé.
+         *
+         * `--vc-ide-accent-action-on-tint` existe exactement pour ce cas et
+         * vaut `#9a3412` en clair — assez sombre pour repasser le seuil. La
+         * BORDURE garde l'accent nu : une bordure n'est pas du texte et ne
+         * relève pas de 1.4.3.
+         */
+        'border border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action-on-tint)]'
       : 'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
     onRemove && 'pr-1',
     className,

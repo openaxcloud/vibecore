@@ -1,7 +1,7 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { access, link, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { access, link, lstat, mkdir, readFile, readdir, realpath, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
 import { hostname } from 'node:os';
-import { dirname, join, normalize, relative } from 'node:path';
+import { dirname, join, normalize, relative, sep } from 'node:path';
 import { promisify } from 'node:util';
 import JSZip from 'jszip';
 import { appPublicEnglish } from './app-public-copy.js';
@@ -264,6 +264,113 @@ function safeWorkspacePath(projectId: string, workspaceId?: string, filePath = '
   return safeProjectPath(projectId, workspaceSubpath(workspaceId, filePath));
 }
 
+/*
+ * AUDX-001 — symlink containment for project storage.
+ *
+ * safeProjectPath() is a purely LEXICAL check (normalize + relative). It cannot
+ * see a symlink, and Git happily carries symlinks (mode 120000). So a repository
+ * brought in by import / clone / pull can plant `link -> /etc/passwd` or
+ * `link -> ../<other-project-id>/…`; the lexical check then approves
+ * `<root>/link` and readFile/writeFile FOLLOW the link — read becomes
+ * cross-tenant exfiltration, write becomes cross-tenant corruption.
+ *
+ * Mirrors the guard the workspace-agent already applies on its own file routes
+ * (assertRealPathContained in services/workspace-agent/src/app.ts): reject a
+ * symlink at the final component, then realpath() the deepest EXISTING ancestor
+ * and require it to stay inside the canonical root.
+ */
+async function assertContainedRealPath(root: string, target: string): Promise<void> {
+  // The root itself may sit under a symlink (macOS /var -> /private/var), so
+  // compare against its canonical form or every check would report an escape.
+  const realRoot = await realpath(root).catch(() => root);
+
+  /*
+   * Reject when the FINAL component is a symlink. The ancestor walk below cannot
+   * catch a DANGLING link (link exists, target does not): realpath() throws
+   * ENOENT, the walk reads that as "not created yet" and approves, and the write
+   * then follows the link outside the root. lstat does not follow, so it sees the
+   * link itself.
+   */
+  const finalStat = await lstat(target).catch((error: NodeJS.ErrnoException) => {
+    if (error?.code === 'ENOENT') {
+      return undefined;
+    }
+
+    throw error;
+  });
+
+  if (finalStat?.isSymbolicLink()) {
+    throw Object.assign(new Error(appPublicEnglish('INVALID_PROJECT_PATH')), {
+      statusCode: 400,
+      code: 'INVALID_PROJECT_PATH',
+    });
+  }
+
+  let probe = target;
+
+  for (;;) {
+    /*
+     * Stop AT the root. A workspace root is created lazily (a secondary
+     * workspace's directory does not exist until its first write), so walking
+     * past it reaches the project/storage directory — a strict ANCESTOR of the
+     * root — and `relative(root, ancestor)` starts with '..', which read as an
+     * escape and rejected every legitimate first write into a new workspace.
+     * Nothing above the root can tell us anything about containment anyway.
+     */
+    if (probe === root || relative(root, probe).startsWith('..')) {
+      return;
+    }
+
+    const real = await realpath(probe).catch((error: NodeJS.ErrnoException) => {
+      if (error?.code === 'ENOENT') {
+        return undefined;
+      }
+
+      throw error;
+    });
+
+    if (real !== undefined) {
+      const rel = relative(realRoot, real);
+
+      if (rel === '..' || rel.startsWith(`..${sep}`)) {
+        throw Object.assign(new Error(appPublicEnglish('INVALID_PROJECT_PATH')), {
+          statusCode: 400,
+          code: 'INVALID_PROJECT_PATH',
+        });
+      }
+
+      return;
+    }
+
+    const parent = dirname(probe);
+
+    if (parent === probe) {
+      return;
+    }
+
+    probe = parent;
+  }
+}
+
+/**
+ * Lexically-safe path PLUS symlink containment. Every site that reads or writes
+ * a caller-supplied file path must use this rather than safeWorkspacePath, so
+ * that "is every call site covered?" is answerable by grepping for the two names.
+ */
+async function containedWorkspacePath(projectId: string, workspaceId: string | undefined, filePath: string) {
+  const target = safeWorkspacePath(projectId, workspaceId, filePath);
+  await assertContainedRealPath(safeWorkspacePath(projectId, workspaceId), target);
+
+  return target;
+}
+
+async function containedProjectPath(projectId: string, filePath: string) {
+  const target = safeProjectPath(projectId, filePath);
+  await assertContainedRealPath(safeProjectPath(projectId), target);
+
+  return target;
+}
+
 function now() {
   return new Date().toISOString();
 }
@@ -279,6 +386,35 @@ function storageRoot() {
       ? '/tmp/vibecore-project-storage'
       : join(process.cwd(), '.vibecore-project-storage'))
   );
+}
+
+/*
+ * SUPPRESSION DES FICHIERS D'UN PROJET, sur le volume partagé.
+ *
+ * Troisième famille que le démontage ne couvrait pas. Mesuré le 2026-09-07 en
+ * production, en démontant à la main ce que le produit aurait laissé : 428
+ * répertoires de projet (1,3 Go) et 208 charges d'instantanés (825 Mo)
+ * survivaient à la suppression de leurs projets. Personne ne les effaçait, et
+ * l'espace était payé indéfiniment.
+ *
+ * Deux arbres, parce que les instantanés ne vivent PAS sous le projet :
+ *   <racine>/<projectId>                     les fichiers du projet
+ *   <racine>/_objects/snapshots/<projectId>  les archives d'instantanés
+ *
+ * LA GARDE. L'identifiant est vérifié contre `SAFE_PROJECT_ID` — le même motif
+ * que `acquireFileLock`. Un identifiant vide, avec un `..`, ou hors motif fait
+ * LEVER plutôt que supprimer : effacer le mauvais arbre sous la racine partagée
+ * emporterait les fichiers de tous les projets.
+ */
+export async function supprimerFichiersDuProjet(projectId: string): Promise<void> {
+  if (!SAFE_PROJECT_ID.test(projectId)) {
+    throw new Error(`${appPublicEnglish('TEARDOWN_PROJECT_ID_INVALID')} (${JSON.stringify(projectId)})`);
+  }
+
+  const racine = storageRoot();
+
+  await rm(join(racine, projectId), { recursive: true, force: true });
+  await rm(join(racine, '_objects', 'snapshots', projectId), { recursive: true, force: true });
 }
 
 function safeProjectPath(projectId: string, filePath = '') {
@@ -326,6 +462,100 @@ const PROJECT_LOCK_RETRY_MAX_MS = 500;
 
 function locksRoot() {
   return join(storageRoot(), '_locks');
+}
+
+/*
+ * SONDE D'ÉCRITURE SUR LE STOCKAGE PARTAGÉ.
+ *
+ * POURQUOI ELLE EXISTE. Le 2026-09-07, sur le banc d'essai, une création de
+ * projet sur deux rendait 500 : `mkdir` sur `/data/vibecore/projects/_locks`
+ * échouait avec **errno -116 (ESTALE)** — poignée NFS périmée — sur UNE des deux
+ * répliques de l'API.
+ *
+ * Et rien ne le voyait. `readyReplicas` disait 2/2, le compteur de redémarrages
+ * disait 0, `/health` rendait `ok` inconditionnellement et `/ready` ne vérifiait
+ * que la base et Redis. La réplique est restée dans la rotation, en bonne santé
+ * apparente, pendant qu'une requête sur deux échouait. Il a fallu la recréer.
+ *
+ * La production a exactement le même montage : PVC `vibecore-shared-csi`, pilote
+ * `filestore.csi.storage.gke.io` (donc NFS), `ReadWriteMany`, monté sur
+ * `/data/vibecore` par le déploiement `api`, avec
+ * `PROJECT_STORAGE_DIR=/data/vibecore/projects`. Le mode de panne est
+ * reproductible tel quel.
+ *
+ * CE QUE LA SONDE FAIT, et pourquoi ainsi. Elle refait **l'opération qui a
+ * échoué** — `mkdir` sur `_locks` — puis écrit et supprime un fichier propre à
+ * ce pod. Une lecture ne suffirait pas : un `stat` peut réussir sur une entrée
+ * encore en cache alors que toute écriture échoue. C'est l'écriture qui révèle
+ * la poignée périmée, et c'est l'écriture dont dépend la création de projet.
+ *
+ * Le fichier porte le nom d'hôte : deux répliques ne se marchent pas dessus, et
+ * une sonde qui échoue désigne SA réplique.
+ */
+export type VerdictStockage = {
+  ok: boolean;
+
+  /** `ESTALE`, `EIO`, `ENOSPC`… tel que rendu par le noyau. */
+  code?: string;
+
+  /**
+   * Vrai quand la panne est PROPRE À CE POD et ne se répare pas d'elle-même :
+   * seule la recréation du pod remonte le volume. C'est le seul cas qui doit
+   * sortir la réplique de la rotation.
+   */
+  fatal?: boolean;
+  latencyMs: number;
+};
+
+/*
+ * Les codes qui ne guérissent JAMAIS seuls.
+ *
+ * `ESTALE` est le cas mesuré : le serveur NFS a invalidé la poignée, et le
+ * client la gardera périmée jusqu'au remontage. `EIO` et `ENOTCONN` sont de la
+ * même famille — le montage est cassé, pas occupé.
+ *
+ * Tout le reste (délai dépassé, `ENOSPC`, `EACCES`) est signalé mais NE sort PAS
+ * la réplique de la rotation : ces causes-là sont globales ou transitoires, et
+ * sortir toutes les répliques transformerait une dégradation en panne totale —
+ * y compris pour les routes qui ne touchent pas le stockage.
+ */
+const CODES_MONTAGE_MORT = new Set(['ESTALE', 'EIO', 'ENOTCONN']);
+
+/**
+ * Exportée pour être TENUE par un test sur le code exact de l'incident.
+ *
+ * On ne peut pas fabriquer un `ESTALE` sans un vrai montage NFS : le classement
+ * est donc éprouvé ici, et le CHEMIN qui en découle (`/ready` → 503) est éprouvé
+ * au site d'appel. Deux moitiés, deux tests — plutôt qu'une seule assertion qui
+ * n'aurait couvert ni l'une ni l'autre.
+ */
+export function estMontageMort(code: string | undefined): boolean {
+  return code !== undefined && CODES_MONTAGE_MORT.has(code);
+}
+
+export async function sonderEcritureStockage(): Promise<VerdictStockage> {
+  const debut = Date.now();
+  const racine = locksRoot();
+  const temoin = join(racine, `.readiness-${hostname()}`);
+
+  try {
+    await mkdir(racine, { recursive: true }); // l'opération EXACTE qui a échoué en errno -116
+
+    // puis une écriture réelle : `mkdir` seul peut réussir sur un cache
+    await writeFile(temoin, String(Date.now()), 'utf8');
+    await unlink(temoin);
+
+    return { ok: true, latencyMs: Date.now() - debut };
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+
+    return {
+      ok: false,
+      code: code ?? 'UNKNOWN',
+      fatal: estMontageMort(code),
+      latencyMs: Date.now() - debut,
+    };
+  }
 }
 
 const SAFE_PROJECT_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
@@ -635,8 +865,9 @@ export class LocalProjectStorage implements ProjectStorage {
   ) {
     return withProjectLock(projectId, async () => {
       for (const file of files) {
-        const target = safeWorkspacePath(projectId, workspaceId, file.path);
+        const target = await containedWorkspacePath(projectId, workspaceId, file.path);
         await mkdir(dirname(target), { recursive: true });
+        await assertContainedRealPath(safeWorkspacePath(projectId, workspaceId), target);
         await writeFile(target, decodeFileContent(file.content, file.encoding));
       }
 
@@ -676,8 +907,9 @@ export class LocalProjectStorage implements ProjectStorage {
       }
 
       for (const file of files) {
-        const target = safeProjectPath(projectId, file.path);
+        const target = await containedProjectPath(projectId, file.path);
         await mkdir(dirname(target), { recursive: true });
+        await assertContainedRealPath(safeProjectPath(projectId), target);
         await writeFile(target, decodeFileContent(file.content, file.encoding));
       }
 
@@ -721,8 +953,9 @@ export class LocalProjectStorage implements ProjectStorage {
       await clearTreePreservingSecondaryWorkspaces(target);
 
       for (const file of input.files) {
-        const writeTarget = safeWorkspacePath(input.projectId, input.workspaceId, file.path);
+        const writeTarget = await containedWorkspacePath(input.projectId, input.workspaceId, file.path);
         await mkdir(dirname(writeTarget), { recursive: true });
+        await assertContainedRealPath(safeWorkspacePath(input.projectId, input.workspaceId), writeTarget);
         await writeFile(writeTarget, decodeFileContent(file.content, file.encoding));
       }
 
@@ -916,7 +1149,7 @@ export class GitCliProvider implements GitProvider {
     }
 
     for (const file of files) {
-      const target = safeWorkspacePath(projectId, workspaceId, file.path);
+      const target = await containedWorkspacePath(projectId, workspaceId, file.path);
       const next = decodeFileContent(file.content, file.encoding);
       const current = await readFile(target).catch(() => undefined);
 
@@ -925,6 +1158,7 @@ export class GitCliProvider implements GitProvider {
       }
 
       await mkdir(dirname(target), { recursive: true });
+      await assertContainedRealPath(safeWorkspacePath(projectId, workspaceId), target);
       await writeFile(target, next);
     }
   }
@@ -1361,9 +1595,14 @@ export class GitCliProvider implements GitProvider {
 
   async conflictFile(projectId: string, filePath: string, workspaceId?: string) {
     const clean = filePath.replace(/^\/+/, '');
-    const target = safeWorkspacePath(projectId, workspaceId, clean);
-    // The working-tree file carries the <<<<<<< / ======= / >>>>>>> conflict
-    // markers during an unresolved merge; surface it verbatim for the editor.
+    const target = await containedWorkspacePath(projectId, workspaceId, clean);
+
+    /*
+     * The working-tree file carries the <<<<<<< / ======= / >>>>>>> conflict
+     * markers during an unresolved merge; surface it verbatim for the editor.
+     * The containment check above is what stops a repo-planted symlink turning
+     * this read into arbitrary-file exfiltration.
+     */
     const content = await readFile(target, 'utf8').catch(() => '');
 
     return { filePath: clean, content };
@@ -1372,11 +1611,12 @@ export class GitCliProvider implements GitProvider {
   async markResolved(input: { projectId: string; workspaceId?: string; filePath: string; content: string }) {
     return withProjectLock(input.projectId, async () => {
       const clean = input.filePath.replace(/^\/+/, '');
-      const target = safeWorkspacePath(input.projectId, input.workspaceId, clean);
+      const target = await containedWorkspacePath(input.projectId, input.workspaceId, clean);
 
       // Write the user's merged content (markers removed) then stage it so the
       // merge can be completed by a normal commit.
       await mkdir(dirname(target), { recursive: true });
+      await assertContainedRealPath(safeWorkspacePath(input.projectId, input.workspaceId), target);
       await writeFile(target, input.content, 'utf8');
       await this.git(input.projectId, ['add', '--', clean], input.workspaceId);
 

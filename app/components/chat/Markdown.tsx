@@ -1,6 +1,6 @@
 import 'katex/dist/katex.min.css';
 import type { Message } from 'ai';
-import { memo, useMemo, type ReactNode } from 'react';
+import { memo, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import type { BundledLanguage } from 'shiki';
@@ -57,6 +57,32 @@ interface MarkdownProps {
 export const Markdown = memo(
   ({ children, html = false, limitedMarkdown = false, append, setChatMode, model, provider }: MarkdownProps) => {
     logger.trace('Render');
+
+    /*
+     * BUG-STREAM-JUMP-001 — `append` vient de `useChat` : son identité change
+     * à CHAQUE lot de jetons pendant une génération. Tant que la table
+     * `components` en dépendait, chacune de ses entrées changeait de TYPE à
+     * chaque lot, et react-markdown démontait puis remontait tout le
+     * sous-arbre.
+     *
+     * Mesuré à 390 sur le build de production, tour streamé (sonde
+     * MutationObserver) : le markdown de TOUS les messages du fil — y compris
+     * des tours terminés depuis longtemps — recréé toutes les 25 à 65 ms,
+     * 387 recréations sur 400 mutations relevées. C'est ce qui fait « sauter »
+     * le fil : un bloc de code et une action d'artefact apparaissaient et
+     * disparaissaient plusieurs fois par seconde (hauteur ±160 px), et aucun
+     * nœud ne survivait assez longtemps pour que le navigateur puisse ancrer
+     * le défilement dessus.
+     *
+     * Les rappels vivent donc dans une référence : la table devient stable, et
+     * les gestionnaires appellent toujours la DERNIÈRE version — un clic a
+     * lieu bien après que les effets soient passés.
+     */
+    const rappels = useRef({ append, setChatMode });
+
+    useEffect(() => {
+      rappels.current = { append, setChatMode };
+    });
 
     const components = useMemo(() => {
       return {
@@ -176,10 +202,12 @@ export const Markdown = memo(
                 data-path={path}
                 data-href={href}
                 onClick={() => {
+                  const { append: ajouter, setChatMode: definirLeMode } = rappels.current;
+
                   if (type === 'file') {
                     openArtifactInWorkbench(path);
-                  } else if (type === 'message' && append) {
-                    append({
+                  } else if (type === 'message' && ajouter) {
+                    ajouter({
                       id: `quick-action-message-${Date.now()}`,
                       content: [
                         {
@@ -190,9 +218,9 @@ export const Markdown = memo(
                       role: 'user',
                     });
                     console.log('Message appended:', message);
-                  } else if (type === 'implement' && append && setChatMode) {
-                    setChatMode('build');
-                    append({
+                  } else if (type === 'implement' && ajouter && definirLeMode) {
+                    definirLeMode('build');
+                    ajouter({
                       id: `quick-action-implement-${Date.now()}`,
                       content: [
                         {
@@ -230,7 +258,7 @@ export const Markdown = memo(
           return <button {...props}>{children}</button>;
         },
       } satisfies Components;
-    }, [append, setChatMode, model, provider]);
+    }, [model, provider]);
 
     /*
      * Memoize the plugin arrays + stripped content so a streaming re-render that

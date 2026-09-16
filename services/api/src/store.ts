@@ -147,6 +147,61 @@ export interface SnapshotRecord {
   createdAt: string;
 }
 
+/**
+ * PANEL-PERF — projection du manifeste dans une LISTE d'instantanés.
+ *
+ * Mesuré en production le 2026-09-08 sur un projet de 355 instantanés :
+ * la réponse complète pèse 1 281 Ko, dont 1 139 Ko pour le seul `manifest.files`.
+ * La requête SQL correspondante prend 29 à 47 ms — le coût est la charge utile,
+ * pas la base.
+ *
+ * - `full` (défaut) : contrat historique, INCHANGÉ. `BaseChat.tsx` lit
+ *   `manifest.files` dans `snapshotFiles()` pour l'écran des fichiers d'un
+ *   instantané et pour le diff entre deux instantanés.
+ * - `without-files` : garde le manifeste, retire `files` (−88,9 %).
+ * - `omit` : aucun manifeste (−90,1 %). Suffisant pour un écran qui ne lit que
+ *   id / label / kind / byteLength / createdAt, comme `DatabaseRollbackPanel`.
+ */
+export type SnapshotManifestProjection = 'full' | 'without-files' | 'omit';
+
+export interface SnapshotListOptions {
+  /** Taille de page. Absent = aucune troncature (contrat historique). */
+  take?: number;
+  /** Id du dernier instantané de la page précédente ; la suite commence APRÈS lui. */
+  cursor?: string;
+  manifest?: SnapshotManifestProjection;
+}
+
+/**
+ * Source UNIQUE de la projection, partagée par le magasin Prisma et le magasin
+ * de test — pour qu'un garde-fou ne puisse pas tenir sa propre copie de la
+ * règle et rester vert pendant que le produit diverge.
+ */
+export function projectSnapshotManifest<T extends { manifest?: unknown }>(
+  snapshot: T,
+  projection: SnapshotManifestProjection = 'full',
+): T {
+  if (projection === 'full') {
+    return snapshot;
+  }
+
+  if (projection === 'omit') {
+    const { manifest: _ignore, ...reste } = snapshot;
+
+    return reste as T;
+  }
+
+  const manifest = snapshot.manifest;
+
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    return snapshot;
+  }
+
+  const { files: _fichiers, ...manifestSansFichiers } = manifest as Record<string, unknown>;
+
+  return { ...snapshot, manifest: manifestSansFichiers };
+}
+
 export interface GalleryListingRecord {
   id: string;
   slug: string;
@@ -709,6 +764,9 @@ export interface AiCostLedgerRecord {
   outputTokens: number;
   costCents: number;
   reason: string;
+
+  /** AUDX-017 — 'trusted' (server-to-server) or 'declared' (user session). */
+  source?: string;
   createdAt: string;
 }
 
@@ -1551,7 +1609,37 @@ export interface ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    /** AUDX-014 — durable idempotency, unique per (organizationId, key). */
+    idempotencyKey?: string;
   }): Promise<{ id: string; state: string }>;
+
+  /**
+   * AUDX-014 — find a job by its client idempotency key.
+   *
+   * This replaces the in-process `importIdemIndex`, which was per-pod: a retried
+   * create landing on another replica did not see the key and created a SECOND
+   * job with a SECOND credit reservation.
+   */
+  findImportJobByIdempotencyKey(organizationId: string, idempotencyKey: string): Promise<{ id: string } | undefined>;
+
+  /**
+   * AUDX-014 — durable, shared import staging.
+   *
+   * Replaces the in-process `importStaging` Map. The import flow is two HTTP
+   * hops and the api runs 2+ replicas with no session affinity, so a commit
+   * routed to another pod found nothing and returned 409 IMPORT_STAGING_GONE.
+   *
+   * Still EPHEMERAL: cleared on every non-committed exit and after a successful
+   * commit. Nothing is written to the target project before COMMITTED.
+   */
+  putImportStagedFiles(
+    importJobId: string,
+    files: Array<{ path: string; content: string; encoding?: string }>,
+  ): Promise<void>;
+  getImportStagedFiles(
+    importJobId: string,
+  ): Promise<Array<{ path: string; content: string; encoding?: string }> | undefined>;
+  deleteImportStagedFiles(importJobId: string): Promise<void>;
   updateImportJob(
     id: string,
     patch: {
@@ -1810,7 +1898,8 @@ export interface ApiStore {
    * api record) so they stop consuming the workspaces.active quota slot.
    */
   listActiveWorkspaces(organizationId: string): Promise<WorkspaceRecord[]>;
-  countSnapshots(organizationId: string): Promise<number>;
+  /** `since` borne le compte à la période d'usage courante — voir `countDeployments`. */
+  countSnapshots(organizationId: string, since?: Date): Promise<number>;
   countDeployments(organizationId: string, since?: Date): Promise<number>;
   /**
    * Count an organization's concurrently-published apps — distinct projects with
@@ -1857,7 +1946,7 @@ export interface ApiStore {
     turnIndex?: number;
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
-  listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
+  listSnapshots(projectId: string, options?: SnapshotListOptions): Promise<SnapshotRecord[]>;
   putProjectStorageObject(input: {
     projectId?: string;
     key: string;
@@ -2004,9 +2093,7 @@ export interface ApiStore {
     canceledAt?: string;
   }): Promise<DeploymentRecord>;
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
-  getDeploymentOwnerStatus(
-    deploymentId: string,
-  ): Promise<
+  getDeploymentOwnerStatus(deploymentId: string): Promise<
     | {
         projectId: string;
         status: string;
@@ -2476,6 +2563,14 @@ export interface ApiStore {
     outputTokens: number;
     costCents: number;
     reason: string;
+
+    /*
+     * AUDX-017 — provenance of the token counts. 'trusted' = reported
+     * server-to-server; 'declared' = reported under a user session and therefore
+     * forgeable. Defaults to 'declared': the untrusted value is the safe default
+     * for a caller that has not said which it is.
+     */
+    source?: 'trusted' | 'declared';
   }): Promise<AiCostLedgerRecord>;
   listAiCosts(organizationId: string, range?: { from?: string; to?: string }): Promise<AiCostLedgerRecord[]>;
 

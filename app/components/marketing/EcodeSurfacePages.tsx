@@ -1029,13 +1029,24 @@ export function createProjectPreviewSurfacePage(projectId: string): EcodeSurface
   });
 }
 
-export function createProjectCompatSurfacePage(projectId: string): EcodeSurfacePageDefinition {
+/*
+ * REMISE EN PLACE. #422 retirait cette fabrique comme morte — elle l'était
+ * quand la proposition a été écrite. `app/routes/profile.$username.tsx` est
+ * arrivée sur `main` depuis et l'appelle. Les trois autres fabriques que
+ * cette proposition retire n'ont, elles, toujours aucun appelant.
+ */
+export function createProfileSurfacePage(username?: string): EcodeSurfacePageDefinition {
+  const name = username ?? 'builder';
+
   return makeDynamicSurfacePage({
-    slug: `project/${projectId}`,
-    route: `/project/${projectId}`,
-    category: 'builder',
-    icon: Boxes,
-    dynamicCopy: { key: 'projectCompat', values: { projectId } },
+    slug: username ? `profile/${username}` : 'profile',
+    route: username ? `/profile/${username}` : '/profile',
+    category: 'team',
+    icon: Users,
+    dynamicCopy: {
+      key: username ? 'profileNamed' : 'profile',
+      values: { username: name },
+    },
   });
 }
 

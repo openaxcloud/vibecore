@@ -40,6 +40,17 @@ export const projectSnapshotsEn = {
     'The change summary is unavailable. You can still restore this snapshot.',
   'projectSnapshots.restore.safetyDescription':
     'Restoring replaces the current project files. A safety snapshot of the current state is created first.',
+
+  /*
+   * Measured 2026-09-03: `POST /projects/:id/snapshots/:id/restore` restores
+   * FILES ONLY — the handler never touches the database. The IDE's rollback
+   * modal adds a separate point-in-time restore when its "Database" box is
+   * ticked; this page has no such step. Same button, two scopes, and until this
+   * line the dashboard said nothing, so a user rolled code back while the schema
+   * and rows stayed ahead of it. See R-9 in docs/AUDIT_RECOUVREMENTS_IDE.md.
+   */
+  'projectSnapshots.restore.databaseUntouched':
+    'The database is not rolled back — only files are restored. Data written since this snapshot stays as it is.',
   'projectSnapshots.restore.noDifferences_one':
     'No differences — the project already matches this snapshot ({count} file unchanged).',
   'projectSnapshots.restore.noDifferences_other':
@@ -112,6 +123,8 @@ export const projectSnapshotsFr: ProjectSnapshotsCopy = {
     'Le résumé des modifications est indisponible. Vous pouvez tout de même restaurer cet instantané.',
   'projectSnapshots.restore.safetyDescription':
     'La restauration remplace les fichiers actuels du projet. Un instantané de sécurité de l’état actuel est d’abord créé.',
+  'projectSnapshots.restore.databaseUntouched':
+    'La base de données n’est pas rejouée — seuls les fichiers sont restaurés. Les données écrites depuis cet instantané restent en l’état.',
   'projectSnapshots.restore.noDifferences_one':
     'Aucune différence — le projet correspond déjà à cet instantané ({count} fichier inchangé).',
   'projectSnapshots.restore.noDifferences_other':
