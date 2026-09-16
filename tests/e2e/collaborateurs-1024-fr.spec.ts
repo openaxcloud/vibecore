@@ -12,7 +12,8 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
  * n'existait qu'en français, la langue d'Avi.
  *
  * La métrique est `document.body.scrollWidth` : `overflow-x: clip` sur html et
- * body borne `documentElement.scrollWidth` (voir mobile-content-clipping).
+ * body borne la largeur de défilement de l'élément racine, qui ne peut donc
+ * jamais dépasser `clientWidth` (voir mobile-content-clipping).
  */
 const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
