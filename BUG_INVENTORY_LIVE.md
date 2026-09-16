@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-314 entrées.
+315 entrées.
 
 ## Sans section
 
@@ -328,6 +328,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-CHAT-THINKING-002](docs/bugs/BUG-CHAT-THINKING-002.md) — P0 latent — le contournement de `BUG-CHAT-THINKING-001` est INERTE, et il le sera au retour du crédit Anthropic.
 - [BUG-ALIAS-TROIS-TABLES-001](docs/bugs/BUG-ALIAS-TROIS-TABLES-001.md) — Dette de conception — TROIS vocabulaires d'alias de panneaux, à trois étages, dans trois fichiers.
 - [BUG-MESURE-AXE-AVEUGLE-001](docs/bugs/BUG-MESURE-AXE-AVEUGLE-001.md) — Neuvième forme du faux négatif de mesure, et la plus retorse : une mesure techniquement CORRECTE sur un axe qui ne discrimine rien.
+
+## Sans section
+
+- [BUG-TYPE-NOCHECK-008](docs/bugs/BUG-TYPE-NOCHECK-008.md) — DETTE — `app/components/chat/BaseChat.tsx` est exclu du typage par `// @ts-nocheck` (ligne 2), et personne ne le savait.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
