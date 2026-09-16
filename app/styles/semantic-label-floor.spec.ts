@@ -55,12 +55,27 @@ describe('LIBELLE-9PX-001 — plancher de lisibilité des libellés sémantiques
     expect(jetons(390).size, 'jetons résolus à 390').toBeGreaterThan(50);
   });
 
-  it('le défaut est réel — la règle décorative pose bien 9px à 390', () => {
+  it('le défaut est réel — le jeton de libellé reste SOUS le plancher à 390', () => {
     /*
      * Sans cette mesure, le plancher pourrait être posé contre un problème qui
      * n'existe pas. On vérifie la valeur, pas l'intention.
+     *
+     * CE QUE CETTE ASSERTION VISAIT D'ABORD, et pourquoi elle a changé : elle
+     * exigeait `<= 9px`, la valeur mesurée quand LIBELLE-9PX-001 a été ouvert.
+     * Entre-temps `163023d46` (« le chrome de tous les panneaux à l'échelle du
+     * téléphone ») a relevé `--vc-type-label-size` à 11px sous 1024px, sur
+     * `main`. Le 9px n'existe donc plus — la contre-épreuve a correctement
+     * rougi, et c'est ELLE qui l'a signalé.
+     *
+     * Ce qui reste vrai, et que le plancher corrige : 11px est toujours SOUS le
+     * plancher de lisibilité de 12px que la règle ci-dessous impose. Si
+     * quelqu'un relève un jour le jeton à 12px ou plus, ce test rougira — et il
+     * aura raison : le plancher sera devenu inutile.
      */
-    expect(pixels(jetons(390).get('--vc-type-label-size')), 'micro-libellé à 390').toBeLessThanOrEqual(9);
+    const jeton = pixels(jetons(390).get('--vc-type-label-size'));
+    const plancher = pixels(jetons(390).get('--vc-type-heading-compact-size')) || 12;
+
+    expect(jeton, 'micro-libellé à 390').toBeLessThan(plancher);
     expect(CSS, 'la règle décorative liste bien les éléments sémantiques').toMatch(
       /body :where\(\.uppercase,[^)]*\blabel\b[^)]*\bth\b[^)]*\)/,
     );
