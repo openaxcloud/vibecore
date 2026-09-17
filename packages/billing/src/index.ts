@@ -8,6 +8,7 @@ export * from './rate-card.js';
 export * from './agent-routing.js';
 export * from './catalogue-de-modeles.js';
 export * from './catalogue-integre.js';
+export * from './disponibilite-des-modeles.js';
 export * from './starter-entitlements.js';
 export * from './starter-rate-card.js';
 export * from './agent-routing-i18n.js';
