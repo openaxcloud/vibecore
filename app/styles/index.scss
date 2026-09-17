@@ -1167,9 +1167,25 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-overlay: rgba(0, 0, 0, 0.1);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
-  // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
-  --ecode-accent-text: #c74e00;
-  --ecode-accent-text-hover: #a33c00;
+  /*
+   * Orange AA pour le TEXTE et les liens sur fond clair ; les aplats gardent
+   * --ecode-accent.
+   *
+   * Assombri de #c74e00 à #a94100 le 2026-08-31. #c74e00 ne passait AA que sur
+   * du BLANC PUR (4,65:1) : dès qu'il tombait sur une surface un peu teintée il
+   * repassait sous le seuil — 4,11:1 sur --ecode-surface-secondary (#f0f1f2),
+   * 4,15:1 sur une pastille `bg-[#F26207]/10`. Trois endroits l'avaient déjà
+   * rattrapé chacun dans leur coin avec un `color-mix(…, #000 10%)` local
+   * (accroche du pied de page marketing, /solutions ×2) : le défaut était dans
+   * le jeton, pas dans ses usages.
+   *
+   * #a94100 donne 6,10:1 sur blanc, 5,44:1 sur la pastille composée sur blanc et
+   * 4,85:1 sur la même pastille posée sur #f0f1f2 — au-dessus de 4,5 dans les
+   * trois cas. Les rattrapages locaux deviennent redondants mais restent sûrs :
+   * ils ne font qu'assombrir davantage.
+   */
+  --ecode-accent-text: #a94100;
+  --ecode-accent-text-hover: #8f3600;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
   /*
