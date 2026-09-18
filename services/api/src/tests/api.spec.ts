@@ -1805,6 +1805,87 @@ describe('SaaS API', () => {
     await app.close();
   });
 
+  /*
+   * The verified-domain check on the SAML ACS path had NO discriminating test.
+   *
+   * The happy-path SAML test above verifies `example.com` before asserting, so
+   * it passes whether or not the check exists — removing the check leaves it
+   * green. That is the "test that passes on both sides" trap: a security
+   * control whose test cannot fail for its absence is an untested control.
+   *
+   * It matters more than it looks. `VerifiedDomain` is reachable from four
+   * screens that present it as APPLICATION HOSTING ("point your domain's DNS
+   * (CNAME) at the deployment", "managed TLS"), while its only two consumers in
+   * the whole codebase are this check and the SCIM one: verifying a domain is
+   * what authorises SAML assertions and SCIM provisioning for every identity on
+   * it. Any future consolidation of those screens must not weaken this silently.
+   */
+  it('rejects a SAML assertion whose email domain the organization has NOT verified', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'saml-unverified-owner@example.com', organizationName: 'SAML Org 2' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    await reauth(app, owner.token);
+
+    const samlConfig = await app.inject({
+      method: 'PUT',
+      url: `/orgs/${owner.organization.id}/sso/saml`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { entityId: 'urn:test:idp', ssoUrl: 'https://idp.example.com/sso', x509Certificate: certificate },
+    });
+    expect(samlConfig.statusCode).toBe(200);
+
+    const sign = (email: string) => {
+      const assertionXml = `<Assertion><Subject><NameID>${email}</NameID></Subject><AttributeStatement><Attribute Name="externalId"><AttributeValue>saml_unverified</AttributeValue></Attribute><Attribute Name="name"><AttributeValue>SAML User</AttributeValue></Attribute></AttributeStatement></Assertion>`;
+      const signature = createSign('RSA-SHA256').update(assertionXml).end().sign(privateKey, 'base64');
+
+      return Buffer.from(
+        `<Response>${assertionXml}<Signature><SignatureValue>${signature}</SignatureValue></Signature></Response>`,
+        'utf8',
+      ).toString('base64url');
+    };
+
+    /*
+     * The signature is valid against the org's own certificate — only the
+     * domain is unverified, so this isolates the check under test.
+     */
+    const rejected = await app.inject({
+      method: 'POST',
+      url: `/auth/saml/${owner.organization.id}/acs`,
+      payload: { SAMLResponse: sign('intruder@not-verified.example') },
+    });
+
+    expect(rejected.statusCode).toBe(403);
+    expect(rejected.json().code).toBe('SAML_EMAIL_DOMAIN_NOT_VERIFIED');
+    expect(await store.findUserByEmail('intruder@not-verified.example')).toBeFalsy();
+
+    /*
+     * Counter-proof: the SAME assertion flow must succeed once the domain IS
+     * verified. Without this half, a route that rejected everything — a broken
+     * SAML path — would satisfy the assertions above.
+     */
+    await store.createDomainVerification({
+      organizationId: owner.organization.id,
+      domain: 'now-verified.example',
+      verificationToken: 'domain-tok-2',
+    });
+    await store.verifyDomain({ organizationId: owner.organization.id, domain: 'now-verified.example' });
+
+    const accepted = await app.inject({
+      method: 'POST',
+      url: `/auth/saml/${owner.organization.id}/acs`,
+      payload: { SAMLResponse: sign('legit@now-verified.example') },
+    });
+
+    expect(accepted.statusCode).toBe(200);
+    expect(await store.findUserByEmail('legit@now-verified.example')).toBeTruthy();
+
+    await app.close();
+  });
+
   it('rejects a SAML XML Signature Wrapping attack (injected assertion is not honored)', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });

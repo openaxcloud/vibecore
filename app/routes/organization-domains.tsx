@@ -38,7 +38,20 @@ import { classNames } from '~/utils/classNames';
  * at all (`@@unique([organizationId, domain])`), so a domain is verified once
  * per ORGANISATION and is then usable by any of its projects — there is no
  * per-project domain to be distinct from. The two pages are two renderings of
- * one list; see R-1 in BUG_INVENTORY_LIVE.md for the consolidation.
+ * one list.
+ *
+ * What this data actually DOES, measured across the whole repository: a verified
+ * domain is an identity-federation trust boundary. Its only two consumers are
+ * the SAML ACS handler and the SCIM user endpoint, which both refuse an identity
+ * whose email domain the organization has not verified. Nothing consumes it for
+ * hosting: ingress hosts come from static Helm values, and
+ * `Deployment.customDomain` is a free-text string with no reader.
+ *
+ * That is why this page belongs where Security settings puts it — beside SSO,
+ * SCIM, roles and audit logs — while the four screens that present the same
+ * records as "custom domains for your app" describe something the platform does
+ * not do. See R-1 in `docs/AUDIT_RECOUVREMENTS_IDE.md`; consolidating them is
+ * blocked on a product decision, not on code.
  */
 type DomainVerification = {
   id: string;
