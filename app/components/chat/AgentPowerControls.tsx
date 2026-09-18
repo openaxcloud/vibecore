@@ -416,13 +416,13 @@ export function AgentPowerControls({
                     </span>
                   </span>
                   {!highEffortAvailable && value.buildTier !== 'lite' ? (
-                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                    <span className="shrink-0 rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
                       {copy['chatControls.power.proBadge']}
                     </span>
                   ) : (
                     <span
                       className={classNames(
-                        'flex h-4 w-4 items-center justify-center rounded border',
+                        'flex h-4 w-4 shrink-0 items-center justify-center rounded border',
                         value.highEffort && value.buildTier !== 'lite'
                           ? 'border-transparent'
                           : 'border-bolt-elements-borderColor',
@@ -477,13 +477,13 @@ export function AgentPowerControls({
                     </span>
                   </span>
                   {!turboAvailable && value.buildTier === 'max' ? (
-                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                    <span className="shrink-0 rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
                       {copy['chatControls.power.organizationBadge']}
                     </span>
                   ) : (
                     <span
                       className={classNames(
-                        'flex h-4 w-4 items-center justify-center rounded border',
+                        'flex h-4 w-4 shrink-0 items-center justify-center rounded border',
                         value.turboMode && value.buildTier === 'max'
                           ? 'border-transparent'
                           : 'border-bolt-elements-borderColor',
