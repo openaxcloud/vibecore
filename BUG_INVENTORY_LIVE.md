@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-344 entrées.
+345 entrées.
 
 ## Sans section
 
@@ -361,6 +361,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-THEME-009](docs/bugs/BUG-THEME-009.md) — P1 — BADGE DE HÉROS `/about` ET `/careers` : couleur codée en dur par-dessus la paire du thème → 1,73:1 en clair, illisible.
 - [BUG-THEME-010](docs/bugs/BUG-THEME-010.md) — P2 — le gris discret du marketing tombait à 3,57:1 sur les surfaces surélevées, en sombre.
 - [BUG-TYPE-NOCHECK-008](docs/bugs/BUG-TYPE-NOCHECK-008.md) — DETTE — `app/components/chat/BaseChat.tsx` est exclu du typage par `// @ts-nocheck` (ligne 2), et personne ne le savait.
+- [undefined](docs/bugs/BUG-TYPE-CI-001.md) — `tsconfig.web.json`, le seul fichier que la CI typecheck pour l'application,
 
 ## Résidus non tabulaires — reportés mot pour mot
 
