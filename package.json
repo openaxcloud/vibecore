@@ -370,7 +370,9 @@
       "app-builder-lib": "^26.8.1",
       "dmg-builder": "^26.8.1",
       "electron-builder-squirrel-windows": "^26.8.1",
-      "vite>esbuild": "0.23.1"
+      "vite>esbuild": "0.27.7",
+      "bundle-require>esbuild": "0.27.7",
+      "importx>esbuild": "0.27.7"
     }
   }
 }
