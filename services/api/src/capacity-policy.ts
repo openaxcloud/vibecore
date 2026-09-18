@@ -136,3 +136,137 @@ export function estimateProvisioning(
 export function fitsUnderParentCap(childCount: number, policy: CapacityPolicy = DEFAULT_CAPACITY_POLICY): boolean {
   return childCount <= policy.maxChildrenPerParent;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Cloud Run tenant capacity (P0-A2-14)                                        */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Verified Cloud Run quotas, claim GCP-15 (PUBLIC_BASELINE_REPLIT_2026.yaml):
+ * "maximum 1000 services par projet et par région (augmentable) ; 1000 jobs ;
+ * 1000 worker pools ; 1000 job executions en cours".
+ *
+ * These are the numbers that actually size the sharding — the folder limits above
+ * govern the RESOURCE HIERARCHY, these govern how many tenant workloads fit in one
+ * project+region before a new shard project is required.
+ */
+export const CLOUD_RUN_MAX_SERVICES_PER_PROJECT_REGION = 1000;
+export const CLOUD_RUN_MAX_JOBS_PER_PROJECT_REGION = 1000;
+export const CLOUD_RUN_MAX_WORKER_POOLS_PER_PROJECT_REGION = 1000;
+export const CLOUD_RUN_MAX_RUNNING_JOB_EXECUTIONS = 1000;
+
+/**
+ * GCP-14 recommends a pool of PRE-CREATED projects, because creating and
+ * initialising a project on the request path costs unacceptable latency. The pool
+ * is refilled ahead of demand; `projectPoolLowWaterMark` is when refill starts.
+ */
+export interface TenantCapacityPolicy {
+  /** Cloud Run services one project+region can hold (GCP-15). */
+  maxServicesPerProjectRegion: number;
+
+  /** Cloud Run jobs one project+region can hold (GCP-15). */
+  maxJobsPerProjectRegion: number;
+
+  /**
+   * Fraction of a project's service quota we are willing to fill before shipping
+   * tenants to the next shard. Quota is "augmentable" but not instantly, so we
+   * never plan to run at 100%.
+   */
+  serviceUtilisationCeiling: number;
+
+  /** Pre-created projects kept warm (GCP-14 pool recommendation). */
+  projectPoolTargetSize: number;
+
+  /** Refill the pool once free projects drop to this. */
+  projectPoolLowWaterMark: number;
+}
+
+export const DEFAULT_TENANT_CAPACITY_POLICY: TenantCapacityPolicy = {
+  maxServicesPerProjectRegion: CLOUD_RUN_MAX_SERVICES_PER_PROJECT_REGION,
+  maxJobsPerProjectRegion: CLOUD_RUN_MAX_JOBS_PER_PROJECT_REGION,
+  serviceUtilisationCeiling: 0.8,
+  projectPoolTargetSize: 10,
+  projectPoolLowWaterMark: 3,
+};
+
+/** Effective services per shard project once the utilisation ceiling is applied. */
+export function servicesPerShardProject(policy: TenantCapacityPolicy = DEFAULT_TENANT_CAPACITY_POLICY): number {
+  return Math.max(1, Math.floor(policy.maxServicesPerProjectRegion * policy.serviceUtilisationCeiling));
+}
+
+/**
+ * How many shard PROJECTS are needed to host `serviceCount` tenant Cloud Run
+ * services in one region, at the policy's utilisation ceiling.
+ */
+export function requiredProjectShards(
+  serviceCount: number,
+  policy: TenantCapacityPolicy = DEFAULT_TENANT_CAPACITY_POLICY,
+): number {
+  if (serviceCount <= 0) {
+    return 0;
+  }
+
+  return Math.ceil(serviceCount / servicesPerShardProject(policy));
+}
+
+export interface ProjectPoolState {
+  /** Projects pre-created and not yet assigned to a tenant. */
+  free: number;
+}
+
+export interface ProjectPoolPlan {
+  /** Projects to create now to get back to target. */
+  createNow: number;
+
+  /** Whether the pool is below its low-water mark. */
+  belowLowWaterMark: boolean;
+
+  /** Whether a tenant can be placed WITHOUT paying project-creation latency. */
+  canServeFromPool: boolean;
+}
+
+/**
+ * Decide what the pre-created project pool needs. Keeps tenant onboarding off the
+ * project-creation critical path (GCP-14).
+ */
+export function planProjectPool(
+  state: ProjectPoolState,
+  policy: TenantCapacityPolicy = DEFAULT_TENANT_CAPACITY_POLICY,
+): ProjectPoolPlan {
+  const free = Math.max(0, state.free);
+  const belowLowWaterMark = free <= policy.projectPoolLowWaterMark;
+
+  return {
+    createNow: belowLowWaterMark ? Math.max(0, policy.projectPoolTargetSize - free) : 0,
+    belowLowWaterMark,
+    canServeFromPool: free > 0,
+  };
+}
+
+export interface ServicePlacement {
+  admissible: boolean;
+  reason?: string;
+
+  /** Shard project index the workload should land in. */
+  shardIndex?: number;
+}
+
+/**
+ * Structural guard for a new tenant Cloud Run service: does it fit in the given
+ * shard project at the utilisation ceiling? Refuses BEFORE the API would 429.
+ */
+export function admitServicePlacement(
+  currentServicesInShard: number,
+  policy: TenantCapacityPolicy = DEFAULT_TENANT_CAPACITY_POLICY,
+): ServicePlacement {
+  const ceiling = servicesPerShardProject(policy);
+
+  if (currentServicesInShard + 1 > ceiling) {
+    return {
+      admissible: false,
+      reason: `shard project holds ${currentServicesInShard} services; ceiling is ${ceiling} of ${policy.maxServicesPerProjectRegion} (utilisation ${policy.serviceUtilisationCeiling})`,
+    };
+  }
+
+  return { admissible: true };
+}

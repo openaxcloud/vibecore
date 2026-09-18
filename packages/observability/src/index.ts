@@ -65,6 +65,11 @@ export const platformMetricDefinitions: MetricDefinition[] = [
   { name: 'stripe_webhook_failures_total', help: 'Stripe webhook failures.', type: 'counter' },
   { name: 'resend_webhook_events_total', help: 'Resend transactional-email webhook events received.', type: 'counter' },
   { name: 'abuse_events_total', help: 'Abuse events.', type: 'counter' },
+  {
+    name: 'tenant_guardrail_refusals_total',
+    help: 'Multi-tenant anti-abuse guardrail refusals, by action/tier/code and whether enforcement was on.',
+    type: 'counter',
+  },
   { name: 'kubernetes_pod_failures_total', help: 'Kubernetes pod failures.', type: 'counter' },
   { name: 'node_pool_capacity', help: 'Node pool allocatable capacity.', type: 'gauge' },
   { name: 'pvc_usage_bytes', help: 'Persistent volume claim usage.', type: 'gauge' },
