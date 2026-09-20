@@ -279,7 +279,7 @@
     "@electron/notarize": "^2.5.0",
     "@iconify-json/ph": "^1.2.1",
     "@iconify/types": "^2.0.0",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "1.59.1",
     "@react-router/dev": "^7.18.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
