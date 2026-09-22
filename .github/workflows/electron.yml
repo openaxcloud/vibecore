@@ -19,6 +19,28 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  # Les builds bureau sont les plus lourds du dépôt : chaque exécution en lance
+  # TROIS (macOS / Windows / Linux), 21 à 40 min chacun. Sans ce groupe, pousser
+  # un nouveau commit sur une PR laissait les trois builds du commit précédent
+  # aller à leur terme.
+  #
+  # Mesuré le 2026-09-01 sur les 30 dernières exécutions : 395 minutes de
+  # runner sur des commits DÉPASSÉS, dont 261 pour une seule branche — soit,
+  # à trois builds par exécution, une vingtaine d'heures de runner.
+  #
+  # On n'annule que les exécutions de PULL REQUEST. Jamais un push de tag : une
+  # exécution annulée n'est pas une exécution verte, et c'est ainsi qu'on
+  # refuserait une release sur un résultat qu'on n'a pas laissé finir. Même
+  # raisonnement que `ci.yml`, dont c'est l'idiome.
+  #
+  # Aucune porte n'exige ce workflow : il n'est ni dans
+  # `scripts/release-gate/required-checks.json`, ni dans les contrôles requis de
+  # la protection de `main` (`Install, test, build, scan`, `Playwright local
+  # stack`, `Quality Gates`). L'annuler ne peut donc bloquer aucune livraison.
+  group: electron-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: write
 
