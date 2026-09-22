@@ -1,7 +1,11 @@
+import { CATALOGUE_INTEGRE, type SondeFournisseur } from '@vibecore/billing';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
+import { FeuilleDesModes } from './FeuilleDesModes';
+import { appliquerChoix, ecrireChoix, lireChoix, type ChoixParMode } from './choix-de-modele';
+import type { ChoixDuMode } from './feuille-des-modes';
 import { cibleFeuilleMobile } from './feuille-mobile';
 import { formatChatControlsCopy, formatChatControlsCost, getChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 import { classNames } from '~/utils/classNames';
@@ -44,6 +48,13 @@ export interface AgentPowerControlsProps {
 
   /** Invoked when the user clicks the upgrade CTA shown while premium is locked. */
   onUpgrade?: () => void;
+
+  /**
+   * Disponibilité réelle des fournisseurs, telle que sondée. Vide = jamais
+   * sondé, ce qui n'est PAS « indisponible » : un modèle sans sonde reste
+   * choisissable, sinon une sonde absente couperait le catalogue entier.
+   */
+  sondes?: SondeFournisseur[];
   className?: string;
 
   /**
@@ -93,6 +104,7 @@ export function AgentPowerControls({
   className,
   variant = 'full',
   planFirst,
+  sondes,
 }: AgentPowerControlsProps) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
@@ -117,6 +129,22 @@ export function AgentPowerControls({
   ];
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  /*
+   * Le modèle choisi par mode. Persisté ET diffusé (voir choix-de-modele.ts) :
+   * la requête part d'un autre composant, et sans la diffusion le réglage
+   * serait décoratif — le défaut qu'on a déjà payé sur les interrupteurs.
+   */
+  const [choixParMode, setChoixParMode] = useState<ChoixParMode>(() => lireChoix());
+
+  const choisirModele = (mode: AgentBuildTier, choix: ChoixDuMode) => {
+    if (disabled) {
+      return;
+    }
+
+    setChoixParMode(ecrireChoix(appliquerChoix(choixParMode, mode, choix)));
+  };
+
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
@@ -342,6 +370,160 @@ export function AgentPowerControls({
     </button>
   );
 
+  /*
+   * Les réglages avancés — les deux interrupteurs et la relance d'offre. Ils
+   * sont extraits du dialogue parce qu'ils vivent désormais à DEUX endroits :
+   * la feuille des modes les montre sur son écran « avancé », le panneau de
+   * bureau les garde à plat. Le même JSX, pas deux copies qui divergeront.
+   */
+  const reglagesAvances = (
+    <>
+      <div className="flex flex-col gap-0.5">
+        {/* High effort — Economy and Power only, never Lite. */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value.highEffort && value.buildTier !== 'lite'}
+          disabled={disabled || value.buildTier === 'lite' || !highEffortAvailable}
+          onClick={() => setHighEffort(!value.highEffort)}
+          data-testid="agent-switch-high-effort"
+          title={
+            value.buildTier === 'lite'
+              ? copy['chatControls.power.highEffortLite']
+              : highEffortAvailable
+                ? copy['chatControls.power.highEffortAvailable']
+                : copy['chatControls.power.highEffortPaid']
+          }
+          className={classNames(
+            'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
+            value.buildTier === 'lite' || !highEffortAvailable
+              ? 'opacity-60'
+              : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
+            value.highEffort ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
+          )}
+        >
+          <span className="flex flex-col">
+            <span className="flex items-center gap-2 font-medium">
+              <span
+                className="i-ph:lightning text-sm"
+                style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                aria-hidden
+              />
+              {copy['chatControls.power.highEffort']}
+            </span>
+            <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
+              {copy['chatControls.power.highEffortDescription']}
+            </span>
+          </span>
+          {!highEffortAvailable && value.buildTier !== 'lite' ? (
+            <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+              {copy['chatControls.power.proBadge']}
+            </span>
+          ) : (
+            <span
+              className={classNames(
+                'flex h-4 w-4 items-center justify-center rounded border',
+                value.highEffort && value.buildTier !== 'lite'
+                  ? 'border-transparent'
+                  : 'border-bolt-elements-borderColor',
+              )}
+              style={
+                value.highEffort && value.buildTier !== 'lite'
+                  ? { background: 'var(--vc-ide-accent-action)' }
+                  : undefined
+              }
+            >
+              {value.highEffort && value.buildTier !== 'lite' ? (
+                <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+              ) : null}
+            </span>
+          )}
+        </button>
+
+        {/* Turbo — Power only, OFF by default, enabled per-org by an admin. */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={value.turboMode && value.buildTier === 'max'}
+          disabled={disabled || value.buildTier !== 'max' || !turboAvailable}
+          onClick={() => setTurbo(!value.turboMode)}
+          data-testid="agent-switch-turbo"
+          title={
+            value.buildTier !== 'max'
+              ? copy['chatControls.power.turboPower']
+              : turboAvailable
+                ? copy['chatControls.power.turboAvailable']
+                : copy['chatControls.power.turboOrganization']
+          }
+          className={classNames(
+            'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
+            value.buildTier !== 'max' || !turboAvailable
+              ? 'opacity-60'
+              : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
+            value.turboMode ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
+          )}
+        >
+          <span className="flex flex-col">
+            <span className="flex items-center gap-2 font-medium">
+              <span
+                className="i-ph:gauge text-sm"
+                style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                aria-hidden
+              />
+              {copy['chatControls.power.turbo']}
+            </span>
+            <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
+              {copy['chatControls.power.turboDescription']}
+            </span>
+          </span>
+          {!turboAvailable && value.buildTier === 'max' ? (
+            <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+              {copy['chatControls.power.organizationBadge']}
+            </span>
+          ) : (
+            <span
+              className={classNames(
+                'flex h-4 w-4 items-center justify-center rounded border',
+                value.turboMode && value.buildTier === 'max'
+                  ? 'border-transparent'
+                  : 'border-bolt-elements-borderColor',
+              )}
+              style={
+                value.turboMode && value.buildTier === 'max' ? { background: 'var(--vc-ide-accent-action)' } : undefined
+              }
+            >
+              {value.turboMode && value.buildTier === 'max' ? (
+                <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+              ) : null}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {!highEffortAvailable || (!turboAvailable && value.buildTier === 'max') ? (
+        <button
+          type="button"
+          onClick={() => onUpgrade?.()}
+          className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ background: 'var(--ecode-accent)' }}
+        >
+          <span className="i-ph:lightning text-xs" aria-hidden />
+          {copy['chatControls.power.upgrade']}
+        </button>
+      ) : null}
+    </>
+  );
+
+  const ligneDeCout = (
+    <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
+      <span className="text-bolt-elements-textSecondary">{copy['chatControls.power.estimated']}</span>
+      <span className="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary">
+        <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
+        {formatChatControlsCost(estimatedCents, language)}
+      </span>
+    </div>
+  );
+
   return (
     <div
       ref={rootRef}
@@ -368,159 +550,35 @@ export function AgentPowerControls({
               className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
             >
               {compact ? (
-                <div className="bolt-agent-power-compact-modes">
-                  {segmentedControl}
+                <>
+                  <FeuilleDesModes
+                    copy={copy}
+                    modes={BUILD_TIER_IDS.filter((mode) => modeAvailable(mode))}
+                    modeActif={value.buildTier}
+                    libelleDuMode={(mode: AgentBuildTier) => {
+                      const palier = buildTiers.find((entry) => entry.id === mode) ?? activeTier;
+
+                      return { label: palier.label, hint: palier.hint };
+                    }}
+                    catalogues={CATALOGUE_INTEGRE}
+                    sondes={sondes ?? []}
+                    choixParMode={choixParMode}
+                    onChoisirMode={selectMode}
+                    onChoisirModele={choisirModele}
+                    avance={reglagesAvances}
+                  />
                   {planFirstToggle}
-                </div>
-              ) : null}
-
-              <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {copy['chatControls.power.dialogTitle']}
-              </p>
-
-              <div className="flex flex-col gap-0.5">
-                {/* High effort — Economy and Power only, never Lite. */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={value.highEffort && value.buildTier !== 'lite'}
-                  disabled={disabled || value.buildTier === 'lite' || !highEffortAvailable}
-                  onClick={() => setHighEffort(!value.highEffort)}
-                  data-testid="agent-switch-high-effort"
-                  title={
-                    value.buildTier === 'lite'
-                      ? copy['chatControls.power.highEffortLite']
-                      : highEffortAvailable
-                        ? copy['chatControls.power.highEffortAvailable']
-                        : copy['chatControls.power.highEffortPaid']
-                  }
-                  className={classNames(
-                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
-                    value.buildTier === 'lite' || !highEffortAvailable
-                      ? 'opacity-60'
-                      : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
-                    value.highEffort ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
-                  )}
-                >
-                  <span className="flex flex-col">
-                    <span className="flex items-center gap-2 font-medium">
-                      <span
-                        className="i-ph:lightning text-sm"
-                        style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
-                        aria-hidden
-                      />
-                      {copy['chatControls.power.highEffort']}
-                    </span>
-                    <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                      {copy['chatControls.power.highEffortDescription']}
-                    </span>
-                  </span>
-                  {!highEffortAvailable && value.buildTier !== 'lite' ? (
-                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                      {copy['chatControls.power.proBadge']}
-                    </span>
-                  ) : (
-                    <span
-                      className={classNames(
-                        'flex h-4 w-4 items-center justify-center rounded border',
-                        value.highEffort && value.buildTier !== 'lite'
-                          ? 'border-transparent'
-                          : 'border-bolt-elements-borderColor',
-                      )}
-                      style={
-                        value.highEffort && value.buildTier !== 'lite'
-                          ? { background: 'var(--vc-ide-accent-action)' }
-                          : undefined
-                      }
-                    >
-                      {value.highEffort && value.buildTier !== 'lite' ? (
-                        <span className="i-ph:check-bold text-xs text-white" aria-hidden />
-                      ) : null}
-                    </span>
-                  )}
-                </button>
-
-                {/* Turbo — Power only, OFF by default, enabled per-org by an admin. */}
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={value.turboMode && value.buildTier === 'max'}
-                  disabled={disabled || value.buildTier !== 'max' || !turboAvailable}
-                  onClick={() => setTurbo(!value.turboMode)}
-                  data-testid="agent-switch-turbo"
-                  title={
-                    value.buildTier !== 'max'
-                      ? copy['chatControls.power.turboPower']
-                      : turboAvailable
-                        ? copy['chatControls.power.turboAvailable']
-                        : copy['chatControls.power.turboOrganization']
-                  }
-                  className={classNames(
-                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
-                    value.buildTier !== 'max' || !turboAvailable
-                      ? 'opacity-60'
-                      : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
-                    value.turboMode ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
-                  )}
-                >
-                  <span className="flex flex-col">
-                    <span className="flex items-center gap-2 font-medium">
-                      <span
-                        className="i-ph:gauge text-sm"
-                        style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
-                        aria-hidden
-                      />
-                      {copy['chatControls.power.turbo']}
-                    </span>
-                    <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                      {copy['chatControls.power.turboDescription']}
-                    </span>
-                  </span>
-                  {!turboAvailable && value.buildTier === 'max' ? (
-                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                      {copy['chatControls.power.organizationBadge']}
-                    </span>
-                  ) : (
-                    <span
-                      className={classNames(
-                        'flex h-4 w-4 items-center justify-center rounded border',
-                        value.turboMode && value.buildTier === 'max'
-                          ? 'border-transparent'
-                          : 'border-bolt-elements-borderColor',
-                      )}
-                      style={
-                        value.turboMode && value.buildTier === 'max'
-                          ? { background: 'var(--vc-ide-accent-action)' }
-                          : undefined
-                      }
-                    >
-                      {value.turboMode && value.buildTier === 'max' ? (
-                        <span className="i-ph:check-bold text-xs text-white" aria-hidden />
-                      ) : null}
-                    </span>
-                  )}
-                </button>
-              </div>
-
-              {!highEffortAvailable || (!turboAvailable && value.buildTier === 'max') ? (
-                <button
-                  type="button"
-                  onClick={() => onUpgrade?.()}
-                  className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
-                  style={{ background: 'var(--ecode-accent)' }}
-                >
-                  <span className="i-ph:lightning text-xs" aria-hidden />
-                  {copy['chatControls.power.upgrade']}
-                </button>
-              ) : null}
-
-              <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
-                <span className="text-bolt-elements-textSecondary">{copy['chatControls.power.estimated']}</span>
-                <span className="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary">
-                  <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
-                  {formatChatControlsCost(estimatedCents, language)}
-                </span>
-              </div>
+                  {ligneDeCout}
+                </>
+              ) : (
+                <>
+                  <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                    {copy['chatControls.power.dialogTitle']}
+                  </p>
+                  {reglagesAvances}
+                  {ligneDeCout}
+                </>
+              )}
             </div>,
           )
         : null}

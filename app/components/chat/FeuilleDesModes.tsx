@@ -10,7 +10,7 @@
  * reprise, la rédaction est à nous.
  */
 import type { AgentMode, CatalogueDuMode, CranEffort, SondeFournisseur } from '@vibecore/billing';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 
 import {
   entreesDuMode,
@@ -33,6 +33,13 @@ export interface FeuilleDesModesProps {
   choixParMode: Partial<Record<AgentMode, ChoixDuMode>>;
   onChoisirMode: (mode: AgentMode) => void;
   onChoisirModele: (mode: AgentMode, choix: ChoixDuMode) => void;
+
+  /**
+   * Ce que l'écran « avancé » montre en plus du bloc d'effort — les
+   * interrupteurs que l'appelant possède déjà. Passé en noeud plutôt que
+   * réimplémenté ici : deux copies du même interrupteur divergeraient.
+   */
+  avance?: ReactNode;
 }
 
 type Niveau = { ecran: 'modes' } | { ecran: 'modele'; mode: AgentMode } | { ecran: 'avance'; mode: AgentMode };
@@ -56,6 +63,7 @@ export function FeuilleDesModes({
   choixParMode,
   onChoisirMode,
   onChoisirModele,
+  avance,
 }: FeuilleDesModesProps) {
   const [niveau, setNiveau] = useState<Niveau>({ ecran: 'modes' });
   const catalogueDe = (mode: AgentMode) => catalogues.find((c) => c.mode === mode);
@@ -164,7 +172,17 @@ export function FeuilleDesModes({
 
       {niveau.ecran === 'modele' && catalogue
         ? lignesDuSelecteur(catalogue, sondes, choix).map((ligne) => {
-            const indisponible = ligne.sorte === 'modele' && ligne.etat !== 'disponible';
+            /*
+             * « jamais sondé » n'est PAS « indisponible ». Seuls deux états
+             * ferment une ligne : le fournisseur a répondu qu'il ne pouvait pas
+             * (crédit, injoignable) ou la clé manque. Sans cette distinction,
+             * une plateforme qui ne sonde pas encore présenterait TOUT son
+             * catalogue comme mort — et la sonde n'existe pas encore.
+             */
+            const indisponible =
+              ligne.sorte === 'modele' &&
+              (ligne.etat === 'momentanement-indisponible' || ligne.etat === 'non-configure');
+
             const cle = ligne.sorte === 'automatique' ? 'auto' : `${ligne.model}-${ligne.serviceTier ?? 'std'}`;
 
             return (
@@ -217,6 +235,8 @@ export function FeuilleDesModes({
             );
           })
         : null}
+
+      {niveau.ecran === 'avance' && avance ? <div className="bolt-feuille-avance">{avance}</div> : null}
 
       <BlocEffort
         copy={copy}

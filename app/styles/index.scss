@@ -32120,3 +32120,16 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   font-size: 11px;
   color: var(--bolt-elements-textSecondary);
 }
+
+/*
+ * L'écran « avancé » accueille les interrupteurs de l'appelant tels quels. On
+ * ne restyle pas leur intérieur : ce sont les mêmes noeuds que le panneau de
+ * bureau, et deux styles concurrents finiraient par divergeraient.
+ */
+.bolt-feuille-avance {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--bolt-elements-borderColor);
+}
