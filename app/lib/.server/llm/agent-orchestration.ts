@@ -233,7 +233,7 @@ export function shouldUseAgentOrchestration(
 }
 
 /** User-facing build effort tier from the composer's power controls. */
-export type AgentBuildTier = 'lite' | 'economy' | 'power';
+export type AgentBuildTier = 'lite' | 'power' | 'max';
 
 /**
  * Map the composer's power controls to a parallel-agent cap, so the
@@ -247,7 +247,7 @@ export type AgentBuildTier = 'lite' | 'economy' | 'power';
  * unit testing.
  */
 export function parallelAgentsForBuildTier(tier?: AgentBuildTier, highPowerModel?: boolean): number {
-  const base = tier === 'lite' ? 1 : tier === 'power' ? ECODE_AGENT_ROLES.length : 3;
+  const base = tier === 'lite' ? 1 : tier === 'max' ? ECODE_AGENT_ROLES.length : 3;
   const boosted = highPowerModel ? base + 1 : base;
 
   return Math.max(1, Math.min(boosted, ECODE_AGENT_ROLES.length));
