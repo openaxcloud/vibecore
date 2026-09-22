@@ -10,18 +10,18 @@ import {
 } from './credits.js';
 
 describe('power-tier estimates', () => {
-  it('scales by build tier (lite < economy < power)', () => {
+  it('scales by build tier (lite < power < max)', () => {
     const lite = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'lite' });
-    const economy = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'economy' });
-    const power = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'power' });
-    expect(lite).toBeLessThan(economy);
-    expect(economy).toBeLessThan(power);
-    expect(economy).toBe(computeCreditCostCents({ rawProviderCents: 100 }));
+    const milieu = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'power' });
+    const sommet = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'max' });
+    expect(lite).toBeLessThan(milieu);
+    expect(milieu).toBeLessThan(sommet);
+    expect(milieu).toBe(computeCreditCostCents({ rawProviderCents: 100 }));
   });
 
   it('applies turbo at the reservation ceiling', () => {
-    const base = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'economy' });
-    const turbo = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'economy', turboMode: true });
+    const base = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'power' });
+    const turbo = estimateCheckpointCostCents({ baseProviderCents: 100, buildTier: 'power', turboMode: true });
     expect(turbo).toBe(computeCreditCostCents({ rawProviderCents: 100 * TURBO_ESTIMATE_MULTIPLIER }));
     expect(turbo).toBeGreaterThan(base);
   });
@@ -29,19 +29,23 @@ describe('power-tier estimates', () => {
   it('adds boost surcharges instead of compounding them (no ~108× stack)', () => {
     const stacked = estimateCheckpointCostCents({
       baseProviderCents: 10,
-      buildTier: 'power',
+      buildTier: 'max',
       highPowerModel: true,
       extendedThinking: true,
       turboMode: true,
     });
-    // Additive: tier multiplies the base; boosts SUM their (multiplier − 1)
-    // surcharges (high-power +3, extended-thinking +1.5, turbo +5 → +9.5),
-    // never the old 4 × 2.5 × 6 = 60× product.
+
+    /*
+     * Additive: tier multiplies the base; boosts SUM their (multiplier − 1)
+     * surcharges (high-power +3, extended-thinking +1.5, turbo +5 → +9.5),
+     * never the old 4 × 2.5 × 6 = 60× product.
+     */
     const surcharge = 4 - 1 + (2.5 - 1) + (TURBO_ESTIMATE_MULTIPLIER - 1);
-    const expected = 10 * BUILD_TIER_ESTIMATE_MULTIPLIER.power * (1 + surcharge);
+    const expected = 10 * BUILD_TIER_ESTIMATE_MULTIPLIER.max * (1 + surcharge);
     expect(stacked).toBe(computeCreditCostCents({ rawProviderCents: expected }));
+
     // Guard against regression to compounding (which would be far larger).
-    const compounded = 10 * BUILD_TIER_ESTIMATE_MULTIPLIER.power * 4 * 2.5 * TURBO_ESTIMATE_MULTIPLIER;
+    const compounded = 10 * BUILD_TIER_ESTIMATE_MULTIPLIER.max * 4 * 2.5 * TURBO_ESTIMATE_MULTIPLIER;
     expect(stacked).toBeLessThan(computeCreditCostCents({ rawProviderCents: compounded }));
   });
 });
@@ -68,6 +72,7 @@ describe('planPackConsumption', () => {
         { id: 'early', remainingCents: 300, expiresAt: future(100) },
       ],
     });
+
     // 300 from 'early' (expires first), 200 from 'late', 0 from balance.
     expect(plan.packDebits).toEqual([
       { packId: 'early', cents: 300 },
