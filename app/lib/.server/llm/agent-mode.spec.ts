@@ -10,10 +10,10 @@ import {
 
 describe('normalizeAgentSelection', () => {
   it('defaults to economy with both switches off', () => {
-    expect(DEFAULT_AGENT_MODE).toBe('economy');
-    expect(normalizeAgentSelection(undefined)).toEqual({ mode: 'economy', highEffort: false, turbo: false });
+    expect(DEFAULT_AGENT_MODE).toBe('power');
+    expect(normalizeAgentSelection(undefined)).toEqual({ mode: 'power', highEffort: false, turbo: false });
     expect(normalizeAgentSelection({ buildTier: 'nonsense' })).toEqual({
-      mode: 'economy',
+      mode: 'power',
       highEffort: false,
       turbo: false,
     });
@@ -25,17 +25,17 @@ describe('normalizeAgentSelection', () => {
       highEffort: false,
       turbo: false,
     });
-    expect(normalizeAgentSelection({ buildTier: 'economy', highPowerModel: true })).toEqual({
-      mode: 'economy',
+    expect(normalizeAgentSelection({ buildTier: 'power', highPowerModel: true })).toEqual({
+      mode: 'power',
       highEffort: true,
       turbo: false,
     });
   });
 
   it('only allows Turbo in Power', () => {
-    expect(normalizeAgentSelection({ buildTier: 'economy', turboMode: true }).turbo).toBe(false);
-    expect(normalizeAgentSelection({ buildTier: 'power', turboMode: true })).toEqual({
-      mode: 'power',
+    expect(normalizeAgentSelection({ buildTier: 'power', turboMode: true }).turbo).toBe(false);
+    expect(normalizeAgentSelection({ buildTier: 'max', turboMode: true })).toEqual({
+      mode: 'max',
       highEffort: false,
       turbo: true,
     });

@@ -319,6 +319,83 @@ généraux : ce sont des pièges qui ont déjà coûté.
     contrôle qu'on écrit puis qu'on ne lit pas ne vaut pas mieux qu'un contrôle
     absent.
 
+27. **UNE MESURE QUI SORT DU PÉRIMÈTRE OÙ ELLE EST VALIDE N'EST PAS UNE
+    MESURE.** Un outil peut s'exécuter, ne rien signaler d'anormal, et lire un
+    tout autre fichier que celui qu'on croit lui donner.
+
+    Vécu le 2026-09-15 : `tsc` signalait deux erreurs de type sur une clé de
+    routage que je venais d'ajouter. La clé était bien là — vérifiée dans la
+    source ET sur la branche poussée. La cause : **le worktree n'a aucun paquet
+    installé**, `node_modules` ne contenant que `.cache` et `.vite`. `tsc`
+    remontait donc au checkout PRINCIPAL, dont `@vibecore/billing` est un lien
+    vers `../../packages/billing` — une copie sans ma modification. Le rapport
+    était exact sur ce qu'il avait lu, et faux sur ce que je croyais mesurer.
+
+    Ce qui rend le piège coûteux, c'est qu'il est SÉLECTIF : le même `tsc`, sur
+    le même arbre, était parfaitement valide pour tout ce qui vit sous `app/`,
+    parce que `paths` y mappe `~/*` vers le worktree. Seules les mesures qui
+    traversent une frontière de PAQUET étaient faussées. Une moitié juste, une
+    moitié fausse, aucun signal pour les distinguer.
+
+    En pratique :
+    * **avant de croire un outil, savoir ce qu'il a résolu** — `--traceResolution`
+      pour `tsc`, `readlink -f` sur le lien du paquet, ou une SONDE : un fichier
+      jetable qui affirme la propriété attendue et qu'on regarde rougir ;
+    * **énoncer le périmètre avec le résultat** — « 0 erreur dans les fichiers
+      touchés » ne vaut que si les fichiers touchés sont dans le périmètre
+      résolu ;
+    * **une mesure qui franchit une frontière de paquet dans un worktree sans
+      dépendances installées est à refaire ailleurs**, pas à interpréter.
+
+    Corollaire de la règle 26 : là où celle-ci vise la sortie amputée de sa
+    conclusion, celle-ci vise la conclusion complète… portant sur autre chose.
+
+28. **UNE PROPOSITION EMPILÉE SE FERME TOUTE SEULE QUAND SA BASE FUSIONNE.**
+    GitHub ferme automatiquement une proposition dont la branche de base est
+    supprimée. Comme on supprime la branche APRÈS avoir fusionné, la fille se
+    ferme à l'instant même où le travail dont elle dépendait arrive. Rien
+    n'alerte, et le correctif reste sur une branche que plus aucune proposition
+    ne porte.
+
+    Mesuré le 2026-09-16, sur une perte de quinze jours :
+
+        #321 fusionnée   2026-09-02T03:12:52Z
+        #326 fermée      2026-09-02T03:12:54Z
+
+    **Deux secondes.** #326 portait « la frappe faite pendant le chargement du
+    panneau était jetée » — un défaut qu'Avi VIVAIT à chaque ouverture. Les
+    cinq autres commits du chantier sont bien arrivés ; celui-là non, et
+    personne ne s'en est aperçu pendant quinze jours. Sept fichiers, 382
+    lignes.
+
+    Ce n'est la faute de personne, et c'est là le problème : aucun geste fautif
+    ne précède la perte. On empile constamment sur ce dépôt — l'empilement est
+    la bonne pratique, pas le défaut.
+
+    **En pratique**, et en une commande — `scripts/propositions-empilees.mjs`
+    répond aux trois questions qu'on oublie de poser :
+    * `fillesDe(propositions, base)` — **avant** de fusionner : qui se fermerait
+      si cette branche disparaissait ? Une fille trouvée change de base ou se
+      rebase sur `main` AVANT la fusion du parent.
+    * `fermeturesSuspectes(propositions)` — **après** : quelle proposition s'est
+      fermée à quelques secondes d'une fusion ? Une fermeture à la seconde près
+      n'est pas une décision humaine.
+    * `empilementsSansPorteur(propositions)` — **à tout moment** : quelle
+      proposition ouverte est empilée sur une branche que plus rien ne porte
+      vers `main` ? C'est l'état terminal du piège. Passé sur les 56
+      propositions ouvertes le 2026-09-16, il rend `#335` et `#116` — les deux
+      que j'avais trouvées à la main, et aucun faux positif sur les chaînes
+      saines `#403 → #419` et `#414 → #403`.
+    * **Le statut d'une proposition ne dit rien du contenu de `main`.** Une
+      fille « fermée » n'a pas été refusée, et une fille « fusionnée » peut
+      l'avoir été dans une branche que rien ne porte. La vérification qui
+      tranche est un TÉMOIN LITTÉRAL cherché dans `main`, avec un contrôle
+      positif — un symbole du même chantier dont on sait qu'il est arrivé.
+
+    Cette règle a un cousin immédiat : une proposition peut aussi être fusionnée
+    dans une branche intermédiaire qui n'atteint jamais `main`. Même remède :
+    on greppe `main`, jamais l'état de la proposition.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
@@ -361,7 +438,16 @@ Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vér
 
 **Design** — Dès qu'Avi donne des points « Claude design » (batchs A/B/C/D/E/F/G ou nouveaux), les ajouter IMMÉDIATEMENT dans `DESIGN_PROGRAM_MASTER.md`. La vérification d'un point design doit se faire EN RÉEL sur TOUTES les pages marketing ET user area, dans TOUS les formats web / tablette / mobile, en confirmant que la page s'adapte automatiquement au screen (responsive niveau Fortune-500). Un point design ne passe ✅ que si le responsive est validé sur les 3 formats.
 
-**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT dans `BUG_INVENTORY_LIVE.md`.
+**Bugs** — Dès qu'Avi envoie un bug, l'enregistrer IMMÉDIATEMENT : **un fichier
+par entrée** dans `docs/bugs/<ID>.md`, puis régénérer l'index avec
+`node scripts/migrer-inventaire-bugs.mjs --index`.
+
+`BUG_INVENTORY_LIVE.md` reste le point d'entrée — dix-neuf fichiers le citent —
+mais c'est désormais un **index dérivé** : ne jamais l'éditer à la main, il se
+régénère depuis `docs/bugs/`. `scripts/index-a-jour.spec.mjs` rougit dès qu'il
+diverge du dossier. Le tableau monolithique était le point de contention le plus
+chaud du dépôt : quatre pertes silencieuses y ont déjà été attrapées, et chaque
+session qui y touchait entrait en conflit avec les autres.
 
 **Plan** — un point n'est ✅ que s'il est 100% surfacé ET marche en réel à 100%.
 

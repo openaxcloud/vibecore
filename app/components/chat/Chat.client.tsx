@@ -343,7 +343,7 @@ export const ChatImpl = memo(
      * volatile BaseChat).
      */
     const [agentPower, setAgentPower] = useState<{
-      buildTier?: 'lite' | 'economy' | 'power';
+      buildTier?: 'lite' | 'power' | 'max';
       highPowerModel?: boolean;
       extendedThinking?: boolean;
       turboMode?: boolean;
@@ -1881,7 +1881,7 @@ export const ChatImpl = memo(
        * MOST ONCE PER PROJECT (localStorage marker), as a dismissible toast —
        * never a blocking dialog, never a model name.
        */
-      if (projectId && agentPower?.buildTier !== 'power') {
+      if (projectId && agentPower?.buildTier !== 'max') {
         try {
           const nudgeKey = `vibecore:agent-mode-nudge:${projectId}`;
           const countKey = `vibecore:agent-mode-economy-sends:${projectId}`;
