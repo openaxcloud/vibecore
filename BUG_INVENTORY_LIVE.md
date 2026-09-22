@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-344 entrées.
+356 entrées.
 
 ## Sans section
 
@@ -361,6 +361,18 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-THEME-009](docs/bugs/BUG-THEME-009.md) — P1 — BADGE DE HÉROS `/about` ET `/careers` : couleur codée en dur par-dessus la paire du thème → 1,73:1 en clair, illisible.
 - [BUG-THEME-010](docs/bugs/BUG-THEME-010.md) — P2 — le gris discret du marketing tombait à 3,57:1 sur les surfaces surélevées, en sombre.
 - [BUG-TYPE-NOCHECK-008](docs/bugs/BUG-TYPE-NOCHECK-008.md) — DETTE — `app/components/chat/BaseChat.tsx` est exclu du typage par `// @ts-nocheck` (ligne 2), et personne ne le savait.
+- [BUG-MKT-012](docs/bugs/BUG-MKT-012.md) — P1 — le corps des pages marketing n'est pas rendu côté serveur.
+- [BUG-MKT-013](docs/bugs/BUG-MKT-013.md) — P2 — décalage de mise en page sur les captures produit.
+- [BUG-MKT-014](docs/bugs/BUG-MKT-014.md) — P1 — la désinscription à la newsletter ne désinscrit personne.
+- [BUG-THEME-011](docs/bugs/BUG-THEME-011.md) — P2 — le token shadcn `--primary` était déclaré à l'IDENTIQUE dans les deux thèmes
+- [BUG-THEME-012](docs/bugs/BUG-THEME-012.md) — P2 — trois surfaces INVARIANTES par thème portaient un premier plan qui, lui, suivait le thème
+- [BUG-THEME-013](docs/bugs/BUG-THEME-013.md) — P2 — pastilles/onglets « actifs » : l'accent lu sur SA PROPRE teinte passe sous AA en thème clair
+- [BUG-THEME-014](docs/bugs/BUG-THEME-014.md) — INFO — 3 remontées du balayage étaient de FAUX POSITIFS du harnais, écartées avant correction inutile.
+- [BUG-THEME-015](docs/bugs/BUG-THEME-015.md) — P1 — Thème CLAIR : l'orange de marque `#f26207` utilisé comme TEXTE tombe à 3.03–3.22:1
+- [BUG-THEME-016](docs/bugs/BUG-THEME-016.md) — P2 — Thème SOMBRE : texte blanc sur le bleu d'action `#0099ff` = 3.00:1
+- [BUG-THEME-017](docs/bugs/BUG-THEME-017.md) — P1 — Zone CONNECTÉE, thème SOMBRE : les CTA d'action (« Créer un projet », « Créer une clé », « Obtenir l'app bureau », « Créer ») affichent du blanc sur l'oran
+- [BUG-THEME-018](docs/bugs/BUG-THEME-018.md) — P2 — Zone CONNECTÉE, thème CLAIR : les libellés d'état succès/avertissement passent juste sous AA
+- [BUG-THEME-019](docs/bugs/BUG-THEME-019.md) — P1 (défaut de RENDU, pas seulement de contraste) — 66 utilitaires perdaient SILENCIEUSEMENT leur opacité.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
