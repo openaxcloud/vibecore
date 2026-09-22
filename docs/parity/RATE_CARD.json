@@ -81,9 +81,9 @@
     }
   },
   "agentRouting": {
-    "version": 1,
-    "effectiveFrom": "2026-07-16T00:00:00.000Z",
-    "sourceDate": "2026-07-16",
+    "version": 4,
+    "effectiveFrom": "2026-09-15T00:00:00.000Z",
+    "sourceDate": "2026-09-15",
     "currency": "usd",
     "baseUserInCentsPerM": 650,
     "baseUserOutCentsPerM": 3250,
@@ -108,10 +108,10 @@
         "active": true
       },
       {
-        "key": "economy",
-        "label": "Economy",
+        "key": "power",
+        "label": "Power",
         "provider": "anthropic",
-        "model": "claude-opus-4-8",
+        "model": "claude-opus-5",
         "costInCentsPerM": 500,
         "costOutCentsPerM": 2500,
         "multiplier": 1,
@@ -127,12 +127,12 @@
         "active": true
       },
       {
-        "key": "power",
-        "label": "Power",
+        "key": "max",
+        "label": "Max",
         "provider": "anthropic",
-        "model": "claude-fable-5",
-        "costInCentsPerM": 1000,
-        "costOutCentsPerM": 5000,
+        "model": "claude-opus-5",
+        "costInCentsPerM": 500,
+        "costOutCentsPerM": 2500,
         "multiplier": 2,
         "billedToUser": true,
         "availablePlans": [
@@ -149,9 +149,9 @@
         "key": "high-effort",
         "label": "High effort (escalation)",
         "provider": "anthropic",
-        "model": "claude-fable-5",
-        "costInCentsPerM": 1000,
-        "costOutCentsPerM": 5000,
+        "model": "claude-opus-5",
+        "costInCentsPerM": 500,
+        "costOutCentsPerM": 2500,
         "multiplier": 2,
         "billedToUser": true,
         "availablePlans": [
@@ -167,8 +167,8 @@
         "label": "Turbo",
         "provider": "openai",
         "model": "gpt-5.6-sol",
-        "costInCentsPerM": 500,
-        "costOutCentsPerM": 3000,
+        "costInCentsPerM": 400,
+        "costOutCentsPerM": 2000,
         "multiplier": 2,
         "billedToUser": true,
         "availablePlans": [
@@ -188,6 +188,25 @@
         "costOutCentsPerM": 500,
         "multiplier": 0,
         "billedToUser": false,
+        "availablePlans": [
+          "free",
+          "starter",
+          "core",
+          "pro",
+          "team",
+          "enterprise"
+        ],
+        "active": true
+      },
+      {
+        "key": "fallback",
+        "label": "Redundancy (secondary provider)",
+        "provider": "google",
+        "model": "gemini-2.5-pro",
+        "costInCentsPerM": 125,
+        "costOutCentsPerM": 1000,
+        "multiplier": 1,
+        "billedToUser": true,
         "availablePlans": [
           "free",
           "starter",
