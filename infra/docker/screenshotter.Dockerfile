@@ -22,7 +22,7 @@ ARG DEPS_IMAGE
 # below — an ARG declared inside the build stage is out of scope there, which
 # left the tag empty ("...playwright:") and failed the build with "invalid
 # reference format". Keep in lock-step with playwright-core in package.json.
-ARG PLAYWRIGHT_TAG=v1.59.1-noble
+ARG PLAYWRIGHT_TAG=v1.63.0-noble
 FROM ${DEPS_IMAGE} AS build
 WORKDIR /app
 
@@ -38,7 +38,7 @@ RUN pnpm deploy --filter "${PACKAGE_FILTER}" --prod --prefer-offline /runtime
 # Keep this tag in lock-step with `playwright-core` in
 # services/screenshotter/package.json — a mismatch means the bundled browser
 # revision won't match what playwright-core expects and launch fails.
-ARG PLAYWRIGHT_TAG=v1.59.1-noble
+ARG PLAYWRIGHT_TAG=v1.63.0-noble
 FROM mcr.microsoft.com/playwright:${PLAYWRIGHT_TAG} AS runtime
 WORKDIR /runtime
 
