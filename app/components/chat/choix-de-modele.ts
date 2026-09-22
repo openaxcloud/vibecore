@@ -9,7 +9,8 @@
  * Forme stockée : `{ "<mode>": { modele?, serviceTier?, effort? } }`. Un mode
  * absent veut dire « choisir automatiquement », ce qui est aussi le défaut.
  */
-import { CRANS_CONNUS, type AgentMode, type CranEffort } from '@vibecore/billing';
+import type { AgentMode } from '@vibecore/billing/src/agent-routing';
+import { CRANS_CONNUS, type CranEffort } from '@vibecore/billing/src/crans-effort';
 
 import type { ChoixDuMode } from './feuille-des-modes';
 

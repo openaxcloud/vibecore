@@ -1,4 +1,5 @@
-import { CATALOGUE_INTEGRE, type SondeFournisseur } from '@vibecore/billing';
+import { CATALOGUE_INTEGRE } from '@vibecore/billing/src/catalogue-integre';
+import type { SondeFournisseur } from '@vibecore/billing/src/disponibilite-des-modeles';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';

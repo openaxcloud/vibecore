@@ -9,7 +9,10 @@
  * Les textes sont NOS mots, pas ceux d'un concurrent : la disposition est
  * reprise, la rédaction est à nous.
  */
-import type { AgentMode, CatalogueDuMode, CranEffort, SondeFournisseur } from '@vibecore/billing';
+import type { AgentMode } from '@vibecore/billing/src/agent-routing';
+import type { CatalogueDuMode } from '@vibecore/billing/src/catalogue-de-modeles';
+import type { CranEffort } from '@vibecore/billing/src/crans-effort';
+import type { SondeFournisseur } from '@vibecore/billing/src/disponibilite-des-modeles';
 import { useState, type ReactNode } from 'react';
 
 import {
