@@ -24,7 +24,6 @@ import {
   type ChoixDuMode,
 } from './feuille-des-modes';
 import { placerSecondPanneau, type PlacementSecondPanneau } from './placement-second-panneau';
-import { placerSecondPanneau, type PlacementSecondPanneau } from './placement-second-panneau';
 import { formatChatControlsCopy, type ChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 import { classNames } from '~/utils/classNames';
 
