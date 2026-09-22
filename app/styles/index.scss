@@ -7746,6 +7746,18 @@ body :where(.lucide, svg[data-lucide]) {
   :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
 .bolt-project-ide-shell .bolt-chatbox-tools-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
 .bolt-project-ide-shell .bolt-chatbox-mode-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+/*
+ * Le panneau porté à `document.body` sur bureau. Il n'a plus d'ancêtre qui le
+ * rogne, donc plus rien ne le cache — mais il lui faut son propre plan : le
+ * composeur monte à z-index 2, le fil et ses artefacts aussi.
+ */
+.bolt-agent-power-popover-flottant {
+  z-index: 12022;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])) {
   font-size: var(--vc-composer-text-secondary) !important;
 }

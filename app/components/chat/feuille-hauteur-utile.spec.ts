@@ -41,7 +41,18 @@ function blocsDeLaFeuille(): Array<{ selecteur: string; corps: string }> {
   for (let i = 0; i < lignes.length; i += 1) {
     const ligne = lignes[i].trim();
 
+    /*
+     * La FEUILLE MOBILE, et elle seule : c'est là qu'une fraction de l'écran
+     * bornait la hauteur. Le panneau flottant de bureau, porté à `body`, se
+     * borne à la fenêtre et n'a ni barre de navigation ni zone sûre à déduire —
+     * l'y soumettre ferait rougir la garde sur une règle qui n'a jamais eu le
+     * défaut.
+     */
     if (!ligne.endsWith('{') || !ligne.includes('.bolt-agent-power-popover')) {
+      continue;
+    }
+
+    if (!ligne.includes('bolt-responsive-ide-mobile')) {
       continue;
     }
 
