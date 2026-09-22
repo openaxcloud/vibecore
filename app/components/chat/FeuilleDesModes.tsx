@@ -13,7 +13,7 @@ import type { AgentMode } from '@vibecore/billing/src/agent-routing';
 import type { CatalogueDuMode } from '@vibecore/billing/src/catalogue-de-modeles';
 import type { CranEffort } from '@vibecore/billing/src/crans-effort';
 import type { SondeFournisseur } from '@vibecore/billing/src/disponibilite-des-modeles';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
   entreesDuMode,
@@ -23,6 +23,8 @@ import {
   resolutionDuChoix,
   type ChoixDuMode,
 } from './feuille-des-modes';
+import { placerSecondPanneau, type PlacementSecondPanneau } from './placement-second-panneau';
+import { placerSecondPanneau, type PlacementSecondPanneau } from './placement-second-panneau';
 import { formatChatControlsCopy, type ChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 import { classNames } from '~/utils/classNames';
 
@@ -43,6 +45,14 @@ export interface FeuilleDesModesProps {
    * réimplémenté ici : deux copies du même interrupteur divergeraient.
    */
   avance?: ReactNode;
+
+  /**
+   * `feuille` — un écran à la fois, celui du téléphone.
+   * `cote-a-cote` — bureau : le premier panneau garde son contenu et le second
+   * s'ouvre à côté. Le choix vient de `layout.isDesktop`, le point de rupture
+   * qui décide déjà partout ailleurs ; pas d'un seuil inventé ici.
+   */
+  disposition?: 'feuille' | 'cote-a-cote';
 }
 
 type Niveau = { ecran: 'modes' } | { ecran: 'modele'; mode: AgentMode } | { ecran: 'avance'; mode: AgentMode };
@@ -67,11 +77,38 @@ export function FeuilleDesModes({
   onChoisirMode,
   onChoisirModele,
   avance,
+  disposition = 'feuille',
 }: FeuilleDesModesProps) {
   const [niveau, setNiveau] = useState<Niveau>({ ecran: 'modes' });
+  const refPremier = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState<PlacementSecondPanneau | null>(null);
+
+  useEffect(() => {
+    if (disposition !== 'cote-a-cote' || niveau.ecran === 'modes' || typeof window === 'undefined') {
+      setPlacement(null);
+      return undefined;
+    }
+
+    const mesurer = () => {
+      const socle = refPremier.current?.firstElementChild;
+
+      if (!socle) {
+        return;
+      }
+
+      const r = socle.getBoundingClientRect();
+      setPlacement(placerSecondPanneau({ left: r.left, top: r.top, width: r.width }, r.width, window.innerWidth));
+    };
+
+    mesurer();
+    window.addEventListener('resize', mesurer);
+
+    return () => window.removeEventListener('resize', mesurer);
+  }, [disposition, niveau]);
+
   const catalogueDe = (mode: AgentMode) => catalogues.find((c) => c.mode === mode);
 
-  if (niveau.ecran === 'modes') {
+  const premierEcran = () => {
     const actif = libelleDuMode(modeActif);
     const entrees = entreesDuMode(modeActif);
     const resolution = resolutionDuChoix(catalogueDe(modeActif), sondes, choixParMode[modeActif]);
@@ -149,107 +186,139 @@ export function FeuilleDesModes({
         ))}
       </div>
     );
+  };
+
+  const secondEcran = () => {
+    if (niveau.ecran === 'modes') {
+      return null;
+    }
+
+    const mode = niveau.mode;
+    const catalogue = catalogueDe(mode);
+    const choix = choixParMode[mode];
+    const { label } = libelleDuMode(mode);
+
+    return (
+      <div className="bolt-feuille" data-ecran={niveau.ecran}>
+        <div className="bolt-feuille-entete">
+          <button
+            type="button"
+            className="bolt-feuille-retour i-ph:caret-left"
+            data-testid="feuille-retour"
+            aria-label={copy['chatControls.sheet.modesTitle']}
+            onClick={() => setNiveau({ ecran: 'modes' })}
+          />
+          <p className="bolt-feuille-titre">
+            {niveau.ecran === 'modele'
+              ? formatChatControlsCopy(copy['chatControls.sheet.primaryModel'], { mode: label })
+              : copy['chatControls.sheet.advanced']}
+          </p>
+        </div>
+
+        {niveau.ecran === 'modele' && catalogue
+          ? lignesDuSelecteur(catalogue, sondes, choix).map((ligne) => {
+              /*
+               * « jamais sondé » n'est PAS « indisponible ». Seuls deux états
+               * ferment une ligne : le fournisseur a répondu qu'il ne pouvait pas
+               * (crédit, injoignable) ou la clé manque. Sans cette distinction,
+               * une plateforme qui ne sonde pas encore présenterait TOUT son
+               * catalogue comme mort — et la sonde n'existe pas encore.
+               */
+              const indisponible =
+                ligne.sorte === 'modele' &&
+                (ligne.etat === 'momentanement-indisponible' || ligne.etat === 'non-configure');
+
+              const cle = ligne.sorte === 'automatique' ? 'auto' : `${ligne.model}-${ligne.serviceTier ?? 'std'}`;
+
+              return (
+                <button
+                  key={cle}
+                  type="button"
+                  role="radio"
+                  aria-checked={ligne.choisie}
+                  data-selected={ligne.choisie ? 'true' : 'false'}
+                  data-etat={ligne.etat ?? 'auto'}
+                  data-testid={`feuille-modele-${cle}`}
+                  disabled={indisponible}
+                  className="bolt-feuille-rangee bolt-feuille-rangee-modele"
+                  onClick={() =>
+                    onChoisirModele(
+                      mode,
+                      ligne.sorte === 'automatique'
+                        ? {}
+                        : { modele: ligne.model, serviceTier: ligne.serviceTier, effort: choix?.effort },
+                    )
+                  }
+                >
+                  {ligne.sorte === 'automatique' ? (
+                    <>
+                      <span className="bolt-feuille-rangee-nom">{copy['chatControls.sheet.chooseForMe']}</span>
+                      <span className="bolt-feuille-pastille">{copy['chatControls.sheet.recommended']}</span>
+                      <span className="bolt-feuille-rangee-hint">{copy['chatControls.sheet.chooseForMeHint']}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Fournisseur nom={ligne.provider!} />
+                      <span className="bolt-feuille-rangee-nom">
+                        {ligne.model}
+                        {ligne.serviceTier === 'fast' ? copy['chatControls.sheet.fastSuffix'] : ''}
+                      </span>
+                      {indisponible ? (
+                        <span className="bolt-feuille-indispo">
+                          {copy['chatControls.sheet.unavailable']}
+                          {' — '}
+                          {ligne.raison === 'credit-fournisseur'
+                            ? copy['chatControls.sheet.unavailableCredit']
+                            : ligne.raison === 'cle-absente'
+                              ? copy['chatControls.sheet.notConfigured']
+                              : copy['chatControls.sheet.unavailableReach']}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
+                </button>
+              );
+            })
+          : null}
+
+        {niveau.ecran === 'avance' && avance ? <div className="bolt-feuille-avance">{avance}</div> : null}
+
+        <BlocEffort
+          copy={copy}
+          catalogue={catalogue}
+          sondes={sondes}
+          choix={choix}
+          onChanger={(cran) => onChoisirModele(mode, { ...choix, effort: cran })}
+        />
+      </div>
+    );
+  };
+
+  /*
+   * Bureau : les DEUX panneaux, côte à côte. Le premier garde son contenu —
+   * sa liste, sa description, ses deux entrées — et le second s'ouvre à sa
+   * droite, légèrement plus bas. C'est ce qui distingue le bureau du
+   * téléphone, où le second REMPLACE le premier.
+   */
+  if (disposition === 'cote-a-cote') {
+    return (
+      <>
+        <div ref={refPremier}>{premierEcran()}</div>
+        {niveau.ecran !== 'modes' ? (
+          <div
+            className="bolt-feuille-second"
+            data-testid="feuille-second-panneau"
+            data-cote={placement?.cote ?? 'droite'}
+            style={placement ? { position: 'fixed', left: placement.left, top: placement.top } : undefined}
+          >
+            {secondEcran()}
+          </div>
+        ) : null}
+      </>
+    );
   }
 
-  const mode = niveau.mode;
-  const catalogue = catalogueDe(mode);
-  const choix = choixParMode[mode];
-  const { label } = libelleDuMode(mode);
-
-  return (
-    <div className="bolt-feuille" data-ecran={niveau.ecran}>
-      <div className="bolt-feuille-entete">
-        <button
-          type="button"
-          className="bolt-feuille-retour i-ph:caret-left"
-          data-testid="feuille-retour"
-          aria-label={copy['chatControls.sheet.modesTitle']}
-          onClick={() => setNiveau({ ecran: 'modes' })}
-        />
-        <p className="bolt-feuille-titre">
-          {niveau.ecran === 'modele'
-            ? formatChatControlsCopy(copy['chatControls.sheet.primaryModel'], { mode: label })
-            : copy['chatControls.sheet.advanced']}
-        </p>
-      </div>
-
-      {niveau.ecran === 'modele' && catalogue
-        ? lignesDuSelecteur(catalogue, sondes, choix).map((ligne) => {
-            /*
-             * « jamais sondé » n'est PAS « indisponible ». Seuls deux états
-             * ferment une ligne : le fournisseur a répondu qu'il ne pouvait pas
-             * (crédit, injoignable) ou la clé manque. Sans cette distinction,
-             * une plateforme qui ne sonde pas encore présenterait TOUT son
-             * catalogue comme mort — et la sonde n'existe pas encore.
-             */
-            const indisponible =
-              ligne.sorte === 'modele' &&
-              (ligne.etat === 'momentanement-indisponible' || ligne.etat === 'non-configure');
-
-            const cle = ligne.sorte === 'automatique' ? 'auto' : `${ligne.model}-${ligne.serviceTier ?? 'std'}`;
-
-            return (
-              <button
-                key={cle}
-                type="button"
-                role="radio"
-                aria-checked={ligne.choisie}
-                data-selected={ligne.choisie ? 'true' : 'false'}
-                data-etat={ligne.etat ?? 'auto'}
-                data-testid={`feuille-modele-${cle}`}
-                disabled={indisponible}
-                className="bolt-feuille-rangee bolt-feuille-rangee-modele"
-                onClick={() =>
-                  onChoisirModele(
-                    mode,
-                    ligne.sorte === 'automatique'
-                      ? {}
-                      : { modele: ligne.model, serviceTier: ligne.serviceTier, effort: choix?.effort },
-                  )
-                }
-              >
-                {ligne.sorte === 'automatique' ? (
-                  <>
-                    <span className="bolt-feuille-rangee-nom">{copy['chatControls.sheet.chooseForMe']}</span>
-                    <span className="bolt-feuille-pastille">{copy['chatControls.sheet.recommended']}</span>
-                    <span className="bolt-feuille-rangee-hint">{copy['chatControls.sheet.chooseForMeHint']}</span>
-                  </>
-                ) : (
-                  <>
-                    <Fournisseur nom={ligne.provider!} />
-                    <span className="bolt-feuille-rangee-nom">
-                      {ligne.model}
-                      {ligne.serviceTier === 'fast' ? copy['chatControls.sheet.fastSuffix'] : ''}
-                    </span>
-                    {indisponible ? (
-                      <span className="bolt-feuille-indispo">
-                        {copy['chatControls.sheet.unavailable']}
-                        {' — '}
-                        {ligne.raison === 'credit-fournisseur'
-                          ? copy['chatControls.sheet.unavailableCredit']
-                          : ligne.raison === 'cle-absente'
-                            ? copy['chatControls.sheet.notConfigured']
-                            : copy['chatControls.sheet.unavailableReach']}
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </button>
-            );
-          })
-        : null}
-
-      {niveau.ecran === 'avance' && avance ? <div className="bolt-feuille-avance">{avance}</div> : null}
-
-      <BlocEffort
-        copy={copy}
-        catalogue={catalogue}
-        sondes={sondes}
-        choix={choix}
-        onChanger={(cran) => onChoisirModele(mode, { ...choix, effort: cran })}
-      />
-    </div>
-  );
+  return niveau.ecran === 'modes' ? premierEcran() : secondEcran();
 }
 
 /** Le curseur d'effort : autant de crans que le modèle en déclare, pas un de plus. */
@@ -268,11 +337,38 @@ function BlocEffort({
 }) {
   const etat = etatDuCurseur(catalogue, sondes, choix);
 
+  /*
+   * Modèle sans réglage d'effort : on montre quand même le curseur, GRISÉ, avec
+   * son explication. Une phrase seule laissait croire que la fonction n'existe
+   * pas ; un rail inerte dit « elle existe, pas pour ce modèle-ci ».
+   */
   if (!etat.actif) {
     return (
-      <p className="bolt-feuille-effort-absent" data-testid="feuille-effort-absent">
-        {copy['chatControls.sheet.effortUnsupported']}
-      </p>
+      <div className="bolt-feuille-effort is-inerte" data-testid="feuille-effort-absent" aria-disabled>
+        <div className="bolt-feuille-effort-tete">
+          <span className="bolt-feuille-effort-nom">{copy['chatControls.sheet.effort']}</span>
+        </div>
+
+        <input
+          type="range"
+          min={0}
+          max={4}
+          step={1}
+          value={2}
+          disabled
+          readOnly
+          tabIndex={-1}
+          aria-label={copy['chatControls.sheet.effort']}
+          data-testid="feuille-effort-rail-inerte"
+        />
+
+        <div className="bolt-feuille-effort-bornes">
+          <span>{copy['chatControls.sheet.effortLow']}</span>
+          <span>{copy['chatControls.sheet.effortMax']}</span>
+        </div>
+
+        <p className="bolt-feuille-effort-phrase">{copy['chatControls.sheet.effortUnsupported']}</p>
+      </div>
     );
   }
 
@@ -297,7 +393,14 @@ function BlocEffort({
     <div className="bolt-feuille-effort" data-testid="feuille-effort" data-crans={etat.crans.length}>
       <div className="bolt-feuille-effort-tete">
         <span className="bolt-feuille-effort-nom">{copy['chatControls.sheet.effort']}</span>
-        <span className="bolt-feuille-effort-valeur">{etat.valeur}</span>
+        <span className="bolt-feuille-effort-valeur">
+          {etat.valeur}
+          {etat.conseille && etat.valeur === etat.conseille ? (
+            <span className="bolt-feuille-effort-conseille" data-testid="feuille-effort-conseille">
+              {copy['chatControls.sheet.effortRecommended']}
+            </span>
+          ) : null}
+        </span>
       </div>
 
       <input

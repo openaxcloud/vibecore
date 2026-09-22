@@ -32148,6 +32148,41 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
  * ne restyle pas leur intérieur : ce sont les mêmes noeuds que le panneau de
  * bureau, et deux styles concurrents finiraient par divergeraient.
  */
+/*
+ * Le second panneau de bureau. Il est posé en `fixed` par le composant, qui
+ * calcule sa position (placement-second-panneau.ts) ; ici, seulement son allure
+ * et son plan, au-dessus du premier.
+ */
+.bolt-feuille-second {
+  z-index: 12023;
+  width: min(20rem, calc(100vw - 24px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 12px;
+  background: var(--bolt-elements-background-depth-1);
+  padding: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+}
+
+/* Le curseur inerte : présent, lisible, visiblement hors service. */
+.bolt-feuille-effort.is-inerte {
+  opacity: 0.55;
+}
+
+.bolt-feuille-effort.is-inerte input[type='range'] {
+  cursor: not-allowed;
+}
+
+.bolt-feuille-effort-conseille {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  color: var(--bolt-elements-textSecondary);
+}
+
 .bolt-feuille-avance {
   display: flex;
   flex-direction: column;

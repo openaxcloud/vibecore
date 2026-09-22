@@ -24,12 +24,25 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { AgentPowerControls, type AgentPowerControlsValue } from './AgentPowerControls';
 import { CLE_CHOIX_DE_MODELE } from './choix-de-modele';
+import { SELECTEUR_RACINE_MOBILE } from './feuille-mobile';
 
 afterEach(cleanup);
 
+/*
+ * Ce fichier décrit le TÉLÉPHONE. Sans racine mobile, le composant prend le
+ * chemin bureau — deux panneaux côte à côte — et « le second écran remplace le
+ * premier » n'y est plus vrai. On pose donc le gabarit, comme l'application.
+ */
+let racineMobile: HTMLElement;
+
 beforeEach(() => {
   window.localStorage.clear();
+  racineMobile = document.createElement('div');
+  racineMobile.className = SELECTEUR_RACINE_MOBILE.slice(1);
+  document.body.append(racineMobile);
 });
+
+afterEach(() => racineMobile.remove());
 
 const VALEUR: AgentPowerControlsValue = {
   highEffort: false,

@@ -614,6 +614,7 @@ export function AgentPowerControls({
                     onChoisirMode={selectMode}
                     onChoisirModele={choisirModele}
                     avance={reglagesAvances}
+                    disposition={ancre ? 'cote-a-cote' : 'feuille'}
                   />
                   {planFirstToggle}
                   {ligneDeCout}
