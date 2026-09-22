@@ -202,7 +202,13 @@ describe('AUDX-171 inventaire des ressources externes', () => {
      * `pvc-<workspaceId>` — et il rapportait pourtant `removed: true`. C'est
      * exactement le mensonge que la note du second cas décrit.
      */
-    expect(PROJECT_EXTERNAL_RESOURCES.map((resource) => resource.id)).toEqual(['database', 'object-storage-bucket']);
+    expect(PROJECT_EXTERNAL_RESOURCES.map((resource) => resource.id)).toEqual([
+      'database',
+      'object-storage-bucket',
+      'workspace-runtime',
+      'published-app',
+      'project-files',
+    ]);
 
     /*
      * Sans aucune dépendance branchée, le démontage doit être un no-op RÉUSSI et
@@ -211,7 +217,7 @@ describe('AUDX-171 inventaire des ressources externes', () => {
      */
     const report = await teardownProjectExternalResources({}, { id: 'p1', organizationId: 'o1' });
     expect(report.complete).toBe(true);
-    expect(report.outcomes).toHaveLength(2);
+    expect(report.outcomes).toHaveLength(5);
   });
 
   it('déclare explicitement les ressources auditées mais NON couvertes', async () => {
@@ -224,16 +230,12 @@ describe('AUDX-171 inventaire des ressources externes', () => {
      * trou lui-même.
      */
     expect(KNOWN_UNCOVERED_PROJECT_RESOURCES.map((entry) => entry.id)).toContain('cnpg-backups-gcs');
-    expect(KNOWN_UNCOVERED_PROJECT_RESOURCES.map((entry) => entry.id)).toContain('workspace-pvc');
 
     /*
-     * La RAISON doit rester dans le texte, pas seulement l'identifiant : c'est elle
-     * qui empêche quelqu'un de recâbler la suppression sur le nom du projet en
-     * croyant combler un oubli. Le motif nomme la vraie source du nom.
+     * `workspace-pvc` a QUITTÉ cette liste le 2026-09-07 : le trou est comblé. Le
+     * volume part désormais avec son workspace, démonté par le manager — le seul à
+     * connaître son vrai nom. Voir `workspace-runtime` dans l'inventaire.
      */
-    const volume = KNOWN_UNCOVERED_PROJECT_RESOURCES.find((entry) => entry.id === 'workspace-pvc');
-
-    expect(volume?.why).toMatch(/workspace-manager/);
-    expect(volume?.why).toMatch(/pvc-<workspaceId>/);
+    expect(KNOWN_UNCOVERED_PROJECT_RESOURCES.map((entry) => entry.id)).not.toContain('workspace-pvc');
   });
 });
