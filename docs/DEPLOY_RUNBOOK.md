@@ -653,3 +653,60 @@ repeat the upgrade with `=1`.
 `docs/GCP_DEPLOYMENT.md` (initial provisioning), `docs/GCP_RUNBOOK.md`,
 `docs/RELEASE_PROCESS.md`, `docs/infra-deploy-tiers.md` (compute deploy tiers).
 This file is the **app-image build+deploy** ground truth those don't spell out.
+
+## La porte de release n'accepte qu'un contrôle déclenché par un `push`
+
+**Vécu le 2026-09-15, et ça a coûté une demi-journée.**
+
+`scripts/release-gate/verify-required-checks.mjs` refuse tout run dont
+l'événement n'est pas dans `allowedEvents`, qui vaut `['push']` par défaut :
+
+```
+Production E2E : run event 'workflow_dispatch' is not in allowedEvents [push]
+```
+
+C'est un garde-fou **délibéré** : sans lui, n'importe qui pourrait fabriquer un
+vert à la demande sur le commit de son choix, puis déployer dessus.
+
+### Le piège
+
+Quand le run E2E déclenché par le `push` reste coincé — ce jour-là, `queued`
+pendant plus de cinq heures sans runner assigné — le réflexe est de le relancer
+à la main avec `gh workflow run e2e.yml`. **Ce vert-là ne sert à rien.** Il
+apparaît vert dans l'interface, il est vert pour `gh pr checks`, et la porte le
+refuse quand même, parce que son événement est `workflow_dispatch`.
+
+Le déploiement échoue alors à l'étape « Release gate », avec les trois autres
+contrôles au vert — ce qui fait chercher la cause du mauvais côté.
+
+### Ce qu'il faut faire à la place
+
+**Relancer le run d'origine**, pas en créer un nouveau :
+
+```bash
+# retrouver le run E2E porté par le push sur le SHA visé
+gh run list -R openaxcloud/vibecore --workflow e2e.yml --branch main \
+  --json databaseId,event,headSha,conclusion \
+  --jq '.[] | select(.headSha=="<SHA 40 hex>" and .event=="push")'
+
+# le relancer : une relance CONSERVE l'événement d'origine
+gh run rerun <databaseId> -R openaxcloud/vibecore
+```
+
+Vérifier après coup que l'événement est resté `push` :
+
+```bash
+gh run view <databaseId> -R openaxcloud/vibecore --json event,attempt,status
+```
+
+### Le contrôle qui évite d'y revenir
+
+Avant de choisir un contournement pour obtenir un vert, lire ce que la porte
+**accepte**, pas seulement ce qu'elle exige :
+
+```bash
+grep -n "allowedEvents\|requiredHeadBranch" scripts/release-gate/verify-required-checks.mjs
+```
+
+Vérifier qu'une cible existe ne suffit pas — encore faut-il vérifier qu'elle
+*compte*.

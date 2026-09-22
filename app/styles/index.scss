@@ -7769,10 +7769,12 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: var(--vc-composer-text) !important;
 }
 
-.bolt-project-ide-shell .bolt-project-agent-composer :where(.text-xs, small, [class*='text-xs']),
-.bolt-project-ide-shell .bolt-chatbox-tools-menu :where(.text-xs, small, [class*='text-xs']),
-.bolt-project-ide-shell .bolt-chatbox-mode-menu :where(.text-xs, small, [class*='text-xs']),
-.bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*='text-xs']) {
+.bolt-project-ide-shell
+  .bolt-project-agent-composer
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+.bolt-project-ide-shell .bolt-chatbox-tools-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+.bolt-project-ide-shell .bolt-chatbox-mode-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+.bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])) {
   font-size: var(--vc-composer-text-secondary) !important;
 }
 
@@ -31947,4 +31949,202 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
 .bolt-assistant-message,
 .bolt-user-message {
   position: relative;
+}
+
+/*
+ * La feuille des modes — deux écrans dans la même feuille du bas.
+ *
+ * Dimensions pensées pour 390 px : rangées de 44 px minimum (cible tactile),
+ * gouttière de 12 px, et aucune largeur fixe qui puisse être écrasée par une
+ * rangée flexible — la case à cocher de « High effort » avait déjà payé ça.
+ */
+.bolt-feuille {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bolt-feuille-titre {
+  padding: 4px 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-entete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-feuille-entete .bolt-feuille-titre {
+  padding-bottom: 4px;
+}
+
+.bolt-feuille-retour {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-feuille-rangee,
+.bolt-feuille-entree {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-feuille-rangee[data-selected='true'] {
+  background: var(--bolt-elements-background-depth-3);
+}
+
+.bolt-feuille-rangee-nom,
+.bolt-feuille-entree-nom {
+  grid-column: 2;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.bolt-feuille-rangee-valeur {
+  grid-column: 3;
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-rangee-hint,
+.bolt-feuille-entree-hint {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 11px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-description {
+  padding: 6px 8px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-repli {
+  margin: 0 4px 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--vc-ide-accent-action, #f26207);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-feuille-entree[data-verrouillee='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bolt-feuille-chevron {
+  grid-column: 3;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-fournisseur {
+  grid-column: 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--bolt-elements-background-depth-3);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-pastille {
+  grid-column: 3;
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-indispo {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-rangee-modele[data-etat='momentanement-indisponible'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bolt-feuille-effort {
+  margin-top: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--bolt-elements-borderColor);
+}
+
+.bolt-feuille-effort-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.bolt-feuille-effort-valeur {
+  flex: 0 0 auto;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-effort input[type='range'] {
+  width: 100%;
+  margin: 8px 0 2px;
+  accent-color: var(--vc-ide-accent-action, #f26207);
+}
+
+.bolt-feuille-effort-bornes {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-effort-phrase {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-effort-absent {
+  margin-top: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--bolt-elements-borderColor);
+  font-size: 11px;
+  color: var(--bolt-elements-textSecondary);
 }
