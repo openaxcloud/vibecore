@@ -249,8 +249,16 @@ describe('<ChatBox /> agent power controls', () => {
     expect(within(segmented).getByRole('radio', { name: /^Lite/i })).toBeTruthy();
     expect(within(segmented).getByRole('radio', { name: /^Power/i })).toBeTruthy();
 
+    /*
+     * Les deux interrupteurs vivent désormais sur le SECOND écran de la feuille
+     * (décision d'Avi, structure à deux écrans) : le premier écran ne porte que
+     * les modes et leurs deux entrées. Ils ne sont pas dupliqués — la feuille
+     * rend le même JSX que le panneau de bureau.
+     */
+    fireEvent.click(screen.getByTestId('feuille-entree-avance'));
     expect(screen.getByRole('switch', { name: /High effort/i })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /Turbo/i })).toBeTruthy();
+    fireEvent.click(screen.getByTestId('feuille-retour'));
 
     // No model name anywhere in the composer — the product rule.
     expect(document.body.textContent).not.toMatch(/claude|gpt-|anthropic|openai|gemini/i);
@@ -275,6 +283,7 @@ describe('<ChatBox /> agent power controls', () => {
     renderChatBox({ onAgentPowerChange });
 
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+    fireEvent.click(screen.getByTestId('feuille-entree-avance'));
 
     // Power: Turbo is locked (Power only)…
     const turbo = screen.getByRole('switch', { name: /Turbo/i });
@@ -300,6 +309,7 @@ describe('<ChatBox /> agent power controls', () => {
     });
 
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+    fireEvent.click(screen.getByTestId('feuille-entree-avance'));
 
     expect(screen.getByRole('switch', { name: /Turbo/i }).getAttribute('aria-checked')).toBe('true');
   });
