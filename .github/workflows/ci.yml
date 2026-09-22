@@ -170,6 +170,20 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
+      # L'alerte d'échéance des exceptions de sécurité, VISIBLE SUR LA PROPOSITION.
+      #
+      # Elle existait déjà, mais seulement dans le journal du déploiement, que
+      # personne n'ouvre tant que rien ne casse. Le 2026-09-17, dix-huit
+      # exceptions sont tombées le même matin et la livraison est restée fermée
+      # cinq jours, alors que l'avertissement tournait depuis des jours.
+      #
+      # Elle n'échoue PAS sur une échéance proche : un avertissement qui bloque
+      # devient un obstacle qu'on contourne. Elle échoue seulement sur une
+      # exception DÉJÀ échue, parce qu'à ce moment la porte de livraison
+      # refusera de toute façon — autant le dire ici.
+      - name: Exceptions de securite — echeances (annotations sur la PR)
+        run: node scripts/exceptions-securite-echeance.mjs --bloquant
+
       - name: Unit tests
         run: pnpm run test
 

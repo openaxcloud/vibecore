@@ -1,0 +1,11 @@
+-- AUDX-003: per-workspace agent signing secrets.
+--
+-- Records which signing scheme a workspace's RUNNING pod was created with. The
+-- pod's mounted Secret is fixed at pod-creation time, so the manager must read
+-- this before signing rather than assume the new scheme: signing a live legacy
+-- pod with a derived secret makes the agent 401, and the client's one-shot token
+-- self-heal re-mints the same wrong secret, wedging the workspace.
+--
+-- Existing rows backfill to 'root' (the legacy behaviour) on purpose. They
+-- advance to 'derived-v1' the next time the manager recreates their pod.
+ALTER TABLE "WorkspaceRuntime" ADD COLUMN "agentTokenScheme" TEXT NOT NULL DEFAULT 'root';

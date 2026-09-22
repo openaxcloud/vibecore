@@ -799,6 +799,7 @@ exports.Prisma.AiCostLedgerScalarFieldEnum = {
   outputTokens: 'outputTokens',
   costCents: 'costCents',
   reason: 'reason',
+  source: 'source',
   createdAt: 'createdAt'
 };
 
@@ -1098,6 +1099,7 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   podName: 'podName',
   serviceName: 'serviceName',
   agentTokenSecretName: 'agentTokenSecretName',
+  agentTokenScheme: 'agentTokenScheme',
   error: 'error',
   createdAt: 'createdAt',
   lastActiveAt: 'lastActiveAt',
@@ -1266,12 +1268,26 @@ exports.Prisma.CreditWalletScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
   balanceCents: 'balanceCents',
+  heldCents: 'heldCents',
   currency: 'currency',
   budgetCapCents: 'budgetCapCents',
   serviceShutdownCents: 'serviceShutdownCents',
   autoTopupCents: 'autoTopupCents',
   lastSpendAlertPct: 'lastSpendAlertPct',
   lastSpendAlertPeriodStart: 'lastSpendAlertPeriodStart',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CreditReservationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  conversationId: 'conversationId',
+  amountCents: 'amountCents',
+  status: 'status',
+  settledCents: 'settledCents',
+  expiresAt: 'expiresAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1992,6 +2008,7 @@ exports.Prisma.ModelName = {
   IntegrationFeatureRequest: 'IntegrationFeatureRequest',
   EmailDeliveryEvent: 'EmailDeliveryEvent',
   CreditWallet: 'CreditWallet',
+  CreditReservation: 'CreditReservation',
   CreditPack: 'CreditPack',
   CreditLedger: 'CreditLedger',
   AgentCheckpoint: 'AgentCheckpoint',

@@ -16,7 +16,7 @@
  */
 import { useEffect, useState } from 'react';
 
-export type AgentMode = 'lite' | 'economy' | 'power';
+export type AgentMode = 'lite' | 'power' | 'max';
 
 export interface AgentModeSettings {
   mode: AgentMode;
@@ -26,7 +26,7 @@ export interface AgentModeSettings {
 
 /** Economy is the product default. */
 export const DEFAULT_AGENT_MODE_SETTINGS: AgentModeSettings = {
-  mode: 'economy',
+  mode: 'power',
   highEffort: false,
   turbo: false,
 };
@@ -50,14 +50,14 @@ function canReachServer(): boolean {
 /** Coerce any stored/received value into a safe settings object. */
 export function coerceAgentModeSettings(raw: unknown): AgentModeSettings {
   const candidate = (raw ?? {}) as Partial<AgentModeSettings> & { mode?: string };
-  const mode: AgentMode = candidate.mode === 'lite' || candidate.mode === 'power' ? candidate.mode : 'economy';
+  const mode: AgentMode = candidate.mode === 'lite' || candidate.mode === 'max' ? candidate.mode : 'power';
 
   return {
     mode,
 
     // High effort never applies in Lite; Turbo only exists in Power.
     highEffort: mode !== 'lite' && candidate.highEffort === true,
-    turbo: mode === 'power' && candidate.turbo === true,
+    turbo: mode === 'max' && candidate.turbo === true,
   };
 }
 

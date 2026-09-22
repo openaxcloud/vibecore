@@ -21,9 +21,12 @@ export {
 } from './object-storage.js';
 
 export {
+  LEGACY_OBJECT_STORAGE_SCOPES,
+  objectStorageTokenScopes,
   signObjectStorageAccessToken,
   verifyObjectStorageAccessToken,
   type ObjectStorageAccessTokenPayload,
+  type ObjectStorageScope,
   type VerifyObjectStorageAccessTokenResult,
 } from './token.js';
 
