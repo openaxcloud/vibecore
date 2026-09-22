@@ -1019,16 +1019,6 @@ export function createProjectImportSurfacePage(projectId: string, source: string
   });
 }
 
-export function createProjectDatabaseSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `projects/${projectId}/database`,
-    route: `/projects/${projectId}/database`,
-    category: 'data',
-    icon: Braces,
-    dynamicCopy: { key: 'projectDatabase', values: { projectId } },
-  });
-}
-
 export function createProjectPreviewSurfacePage(projectId: string): EcodeSurfacePageDefinition {
   return makeDynamicSurfacePage({
     slug: `projects/${projectId}/preview`,
@@ -1039,29 +1029,12 @@ export function createProjectPreviewSurfacePage(projectId: string): EcodeSurface
   });
 }
 
-export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `editor/${editorId}`,
-    route: `/editor/${editorId}`,
-    category: 'builder',
-    icon: FileCode2,
-    dynamicCopy: { key: 'editor', values: { editorId } },
-  });
-}
-
-export function createTeamSurfacePage(teamId: string, section?: 'settings'): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: section ? `teams/${teamId}/${section}` : `teams/${teamId}`,
-    route: section ? `/teams/${teamId}/${section}` : `/teams/${teamId}`,
-    category: 'team',
-    icon: section === 'settings' ? Settings : Users,
-    dynamicCopy: {
-      key: section === 'settings' ? 'teamSettings' : 'teamWorkspace',
-      values: { teamId },
-    },
-  });
-}
-
+/*
+ * REMISE EN PLACE. #422 retirait cette fabrique comme morte — elle l'était
+ * quand la proposition a été écrite. `app/routes/profile.$username.tsx` est
+ * arrivée sur `main` depuis et l'appelle. Les trois autres fabriques que
+ * cette proposition retire n'ont, elles, toujours aucun appelant.
+ */
 export function createProfileSurfacePage(username?: string): EcodeSurfacePageDefinition {
   const name = username ?? 'builder';
 
@@ -1077,12 +1050,12 @@ export function createProfileSurfacePage(username?: string): EcodeSurfacePageDef
   });
 }
 
-export function createUserSurfacePage(username: string): EcodeSurfacePageDefinition {
+export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefinition {
   return makeDynamicSurfacePage({
-    slug: `user/${username}`,
-    route: `/user/${username}`,
-    category: 'team',
-    icon: Users,
-    dynamicCopy: { key: 'user', values: { username } },
+    slug: `editor/${editorId}`,
+    route: `/editor/${editorId}`,
+    category: 'builder',
+    icon: FileCode2,
+    dynamicCopy: { key: 'editor', values: { editorId } },
   });
 }
