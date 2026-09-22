@@ -33,7 +33,7 @@ jobs:
 
       - name: Checkout
         if: steps.check-secrets.outputs.configured == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Setup and Build
         if: steps.check-secrets.outputs.configured == 'true'
@@ -48,7 +48,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         if: steps.check-secrets.outputs.configured == 'true'
         id: deploy
-        uses: cloudflare/pages-action@v1
+        uses: cloudflare/pages-action@f0a1cd58cd66095dee69bfa18fa5efd1dde93bca # v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -67,7 +67,7 @@ jobs:
           echo "url=https://preview-not-configured.example.com" >> $GITHUB_OUTPUT
 
       - name: Add preview URL comment to PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         continue-on-error: true
         with:
           script: |
@@ -155,7 +155,7 @@ jobs:
 
     steps:
       - name: Delete preview environment
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         continue-on-error: true
         with:
           script: |
@@ -175,7 +175,7 @@ jobs:
             }
 
       - name: Remove preview comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         continue-on-error: true
         with:
           script: |

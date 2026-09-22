@@ -6,7 +6,12 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
+import {
+  LEGACY_OBJECT_STORAGE_SCOPES,
+  signObjectStorageAccessToken,
+  verifyObjectStorageAccessToken,
+  type ObjectStorageScope,
+} from '@e-code/sdk';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -196,6 +201,7 @@ import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import { slugify, slugifyRouteSegment } from './slugify.js';
+import { publicErrorCode } from './public-error-code.js';
 import { acquireTerminalSlot, releaseTerminalSlot } from './terminal-concurrency.js';
 import {
   checkServiceShutdown,
@@ -377,6 +383,7 @@ import {
   type ProjectStorage,
   type StoredArchive,
   sonderEcritureStockage,
+  supprimerFichiersDuProjet,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
@@ -521,7 +528,7 @@ declare module 'fastify' {
     apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
 
     /* A workspace-app object-storage grant (non-user principal scoped to one project). */
-    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string };
+    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string; scopes?: ObjectStorageScope[] };
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
@@ -623,6 +630,15 @@ export interface ApiAppOptions {
    * ne serait prouvable qu'en théorie.
    */
   databaseProvisioner?: DatabaseProvisioner;
+
+  /*
+   * Les trois démontages ajoutés le 2026-09-07, injectables pour que les tests
+   * prouvent le CHAÎNAGE sans cluster : chaque défaut mesuré était une capacité
+   * correcte que personne n'appelait, donc c'est l'appel qu'il faut tenir.
+   */
+  demonterWorkspace?: (workspaceId: string) => Promise<void>;
+  demonterApplicationPubliee?: (deploymentId: string) => Promise<void>;
+  supprimerFichiersDuProjet?: (projectId: string) => Promise<void>;
 
   /**
    * Applicateur SQL des migrations de projet. Par défaut le vrai applicateur
@@ -1904,10 +1920,17 @@ const aiRecordUsageSchema = z.object({
   finishReason: z.string().optional(),
   source: z.string().min(1).default('remix-chat'),
 
+  /*
+   * AUDX-018 — the hold taken at check-quota, handed back so it can be settled
+   * against the real cost. Opaque and single-use: settling is conditional on
+   * status = 'HELD', so replaying an id cannot release credits twice.
+   */
+  reservationId: z.string().min(1).optional(),
+
   // Replit-parity per-request power controls (effort-based checkpoint).
   highPowerModel: z.boolean().optional(),
   extendedThinking: z.boolean().optional(),
-  buildTier: z.enum(['lite', 'economy', 'power']).optional(),
+  buildTier: z.enum(['lite', 'power', 'max']).optional(),
   turboMode: z.boolean().optional(),
 
   /*
@@ -1917,11 +1940,11 @@ const aiRecordUsageSchema = z.object({
    */
   agentRouting: z
     .object({
-      mode: z.enum(['lite', 'economy', 'power']),
+      mode: z.enum(['lite', 'power', 'max']),
       highEffort: z.boolean().default(false),
       escalated: z.boolean().default(false),
       turbo: z.boolean().default(false),
-      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+      lineKey: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
       source: z.string().min(1).default('chat'),
     })
     .optional(),
@@ -2174,6 +2197,120 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
 }
 
 /*
+ * AUDX-004 — runtime tickets.
+ *
+ * `/api/runtime-token` used to hand the browser `readSessionToken(request)` —
+ * the SESSION COOKIE VALUE itself. That defeats httpOnly entirely: any XSS could
+ * fetch the route and walk away with a full-privilege, full-lifetime session
+ * credential good for billing, admin surfaces and project deletion.
+ *
+ * A runtime ticket replaces it: short-lived, scoped to one project, and accepted
+ * ONLY on /api/runtime/* routes. Stealing one buys ~2 minutes of that project's
+ * runtime, not the account.
+ *
+ * Same construction as the collaboration WS ticket above (base64url payload +
+ * constant-time HMAC) so there is one ticket shape in this service, not two.
+ *
+ * ⚠️ KNOWN LIMIT, deliberate: a ticket is not revoked by logout — it simply
+ * expires. There is no findSessionById on the store, so binding to live session
+ * state would mean widening the store interface; the 2-minute TTL bounds the
+ * window instead. This is the ordinary short-lived-access-token trade-off, but
+ * it IS a difference from the session token it replaces, which died with the
+ * session.
+ */
+const RUNTIME_TICKET_PREFIX = 'vcrt_';
+
+/** Short enough that a stolen ticket is near-worthless; long enough to survive a slow request. */
+const RUNTIME_TICKET_TTL_MS = 120_000;
+
+function runtimeTicketSecret() {
+  const secret = process.env.RUNTIME_TICKET_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      // A literal 'dev' fallback in prod would make runtime tickets forgeable.
+      throw new Error(appPublicEnglish('INTERNAL_COLLAB_HMAC_SECRET_REQUIRED'));
+    }
+
+    return 'dev';
+  }
+
+  return secret;
+}
+
+function signRuntimeTicketPayload(payload: string) {
+  /*
+   * Domain-separated from the collaboration ticket. Both derive from the same
+   * env secret, so without a distinct label a collaboration ticket payload and a
+   * runtime ticket payload could be made to collide and cross-redeem.
+   */
+  return createHmac('sha256', runtimeTicketSecret()).update(`runtime-ticket/v1:${payload}`).digest('base64url');
+}
+
+export function createRuntimeTicket(input: { userId: string; projectId: string }) {
+  const payload = Buffer.from(
+    JSON.stringify({
+      userId: input.userId,
+      projectId: input.projectId,
+      expiresAt: Date.now() + RUNTIME_TICKET_TTL_MS,
+
+      /*
+       * AUDX-004 — unique id, so a ticket presented on an UPGRADE can be burned
+       * after its first use. Query-string credentials are the ones that leak:
+       * access logs, Referer headers to third-party origins, browser history,
+       * intermediary proxies. bearerToken() only honours `?token=` for upgrades
+       * precisely because of that, and this makes a leaked one worthless.
+       */
+      jti: randomUUID(),
+    }),
+  ).toString('base64url');
+
+  return `${RUNTIME_TICKET_PREFIX}${payload}.${signRuntimeTicketPayload(payload)}`;
+}
+
+export function verifyRuntimeTicket(ticket: string) {
+  if (!ticket.startsWith(RUNTIME_TICKET_PREFIX)) {
+    return undefined;
+  }
+
+  const [payload, signature] = ticket.slice(RUNTIME_TICKET_PREFIX.length).split('.');
+
+  if (!payload || !signature) {
+    return undefined;
+  }
+
+  /*
+   * Compare on BYTE length, not string .length — the signature is
+   * attacker-controlled and a multibyte string of equal char length would hand
+   * timingSafeEqual two different-sized buffers and throw (500 instead of 401).
+   * Same reasoning as verifyCollaborationWebSocketTicket.
+   */
+  const expectedBuf = Buffer.from(signRuntimeTicketPayload(payload));
+  const signatureBuf = Buffer.from(signature);
+
+  if (expectedBuf.length !== signatureBuf.length || !timingSafeEqual(expectedBuf, signatureBuf)) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      userId?: string;
+      projectId?: string;
+      expiresAt?: number;
+      jti?: string;
+    };
+
+    if (!parsed.userId || !parsed.projectId || typeof parsed.expiresAt !== 'number' || parsed.expiresAt < Date.now()) {
+      return undefined;
+    }
+
+    return parsed as { userId: string; projectId: string; expiresAt: number; jti?: string };
+  } catch {
+    return undefined;
+  }
+}
+
+/*
  * Chat-share tokens (audit M5/M7). The stored snapshot is keyed by a random,
  * unguessable token; we additionally HMAC-sign the public token so the /share
  * view can reject tampered/garbage tokens before any DB lookup and so a token
@@ -2308,6 +2445,185 @@ async function authenticateCollaborationWebSocketTicket(request: FastifyRequest,
    * from outside the allowlist. Resolve the project's org and check it.
    */
   const ticketedProject = await store.getProject(match[1]).catch(() => undefined);
+
+  if (ticketedProject?.organizationId) {
+    const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
+
+    if (!isIpAllowed(request.ip, settings.ipAllowlist)) {
+      reply.code(403).send({ error: appPublicEnglish('IP_ALLOWLIST_BLOCKED'), code: 'IP_ALLOWLIST_BLOCKED' });
+      return 'rejected' as const;
+    }
+  }
+
+  request.currentUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    emailVerifiedAt: user.emailVerifiedAt,
+    mfaEnabled: user.mfaEnabled,
+    platformAdmin: user.platformAdmin,
+  };
+
+  return 'authenticated' as const;
+}
+
+/*
+ * AUDX-004 — accept a runtime ticket, and ONLY on runtime routes.
+ *
+ * Fail-closed by construction: a ticket presented anywhere outside
+ * /api/runtime/* is not "ignored and retried as a session" — requireAuth would
+ * then reject it as an unknown session token anyway, but the explicit prefix
+ * check here means a ticket can never widen into general API access.
+ *
+ * ⚠️ The IP-allowlist re-check below is not decoration. The main preHandler
+ * returns EARLY for any ticket-authenticated request, which skips its allowlist
+ * block — that exact omission already shipped once on the collaboration WS
+ * ticket and had to be fixed. Same shape here, same enforcement.
+ */
+/*
+ * AUDX-004 — one-shot consumption for tickets presented on an UPGRADE.
+ *
+ * Scope of the guarantee, stated plainly: single-use is applied where a ticket
+ * travels in a QUERY STRING (WebSocket/SSE upgrades), because that is the form
+ * that leaks — access logs, Referer, history, proxies. It is deliberately NOT
+ * applied to ordinary HTTP requests: the runtime adapter reuses one ticket
+ * across every file/port/logs call for its 2-minute life, and burning it per
+ * request would force a mint round-trip before each one. That is not a security
+ * improvement, it is a self-inflicted outage on the IDE's hot path.
+ *
+ * Backed by Redis so replicas share the burn list. With no REDIS_URL (dev,
+ * single replica) an in-process set is used — honest about being per-process,
+ * and never silently pretending to be cluster-wide.
+ */
+const runtimeTicketBurnedLocally = new Set<string>();
+
+let runtimeTicketRedis: import('ioredis').Redis | undefined;
+let runtimeTicketRedisTried = false;
+
+function runtimeTicketStore(): import('ioredis').Redis | undefined {
+  if (runtimeTicketRedisTried) {
+    return runtimeTicketRedis;
+  }
+
+  runtimeTicketRedisTried = true;
+
+  /*
+   * `lireUrlDEnvironnement` et non une lecture nue : une valeur entre
+   * guillemets dans un configmap donne une URL que `new Redis()` refuse, et le
+   * magasin de tickets retombe alors en silence sur « pas de Redis ». Les trois
+   * autres lectures de REDIS_URL de ce fichier passent déjà par là ; celle-ci
+   * l'avait oublié, et `env-url.spec.ts` l'a attrapée.
+   */
+  const url = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    runtimeTicketRedis = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: false });
+    runtimeTicketRedis.on('error', () => undefined);
+  } catch {
+    runtimeTicketRedis = undefined;
+  }
+
+  return runtimeTicketRedis;
+}
+
+/**
+ * Burn a ticket id. Returns false when it was already used.
+ *
+ * Fails CLOSED on a Redis error: if we cannot tell whether a ticket was already
+ * spent, treating it as fresh would make the whole one-shot property optional
+ * exactly when the infrastructure is unhealthy — which is when replay matters.
+ * A refused upgrade is recoverable (the client re-mints); a replayed one is not.
+ */
+async function consumeRuntimeTicketId(jti: string, expiresAt: number): Promise<boolean> {
+  const ttlSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    if (runtimeTicketBurnedLocally.has(jti)) {
+      return false;
+    }
+
+    runtimeTicketBurnedLocally.add(jti);
+    setTimeout(() => runtimeTicketBurnedLocally.delete(jti), ttlSeconds * 1000).unref?.();
+
+    return true;
+  }
+
+  try {
+    // SET NX is the atomic primitive: it succeeds only for the FIRST caller.
+    const result = await redis.set(`runtime-ticket:${jti}`, '1', 'EX', ttlSeconds, 'NX');
+
+    return result === 'OK';
+  } catch {
+    return false;
+  }
+}
+
+async function authenticateRuntimeTicket(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
+  const pathname = new URL(request.url, 'http://vibecore.local').pathname;
+
+  if (!pathname.startsWith('/api/runtime/')) {
+    return 'not-ticketed' as const;
+  }
+
+  const presented = bearerToken(request);
+
+  if (!presented?.startsWith(RUNTIME_TICKET_PREFIX)) {
+    return 'not-ticketed' as const;
+  }
+
+  const payload = verifyRuntimeTicket(presented);
+
+  if (!payload) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  /*
+   * One-shot, upgrades only — see consumeRuntimeTicketId for why this is
+   * deliberately not applied to ordinary HTTP requests.
+   */
+  const isUpgradeRequest =
+    request.headers.upgrade?.toLowerCase() === 'websocket' ||
+    (typeof request.headers.accept === 'string' && request.headers.accept.includes('text/event-stream'));
+
+  if (isUpgradeRequest) {
+    if (!payload.jti || !(await consumeRuntimeTicketId(payload.jti, payload.expiresAt))) {
+      authError(reply);
+      return 'rejected' as const;
+    }
+  }
+
+  /*
+   * Scope enforcement. The ticket names ONE project; a runtime route names a
+   * workspace. Resolve the workspace and require it to belong to that project,
+   * otherwise a ticket for a project the user owns would drive the runtime of
+   * any other workspace id they can guess — which would make "scoped" a label
+   * rather than a control.
+   */
+  const workspaceId = (request.params as { workspaceId?: string } | undefined)?.workspaceId;
+
+  if (workspaceId) {
+    const workspace = await store.getWorkspace(workspaceId).catch(() => undefined);
+
+    if (!workspace || workspace.projectId !== payload.projectId) {
+      authError(reply);
+      return 'rejected' as const;
+    }
+  }
+
+  const user = await store.findUserById(payload.userId);
+
+  if (!user || (await isUserSuspended(store, user.id))) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  const ticketedProject = await store.getProject(payload.projectId).catch(() => undefined);
 
   if (ticketedProject?.organizationId) {
     const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
@@ -3632,6 +3948,12 @@ function buildWorkspaceObjectStorage(input: {
       userId: input.userId,
       workspaceId: input.workspaceId,
       expiresAt: Date.now() + ttlMs,
+      /*
+       * AUDX-022 — least privilege. A generated app reads and writes its own
+       * bucket; it has no business deleting objects wholesale or destroying the
+       * bucket. Those verbs stay with an authenticated user session.
+       */
+      scopes: ['read', 'write'],
     },
     secret,
   });
@@ -3654,6 +3976,60 @@ async function requirePlatformAdmin(request: FastifyRequest) {
  * WORKSPACE_MANAGER_SHARED_SECRET, which the manager/worker pods already hold).
  * Fails closed when no secret is configured.
  */
+/*
+ * AUDX-018 — how long a credit hold survives before the sweep reclaims it.
+ * Long enough for a slow generation, short enough that a crashed request does
+ * not strand a user's credits for any meaningful time.
+ */
+const AI_RESERVATION_TTL_MS = 15 * 60_000;
+
+/*
+ * Cost to hold for a request we have not made yet. Deliberately an ESTIMATE:
+ * the input tokens we know about plus a modest output allowance. The hold is
+ * provisional and settled against the real cost afterwards, so erring slightly
+ * HIGH is the correct direction — a hold that is too small lets the wallet go
+ * negative, which is the failure this exists to prevent.
+ */
+function estimateAiReservationCents(inputTokens: number, model?: string, provider?: string): number {
+  const assumedOutputTokens = Math.max(256, Math.ceil(inputTokens / 2));
+
+  const { costCents } = computeAiCostCents({
+    model: model ?? 'unknown',
+    provider: provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+    inputTokens: Math.max(0, inputTokens),
+    outputTokens: assumedOutputTokens,
+  });
+
+  return Math.max(1, costCents);
+}
+
+/*
+ * AUDX-017 — provenance marker for a report that ALSO carries a user session.
+ *
+ * requireInternalSecret() reads the Authorization header, which on this route is
+ * already the user's session bearer — using it here would make the trusted path
+ * UNREACHABLE (the auth preHandler would have 401'd an internal-secret bearer
+ * long before the route ran). A distinct header lets a server-to-server caller
+ * prove it is the platform while still forwarding the user's session for
+ * org/project resolution.
+ *
+ * Deliberately NOT in the CORS allowedHeaders list, so a browser cannot send it
+ * cross-origin.
+ */
+function hasInternalSecretHeader(request: FastifyRequest): boolean {
+  const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
+  const header = request.headers['x-vibecore-internal'];
+  const provided = typeof header === 'string' ? header.trim() : '';
+
+  if (!expected || !provided) {
+    return false;
+  }
+
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+
+  return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);}
+
 function requireInternalSecret(request: FastifyRequest) {
   const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
   const header = request.headers.authorization;
@@ -7650,6 +8026,33 @@ async function startServerDeploymentViaManager(payload: {
   return (await response.json()) as { ready: boolean; url: string; name: string; readyReplicas: number };
 }
 
+/*
+ * Démonter un workspace via le manager — Pod, Service, Secret ET le PVC.
+ *
+ * Le manager est le seul à connaître le vrai nom du volume (`workspace.pvcName`
+ * dans SON magasin) : l'API ne peut pas le deviner, et son port Kubernetes est
+ * volontairement restreint au namespace des bases par `dbResourceGuard`. On
+ * demande donc au propriétaire de la ressource plutôt que de s'octroyer sa clé.
+ *
+ * L'échec REMONTE (contrairement à l'arrêt d'un déploiement, best-effort) : un
+ * volume de 100 Gi qui survit en silence est précisément ce qu'on corrige ici.
+ * Le rapport de démontage le nomme, et la suppression du projet aboutit quand
+ * même — c'est le contrat de `teardownProjectExternalResources`.
+ */
+async function deleteWorkspaceViaManager(workspaceId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`${appPublicEnglish('TEARDOWN_WORKSPACE_REFUSED')} (${workspaceId}, ${response.status})`);
+  }
+}
+
 /* Tear down a server deployment (Deployment/Service/Secret/Ingress) best-effort. */
 async function stopServerDeploymentViaManager(deploymentId: string): Promise<void> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
@@ -9590,9 +9993,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       statusCode >= 500 ? (error.publicMessage ?? appPublicEnglish('INTERNAL_SERVER_ERROR')) : error.message;
     const appLocalized = localizeAppPublicMessage(englishFallback, locale);
 
+    /*
+     * Le code EXPOSÉ passe par le filtre : `code` reste le code INTERNE, qui
+     * sert au journal, aux métriques et à la recherche du message localisé.
+     * Voir `public-error-code.ts` pour les deux règles.
+     */
     return reply.code(statusCode).send({
       error: appLocalized.matched ? appLocalized.value : publicErrorMessage({ code, locale, englishFallback }),
-      code,
+      code: publicErrorCode({ code, statusCode, hasPublicMessage: Boolean(error.publicMessage) }),
     });
   });
 
@@ -11347,6 +11755,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const collaborationTicketAuth = await authenticateCollaborationWebSocketTicket(request, reply, store);
 
     if (collaborationTicketAuth !== 'not-ticketed') {
+      return;
+    }
+
+    const runtimeTicketAuth = await authenticateRuntimeTicket(request, reply, store);
+
+    if (runtimeTicketAuth !== 'not-ticketed') {
       return;
     }
 
@@ -20313,6 +20727,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { revoked };
     },
   );
+
+  /*
+   * AUDX-004 — mint a runtime ticket for one project.
+   *
+   * Session-authenticated (the normal preHandler), rate-limited, and gated by
+   * the SAME project permission the runtime routes require, so a ticket can
+   * never grant access the caller does not already have. Replaces
+   * /api/runtime-token handing the browser the raw session cookie value.
+   */
+  app.post(
+    '/auth/runtime-ticket',
+    { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = z.object({ projectId: z.string().min(1) }).safeParse(request.body);
+
+      if (!body.success) {
+        return reply.code(400).send({
+          error: appPublicEnglish('WORKSPACE_OR_PROJECT_ID_REQUIRED'),
+          code: 'PROJECT_ID_REQUIRED',
+        });
+      }
+
+      const project = await requireProject(request, store, body.data.projectId, 'workspaces:read');
+
+      return {
+        ticket: createRuntimeTicket({ userId: request.currentUser!.id, projectId: project.id }),
+        expiresInMs: RUNTIME_TICKET_TTL_MS,
+      };
+    },
+  );
+
   app.post('/auth/reauth', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     if (!request.currentSession) {
       return reply
@@ -25847,15 +26292,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Fait AVANT la suppression de la ligne : le nom du PVC vit sur cette ligne,
      * et une fois la ligne partie la poignée est perdue avec elle.
      */
+    /*
+     * Les POIGNÉES d'abord, la ligne ensuite. Les identifiants des workspaces et
+     * des déploiements vivent sur des lignes qui cascadent avec le projet : les
+     * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
+     * démonter avant de supprimer.
+     */
+    const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+    const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
+
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
+        supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
       {
         id: project.id,
         organizationId: project.organizationId,
         persistentVolumeClaim: project.persistentVolumeClaim,
+        workspaceIds,
+        deploymentIds,
       },
     );
 
@@ -28217,6 +28676,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * can render a "X tokens left this month" hint. The plan-resolution
      * path is shared with ensureQuota so the override table is honoured.
      */
+    /*
+     * AUDX-018 — reserve credits BEFORE the provider call.
+     *
+     * Metering debits only when usage is REPORTED, i.e. after the call already
+     * cost money. A report that never arrives (crash, closed tab, a caller that
+     * simply omits it) is free AI, and N concurrent calls each clear this same
+     * pre-check and collectively overspend. A hold moves the decision before the
+     * spend and is released on settle, on failure, or by the expiry sweep.
+     *
+     * ⚠️ Inert unless BILLING_CREDITS_ENABLED === 'true' — credits are ~90%
+     * SHADOW today, and enforcing a hold while the wallet is dormant would
+     * refuse every chat on the platform. Same gate the rest of credits uses.
+     */
+    let reservation: { id: string; amountCents: number } | undefined;
+
+    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
+      const estimatedCostCents = estimateAiReservationCents(estimated, body.model, body.provider);
+
+      if (estimatedCostCents > 0) {
+        reservation = await store
+          .reserveCredits({
+            organizationId: project.organizationId,
+            projectId: project.id,
+            amountCents: estimatedCostCents,
+            expiresAtMs: Date.now() + AI_RESERVATION_TTL_MS,
+          })
+          .catch(() => undefined);
+
+        if (!reservation) {
+          throw Object.assign(new Error(appPublicEnglish('CREDITS_RESERVATION_REFUSED')), {
+            statusCode: 402,
+            code: 'CREDITS_RESERVATION_REFUSED',
+          });
+        }
+      }
+    }
+
     const state = await billingState(project.organizationId);
     const { limits, plan } = state;
     const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
@@ -28259,6 +28755,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       ok: true,
+
+      /*
+       * AUDX-018 — hand back the hold so the caller can settle it after the
+       * provider call. Undefined when credits are dormant or nothing was held.
+       */
+      reservationId: reservation?.id,
       ai: {
         inputTokens: {
           used: tokenUsed,
@@ -28398,7 +28900,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const query = parse(
       z.object({
-        mode: z.enum(['lite', 'economy', 'power']).default(DEFAULT_AGENT_MODE),
+        mode: z.enum(['lite', 'power', 'max']).default(DEFAULT_AGENT_MODE),
         highEffort: queryBool.default(false),
         turbo: queryBool.default(false),
       }),
@@ -28444,8 +28946,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let classifier: { provider: string; model: string } | undefined;
 
     if (query.turbo) {
-      // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
-      if (requestedMode !== 'power') {
+      /*
+       * Turbo : mode MAX uniquement, puis porte de plan ET porte d'organisation
+       * (drapeau `agent_turbo`, éteint par défaut).
+       *
+       * ⚠️ Le renommage du 2026-09-16 a failli inverser cette garde : `power`
+       * désignait le SOMMET, il désigne le MILIEU. Laissée telle quelle, elle
+       * aurait ouvert Turbo au mode médian et l'aurait refusé au mode haut —
+       * c'est-à-dire facturé le multiplicateur ×2 à des utilisateurs qui ne
+       * l'avaient pas choisi. Troisième fois que ce piège se referme : il ne se
+       * voit qu'au comportement, jamais au typage.
+       */
+      if (requestedMode !== 'max') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_TURBO_REQUIRES_POWER'),
           code: 'AGENT_TURBO_POWER_ONLY',
@@ -28477,7 +28989,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (query.highEffort) {
-      // High effort: Economy and Power only — NEVER Lite — and plan-gated.
+      // Effort élevé : modes Power et Max seulement — JAMAIS Lite — et porte de plan.
       if (requestedMode === 'lite') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_HIGH_EFFORT_UNAVAILABLE_IN_LITE'),
@@ -28522,6 +29034,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
+
+    /*
+     * AUDX-017 — is this report the platform's own, or a caller's claim?
+     *
+     * This route is session-authenticated, so its token counts are DECLARED by
+     * whoever holds a session: `inputTokens: 0` bills nothing, and simply never
+     * calling it bills nothing at all. The LLM call does not yet go through the
+     * ai-gateway (see the C1.b.4 note in app/lib/.server/ai-usage.ts), so the
+     * counts cannot be recomputed here.
+     *
+     * What CAN be established is provenance. A report carrying the internal
+     * shared secret is server-to-server — no user session can produce it — and
+     * is recorded as 'trusted'. Everything else is recorded as 'declared' and
+     * stays reconcilable instead of being silently believed. Declared rows are
+     * still written: losing them would be strictly worse than marking them.
+     */
+    const usageSource: 'trusted' | 'declared' = hasInternalSecretHeader(request) ? 'trusted' : 'declared';
+
     const project = await requireProject(request, store, projectId, 'workspaces:read');
 
     /*
@@ -28551,7 +29081,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       outputTokens: body.outputTokens,
       costCents,
       reason: `chat.completion.${body.source}`,
+      source: usageSource,
     });
+
+    /*
+     * AUDX-018 — settle the hold taken at check-quota against the REAL cost.
+     *
+     * Without this the hold sits until the expiry sweep, so a busy project would
+     * watch its available credits shrink with every message and eventually
+     * refuse to start anything — a guard that breaks normal work gets reverted,
+     * not fixed. Best-effort: a settle failure must never fail the usage
+     * recording, and the sweep is the backstop.
+     */
+    if (process.env.BILLING_CREDITS_ENABLED === 'true' && body.reservationId) {
+      await store.settleCreditReservation({ id: body.reservationId, actualCents: costCents }).catch(() => false);
+    }
 
     /*
      * AGM per-call log (admin-only): stamp the REAL provider+model this call
@@ -30286,15 +30830,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * Les POIGNÉES d'abord, la ligne ensuite. Les identifiants des workspaces et
+     * des déploiements vivent sur des lignes qui cascadent avec le projet : les
+     * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
+     * démonter avant de supprimer.
+     */
+    const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+    const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
+
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
+        supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
       {
         id: project.id,
         organizationId: project.organizationId,
         persistentVolumeClaim: project.persistentVolumeClaim,
+        workspaceIds,
+        deploymentIds,
       },
     );
 
@@ -30772,7 +31330,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   const adminAgentRoutingLineSchema = z.object({
-    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+    key: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
     label: z.string().min(1),
     provider: z.string().min(1),
     model: z.string().min(1),
@@ -34978,14 +35536,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const requireObjectStorageProject = async (
     request: FastifyRequest,
     permission: 'projects:read' | 'projects:write',
+    /*
+     * AUDX-022 — what the TOKEN path must carry. `permission` governs the user
+     * session; it says nothing about a workspace token, and this helper used to
+     * ignore it entirely once a grant was present. A read token therefore
+     * authorised deleting every object and destroying the bucket — from inside
+     * a workspace pod, which runs user-authored code.
+     *
+     * Defaults to the verb implied by `permission` so a route that forgets to
+     * pass one is never MORE permissive than the session check it declares.
+     */
+    tokenScope: ObjectStorageScope = permission === 'projects:write' ? 'write' : 'read',
   ) => {
     const projectId = parse(projectParams, request.params).projectId;
 
     /*
-     * A workspace app token already authorizes (read+write) THIS project's
-     * storage — no org membership check; the token's scope IS the authorization.
+     * A workspace app token authorizes THIS project's storage, for the verbs its
+     * `scopes` claim carries — no org membership check beyond that.
      */
     if (request.objectStorageGrant?.projectId === projectId) {
+      const granted = request.objectStorageGrant.scopes ?? LEGACY_OBJECT_STORAGE_SCOPES;
+
+      if (!granted.includes(tokenScope)) {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_SCOPE_REQUIRED')), {
+          statusCode: 403,
+          code: 'OBJECT_STORAGE_SCOPE_REQUIRED',
+        });
+      }
+
       const project = await store.getProject(projectId);
 
       if (!project) {
@@ -35026,7 +35604,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    /*
+     * AUDX-022 — `write`, deliberately NOT `admin`. ensureBucket is idempotent
+     * provisioning: it creates, it never destroys, and a workspace app enabling
+     * its own storage on first use is a legitimate flow. The destructive verb is
+     * DELETE on this same path, and that one does require `admin`.
+     */
+    const project = await requireObjectStorageProject(request, 'projects:write', 'write');
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
@@ -35040,7 +35624,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destroys the whole bucket: `admin` scope, which no workspace
+    // token is minted with. This stays an authenticated-user operation.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'admin');
 
     try {
       return reply.send(await resolveObjectStorage().deleteBucket(project.id));
@@ -35082,7 +35668,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:write');
 
     const body = parse(
-      z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
+      z.object({
+        key: z.string().min(1).max(1024),
+        contentType: z.string().max(255).optional(),
+        /*
+         * AUDX-021 — a caller may declare a SMALLER ceiling than the platform's
+         * and an MD5 to be verified by GCS. Neither can widen the limit: the
+         * service clamps `maxBytes` to OBJECT_UPLOAD_MAX_BYTES.
+         */
+        maxBytes: z.number().int().positive().optional(),
+        contentMd5: z.string().max(64).optional(),
+      }),
       request.body ?? {},
     );
 
@@ -35132,7 +35728,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destructive: needs the `delete` scope, not merely `write`.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'delete');
 
     const body = parse(
       z
