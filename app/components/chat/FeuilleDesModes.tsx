@@ -198,7 +198,7 @@ export function FeuilleDesModes({
                     <Fournisseur nom={ligne.provider!} />
                     <span className="bolt-feuille-rangee-nom">
                       {ligne.model}
-                      {ligne.serviceTier === 'fast' ? ' · fast' : ''}
+                      {ligne.serviceTier === 'fast' ? copy['chatControls.sheet.fastSuffix'] : ''}
                     </span>
                     {indisponible ? (
                       <span className="bolt-feuille-indispo">
