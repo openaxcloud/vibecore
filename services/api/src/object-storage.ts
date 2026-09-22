@@ -25,6 +25,19 @@ export const OBJECT_STORAGE_LOCATION = process.env.OBJECT_STORAGE_LOCATION?.trim
 export const SIGNED_URL_TTL_MS = 15 * 60 * 1000;
 
 /**
+ * AUDX-021 — ceiling, in bytes, signed into every upload URL.
+ *
+ * A signed URL is handed to the browser and used DIRECTLY against GCS: the api
+ * never sees the bytes, so no server-side limit can catch an oversized upload.
+ * The ceiling has to be signed INTO the URL as `x-goog-content-length-range`,
+ * which GCS itself enforces on the PUT.
+ */
+export const OBJECT_UPLOAD_MAX_BYTES = Number(process.env.OBJECT_STORAGE_MAX_UPLOAD_BYTES) || 512 * 1024 * 1024;
+
+/** A base64-encoded MD5 digest is exactly 24 chars ending in `==`. */
+const CONTENT_MD5_PATTERN = /^[A-Za-z0-9+/]{22}==$/;
+
+/**
  * Objects per GCS list page. 1 000 is the API's own default page size; it is a
  * PAGE size, never a total. Treating it as a total is AUDX-024.
  */
@@ -179,7 +192,16 @@ export interface SignedUrlResult {
 
 export interface UploadUrlResult extends SignedUrlResult {
   method: 'PUT';
+
+  /**
+   * Headers the client MUST send verbatim. They are part of the signature: GCS
+   * rejects the PUT if any of them is missing or altered, which is what turns
+   * the limit from advice into enforcement.
+   */
   headers: Record<string, string>;
+
+  /** The byte ceiling actually signed into this URL. */
+  maxBytes: number;
 }
 
 export interface ObjectStorage {
@@ -205,7 +227,10 @@ export interface ObjectStorage {
    * at 1 000 objects (AUDX-024).
    */
   listAllObjects(projectId: string, opts?: { prefix?: string }): Promise<FullInventoryResult>;
-  createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult>;
+  createUploadUrl(
+    projectId: string,
+    input: { key: string; contentType?: string; maxBytes?: number; contentMd5?: string },
+  ): Promise<UploadUrlResult>;
   createDownloadUrl(projectId: string, input: { key: string }): Promise<SignedUrlResult>;
 
   /**
@@ -430,20 +455,60 @@ export class GcsObjectStorage implements ObjectStorage {
     return { objects, totalBytes: objects.reduce((sum, object) => sum + object.size, 0), pages };
   }
 
-  async createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult> {
+  /**
+   * AUDX-021 — a write URL that carries a size ceiling and, when the caller
+   * declares one, an integrity check.
+   *
+   * Before this, the URL bound only Content-Type: whoever held it could PUT an
+   * unbounded number of bytes of arbitrary content, and nothing server-side was
+   * in the path to notice. Both limits are signed into the URL so GCS enforces
+   * them; a client that omits or alters either header gets its PUT refused.
+   */
+  async createUploadUrl(
+    projectId: string,
+    input: { key: string; contentType?: string; maxBytes?: number; contentMd5?: string },
+  ): Promise<UploadUrlResult> {
     const key = assertValidObjectKey(input.key);
     const expiresMs = Date.now() + SIGNED_URL_TTL_MS;
     const contentType = input.contentType || 'application/octet-stream';
 
+    if (input.maxBytes !== undefined && (!Number.isFinite(input.maxBytes) || input.maxBytes <= 0)) {
+      throw new ObjectStorageError('maxBytes must be a positive number of bytes', 'INVALID_UPLOAD_LIMIT');
+    }
+
+    /*
+     * A caller may ask for LESS than the platform ceiling, never more — an
+     * argument that could raise the limit would be no limit at all.
+     */
+    const maxBytes = Math.min(input.maxBytes ?? OBJECT_UPLOAD_MAX_BYTES, OBJECT_UPLOAD_MAX_BYTES);
+
+    if (input.contentMd5 !== undefined && !CONTENT_MD5_PATTERN.test(input.contentMd5)) {
+      throw new ObjectStorageError('Content-MD5 must be a base64-encoded MD5 digest', 'INVALID_CONTENT_MD5');
+    }
+
+    const lengthRange = `0,${maxBytes}`;
+
     const [url] = await this._storage
       .bucket(projectBucketName(projectId))
       .file(key)
-      .getSignedUrl({ version: 'v4', action: 'write', expires: expiresMs, contentType });
+      .getSignedUrl({
+        version: 'v4',
+        action: 'write',
+        expires: expiresMs,
+        contentType,
+        extensionHeaders: { 'x-goog-content-length-range': lengthRange },
+        ...(input.contentMd5 ? { contentMd5: input.contentMd5 } : {}),
+      });
 
     return {
       url,
       method: 'PUT',
-      headers: { 'Content-Type': contentType },
+      headers: {
+        'Content-Type': contentType,
+        'x-goog-content-length-range': lengthRange,
+        ...(input.contentMd5 ? { 'Content-MD5': input.contentMd5 } : {}),
+      },
+      maxBytes,
       expiresAt: new Date(expiresMs).toISOString(),
     };
   }
