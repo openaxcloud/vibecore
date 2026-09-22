@@ -131,7 +131,7 @@ describe('<ChatBox /> toolbar', () => {
     expect(modeTrigger.getAttribute('data-mode')).toBe('agent');
 
     const powerTrigger = within(primary).getByTestId('agent-mode-advanced');
-    expect(powerTrigger.getAttribute('aria-label')).toBe('Agent mode: Economy. Opens advanced settings.');
+    expect(powerTrigger.getAttribute('aria-label')).toBe('Agent mode: Power. Opens advanced settings.');
     expect(powerTrigger.getAttribute('aria-expanded')).toBe('false');
 
     // Les actions sont à DROITE, pas mélangées aux sélecteurs.
@@ -235,7 +235,7 @@ describe('<ChatBox /> agent power controls', () => {
     renderChatBox();
 
     /*
-     * AGM: the three MODES (Lite/Economy/Power) are a visible segmented
+     * AGM: the three MODES (Lite/Power/Power) are a visible segmented
      * control — never a model name — and the two switches (High effort, Turbo)
      * live behind the Advanced popover. The live cost estimate stays visible.
      */
@@ -244,11 +244,7 @@ describe('<ChatBox /> agent power controls', () => {
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
 
     const segmented = screen.getByRole('radiogroup', { name: /Agent mode/i });
-    expect(
-      within(segmented)
-        .getByRole('radio', { name: /Economy/i })
-        .getAttribute('aria-checked'),
-    ).toBe('true');
+    expect(within(segmented).getByRole('radio', { name: /Power/i }).getAttribute('aria-checked')).toBe('true');
     expect(within(segmented).getByRole('radio', { name: /^Lite/i })).toBeTruthy();
     expect(within(segmented).getByRole('radio', { name: /^Power/i })).toBeTruthy();
 
@@ -279,7 +275,7 @@ describe('<ChatBox /> agent power controls', () => {
 
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
 
-    // Economy: Turbo is locked (Power only)…
+    // Power: Turbo is locked (Power only)…
     const turbo = screen.getByRole('switch', { name: /Turbo/i });
     expect(turbo.hasAttribute('disabled')).toBe(true);
 
@@ -297,7 +293,7 @@ describe('<ChatBox /> agent power controls', () => {
         highPowerModel: false,
         extendedThinking: false,
         turboMode: true,
-        buildTier: 'power',
+        buildTier: 'max',
       },
       onAgentPowerChange: vi.fn(),
     });

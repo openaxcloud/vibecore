@@ -1,5 +1,6 @@
 import Cookies from 'js-cookie';
 import { atom, computed } from 'nanostores';
+import { CONNECTION_SECRET_FIELDS, persistConnectionWithoutSecrets } from '~/lib/connections/serverConnections';
 import {
   formatClientRuntimeResidualCopy,
   getClientRuntimeResidualCopy,
@@ -101,15 +102,11 @@ class GitLabConnectionStore {
       Cookies.set('git:gitlab.com', JSON.stringify({ username: user.username, password: token }), secureCookieOptions);
       Cookies.set('gitlabUrl', gitlabUrl, secureCookieOptions);
 
-      // Store connection details in localStorage
-      localStorage.setItem(
+      // Store connection details WITHOUT the token (AUDX-007).
+      persistConnectionWithoutSecrets(
         'gitlab_connection',
-        JSON.stringify({
-          user,
-          token,
-          tokenType: 'personal-access-token',
-          gitlabUrl,
-        }),
+        { user, token, tokenType: 'personal-access-token', gitlabUrl },
+        CONNECTION_SECRET_FIELDS.gitlab,
       );
 
       const connectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.connectedAs'], {
@@ -179,7 +176,7 @@ class GitLabConnectionStore {
 
       // Update localStorage
       const updatedConnection = { ...connection, stats };
-      localStorage.setItem('gitlab_connection', JSON.stringify(updatedConnection));
+      persistConnectionWithoutSecrets('gitlab_connection', updatedConnection, CONNECTION_SECRET_FIELDS.gitlab);
 
       return { success: true, stats };
     } catch (error) {
@@ -295,15 +292,11 @@ class GitLabConnectionStore {
       );
       Cookies.set('gitlabUrl', 'https://gitlab.com', secureCookieOptions);
 
-      // Store connection details in localStorage
-      localStorage.setItem(
+      // Store connection details WITHOUT the token (AUDX-007).
+      persistConnectionWithoutSecrets(
         'gitlab_connection',
-        JSON.stringify({
-          user,
-          token: envToken,
-          tokenType: 'personal-access-token',
-          gitlabUrl: 'https://gitlab.com',
-        }),
+        { user, token: envToken, tokenType: 'personal-access-token', gitlabUrl: 'https://gitlab.com' },
+        CONNECTION_SECRET_FIELDS.gitlab,
       );
 
       const connectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.autoConnectedAs'], {

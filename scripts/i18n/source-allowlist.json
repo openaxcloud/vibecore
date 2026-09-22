@@ -734,9 +734,18 @@
       "id": "security-config-and-crypto-invariants",
       "path": "packages/security/src/index.ts",
       "rule": "error-message",
-      "textPattern": "^(?:\\{…\\} must be set when NODE_ENV=production|CONFIG_ENCRYPTION_KEY is required in production|Invalid encrypted payload)$",
-      "justification": "Production-secret checks abort startup; invalid ciphertext is caught inside connector/config trust boundaries and mapped to stable localized public errors. Raw secret/config diagnostics are never serialized.",
+      "textPattern": "^(?:\\{…\\} must be set when NODE_ENV=production|CONFIG_ENCRYPTION_KEY is required in production|Invalid encrypted payload|CONFIG_ENCRYPTION_KEYS must be a JSON object of keyId -> secret|CONFIG_ENCRYPTION_KEYS holds an invalid key id: \\{…\\}|CONFIG_ENCRYPTION_KEYS holds an empty secret for key id: \\{…\\}|CONFIG_ENCRYPTION_PRIMARY_KEY_ID is required when CONFIG_ENCRYPTION_KEYS is set|CONFIG_ENCRYPTION_PRIMARY_KEY_ID=\\{…\\} is not present in CONFIG_ENCRYPTION_KEYS|No encryption key available for keyId \\{…\\})$",
+      "justification": "Production-secret checks abort startup; invalid ciphertext is caught inside connector/config trust boundaries and mapped to stable localized public errors. Raw secret/config diagnostics are never serialized. AUDX-010 adds the multi-key rotation members of the same family: they are validated at configuration load, before any request is served, and an operator reading a boot failure is the only audience.",
       "owner": "security-platform",
+      "expiresOn": "2027-08-05"
+    },
+    {
+      "id": "encryption-rotation-operator-diagnostics",
+      "path": "services/api/src/encryption-rotation.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:ENCRYPTED_COLUMNS is out of sync with schema\\.prisma\\.\\{…\\}\\{…\\}|Not covered by rotation: \\{…\\}\\.|No longer in the schema: \\{…\\}\\.|Prisma client has no delegate for model \\{…\\})$",
+      "justification": "Operator diagnostics for the AUDX-010 rotation sweep. The module has no production caller today: services/api/src/encryption-rotation.spec.ts is its only importer, verified by grep across the repo. The two messages compare ENCRYPTED_COLUMNS against schema.prisma and name the drifting columns; the third reports a missing Prisma delegate. All three are read by whoever runs the sweep, never by an end user, and none is reachable from an HTTP route.",
+      "owner": "platform-security",
       "expiresOn": "2027-08-05"
     },
     {
@@ -765,6 +774,15 @@
       "justification": "WorkspaceAgentClient has no production instantiation; workspace-manager/agent import only token/event helpers. Active agent calls use localized service contracts, so this private SDK exception cannot render.",
       "owner": "workspace-platform",
       "expiresOn": "2026-11-05"
+    },
+    {
+      "id": "workspace-agent-secret-derivation-invariants",
+      "path": "packages/workspace-sdk/src/index.ts",
+      "rule": "error-message",
+      "textPattern": "^deriveWorkspaceAgentSecret requires a non-empty (?:root secret|workspaceId)$",
+      "justification": "Programmer-error invariants on a server-internal function. Both call sites are in services/workspace-manager (manager.ts:670 and :1506); rootSecret comes from the manager's configured token secret and workspaceId from an internal identifier, so neither argument is reachable from user input. Throwing here means a misconfigured deployment, not a user action, and the message never crosses a rendered surface.",
+      "owner": "workspace-platform",
+      "expiresOn": "2027-08-05"
     },
     {
       "id": "skill-audit-proof-cli-diagnostics",
@@ -1085,7 +1103,7 @@
       "id": "object-storage-sdk-token-verification-reasons",
       "path": "packages/sdk/src/token.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:missing|malformed|invalid_signature|expired|project_mismatch)$",
+      "textPattern": "^(?:missing|malformed|invalid_signature|expired|project_mismatch|insufficient_scope)$",
       "justification": "These union members are object-storage HMAC verification machine outcomes. API authorization maps failure to stable localized public contracts and does not render the raw reason.",
       "owner": "sdk-platform-and-security",
       "expiresOn": "2027-08-05"
