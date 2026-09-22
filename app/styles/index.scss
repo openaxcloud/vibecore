@@ -7808,10 +7808,21 @@ body :where(.lucide, svg[data-lucide]) {
   width: min(100vw, var(--vc-mobile-sheet-max-width)) !important;
   max-width: var(--vc-mobile-sheet-max-width) !important;
   min-width: 0 !important;
-  max-height: min(
-    calc(0.56 * var(--vc-mobile-espace-utile)),
-    520px,
-    calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 24px)
+  /*
+   * La feuille descend jusqu'à la barre du bas et monte aussi haut que son
+   * contenu le demande. La SEULE borne est l'espace réellement disponible
+   * au-dessus de l'ancre basse — c'est elle qui empêche le panneau d'être
+   * tranché EN HAUT, pas une fraction.
+   *
+   * Mesuré le 2026-09-22 à 390×844 : `0.56 * espace-utile` rendait
+   * `max-height: 472.64px`, soit 56 % de l'écran. Le contenu n'était ni coupé
+   * ni figé — il DÉFILAIT dans une feuille deux fois trop courte
+   * (`scrollHeight` 558 pour `clientHeight` 471), ce qui se lit à l'écran
+   * comme une troncature. Les deux plafonds `0.56 *` et `520px` sont retirés :
+   * ils bornaient la feuille bien en deçà de la place libre.
+   */
+  max-height: calc(
+    var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 24px
   ) !important;
   border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
 
@@ -26214,10 +26225,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * sa taille pendant que la place rétrécissait, donc il débordait par le
      * haut. `dvh` ne décrit pas le chrome du navigateur ni le clavier.
      */
-    max-height: min(
-      calc(0.64 * var(--vc-mobile-espace-utile)),
-      520px,
-      calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 32px)
+    /* Même règle que la feuille du composeur : la place libre, pas une fraction. */
+    max-height: calc(
+      var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 32px
     );
     margin: 0 !important;
     overflow-y: auto;
