@@ -1058,7 +1058,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           ? effectivePower.turboMode
             ? /* Turbo: fan out the full roster for the fastest wall-clock (more lanes
                * finishing concurrently), at the higher cost the control advertises. */
-              parallelAgentsForBuildTier('power', effectivePower.highPowerModel)
+              parallelAgentsForBuildTier('max', effectivePower.highPowerModel)
             : parallelAgentsForBuildTier(effectivePower.buildTier, effectivePower.highPowerModel)
           : undefined;
 

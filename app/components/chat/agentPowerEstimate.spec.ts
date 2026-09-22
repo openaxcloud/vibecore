@@ -6,7 +6,7 @@ const BASE: AgentPowerControlsValue = {
   highPowerModel: false,
   extendedThinking: false,
   turboMode: false,
-  buildTier: 'economy',
+  buildTier: 'power',
 };
 
 /**
@@ -30,8 +30,8 @@ describe('estimateAgentPowerCents', () => {
   });
 
   it('scales the base by the build tier before the margin', () => {
-    const power = estimateAgentPowerCents({ ...BASE, buildTier: 'power' });
-    expect(power).toBe(serverCredits(POWER_ESTIMATE.baselineCents * POWER_ESTIMATE.buildTier.power));
+    const power = estimateAgentPowerCents({ ...BASE, buildTier: 'max' });
+    expect(power).toBe(serverCredits(POWER_ESTIMATE.baselineCents * POWER_ESTIMATE.buildTier.max));
 
     const lite = estimateAgentPowerCents({ ...BASE, buildTier: 'lite' });
     expect(lite).toBe(serverCredits(POWER_ESTIMATE.baselineCents * POWER_ESTIMATE.buildTier.lite));
@@ -68,6 +68,6 @@ describe('estimateAgentPowerCents', () => {
 
   it('rounds up (ceil), never under-charging the preview', () => {
     // power tier (×1.8) → 45 raw → ceil(45 * 1.3) = ceil(58.5) = 59.
-    expect(estimateAgentPowerCents({ ...BASE, buildTier: 'power' })).toBe(59);
+    expect(estimateAgentPowerCents({ ...BASE, buildTier: 'max' })).toBe(59);
   });
 });

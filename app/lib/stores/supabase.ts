@@ -1,4 +1,5 @@
 import { atom } from 'nanostores';
+import { CONNECTION_SECRET_FIELDS, persistConnectionWithoutSecrets } from '~/lib/connections/serverConnections';
 import {
   formatClientRuntimeResidualCopy,
   getClientRuntimeResidualCopy,
@@ -166,13 +167,18 @@ export function updateSupabaseConnection(connection: Partial<SupabaseConnectionS
    * Always save the connection state to localStorage to persist across chats
    */
   if (connection.user || connection.token || connection.selectedProjectId !== undefined || connection.credentials) {
-    storage?.setItem('supabase_connection', JSON.stringify(newState));
-
-    if (newState.credentials) {
-      storage?.setItem('supabaseCredentials', JSON.stringify(newState.credentials));
-    } else {
-      storage?.removeItem('supabaseCredentials');
-    }
+    /*
+     * AUDX-007 — persist WITHOUT the secrets. Supabase carried two: the
+     * management `token` and `credentials`, which holds the project's anon key
+     * and was written under a key literally named `supabaseCredentials`.
+     */
+    persistConnectionWithoutSecrets(
+      'supabase_connection',
+      newState as unknown as Record<string, unknown>,
+      CONNECTION_SECRET_FIELDS.supabase,
+      storage ?? undefined,
+    );
+    storage?.removeItem('supabaseCredentials');
   } else {
     storage?.removeItem('supabase_connection');
     storage?.removeItem('supabaseCredentials');

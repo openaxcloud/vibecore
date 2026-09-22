@@ -101,9 +101,48 @@ export interface PreviewWsProxyDeps {
   previewDomain: string | undefined;
   resolveAgent: (workspaceId: string, orgId?: string) => Promise<{ baseUrl: string; token: string } | undefined>;
 
+  /**
+   * AUDX-005 — the same authorization the HTTP path applies.
+   *
+   * Previously this handler resolved the agent with NO orgId and no port gate,
+   * so every control the HTTP path enforces was simply absent over WebSocket:
+   * anyone who learned a workspaceId could open the HMR socket to another
+   * tenant's preview and receive its traffic. A door is not locked because the
+   * front door is.
+   */
+  enforceTenant?: boolean;
+
+  /** Derive the requester's orgId from the upgrade request's `vc_preview` cookie. */
+  resolveRequesterOrgId?: (cookieHeader: string | undefined) => string | undefined;
+
+  enforcePrivatePorts?: boolean;
+
+  /** Same lookup the HTTP path uses — fail-closed on an unknown answer. */
+  isPortPrivate?: (workspaceId: string, port: string) => Promise<boolean>;
+
   /** Interval for the server→client keepalive ping (survives the ~30s LB idle). */
   keepaliveMs?: number;
   logger?: { warn?: (msg: string) => void };
+}
+
+/**
+ * Read one cookie out of a raw Cookie header. Local copy so this module stays
+ * usable without importing the whole proxy app.
+ */
+export function readUpgradeCookie(cookieHeader: string | undefined, name: string): string | undefined {
+  if (!cookieHeader) {
+    return undefined;
+  }
+
+  for (const part of cookieHeader.split(';')) {
+    const trimmed = part.trim();
+
+    if (trimmed.startsWith(`${name}=`)) {
+      return trimmed.slice(name.length + 1);
+    }
+  }
+
+  return undefined;
 }
 
 const KEEPALIVE_DEFAULT_MS = 15_000;
@@ -139,7 +178,46 @@ export function attachPreviewWebSocketProxy(server: ReturnType<typeof createServ
     }
 
     void (async () => {
-      const agent = await deps.resolveAgent(target.workspaceId).catch(() => undefined);
+      /*
+       * Tenant gate. Mirrors the HTTP path: a missing/invalid `vc_preview`
+       * cookie is a hard refusal, never a fall-through to the unauthenticated
+       * resolve — that fall-through is what leaked cross-tenant previews.
+       */
+      let requesterOrgId: string | undefined;
+
+      if (deps.enforceTenant) {
+        requesterOrgId = deps.resolveRequesterOrgId?.(req.headers.cookie);
+
+        if (!requesterOrgId) {
+          destroy(clientSocket, 403);
+
+          return;
+        }
+      }
+
+      /*
+       * Private-port gate. isPortPrivate fails CLOSED, so an unknown answer
+       * denies rather than serving a private port to an anonymous socket.
+       */
+      if (deps.enforcePrivatePorts && deps.isPortPrivate) {
+        const isPrivate = await deps.isPortPrivate(target.workspaceId, String(target.port)).catch(() => true);
+
+        if (isPrivate) {
+          const sessionOrgId = requesterOrgId ?? deps.resolveRequesterOrgId?.(req.headers.cookie);
+
+          if (!sessionOrgId) {
+            destroy(clientSocket, 401);
+
+            return;
+          }
+        }
+      }
+
+      /*
+       * Forward the orgId so workspace-manager can reject a workspace owned by
+       * another org. Passing nothing here made the ownership check unreachable.
+       */
+      const agent = await deps.resolveAgent(target.workspaceId, requesterOrgId).catch(() => undefined);
 
       if (!agent) {
         destroy(clientSocket, 502);
