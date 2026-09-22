@@ -284,6 +284,7 @@ model Project {
   workspaces             Workspace[]
   snapshots              ProjectSnapshot[]
   storageObjects         ProjectStorageObject[]
+  objectStorageUsage     ProjectObjectStorageUsage?
   deployments            Deployment[]
   fileSnapshots          FileSnapshot[]
   conversations          AiConversation[]
@@ -791,6 +792,30 @@ model ProjectStorageObject {
   @@index([projectId])
   @@index([kind])
   @@index([createdAt])
+}
+
+/// AUDX-023 — measured usage of a project's REAL GCS bucket.
+///
+/// Object-storage metering used to sum `ProjectStorageObject.byteLength`, a
+/// table holding base64 archives inside PostgreSQL, written only by the
+/// snapshot/export path. The `/object-storage/*` routes write to GCS and never
+/// touch it, so every byte uploaded through a signed URL was invisible to
+/// billing AND to any quota — while the code claimed it summed "the REAL stored
+/// bytes".
+///
+/// This row is what the daily inventory writes after walking the bucket with
+/// `listAllObjects` (all pages — a single page stops at 1 000 objects, AUDX-024).
+/// `measuredAt` is carried explicitly because a quota decision taken on a stale
+/// measurement must be able to SAY that it is stale rather than pretend to be
+/// current.
+model ProjectObjectStorageUsage {
+  projectId   String   @id
+  bytes       BigInt   @default(0)
+  objectCount Int      @default(0)
+  measuredAt  DateTime
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([measuredAt])
 }
 
 model Deployment {
