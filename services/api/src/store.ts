@@ -764,6 +764,9 @@ export interface AiCostLedgerRecord {
   outputTokens: number;
   costCents: number;
   reason: string;
+
+  /** AUDX-017 — 'trusted' (server-to-server) or 'declared' (user session). */
+  source?: string;
   createdAt: string;
 }
 
@@ -2560,12 +2563,39 @@ export interface ApiStore {
     outputTokens: number;
     costCents: number;
     reason: string;
+
+    /*
+     * AUDX-017 — provenance of the token counts. 'trusted' = reported
+     * server-to-server; 'declared' = reported under a user session and therefore
+     * forgeable. Defaults to 'declared': the untrusted value is the safe default
+     * for a caller that has not said which it is.
+     */
+    source?: 'trusted' | 'declared';
   }): Promise<AiCostLedgerRecord>;
   listAiCosts(organizationId: string, range?: { from?: string; to?: string }): Promise<AiCostLedgerRecord[]>;
 
   // --- Replit-parity: credit wallet (dormant until BILLING_CREDITS_ENABLED) ---
   getCreditWallet(organizationId: string): Promise<CreditWalletRecord | undefined>;
   ensureCreditWallet(organizationId: string): Promise<CreditWalletRecord>;
+
+  /*
+   * AUDX-018 — credit holds taken BEFORE a provider call.
+   *
+   * reserveCredits MUST be atomic: implementations check availability and take
+   * the hold in ONE statement. Returning undefined means refused, never "try
+   * again after reading the balance".
+   */
+  reserveCredits(input: {
+    organizationId: string;
+    projectId?: string;
+    conversationId?: string;
+    amountCents: number;
+    expiresAtMs: number;
+  }): Promise<{ id: string; amountCents: number } | undefined>;
+  releaseCreditReservation(input: { id: string; status?: 'RELEASED' | 'EXPIRED' }): Promise<boolean>;
+  settleCreditReservation(input: { id: string; actualCents: number }): Promise<boolean>;
+  releaseExpiredCreditReservations(nowMs: number, take?: number): Promise<number>;
+
   updateCreditWalletSettings(input: {
     organizationId: string;
     budgetCapCents?: number | null;
