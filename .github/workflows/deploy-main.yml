@@ -535,6 +535,10 @@ jobs:
             else
               RUNTIME=false; WEB=false; WSAGENT=false; ADMIN=false
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
+              # AUDX-173 — `apps/admin/` n'est PLUS dans ce motif : il a son propre
+              # etage, plus bas. Premiere version de ce correctif : le rattacher au
+              # tier web, faute de mieux. L'etage dedie le rend inutile, et le garder
+              # faisait reconstruire ET redeployer le web a chaque changement d'admin.
               printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
               # `apps/admin/` ne matchait AUCUN motif : un changement admin tombait dans
@@ -804,8 +808,21 @@ jobs:
           #                  must be resolvable on EVERY run (rebuilt or carried forward)
           #   rolled       — this workflow waits for its rollout and checks its imageIDs
           #
-          # admin: an enabled chart service this continuous path never builds or rolls.
-          # Its current digest is carried forward so the release stays fully pinned.
+          # admin — AUDX-173. Cette ligne portait `tier=none`, donc `rebuilt=false`
+          # a chaque run, donc le digest DEJA EN PRODUCTION etait repris tel quel.
+          # Le commentaire d'origine decrivait cela comme un choix (« an enabled
+          # chart service this continuous path never builds or rolls ») ; l'effet
+          # reel etait qu'un service vivant (`enabled: true`, `replicas: 2`, expose
+          # sur `/admin`) ne recevait AUCUN correctif de securite, jamais.
+          #
+          # Mesure : 32 commits touchant `apps/admin/` en six mois, aucun livre.
+          #
+          # Il rejoint le tier `web` — qui le construit desormais
+          # (infra/cloudbuild/single-web.yaml) — et devient `rolled=true` : sans
+          # attente de rollout, on deduirait a nouveau le succes de l'absence
+          # d'echec, ce qui est exactement ce qui a laisse le trou ouvert.
+          # ⚠️ Ce `rolled=true` est une porte NOUVELLE : un deploiement echouera
+          # desormais si le rollout de l'admin n'aboutit pas. C'est voulu.
           #
           # screenshotter is a chart service like any other. The chart AND values-prod
           # both say `enabled: false`, but the live production release has it TRUE — set
@@ -1798,6 +1815,7 @@ jobs:
           #        passait pour un refus (fail-OPEN).
           PROBE="sec9-probe-${GITHUB_RUN_ID}"
           PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
+          PROBE_CMD='code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d "{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}" || true)"; echo "http ${code:-none}"; printf "%s" "$code" > /dev/termination-log 2>/dev/null || true; case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac'
           kubectl -n "${HELM_NAMESPACE}" delete pod "${PROBE}" --ignore-not-found --wait=true
           # MANIFESTE COMPLET, pas `kubectl run` avec des surcharges JSON : elles
           # forment un merge patch, et une liste `containers` y REMPLACE la liste
@@ -1809,7 +1827,12 @@ jobs:
           # parce que `runAsNonRoot` ne se vérifie pas sur un USER symbolique.
           # Heredoc CITÉ : rien ne s'expanse côté runner, le script du pod garde
           # ses `$`. Les deux valeurs du runner entrent par des marqueurs.
-          sed -e "s|__PROBE__|${PROBE}|g" -e "s|__PROBE_URL__|${PROBE_URL}|g" <<'MANIFEST' | kubectl -n "${HELM_NAMESPACE}" create -f -
+          # La stderr de la création est CAPTURÉE, pas jetée (apport de #440) : c'est
+          # elle qui portait « image: Required value » et « violates PodSecurity »,
+          # les deux causes réelles des quatre déploiements perdus le 2026-09-04.
+          # Sans ce test, un pod jamais admis rendrait un verdict qui n'a interrogé
+          # personne — et ce verdict-là se lit comme un succès.
+          MANIFESTE="$(sed -e "s|__PROBE__|${PROBE}|g" -e "s|__PROBE_URL__|${PROBE_URL}|g" <<'MANIFEST'
           apiVersion: v1
           kind: Pod
           metadata:
@@ -1851,6 +1874,13 @@ jobs:
                     cpu: 100m
                     memory: 64Mi
           MANIFEST
+          )"
+          if ! CREATION="$(printf '%s\n' "${MANIFESTE}" | kubectl -n "${HELM_NAMESPACE}" create -f - 2>&1)"; then
+            echo "::error::SONDE NON CREEE — le pod de la sonde n'a pas ete admis par le cluster." >&2
+            echo "::error::l'api n'a donc PAS ete interrogee : ce verdict ne dit rien de l'api." >&2
+            echo "::error::reponse de l'apiserver : ${CREATION}" >&2
+            exit 1
+          fi
 
           PHASE=""
           for _ in $(seq 1 45); do
