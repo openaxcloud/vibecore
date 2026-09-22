@@ -132,6 +132,21 @@ export function AgentPowerControls({
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   /*
+   * Ancre du panneau sur BUREAU. Sur téléphone la feuille part à la racine du
+   * gabarit mobile et une règle CSS la pose en `fixed` ; sur bureau elle restait
+   * ancrée à son déclencheur, DANS `.bolt-chatbox-toolbar-primary` qui porte
+   * `overflow: hidden`. Mesuré le 2026-09-22 à 1440×900 : le panneau existait,
+   * 216×448, `opacity: 1`, `visibility: visible` — et `elementFromPoint` en son
+   * centre rendait un noeud du fil, parce que l'ancêtre le ROGNAIT. Invisible,
+   * donc inutilisable : plus aucun changement de mode possible sur bureau.
+   *
+   * Le remède est le même que sur téléphone — sortir de la chaîne d'ancêtres —
+   * mais sans gabarit mobile où atterrir : on porte à `document.body` et on
+   * replace le panneau au-dessus de son déclencheur.
+   */
+  const [ancre, setAncre] = useState<{ left: number; bottom: number } | null>(null);
+
+  /*
    * Le modèle choisi par mode. Persisté ET diffusé (voir choix-de-modele.ts) :
    * la requête part d'un autre composant, et sans la diffusion le réglage
    * serait décoratif — le défaut qu'on a déjà payé sur les interrupteurs.
@@ -217,6 +232,34 @@ export function AgentPowerControls({
 
     return () => document.removeEventListener('keydown', onKeyDown);
   });
+
+  useEffect(() => {
+    if (!advancedOpen || typeof window === 'undefined') {
+      setAncre(null);
+      return undefined;
+    }
+
+    const mesurer = () => {
+      const socle = rootRef.current;
+
+      if (!socle || cibleFeuilleMobile(document)) {
+        setAncre(null);
+        return;
+      }
+
+      const r = socle.getBoundingClientRect();
+      setAncre({ left: Math.round(r.left), bottom: Math.round(window.innerHeight - r.top + 8) });
+    };
+
+    mesurer();
+    window.addEventListener('resize', mesurer);
+    window.addEventListener('scroll', mesurer, true);
+
+    return () => {
+      window.removeEventListener('resize', mesurer);
+      window.removeEventListener('scroll', mesurer, true);
+    };
+  }, [advancedOpen]);
 
   // Close the Advanced popover on outside pointer / Escape.
   useEffect(() => {
@@ -542,13 +585,17 @@ export function AgentPowerControls({
         {value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
       </p>
       {advancedOpen
-        ? porterSurTelephone(
+        ? porterHorsDuComposeur(
             <div
               id={panelId}
               ref={panelRef}
               role="dialog"
               aria-label={copy['chatControls.power.dialogAria']}
-              className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
+              className={classNames(
+                'bolt-agent-power-popover mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl',
+                ancre ? 'bolt-agent-power-popover-flottant' : 'absolute bottom-full left-0 z-50',
+              )}
+              style={ancre ? { position: 'fixed', left: ancre.left, bottom: ancre.bottom } : undefined}
             >
               {compact ? (
                 <>
@@ -592,8 +639,17 @@ export function AgentPowerControls({
  * composeur et de ses ancêtres qui bornent un élément fixé (voir
  * feuille-mobile.ts). Sur bureau, il reste ancré à son déclencheur.
  */
-function porterSurTelephone(panneau: React.ReactElement) {
-  const cible = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
+function porterHorsDuComposeur(panneau: React.ReactElement) {
+  if (typeof document === 'undefined') {
+    return panneau;
+  }
 
-  return cible ? createPortal(panneau, cible) : panneau;
+  /*
+   * Téléphone : la racine du gabarit mobile, pour que `.bolt-responsive-ide-mobile`
+   * reste un ancêtre et que les règles de feuille s'appliquent.
+   * Bureau : `document.body`, faute de quoi le panneau reste rogné par
+   * `overflow: hidden` du composeur. Dans les DEUX cas on sort de la chaîne
+   * d'ancêtres : c'est elle, et elle seule, qui rendait le panneau invisible.
+   */
+  return createPortal(panneau, cibleFeuilleMobile(document) ?? document.body);
 }
