@@ -18,7 +18,7 @@ export const DEFAULT_AI_MARGIN = 0.3;
  */
 export const POWER_ESTIMATE = {
   baselineCents: 25, // a "simple" Replit request (~$0.25)
-  buildTier: { lite: 0.4, economy: 1, power: 1.8 } as Record<AgentPowerControlsValue['buildTier'], number>,
+  buildTier: { lite: 0.4, power: 1, max: 1.8 } as Record<AgentPowerControlsValue['buildTier'], number>,
   highPower: 4,
   extendedThinking: 2.5,
   turbo: 6,
