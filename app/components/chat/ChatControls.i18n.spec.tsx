@@ -86,9 +86,11 @@ describe('chat controls i18n', () => {
     render(withLocale('fr', <AgentPowerControls value={powerValue} onChange={vi.fn()} estimatedCents={125} />));
 
     expect(screen.getByRole('radiogroup', { name: 'Mode de l’agent (Commande-Maj-I pour changer)' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'Léger' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'Économique' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'Puissance' })).toBeTruthy();
+
+    /* Lite, Power et Max sont des noms de produit : ils ne se traduisent pas. */
+    expect(screen.getByRole('radio', { name: 'Lite' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Power' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Max' })).toBeTruthy();
     expect(screen.getByText(/1,25/u)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Avancé' }));
@@ -101,7 +103,7 @@ describe('chat controls i18n', () => {
   it('keeps the English catalog available', () => {
     render(withLocale('en', <AgentPowerControls value={powerValue} onChange={vi.fn()} estimatedCents={25} />));
 
-    expect(screen.getByRole('radio', { name: 'Economy' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'Power' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Advanced' })).toBeTruthy();
   });
 });

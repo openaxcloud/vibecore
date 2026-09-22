@@ -62,11 +62,15 @@ describe('estimateCheckpointCostCents', () => {
       highPowerModel: true,
       extendedThinking: true,
     });
-    // Additive: surcharges sum (high-power +3, extended-thinking +1.5 → +4.5),
-    // not the old 4 × 2.5 = 10× product.
+
+    /*
+     * Additive: surcharges sum (high-power +3, extended-thinking +1.5 → +4.5),
+     * not the old 4 × 2.5 = 10× product.
+     */
     const surcharge = HIGH_POWER_ESTIMATE_MULTIPLIER - 1 + (EXTENDED_THINKING_ESTIMATE_MULTIPLIER - 1);
     const expectedProvider = 100 * (1 + surcharge);
     expect(both).toBe(computeCreditCostCents({ rawProviderCents: expectedProvider }));
+
     const compounded = 100 * HIGH_POWER_ESTIMATE_MULTIPLIER * EXTENDED_THINKING_ESTIMATE_MULTIPLIER;
     expect(both).toBeLessThan(computeCreditCostCents({ rawProviderCents: compounded }));
   });
@@ -98,10 +102,12 @@ describe('planCreditConfig', () => {
     expect(planCreditConfig.pro.monthlyCreditCents).toBe(10_000);
   });
 
-  // Replit publishes no precise Starter $ figure (official wording: "Free daily
-  // Agent credits", daily reset, no rollover); Core=$25/mo is the only anchor.
-  // 25¢/day is our documented official-closest default — lock it so any change
-  // is deliberate (see the provenance note on planCreditConfig).
+  /*
+   * Replit publishes no precise Starter $ figure (official wording: "Free daily
+   * Agent credits", daily reset, no rollover); Core=$25/mo is the only anchor.
+   * 25¢/day is our documented official-closest default — lock it so any change
+   * is deliberate (see the provenance note on planCreditConfig).
+   */
   it('pins the documented Starter daily credit amount (25 cents/day)', () => {
     expect(planCreditConfig.starter.dailyCreditCents).toBe(25);
   });
@@ -230,15 +236,16 @@ describe('premiumAgentModesEligible (Turbo / high-power gating)', () => {
 describe('gatePremiumAgentModes', () => {
   it('strips turbo + high-power for an ineligible (free) plan and flags it', () => {
     const result = gatePremiumAgentModes(
-      { turboMode: true, highPowerModel: true, extendedThinking: true, buildTier: 'power' },
+      { turboMode: true, highPowerModel: true, extendedThinking: true, buildTier: 'max' },
       'free',
     );
     expect(result.gated).toBe(true);
     expect(result.modes.turboMode).toBe(false);
     expect(result.modes.highPowerModel).toBe(false);
+
     // Extended thinking + build tier are NOT gated.
     expect(result.modes.extendedThinking).toBe(true);
-    expect(result.modes.buildTier).toBe('power');
+    expect(result.modes.buildTier).toBe('max');
   });
 
   it('passes modes through untouched for an eligible plan', () => {

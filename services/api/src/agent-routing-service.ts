@@ -9,13 +9,13 @@
  * Cached for 60s per process; every logged call stamps the card version it
  * was actually priced with, so a stale-by-a-minute card is harmless.
  */
-import { BUILTIN_AGENT_ROUTING_CARD, type AgentRoutingCard } from '@vibecore/billing';
+import { BUILTIN_AGENT_ROUTING_CARD, migrerVocabulaireDesCles, type AgentRoutingCard } from '@vibecore/billing';
 import { z } from 'zod';
 
 import type { ApiStore } from './store.js';
 
 const routingLineSchema = z.object({
-  key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier']),
+  key: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
   label: z.string().min(1),
   provider: z.string().min(1),
   model: z.string().min(1),
@@ -60,7 +60,15 @@ export async function getActiveAgentRoutingCard(
     const row = await store.getActiveAgentRoutingCard();
 
     if (row) {
-      const parsed = agentRoutingCardSchema.safeParse(row.data);
+      /*
+       * Traduire AVANT de valider : les cartes publiées avant le 2026-09-16
+       * portent `economy`, que le schéma ne connaît plus. Sans cette ligne,
+       * chaque carte historique échouerait la validation et la plateforme
+       * retomberait silencieusement sur la carte intégrée — c'est-à-dire
+       * qu'un changement de tarif publié par un administrateur cesserait
+       * d'être appliqué, sans aucun signal côté produit.
+       */
+      const parsed = agentRoutingCardSchema.safeParse(migrerVocabulaireDesCles(row.data));
 
       if (parsed.success) {
         card = parsed.data as AgentRoutingCard;
