@@ -6,7 +6,12 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
+import {
+  LEGACY_OBJECT_STORAGE_SCOPES,
+  signObjectStorageAccessToken,
+  verifyObjectStorageAccessToken,
+  type ObjectStorageScope,
+} from '@e-code/sdk';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -509,7 +514,7 @@ declare module 'fastify' {
     apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
 
     /* A workspace-app object-storage grant (non-user principal scoped to one project). */
-    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string };
+    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string; scopes?: ObjectStorageScope[] };
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
@@ -1911,7 +1916,7 @@ const aiRecordUsageSchema = z.object({
   // Replit-parity per-request power controls (effort-based checkpoint).
   highPowerModel: z.boolean().optional(),
   extendedThinking: z.boolean().optional(),
-  buildTier: z.enum(['lite', 'economy', 'power']).optional(),
+  buildTier: z.enum(['lite', 'power', 'max']).optional(),
   turboMode: z.boolean().optional(),
 
   /*
@@ -1921,11 +1926,11 @@ const aiRecordUsageSchema = z.object({
    */
   agentRouting: z
     .object({
-      mode: z.enum(['lite', 'economy', 'power']),
+      mode: z.enum(['lite', 'power', 'max']),
       highEffort: z.boolean().default(false),
       escalated: z.boolean().default(false),
       turbo: z.boolean().default(false),
-      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
+      lineKey: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
       source: z.string().min(1).default('chat'),
     })
     .optional(),
@@ -3929,6 +3934,12 @@ function buildWorkspaceObjectStorage(input: {
       userId: input.userId,
       workspaceId: input.workspaceId,
       expiresAt: Date.now() + ttlMs,
+      /*
+       * AUDX-022 — least privilege. A generated app reads and writes its own
+       * bucket; it has no business deleting objects wholesale or destroying the
+       * bucket. Those verbs stay with an authenticated user session.
+       */
+      scopes: ['read', 'write'],
     },
     secret,
   });
@@ -28511,7 +28522,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const query = parse(
       z.object({
-        mode: z.enum(['lite', 'economy', 'power']).default(DEFAULT_AGENT_MODE),
+        mode: z.enum(['lite', 'power', 'max']).default(DEFAULT_AGENT_MODE),
         highEffort: queryBool.default(false),
         turbo: queryBool.default(false),
       }),
@@ -28557,8 +28568,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let classifier: { provider: string; model: string } | undefined;
 
     if (query.turbo) {
-      // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
-      if (requestedMode !== 'power') {
+      /*
+       * Turbo : mode MAX uniquement, puis porte de plan ET porte d'organisation
+       * (drapeau `agent_turbo`, éteint par défaut).
+       *
+       * ⚠️ Le renommage du 2026-09-16 a failli inverser cette garde : `power`
+       * désignait le SOMMET, il désigne le MILIEU. Laissée telle quelle, elle
+       * aurait ouvert Turbo au mode médian et l'aurait refusé au mode haut —
+       * c'est-à-dire facturé le multiplicateur ×2 à des utilisateurs qui ne
+       * l'avaient pas choisi. Troisième fois que ce piège se referme : il ne se
+       * voit qu'au comportement, jamais au typage.
+       */
+      if (requestedMode !== 'max') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_TURBO_REQUIRES_POWER'),
           code: 'AGENT_TURBO_POWER_ONLY',
@@ -28590,7 +28611,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (query.highEffort) {
-      // High effort: Economy and Power only — NEVER Lite — and plan-gated.
+      // Effort élevé : modes Power et Max seulement — JAMAIS Lite — et porte de plan.
       if (requestedMode === 'lite') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_HIGH_EFFORT_UNAVAILABLE_IN_LITE'),
@@ -30931,7 +30952,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   const adminAgentRoutingLineSchema = z.object({
-    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
+    key: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
     label: z.string().min(1),
     provider: z.string().min(1),
     model: z.string().min(1),
@@ -35137,14 +35158,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const requireObjectStorageProject = async (
     request: FastifyRequest,
     permission: 'projects:read' | 'projects:write',
+    /*
+     * AUDX-022 — what the TOKEN path must carry. `permission` governs the user
+     * session; it says nothing about a workspace token, and this helper used to
+     * ignore it entirely once a grant was present. A read token therefore
+     * authorised deleting every object and destroying the bucket — from inside
+     * a workspace pod, which runs user-authored code.
+     *
+     * Defaults to the verb implied by `permission` so a route that forgets to
+     * pass one is never MORE permissive than the session check it declares.
+     */
+    tokenScope: ObjectStorageScope = permission === 'projects:write' ? 'write' : 'read',
   ) => {
     const projectId = parse(projectParams, request.params).projectId;
 
     /*
-     * A workspace app token already authorizes (read+write) THIS project's
-     * storage — no org membership check; the token's scope IS the authorization.
+     * A workspace app token authorizes THIS project's storage, for the verbs its
+     * `scopes` claim carries — no org membership check beyond that.
      */
     if (request.objectStorageGrant?.projectId === projectId) {
+      const granted = request.objectStorageGrant.scopes ?? LEGACY_OBJECT_STORAGE_SCOPES;
+
+      if (!granted.includes(tokenScope)) {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_SCOPE_REQUIRED')), {
+          statusCode: 403,
+          code: 'OBJECT_STORAGE_SCOPE_REQUIRED',
+        });
+      }
+
       const project = await store.getProject(projectId);
 
       if (!project) {
@@ -35185,7 +35226,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    /*
+     * AUDX-022 — `write`, deliberately NOT `admin`. ensureBucket is idempotent
+     * provisioning: it creates, it never destroys, and a workspace app enabling
+     * its own storage on first use is a legitimate flow. The destructive verb is
+     * DELETE on this same path, and that one does require `admin`.
+     */
+    const project = await requireObjectStorageProject(request, 'projects:write', 'write');
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
@@ -35199,7 +35246,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destroys the whole bucket: `admin` scope, which no workspace
+    // token is minted with. This stays an authenticated-user operation.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'admin');
 
     try {
       return reply.send(await resolveObjectStorage().deleteBucket(project.id));
@@ -35241,7 +35290,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:write');
 
     const body = parse(
-      z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
+      z.object({
+        key: z.string().min(1).max(1024),
+        contentType: z.string().max(255).optional(),
+        /*
+         * AUDX-021 — a caller may declare a SMALLER ceiling than the platform's
+         * and an MD5 to be verified by GCS. Neither can widen the limit: the
+         * service clamps `maxBytes` to OBJECT_UPLOAD_MAX_BYTES.
+         */
+        maxBytes: z.number().int().positive().optional(),
+        contentMd5: z.string().max(64).optional(),
+      }),
       request.body ?? {},
     );
 
@@ -35291,7 +35350,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destructive: needs the `delete` scope, not merely `write`.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'delete');
 
     const body = parse(
       z

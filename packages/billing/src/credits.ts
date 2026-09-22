@@ -164,14 +164,22 @@ export function computeCreditCostCents(input: CreditCostInput): number {
   return Math.max(credits, raw);
 }
 
-/** Replit Agent build tiers: Lite (cheap, targeted) → Economy → Power (thorough). */
-export type AgentBuildTier = 'lite' | 'economy' | 'power';
+/** Les trois modes : Lite (ciblé, économique) → Power (le défaut) → Max (fouillé). */
+export type AgentBuildTier = 'lite' | 'power' | 'max';
 
-/** Per-tier effort estimate multipliers (reservation only; reconciled on settle). */
+/*
+ * Multiplicateurs d'estimation par mode (réservation seulement).
+ *
+ * ⚠️ Le renommage du 2026-09-16 a failli écraser cette table : `power` a changé
+ * de sens — il désignait le SOMMET, il désigne le MILIEU. Écrit à la va-vite,
+ * l'objet portait deux clés `power`, la seconde gagnait, et le mode médian
+ * héritait du multiplicateur 1,8 du sommet. C'est un test qui l'a attrapé, pas
+ * le typage.
+ */
 export const BUILD_TIER_ESTIMATE_MULTIPLIER: Record<AgentBuildTier, number> = {
   lite: 0.4,
-  economy: 1,
-  power: 1.8,
+  power: 1,
+  max: 1.8,
 };
 
 /** Turbo mode (Pro): ~2.5× faster, up to ~6× cost — reserve at the ceiling. */
@@ -220,7 +228,7 @@ export function estimateCheckpointCostCents(input: EstimateInput): number {
   // request normally passes the actual selected tier. Build tier is the effort
   // axis (how much work the checkpoint does) and genuinely scales token/compute,
   // so it multiplies the base.
-  provider *= BUILD_TIER_ESTIMATE_MULTIPLIER[input.buildTier ?? 'economy'] ?? 1;
+  provider *= BUILD_TIER_ESTIMATE_MULTIPLIER[input.buildTier ?? 'power'] ?? 1;
   /*
    * Power-control boosts are ADDITIVE surcharges, not compounding multipliers.
    * Replit's effort-based model does not aggregate per-control costs into one
