@@ -25,16 +25,16 @@
  */
 import { agentRoutingLabel, agentRoutingValidationMessage, type AgentRoutingLocale } from './agent-routing-i18n.js';
 
-export type AgentMode = 'lite' | 'economy' | 'power';
+export type AgentMode = 'lite' | 'power' | 'max';
 
 export type AgentRoutingLineKey = AgentMode | 'high-effort' | 'turbo' | 'classifier' | 'fallback';
 
-export const AGENT_MODES: AgentMode[] = ['lite', 'economy', 'power'];
+export const AGENT_MODES: AgentMode[] = ['lite', 'power', 'max'];
 
 export const AGENT_ROUTING_LINE_KEYS: AgentRoutingLineKey[] = [
   'lite',
-  'economy',
   'power',
+  'max',
   'high-effort',
   'turbo',
   'classifier',
@@ -96,7 +96,7 @@ export interface AgentRoutingCard {
   lines: AgentRoutingLine[];
 }
 
-export const DEFAULT_AGENT_MODE: AgentMode = 'economy';
+export const DEFAULT_AGENT_MODE: AgentMode = 'power';
 
 const ALL_PLANS = ['free', 'starter', 'core', 'pro', 'team', 'enterprise'];
 const PAID_PLANS = ['core', 'pro', 'team', 'enterprise'];
@@ -145,8 +145,8 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       active: true,
     },
     {
-      key: 'economy',
-      label: agentRoutingLabel('economy'),
+      key: 'power',
+      label: agentRoutingLabel('power'),
       provider: 'anthropic',
       model: 'claude-opus-5',
       costInCentsPerM: 500,
@@ -157,8 +157,8 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       active: true,
     },
     {
-      key: 'power',
-      label: agentRoutingLabel('power'),
+      key: 'max',
+      label: agentRoutingLabel('max'),
       provider: 'anthropic',
       model: 'claude-opus-5',
       costInCentsPerM: 500,
@@ -185,8 +185,17 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       label: agentRoutingLabel('turbo'),
       provider: 'openai',
       model: 'gpt-5.6-sol',
-      costInCentsPerM: 500,
-      costOutCentsPerM: 3000,
+
+      /*
+       * 400 / 2000, pas 500 / 3000 : relevé le 2026-09-16 sur la grille
+       * publique d'OpenAI ($4 en entrée, $20 en sortie par million). Le chiffre
+       * précédent surestimait notre coût de revient de 25 % en entrée et de
+       * 50 % en sortie — un coût surestimé ne nous fait pas perdre d'argent,
+       * il nous fait REFUSER des configurations rentables et sous-estimer la
+       * marge affichée à l'administrateur.
+       */
+      costInCentsPerM: 400,
+      costOutCentsPerM: 2000,
       multiplier: 2,
       billedToUser: true,
       availablePlans: PAID_PLANS,
@@ -214,7 +223,7 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
      * de routage — ni prix, ni journal, ni télémétrie. La redondance existait
      * sans jamais pouvoir être constatée.
      *
-     * Elle n'est PAS un mode : `AGENT_MODES` reste `lite | economy | power`, et
+     * Elle n'est PAS un mode : `AGENT_MODES` reste `lite | power | max`, et
      * `AgentPowerControls` ne l'offre pas à l'utilisateur. C'est une
      * destination de routage, comme `classifier` et `turbo`.
      *
@@ -227,6 +236,14 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       label: agentRoutingLabel('fallback'),
       provider: 'google',
       model: 'gemini-2.5-pro',
+
+      /*
+       * ⚠️ Google facture ce modèle PAR PALIER : 125 / 1000 jusqu'à 200 000
+       * jetons de prompt, 250 / 1500 au-delà. La carte ne sait pas exprimer un
+       * barème — voir docs/TARIFS_PAR_PALIER.md. Le chiffre ci-dessous est
+       * celui du PETIT prompt : la marge calculée pour cette ligne est un
+       * plafond, pas une valeur.
+       */
       costInCentsPerM: 125,
       costOutCentsPerM: 1000,
       multiplier: 1,
@@ -458,11 +475,66 @@ export function validateAgentRoutingCard(
     }
   }
 
-  const economy = routingLine(card, 'economy');
+  const economy = routingLine(card, 'power');
 
   if (economy && (!economy.active || economy.multiplier !== 1)) {
-    errors.push({ line: 'economy', message: agentRoutingValidationMessage('economyInvariant', locale) });
+    errors.push({ line: 'power', message: agentRoutingValidationMessage('economyInvariant', locale) });
   }
 
   return errors;
+}
+
+/*
+ * ─────────────────────────────────────────────────────────────────────────────
+ * LE RENOMMAGE DES MODES, 2026-09-16 — et pourquoi il ne peut pas être naïf.
+ *
+ * Ancien vocabulaire : lite | economy | power        (power = le SOMMET)
+ * Nouveau            : lite | power   | max          (power = le MILIEU)
+ *
+ * Le piège : `power` existe des deux côtés et CHANGE DE SENS. Une substitution
+ * en place, clé par clé, écrase l'ancien sommet avec l'ancien milieu et
+ * facture silencieusement le tarif du milieu à qui a choisi le sommet — une
+ * erreur qui ne se voit qu'à la facture.
+ *
+ * La migration reconstruit donc une liste NEUVE à partir des anciennes clés,
+ * sans jamais écrire dans celle qu'elle lit.
+ *
+ * Les cartes déjà en base portent l'ancien vocabulaire. Elles n'ont pas de
+ * marqueur de version de vocabulaire — leur absence EST le marqueur : une
+ * carte qui contient `economy` est forcément ancienne, puisque cette clé
+ * n'existe plus. C'est ce que teste `vocabulaireAncien`.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+/** Ancienne clé → nouvelle clé. L'ordre de lecture n'a aucune importance : on n'écrit jamais en place. */
+export const RENOMMAGE_DES_MODES: Readonly<Record<string, AgentRoutingLineKey>> = {
+  economy: 'power',
+  power: 'max',
+};
+
+/** Vrai quand la donnée porte encore l'ancien vocabulaire. */
+export function vocabulaireAncien(donnees: unknown): boolean {
+  const lignes = (donnees as { lines?: Array<{ key?: string }> } | null)?.lines;
+
+  return Array.isArray(lignes) && lignes.some((ligne) => ligne?.key === 'economy');
+}
+
+/**
+ * Traduit une carte stockée vers le vocabulaire courant.
+ *
+ * Rend la donnée TELLE QUELLE si elle est déjà à jour : la migration doit être
+ * idempotente, parce qu'elle s'applique à chaque lecture et qu'une carte
+ * fraîchement publiée passe par le même chemin.
+ */
+export function migrerVocabulaireDesCles<T>(donnees: T): T {
+  if (!vocabulaireAncien(donnees)) {
+    return donnees;
+  }
+
+  const carte = donnees as unknown as { lines: Array<{ key: string }> };
+
+  return {
+    ...(donnees as object),
+    lines: carte.lines.map((ligne) => ({ ...ligne, key: RENOMMAGE_DES_MODES[ligne.key] ?? ligne.key })),
+  } as T;
 }

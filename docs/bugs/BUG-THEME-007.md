@@ -1,15 +1,14 @@
 ---
 id: BUG-THEME-007
-provenance: "extraite de la proposition #161, fermée sans fusion — le constat survit, le code non"
 ---
 
 ## Bug
 
-**P2 — Thème SOMBRE : texte blanc sur le bleu d'action `#0099ff` = 3.00:1** (pastille de langue active et tout contrôle rempli en `--vc-action-primary`), sur 17 routes publiques et les 3 formats ; le clair passait à 4.95:1.
+**P2 — le gris discret restait sous le seuil sur les surfaces SURÉLEVÉES de l'IDE, dans les deux thèmes.** « Focused on … », « Context loaded », « App files changed. Detecting preview port… ».
 
 ## 📤 Dispatché
 
-☑
+☐
 
 ## 💻 Codé
 
@@ -17,9 +16,9 @@ provenance: "extraite de la proposition #161, fermée sans fusion — le constat
 
 ## ✅ Testé live
 
-☑ **Corrigé + prouvé live 18/08**
+☐ **Reproduit live 18/08, correctif poussé**
 
 ## Preuve
 
-**Cause racine** : la paire `--vc-action-primary` / `--vc-action-primary-foreground` valait `#0099ff` / `#ffffff` — 3.00:1, correct pour une bordure ou une icône (WCAG 1.4.11 = 3:1) mais **sous AA pour le libellé d'un bouton plein**. **Correctif** : le REMPLISSAGE reçoit son propre bleu `--vc-action-primary: #0c74c0` (4.91:1 avec du blanc) ; `--vc-ide-accent-action: #0099ff` reste l'accent des bordures, icônes et anneaux de focus.
+**Reproduction** : `#7d8590` (valeur retenue à BUG-THEME-002) donne 4,35:1 sur `--vc-ide-bg-card` et **3,42:1** sur `--vc-ide-bg-hover`. **Ma propre erreur de méthode** : au lot précédent je n'avais vérifié que `bg-app` et `bg-panel`, les deux surfaces les plus sombres — le garde-fou passait pendant que le défaut partait en production. **Correctif** : `#949ca6`, qui passe les QUATRE surfaces sombres (6,89 / 6,56 / 5,85 / 4,60) en gardant l'écart avec `--vc-ide-text-secondary` (9,61:1 sur la carte). Copies e2e + admin alignées. **Garde-fou élargi aux quatre surfaces.**
 

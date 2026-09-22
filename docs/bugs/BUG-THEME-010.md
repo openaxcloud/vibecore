@@ -1,25 +1,24 @@
 ---
 id: BUG-THEME-010
-provenance: "extraite de la proposition #161, fermée sans fusion — le constat survit, le code non"
 ---
 
 ## Bug
 
-**P1 (défaut de RENDU, pas seulement de contraste) — 66 utilitaires perdaient SILENCIEUSEMENT leur opacité.** `bg-[var(--ecode-accent)]/10` ne rend pas une teinte à 10 % : il peint un **orange PLEIN**. Concerne teintes d'accent, tuiles d'erreur, voiles de surface et bordures « à 30 % », sur 13 fichiers (marketing, IDE, zone connectée).
+**P2 — le gris discret du marketing tombait à 3,57:1 sur les surfaces surélevées, en sombre.** Le sous-titre « Watch a real demo… » de l'accueil.
 
 ## 📤 Dispatché
 
-☑
+☐
 
 ## 💻 Codé
 
-☑
+☐
 
 ## ✅ Testé live
 
-☑ **Corrigé + prouvé live 18/08**
+✅ **NE SE REPRODUIT PLUS — remesuré le 2026-08-31**
 
 ## Preuve
 
-**Cause racine** : UnoCSS n'applique pas le modificateur d'opacité `/N` quand la couleur est une `var()` CSS — le modificateur est ignoré sans erreur. Repéré parce que la carte sélectionnée de `/mobile` échouait à **3.04:1 en sombre** : mesurée en réel, son fond valait `rgb(242,98,7)` PLEIN au lieu de la teinte à 10 % annoncée par la classe. **Correctif** : les 66 occurrences passent en `color-mix(in srgb, var(--x) N%, transparent)` explicite. **Vérifié live** : la carte rend désormais `color(srgb … / 0.1)` dans les 2 thèmes. ⚠️ **Impact visuel réel à revoir par Avi** : des éléments aujourd'hui pleins redeviennent subtils — c'est l'intention déclarée dans le code qui est restituée, mais ça se verra sur la Deploy Preview.
+**Reproduction d'origine (18/08)** : `#7d8590` sur `--ecode-surface-tertiary` (`#2b3035`) = **3,57:1**. **Remesure sur `main` au 31/08, avant d'appliquer quoi que ce soit** : `--vc-ide-text-muted` vaut désormais `#a3adba` à `:root` (état non stampé et système-sombre) = **5,86:1**, et `#949ca6` sous `:root[data-theme='dark']` = **4,80:1** — les deux au-dessus de 4,5. Le défaut a été soldé en amont par un autre correctif. **Le correctif préparé sur cette branche a donc été RETIRÉ** : figer `--ecode-text-muted: #949ca6` à `:root` aurait fait *baisser* l'état par défaut de 5,86 à 4,80 et cessé de suivre le jeton de thème. **Garde-fou conservé et durci** : le test mesure maintenant les trois états de thème (non stampé, `[data-theme='dark']`, `[data-theme='light']`) au lieu du seul `:root`, qui passait dans les deux sens.
 

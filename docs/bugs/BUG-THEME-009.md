@@ -1,15 +1,14 @@
 ---
 id: BUG-THEME-009
-provenance: "extraite de la proposition #161, fermée sans fusion — le constat survit, le code non"
 ---
 
 ## Bug
 
-**P2 — Zone CONNECTÉE, thème CLAIR : les libellés d'état succès/avertissement passent juste sous AA** — « save €10.00 » sur `/billing` (4.21:1) et les bandeaux « … not enabled for this organisation » (4.10–4.25:1), aux 3 formats ; en sombre 7.8–10.8:1.
+**P1 — BADGE DE HÉROS `/about` ET `/careers` : couleur codée en dur par-dessus la paire du thème → 1,73:1 en clair, illisible.** Le badge « Our story » (et les 2 badges de `/careers`) affiche l'orange de marque sur son fond ambre.
 
 ## 📤 Dispatché
 
-☑
+☐
 
 ## 💻 Codé
 
@@ -17,9 +16,9 @@ provenance: "extraite de la proposition #161, fermée sans fusion — le constat
 
 ## ✅ Testé live
 
-☑ **Corrigé + prouvé live 18/08**
+☐ **Reproduit live 18/08, correctif poussé**
 
 ## Preuve
 
-**Cause racine** : `--status-success-text: #178a4c` et `--status-warning-text: #b45309` (bloc clair) sont lus non pas sur du blanc mais sur les surfaces d'état teintées (`#f9fafc`, warm `#f2e6dd`), où ils tombent sous 4.5:1. **Correctif** : `#157f45` et `#a04a08` (≥ 4.93:1 sur ces surfaces).
+**Reproduction** (sonde contraste, `https://e-code.ai/about`, 390/768/1440, les 2 thèmes) : clair **1,73:1** (`#f26207` sur `rgb(251,175,35)`), sombre **4,33:1** (`#f26207` sur `rgb(38,44,59)`) — les deux sous le seuil AA de 4,5. **Cause racine** : `<Badge variant="secondary" style={{ color: '#F26207' }}>` — 3 occurrences (`About.tsx:67`, `Careers.tsx:84` et `:87`). Le style en ligne écrase la paire prévue par le thème : `--secondary` vaut ambre `39 96% 56%` en clair avec `--secondary-foreground` **noir**, et ardoise avec un quasi-blanc en sombre. La couleur en dur ignorait les deux. **Correctif** : suppression des 3 styles en ligne → **11,26:1** en clair (noir sur ambre) et **13,35:1** en sombre. **Garde-fou** : test qui refuse tout `style={{ color: '#…' }}` dans ces pages.
 

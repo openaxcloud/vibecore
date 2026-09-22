@@ -1,15 +1,14 @@
 ---
 id: BUG-THEME-006
-provenance: "extraite de la proposition #161, fermée sans fusion — le constat survit, le code non"
 ---
 
 ## Bug
 
-**P1 — Thème CLAIR : l'orange de marque `#f26207` utilisé comme TEXTE tombe à 3.03–3.22:1** sur `/pricing`, `/enterprise`, `/templates`, `/contact`, `/blog`, `/solutions`, `/marketplace`, `/help`, `/community`, `/customers`, `/integrations`, `/explore`, `/demo`, `/status` (14 routes), aux 3 formats.
+**P1 — PANNEAU GIT : le libellé « Commit changes » est BLEU sur le bouton ORANGE — 1,07:1 en sombre, 1,54:1 en clair.** Le bouton d'action principal du panneau Git est illisible dans les DEUX thèmes.
 
 ## 📤 Dispatché
 
-☑
+☐
 
 ## 💻 Codé
 
@@ -17,9 +16,9 @@ provenance: "extraite de la proposition #161, fermée sans fusion — le constat
 
 ## ✅ Testé live
 
-☑ **Corrigé + prouvé live 18/08**
+☐ **Reproduit live 18/08, correctif poussé**
 
 ## Preuve
 
-**Cause racine** : le design system possédait DÉJÀ le bon token — `--ecode-accent-text`, commenté « AA orange for TEXT/links; fills stay --ecode-accent » — mais **193 utilitaires le contournaient** (`text-[#F26207]` × 50 et `text-[var(--ecode-accent)]` × 143). En prime la valeur claire du token (`#c74e00`) n'était elle-même conforme que sur du blanc pur (4.65:1) et échouait sur les vraies surfaces (4.37 / 4.11 / **3.91** sur le glow chaud). **121 échecs** au balayage. **Correctif** : les 193 utilitaires repointés sur `text-[var(--ecode-accent-text)]` (les fonds/bordures/dégradés gardent `--ecode-accent`, inchangés) + valeur claire durcie à `#b03f08` (≥ 4.96:1 partout).
+**Reproduction** (IDE réel, env d'audit au build courant `0581545c24`, `?panel=editor`, 390 et 768) : sombre `rgb(0,153,255)` sur `rgb(242,98,7)` = **1,07:1** ; clair `rgb(0,111,214)` sur `rgb(242,98,7)` = **1,54:1**. **Cause racine — une guerre de classes, pas une couleur oubliée** : `PanelButton` pose déjà `text-bolt-elements-button-primary-text` (le bleu d'action) dans sa base, et l'appel ajoutait `className="font-semibold text-white"` + `style={{ background: 'var(--ecode-accent, #F26207)' }}`. Entre deux utilitaires de couleur concurrents, c'est **l'ordre dans la feuille générée** qui tranche, pas l'ordre de l'attribut `class` — et le bleu gagnait. **Correctif** : variante `accent` sur `PanelButton`, qui porte le fond ET le premier plan ensemble ; plus de style en ligne ni de `text-white` en concurrence. **Garde-fou** : les 88 tests du panneau Git passent.
 

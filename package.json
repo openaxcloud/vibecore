@@ -16,7 +16,7 @@
     "platform:test": "pnpm run test",
     "platform:typecheck": "pnpm run typecheck",
     "platform:lint": "pnpm run lint",
-    "platform:verify": "pnpm run platform:no-mocks && pnpm run admin:dangerous-actions:validate && pnpm run readiness:validate && pnpm run platform:lint && pnpm run platform:test && pnpm run platform:typecheck && pnpm run platform:build && pnpm run infra:validate",
+    "platform:verify": "pnpm run platform:no-mocks && pnpm run admin:dangerous-actions:validate && pnpm run readiness:validate && pnpm run platform:lint && pnpm run platform:test && pnpm run platform:typecheck && pnpm run platform:build && pnpm run infra:validate && pnpm run platform:services-built",
     "production:validate": "node scripts/validate-production-enterprise.mjs --strict",
     "production:validate:live": "node scripts/validate-production-enterprise.mjs --strict --live",
     "production:validate:self-test": "node scripts/validate-production-enterprise.mjs --self-test",
@@ -105,7 +105,8 @@
     "platform:no-mocks": "node scripts/check-no-runtime-mocks.mjs",
     "parity:validate": "node scripts/parity/validate-registries.mjs",
     "parity:collect": "node scripts/parity/collect-baseline.mjs",
-    "runbook:verify": "node scripts/verifier-runbook-executable.mjs"
+    "runbook:verify": "node scripts/verifier-runbook-executable.mjs",
+    "platform:services-built": "node scripts/check-every-chart-service-is-built.mjs"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -278,7 +279,7 @@
     "@electron/notarize": "^2.5.0",
     "@iconify-json/ph": "^1.2.1",
     "@iconify/types": "^2.0.0",
-    "@playwright/test": "^1.59.1",
+    "@playwright/test": "1.59.1",
     "@react-router/dev": "^7.18.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
@@ -368,7 +369,10 @@
       "tmp": "^0.2.6",
       "app-builder-lib": "^26.8.1",
       "dmg-builder": "^26.8.1",
-      "electron-builder-squirrel-windows": "^26.8.1"
+      "electron-builder-squirrel-windows": "^26.8.1",
+      "vite>esbuild": "0.27.7",
+      "bundle-require>esbuild": "0.27.7",
+      "importx>esbuild": "0.27.7"
     }
   }
 }
