@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-357 entrées.
+358 entrées.
 
 ## Sans section
 
@@ -360,6 +360,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-THEME-008](docs/bugs/BUG-THEME-008.md) — P2 — les QUATRE couleurs de statut sont sous le seuil AA en thème clair, sur leur propre fond teinté.
 - [BUG-THEME-009](docs/bugs/BUG-THEME-009.md) — P1 — BADGE DE HÉROS `/about` ET `/careers` : couleur codée en dur par-dessus la paire du thème → 1,73:1 en clair, illisible.
 - [BUG-THEME-010](docs/bugs/BUG-THEME-010.md) — P2 — le gris discret du marketing tombait à 3,57:1 sur les surfaces surélevées, en sombre.
+- [BUG-TYPE-NOCHECK-008](docs/bugs/BUG-TYPE-NOCHECK-008.md) — DETTE — `app/components/chat/BaseChat.tsx` est exclu du typage par `// @ts-nocheck` (ligne 2), et personne ne le savait.
 - [BUG-ADMIN-002](docs/bugs/BUG-ADMIN-002.md) — P2 — le panneau « Fournisseurs d'IA » annonce « aucune cle » pour les 30 fournisseurs, y compris les 4 qui font tourner la plateforme.
 - [BUG-AGENT-009](docs/bugs/BUG-AGENT-009.md) — DOUBLON de la cause traitee par #312 — mon diagnostic initial etait FAUX.
 - [BUG-AI-001](docs/bugs/BUG-AI-001.md) — P0 — la generation IA etait MORTE en production : chaque appel s'auto-annulait.
