@@ -43,7 +43,7 @@ import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
-import { BaseChat } from '~/components/chat/BaseChat';
+import { PendingComposerShell } from '~/components/chat/PendingComposerShell';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
@@ -110,8 +110,16 @@ export default function ProjectIdeRoute() {
 
   const projectUrl = projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization?.slug });
 
+  /*
+   * Coquille montrée pendant que `Chat.client` se charge (et avant l'hydratation
+   * cliente). C'était un `BaseChat` NU : son composeur acceptait le focus et les
+   * touches, mais sans `input` ni `handleInputChange` la valeur n'allait nulle
+   * part, et la bascule vers le vrai composant remplaçait tout l'arbre. Une
+   * frappe faite dans cet intervalle — mesuré à ~2 s sur un démarrage froid —
+   * disparaissait en silence. `PendingComposerShell` la retient et la transmet.
+   */
   const optimisticShell = (
-    <BaseChat
+    <PendingComposerShell
       chatStarted
       projectIdeMode
       projectId={projectId}

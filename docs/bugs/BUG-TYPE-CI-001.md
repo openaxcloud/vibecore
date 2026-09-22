@@ -1,3 +1,7 @@
+---
+id: BUG-TYPE-CI-001
+---
+
 # BUG-TYPE-CI-001 — le typage de CI ne voit aucun spec de l'application
 
 **Section** : Dette
