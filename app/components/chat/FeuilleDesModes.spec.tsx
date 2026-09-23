@@ -113,13 +113,13 @@ describe('le repli est visible', () => {
 });
 
 describe('écran 2', () => {
-  it('« Choisir pour moi » vient en tête, avec sa pastille', () => {
+  it('« Choisir automatiquement » vient en tête, avec sa pastille', () => {
     poser();
     fireEvent.click(screen.getByTestId('feuille-entree-modele'));
 
     const auto = screen.getByTestId('feuille-modele-auto');
 
-    expect(auto.textContent).toContain('Choisir pour moi');
+    expect(auto.textContent).toContain('Choisir automatiquement');
     expect(auto.textContent).toContain('conseillé');
   });
 
