@@ -7911,6 +7911,21 @@ body :where(.lucide, svg[data-lucide]) {
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
   border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
   background: var(--vc-ide-bg-panel);
+
+  /*
+   * ⚠️ NEUTRALISER LE RECENTRAGE PAR TRANSFORMATION.
+   *
+   * Une autre règle mobile pose `left: 50%` + `transform: translateX(-50%)`.
+   * Ce bloc gagne sur `left` (il vaut 0 sur téléphone) mais PAS sur la
+   * transformation, qui continuait de décaler la feuille d'une demi-largeur :
+   * mesuré à 390×844, la feuille partait à -195 px et la moitié gauche de son
+   * contenu sortait de l'écran — « …ns de facturation », les chevrons dans le
+   * vide, le coût collé au bord.
+   *
+   * Deux systèmes de centrage qui se recouvrent à moitié : on garde celui de ce
+   * bloc (`left` + `width`) et on annule l'autre explicitement.
+   */
+  transform: none !important;
   overflow-y: auto;
 }
 
