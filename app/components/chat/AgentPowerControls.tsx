@@ -270,8 +270,24 @@ export function AgentPowerControls({
     const onPointerDown = (event: PointerEvent) => {
       const cible = event.target as Node;
 
-      // Le panneau peut vivre hors de la racine (portail mobile) : un appui dedans n'est pas « dehors ».
-      if (rootRef.current?.contains(cible) || panelRef.current?.contains(cible)) {
+      /*
+       * Le panneau peut vivre hors de la racine (portail mobile) : un appui
+       * dedans n'est pas « dehors ».
+       *
+       * Le SECOND panneau de bureau non plus. Il est porté à `document.body`,
+       * donc il n'est contenu ni par la racine ni par le panneau — et son
+       * chevron de retour refermait tout au lieu de revenir aux modes. Mesuré
+       * en production le 2026-09-23 sur `9ff46376ac` : après le clic,
+       * `modes=0 second=0`, alors que sur téléphone le même geste rendait
+       * `modes=3`.
+       */
+      if (
+        rootRef.current?.contains(cible) ||
+        panelRef.current?.contains(cible) ||
+        (cible instanceof Element
+          ? cible.closest('[data-testid="feuille-second-panneau"]')
+          : (cible.parentElement ?? null)?.closest('[data-testid="feuille-second-panneau"]'))
+      ) {
         return;
       }
 
