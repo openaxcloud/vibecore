@@ -7910,6 +7910,7 @@ body :where(.lucide, svg[data-lucide]) {
   max-height: calc(var(--vc-mobile-espace-utile) - env(safe-area-inset-bottom, 0px) - 24px) !important;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
   border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
+  background: var(--vc-ide-bg-panel);
   overflow-y: auto;
 }
 

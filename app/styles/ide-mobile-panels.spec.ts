@@ -736,6 +736,24 @@ describe('18. audit WebKitGTK du 06/09 : chemins coupés dans le Studio et dans 
 });
 
 describe('19. capture iPhone 07/09 07:58 : « ça me paraît bien large » — les feuilles du composeur sur tablette', () => {
+  /*
+   * DEUX règles depuis le 2026-09-23, pas une.
+   *
+   * La feuille des modes a quitté cette liste pour descendre jusqu'au bord bas
+   * et couvrir la barre d'onglets (demande d'Avi). Les menus d'outils et de
+   * modes gardent leur ancre au-dessus de la barre : étendus jusqu'au bord, ils
+   * recouvraient le déclencheur du menu voisin et l'E2E s'y arrêtait net.
+   *
+   * L'invariant de CETTE garde — largeur plafonnée et centrée au-delà du
+   * téléphone — n'a pas changé ; il vit désormais à deux endroits, et les deux
+   * sont vérifiés. Rien n'est relâché.
+   */
+  const SELECTEUR_MENUS =
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,\n' +
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu';
+
+  const SELECTEUR_FEUILLE = '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover';
+
   const SELECTEUR =
     '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,\n' +
     '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,\n' +
@@ -747,14 +765,16 @@ describe('19. capture iPhone 07/09 07:58 : « ça me paraît bien large » — l
      * portrait, 844 px sur un Pixel en paysage, pour un menu de deux lignes.
      * Le gabarit mobile sert aussi ces formats ; `width: 100%` y étirait tout.
      */
-    const regle = bloc(SELECTEUR);
+    for (const selecteur of [SELECTEUR_MENUS, SELECTEUR_FEUILLE]) {
+      const regle = bloc(selecteur);
 
-    expect(regle).toMatch(/width:\s*min\(100vw,\s*var\(--vc-mobile-sheet-max-width\)\)\s*!important/);
-    expect(regle).toMatch(
-      /left:\s*max\(0px,\s*calc\(\(100vw - var\(--vc-mobile-sheet-max-width\)\) \/ 2\)\)\s*!important/,
-    );
-    expect(regle).toMatch(/right:\s*auto\s*!important/);
-    expect(regle).not.toMatch(/max-width:\s*none/);
+      expect(regle, selecteur).toMatch(/width:\s*min\(100vw,\s*var\(--vc-mobile-sheet-max-width\)\)\s*!important/);
+      expect(regle, selecteur).toMatch(
+        /left:\s*max\(0px,\s*calc\(\(100vw - var\(--vc-mobile-sheet-max-width\)\) \/ 2\)\)\s*!important/,
+      );
+      expect(regle, selecteur).toMatch(/right:\s*auto\s*!important/);
+      expect(regle, selecteur).not.toMatch(/max-width:\s*none/);
+    }
 
     // Le plafond est partagé avec les feuilles « + » et menus, jamais une valeur locale.
     expect(INDEX).toMatch(/--vc-mobile-sheet-max-width:\s*760px/);
