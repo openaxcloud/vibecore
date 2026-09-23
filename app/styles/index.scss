@@ -7796,8 +7796,7 @@ body :where(.lucide, svg[data-lucide]) {
  * qui passe sous la barre de Safari est exactement ce qu'Avi photographie.
  */
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,
-.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,
-.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu {
   right: auto !important;
 
   /*
@@ -7818,8 +7817,9 @@ body :where(.lucide, svg[data-lucide]) {
    * touche le bord de l'écran, son contenu s'arrête au-dessus de la barre
    * d'accueil du téléphone.
    */
-  bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  bottom: calc(
+    var(--mobile-nav-height, 72px) + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px)
+  ) !important;
 
   /*
    * PLEINE LARGEUR SUR TÉLÉPHONE, PLAFONNÉE AU-DELÀ.
@@ -7851,7 +7851,9 @@ body :where(.lucide, svg[data-lucide]) {
    * comme une troncature. Les deux plafonds `0.56 *` et `520px` sont retirés :
    * ils bornaient la feuille bien en deçà de la place libre.
    */
-  max-height: calc(var(--vc-mobile-espace-utile) - env(safe-area-inset-bottom, 0px) - 24px) !important;
+  max-height: calc(
+    var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 24px
+  ) !important;
   border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
 
   /*
@@ -7874,6 +7876,43 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/*
+ * LA FEUILLE DES MODES DESCEND JUSQU'AU BORD BAS, ET COUVRE LA BARRE D'ONGLETS.
+ *
+ * Avi, 2026-09-23, captures à l'appui : chez le concurrent la barre du bas
+ * disparaît entièrement quand la feuille s'ouvre ; chez nous la pilule flottante
+ * restait visible dessous. Le défaut n'était pas la hauteur — c'est que l'ancre
+ * basse RÉSERVAIT la hauteur de la barre.
+ *
+ * Mesuré à 390×844 : barre `fixed`, z-index 1000 ; feuille `fixed`, z-index
+ * 12022, largeur 390 — pleine largeur. La feuille passe donc AU-DESSUS dès
+ * qu'elle atteint le bord : rien à masquer, aucun état à coordonner entre deux
+ * composants, donc aucun saut de mise en page à la fermeture.
+ *
+ * ⚠️ CETTE RÈGLE NE VISE QUE LA FEUILLE DES MODES. Les menus d'outils et de
+ * modes gardent leur ancre au-dessus de la barre : étendus jusqu'au bord, ils
+ * recouvraient le déclencheur du menu voisin, et l'E2E s'y est arrêté net —
+ * `subtree intercepts pointer events`, 330 tentatives, 180 s de délai dépassé.
+ * Avi a signalé LA FEUILLE ; on corrige la feuille.
+ *
+ * La zone sûre quitte l'ancre pour devenir une réserve INTÉRIEURE : la feuille
+ * touche le bord de l'écran, son contenu s'arrête au-dessus de la barre
+ * d'accueil du téléphone.
+ */
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
+  right: auto !important;
+  bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+  left: max(0px, calc((100vw - var(--vc-mobile-sheet-max-width)) / 2)) !important;
+  width: min(100vw, var(--vc-mobile-sheet-max-width)) !important;
+  max-width: var(--vc-mobile-sheet-max-width) !important;
+  min-width: 0 !important;
+  max-height: calc(var(--vc-mobile-espace-utile) - env(safe-area-inset-bottom, 0px) - 24px) !important;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
+  overflow-y: auto;
+}
+
 
 /* Plus étroite que l'écran, la feuille flotte au-dessus du socle : ses quatre coins s'arrondissent. */
 @media (min-width: 761px) {
