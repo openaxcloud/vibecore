@@ -74,7 +74,14 @@ function interrupteurs(mode: AgentBuildTier, disponible: boolean) {
     fireEvent.click(entree);
   }
 
-  return [...panneau!.querySelectorAll<HTMLElement>('[data-testid^="agent-switch-"]')];
+  /*
+   * On cherche dans TOUT le document, pas seulement dans le dialogue : depuis que
+   * le second panneau est porté hors du dialogue (disposition bureau), les
+   * interrupteurs peuvent vivre ailleurs dans l'arbre. Le sujet de cette garde
+   * est la CLASSE des boîtes, pas leur emplacement — l'emplacement est tenu par
+   * feuille-hors-du-composeur.spec.tsx et feuille-cote-a-cote.spec.tsx.
+   */
+  return [...document.querySelectorAll<HTMLElement>('[data-testid^="agent-switch-"]')];
 }
 
 describe('les boîtes à largeur fixe du panneau ne peuvent pas être écrasées', () => {
@@ -129,13 +136,11 @@ describe('les boîtes à largeur fixe du panneau ne peuvent pas être écrasées
    * déclarée dans le panneau, où qu'elle soit, doit être protégée.
    */
   it('toute largeur fixe déclarée dans le panneau porte shrink-0', () => {
-    const panneau = (() => {
-      interrupteurs('max', true);
-      return document.querySelector('[role="dialog"]')!;
-    })();
+    /* Même raison qu'au-dessus : le balayage porte sur tout ce qui est rendu. */
+    interrupteurs('max', true);
 
-    const boites = [...panneau.querySelectorAll<HTMLElement>('*')].filter((el) =>
-      LARGEUR_FIXE.test(el.className || ''),
+    const boites = [...document.querySelectorAll<HTMLElement>('[role="dialog"] *, .bolt-feuille-second *')].filter(
+      (el) => LARGEUR_FIXE.test(el.className || ''),
     );
 
     expect(boites.length, 'aucune largeur fixe trouvée — sélecteur à revoir').toBeGreaterThan(0);

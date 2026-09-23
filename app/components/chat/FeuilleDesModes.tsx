@@ -14,6 +14,7 @@ import type { CatalogueDuMode } from '@vibecore/billing/src/catalogue-de-modeles
 import type { CranEffort } from '@vibecore/billing/src/crans-effort';
 import type { SondeFournisseur } from '@vibecore/billing/src/disponibilite-des-modeles';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 import {
   entreesDuMode,
@@ -89,7 +90,14 @@ export function FeuilleDesModes({
     }
 
     const mesurer = () => {
-      const socle = refPremier.current?.firstElementChild;
+      /*
+       * On s'ancre sur le PANNEAU visible — le `[role="dialog"]` — et non sur la
+       * feuille qu'il contient. Mesuré le 2026-09-23 : ancré sur la feuille
+       * interne, le calcul rendait `top: -48px` parce que le dialogue DÉFILE
+       * (scrollHeight 438 pour clientHeight 403) et que la feuille remonte avec
+       * son défilement. Le panneau visible, lui, ne bouge pas.
+       */
+      const socle = refPremier.current?.closest('[role="dialog"]') ?? refPremier.current?.firstElementChild;
 
       if (!socle) {
         return;
@@ -303,16 +311,18 @@ export function FeuilleDesModes({
     return (
       <>
         <div ref={refPremier}>{premierEcran()}</div>
-        {niveau.ecran !== 'modes' ? (
-          <div
-            className="bolt-feuille-second"
-            data-testid="feuille-second-panneau"
-            data-cote={placement?.cote ?? 'droite'}
-            style={placement ? { position: 'fixed', left: placement.left, top: placement.top } : undefined}
-          >
-            {secondEcran()}
-          </div>
-        ) : null}
+        {niveau.ecran !== 'modes'
+          ? porterHorsDuDialogue(
+              <div
+                className="bolt-feuille-second"
+                data-testid="feuille-second-panneau"
+                data-cote={placement?.cote ?? 'droite'}
+                style={placement ? { position: 'fixed', left: placement.left, top: placement.top } : undefined}
+              >
+                {secondEcran()}
+              </div>,
+            )
+          : null}
       </>
     );
   }
@@ -421,4 +431,21 @@ function BlocEffort({
       <p className="bolt-feuille-effort-phrase">{phrase}</p>
     </div>
   );
+}
+
+/*
+ * Le second panneau sort du dialogue.
+ *
+ * Rendu DEDANS, il héritait de deux choses qui le rendaient invisible : le
+ * défilement du dialogue, qui emportait son ancrage, et le bloc conteneur de ce
+ * même dialogue, contre lequel son `position: fixed` se résolvait. Mesuré le
+ * 2026-09-23 : `style="left: 375px; top: -48px"` pour un panneau dont la boîte
+ * réelle tombait à x=537, y=342 — ni l'un ni l'autre à leur place.
+ */
+function porterHorsDuDialogue(panneau: ReactNode) {
+  if (typeof document === 'undefined') {
+    return panneau;
+  }
+
+  return createPortal(panneau, document.body);
 }
