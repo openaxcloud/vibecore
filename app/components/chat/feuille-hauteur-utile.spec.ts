@@ -111,16 +111,42 @@ describe('la feuille des modes peut occuper toute la hauteur utile', () => {
    * place libre, barre de navigation et zone sûre déduites — sinon la feuille
    * repasserait sous la barre ou se ferait trancher en haut.
    */
-  it('chaque borne se déduit de la place libre, barre et zone sûre comprises', () => {
+  it('chaque borne se déduit de la place libre, zone sûre comprise', () => {
     for (const bloc of avecHauteur) {
       const m = /max-height:\s*([^;]+);/s.exec(bloc.corps);
       expect(m, `pas de max-height lisible sur ${bloc.selecteur}`).not.toBeNull();
 
       const expression = m![1];
       expect(expression, `${bloc.selecteur} : l’espace utile manque`).toContain('--vc-mobile-espace-utile');
-      expect(expression, `${bloc.selecteur} : la barre du bas manque`).toContain('--mobile-nav-height');
       expect(expression, `${bloc.selecteur} : la zone sûre manque`).toContain('safe-area-inset-bottom');
     }
+  });
+
+  /*
+   * La barre d'onglets n'est plus RÉSERVÉE : la feuille descend jusqu'au bord et
+   * passe au-dessus (z-index 12022 contre 1000, pleine largeur). Avi l'a demandé
+   * captures à l'appui — chez le concurrent la barre disparaît entièrement.
+   *
+   * Cette assertion remplace celle qui EXIGEAIT la hauteur de barre dans le
+   * calcul : la règle a changé, la garde suit. Ce n'est pas un affaiblissement —
+   * elle interdit désormais exactement ce qu'elle réclamait, et c'est cette
+   * interdiction qui produit le comportement voulu.
+   */
+  it('l’ancre basse ne réserve plus la hauteur de la barre d’onglets', () => {
+    const fautifs = blocs.filter((b) => /bottom:[^;]*--mobile-nav-height/s.test(b.corps)).map((b) => b.selecteur);
+
+    expect(fautifs, `ancre qui réserve la barre : ${fautifs.join(' | ')}`).toEqual([]);
+  });
+
+  /*
+   * L'autre moitié : descendre jusqu'au bord ne doit pas faire passer le contenu
+   * sous la barre d'accueil de l'iPhone. La zone sûre quitte l'ancre pour devenir
+   * une réserve INTÉRIEURE.
+   */
+  it('la zone sûre est reprise en réserve intérieure', () => {
+    const avecReserve = blocs.filter((b) => /padding-bottom:[^;]*safe-area-inset-bottom/s.test(b.corps));
+
+    expect(avecReserve.length, 'aucun bloc ne réserve la zone sûre en padding').toBeGreaterThanOrEqual(1);
   });
 
   it('la feuille reste défilante — une feuille plus haute que l’écran doit glisser', () => {

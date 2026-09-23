@@ -7799,9 +7799,27 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
   right: auto !important;
-  bottom: calc(
-    var(--mobile-nav-height, 72px) + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px)
-  ) !important;
+
+  /*
+   * LA FEUILLE DESCEND JUSQU'AU BORD BAS, ET COUVRE LA BARRE D'ONGLETS.
+   *
+   * Avi, 2026-09-23, captures à l'appui : chez le concurrent la barre du bas
+   * disparaît entièrement quand une feuille s'ouvre ; chez nous la pilule
+   * flottante restait visible dessous. Le défaut n'était pas la hauteur — c'est
+   * que l'ancre basse RÉSERVAIT la hauteur de la barre.
+   *
+   * Mesuré à 390×844 : barre `fixed`, z-index 1000 ; feuille `fixed`, z-index
+   * 12022, largeur 390 — pleine largeur. La feuille passe donc AU-DESSUS dès
+   * qu'elle atteint le bord : rien à masquer, rien à coordonner entre deux
+   * composants, et donc aucun saut de mise en page à la fermeture, puisque la
+   * barre ne bouge jamais.
+   *
+   * La zone sûre quitte l'ancre pour devenir une réserve INTÉRIEURE : la feuille
+   * touche le bord de l'écran, son contenu s'arrête au-dessus de la barre
+   * d'accueil du téléphone.
+   */
+  bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
 
   /*
    * PLEINE LARGEUR SUR TÉLÉPHONE, PLAFONNÉE AU-DELÀ.
@@ -7833,9 +7851,7 @@ body :where(.lucide, svg[data-lucide]) {
    * comme une troncature. Les deux plafonds `0.56 *` et `520px` sont retirés :
    * ils bornaient la feuille bien en deçà de la place libre.
    */
-  max-height: calc(
-    var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 24px
-  ) !important;
+  max-height: calc(var(--vc-mobile-espace-utile) - env(safe-area-inset-bottom, 0px) - 24px) !important;
   border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
 
   /*
@@ -26217,10 +26233,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    /* Même règle que la feuille du composeur : jusqu'au bord, la barre est couverte. */
+    bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     left: 50% !important;
     z-index: 12022;
     width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
@@ -26238,9 +26253,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * haut. `dvh` ne décrit pas le chrome du navigateur ni le clavier.
      */
     /* Même règle que la feuille du composeur : la place libre, pas une fraction. */
-    max-height: calc(
-      var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 32px
-    );
+    max-height: calc(var(--vc-mobile-espace-utile) - env(safe-area-inset-bottom, 0px) - 32px);
     margin: 0 !important;
     overflow-y: auto;
     overscroll-behavior: contain;
