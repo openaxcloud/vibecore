@@ -719,6 +719,15 @@ export const ChatImpl = memo(
       maxLLMSteps: mcpSettings.maxLLMSteps,
 
       /*
+       * Le fil auquel appartient ce tour. Le serveur s'en sert pour écrire LA
+       * DEMANDE en base dès la réception, avant tout appel au modèle — sans
+       * quoi un onglet suspendu fait disparaître jusqu'à la question posée
+       * (mesuré en production le 2026-09-23). L'identifiant du message est
+       * ajouté au moment de l'envoi : il change à chaque tour.
+       */
+      ...(backendAiConversationIdRef.current ? { conversationId: backendAiConversationIdRef.current } : {}),
+
+      /*
        * Power controls + Plan toggle, now actually sent to the server so they
        * change the generation (parallel-agent count, planner role budget,
        * agentic depth, and forcing a plan pass). See api.chat.ts.
