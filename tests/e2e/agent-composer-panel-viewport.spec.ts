@@ -108,6 +108,36 @@ async function createProjectSession(request: APIRequestContext) {
  * de délai sur la fermeture au lieu d'échouer sur « passe sous le clavier ».
  * On repart donc d'un état propre AVANT chaque ouverture.
  */
+/*
+ * Refermer TOUTES les feuilles avant d'en ouvrir une autre.
+ *
+ * Depuis que la feuille descend jusqu'au bord bas (elle doit couvrir la barre
+ * d'onglets, décision d'Avi du 2026-09-23), elle recouvre AUSSI la rangée de
+ * commandes du composeur — donc les déclencheurs des deux autres feuilles.
+ * Dans un vrai navigateur, le geste suivant referme d'abord la feuille par le
+ * gestionnaire de pointeur extérieur, puis atteint le bouton ; Playwright, lui,
+ * exige que l'élément reçoive l'événement AVANT de l'envoyer, et attendait donc
+ * indéfiniment. Mesuré : `Test timeout of 180000ms exceeded`, trois tentatives
+ * sur trois, sur `iPhone SE 375, barre d'outils Safari`.
+ *
+ * On referme donc explicitement entre deux mesures. Aucune assertion n'est
+ * relâchée : la géométrie mesurée est exactement la même.
+ */
+async function refermerToutesLesFeuilles(page: Page) {
+  for (const { selecteur } of PANNEAUX) {
+    const feuille = page.locator(selecteur);
+
+    for (let essai = 0; essai < 4; essai += 1) {
+      if (!(await feuille.isVisible().catch(() => false))) {
+        break;
+      }
+
+      await page.keyboard.press('Escape').catch(() => {});
+      await page.waitForTimeout(250);
+    }
+  }
+}
+
 async function refermerCeQuiTraine(page: Page, declencheur: Locator, panneau: Locator) {
   const gestes = [
     () => page.keyboard.press('Escape'),
@@ -252,6 +282,8 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
         });
 
         for (const panneau of PANNEAUX) {
+          await refermerToutesLesFeuilles(page);
+
           const mesure = await ouvrirEtMesurer(page, panneau.bouton, panneau.selecteur);
 
           expect(mesure.haut, `${panneau.label} : coupé en haut`).toBeGreaterThanOrEqual(0);
