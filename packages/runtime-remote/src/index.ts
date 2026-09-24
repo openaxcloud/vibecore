@@ -109,6 +109,21 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   #baseUrl: string;
   #authToken?: RemoteKubernetesRuntimeAdapterOptions['authToken'];
   #invalidateAuthToken?: RemoteKubernetesRuntimeAdapterOptions['invalidateAuthToken'];
+
+  /*
+   * File d'attente d'obtention des tickets de socket.
+   *
+   * Le serveur brûle le ticket runtime à CHAQUE bascule. Deux sockets ouverts en
+   * même temps — `ports/watch` et `files/watch` le sont systématiquement — qui
+   * partagent le ticket en cache font donc échouer le second : le premier l'a
+   * consommé. Mesuré en production le 2026-09-24, après le premier correctif :
+   * une erreur d'authentification par cycle, exactement une, celle du socket
+   * arrivé second.
+   *
+   * On sérialise donc l'obtention : chaque socket vide le cache puis résout son
+   * PROPRE ticket, sans qu'un autre s'intercale entre les deux.
+   */
+  #fileDeTickets: Promise<unknown> = Promise.resolve();
   #workspaceId?: string;
   #fetch: typeof fetch;
   #WebSocket?: WebSocketConstructor;
@@ -1351,7 +1366,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       throw new RuntimeError('WebSocket is not available for remote runtime', { code: 'WEBSOCKET_UNAVAILABLE' });
     }
 
-    const token = await this.#resolveAuthToken();
+    /*
+     * UN TICKET NEUF, ET RIEN QU'À CE SOCKET. Voir #fileDeTickets.
+     */
+    const obtention = this.#fileDeTickets.then(async () => {
+      if (typeof this.#invalidateAuthToken === 'function') {
+        await this.#invalidateAuthToken();
+      }
+
+      return this.#resolveAuthToken();
+    });
+
+    this.#fileDeTickets = obtention.catch(() => undefined);
+
+    const token = await obtention;
 
     /*
      * Resolve against the page origin so a RELATIVE baseUrl (e.g. "/api/runtime")
@@ -1445,29 +1473,6 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       socket.addEventListener('error', onError);
       socket.addEventListener('close', onClose);
     });
-
-    /*
-     * LE TICKET EST DÉPENSÉ : on le jette.
-     *
-     * Le serveur brûle le ticket runtime à la bascule (`consumeRuntimeTicketId`,
-     * services/api/src/app.ts) — délibérément, parce qu'un identifiant qui voyage
-     * en paramètre d'URL fuite dans les journaux, l'historique et les en-têtes
-     * Referer. Un ticket ne vaut donc QU'UNE connexion.
-     *
-     * Le client, lui, gardait le sien en cache et le rejouait à chaque
-     * reconnexion. Mesuré en production le 2026-09-24 : cinq tentatives d'affilée
-     * sur `files/watch`, toutes avec le même `vcrt_…`, toutes refusées — et
-     * l'aperçu qui ne revenait jamais, ni après une coupure, ni au retour
-     * d'arrière-plan.
-     *
-     * On ne retire pas la propriété de sécurité, on cesse de la violer : le
-     * cache est vidé APRÈS une connexion réussie, donc la suivante en demande un
-     * neuf. Vider avant chaque tentative coûterait un aller-retour de plus à
-     * chaque fois, pour le même résultat.
-     */
-    if (typeof this.#invalidateAuthToken === 'function') {
-      await this.#invalidateAuthToken();
-    }
 
     return socket;
   }

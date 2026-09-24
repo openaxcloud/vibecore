@@ -110,3 +110,45 @@ describe('connexion, coupure, reconnexion', () => {
     expect(neuf.bascule(renouvelle.obtenir()).ok, 'avec renouvellement, l’aperçu revient').toBe(true);
   });
 });
+
+/*
+ * Deux sockets ouverts EN MÊME TEMPS ne partagent jamais un ticket.
+ *
+ * Mesuré en production le 2026-09-24, après le premier correctif : `ports/watch`
+ * et `files/watch` s'ouvrent ensemble, le premier brûle le ticket en cache, le
+ * second est refusé. Une erreur d'authentification par cycle, exactement une.
+ */
+describe('deux sockets concurrents', () => {
+  function serveur() {
+    const brules = new Set<string>();
+    return { brules, bascule: (t: string) => (brules.has(t) ? false : (brules.add(t), true)) };
+  }
+
+  it('un cache partagé fait échouer le second — c’est le défaut mesuré', () => {
+    const s = serveur();
+    const cache = 'vcrt_partage';
+
+    expect(s.bascule(cache)).toBe(true);
+    expect(s.bascule(cache)).toBe(false);
+  });
+
+  it('un ticket par socket les laisse passer tous les deux', async () => {
+    const s = serveur();
+
+    let n = 0;
+    let file: Promise<unknown> = Promise.resolve();
+
+    const obtenir = () => {
+      const p = file.then(() => `vcrt_${(n += 1)}`);
+      file = p.catch(() => undefined);
+
+      return p;
+    };
+
+    const [a, b] = await Promise.all([obtenir(), obtenir()]);
+
+    expect(a).not.toBe(b);
+    expect(s.bascule(a)).toBe(true);
+    expect(s.bascule(b)).toBe(true);
+  });
+});
