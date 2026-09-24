@@ -23,6 +23,7 @@ import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
+import { decisionDeRepointage } from './cadre-apercu-repointage';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
 import {
   beginPreviewFrameReload,
@@ -1203,6 +1204,52 @@ export const Preview = memo(
 
       return () => window.clearTimeout(saveTimer);
     }, [projectId, normalizedActivePreviewIndex, displayPath]);
+
+    /*
+     * FILET : un cadre garé sur `about:blank` alors qu'on connaît son URL est
+     * repointé.
+     *
+     * Mesuré en production le 2026-09-24 : le serveur de développement tournait
+     * et servait l'application — `/`, `src/main.tsx`, `src/App.tsx` tous en 200 —
+     * la barre d'adresse portait l'URL, et le cadre restait vide.
+     *
+     * React pose `src={iframeUrl}` ; le rechargement écrit
+     * `frame.src = 'about:blank'` IMPÉRATIVEMENT (le rebond voulu de BUG-A) puis
+     * repointe après un délai. Si ce second temps n'a pas lieu, React ne répare
+     * rien — sa prop n'a pas changé, donc il ne réécrit pas l'attribut — et le
+     * cadre reste blanc pour toujours. Ce filet ferme cette classe entière, quelle
+     * qu'en soit la cause immédiate.
+     *
+     * Il ne touche JAMAIS un cadre qui porte déjà une page : sur un aperçu en
+     * cours de démarrage, un rechargement coûterait le démarrage lui-même.
+     */
+    useEffect(() => {
+      if (!iframeUrl) {
+        return undefined;
+      }
+
+      const verifier = () => {
+        const frame = iframeRef.current;
+
+        if (!frame) {
+          return;
+        }
+
+        const decision = decisionDeRepointage({ src: frame.src, urlVoulue: iframeUrl });
+
+        if (decision.repointer) {
+          frame.src = decision.vers;
+        }
+      };
+
+      const minuterie = window.setInterval(verifier, 1500);
+      const premiere = window.setTimeout(verifier, 400);
+
+      return () => {
+        window.clearInterval(minuterie);
+        window.clearTimeout(premiere);
+      };
+    }, [iframeUrl]);
 
     useEffect(() => {
       if (!activePreview) {
