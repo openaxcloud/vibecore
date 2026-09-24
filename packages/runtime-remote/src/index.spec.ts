@@ -1241,8 +1241,16 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     const terminal = await adapter.openTerminal();
 
-    // First socket got an auth close, so a second one was opened after the refresh.
-    expect(invalidateAuthToken).toHaveBeenCalledTimes(1);
+    /*
+     * DEUX invalidations, et les deux comptent :
+     *   1. l'auto-réparation, après la fermeture 4401 du premier socket ;
+     *   2. le ticket DÉPENSÉ, jeté une fois le second socket ouvert.
+     *
+     * Le second point est nouveau (2026-09-24) : le serveur brûle le ticket à la
+     * bascule, donc le garder en cache faisait rejouer un jeton consommé à la
+     * reconnexion suivante. C'est ce qui empêchait l'aperçu de revenir.
+     */
+    expect(invalidateAuthToken).toHaveBeenCalledTimes(2);
     expect(FakeWebSocket.instances.length).toBe(2);
     expect(FakeWebSocket.instances.at(-1)!.url).toContain('token=fresh-socket-token');
 
@@ -1269,7 +1277,21 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(isAuthSocketClose(1008)).toBe(true);
     expect(isAuthSocketClose(1006)).toBe(false);
     expect(isAuthSocketClose(1000)).toBe(false);
-    expect(isAuthSocketClose(undefined)).toBe(false);
+
+    /*
+     * RENVERSEMENT ASSUMÉ (2026-09-24). Cette assertion valait `false`.
+     *
+     * Un refus de la BASCULE elle-même — 401 sur la requête d'upgrade — ne
+     * produit aucun WebSocket, donc aucun code de fermeture. Mesuré en
+     * production : `HTTP Authentication failed; no valid credentials available`,
+     * cinq tentatives d'affilée avec le même ticket, et l'auto-réparation qui ne
+     * partait jamais parce qu'elle attendait un code qui n'existe pas.
+     *
+     * Le renouvellement reste borné à UN essai (`shouldRefreshAuthToken`), donc
+     * une panne non authentifiée ne boucle pas : elle coûte une tentative de
+     * plus, pas une rafale.
+     */
+    expect(isAuthSocketClose(undefined)).toBe(true);
   });
 });
 
@@ -1452,9 +1474,7 @@ describe('BUG-AGENT-006/002 — 425 Too Early : backoff, Retry-After et attente 
   it('respecte Retry-After quand le serveur en fournit un', async () => {
     vi.useFakeTimers();
 
-    const { adapter, writes } = adapterWith(
-      () => new Response('{}', { status: 425, headers: { 'retry-after': '2' } }),
-    );
+    const { adapter, writes } = adapterWith(() => new Response('{}', { status: 425, headers: { 'retry-after': '2' } }));
 
     const pending = adapter.writeFile('src/App.tsx', 'x').catch(() => 'rejeté');
 
@@ -1535,4 +1555,4 @@ describe('BUG-AGENT-006 — 425 WORKSPACE_NOT_STARTED déclenche le provisionnem
     // le point du ticket : au moins UN provisionnement a été demandé
     expect(provisions.length).toBeGreaterThanOrEqual(1);
   });
-})
+});

@@ -1446,6 +1446,29 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       socket.addEventListener('close', onClose);
     });
 
+    /*
+     * LE TICKET EST DÉPENSÉ : on le jette.
+     *
+     * Le serveur brûle le ticket runtime à la bascule (`consumeRuntimeTicketId`,
+     * services/api/src/app.ts) — délibérément, parce qu'un identifiant qui voyage
+     * en paramètre d'URL fuite dans les journaux, l'historique et les en-têtes
+     * Referer. Un ticket ne vaut donc QU'UNE connexion.
+     *
+     * Le client, lui, gardait le sien en cache et le rejouait à chaque
+     * reconnexion. Mesuré en production le 2026-09-24 : cinq tentatives d'affilée
+     * sur `files/watch`, toutes avec le même `vcrt_…`, toutes refusées — et
+     * l'aperçu qui ne revenait jamais, ni après une coupure, ni au retour
+     * d'arrière-plan.
+     *
+     * On ne retire pas la propriété de sécurité, on cesse de la violer : le
+     * cache est vidé APRÈS une connexion réussie, donc la suivante en demande un
+     * neuf. Vider avant chaque tentative coûterait un aller-retour de plus à
+     * chaque fois, pour le même résultat.
+     */
+    if (typeof this.#invalidateAuthToken === 'function') {
+      await this.#invalidateAuthToken();
+    }
+
     return socket;
   }
 
@@ -1691,7 +1714,17 @@ export function shouldRefreshAuthToken(status: number, attempt: number, canRefre
  * close with code 4401 (app-level "unauthorized" convention) or 1008 (policy
  * violation). Treat those as a token rejection so the socket transport gets the
  * same one-shot token self-heal as #rawRequest.
+ *
+ * ⚠️ `undefined` COMPTE AUSSI, et c'est le cas qui a coûté l'aperçu.
+ *
+ * Quand le serveur refuse la BASCULE elle-même — 401 sur la requête d'upgrade —
+ * il n'y a jamais de WebSocket, donc jamais de code de fermeture. Mesuré en
+ * production le 2026-09-24 : `HTTP Authentication failed; no valid credentials
+ * available`, cinq tentatives d'affilée, toutes avec le MÊME ticket
+ * `vcrt_…`. L'auto-réparation ne se déclenchait pas parce qu'elle attendait un
+ * code de fermeture qui n'existait pas, et le ticket brûlé était rejoué sans
+ * fin. L'aperçu ne revenait jamais.
  */
 export function isAuthSocketClose(closeCode: number | undefined): boolean {
-  return closeCode === 4401 || closeCode === 1008;
+  return closeCode === undefined || closeCode === 4401 || closeCode === 1008;
 }
