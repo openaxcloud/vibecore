@@ -27,6 +27,7 @@ import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
+import { demandeAPersister } from '~/lib/.server/persistance-demande';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
 import { BUDGET_PAR_SEGMENT_MS, MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
@@ -234,6 +235,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     files: any;
     promptId?: string;
     projectId?: string;
+
+    /*
+     * Le fil auquel appartient ce tour, et l'identifiant que le navigateur a
+     * donné à la demande. Les deux servent à écrire la demande EN BASE dès la
+     * réception, avant le moindre appel au modèle.
+     */
+    conversationId?: string;
+    clientMessageId?: string;
     contextOptimization: boolean;
     chatMode: 'discuss' | 'build';
     designScheme?: DesignScheme;
@@ -297,6 +306,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     files,
     promptId,
     projectId,
+    conversationId,
+    clientMessageId,
     contextOptimization,
     supabase,
     chatMode,
@@ -308,6 +319,44 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     approvedPlanTasks,
     enabledMcpServers,
   } = parsedBody;
+
+  /*
+   * LA DEMANDE EST ÉCRITE AVANT LE PREMIER APPEL AU MODÈLE.
+   *
+   * Mesuré en production le 2026-09-23 : une commande envoyée à 18:09:03, l'onglet
+   * mis en arrière-plan, et rien dans `AiMessage` — ni la réponse, NI LA QUESTION.
+   * Le fil est poussé par le navigateur pendant le flux ; Safari suspend l'onglet,
+   * les envois cessent, et le tour ne laisse aucune trace.
+   *
+   * Cette écriture ne sauve pas le tour — c'est l'étape 2 — mais elle supprime la
+   * perte de données. L'API dérive l'identifiant d'un message de
+   * `sha256(conversationId:clientId)` et fait un `upsert` : le serveur et le
+   * navigateur écrivent donc la MÊME ligne, jamais deux.
+   *
+   * `await` volontaire : « avant tout appel au modèle » n'a de sens que si on
+   * l'attend. Le coût est d'un aller-retour, et l'échec ne bloque JAMAIS le tour.
+   */
+  const demande = demandeAPersister({ conversationId, clientMessageId, messages });
+
+  if (demande && projectId) {
+    try {
+      await apiRequest(request, `/projects/${projectId}/ai/conversations/${demande.conversationId}/transcript`, {
+        method: 'PUT',
+        redirectOn401: false,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ clientId: demande.clientId, role: 'user', content: demande.content }] }),
+      });
+    } catch (error) {
+      logger.warn(
+        JSON.stringify({
+          event: 'chat.demande.non-persistee',
+          projectId,
+          conversationId: demande.conversationId,
+          raison: String((error as Error)?.message ?? error).slice(0, 200),
+        }),
+      );
+    }
+  }
 
   /*
    * Normalise the per-request MCP allow-list: a real array (possibly empty) of
