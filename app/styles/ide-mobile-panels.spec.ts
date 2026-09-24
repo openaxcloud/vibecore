@@ -389,14 +389,18 @@ describe('8. captures iPhone 06/09 11:01–11:03 : Stockage d’objets, Paramèt
 
 describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’action de l’agent', () => {
   it('clavier levé : le composeur se colle au clavier, le socle disparaît, la pastille suit', () => {
-    expect(
-      bloc(
-        "html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer",
-      ),
-    ).toMatch(/bottom:\s*0\s*!important/);
+    /*
+     * Plus de scopage par panneau depuis le 2026-09-24 : mesuré sous WebKit,
+     * `data-mobile-panel` vaut `preview` sur l'IDE d'un vrai projet, donc
+     * aucune règle « clavier levé » ne s'appliquait — socle flottant, zone de
+     * saisie invisible, exactement la capture d'Avi.
+     */
+    expect(bloc("html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-project-agent-composer")).toMatch(
+      /bottom:\s*0\s*!important/,
+    );
     expect(bloc("html[data-vc-clavier='ouvert'] .bolt-mobile-replit-nav")).toMatch(/display:\s*none/);
     expect(INDEX).toMatch(
-      /html\[data-vc-clavier='ouvert'\] \.bolt-responsive-ide-mobile\[data-mobile-panel='chat'\] \.bolt-agent-scroll-to-bottom,[\s\S]{0,300}bottom:\s*12px/,
+      /html\[data-vc-clavier='ouvert'\] \.bolt-responsive-ide-mobile \.bolt-agent-scroll-to-bottom,[\s\S]{0,300}bottom:\s*12px/,
     );
   });
 

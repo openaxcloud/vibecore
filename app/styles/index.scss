@@ -25642,13 +25642,27 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    * colle au clavier, la pastille « descendre » suit. Non mesurable sur
    * Chromium — la fenêtre visuelle n'y bouge pas ; preuve iPhone à prendre.
    */
-  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
+  /*
+   * ⚠️ CES RÈGLES NE DÉPENDENT PLUS DU PANNEAU AFFICHÉ.
+   *
+   * Elles étaient scopées `[data-mobile-panel='chat']`. Mesuré sous WebKit en
+   * émulation iPhone le 2026-09-24 sur l'IDE d'un vrai projet : l'attribut vaut
+   * `preview`, pas `chat` — il retient le dernier panneau ouvert. Aucune de ces
+   * règles ne s'appliquait donc, et c'est exactement ce qu'Avi photographie
+   * clavier levé : le socle d'onglets qui flotte au milieu de l'écran, une
+   * grande zone blanche, et la zone de saisie invisible.
+   *
+   * Le clavier ne se soucie pas du panneau affiché : dès qu'il est levé, le
+   * socle doit disparaître et le composeur se coller au bas de la zone VISIBLE,
+   * quel que soit l'onglet.
+   */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-project-agent-composer {
     bottom: 0 !important;
   }
 
-  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-agent-scroll-to-bottom,
   html[data-vc-clavier='ouvert']
-    .bolt-responsive-ide-mobile[data-mobile-panel='chat']
+    .bolt-responsive-ide-mobile
     .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {
     bottom: 12px;
   }
@@ -25658,7 +25672,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   /* Clavier ouvert : le composeur n'est plus soulevé (bottom: 0), la réserve tombe avec lui. */
-  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-scroll {
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-project-agent-scroll {
     padding-bottom: 0 !important;
   }
 
