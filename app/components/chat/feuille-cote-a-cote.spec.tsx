@@ -20,6 +20,7 @@ import { CATALOGUE_INTEGRE } from '@vibecore/billing/src/catalogue-integre';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { AgentPowerControls } from './AgentPowerControls';
 import { FeuilleDesModes } from './FeuilleDesModes';
 import { getChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 
@@ -99,4 +100,56 @@ describe('sur téléphone, le second écran remplace bien le premier', () => {
     expect(screen.queryByTestId('feuille-second-panneau')).toBeNull();
     expect(screen.getByTestId('feuille-retour')).toBeTruthy();
   });
+});
+
+describe('le chevron de retour ramène aux modes, il ne referme pas tout', () => {
+  /*
+   * Défaut mesuré en production le 2026-09-23 sur `9ff46376ac`, sur les DEUX
+   * entrées à chevron : après un clic sur le chevron de retour du second
+   * panneau de bureau, `modes=0 second=0` — tout avait disparu. Sur téléphone,
+   * le même geste rendait `modes=3`.
+   *
+   * La cause : le second panneau est porté à `document.body`, donc le
+   * gestionnaire de clic extérieur d'`AgentPowerControls` le voyait comme
+   * « dehors » et refermait le panneau entier. Le chevron n'a jamais eu
+   * l'occasion de faire son travail.
+   *
+   * Cette garde part d'`AgentPowerControls`, pas de la feuille : c'est lui qui
+   * porte le gestionnaire fautif, et une garde posée sur la feuille seule
+   * n'aurait rien vu.
+   */
+  const poserComposeur = () => {
+    render(
+      <AgentPowerControls
+        value={{
+          highEffort: false,
+          highPowerModel: false,
+          extendedThinking: false,
+          turboMode: false,
+          buildTier: 'max',
+        }}
+        onChange={() => undefined}
+        variant="compact"
+        estimatedCents={12}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+  };
+
+  for (const entree of ['modele', 'avance'] as const) {
+    it(`depuis « ${entree} », le chevron rend la liste des modes`, () => {
+      poserComposeur();
+
+      fireEvent.click(screen.getByTestId(`feuille-entree-${entree}`));
+      expect(screen.getByTestId('feuille-second-panneau'), 'le second panneau ne s’est pas ouvert').toBeTruthy();
+
+      const chevron = screen.getByTestId('feuille-retour');
+      fireEvent.pointerDown(chevron);
+      fireEvent.click(chevron);
+
+      expect(screen.queryByTestId('feuille-second-panneau'), 'le second panneau devrait être refermé').toBeNull();
+      expect(screen.getAllByTestId(/^feuille-mode-/).length, 'la liste des modes doit rester').toBe(3);
+    });
+  }
 });
