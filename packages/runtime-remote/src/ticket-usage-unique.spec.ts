@@ -19,7 +19,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { isAuthSocketClose } from './index';
+import { isAuthSocketClose } from './index.js';
 
 describe('un refus de bascule compte comme un refus d’authentification', () => {
   it('sans code de fermeture — le cas mesuré en production', () => {
