@@ -26139,6 +26139,31 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding: 0 8px;
   }
 
+  /*
+   * L'ÉDITEUR DE CODE NE DESCEND PAS SOUS 16 px SUR TÉLÉPHONE.
+   *
+   * Safari iOS zoome automatiquement sur tout champ de saisie dont la police
+   * effective est inférieure à 16 px — et une fois zoomé, il le reste. Mesuré
+   * sous le moteur WEBKIT en émulation iPhone le 2026-09-24 : `cm-content`,
+   * le `contenteditable` de CodeMirror, rendait `14px`. C'est le seul champ du
+   * produit sous le seuil ; tous les autres, composeur de l'agent compris,
+   * rendent 16 px.
+   *
+   * Le thème de l'éditeur pose sa taille via `EditorView.theme` sur `&`,
+   * c'est-à-dire `.cm-editor` — d'où le `!important` : il ne s'agit pas de
+   * forcer la main à l'utilisateur, mais de poser un PLANCHER là où le système
+   * d'exploitation en impose un. Le réglage de taille reste libre sur bureau.
+   *
+   * ⚠️ Ceci n'est pas le défaut qu'Avi photographie : son symptôme part du
+   * composeur, qui est déjà à 16 px sous WebKit. C'en est un autre, réel et
+   * indépendant, qui frapperait dès qu'un utilisateur touche l'éditeur.
+   */
+  .bolt-responsive-ide-mobile .cm-editor,
+  .bolt-responsive-ide-mobile .cm-content,
+  .bolt-responsive-ide-mobile .cm-scroller {
+    font-size: max(16px, var(--vc-editor-font-size, 16px)) !important;
+  }
+
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu {
     position: fixed !important;
     top: auto !important;
