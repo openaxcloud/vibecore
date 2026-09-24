@@ -108,6 +108,7 @@ export function FeuilleDesModes({
     };
 
     mesurer();
+
     /*
      * LE DÉFILEMENT AUSSI, et en phase de CAPTURE.
      *
