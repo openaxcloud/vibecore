@@ -1243,14 +1243,16 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     /*
      * DEUX invalidations, et les deux comptent :
-     *   1. l'auto-réparation, après la fermeture 4401 du premier socket ;
-     *   2. le ticket DÉPENSÉ, jeté une fois le second socket ouvert.
+     *   1. avant le ticket du PREMIER socket ;
+     *   2. l'auto-réparation, après sa fermeture 4401 ;
+     *   3. avant le ticket du SECOND socket.
      *
-     * Le second point est nouveau (2026-09-24) : le serveur brûle le ticket à la
-     * bascule, donc le garder en cache faisait rejouer un jeton consommé à la
-     * reconnexion suivante. C'est ce qui empêchait l'aperçu de revenir.
+     * Chaque connexion demande désormais son propre ticket (voir #fileDeTickets) :
+     * le serveur le brûle à la bascule, donc deux sockets qui partagent un ticket
+     * en cache font échouer le second. Mesuré en production le 2026-09-24 : une
+     * erreur d'authentification par cycle, celle du socket arrivé second.
      */
-    expect(invalidateAuthToken).toHaveBeenCalledTimes(2);
+    expect(invalidateAuthToken).toHaveBeenCalledTimes(3);
     expect(FakeWebSocket.instances.length).toBe(2);
     expect(FakeWebSocket.instances.at(-1)!.url).toContain('token=fresh-socket-token');
 
