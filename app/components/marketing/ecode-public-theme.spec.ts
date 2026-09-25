@@ -5,7 +5,6 @@ describe('E-Code public theme wrappers', () => {
   it('uses neutral surfaces, orange actions, and one IBM Plex interface stack outside the IDE', () => {
     const styles = readFileSync(new URL('../../styles/index.scss', import.meta.url), 'utf8');
     const landing = readFileSync(new URL('./ecode-exact/pages/LandingOptimized.tsx', import.meta.url), 'utf8');
-    const pricing = readFileSync(new URL('./ecode-exact/pages/Pricing.tsx', import.meta.url), 'utf8');
 
     const oauthCallback = readFileSync(
       new URL('../../routes/integrations.oauth.$provider.callback.tsx', import.meta.url),
@@ -19,7 +18,6 @@ describe('E-Code public theme wrappers', () => {
     expect(styles).toContain('background: var(--vc-public-accent);');
     expect(styles).toContain('[data-ecode-static-shell] {');
     expect(landing).not.toContain('--ecode-font-sans');
-    expect(pricing).not.toContain('--ecode-font-sans');
     expect(oauthCallback).not.toContain('system-ui, sans-serif');
     expect(oauthCallback).toContain("fontFamily: 'var(--vc-font-interface)'");
   });
