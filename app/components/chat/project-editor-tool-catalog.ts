@@ -142,18 +142,124 @@ export const PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS: Record<ProjectEditorToolCa
   configuration: 'baseChatAst.common.configuration',
 };
 
-/** Catalog entries in category order — the order the All-tools popup renders. */
-export function projectEditorToolsByCategory(): Array<[ProjectEditorToolCategory, ProjectEditorToolDescriptor[]]> {
-  return PROJECT_EDITOR_TOOL_CATEGORIES.map(
-    (category) =>
-      [
-        category,
-        PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]).filter((tool) => tool.category === category),
-      ] as [ProjectEditorToolCategory, ProjectEditorToolDescriptor[]],
-  ).filter(([, tools]) => tools.length > 0);
+/**
+ * A tool whose screen is already a tab inside another tool.
+ *
+ * Domains is the case that named this concept: the exact same
+ * `ProjectDomainsPanel` is rendered by the standalone `domains` panel AND by
+ * Deploy → Domains, so the All-tools grid offered two doors to one screen. A
+ * domain is also meaningless without a deployment — the screen itself says the
+ * CNAME/A instructions only unlock after the first successful deploy — so the
+ * standalone card was a dead end for anyone who had not deployed yet.
+ *
+ * Aliased tools stay VALID panel ids on purpose. `?panel=domains` deep links,
+ * layouts persisted before this change and the mobile Tools sheet entry all
+ * keep working; they are canonicalised at open time into `tool` + `view`
+ * instead of being rejected. Only the grid card disappears.
+ */
+export interface ProjectEditorToolAlias {
+  /** The tool that really owns the screen. */
+  tool: ProjectEditorTool;
+
+  /** The sub-tab inside that tool which shows it. */
+  view: string;
 }
 
-/** Every tool, in engine order. */
-export function projectEditorToolList(): ProjectEditorToolDescriptor[] {
+export const PROJECT_EDITOR_TOOL_ALIASES: Partial<Record<ProjectEditorTool, ProjectEditorToolAlias>> = {
+  domains: { tool: 'deployments', view: 'domains' },
+};
+
+/** The alias record for `id`, or undefined when the tool owns its own screen. */
+export function projectEditorToolAlias(id: ProjectEditorTool): ProjectEditorToolAlias | undefined {
+  return PROJECT_EDITOR_TOOL_ALIASES[id];
+}
+
+/**
+ * The tool that should actually be opened for `id` — itself for a normal tool,
+ * the alias target for an aliased one. Aliases never chain (guarded by spec).
+ */
+export function resolveProjectEditorTool(id: ProjectEditorTool): ProjectEditorTool {
+  return PROJECT_EDITOR_TOOL_ALIASES[id]?.tool ?? id;
+}
+
+/**
+ * What a door should actually do when the user asks for `id`.
+ *
+ * Every call site (desktop `openWorkspacePanel`, mobile `activateMobileTool`)
+ * funnels its decision through here rather than re-deriving it, because the
+ * expensive failure on this repo is not a wrong table — it is a correct table
+ * that one call site forgot to consult. `deployView` is set only when the owner
+ * is the Deployments panel, which is the one panel that takes a tab request.
+ */
+export function resolveProjectEditorToolOpen(id: ProjectEditorTool): {
+  panel: ProjectEditorTool;
+  deployView?: string;
+} {
+  const alias = PROJECT_EDITOR_TOOL_ALIASES[id];
+
+  if (!alias) {
+    return { panel: id };
+  }
+
+  return alias.tool === 'deployments' ? { panel: alias.tool, deployView: alias.view } : { panel: alias.tool };
+}
+
+/**
+ * Which surface is asking for the list.
+ *
+ * `'browse'` is the DEFAULT, and that default is the guard. The previous
+ * consolidation of Domains was undone by RPL-IDE-001.5 simply rebuilding the
+ * tool list "from the shared catalog" — a call site that asked for everything
+ * and got everything, with no test to object. So asking plainly now yields the
+ * DEDUPLICATED list: a future rebuild that does not think about aliases lands
+ * on the correct behaviour by accident, which is the only kind of guard that
+ * survives a refactor nobody reviewed.
+ *
+ * `'search'` is the deliberate exception: a query for "domains" must return a
+ * row, and that row is a shortcut into Deploy → Domains.
+ */
+export type ProjectEditorToolSurface = 'browse' | 'search';
+
+function includesAliasedTools(surface: ProjectEditorToolSurface = 'browse'): boolean {
+  return surface === 'search';
+}
+
+/**
+ * Every tool in engine order. Aliased tools appear only for `'search'`.
+ *
+ * @param surface defaults to `'browse'` — see `ProjectEditorToolSurface`.
+ */
+export function projectEditorToolList(surface: ProjectEditorToolSurface = 'browse'): ProjectEditorToolDescriptor[] {
+  const all = PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]);
+
+  return includesAliasedTools(surface) ? all : all.filter((tool) => !PROJECT_EDITOR_TOOL_ALIASES[tool.id]);
+}
+
+/**
+ * Catalog entries in category order — the order the All-tools popup renders.
+ * Aliased tools appear only for `'search'`; empty categories are dropped.
+ *
+ * @param surface defaults to `'browse'` — see `ProjectEditorToolSurface`.
+ */
+export function projectEditorToolsByCategory(
+  surface: ProjectEditorToolSurface = 'browse',
+): Array<[ProjectEditorToolCategory, ProjectEditorToolDescriptor[]]> {
+  const tools = projectEditorToolList(surface);
+
+  return PROJECT_EDITOR_TOOL_CATEGORIES.map(
+    (category) =>
+      [category, tools.filter((tool) => tool.category === category)] as [
+        ProjectEditorToolCategory,
+        ProjectEditorToolDescriptor[],
+      ],
+  ).filter(([, categoryTools]) => categoryTools.length > 0);
+}
+
+/**
+ * Every tool the engine knows about, aliases included — the CATALOG view, not a
+ * UI view. Only coverage checks should need it; rendering a tool list from this
+ * is the bug this module exists to prevent.
+ */
+export function projectEditorToolCatalogList(): ProjectEditorToolDescriptor[] {
   return PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]);
 }

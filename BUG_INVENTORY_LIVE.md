@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-356 entrées.
+358 entrées.
 
 ## Sans section
 
@@ -373,6 +373,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-THEME-017](docs/bugs/BUG-THEME-017.md) — P1 — Zone CONNECTÉE, thème SOMBRE : les CTA d'action (« Créer un projet », « Créer une clé », « Obtenir l'app bureau », « Créer ») affichent du blanc sur l'oran
 - [BUG-THEME-018](docs/bugs/BUG-THEME-018.md) — P2 — Zone CONNECTÉE, thème CLAIR : les libellés d'état succès/avertissement passent juste sous AA
 - [BUG-THEME-019](docs/bugs/BUG-THEME-019.md) — P1 (défaut de RENDU, pas seulement de contraste) — 66 utilitaires perdaient SILENCIEUSEMENT leur opacité.
+- [BUG-IDE-014](docs/bugs/BUG-IDE-014.md) — P2 — « Domaines » est offert deux fois dans l'IDE : comme carte autonome de la grille des outils ET comme onglet du panneau Déploiements.
+- [BUG-QUOTA-001](docs/bugs/BUG-QUOTA-001.md) — limite 1
 
 ## Résidus non tabulaires — reportés mot pour mot
 
