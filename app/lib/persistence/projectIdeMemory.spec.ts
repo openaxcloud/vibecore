@@ -5,6 +5,8 @@ import {
   getProjectIdeMemory,
   getProjectIdeMemoryStorageKey,
   getProjectIdeMemoryVersionForTest,
+  PROJECT_IDE_MEMORY_LOAD_DEADLINES_MS,
+  PROJECT_IDE_MEMORY_LOAD_RETRY_DELAYS_MS,
   PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS,
   saveProjectIdeMemory,
   setProjectIdeMemorySaveDebounceMsForTest,
@@ -937,6 +939,60 @@ describe('project IDE memory ETag / If-Match', () => {
 
     // The re-PUT after the 412 must still REPLACE, not union-merge.
     expect(putBodies[1].chat?.clearMessages).toBe(true);
+  });
+
+  it('réessaie une lecture avortée quand aucun repli local n’existe', async () => {
+    /*
+     * Le défaut mesuré le 2026-09-02 : l'échéance de lecture était unique et
+     * fixe, et son échec TERMINAL pour la page. `getProjectIdeMemory` rejetait à
+     * 5004 ms sur `AbortError`, `chatMetadata` n'était jamais posé, et la
+     * conversation restait vide pour toute la durée de la page.
+     *
+     * Sans repli local — le premier chargement sur un téléphone — renoncer au
+     * bout de cinq secondes n'est pas défendable : on insiste, avec des
+     * échéances croissantes.
+     */
+    vi.useFakeTimers();
+
+    try {
+      const projectId = 'project-lecture-avortee-sans-repli';
+
+      let appels = 0;
+
+      const fetchMock = vi.fn((_url: unknown, init?: RequestInit) => {
+        appels += 1;
+
+        if (appels <= 2) {
+          return new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+            );
+          });
+        }
+
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: makeHeaders(),
+          json: async () => ({ ideState: { state: { ui: { agentWidth: 321 } } } }),
+        } as unknown as Response);
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const lecture = getProjectIdeMemory(projectId);
+
+      await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_DEADLINES_MS[0]);
+      await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_RETRY_DELAYS_MS[0]);
+      await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_DEADLINES_MS[1]);
+      await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_RETRY_DELAYS_MS[1]);
+
+      await expect(lecture, 'la lecture doit finir par aboutir').resolves.toMatchObject({
+        ui: { agentWidth: 321 },
+      });
+      expect(fetchMock, 'trois tentatives attendues').toHaveBeenCalledTimes(3);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('une sauvegarde n’empoisonne pas la lecture suivante', async () => {

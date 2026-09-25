@@ -150,6 +150,10 @@ import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
+import {
+  chargementMemoireProjetEnEchec,
+  demanderUnNouvelEssaiMemoireProjet,
+} from '~/lib/persistence/projectMemoryLoadFailure';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import {
   clavierProbablementOuvert,
@@ -3637,6 +3641,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     // BUG-UX-AGENT-DONE-FALSE : run allé au bout mais pas proprement (partiel / accord faible / rôles incomplets).
     const [agentRunDegraded, setAgentRunDegraded] = useState(false);
     const expoUrl = useStore(expoUrlAtom);
+    const memoireProjetEnEchec = useStore(chargementMemoireProjetEnEchec);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
 
@@ -7744,6 +7749,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               </div>
             )}
+            {/*
+             * Un échec de chargement doit se VOIR et se rattraper : il ne se
+             * traduisait que par un toast éphémère, puis un panneau vide,
+             * impossible à distinguer d'une conversation qui n'aurait jamais
+             * existé, et sans autre moyen de relancer que recharger la page.
+             */}
+            {projectIdeMode && memoireProjetEnEchec ? (
+              <div className="bolt-agent-memory-load-error" role="status">
+                <span className="i-ph:warning-circle" aria-hidden />
+                <p>{t('chat.copy.projectMemoryLoadFailed')}</p>
+                <button
+                  type="button"
+                  className="bolt-agent-memory-load-error__retry"
+                  onClick={demanderUnNouvelEssaiMemoireProjet}
+                >
+                  {t('chat.copy.retry_9f5cd8a2')}
+                </button>
+              </div>
+            ) : null}
             <ClientOnly>
               {() => {
                 return chatStarted ? (
