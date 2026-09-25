@@ -1082,6 +1082,7 @@ export const ChatImpl = memo(
     const submittedProjectPromptRef = useRef<string | undefined>(undefined);
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
+    const [transcriptError, setTranscriptError] = useState<{ retry: () => void } | undefined>(undefined);
     const { parsedMessages, parseMessages } = useMessageParser();
 
     /*
@@ -1163,6 +1164,17 @@ export const ChatImpl = memo(
         logStore.logError('Failed to load project AI transcript', error);
       },
       onRetriesExhausted: (retry) => {
+        /*
+         * Le toast disparaît ; le panneau, lui, reste. Sans état persistant il
+         * retombait sur son écran de démarrage et présentait une conversation
+         * existante comme neuve.
+         */
+        setTranscriptError({
+          retry: () => {
+            setTranscriptError(undefined);
+            retry();
+          },
+        });
         toast.error(copy['chatClient.history.loadFailed'], {
           autoClose: false,
           onClick: retry,
@@ -2276,6 +2288,7 @@ export const ChatImpl = memo(
         description={description}
         importChat={importChat}
         exportChat={exportChat}
+        transcriptError={transcriptError}
         messages={messages.map((message, i) => {
           if (message.role === 'user') {
             return message;
