@@ -108,9 +108,27 @@ export function FeuilleDesModes({
     };
 
     mesurer();
-    window.addEventListener('resize', mesurer);
 
-    return () => window.removeEventListener('resize', mesurer);
+    /*
+     * LE DÉFILEMENT AUSSI, et en phase de CAPTURE.
+     *
+     * Le second panneau est porté à `document.body` et positionné en `fixed` sur
+     * des coordonnées mesurées à l'ouverture. Sans écoute du défilement, son
+     * point d'attache bougeait pendant que lui restait immobile : Avi voit « le
+     * contenu partir à gauche » dès qu'il fait défiler la conversation.
+     *
+     * La capture est nécessaire parce que le fil défile dans un conteneur
+     * interne, pas dans la fenêtre : un écouteur posé sans `capture` ne verrait
+     * jamais son événement. C'est déjà ce que fait l'ancrage du PREMIER panneau
+     * dans AgentPowerControls — les deux suivent maintenant la même règle.
+     */
+    window.addEventListener('resize', mesurer);
+    window.addEventListener('scroll', mesurer, true);
+
+    return () => {
+      window.removeEventListener('resize', mesurer);
+      window.removeEventListener('scroll', mesurer, true);
+    };
   }, [disposition, niveau]);
 
   const catalogueDe = (mode: AgentMode) => catalogues.find((c) => c.mode === mode);
