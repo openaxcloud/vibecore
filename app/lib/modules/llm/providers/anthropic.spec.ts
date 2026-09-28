@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  */
 vi.mock('../manager', () => ({ LLMManager: class {} }));
 
-const { buildAnthropicModelLabel, createAnthropicCachingFetch, anthropicCacheMinTokens } = await import('./anthropic');
+const { buildAnthropicModelLabel, createAnthropicCachingFetch, anthropicCacheMinTokens, oublierModelesSansThinking } =
+  await import('./anthropic');
+
 const { ANTHROPIC_CACHE_BREAKPOINT } = await import('~/lib/modules/llm/cache-breakpoint');
 
 describe('createAnthropicCachingFetch', () => {
@@ -204,7 +206,7 @@ describe('buildAnthropicModelLabel', () => {
  * jamais quitté le processus. Un test qui inspecte l'objet d'options passe au
  * vert sans rien garantir ; seul un test qui lit le CORPS ENVOYÉ le fait.
  */
-describe('BUG-AGENT-008 — la réflexion est désactivée sur le fil', () => {
+describe('la réflexion sur le fil — affichée en flux, désactivée ailleurs (BUG-AGENT-008, 2026-09-28)', () => {
   const corpsEnvoyes: string[] = [];
 
   const baseFetch = (async (_input: unknown, init?: { body?: unknown }) => {
@@ -217,7 +219,34 @@ describe('BUG-AGENT-008 — la réflexion est désactivée sur le fil', () => {
     corpsEnvoyes.length = 0;
   });
 
-  it('pose `thinking: disabled` sur une requête de messages', async () => {
+  it('LA RÉFLEXION EST AFFICHÉE — une génération en flux part en `adaptive` + `summarized`', async () => {
+    /*
+     * Décision d'Avi : « affiché mais replié ». Mesuré le 2026-09-28 : `disabled`
+     * posé ici donnait ZÉRO part de raisonnement sur 5 vrais tours opus ; et
+     * sans `display: summarized`, opus 5 rend un bloc de réflexion VIDE.
+     */
+    const fetchEnrobe = createAnthropicCachingFetch(baseFetch);
+
+    await fetchEnrobe('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: 'claude-opus-5',
+        stream: true,
+        temperature: 0,
+        messages: [{ role: 'user', content: 'salut' }],
+      }),
+    });
+
+    expect(corpsEnvoyes, 'aucune requête émise : le test ne mesure rien').toHaveLength(1);
+
+    const corps = JSON.parse(corpsEnvoyes[0]);
+    expect(corps.thinking).toEqual({ type: 'adaptive', display: 'summarized' });
+
+    // Un échantillonnage imposé est incompatible avec la réflexion.
+    expect(corps.temperature).toBeUndefined();
+  });
+
+  it('hors flux (sonde d’un jeton, classifieur) la réflexion reste `disabled`', async () => {
     const fetchEnrobe = createAnthropicCachingFetch(baseFetch);
 
     await fetchEnrobe('https://api.anthropic.com/v1/messages', {
@@ -225,8 +254,39 @@ describe('BUG-AGENT-008 — la réflexion est désactivée sur le fil', () => {
       body: JSON.stringify({ model: 'claude-opus-5', messages: [{ role: 'user', content: 'salut' }] }),
     });
 
-    expect(corpsEnvoyes, 'aucune requête émise : le test ne mesure rien').toHaveLength(1);
     expect(JSON.parse(corpsEnvoyes[0]).thinking).toEqual({ type: 'disabled' });
+  });
+
+  it('un modèle qui ne connaît pas le paramètre est APPRIS : pas d’aller-retour à chaque tour', async () => {
+    oublierModelesSansThinking();
+
+    let appels = 0;
+
+    const refuse = (async (_input: unknown, init?: { body?: unknown }) => {
+      appels += 1;
+      corpsEnvoyes.push(String(init?.body ?? ''));
+
+      if (String(init?.body ?? '').includes('"thinking"')) {
+        return new Response(
+          JSON.stringify({ error: { message: '"thinking.type.adaptive" is not supported for this model.' } }),
+          { status: 400 },
+        );
+      }
+
+      return new Response('{}', { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const corps = JSON.stringify({ model: 'claude-ancien', stream: true, messages: [{ role: 'user', content: 'x' }] });
+    const enrobe = createAnthropicCachingFetch(refuse);
+
+    await enrobe('https://api.anthropic.com/v1/messages', { method: 'POST', body: corps });
+    expect(appels, 'premier tour : refus puis renvoi sans le paramètre').toBe(2);
+
+    await enrobe('https://api.anthropic.com/v1/messages', { method: 'POST', body: corps });
+    expect(appels, 'second tour : un seul appel, sans le paramètre').toBe(3);
+    expect(JSON.parse(corpsEnvoyes[2]).thinking).toBeUndefined();
+
+    oublierModelesSansThinking();
   });
 
   it('ne touche pas à un `thinking` posé explicitement par l’appelant', async () => {
