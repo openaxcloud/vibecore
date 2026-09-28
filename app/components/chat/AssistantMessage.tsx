@@ -999,7 +999,18 @@ export const AssistantMessage = memo(
                           {role.title}
                         </span>
                       </div>
-                      <div className="mt-1 line-clamp-3 text-[11px] text-bolt-elements-textSecondary">
+                      {/*
+                         HAUTEUR RÉSERVÉE : trois lignes, toujours. Mesuré le 2026-09-28 en
+                         production à 390 px : la source de cet aperçu change pendant le flux
+                         (responsabilité → extrait du flux → résumé) et la carte passait de
+                         une à trois lignes et retour — ±20 px par carte, quatre cartes
+                         empilées, ~750 px de sauts en 0,9 s et des retours en arrière de
+                         40 px. Hauteur fixe : le panneau entre d'un bloc et ne bouge plus.
+                      */}
+                      <div
+                        data-testid="agent-lane-apercu"
+                        className="mt-1 h-12 overflow-hidden line-clamp-3 text-[11px] leading-4 text-bolt-elements-textSecondary"
+                      >
                         {result?.summary ??
                           stream?.summary ??
                           extractLaneStreamSummary(stream?.text) ??
