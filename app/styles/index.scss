@@ -22741,6 +22741,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   max-height: calc(100dvh - 80px - env(safe-area-inset-top, 0px));
 }
 
+/*
+ * BUG-TOAST-ROGNE-001 — en mode `stacked` (root.tsx), react-toastify place
+ * chaque toast en `position: absolute` : le conteneur n'a plus rien dans le
+ * flux et mesure 0 px de haut. Le `overflow-y: auto` posé plus haut en fait un
+ * conteneur de défilement de 0 px, qui rogne TOUT ce qu'il positionne. Mesuré en
+ * production le 2026-09-28 (390 px Chromium et WebKit iPhone, 1440 px) : le
+ * bandeau « 1 fichier appliqué » était dans le DOM, opaque, et le moteur peignait
+ * l'aperçu à sa place — « Tout annuler » inatteignable. Une pile empilée ne
+ * défile pas : elle se replie. Le défilement n'y a jamais rien fait d'autre que
+ * rogner. Épinglé par tests/e2e/bandeau-toast-visible.spec.ts, qui mesure ce
+ * que le moteur peint.
+ */
+.Toastify__toast-container[data-stacked='true'] {
+  overflow: visible;
+}
+
 .bolt-agent-applied-toast {
   display: grid;
   min-width: 0;

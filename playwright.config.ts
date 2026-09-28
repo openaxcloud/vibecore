@@ -83,6 +83,9 @@ export default defineConfig({
         /agent-scroll-pill\.spec\.ts/,
         /agent-composer-panel-viewport\.spec\.ts/,
         /ide-touch-targets\.spec\.ts/,
+
+        // Un rognage par conteneur de défilement : mesuré identique sur les deux moteurs, épinglé sur les deux.
+        /bandeau-toast-visible\.spec\.ts/,
       ],
     },
   ],
