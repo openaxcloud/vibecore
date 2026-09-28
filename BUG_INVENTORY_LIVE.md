@@ -373,6 +373,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-THEME-017](docs/bugs/BUG-THEME-017.md) — P1 — Zone CONNECTÉE, thème SOMBRE : les CTA d'action (« Créer un projet », « Créer une clé », « Obtenir l'app bureau », « Créer ») affichent du blanc sur l'oran
 - [BUG-THEME-018](docs/bugs/BUG-THEME-018.md) — P2 — Zone CONNECTÉE, thème CLAIR : les libellés d'état succès/avertissement passent juste sous AA
 - [BUG-THEME-019](docs/bugs/BUG-THEME-019.md) — P1 (défaut de RENDU, pas seulement de contraste) — 66 utilitaires perdaient SILENCIEUSEMENT leur opacité.
+- [BUG-TYPE-CI-001](docs/bugs/BUG-TYPE-CI-001.md) — `tsconfig.web.json`, le seul fichier que la CI typecheck pour l'application,
 
 - [BUG-TEST-WEBKIT-001](docs/bugs/BUG-TEST-WEBKIT-001.md) — DETTE — la validation mobile tourne sur Chromium alors qu'Avi est sur Safari iOS : le projet `webkit-iphone` ne couvre que 4 fichiers.
 
