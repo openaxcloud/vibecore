@@ -27,22 +27,43 @@ const logger = createScopedLogger('provider-fallback');
  * D'où un repli à L'EXÉCUTION, et non à la configuration.
  */
 
-/**
- * `sterile` est le seul de ces motifs qui ne vienne PAS d'un refus de répondre.
+/*
+ * CE QUI PEUT ÉCARTER UN FOURNISSEUR POUR TOUT LE POD — ET CE QUI NE LE PEUT PAS.
  *
- * Les cinq autres arrivent AVANT la génération : le fournisseur dit non, et on
- * le sait tout de suite. `sterile` décrit l'inverse — un fournisseur qui répond
- * `200`, produit du texte, et n'écrit aucun fichier sur une consigne de
- * construction. Il n'a rien refusé ; il a rendu du vide, et sans ce motif la
- * plateforme comptait cela comme une réussite.
+ * Décision du 2026-09-28 (Avi) : « un seul échec d'un seul utilisateur ne doit
+ * pas pénaliser tous les autres ; la mise à l'écart est bornée à la requête ou à
+ * l'utilisateur, jamais au processus entier ». Elle remplace celle du 2026-09-10,
+ * qui faisait d'un tour « stérile » (zéro fichier en construction) un motif
+ * d'écart global.
  *
- * Il se range ici plutôt que dans une table séparée pour une raison de fond :
- * la conséquence est exactement la même — écarter ce maillon pendant la fenêtre
- * de TTL pour que le tour SUIVANT parte sur un fournisseur capable. Une seconde
- * table aurait dupliqué la marche de la chaîne que `resolveRuntimeProvider`
- * fait déjà.
+ * Mesuré le 2026-09-28 en production (pod `web-…-klvwq`, projet
+ * `cmukvgycf00cp0nf94j2l71js`) : une demande de plan « n'écris aucun fichier »
+ * — une réponse PARFAITE à zéro fichier — a écarté Anthropic 300 s pour tous les
+ * utilisateurs du pod, et la relance du même tour est partie sur `gpt-4.1`.
+ *
+ * La table de ce module est partagée par le processus. N'y entrent donc que les
+ * signaux qui décrivent LE FOURNISSEUR, identiques pour tout le monde :
+ *
+ *   - la clé de la plateforme refusée ou à sec : `credit`, `auth`, `rate-limit` ;
+ *   - le verdict de la SONDE d'un jeton (`ensureProviderProbed`), qui mesure le
+ *     fournisseur lui-même et non le tour de quelqu'un.
+ *
+ * Un 5xx ou un délai pendant le tour d'UN utilisateur, et à plus forte raison un
+ * tour qui n'écrit rien, décrivent CETTE requête : ils restent dans sa portée.
+ * `sterile` n'existe donc plus comme motif de cette table.
  */
-export type ProviderFailureKind = 'credit' | 'auth' | 'rate-limit' | 'server' | 'timeout' | 'sterile';
+export type ProviderFailureKind = 'credit' | 'auth' | 'rate-limit' | 'server' | 'timeout';
+
+/** Motifs qui portent sur la CLÉ de la plateforme — les seuls qu'un tour d'utilisateur peut propager au pod. */
+const MOTIFS_DE_CLE: ReadonlySet<ProviderFailureKind> = new Set(['credit', 'auth', 'rate-limit']);
+
+/**
+ * Vrai quand un échec survenu PENDANT le tour d'un utilisateur décrit la clé de
+ * la plateforme, et peut donc écarter le fournisseur pour tout le pod.
+ */
+export function echecDeCle(kind: ProviderFailureKind | null | undefined): kind is ProviderFailureKind {
+  return kind != null && MOTIFS_DE_CLE.has(kind);
+}
 
 export type ProviderHealthEntry = Readonly<{
   kind: ProviderFailureKind;
@@ -113,6 +134,15 @@ export function markProviderUnhealthy(
   now: number = Date.now(),
   ttlMs: number = PROVIDER_UNHEALTHY_TTL_MS,
 ): void {
+  /*
+   * Garde d'exécution en plus du type : un appelant non typé (ou un `as`) ne doit
+   * pas pouvoir réintroduire un motif de portée « requête » dans la table du pod.
+   */
+  if (!(['credit', 'auth', 'rate-limit', 'server', 'timeout'] as const).includes(kind)) {
+    logger.error(`Motif [${String(kind)}] refusé : il ne peut pas écarter [${providerName}] pour tout le pod.`);
+    return;
+  }
+
   health.set(providerName, { kind, until: now + ttlMs, detail });
   logger.warn(`Fournisseur [${providerName}] écarté ${Math.round(ttlMs / 1000)}s — ${kind} : ${detail}`);
 }

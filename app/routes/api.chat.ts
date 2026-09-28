@@ -47,7 +47,7 @@ import {
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { fournisseurInapte, type ConstatDeTour } from '~/lib/.server/llm/aptitude-fournisseur';
-import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
+import { classifyProviderFailure, echecDeCle, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { arbitrerCacheAnthropic } from '~/lib/.server/llm/arbitrage-cache-anthropic';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
@@ -56,7 +56,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
 import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
-import { suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
+import { refusExpliciteDeFichiers, suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
@@ -1025,6 +1025,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const projectSkills = await retrieveSkillsForAgentContext(request, { projectId, userPrompt: skillUserPrompt });
 
         /*
+         * L'UTILISATEUR A-T-IL DIT NON AUX FICHIERS ? Calculé UNE fois, sur la
+         * demande d'origine — jamais sur une relance ajoutée ensuite à
+         * `processedMessages`. Mesuré le 2026-09-28 en production : « n'écris
+         * AUCUN fichier […] attends ma validation », le modèle obéit, et la
+         * relance d'annonce écrivait quand même onze fichiers refusés.
+         */
+        const fichiersRefuses = refusExpliciteDeFichiers(skillUserPrompt);
+
+        /*
          * RPL-SK-001.2 — surface the progressive-disclosure trace as an annotation
          * so the lazy loading (L1 for all installed skills, L2 only for triggered
          * ones) is observable per turn, not just claimed.
@@ -1746,7 +1755,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * throws out of onFinish.
              */
             const warnIfNoFilesGenerated = () => {
-              if (chatMode !== 'build' || fichiersEmis > 0) {
+              // Un refus explicite de l'utilisateur n'est pas une génération ratée.
+              if (chatMode !== 'build' || fichiersEmis > 0 || fichiersRefuses) {
                 return;
               }
 
@@ -1956,6 +1966,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 finishReason,
                 modeConstruction: chatMode === 'build',
                 fichierEmis: fichiersEmis > 0,
+                fichiersRefuses,
                 segmentsConsommes: continuationSegments,
                 segmentsMax: MAX_RESPONSE_SEGMENTS,
               },
@@ -1988,7 +1999,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * maillon capable au lieu de répéter le vide.
              */
             const constatDuTour: ConstatDeTour = {
-              modeConstruction: chatMode === 'build',
+              /*
+               * Un tour sans fichier sur un REFUS explicite est la bonne réponse,
+               * comme en mode discussion : il n'établit rien sur le fournisseur.
+               */
+              modeConstruction: chatMode === 'build' && !fichiersRefuses,
               fichiersEcrits: fichiersEmis,
 
               /*
@@ -2000,16 +2015,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               termine: finishReason === 'stop',
             };
 
+            /*
+             * PORTÉE : CETTE REQUÊTE, JAMAIS LE POD. Décision du 2026-09-28 : un
+             * tour sans fichier ne dit rien du fournisseur pour les autres
+             * utilisateurs — mesuré ce jour-là, une simple demande de plan avait
+             * écarté Anthropic 300 s pour tout le pod. Le constat reste JOURNALISÉ ;
+             * sa seule conséquence est dans le tour lui-même (la relance, puis
+             * l'échec franc au plafond), et sur le MÊME modèle.
+             */
             if (fournisseurInapte(constatDuTour) && routedTurnProvider) {
-              markProviderUnhealthy(
-                routedTurnProvider,
-                'sterile',
-                `zéro fichier sur un tour de construction terminé (segments=${continuationSegments})`,
-              );
-
               logger.error(
                 JSON.stringify({
                   event: 'chat.fournisseur.sterile',
+                  portee: 'requete',
                   projectId,
                   provider: routedTurnProvider,
                   model: routedTurnModel,
@@ -2605,8 +2623,25 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         if (!clientDisconnected && routedTurnProvider) {
           const kind = classifyProviderFailure(error);
 
-          if (kind) {
+          /*
+           * Seuls les échecs de CLÉ (crédit, clé refusée, quota de la clé) sont
+           * les mêmes pour tout le monde et peuvent écarter le fournisseur pour le
+           * pod. Un 5xx ou un délai sur UN tour reste dans sa portée : décision du
+           * 2026-09-28, « un seul échec d'un seul utilisateur ne pénalise pas les
+           * autres ». Une vraie panne du fournisseur est vue par la sonde d'un
+           * jeton de `stream-text`, qui mesure le fournisseur et non un tour.
+           */
+          if (echecDeCle(kind)) {
             markProviderUnhealthy(routedTurnProvider, kind, String(error?.message ?? code).slice(0, 300));
+          } else if (kind) {
+            logger.warn(
+              JSON.stringify({
+                event: 'chat.fournisseur.echec-requete',
+                portee: 'requete',
+                provider: routedTurnProvider,
+                kind,
+              }),
+            );
           }
         }
 

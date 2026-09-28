@@ -4,6 +4,7 @@ import {
   PROVIDER_FALLBACK_CHAIN,
   PROVIDER_UNHEALTHY_TTL_MS,
   classifyProviderFailure,
+  echecDeCle,
   getProviderHealth,
   isProviderHealthy,
   isRetriableProviderFailure,
@@ -212,5 +213,40 @@ describe('modèles de la chaîne', () => {
 
   it('classe OpenAI avant Google', () => {
     expect(PROVIDER_FALLBACK_CHAIN.map((e) => e.provider)).toEqual([openai.name, google.name]);
+  });
+});
+
+describe('portée de la mise à l’écart — jamais le pod pour l’échec d’un seul utilisateur (2026-09-28)', () => {
+  beforeEach(() => {
+    resetProviderHealth();
+  });
+
+  it('seuls les échecs de CLÉ peuvent écarter un fournisseur pour tout le pod', () => {
+    expect(echecDeCle('credit')).toBe(true);
+    expect(echecDeCle('auth')).toBe(true);
+    expect(echecDeCle('rate-limit')).toBe(true);
+
+    // Un 5xx ou un délai sur le tour d'UN utilisateur reste dans sa requête.
+    expect(echecDeCle('server')).toBe(false);
+    expect(echecDeCle('timeout')).toBe(false);
+    expect(echecDeCle(null)).toBe(false);
+    expect(echecDeCle(undefined)).toBe(false);
+  });
+
+  it('LE DÉFAUT — un motif « stérile » ne peut plus entrer dans la table du pod', () => {
+    /*
+     * Mesuré en production le 2026-09-28 : une demande de plan sans fichier avait
+     * écarté Anthropic 300 s pour tous les utilisateurs du pod.
+     */
+    markProviderUnhealthy('Anthropic', 'sterile' as never, 'zéro fichier');
+
+    expect(isProviderHealthy('Anthropic')).toBe(true);
+    expect(getProviderHealth('Anthropic')).toBeUndefined();
+  });
+
+  it('TÉMOIN — la table fonctionne pour un vrai motif de clé', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'credit balance is too low');
+
+    expect(isProviderHealthy('Anthropic')).toBe(false);
   });
 });

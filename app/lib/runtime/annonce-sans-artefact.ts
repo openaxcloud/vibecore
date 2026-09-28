@@ -54,12 +54,78 @@ export const RELANCE_ARTEFACT_MANQUANT = [
   "au démarrage de l'application. Aucun préambule, aucune explication — l'artefact seul.",
 ].join(' ');
 
+/*
+ * L'UTILISATEUR A DIT NON. Mesuré le 2026-09-28 en production, sur un vrai tour
+ * `claude-opus-5` (projet `cmukvgycf00cp0nf94j2l71js`) : la consigne était « n'écris
+ * AUCUN fichier et ne produis aucun artefact : présente uniquement ton plan […]
+ * puis arrête-toi et attends ma validation ». Le modèle a obéi — « Aucun fichier
+ * n'est écrit à ce stade — j'attends ta validation » — et la relance ci-dessus l'a
+ * contredit : le segment suivant a écrit ONZE fichiers.
+ *
+ * Un tour sans fichier est ici la bonne réponse, exactement comme en mode
+ * discussion. La relance est un filet contre un modèle qui s'arrête trop tôt ;
+ * elle ne doit jamais passer par-dessus une décision de l'utilisateur.
+ *
+ * La détection est volontairement ÉTROITE : elle exige un refus explicite
+ * (négation + écriture de fichiers/code, « plan seulement », « attends ma
+ * validation »). Un faux négatif rend le comportement d'avant — la relance —,
+ * un faux positif rend un tour sans fichier que l'utilisateur voit et peut
+ * relancer lui-même. Épinglé par `annonce-sans-artefact.spec.ts`.
+ */
+const REFUS_DE_FICHIERS: readonly RegExp[] = [
+  // « n'écris aucun fichier », « ne crée pas de fichiers », « ne génère aucun code »
+  /\bn(?:e |')\s*(?:(?:l|les)\s+)?(?:ecri|cree|genere|produi|touche|modifie|code|lance|commence)\w*\s+(?:encore\s+|rien\s+|aucun\w*\s+|pas\s+(?:de\s+|d'|encore\s+)?(?:(?:un|une|les|le|la)\s+)?)[^.!?\n]{0,30}?\b(?:fichiers?|code|artefacts?|implementation|modifications?)\b/,
+
+  // « sans écrire de fichier », « sans toucher au code »
+  /\bsans\s+(?:rien\s+)?(?:ecrire|creer|generer|produire|toucher|modifier)\b[^.!?\n]{0,20}?\b(?:fichiers?|code|artefacts?)\b/,
+
+  // « aucun fichier », « aucun artefact » posés comme consigne
+  /\b(?:aucun|aucune|zero|pas\s+de|pas\s+d')\s+(?:fichiers?|artefacts?|code)\b/,
+
+  // « uniquement ton plan », « plan seulement », « juste le plan »
+  /\b(?:uniquement|seulement|juste)\s+(?:ton|le|un|votre|mon)\s+plan\b/,
+  /\bplan\s+(?:seulement|uniquement)\b/,
+
+  // « attends ma validation », « attendez mon feu vert »
+  /\batten[dt]\w*\s+(?:ma|mon|notre|la|le)\s+(?:validation|feu vert|accord|confirmation|go)\b/,
+
+  // anglais
+  /\b(?:do not|don't|dont|never)\s+(?:write|create|generate|produce|touch|modify|change|edit)\b[^.!?\n]{0,30}?\b(?:files?|code|artifacts?)\b/,
+  /\bwithout\s+(?:writing|creating|generating|touching|changing)\b[^.!?\n]{0,20}?\b(?:files?|code)\b/,
+  /\bno\s+(?:files?|code|artifacts?)\s+(?:yet|for now|now|please)\b/,
+  /\b(?:plan only|only (?:the|a|your) plan|just (?:the|a|your) plan)\b/,
+  /\bwait (?:for )?my (?:approval|confirmation|go-ahead|validation|ok)\b/,
+];
+
+function normaliser(texte: string): string {
+  return texte
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2019\u02bc`]/g, "'")
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+/** Vrai quand le message de l'utilisateur REFUSE explicitement l'écriture de fichiers. */
+export function refusExpliciteDeFichiers(texte: string | undefined | null): boolean {
+  if (!texte) {
+    return false;
+  }
+
+  const t = normaliser(texte);
+
+  return REFUS_DE_FICHIERS.some((motif) => motif.test(t));
+}
+
 export type FinDeTour = Readonly<{
   /** Raison de fin rendue par le fournisseur. */
   finishReason: string;
 
   /** Le tour DEMANDAIT des fichiers. */
   modeConstruction: boolean;
+
+  /** L'utilisateur a explicitement REFUSÉ l'écriture de fichiers pour ce tour. */
+  fichiersRefuses: boolean;
 
   /** Au moins une action de fichier a été émise pendant le tour. */
   fichierEmis: boolean;
@@ -93,7 +159,7 @@ export function suiteDuTour(fin: FinDeTour, relanceLongueur: string): SuiteDuTou
       : { action: 'continuer', cause: 'longueur', relance: relanceLongueur };
   }
 
-  if (!fin.modeConstruction || fin.fichierEmis) {
+  if (!fin.modeConstruction || fin.fichierEmis || fin.fichiersRefuses) {
     return { action: 'terminer' };
   }
 
