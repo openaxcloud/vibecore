@@ -136,5 +136,20 @@ for (const [nom, largeur, hauteur] of [
         `conteneur de ${m.hauteurConteneur}px qui le rogne`,
     ).toBe(true);
     expect(m.annulerPeint, '« Tout annuler » doit être atteignable').toBe(true);
+
+    if (largeur < 768) {
+      /*
+       * BUG-TOAST-ENTETE-001 (#589) — sur téléphone, la bande 0..96 est le
+       * chrome du panneau (en-tête + barre d'adresse de la Webview, mesurés en
+       * production). Le bandeau s'ouvrait à y=60, dessus ; et collé au bord
+       * gauche (x=0) parce que la copie en ligne de react-toastify gagne `left`.
+       */
+      expect(
+        m.rect.haut,
+        `le bandeau (${JSON.stringify(m.rect)}) recouvre le chrome du panneau (0..96)`,
+      ).toBeGreaterThanOrEqual(96);
+      expect(m.rect.gauche, 'le bandeau est collé au bord gauche').toBeGreaterThanOrEqual(8);
+      expect(m.rect.droite, 'le bandeau déborde à droite').toBeLessThanOrEqual(largeur - 8);
+    }
   });
 }

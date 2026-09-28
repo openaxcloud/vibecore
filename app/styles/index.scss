@@ -13694,7 +13694,27 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-shell {
   width: min(560px, 100%);
-  overflow: hidden;
+
+  /*
+   * BUG-PREVIEW-CUTOFF-002 — TROISIÈME occurrence du mécanisme de BUG-PREVIEW-CUTOFF-001, et celle-ci coupait par le
+   * HAUT. Mesuré le 2026-09-28 à 390 px, pendant un vrai démarrage : contenu de
+   * 715 px dans une boîte de 652 px, `overflow: hidden`, et le parent centré
+   * (`align-items: center`) répartissait les 63 px perdus de part et d'autre —
+   * la coque s'étendait de y=56 à y=818 dans une fenêtre qui s'arrête à 764.
+   * Les 55 px du haut, chrome de la carte compris, étaient INATTEIGNABLES :
+   * `.bolt-project-webview-viewport` a bien `overflow-y: auto`, mais son
+   * `scrollHeight` valait exactement son `clientHeight` (652) — un enfant clampé
+   * en `hidden` ne propage aucun débordement à faire défiler.
+   *
+   * Le remède est celui que `.bolt-preview-loading-card` porte déjà quelques
+   * centaines de lignes plus bas, pour le même mécanisme : on borne la hauteur
+   * et on rend l'excédent défilable. L'axe X reste masqué, c'est lui qui tient
+   * les coins arrondis.
+   */
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 14px;
   background: color-mix(in srgb, var(--vc-ide-bg-card) 94%, transparent);
@@ -22739,6 +22759,36 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   bottom: auto;
   width: min(380px, calc(100vw - 32px));
   max-height: calc(100dvh - 80px - env(safe-area-inset-top, 0px));
+}
+
+/*
+ * BUG-TOAST-ENTETE-001 — mesuré le 2026-09-28 à 390 px pendant une vraie
+ * génération : le bandeau « 1 fichier appliqué » s'ouvrait à y=60 et recouvrait
+ * la barre d'adresse de la Webview (y=60..88) et son bouton « ouvrir dans un
+ * onglet » (y=52..96). Ce n'est pas déduit : la sonde a demandé au navigateur
+ * ce qui se trouvait SOUS le rectangle du bandeau (`elementsFromPoint` sur une
+ * grille de neuf points), et ce sont ces deux éléments qu'il a nommés.
+ *
+ * Les 60 px viennent de la règle juste au-dessus, calibrée sur la barre
+ * supérieure du projet. Sur téléphone cette barre est COLLAPSÉE — hauteur
+ * mesurée : 0 — et c'est le chrome du panneau qui occupe la bande 0..96. La
+ * pile de notifications descend donc sous ce chrome.
+ *
+ * Pas par le bas : le composeur de l'agent et la barre de navigation mobile
+ * (mesurée y=772..844) y vivent déjà, et masquer le champ de saisie serait pire
+ * que masquer une barre d'adresse.
+ */
+@media (max-width: 767px) {
+  body:has(.bolt-project-statusbar) .Toastify__toast-container {
+    top: calc(var(--vc-ide-topbar-height, 48px) + 44px + 12px + env(safe-area-inset-top, 0px));
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(
+      100dvh - var(--vc-ide-topbar-height, 48px) - 44px - 12px - 84px - env(safe-area-inset-top, 0px) -
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
 }
 
 /*

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-359 entrées.
+361 entrées.
 
 ## Sans section
 
@@ -373,9 +373,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-THEME-017](docs/bugs/BUG-THEME-017.md) — P1 — Zone CONNECTÉE, thème SOMBRE : les CTA d'action (« Créer un projet », « Créer une clé », « Obtenir l'app bureau », « Créer ») affichent du blanc sur l'oran
 - [BUG-THEME-018](docs/bugs/BUG-THEME-018.md) — P2 — Zone CONNECTÉE, thème CLAIR : les libellés d'état succès/avertissement passent juste sous AA
 - [BUG-THEME-019](docs/bugs/BUG-THEME-019.md) — P1 (défaut de RENDU, pas seulement de contraste) — 66 utilitaires perdaient SILENCIEUSEMENT leur opacité.
+- [BUG-TEST-WEBKIT-001](docs/bugs/BUG-TEST-WEBKIT-001.md)
+- [BUG-PREVIEW-CUTOFF-002](docs/bugs/BUG-PREVIEW-CUTOFF-002.md) — P2 — la carte de préparation de l'aperçu est tronquée EN HAUT sur téléphone
+- [BUG-TOAST-ENTETE-001](docs/bugs/BUG-TOAST-ENTETE-001.md) — P2 — le bandeau « 1 fichier appliqué » recouvre l'en-tête du panneau sur téléphone
 - [BUG-TYPE-CI-001](docs/bugs/BUG-TYPE-CI-001.md) — `tsconfig.web.json`, le seul fichier que la CI typecheck pour l'application,
 
-- [BUG-TEST-WEBKIT-001](docs/bugs/BUG-TEST-WEBKIT-001.md) — DETTE — la validation mobile tourne sur Chromium alors qu'Avi est sur Safari iOS : le projet `webkit-iphone` ne couvre que 4 fichiers.
 - [BUG-TOAST-ROGNE-001](docs/bugs/BUG-TOAST-ROGNE-001.md) — P1 — les toasts de l'IDE sont dans le DOM mais jamais peints : le bandeau « 1 fichier appliqué » et son « Tout annuler » sont inatteignables, sur téléphone comme sur bureau.
 
 ## Résidus non tabulaires — reportés mot pour mot
