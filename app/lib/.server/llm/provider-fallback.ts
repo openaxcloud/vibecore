@@ -292,8 +292,10 @@ function resolveChainModel(provider: LLMProvider, preferred: string): string {
 export type RuntimeProviderChoice = Readonly<{
   provider: LLMProvider;
   model: string;
-  switchedFrom?: Readonly<{ provider: string; reason: ProviderFailureKind; detail: string }>;
+  switchedFrom?: Readonly<{ provider: string; model: string; reason: ProviderFailureKind; detail: string }>;
 }>;
+
+export type MaillonDeRepli = Readonly<{ provider: string; model: string }>;
 
 /**
  * Choisit le fournisseur à employer POUR CE TOUR, en tenant compte des échecs
@@ -307,15 +309,25 @@ export function resolveRuntimeProvider(options: {
   apiKeys?: Record<string, string>;
   serverEnv?: Record<string, string>;
   now?: number;
+
+  /*
+   * LA CHAÎNE VIENT DE LA CARTE DE ROUTAGE quand il y en a une. Mesuré le
+   * 2026-09-28 : un tour Anthropic écarté partait sur `gpt-4.1`, pris dans la
+   * chaîne codée en dur ci-dessus, alors que la carte déclare sa propre ligne
+   * `fallback`. `[]` = la carte ne déclare aucun repli : on garde le fournisseur
+   * demandé et son erreur réelle. Absente = pas de carte (API injoignable) :
+   * chaîne historique, en dernier recours, et la bascule reste DÉCLARÉE.
+   */
+  chaine?: readonly MaillonDeRepli[];
 }): RuntimeProviderChoice {
-  const { provider, model, apiKeys, serverEnv, now = Date.now() } = options;
+  const { provider, model, apiKeys, serverEnv, now = Date.now(), chaine = PROVIDER_FALLBACK_CHAIN } = options;
   const failure = getProviderHealth(provider.name, now);
 
   if (!failure) {
     return { provider, model };
   }
 
-  for (const step of PROVIDER_FALLBACK_CHAIN) {
+  for (const step of chaine) {
     if (step.provider === provider.name) {
       continue;
     }
@@ -333,7 +345,7 @@ export function resolveRuntimeProvider(options: {
     return {
       provider: candidate,
       model: resolveChainModel(candidate, step.model),
-      switchedFrom: { provider: provider.name, reason: failure.kind, detail: failure.detail },
+      switchedFrom: { provider: provider.name, model, reason: failure.kind, detail: failure.detail },
     };
   }
 

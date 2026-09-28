@@ -139,6 +139,7 @@ describe('choix du fournisseur pour le tour', () => {
     expect(choix.model).toBe('gpt-4.1');
     expect(choix.switchedFrom).toEqual({
       provider: 'Anthropic',
+      model: 'claude-sonnet-4-5-20250929',
       reason: 'credit',
       detail: 'Your credit balance is too low',
     });
@@ -248,5 +249,48 @@ describe('portée de la mise à l’écart — jamais le pod pour l’échec d�
     markProviderUnhealthy('Anthropic', 'credit', 'credit balance is too low');
 
     expect(isProviderHealthy('Anthropic')).toBe(false);
+  });
+});
+
+describe('le repli est CELUI DE LA CARTE de routage (2026-09-28)', () => {
+  beforeEach(() => {
+    resetProviderHealth();
+  });
+
+  it('LE DÉFAUT — la carte déclare Gemini : le tour ne part plus sur gpt-4.1 codé en dur', () => {
+    /*
+     * Mesuré en production : Anthropic écarté, le tour partait sur `gpt-4.1`,
+     * premier maillon de la chaîne codée en dur, alors que la carte déclarait
+     * `google/gemini-2.5-pro`.
+     */
+    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+
+    const choix = resolveRuntimeProvider({
+      provider: anthropic,
+      model: 'claude-opus-5',
+      apiKeys: CLES,
+      chaine: [{ provider: 'Google', model: 'gemini-2.5-pro' }],
+    });
+
+    expect(choix.provider.name).toBe('Google');
+    expect(choix.model).toBe('gemini-2.5-pro');
+    expect(choix.switchedFrom).toMatchObject({ provider: 'Anthropic', model: 'claude-opus-5', reason: 'credit' });
+  });
+
+  it('la carte ne déclare AUCUN repli : on garde le modèle demandé et son erreur réelle', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+
+    const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES, chaine: [] });
+
+    expect(choix.provider.name).toBe('Anthropic');
+    expect(choix.switchedFrom).toBeUndefined();
+  });
+
+  it('TÉMOIN — sans carte, la chaîne historique reste le dernier recours', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+
+    const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES });
+
+    expect(choix.provider.name).toBe(PROVIDER_FALLBACK_CHAIN[0].provider);
   });
 });

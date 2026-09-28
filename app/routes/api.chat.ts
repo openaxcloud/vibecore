@@ -450,6 +450,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let agentTargetLine: AgentRouteLine | undefined = agentRoute?.base;
   let agentEscalated = false;
+
+  /*
+   * LE REPLI EST CELUI DE LA CARTE, ET IL EST DIT. Mesuré le 2026-09-28 en
+   * production : Anthropic écarté, le tour partait sur `gpt-4.1` — pris dans une
+   * chaîne codée en dur, pas dans la carte — sans un mot pour l'utilisateur.
+   * `null` : la carte ne déclare pas de repli, on garde le modèle demandé et son
+   * erreur réelle. `undefined` : pas de carte (API injoignable), chaîne
+   * historique, et la bascule reste déclarée.
+   */
+  const repliDeCarte = agentRoute
+    ? agentRoute.fallback
+      ? { provider: boltProviderName(agentRoute.fallback.provider), model: agentRoute.fallback.model }
+      : null
+    : undefined;
+
+  let basculeVersRepli = false;
   let agentHardnessDecidedBy: 'heuristic' | 'llm' | undefined;
 
   let agentClassifierUsage: { provider: string; model: string; inputTokens: number; outputTokens: number } | undefined;
@@ -950,6 +966,29 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let messageSliceId = 0;
 
         const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
+
+        /*
+         * Une bascule de fournisseur est DITE : annotation sur le message (rendue
+         * dans la bulle) et journal. Une seule fois par tour, même si la
+         * continuation rebascule.
+         */
+        const declarerBascule = (bascule: {
+          depuis: { provider: string; model: string };
+          vers: { provider: string; model: string };
+          motif: string;
+        }) => {
+          const premiere = !basculeVersRepli;
+          basculeVersRepli = true;
+
+          logger.warn(JSON.stringify({ event: 'chat.fournisseur.bascule', projectId, ...bascule }));
+
+          if (premiere) {
+            dataStream.writeMessageAnnotation({
+              type: 'basculeFournisseur',
+              ...bascule,
+            } satisfies ContextAnnotation);
+          }
+        };
 
         /*
          * Stable per-conversation id: the project id when present, else the first
@@ -1893,7 +1932,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                             highEffort: agentSelection.highEffort,
                             escalated: agentEscalated,
                             turbo: agentSelection.turbo,
-                            lineKey: agentTargetLine.lineKey,
+
+                            // Un tour servi par le repli est facturé sur la ligne de repli de la carte.
+                            lineKey:
+                              basculeVersRepli && agentRoute.fallback
+                                ? agentRoute.fallback.lineKey
+                                : agentTargetLine.lineKey,
                             source: 'chat',
                           },
                         }
@@ -2177,6 +2221,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   forcedRoute: agentTargetLine
                     ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
                     : undefined,
+                  repliDeCarte,
+                  onBasculeFournisseur: declarerBascule,
                   env: context.cloudflare?.env,
                   options,
                   apiKeys,
@@ -2363,6 +2409,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           forcedRoute: agentTargetLine
             ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
             : undefined,
+          repliDeCarte,
+          onBasculeFournisseur: declarerBascule,
           env: context.cloudflare?.env,
           options,
           apiKeys,

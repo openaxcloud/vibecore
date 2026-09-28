@@ -358,11 +358,7 @@ describe('admin agent routing', () => {
 });
 
 describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)', () => {
-  const resolve = (
-    app: Awaited<ReturnType<typeof setup>>['app'],
-    projectId: string,
-    qs: string,
-  ) =>
+  const resolve = (app: Awaited<ReturnType<typeof setup>>['app'], projectId: string, qs: string) =>
     app.inject({
       method: 'GET',
       url: `/projects/${projectId}/agent/routing/resolve${qs}`,
@@ -421,6 +417,55 @@ describe('GET /projects/:id/agent/routing/resolve (control-plane decision point)
     const granted = await resolve(app, project.id, '?mode=max&turbo=true');
     expect(granted.statusCode).toBe(200);
     expect(granted.json().base).toMatchObject({ lineKey: 'turbo', provider: 'openai', model: 'gpt-5.6-sol' });
+  });
+
+  it('renvoie la ligne de REPLI de la carte — la génération ne la devine plus (2026-09-28)', async () => {
+    const { app, project } = await setup();
+
+    const res = (await resolve(app, project.id, '?mode=power')).json();
+    expect(res.fallback).toMatchObject({ lineKey: 'fallback', provider: 'google', model: 'gemini-2.5-pro' });
+  });
+
+  it('carte active SANS ligne de repli (cas de la prod) : le repli intégré est renvoyé ET chiffré', async () => {
+    /*
+     * Mesuré le 2026-09-28 : la carte active en production est antérieure à la
+     * ligne `fallback`. Décision d'Avi : le repli intégré s'applique, annoncé.
+     * Sans `carteAvecRepli`, la résolution n'aurait aucun repli ET le journal de
+     * facturation sauterait en silence le tour servi par le repli.
+     */
+    const { app, store, project } = await setup();
+
+    /*
+     * Inséré directement dans le magasin, comme la ligne de production : l'admin
+     * d'aujourd'hui refuse de publier une carte incomplète, la ligne de prod
+     * date d'avant cette validation.
+     */
+    const ancienne = {
+      ...BUILTIN_AGENT_ROUTING_CARD,
+      lines: BUILTIN_AGENT_ROUTING_CARD.lines.filter((l) => l.key !== 'fallback'),
+    };
+    await store.createAgentRoutingCardVersion({ data: ancienne });
+    resetAgentRoutingCache();
+
+    const res = (await resolve(app, project.id, '?mode=power')).json();
+    expect(res.fallback).toMatchObject({ lineKey: 'fallback', provider: 'google', model: 'gemini-2.5-pro' });
+
+    const usage = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/ai/record-usage`,
+      headers: auth('agm-token'),
+      payload: {
+        provider: 'google',
+        model: 'gemini-2.5-pro',
+        inputTokens: 1_000,
+        outputTokens: 100,
+        agentRouting: { mode: 'power', lineKey: 'fallback' },
+      },
+    });
+    expect(usage.statusCode).toBe(200);
+
+    const calls = await store.listAgentCalls();
+    expect(calls.some((call) => call.lineKey === 'fallback' && call.model === 'gemini-2.5-pro')).toBe(true);
   });
 
   it('treats the literal string "false" as false (query-string boolean trap)', async () => {

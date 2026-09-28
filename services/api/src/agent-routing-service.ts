@@ -9,7 +9,12 @@
  * Cached for 60s per process; every logged call stamps the card version it
  * was actually priced with, so a stale-by-a-minute card is harmless.
  */
-import { BUILTIN_AGENT_ROUTING_CARD, migrerVocabulaireDesCles, type AgentRoutingCard } from '@vibecore/billing';
+import {
+  BUILTIN_AGENT_ROUTING_CARD,
+  migrerVocabulaireDesCles,
+  routingLine,
+  type AgentRoutingCard,
+} from '@vibecore/billing';
 import { z } from 'zod';
 
 import type { ApiStore } from './store.js';
@@ -115,4 +120,24 @@ export async function seedAgentRoutingCard(
       error: (error as Error).message,
     });
   }
+}
+
+/**
+ * La carte, COMPLÉTÉE de la ligne de repli intégrée si elle n'en déclare pas.
+ *
+ * Mesuré le 2026-09-28 : la carte active en production (`card_v3_opus5_20260820`)
+ * est antérieure à la ligne `fallback` et n'en porte pas. Décision d'Avi le même
+ * jour : quand la carte active n'en déclare pas, le repli est celui de la carte
+ * intégrée — toujours annoncé à l'utilisateur. Une seule fonction pour les deux
+ * usages (résolution du tour ET facturation), sans quoi la ligne de repli
+ * servirait un tour que le journal de facturation ne saurait pas chiffrer.
+ */
+export function carteAvecRepli(card: AgentRoutingCard): AgentRoutingCard {
+  if (routingLine(card, 'fallback')) {
+    return card;
+  }
+
+  const integree = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'fallback');
+
+  return integree ? { ...card, lines: [...card.lines, integree] } : card;
 }

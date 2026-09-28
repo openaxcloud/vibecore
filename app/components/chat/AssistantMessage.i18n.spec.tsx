@@ -87,6 +87,42 @@ describe('AssistantMessage i18n', () => {
     expect(getAssistantMessageCopy('de')['assistantMessage.context.summary']).toBe('Summary');
   });
 
+  it('DIT la bascule de fournisseur — plus de substitution silencieuse (2026-09-28)', () => {
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content="Réponse"
+          messageId="message-bascule"
+          parts={undefined}
+          annotations={[
+            {
+              type: 'basculeFournisseur',
+              depuis: { provider: 'Anthropic', model: 'claude-opus-5' },
+              vers: { provider: 'Google', model: 'gemini-2.5-pro' },
+              motif: 'credit',
+            },
+          ]}
+          addToolResult={() => undefined}
+        />
+      </I18nextProvider>,
+    );
+
+    const avis = screen.getByTestId('agent-bascule-fournisseur');
+    expect(avis.getAttribute('role')).toBe('status');
+    expect(avis.textContent).toContain('claude-opus-5 était indisponible (crédit du fournisseur épuisé)');
+    expect(avis.textContent).toContain('produite par gemini-2.5-pro, le repli déclaré par la carte de routage');
+  });
+
+  it('TÉMOIN — sans bascule, aucun avis', () => {
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage content="Réponse" messageId="m-sans" parts={undefined} addToolResult={() => undefined} />
+      </I18nextProvider>,
+    );
+
+    expect(screen.queryByTestId('agent-bascule-fournisseur')).toBeNull();
+  });
+
   it('renders the assistant chrome and message actions in French without translating user content', () => {
     render(
       <I18nextProvider i18n={createI18nInstance('fr')}>
