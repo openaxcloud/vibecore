@@ -16,7 +16,9 @@ id: BUG-TOAST-ROGNE-001
 
 ## ✅ Testé live
 
-☐ — correctif posé et épinglé ; la vérification à l'écran attend le déploiement.
+☑ 28/09 — preuve live sur la prod servie en `7f573aaf0` (déploiement 36398927324, CSS `index-CF-FWrxp.css` portant les deux règles), vraie génération, 390 px **WebKit profil iPhone ET Chromium** : bandeau à y=104..278, x=8..382, peint (`elementFromPoint` rend le toast en trois points), sous l'en-tête et la barre d'adresse de la Webview, « Tout annuler » et « Tout fermer » visibles — captures regardées. + épinglé par `tests/e2e/bandeau-toast-visible.spec.ts` (chromium + webkit-iphone ; peinture ET position).
+
+⚠️ Non vérifié sur un Safari iOS **réel** : WebKit de Playwright seulement.
 
 ## Preuve
 

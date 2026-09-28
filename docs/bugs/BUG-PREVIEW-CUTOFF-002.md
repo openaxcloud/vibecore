@@ -16,7 +16,7 @@ id: BUG-PREVIEW-CUTOFF-002
 
 ## ✅ Testé live
 
-☐ — correctif posé et épinglé ; la vérification à l'écran attend le déploiement.
+☐ — DÉPLOYÉ en `7f573aaf0` (règle `max-height: 100%` + `overflow-y: auto` présente dans la CSS servie), mais **PAS vérifié à l'écran** : le 28/09, l'état qui affiche la carte n'a pas pu être reproduit en prod — 5 passes (démarrages à froid, arrêt de l'exécution, génération qui modifie `package.json`, sonde toutes les 150 ms pendant 5 min) sans une seule apparition de `.bolt-preview-splash-shell`. D'après `shouldShowStartupOverlay`, la carte n'apparaît que si l'espace est prêt, sans aperçu actif, sans démarrage ni statut en cours. Reste OUVERT tant qu'une capture n'a pas été prise.
 
 ## Preuve
 
