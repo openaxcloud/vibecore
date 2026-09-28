@@ -67,6 +67,17 @@ export type ContextAnnotation =
       }>;
     }
   | {
+      /*
+       * Le modèle demandé était indisponible et le tour a été servi par le repli
+       * de la carte de routage. Écrit par la route pour que la substitution soit
+       * DITE à l'utilisateur, jamais silencieuse (défaut mesuré le 2026-09-28).
+       */
+      type: 'basculeFournisseur';
+      depuis: { provider: string; model: string };
+      vers: { provider: string; model: string };
+      motif: string;
+    }
+  | {
       type: 'agentRules';
 
       /** Project-relative paths of the rules files (AGENTS.md / .cursorrules) applied. */

@@ -385,6 +385,7 @@ import {
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
   agentRoutingCardSchema,
+  carteAvecRepli,
   getActiveAgentRoutingCard,
   resetAgentRoutingCache,
   seedAgentRoutingCard,
@@ -28644,6 +28645,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
+    /*
+     * LE REPLI DÉCLARÉ EST CELUI DE LA CARTE. Mesuré le 2026-09-28 en production :
+     * quand Anthropic était écarté, le tour partait sur `gpt-4.1`, pris dans une
+     * chaîne codée en dur côté `web`, alors que la carte déclare sa propre ligne
+     * `fallback` — et rien ne le disait à l'utilisateur. La ligne est renvoyée
+     * ici pour que la génération n'ait plus à la deviner ; absente ou inactive,
+     * il n'y a pas de repli, et l'erreur réelle du fournisseur est rendue.
+     */
+    const fallbackLine = routingLine(carteAvecRepli(card), 'fallback');
+
+    const fallback =
+      fallbackLine && fallbackLine.active
+        ? {
+            lineKey: fallbackLine.key,
+            provider: fallbackLine.provider,
+            model: fallbackLine.model,
+            multiplier: fallbackLine.multiplier,
+          }
+        : undefined;
+
     return {
       routingVersion: card.version,
       mode: requestedMode,
@@ -28651,6 +28672,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       base,
       escalation,
       classifier,
+      fallback,
     };
   });
 
@@ -28728,8 +28750,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         const routingCard = await getActiveAgentRoutingCard(store);
 
+        // Un tour servi par le repli intégré doit être chiffré, pas sauté.
         const callBilling = computeAgentCallBilling(
-          routingCard,
+          carteAvecRepli(routingCard),
           body.agentRouting.lineKey,
           body.inputTokens,
           body.outputTokens,

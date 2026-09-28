@@ -17,7 +17,9 @@ const code = source.replace(/\/\*[\s\S]*?\*\//g, (bloc) => bloc.replace(/[^\n]/g
 
 describe('la décision « annonce sans artefact » est réellement branchée', () => {
   it('la route importe la décision', () => {
-    expect(code).toMatch(/import \{ suiteDuTour \} from '~\/lib\/runtime\/annonce-sans-artefact'/u);
+    expect(code).toMatch(
+      /import \{ refusExpliciteDeFichiers, suiteDuTour \} from '~\/lib\/runtime\/annonce-sans-artefact'/u,
+    );
   });
 
   it('elle la calcule avec le mode, le fichier émis et le compteur de segments', () => {
@@ -81,5 +83,18 @@ describe('la décision « annonce sans artefact » est réellement branchée', (
   it('TÉMOIN — le fichier lu est bien la route, et il n’est pas vide', () => {
     expect(source.length).toBeGreaterThan(50_000);
     expect(code).toContain('warnIfNoFilesGenerated');
+  });
+
+  it('LE REFUS de l’utilisateur est calculé sur SA demande et consulté à trois endroits', () => {
+    /*
+     * Mesuré le 2026-09-28 en production : « n'écris AUCUN fichier […] attends ma
+     * validation » — la relance écrivait onze fichiers refusés. Le refus doit
+     * venir de la demande d'origine (pas d'une relance ajoutée ensuite), et être
+     * lu par la décision, le constat d'aptitude et l'avertissement « aucun fichier ».
+     */
+    expect(code).toMatch(/const fichiersRefuses = refusExpliciteDeFichiers\(skillUserPrompt\);/u);
+    expect(code).toMatch(/fichierEmis: fichiersEmis > 0,\s*fichiersRefuses,/u);
+    expect(code).toMatch(/modeConstruction: chatMode === 'build' && !fichiersRefuses,/u);
+    expect(code).toMatch(/if \(chatMode !== 'build' \|\| fichiersEmis > 0 \|\| fichiersRefuses\)/u);
   });
 });

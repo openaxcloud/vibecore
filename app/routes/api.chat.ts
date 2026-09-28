@@ -47,7 +47,7 @@ import {
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { fournisseurInapte, type ConstatDeTour } from '~/lib/.server/llm/aptitude-fournisseur';
-import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
+import { classifyProviderFailure, echecDeCle, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { arbitrerCacheAnthropic } from '~/lib/.server/llm/arbitrage-cache-anthropic';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
@@ -56,7 +56,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
 import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
-import { suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
+import { refusExpliciteDeFichiers, suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
@@ -450,6 +450,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let agentTargetLine: AgentRouteLine | undefined = agentRoute?.base;
   let agentEscalated = false;
+
+  /*
+   * LE REPLI EST CELUI DE LA CARTE, ET IL EST DIT. Mesuré le 2026-09-28 en
+   * production : Anthropic écarté, le tour partait sur `gpt-4.1` — pris dans une
+   * chaîne codée en dur, pas dans la carte — sans un mot pour l'utilisateur.
+   * `null` : la carte ne déclare pas de repli, on garde le modèle demandé et son
+   * erreur réelle. `undefined` : pas de carte (API injoignable), chaîne
+   * historique, et la bascule reste déclarée.
+   */
+  const repliDeCarte = agentRoute
+    ? agentRoute.fallback
+      ? { provider: boltProviderName(agentRoute.fallback.provider), model: agentRoute.fallback.model }
+      : null
+    : undefined;
+
+  let basculeVersRepli = false;
   let agentHardnessDecidedBy: 'heuristic' | 'llm' | undefined;
 
   let agentClassifierUsage: { provider: string; model: string; inputTokens: number; outputTokens: number } | undefined;
@@ -952,6 +968,29 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
 
         /*
+         * Une bascule de fournisseur est DITE : annotation sur le message (rendue
+         * dans la bulle) et journal. Une seule fois par tour, même si la
+         * continuation rebascule.
+         */
+        const declarerBascule = (bascule: {
+          depuis: { provider: string; model: string };
+          vers: { provider: string; model: string };
+          motif: string;
+        }) => {
+          const premiere = !basculeVersRepli;
+          basculeVersRepli = true;
+
+          logger.warn(JSON.stringify({ event: 'chat.fournisseur.bascule', projectId, ...bascule }));
+
+          if (premiere) {
+            dataStream.writeMessageAnnotation({
+              type: 'basculeFournisseur',
+              ...bascule,
+            } satisfies ContextAnnotation);
+          }
+        };
+
+        /*
          * Stable per-conversation id: the project id when present, else the first
          * message id (unchanged across a conversation). Drives A1's context-selection
          * memo and A7's provider cache-affinity key. Falls back to undefined when
@@ -1023,6 +1062,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           : undefined;
 
         const projectSkills = await retrieveSkillsForAgentContext(request, { projectId, userPrompt: skillUserPrompt });
+
+        /*
+         * L'UTILISATEUR A-T-IL DIT NON AUX FICHIERS ? Calculé UNE fois, sur la
+         * demande d'origine — jamais sur une relance ajoutée ensuite à
+         * `processedMessages`. Mesuré le 2026-09-28 en production : « n'écris
+         * AUCUN fichier […] attends ma validation », le modèle obéit, et la
+         * relance d'annonce écrivait quand même onze fichiers refusés.
+         */
+        const fichiersRefuses = refusExpliciteDeFichiers(skillUserPrompt);
 
         /*
          * RPL-SK-001.2 — surface the progressive-disclosure trace as an annotation
@@ -1746,7 +1794,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * throws out of onFinish.
              */
             const warnIfNoFilesGenerated = () => {
-              if (chatMode !== 'build' || fichiersEmis > 0) {
+              // Un refus explicite de l'utilisateur n'est pas une génération ratée.
+              if (chatMode !== 'build' || fichiersEmis > 0 || fichiersRefuses) {
                 return;
               }
 
@@ -1883,7 +1932,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                             highEffort: agentSelection.highEffort,
                             escalated: agentEscalated,
                             turbo: agentSelection.turbo,
-                            lineKey: agentTargetLine.lineKey,
+
+                            // Un tour servi par le repli est facturé sur la ligne de repli de la carte.
+                            lineKey:
+                              basculeVersRepli && agentRoute.fallback
+                                ? agentRoute.fallback.lineKey
+                                : agentTargetLine.lineKey,
                             source: 'chat',
                           },
                         }
@@ -1956,6 +2010,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 finishReason,
                 modeConstruction: chatMode === 'build',
                 fichierEmis: fichiersEmis > 0,
+                fichiersRefuses,
                 segmentsConsommes: continuationSegments,
                 segmentsMax: MAX_RESPONSE_SEGMENTS,
               },
@@ -1988,7 +2043,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * maillon capable au lieu de répéter le vide.
              */
             const constatDuTour: ConstatDeTour = {
-              modeConstruction: chatMode === 'build',
+              /*
+               * Un tour sans fichier sur un REFUS explicite est la bonne réponse,
+               * comme en mode discussion : il n'établit rien sur le fournisseur.
+               */
+              modeConstruction: chatMode === 'build' && !fichiersRefuses,
               fichiersEcrits: fichiersEmis,
 
               /*
@@ -2000,16 +2059,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               termine: finishReason === 'stop',
             };
 
+            /*
+             * PORTÉE : CETTE REQUÊTE, JAMAIS LE POD. Décision du 2026-09-28 : un
+             * tour sans fichier ne dit rien du fournisseur pour les autres
+             * utilisateurs — mesuré ce jour-là, une simple demande de plan avait
+             * écarté Anthropic 300 s pour tout le pod. Le constat reste JOURNALISÉ ;
+             * sa seule conséquence est dans le tour lui-même (la relance, puis
+             * l'échec franc au plafond), et sur le MÊME modèle.
+             */
             if (fournisseurInapte(constatDuTour) && routedTurnProvider) {
-              markProviderUnhealthy(
-                routedTurnProvider,
-                'sterile',
-                `zéro fichier sur un tour de construction terminé (segments=${continuationSegments})`,
-              );
-
               logger.error(
                 JSON.stringify({
                   event: 'chat.fournisseur.sterile',
+                  portee: 'requete',
                   projectId,
                   provider: routedTurnProvider,
                   model: routedTurnModel,
@@ -2159,6 +2221,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   forcedRoute: agentTargetLine
                     ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
                     : undefined,
+                  repliDeCarte,
+                  onBasculeFournisseur: declarerBascule,
                   env: context.cloudflare?.env,
                   options,
                   apiKeys,
@@ -2345,6 +2409,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           forcedRoute: agentTargetLine
             ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
             : undefined,
+          repliDeCarte,
+          onBasculeFournisseur: declarerBascule,
           env: context.cloudflare?.env,
           options,
           apiKeys,
@@ -2605,8 +2671,25 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         if (!clientDisconnected && routedTurnProvider) {
           const kind = classifyProviderFailure(error);
 
-          if (kind) {
+          /*
+           * Seuls les échecs de CLÉ (crédit, clé refusée, quota de la clé) sont
+           * les mêmes pour tout le monde et peuvent écarter le fournisseur pour le
+           * pod. Un 5xx ou un délai sur UN tour reste dans sa portée : décision du
+           * 2026-09-28, « un seul échec d'un seul utilisateur ne pénalise pas les
+           * autres ». Une vraie panne du fournisseur est vue par la sonde d'un
+           * jeton de `stream-text`, qui mesure le fournisseur et non un tour.
+           */
+          if (echecDeCle(kind)) {
             markProviderUnhealthy(routedTurnProvider, kind, String(error?.message ?? code).slice(0, 300));
+          } else if (kind) {
+            logger.warn(
+              JSON.stringify({
+                event: 'chat.fournisseur.echec-requete',
+                portee: 'requete',
+                provider: routedTurnProvider,
+                kind,
+              }),
+            );
           }
         }
 

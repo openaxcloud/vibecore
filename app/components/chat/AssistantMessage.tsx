@@ -179,6 +179,24 @@ export const AssistantMessage = memo(
       | undefined;
 
     /*
+     * LE MODÈLE DEMANDÉ ÉTAIT INDISPONIBLE — ET ON LE DIT. Mesuré le 2026-09-28 :
+     * un tour choisi en Claude Opus 5 était servi par un autre modèle sans un mot
+     * pour l'utilisateur.
+     */
+    const basculeFournisseur = filteredAnnotations.find((annotation) => annotation.type === 'basculeFournisseur') as
+      | Extract<ContextAnnotation, { type: 'basculeFournisseur' }>
+      | undefined;
+    const basculeTexte = basculeFournisseur
+      ? text(copy['assistantMessage.fallback.notice'], {
+          requested: basculeFournisseur.depuis.model,
+          served: basculeFournisseur.vers.model,
+          reason:
+            copy[`assistantMessage.fallback.reason.${basculeFournisseur.motif}` as keyof typeof copy] ??
+            basculeFournisseur.motif,
+        })
+      : null;
+
+    /*
      * Live per-lane streaming: the executor emits agentLaneStream {kind} events —
      * 'start', 'delta' (new text chunk), 'done'. Concatenate the deltas per role
      * in annotation order so each specialist sub-agent renders token-by-token
@@ -372,6 +390,7 @@ export const AssistantMessage = memo(
       reasoningTexts.length > 0 ||
       Boolean(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) ||
       Boolean(agentPlan) ||
+      Boolean(basculeTexte) ||
       Boolean(agentModeChipText) ||
       Boolean(usageChipText);
 
@@ -980,7 +999,18 @@ export const AssistantMessage = memo(
                           {role.title}
                         </span>
                       </div>
-                      <div className="mt-1 line-clamp-3 text-[11px] text-bolt-elements-textSecondary">
+                      {/*
+                         HAUTEUR RÉSERVÉE : trois lignes, toujours. Mesuré le 2026-09-28 en
+                         production à 390 px : la source de cet aperçu change pendant le flux
+                         (responsabilité → extrait du flux → résumé) et la carte passait de
+                         une à trois lignes et retour — ±20 px par carte, quatre cartes
+                         empilées, ~750 px de sauts en 0,9 s et des retours en arrière de
+                         40 px. Hauteur fixe : le panneau entre d'un bloc et ne bouge plus.
+                      */}
+                      <div
+                        data-testid="agent-lane-apercu"
+                        className="mt-1 h-12 overflow-hidden line-clamp-3 text-[11px] leading-4 text-bolt-elements-textSecondary"
+                      >
                         {result?.summary ??
                           stream?.summary ??
                           extractLaneStreamSummary(stream?.text) ??
@@ -1073,6 +1103,16 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
+        {basculeTexte ? (
+          <div
+            role="status"
+            data-testid="agent-bascule-fournisseur"
+            className="mt-2 flex items-start gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 text-xs text-bolt-elements-textSecondary"
+          >
+            <span className="i-ph:swap mt-0.5 shrink-0" aria-hidden />
+            <span className="min-w-0 break-words">{basculeTexte}</span>
+          </div>
+        ) : null}
         {agentModeChipText && !masquerLesPuces ? (
           <div
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary"

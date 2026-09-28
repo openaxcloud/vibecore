@@ -1,3 +1,4 @@
+import { BUILTIN_AGENT_ROUTING_CARD } from '@vibecore/billing/src/agent-routing';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -7,6 +8,7 @@ import {
   isAgentModeRoutingDisabled,
   normalizeAgentSelection,
 } from './agent-mode';
+import { PROVIDER_LIST } from '~/utils/constants';
 
 describe('normalizeAgentSelection', () => {
   it('defaults to economy with both switches off', () => {
@@ -107,5 +109,24 @@ describe('decideTaskHardness (heuristic gate)', () => {
     });
 
     expect(scaffold.hard).toBe(true);
+  });
+});
+
+describe('chaque fournisseur de la carte se traduit vers un fournisseur CONNU', () => {
+  /*
+   * Mesuré le 2026-09-28 : la ligne `fallback` écrit `google`, que la table ne
+   * connaissait pas — le repli déclaré par la carte aurait été introuvable et
+   * ignoré en silence. On épingle la RÈGLE, pas le seul cas trouvé.
+   */
+  it.each(BUILTIN_AGENT_ROUTING_CARD.lines.map((line) => [line.key, line.provider] as const))(
+    'ligne %s (%s)',
+    (_cle, provider) => {
+      const nom = boltProviderName(provider);
+      expect(PROVIDER_LIST.some((candidate) => candidate.name === nom)).toBe(true);
+    },
+  );
+
+  it('TÉMOIN — la carte a bien une ligne de repli', () => {
+    expect(BUILTIN_AGENT_ROUTING_CARD.lines.some((line) => line.key === 'fallback')).toBe(true);
   });
 });

@@ -166,4 +166,75 @@ describe('useStickToBottom — le conteneur contraint APRÈS le premier calcul (
 
     expect(conteneur.scrollTop).toBe(400);
   });
+
+  /*
+   * ANCRAGE DANS LA MÊME IMAGE — mesuré le 2026-09-28 sur de vrais tours en
+   * production à 390 px : la notice « Erreur d'aperçu » réduisait le fil de 75
+   * à 102 px et le recollage arrivait 20 à 80 ms plus tard ; l'image
+   * intermédiaire montrait le bas du fil masqué. Les assertions ci-dessous sont
+   * lues SANS laisser passer une seule image après le rappel.
+   */
+  it('le conteneur rétrécit : recollé DANS le rappel, avant toute image', async () => {
+    const { getByTestId } = render(<Fil />);
+    const conteneur = getByTestId('conteneur');
+    const contenu = getByTestId('contenu');
+    const dims = poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+
+    await act(async () => {
+      observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+    });
+    await laisserLesImagesPasser();
+    expect(conteneur.scrollTop).toBeGreaterThanOrEqual(2563 - 1 - 599);
+
+    // La notice apparaît sous le fil : 102 px de moins.
+    dims.clientHeight = 497;
+    observations.get(conteneur)!([{ contentRect: { height: 497 } }]);
+
+    expect(conteneur.scrollTop, 'aucune image ne doit être peinte avec le bas masqué').toBeGreaterThanOrEqual(
+      2563 - 1 - 497,
+    );
+  });
+
+  it('un bloc s’ajoute en bas : recollé DANS le rappel, avant toute image', async () => {
+    const { getByTestId } = render(<Fil />);
+    const conteneur = getByTestId('conteneur');
+    const contenu = getByTestId('contenu');
+    const dims = poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+
+    await act(async () => {
+      observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+    });
+    await laisserLesImagesPasser();
+
+    dims.scrollHeight = 2663;
+    observations.get(contenu)!([{ contentRect: { height: 2663 } }]);
+
+    expect(conteneur.scrollTop).toBeGreaterThanOrEqual(2663 - 1 - 599);
+  });
+
+  it('TÉMOIN — un utilisateur remonté n’est pas recollé, même dans le rappel', async () => {
+    const { getByTestId } = render(<Fil />);
+    const conteneur = getByTestId('conteneur');
+    const contenu = getByTestId('contenu');
+    const dims = poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+
+    await act(async () => {
+      observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+    });
+    await laisserLesImagesPasser();
+
+    await act(async () => {
+      conteneur.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }));
+    });
+    conteneur.scrollTop = 400;
+    await act(async () => {
+      conteneur.dispatchEvent(new Event('scroll'));
+    });
+    await laisserLesImagesPasser();
+
+    dims.scrollHeight = 2663;
+    observations.get(contenu)!([{ contentRect: { height: 2663 } }]);
+
+    expect(conteneur.scrollTop).toBe(400);
+  });
 });
