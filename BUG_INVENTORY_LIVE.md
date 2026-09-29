@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-370 entrées.
+371 entrées.
 
 ## Sans section
 
@@ -390,6 +390,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE](docs/bugs/BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE.md) — GÊNANT — si le workspace-manager est injoignable, démarrer un projet bascule en STOPPED les workspaces VIVANTS des autres projets de l'organisation.
 - [BUG-QA0928-RUNTIME-ID-PROJET](docs/bugs/BUG-QA0928-RUNTIME-ID-PROJET.md) — BLOQUANT — le runtime est adressé avec l'identifiant du PROJET au lieu de celui du workspace ; les écritures de l'agent partent dans le vide.
 - [BUG-QA0928-PROVISION-SANS-QUOTA](docs/bugs/BUG-QA0928-PROVISION-SANS-QUOTA.md) — OBSERVÉ DANS LE CODE, À CONFIRMER — une écriture adressée à un workspace arrêté le fait redémarrer sans vérifier le quota `workspaces.active`.
+- [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
 
 ## Résidus non tabulaires — reportés mot pour mot
 
