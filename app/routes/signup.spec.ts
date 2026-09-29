@@ -79,13 +79,17 @@ describe('signup route loader', () => {
   it('returns null on app.e-code.ai so the form renders', async () => {
     const response = toResponse(await loader(buildLoaderArgs('app.e-code.ai')));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ language: 'en' });
+    // Le chargeur rend AUSSI la liste des fournisseurs OAuth : c'est l'objet même
+    // de cette proposition. Sans jeton, l'appel échoue et la liste est vide.
+    expect(await response.json()).toEqual({ language: 'en', providers: [] });
   });
 
   it('returns null on localhost so dev mode keeps working', async () => {
     const response = toResponse(await loader(buildLoaderArgs('localhost:5173')));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ language: 'en' });
+    // Le chargeur rend AUSSI la liste des fournisseurs OAuth : c'est l'objet même
+    // de cette proposition. Sans jeton, l'appel échoue et la liste est vide.
+    expect(await response.json()).toEqual({ language: 'en', providers: [] });
   });
 
   it('publishes localized French route metadata', () => {
