@@ -47,7 +47,9 @@ jobs:
   e2e:
     name: Playwright local stack
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    # 75 min pour la suite requise, comme avant, + 15 min pour le canari iOS
+    # borné ci-dessous. Épinglé par tests/guards/ci-canari-borne.spec.ts.
+    timeout-minutes: 90
     # Forked PRs can't read the AI provider secrets (so the run would hard-fail
     # on the secret-validation step anyway), and same-repo PR branches run
     # arbitrary code with the real prod keys injected. Restrict to non-fork
@@ -227,9 +229,16 @@ jobs:
       #
       # À basculer en bloquant (retirer `continue-on-error` et le `set +e`) après
       # quelques runs stables.
+      #
+      # BORNÉ : mesuré le 2026-09-28/29, 4 des 12 derniers passages annulés à
+      # ~75 min — le canari, sans plafond propre, consommait le budget du job
+      # après une suite Chromium de 60 min, et le contrôle REQUIS était annulé
+      # alors que la porte ci-dessus avait déjà rendu « gate passes ». Un canari
+      # qui dépasse est maintenant marqué en échec, et le job se termine.
       - name: Canari iOS — Playwright WebKit iPhone (non bloquant)
         id: canari_ios
         continue-on-error: true
+        timeout-minutes: 15
         run: |
           set +e
           pnpm exec playwright test tests/e2e --project=webkit-iphone --reporter=list
