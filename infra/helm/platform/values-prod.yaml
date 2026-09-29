@@ -81,6 +81,24 @@ secrets:
     RESEND_WEBHOOK_SECRET: vibecore-prod-resend-webhook-secret
     SENTRY_DSN: vibecore-prod-sentry-dsn
 
+    # --- Mis à l'abri le 2026-09-29 ---
+    # Ces clés vivaient UNIQUEMENT dans le Secret Kubernetes : perdre le
+    # cluster, c'était les perdre, et rien ne le signalait. Copiées dans Secret
+    # Manager à l'identique — empreintes sha256 comparées des deux côtés, aucune
+    # valeur lue ni modifiée, aucun redéploiement.
+    DB_SHARED_TENANT_SECRET: vibecore-prod-db-shared-tenant-secret
+    PREVIEW_TENANT_SECRET: vibecore-prod-preview-tenant-secret
+    OBJECT_STORAGE_ACCESS_TOKEN_SECRET: vibecore-prod-object-storage-access-token-secret
+    # Déjà dans Secret Manager de longue date, mais ABSENTES de cette carte —
+    # donc ignorées par la re-synchronisation du runbook, qui la prend pour
+    # source. Une clé hors carte est une clé qu'on ne restaure pas.
+    EMAIL_FROM: vibecore-prod-email-from
+    EMAIL_HTTP_ENDPOINT: vibecore-prod-email-http-endpoint
+    # ⚠️ SCREENSHOTTER_SHARED_SECRET n'est PAS ici, et c'est voulu : le chart le
+    # génère et le préserve lui-même (templates/screenshotter-auth-secret.yaml).
+    # Une copie dans Secret Manager en ferait une seconde source de vérité pour
+    # la même valeur — exactement ce qu'on cherche à éviter.
+
 # OAuth provider URLs, in-cluster api URL, and platform-admin allowlist.
 # These are public well-known endpoints (Google/GitHub) plus operational
 # config — none of them are secrets. Mounted via a ConfigMap so they live
