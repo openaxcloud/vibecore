@@ -199,7 +199,8 @@ async function appuiLong(page: Page, cible: ReturnType<Page['locator']>, ou: 'ga
   await page.waitForTimeout(300);
   const diag = await page.evaluate(() => { const d = (window as any).__diag; return { tops: [...d.tops], sts: [...d.sts], sous: d.sous }; });
   const menuOuvert = await page.locator('.bolt-message-context-menu').isVisible().catch(() => false);
-  console.log('DIAG-APPUI ' + JSON.stringify({ x, y, menuOuvert, ...diag }));
+  const bandeauAuMomentDeLAppui = await page.locator('#agent-auto-applied-files').isVisible().catch(() => false);
+  console.log('DIAG-APPUI ' + JSON.stringify({ x, y, menuOuvert, bandeauAuMomentDeLAppui, ...diag }));
 
   return { x, y };
 }
@@ -1258,6 +1259,20 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     const derniere = page.locator('.bolt-chat-message-row').last();
 
     await expect(derniere).toBeVisible({ timeout: 60_000 });
+
+    /*
+     * SONDE : garder le bandeau « fichiers appliqués » affiché, comme en cas
+     * d'avertissement (`autoClose: false`) — sinon il se ferme en 4 s et
+     * l'A/B ne mesure rien. react-toastify suspend ses minuteurs à la perte
+     * de focus de la fenêtre.
+     */
+    const bandeauApparu = await page
+      .locator('#agent-auto-applied-files')
+      .waitFor({ state: 'visible', timeout: 30_000 })
+      .then(() => true)
+      .catch(() => false);
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    console.log('SONDE-BANDEAU-APPARU ' + JSON.stringify({ bandeauApparu }));
     await page.waitForTimeout(1200);
 
     const etat = () =>
@@ -1327,6 +1342,12 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await page.waitForTimeout(500);
 
     const premiere = page.locator('.bolt-chat-message-row').first();
+
+    // SONDE : rendre l'A/B discriminante — l'appui n'a lieu QUE bandeau affiché.
+    const bandeau = page.locator('#agent-auto-applied-files');
+    const bandeauAffiche = await bandeau.isVisible().catch(() => false);
+    console.log('SONDE-BANDEAU ' + JSON.stringify({ bandeauAffiche }));
+    expect(bandeauAffiche, 'SONDE : bandeau absent au moment de l’appui — passage NON DISCRIMINANT').toBe(true);
 
     await appuiLong(page, premiere, 'gauche');
     await expect(menu).toBeVisible({ timeout: 15_000 });
