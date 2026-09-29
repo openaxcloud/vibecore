@@ -173,10 +173,33 @@ async function appuiLong(page: Page, cible: ReturnType<Page['locator']>, ou: 'ga
   const y = Math.round(Math.min(Math.max(boite!.y + boite!.height / 2, 120), 700));
   const cdp = await page.context().newCDPSession(page);
 
+  // SONDE (branche jamais fusionnée) — qu'y a-t-il sous le doigt pendant l'appui ?
+  await cible.evaluate((el, pt) => {
+    const w = window as any;
+    const fil = [...document.querySelectorAll<HTMLElement>('*')].find(
+      (e) => /(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.querySelector('.bolt-chat-message-row') && e.scrollHeight > e.clientHeight,
+    );
+    w.__diag = { t0: performance.now(), tops: new Set(), sts: new Set(), sous: {}, recouvrement: null };
+    const boucle = () => {
+      const r = el.getBoundingClientRect();
+      const sous = document.elementFromPoint(pt.x, pt.y);
+      const cle = sous ? (sous.closest('.bolt-chat-message-row') === el ? 'LIGNE' : (sous.closest('[id]')?.id || sous.tagName)) : 'rien';
+      w.__diag.sous[cle] = (w.__diag.sous[cle] ?? 0) + 1;
+      w.__diag.tops.add(Math.round(r.top));
+      if (fil) w.__diag.sts.add(Math.round(fil.scrollTop));
+      if (performance.now() - w.__diag.t0 < 1000) requestAnimationFrame(boucle);
+    };
+    requestAnimationFrame(boucle);
+  }, { x, y });
+
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
   await page.waitForTimeout(900);
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await cdp.detach();
+  await page.waitForTimeout(300);
+  const diag = await page.evaluate(() => { const d = (window as any).__diag; return { tops: [...d.tops], sts: [...d.sts], sous: d.sous }; });
+  const menuOuvert = await page.locator('.bolt-message-context-menu').isVisible().catch(() => false);
+  console.log('DIAG-APPUI ' + JSON.stringify({ x, y, menuOuvert, ...diag }));
 
   return { x, y };
 }
@@ -3382,5 +3405,81 @@ test.describe('base de données — « Mes données » à la Replit', () => {
       types.some((type) => type.length > 0),
       `types relevés : ${JSON.stringify(types)}`,
     ).toBe(true);
+  });
+});
+
+// SONDE LOCALE TEMPORAIRE (non commitée) — la remontée au doigt pendant un flux tient-elle ?
+test.describe('SONDE remontée pendant le flux', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('SONDE-REMONTEE', async ({ page, request }) => {
+    test.setTimeout(180_000);
+    await page.addInitScript(() => {
+      const prose = 'Voici une explication détaillée, assez longue pour faire défiler le fil sur un téléphone. ';
+      const fins: string[] = [];
+      for (let k = 0; k < 40; k += 1) {
+        const bout = prose + (k % 5 === 4 ? '\n\n' : '');
+        for (let i = 0; i < bout.length; i += 12) fins.push(bout.slice(i, i + 12));
+      }
+      const vrai = window.fetch.bind(window);
+      window.fetch = ((entree: any, init?: any) => {
+        const url = typeof entree === 'string' ? entree : (entree?.url ?? '');
+        if (!String(url).includes('/api/chat')) return vrai(entree, init);
+        const enc = new TextEncoder();
+        const corps = new ReadableStream({
+          start(c) {
+            let i = 0;
+            c.enqueue(enc.encode('f:' + JSON.stringify({ messageId: 'msg-sonde' }) + '\n'));
+            const pousser = () => {
+              if (i >= fins.length) {
+                c.enqueue(enc.encode('d:' + JSON.stringify({ finishReason: 'stop', usage: {} }) + '\n'));
+                c.close();
+                return;
+              }
+              c.enqueue(enc.encode('0:' + JSON.stringify(fins[i]) + '\n'));
+              i += 1;
+              setTimeout(pousser, 25);
+            };
+            setTimeout(pousser, 25);
+          },
+        });
+        return Promise.resolve(new Response(corps, { status: 200, headers: { 'content-type': 'text/event-stream; charset=utf-8', 'x-vercel-ai-data-stream': 'v1' } }));
+      }) as typeof window.fetch;
+    });
+
+    await ouvrirIde(page, request, { fil: true, long: true });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    const composeur = page.locator('.bolt-project-agent-composer textarea').first();
+    await composeur.click();
+    await composeur.fill('Explique-moi ce que tu as fait.');
+    await page.keyboard.press('Enter');
+
+    // Enregistreur : position du fil à chaque image.
+    await page.evaluate(() => {
+      const w = window as any;
+      w.__rel = [];
+      const fil = () => [...document.querySelectorAll<HTMLElement>('*')].filter((e) => /(auto|scroll)/.test(getComputedStyle(e).overflowY) && e.querySelector('.bolt-chat-message-row')).sort((a, b) => a.clientHeight - b.clientHeight)[0];
+      const t0 = performance.now();
+      w.__t0 = t0;
+      const boucle = () => {
+        const f = fil();
+        if (f) w.__rel.push({ t: Math.round(performance.now() - t0), top: Math.round(f.scrollTop), ecart: Math.round(f.scrollHeight - f.scrollTop - f.clientHeight) });
+        if (performance.now() - t0 < 12000) requestAnimationFrame(boucle);
+      };
+      requestAnimationFrame(boucle);
+    });
+
+    await page.waitForTimeout(2500);
+    const cdp = await page.context().newCDPSession(page);
+    const t = await page.evaluate(() => performance.now());
+    await cdp.send('Input.synthesizeScrollGesture', { x: 195, y: 420, yDistance: 350, gestureSourceType: 'touch', speed: 1200 });
+    const t2 = await page.evaluate(() => performance.now());
+    await page.waitForTimeout(5000);
+    const rel = await page.evaluate(() => (window as any).__rel);
+    const t0 = await page.evaluate(() => (window as any).__t0);
+    const flux = await page.evaluate(() => document.querySelectorAll('.bolt-chat-message-row').length);
+    console.log('SONDE-REMONTEE ' + JSON.stringify({ geste: [Math.round(t - t0), Math.round(t2 - t0)], lignes: flux, rel }));
   });
 });

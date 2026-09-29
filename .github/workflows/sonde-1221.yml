@@ -1,0 +1,130 @@
+# SONDE TEMPORAIRE — branche jamais fusionnée. Boucles A/B sur un seul fichier par cellule.
+name: Sonde 1221 et remontée
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/sonde-1221.yml'
+      - 'tests/e2e/ide-mobile-chrome.spec.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  boucle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cellule: bandeau-corrige
+            fichier: ''
+            depuis: ''
+            grep: 'menu contextuel sur le dernier message'
+            repetitions: 20
+          - cellule: bandeau-temoin
+            fichier: app/styles/index.scss
+            depuis: origin/main
+            grep: 'menu contextuel sur le dernier message'
+            repetitions: 20
+          - cellule: remontee-main
+            fichier: app/lib/hooks/useStickToBottom.tsx
+            depuis: origin/main
+            grep: 'SONDE-REMONTEE'
+            repetitions: 10
+          - cellule: remontee-599
+            fichier: app/lib/hooks/useStickToBottom.tsx
+            depuis: origin/fix/recollage-respecte-la-remontee
+            grep: 'SONDE-REMONTEE'
+            repetitions: 10
+    env:
+      CI: true
+      HUSKY: 0
+      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
+      REDIS_URL: redis://127.0.0.1:56379
+      POSTGRES_PORT: 55432
+      REDIS_PORT: 56379
+      API_HOST: 127.0.0.1
+      API_PORT: 3001
+      API_BASE_URL: http://127.0.0.1:3001
+      SAAS_API_URL: http://127.0.0.1:3001
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      PLAYWRIGHT_SKIP_WEB_SERVER: '1'
+      PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
+      ADMIN_MFA_REQUIRED: 'false'
+      AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
+      AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Cellule — remplacer UN fichier
+        if: matrix.fichier != ''
+        run: |
+          git fetch origin main fix/recollage-respecte-la-remontee
+          git checkout ${{ matrix.depuis }} -- ${{ matrix.fichier }}
+          echo "cellule ${{ matrix.cellule }} : ${{ matrix.fichier }} pris de ${{ matrix.depuis }} ($(git rev-parse --short=10 ${{ matrix.depuis }}))"
+          git status --short
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 9.14.4
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start local dependencies
+        run: |
+          touch .env
+          docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
+          npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
+
+      - name: Prepare database
+        run: |
+          pnpm --filter @vibecore/database db:deploy
+          pnpm --filter @vibecore/database db:seed
+
+      - name: Start API
+        run: |
+          pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
+
+      - name: Build web app
+        run: pnpm run build
+
+      - name: Start web app
+        run: |
+          HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5173
+
+      - name: Boucle
+        run: |
+          set +e
+          pnpm exec playwright test tests/e2e/ide-mobile-chrome.spec.ts --project=chromium \
+            -g "${{ matrix.grep }}" --repeat-each=${{ matrix.repetitions }} --retries=0 --workers=1 \
+            --reporter=list 2>&1 | tee /tmp/boucle.log
+          echo "playwright exit: ${PIPESTATUS[0]}"
+          {
+            echo "### ${{ matrix.cellule }}"
+            echo '```'
+            grep -E '^\s+[0-9]+ (passed|failed|flaky)' /tmp/boucle.log || echo "AUCUN VERDICT"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+
+      - name: Journal
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sonde-${{ matrix.cellule }}
+          path: /tmp/boucle.log
