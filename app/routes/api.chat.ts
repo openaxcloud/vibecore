@@ -2250,7 +2250,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   },
                 });
 
-                result.mergeIntoDataStream(dataStream);
+                // Le raisonnement part au client : `ai@4.3.16` ne l'envoie pas par défaut.
+                result.mergeIntoDataStream(dataStream, { sendReasoning: true });
               } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                   // Client went away mid-continuation — expected, just clean up.
@@ -2461,7 +2462,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           },
         });
 
-        result.mergeIntoDataStream(dataStream);
+        /*
+         * `sendReasoning: true` — `ai@4.3.16` déclare `sendReasoning = false` par
+         * défaut : mesuré le 2026-09-28, un tour opus avec la réflexion active sur
+         * le fil rendait encore ZÉRO ligne `g:` au navigateur. Épinglé par
+         * `reflexion-envoyee-au-client.spec.ts`.
+         */
+        result.mergeIntoDataStream(dataStream, { sendReasoning: true });
 
         /*
          * `mergeIntoDataStream` n'est pas attendu — c'est le contrat du SDK, qui
