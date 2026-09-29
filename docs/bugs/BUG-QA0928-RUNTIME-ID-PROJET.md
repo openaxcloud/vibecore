@@ -133,7 +133,7 @@ le manager était injoignable (corrigé dans la même branche, BUG-QA0928-RECONC
 
 ## 💻
 
-☐
+☐ branche `fix/ecritures-refusees-workspace`
 
 ## ✅
 
@@ -141,4 +141,33 @@ le manager était injoignable (corrigé dans la même branche, BUG-QA0928-RECONC
 
 ## Preuve
 
-Preuve prod ci-dessus (journaux). Aucun test ne l'épingle encore — point OUVERT (règle 16).
+**Avant** : preuve prod ci-dessus (journaux, 552 refus dont 78 écritures).
+
+**Après, en local** (build de production `remote-kubernetes`, WebKit iPhone 13 et Chromium 1440,
+`node docs/bugs/qa-2026-09-28/preuve-correctif-ecritures.mjs`, 2026-09-29) :
+
+| | avant correctif | après |
+|---|---|---|
+| requêtes runtime vers l'id du projet (60 s) | 10 | **0** |
+| tickets demandés | 29 | **2** |
+| avis de quota avant tout envoi | absent (infobulle seulement) | **affiché** |
+| envoi pendant le refus de quota | parti | **retenu, 0 appel agent, saisie gardée** |
+| file après « Redémarrer » (rechargement) | — | **« 2 fichiers n'ont pas encore pu être écrits… Rien n'est perdu »** |
+
+Artefacts : `artefacts/correctif-webkit-*.png`, `artefacts/correctif-chromium-*.png`.
+
+**Non prouvé en réel** : le rejeu effectif dans un pod (il faut un workspace qui démarre ; pas de
+manager en local). Tenu par les tests ci-dessous.
+
+Épinglé par :
+- `packages/runtime-remote/src/identifiant-de-projet.spec.ts` (jamais l'id du projet, attente du
+  démarrage, redemande sur échec transitoire) ;
+- `app/lib/runtime/RuntimeAdapterProvider.spec.ts` (câblage de la fabrique) ;
+- `app/lib/runtime/ecritures-en-attente.spec.ts` (garde, rechargement, rejeu, stockage refusé) ;
+- `app/lib/runtime/action-runner-ecriture-sans-workspace.spec.ts` (site d'appel + phrase lisible) ;
+- `app/lib/runtime/ecritures-en-attente-cablage.spec.ts` (ordre du rejeu, garde d'envoi, avis) ;
+- `services/api/src/tests/reconciliation-manager-injoignable.spec.ts`.
+
+Contre-épreuves : 11 mécanismes cassés un à un, 11 rouges.
+
+Point OUVERT jusqu'à la preuve en production (déploiement + journaux sans appel sur id de projet).

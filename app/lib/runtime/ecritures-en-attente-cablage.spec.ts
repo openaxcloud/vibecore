@@ -53,6 +53,26 @@ describe('câblage des écritures en attente', () => {
     expect(garde).toBeLessThan(position(chat.slice(envoi), 'runAnimation();') + envoi);
   });
 
+  /*
+   * Mesuré sur WebKit le 2026-09-29 : l'envoi était bien retenu, mais la saisie
+   * était VIDÉE. L'enveloppe de `BaseChat` appelle `sendMessage` sans l'attendre,
+   * puis efface aussitôt le brouillon : la garde doit passer AVANT cet effacement.
+   */
+  it('la garde précède l’effacement du brouillon dans l’enveloppe de BaseChat', () => {
+    const baseChat = lire('../../components/chat/BaseChat.tsx');
+
+    const enveloppe = position(
+      baseChat,
+      'const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {',
+    );
+
+    const corps = baseChat.slice(enveloppe);
+    const garde = position(corps, 'demarrageRefusePourQuotaStore.get()');
+
+    expect(garde).toBeLessThan(position(corps, 'sendMessage(event, messageInput);'));
+    expect(garde).toBeLessThan(position(corps, 'clearComposerDraft(projectId);'));
+  });
+
   it('l’avis est monté au-dessus du composeur de l’IDE', () => {
     const baseChat = lire('../../components/chat/BaseChat.tsx');
 

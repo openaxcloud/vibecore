@@ -88,6 +88,8 @@ import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
 import { AvisEcrituresEnAttente } from '~/components/chat/AvisEcrituresEnAttente';
+import { getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
+import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attente';
 import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
@@ -7026,6 +7028,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
+      /*
+       * BUG-QA0928-RUNTIME-ID-PROJET — démarrage refusé pour quota : l'agent ne
+       * pourrait rien écrire. On retient l'envoi ICI, avant l'effacement du
+       * brouillon ci-dessous : `sendMessage` n'est pas attendu, et une garde
+       * posée seulement dans lui laissait la saisie vidée (mesuré sur WebKit).
+       */
+      if (projectIdeMode && demarrageRefusePourQuotaStore.get()) {
+        const avertissement = getEcrituresEnAttenteCopy(i18n.resolvedLanguage ?? i18n.language)[
+          'ecrituresEnAttente.quotaAvantEnvoi'
+        ];
+
+        toast.warning(avertissement, { toastId: 'quota-avant-envoi', autoClose: 12000 });
+
+        return;
+      }
+
       if (sendMessage) {
         sendMessage(event, messageInput);
         setSelectedElement?.(null);

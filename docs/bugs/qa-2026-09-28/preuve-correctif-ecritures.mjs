@@ -45,6 +45,7 @@ await avis.getByRole('button').click();       // « Redémarrer l'espace de trav
 await p.waitForLoadState('domcontentloaded');
 await avis.waitFor({ timeout: 90000 });
 await p.waitForFunction(() => /2 fichiers/.test(document.querySelector('[data-testid=avis-ecritures-en-attente]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
+await p.waitForFunction(() => /forfait|plan allows/.test(document.querySelector('[data-testid=avis-ecritures-en-attente]')?.textContent ?? ''), null, { timeout: 60000 }).catch(() => {});
 const texteApres = (await avis.innerText()).replace(/\s+/g, ' ');
 await p.screenshot({ path: `${OUT}correctif-${moteur}-3-file-apres-rechargement.png` });
 
