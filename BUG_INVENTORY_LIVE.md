@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-361 entrées.
+362 entrées.
 
 ## Sans section
 
@@ -377,8 +377,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-PREVIEW-CUTOFF-002](docs/bugs/BUG-PREVIEW-CUTOFF-002.md) — P2 — la carte de préparation de l'aperçu est tronquée EN HAUT sur téléphone
 - [BUG-TOAST-ENTETE-001](docs/bugs/BUG-TOAST-ENTETE-001.md) — P2 — le bandeau « 1 fichier appliqué » recouvre l'en-tête du panneau sur téléphone
 - [BUG-TYPE-CI-001](docs/bugs/BUG-TYPE-CI-001.md) — `tsconfig.web.json`, le seul fichier que la CI typecheck pour l'application,
+- [BUG-TOAST-ROGNE-001](docs/bugs/BUG-TOAST-ROGNE-001.md) — P1 — les toasts de l'IDE sont dans le DOM mais jamais peints : le bandeau « 1 fichier appliqué » et son « Tout annuler » sont inatteignables
 
-- [BUG-TOAST-ROGNE-001](docs/bugs/BUG-TOAST-ROGNE-001.md) — P1 — les toasts de l'IDE sont dans le DOM mais jamais peints : le bandeau « 1 fichier appliqué » et son « Tout annuler » sont inatteignables, sur téléphone comme sur bureau.
+## 2026-09-28 — Balayage QA avant lancement
+
+- [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
 
 ## Résidus non tabulaires — reportés mot pour mot
 

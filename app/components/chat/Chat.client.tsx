@@ -1153,10 +1153,17 @@ export const ChatImpl = memo(
         return projectAiMessagesToChatMessages(payload.messages);
       },
       applyTranscript: async (backendMessages) => {
+        /*
+         * BUG-QA0929-REOUVERTURE-REJOUE — marquer le fil relu À PART : la passe du
+         * parseur, que `setMessages` déclenche, remplace les messages rechargés par
+         * `initialMessages`, vide sur un appareil neuf, et les écritures
+         * historiques de l'agent étaient rejouées par-dessus le travail de
+         * l'utilisateur.
+         */
+        workbenchStore.markHydratedMessages(backendMessages.map((message) => message.id));
         setMessages(backendMessages);
         latestMessagesRef.current = backendMessages;
         setChatStarted(true);
-        workbenchStore.setReloadedMessages(backendMessages.map((message) => message.id));
         await storeMessageHistory(backendMessages);
       },
       onLoadError: (error) => {
