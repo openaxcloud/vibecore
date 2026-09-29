@@ -1271,7 +1271,11 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       .waitFor({ state: 'visible', timeout: 30_000 })
       .then(() => true)
       .catch(() => false);
-    await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+    // Pause renouvelée : une reprise de focus (clavier, menu) relancerait le minuteur de 4 s.
+    await page.evaluate(() => {
+      window.dispatchEvent(new Event('blur'));
+      setInterval(() => window.dispatchEvent(new Event('blur')), 200);
+    });
     console.log('SONDE-BANDEAU-APPARU ' + JSON.stringify({ bandeauApparu }));
     await page.waitForTimeout(1200);
 
