@@ -32363,3 +32363,32 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   padding-bottom: 4px;
   border-bottom: 1px solid var(--bolt-elements-borderColor);
 }
+
+/*
+ * BUG-QA0928-RUNTIME-ID-PROJET — avis « fichiers pas encore écrits » / « quota »
+ * au-dessus du composeur. Jetons du thème IDE uniquement ; bouton à 44 px pour
+ * le doigt (règle des cibles tactiles).
+ */
+.bolt-agent-avis-ecritures {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-accent-warning);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bolt-agent-avis-ecritures button {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
+}

@@ -34,6 +34,8 @@ import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
+import { getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
+import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attente';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { leTourAEcritDesFichiers, messageDeCommitDuTour, statistiquesDuTour } from '~/components/chat/fin-de-tour';
 import {
@@ -1863,6 +1865,20 @@ export const ChatImpl = memo(
       if (sendDecision === 'stop-active') {
         abort();
         toast.info(copy['chatClient.generation.stopped']);
+
+        return;
+      }
+
+      /*
+       * BUG-QA0928-RUNTIME-ID-PROJET — le démarrage a été refusé pour quota :
+       * l'agent travaillerait (et consommerait du crédit) pour ne rien pouvoir
+       * écrire. On le dit AVANT, et on garde la saisie intacte.
+       */
+      if (projectIdeMode && demarrageRefusePourQuotaStore.get()) {
+        toast.warning(getEcrituresEnAttenteCopy(language)['ecrituresEnAttente.quotaAvantEnvoi'], {
+          toastId: 'quota-avant-envoi',
+          autoClose: 12000,
+        });
 
         return;
       }

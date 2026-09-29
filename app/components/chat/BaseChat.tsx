@@ -87,6 +87,7 @@ import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './comp
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { AvisEcrituresEnAttente } from '~/components/chat/AvisEcrituresEnAttente';
 import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
@@ -7884,6 +7885,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ))}
                   </div>
                 )}
+              {projectIdeMode && <AvisEcrituresEnAttente />}
               {projectIdeMode && (
                 <GenerateAppCta
                   files={projectFiles}

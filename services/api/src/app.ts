@@ -17578,7 +17578,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * workspace to STOPPED: that would mislabel a running pod and let the
            * org under-count its active quota / exceed its concurrent limit.
            */
-          shouldStop = isRuntimeWorkspaceGone(error);
+          /*
+           * BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE — surtout pas
+           * `isRuntimeWorkspaceGone`, qui compte aussi le manager INJOIGNABLE comme
+           * « disparu » : c'est juste pour un arrêt idempotent, faux ici. Mesuré le
+           * 2026-09-28 : manager coupé → la seule ligne vivante passait STOPPED et
+           * le quota était contourné. Seul un 404 du manager dit « disparu ».
+           */
+          shouldStop = (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
         }
 
         if (shouldStop) {

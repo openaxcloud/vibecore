@@ -98,15 +98,34 @@ Le chemin `429` (quota) n'a pas pu être rejoué en local : la réconciliation d
 créneau parce que le manager était injoignable — voir BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE.
 Il est prouvé en production par les journaux (§1).
 
-## Correctif suggéré (non appliqué — balayage seulement)
+## Correctif (branche `fix/ecritures-refusees-workspace`)
 
-1. Ne jamais initialiser l'adaptateur avec `projectId` comme `workspaceId` ; tant qu'aucun `ws-…`
-   n'est connu, les opérations doivent **attendre** le démarrage (ou échouer avec un code dédié),
-   pas partir.
-2. Si le démarrage échoue, bloquer les écritures de l'agent et le dire (l'invite de quota existe
-   déjà : `workspaceQuotaPrompt`).
-3. Côté API, distinguer « ticket invalide » de « workspace hors du périmètre du ticket » (`403` avec
-   un code), pour que le client ne re-frappe pas un ticket sain.
+Pourquoi PAS côté ticket : l'API sait résoudre un identifiant de projet (`authorizeRuntimeWorkspace`),
+mais une mutation qui passe provisionne le pod à la demande **sans vérifier le quota**
+(BUG-QA0928-PROVISION-SANS-QUOTA). Accepter le projet dans le ticket aurait fait de chaque écriture
+refusée pour quota un second pod. Le correctif est donc côté client, en trois parties.
+
+1. **Plus jamais l'identifiant du projet dans un chemin runtime.**
+   `RuntimeAdapterProvider.tsx` ne passe plus `workspaceId ?? projectId` ; l'adaptateur garde le
+   projet pour le seul corps de `POST /workspaces`. Une mutation lancée pendant un démarrage
+   l'attend (`#identifiantPourMuter`) ; sans démarrage ni workspace, `WORKSPACE_NOT_STARTED` sans
+   requête réseau. Sur échec « transitoire », l'adaptateur n'adopte plus l'identifiant du projet :
+   il redemande le démarrage (`#redemanderLeDemarrage`).
+2. **Le travail ne disparaît pas.** `app/lib/runtime/ecritures-en-attente.ts` garde chaque
+   écriture refusée faute de workspace (dernière version par chemin), dans `localStorage` parce que
+   « Redémarrer l'espace de travail » recharge la page. Le fournisseur la rejoue après le
+   réensemencement, avant l'aperçu. Si le navigateur refuse d'en garder copie, l'avis le dit.
+3. **L'utilisateur sait, avant et après.** `AvisEcrituresEnAttente` au-dessus du composeur : avant
+   (démarrage refusé pour quota → « l'agent ne peut pas écrire de fichiers pour l'instant… ») et
+   après (« N fichiers n'ont pas encore pu être écrits » + cause + « rien n'est perdu »). L'envoi à
+   l'agent est retenu tant que le quota bloque le démarrage. La carte d'action dit « l'espace de
+   travail n'a pas démarré — ce fichier est conservé… » au lieu de « Remote workspace has not been
+   started ».
+
+La cause du refus (question 3) : le plafond `workspaces.active = 1` du forfait gratuit est
+**voulu** (`packages/billing/src/index.ts:88`). L'effet de bord était ailleurs : l'avertissement
+n'existait qu'en infobulle de la barre d'état, et la réconciliation libérait à tort le créneau quand
+le manager était injoignable (corrigé dans la même branche, BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE).
 
 ## 📤
 
