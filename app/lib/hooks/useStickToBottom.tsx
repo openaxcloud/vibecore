@@ -19,6 +19,9 @@ export interface StickToBottomState {
   scrollTop: number;
   lastScrollTop?: number;
   ignoreScrollToTop?: number;
+
+  /** Une remontée a été vue et n'est pas encore tranchée (échappement ou non). */
+  remonteeEnAttente?: boolean;
   targetScrollTop: number;
   calculatedTargetScrollTop: number;
   scrollDifference: number;
@@ -400,6 +403,11 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         lastScrollTop = ignoreScrollToTop;
       }
 
+      // Notée TOUT DE SUITE : le recollage synchrone doit s'abstenir avant même la décision.
+      if (scrollTop < lastScrollTop && scrollTop !== ignoreScrollToTop) {
+        state.remonteeEnAttente = true;
+      }
+
       setIsNearBottom(state.isNearBottom);
 
       /**
@@ -410,10 +418,25 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
        * @see https://github.com/WICG/resize-observer/issues/25#issuecomment-248757228
        */
       setTimeout(() => {
-        /**
-         * When theres a resize difference ignore the resize event.
+        /*
+         * LA REMONTÉE DE L'UTILISATEUR GAGNE PENDANT QUE LE CONTENU GRANDIT.
+         *
+         * Jusqu'au 2026-09-29, TOUT défilement était ignoré tant qu'un
+         * redimensionnement était en cours. Pendant une génération le contenu
+         * grandit à chaque image : une remontée au doigt n'était donc jamais
+         * vue comme un échappement, et le fil la ramenait en bas — le « je
+         * remonte, ça me ramène en bas » d'Avi (BUG-STREAM-JUMP-001, « non
+         * reproduit » à l'époque). Reproduit par
+         * `useStickToBottom.conteneur.spec.tsx` et par
+         * `ide-mobile-chrome.spec.ts` (« menu contextuel… »).
+         *
+         * Un contenu qui GRANDIT ne fait jamais baisser `scrollTop` : une baisse
+         * pendant une croissance vient de l'utilisateur. Seule une baisse
+         * pendant une RÉDUCTION est ambiguë (le navigateur borne `scrollTop`),
+         * et reste ignorée.
          */
-        if (state.resizeDifference || scrollTop === ignoreScrollToTop) {
+        if (state.resizeDifference < 0 || scrollTop === ignoreScrollToTop) {
+          state.remonteeEnAttente = false;
           return;
         }
 
@@ -444,6 +467,8 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         if (!state.escapedFromLock && state.isNearBottom) {
           setIsAtBottom(true);
         }
+
+        state.remonteeEnAttente = false;
       }, 1);
     },
     [setEscapedFromLock, setIsAtBottom, isSelecting, state],
@@ -494,6 +519,23 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
    */
   const recollerAvantLaPeinture = () => {
     if (!state.isAtBottom || state.escapedFromLock || isSelecting()) {
+      return;
+    }
+
+    /*
+     * Jamais par-dessus une remontée pas encore tranchée : vue par l'événement
+     * `scroll` (drapeau), ou pas encore vue du tout — la position a baissé
+     * depuis la dernière connue sans que ce soit notre écriture (un
+     * redimensionnement qui arrive AVANT l'événement `scroll` de la même image).
+     */
+    if (state.remonteeEnAttente) {
+      return;
+    }
+
+    const connue = state.lastScrollTop;
+    const actuelle = state.scrollTop;
+
+    if (connue !== undefined && actuelle < connue - 1 && actuelle !== state.ignoreScrollToTop) {
       return;
     }
 

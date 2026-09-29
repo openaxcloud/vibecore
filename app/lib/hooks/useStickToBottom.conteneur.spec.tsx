@@ -237,4 +237,68 @@ describe('useStickToBottom — le conteneur contraint APRÈS le premier calcul (
 
     expect(conteneur.scrollTop).toBe(400);
   });
+
+  /*
+   * LA REMONTÉE DE L'UTILISATEUR GAGNE, MÊME DANS LA MÊME IMAGE QU'UN
+   * REDIMENSIONNEMENT. Le hook ne décide qu'une remontée est un échappement que
+   * dans un `setTimeout` APRÈS l'événement `scroll` ; le recollage synchrone de
+   * #592 écrivait la position dans le rappel du ResizeObserver, AVANT cette
+   * décision — et ramenait en bas un fil que l'utilisateur venait de remonter.
+   * Pendant une génération, le contenu grandit à chaque image : chaque remontée
+   * au doigt pouvait être annulée. Mis en évidence par
+   * `ide-mobile-chrome.spec.ts` (« menu contextuel… »), 0 sur 3 depuis #592+#594.
+   */
+  it('LE DÉFAUT — une remontée suivie d’un redimensionnement dans la même image n’est PAS annulée', async () => {
+    const { getByTestId } = render(<Fil />);
+    const conteneur = getByTestId('conteneur');
+    const contenu = getByTestId('contenu');
+    const dims = poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+
+    await act(async () => {
+      observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+    });
+    await laisserLesImagesPasser();
+    expect(conteneur.scrollTop).toBeGreaterThanOrEqual(2563 - 1 - 599);
+
+    // L'utilisateur (ou `scrollIntoView`) remonte tout en haut...
+    conteneur.scrollTop = 0;
+    conteneur.dispatchEvent(new Event('scroll'));
+
+    // ...et dans la MÊME image, le contenu grandit (un fragment de flux arrive).
+    dims.scrollHeight = 2603;
+    observations.get(contenu)!([{ contentRect: { height: 2603 } }]);
+
+    expect(conteneur.scrollTop, 'la remontée ne doit pas être annulée dans l’image même').toBe(0);
+
+    await laisserLesImagesPasser();
+    expect(conteneur.scrollTop, 'ni aux images suivantes').toBe(0);
+  });
+
+  it('ORDRE INVERSE — le redimensionnement arrive AVANT l’événement `scroll` : la remontée tient quand même', async () => {
+    const { getByTestId } = render(<Fil />);
+    const conteneur = getByTestId('conteneur');
+    const contenu = getByTestId('contenu');
+    const dims = poserLesDimensions(conteneur, { scrollHeight: 2563, clientHeight: 599 });
+
+    await act(async () => {
+      observations.get(contenu)!([{ contentRect: { height: 2563 } }]);
+    });
+    await laisserLesImagesPasser();
+
+    // Un premier événement `scroll` fixe la dernière position CONNUE du hook (en bas).
+    conteneur.dispatchEvent(new Event('scroll'));
+    await laisserLesImagesPasser();
+
+    // Écriture programmatique (`scrollIntoView`) : la position baisse, l'événement viendra plus tard...
+    conteneur.scrollTop = 0;
+
+    // ...mais le contenu grandit d'abord.
+    dims.scrollHeight = 2603;
+    observations.get(contenu)!([{ contentRect: { height: 2603 } }]);
+    expect(conteneur.scrollTop, 'pas recollé avant que la remontée soit tranchée').toBe(0);
+
+    conteneur.dispatchEvent(new Event('scroll'));
+    await laisserLesImagesPasser();
+    expect(conteneur.scrollTop, 'et la remontée devient un échappement').toBe(0);
+  });
 });
