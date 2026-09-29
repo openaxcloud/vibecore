@@ -43,7 +43,13 @@ Test E2E : `tests/e2e/reouverture-ne-rejoue-pas.spec.ts` — rouge 3/3 sur le bu
 Non reproduit en production (demande un compte) ; le chemin de code est commun aux deux modes
 runtime.
 
-## Correctif
+## Second chemin (serveur) — fiche distincte
+
+Une fois ce chemin client fermé, le stockage est ENCORE réécrit à la première ouverture, sans
+proposition ni toast : par le serveur, à chaque `PUT /ide-state` portant le fil. Voir
+BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE (décision requise).
+
+## Correctif (chemin client)
 
 `app/lib/stores/messages-recharges.ts` : deux ensembles — les messages du cache local (remplacés à
 chaque passe, contrat inchangé) et le fil relu depuis le serveur (`markHydratedMessages`, jamais
@@ -63,5 +69,9 @@ effacé par ce remplacement, oublié au changement de projet). Marquage fait AVA
 
 ## Preuve
 
-Épinglé par `app/lib/stores/messages-recharges.spec.ts` (mécanisme) et
-`tests/e2e/reouverture-ne-rejoue-pas.spec.ts` (comportement). Preuve verte à venir.
+Chemin client : `tests/e2e/reouverture-ne-rejoue-pas.spec.ts` rouge 3/3 sans le correctif (actions
+historiques rejouées : écritures de propositions émises), vert 3/3 avec (build de prod local,
+2026-09-29). En CI (run 36597446117), le test instable « menu contextuel sur le dernier message » est
+passé du premier coup. Épinglé par `app/lib/stores/messages-recharges.spec.ts` (mécanisme) et
+`tests/e2e/reouverture-ne-rejoue-pas.spec.ts` (comportement). Le point reste OUVERT tant que le
+second chemin (serveur) n'est pas tranché.

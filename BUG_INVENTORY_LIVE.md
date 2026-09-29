@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-362 entrées.
+363 entrées.
 
 ## Sans section
 
@@ -382,6 +382,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-09-28 — Balayage QA avant lancement
 
 - [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
+- [BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE](docs/bugs/BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE.md) — BLOQUANT — DÉCISION REQUISE — chaque `PUT /ide-state` portant le fil réécrit, côté serveur, les fichiers du projet avec la dernière version que l'agent leur a d
 
 ## Résidus non tabulaires — reportés mot pour mot
 
