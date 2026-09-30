@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-363 entrées.
+364 entrées.
 
 ## Sans section
 
@@ -383,6 +383,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-TOAST-GESTES-001](docs/bugs/BUG-TOAST-GESTES-001.md) — P2 — sur téléphone, le bandeau « 1 fichier appliqué » confisquait les gestes sur le haut du fil.
 - [BUG-CHAT-REFLEXION-SILENCIEUSE-001](docs/bugs/BUG-CHAT-REFLEXION-SILENCIEUSE-001.md) — P0 — régression introduite par #592 : un tour de construction Power pouvait être coupé par le chien de garde client.
+
+## Sans section
+
+- [BUG-CI-DEPLOY-PREVIEW-TOUJOURS-ROUGE-001](docs/bugs/BUG-CI-DEPLOY-PREVIEW-TOUJOURS-ROUGE-001.md) — P2 — `Deploy Preview` rougit sur TOUTES les propositions, et ne peut pas réussir.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
