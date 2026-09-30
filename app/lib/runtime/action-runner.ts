@@ -174,6 +174,27 @@ async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Pro
 
 export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'failed';
 
+/**
+ * L'action à exécuter pour cet appel, après un éventuel réarmement de reprise.
+ *
+ * Seule une fermeture NON streamée, dans un message dont la reprise est
+ * autorisée, réarme un fichier interrompu (voir `rearmerFichierInterrompu`).
+ * Partagée par le workbench et par le test qui rejoue le scénario complet :
+ * la règle n'existe qu'à un endroit.
+ */
+export function actionApresReprise(
+  runner: Pick<ActionRunner, 'actions' | 'rearmerFichierInterrompu'>,
+  data: Pick<ActionCallbackData, 'actionId'>,
+  isStreaming: boolean,
+  repriseAutorisee: boolean,
+) {
+  if (!isStreaming && repriseAutorisee) {
+    runner.rearmerFichierInterrompu(data.actionId);
+  }
+
+  return runner.actions.get()[data.actionId];
+}
+
 export type BaseActionState = BoltAction & {
   status: Exclude<ActionStatus, 'failed'>;
   abort: () => void;
@@ -475,6 +496,44 @@ export class ActionRunner {
       action.abort();
       this.#updateAction(actionId, { status: 'aborted' });
     });
+  }
+
+  /**
+   * RÉARMER UN FICHIER DONT L'ÉCRITURE A ÉTÉ INTERROMPUE.
+   *
+   * Quand la connexion tombe en plein tour (Safari mis en arrière-plan, réseau
+   * perdu), `abortAll()` annule le fichier en cours. Mais `runAction` l'a déjà
+   * marqué `executed: true` : l'action se dit « exécutée » alors que rien —
+   * ou un début — n'a atteint le disque. Quand la réponse complète revient du
+   * serveur, la garde `if (action.executed) return` la sauterait, et le fichier
+   * resterait tronqué en silence.
+   *
+   * On ne réarme QUE ce cas : un FICHIER, marqué exécuté, et ANNULÉ. Un fichier
+   * écrit en entier (`complete`) n'est jamais réécrit ; une commande shell ne
+   * se relance jamais — ses effets de bord (installation, serveur) ne sont pas
+   * rejouables sans risque. Rend `true` si l'action a été réarmée.
+   */
+  rearmerFichierInterrompu(actionId: string): boolean {
+    const action = this.actions.get()[actionId];
+
+    if (!action || action.type !== 'file' || !action.executed || action.status !== 'aborted') {
+      return false;
+    }
+
+    const abortController = new AbortController();
+
+    this.actions.setKey(actionId, {
+      ...action,
+      status: 'pending',
+      executed: false,
+      abort: () => {
+        abortController.abort();
+        this.#updateAction(actionId, { status: 'aborted' });
+      },
+      abortSignal: abortController.signal,
+    });
+
+    return true;
   }
 
   skipAction(actionId: string) {

@@ -33,6 +33,7 @@ import type { TranslationKey } from '~/lib/i18n/dictionary';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
 import { postRegisterDestination } from '~/lib/post-register-destination.server';
+import { origineDeLApplication } from '~/utils/origine-application';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const language = data?.language ?? 'en';
@@ -76,10 +77,12 @@ const SIGNUP_FEATURES = [
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const host = request.headers.get('host')?.toLowerCase() ?? '';
 
-  if (host === 'e-code.ai' || host === 'www.e-code.ai') {
+  const requestUrl = new URL(request.url);
+  const origineApplication = origineDeLApplication(host, requestUrl.protocol);
+
+  if (origineApplication) {
     // Preserve ?prompt= (and any other query) so the homepage builder prompt survives the host hop.
-    const search = new URL(request.url).search;
-    return redirect(`https://app.e-code.ai/register${search}`, { status: 301 });
+    return redirect(`${origineApplication}/register${requestUrl.search}`, { status: 301 });
   }
 
   return json({

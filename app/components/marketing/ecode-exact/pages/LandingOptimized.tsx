@@ -48,8 +48,10 @@ import {
   type LandingExampleId,
 } from '~/lib/i18n/catalogs/marketing-exact-landing-forum';
 import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
-import { daterLeRelais } from '~/utils/idee-relayee';
+import { daterLeRelais, oublierLeRelais } from '~/utils/idee-relayee';
 import { stashModelHandoff } from '~/utils/model-handoff';
+import { origineDeLApplication } from '~/utils/origine-application';
+import { PROMPT_MAX_CHARS } from '~/utils/prompt-validation';
 
 /*
  * Number of reveal-and-retry attempts the "Watch Demo" CTA makes while the lazy
@@ -98,6 +100,24 @@ export default function LandingOptimized() {
     const trimmed = description.trim();
 
     if (!trimmed) {
+      return;
+    }
+
+    /*
+     * BUG-QA0928-PROMPT-TRONQUE — au-delà de la limite du composeur, l'idée
+     * partait quand même, puis était coupée à 8 000 caractères et soumise sans un
+     * mot. On le dit ICI, avec la longueur réelle, avant tout envoi.
+     */
+    if (trimmed.length > PROMPT_MAX_CHARS) {
+      const nombre = (valeur: number) => new Intl.NumberFormat(language).format(valeur);
+
+      toast({
+        title: copy.toast.tooLongTitle,
+        description: copy.toast.tooLongDescription
+          .replace('{characters}', nombre(trimmed.length))
+          .replace('{maximum}', nombre(PROMPT_MAX_CHARS)),
+      });
+
       return;
     }
 
@@ -204,6 +224,39 @@ export default function LandingOptimized() {
       description: handoffStored ? setupDescription : copy.toast.storageWarningDescription,
     });
 
+    /*
+     * BUG-QA0928-IDEE-PERDUE-INSCRIPTION, seconde moitié — sur la vitrine
+     * (`e-code.ai`), la connexion et l'inscription vivent sur une AUTRE origine
+     * (`app.e-code.ai`) où ce `sessionStorage` ne suit pas : mesuré en
+     * production le 2026-09-30, l'idée y arrivait vide. Elle part donc au
+     * serveur, qui ne rend au navigateur qu'un jeton opaque (cookie de domaine),
+     * puis le visiteur va directement sur l'application. Jamais l'idée dans une
+     * adresse. Sur l'application elle-même, rien ne change.
+     */
+    const origineApplication = origineDeLApplication(window.location.host, window.location.protocol);
+
+    if (origineApplication) {
+      try {
+        await fetch('/api/relais-idee', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ idea: prompt, mode }),
+        });
+      } catch {
+        // Le visiteur continue quand même : l'inscription ne doit jamais dépendre du relais.
+      }
+
+      try {
+        oublierLeRelais(sessionStorage);
+      } catch {
+        // sessionStorage indisponible : rien à nettoyer.
+      }
+
+      window.location.assign(`${origineApplication}/projects/new`);
+
+      return;
+    }
+
     navigate('/projects/new');
   };
 
@@ -253,8 +306,8 @@ export default function LandingOptimized() {
       >
         <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10" />
 
-        <div className="container-responsive relative z-10 max-w-7xl text-center px-4 py-20">
-          <div className="space-y-8">
+        <div className="container-responsive relative z-10 max-w-7xl text-center px-4 pb-16 pt-4 sm:py-20">
+          <div className="space-y-5 sm:space-y-8">
             {/*
              * `flex-wrap` broke the pill below ~430px: the label alone is wider
              * than the row, so the two decorative sparkles wrapped onto lines of
@@ -297,7 +350,7 @@ export default function LandingOptimized() {
               {copy.hero.description}
             </p>
 
-            <div className="max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <div className="max-w-4xl mx-auto mt-5 sm:mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
               <div className="relative group">
                 <div className="absolute -inset-1 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-all duration-300 bg-gradient-to-br from-ecode-orange via-ecode-orange-light to-ecode-yellow" />
 

@@ -26,18 +26,48 @@ function fail(message) {
   process.exit(1);
 }
 
-const reportPath = process.argv[2];
+const reportPaths = process.argv.slice(2);
 
-if (!reportPath) {
-  fail('usage: node scripts/e2e-gate.mjs <playwright-report.json>');
+if (reportPaths.length === 0) {
+  fail('usage: node scripts/e2e-gate.mjs <playwright-report.json> [...]');
 }
 
-let report;
+/*
+ * LA PORTE EXIGE SES RAPPORTS, ELLE NE SE CONTENTE PAS DE CEUX QUI ARRIVENT.
+ *
+ * Quand la suite est découpée en tranches, chaque tranche rend son rapport. Si
+ * l'une d'elles disparaît — coureur perdu, artefact non téléversé, job annulé —
+ * fusionner ce qui reste donnerait un VERT sur une couverture amputée, et c'est
+ * exactement la forme d'affaiblissement qu'une découpe introduit sans le dire.
+ *
+ * `E2E_EXPECTED_REPORTS` rend ce nombre explicite. Non renseigné, le
+ * comportement est celui d'avant : on juge ce qu'on a reçu.
+ */
+const attendus = process.env.E2E_EXPECTED_REPORTS;
 
-try {
-  report = JSON.parse(readFileSync(resolve(reportPath), 'utf8'));
-} catch (error) {
-  fail(`could not read Playwright report at ${reportPath}: ${error.message}`);
+if (attendus !== undefined && attendus !== '') {
+  const n = Number(attendus);
+
+  if (!Number.isInteger(n) || n <= 0) {
+    fail(`E2E_EXPECTED_REPORTS must be a positive integer; got ${JSON.stringify(attendus)}`);
+  }
+
+  if (reportPaths.length !== n) {
+    fail(
+      `expected ${n} shard report(s), received ${reportPaths.length}. ` +
+        'A missing shard means untested specs — the gate does not pass on partial coverage.',
+    );
+  }
+}
+
+const reports = [];
+
+for (const reportPath of reportPaths) {
+  try {
+    reports.push(JSON.parse(readFileSync(resolve(reportPath), 'utf8')));
+  } catch (error) {
+    fail(`could not read Playwright report at ${reportPath}: ${error.message}`);
+  }
 }
 
 let policy;
@@ -123,7 +153,9 @@ function walk(suites, trail) {
   }
 }
 
-walk(report.suites, []);
+for (const report of reports) {
+  walk(report.suites, []);
+}
 
 const failed = [...results.entries()].filter(([, status]) => status === 'failed').map(([key]) => key);
 const waived = policy.waived ?? [];
