@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-364 entrées.
+365 entrées.
 
 ## Sans section
 
@@ -386,7 +386,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Sans section
 
-- [BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001](docs/bugs/BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001.md) — P2 — l'image `admin` n'est pas reconstruite comme les sept autres services, et reste en arrière à chaque déploiement.
+- [BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001](docs/bugs/BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001.md) — NON-DÉFAUT — retiré après mesure.
+- [BUG-DEPLOY-SURVEILLANCE-TIERS-001](docs/bugs/BUG-DEPLOY-SURVEILLANCE-TIERS-001.md) — P2 — rien ne vérifie qu'un service tourne bien sur le dernier commit ayant touché SON code.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
