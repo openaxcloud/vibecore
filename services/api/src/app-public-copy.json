@@ -2694,5 +2694,9 @@
   "CREDITS_RESERVATION_REFUSED": {
     "en": "Not enough credits available to start this request.",
     "fr": "Crédits insuffisants pour démarrer cette requête."
+  },
+  "IDEA_RELAY_NOT_FOUND": {
+    "en": "This idea is no longer available.",
+    "fr": "Cette idée n’est plus disponible."
   }
 }

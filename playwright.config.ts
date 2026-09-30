@@ -112,6 +112,9 @@ export default defineConfig({
         // Un rognage par conteneur de défilement : mesuré identique sur les deux moteurs, épinglé sur les deux.
         /bandeau-toast-visible\.spec\.ts/,
 
+        // Le parcours d'arrivée d'un nouveau visiteur, mesuré en production sur iPhone : c'est ici qu'il se prouve.
+        /idee-entre-domaines\.spec\.ts/,
+
         // Le titre de l'accueil prend six lignes en français sur WebKit, trois sur Chromium : c'est ici que le champ sortait de l'écran.
         /accueil-champ-au-premier-ecran\.spec\.ts/,
       ],

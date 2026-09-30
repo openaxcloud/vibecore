@@ -60,6 +60,7 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import { fetchAdminEnabledProviders } from '~/lib/modules/llm/provider-visibility.server';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { detectApplePlatform, submitShortcutLabel as resolveSubmitShortcutLabel } from '~/lib/platform-shortcut';
+import { effacerLeJetonDuRelais, lireLeJetonDuRelais } from '~/lib/relais-idee.server';
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
@@ -449,6 +450,8 @@ async function requireFirstOrganization(request: Request) {
   }
 }
 
+type IdeeRelayeeParLeServeur = { idea: string; mode?: string; model?: string; provider?: string };
+
 export async function loader({ request, context }: EnterpriseLoaderArgs) {
   await requireFirstOrganization(request);
 
@@ -495,21 +498,53 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
       ? fullModelList.filter((model) => !model.provider || adminEnabled.has(model.provider))
       : fullModelList;
 
-  return json<ModelsPayload & { initialPrompt: string }>({
-    modelList: visibleModelList,
-    providers: visibleProviders,
-    defaultProvider: localizeProviderInfo(
-      {
-        name: defaultProvider.name,
-        staticModels: defaultProvider.staticModels,
-        getApiKeyLink: defaultProvider.getApiKeyLink,
-        labelForGetApiKey: defaultProvider.labelForGetApiKey,
-        icon: defaultProvider.icon,
-      },
-      language,
-    ),
-    initialPrompt,
-  });
+  /*
+   * BUG-QA0928-IDEE-PERDUE-INSCRIPTION, seconde moitié — l'idée tapée sur
+   * l'accueil de `e-code.ai` arrive ici par un JETON (cookie de domaine), l'idée
+   * elle-même étant gardée par l'API. Rendue une seule fois ; le cookie est
+   * effacé dans la même réponse. Jamais soumise toute seule : ce cookie se pose
+   * sur tout `.e-code.ai`, un tiers pourrait donc en glisser un — le composeur
+   * est pré-rempli, l'utilisateur décide.
+   */
+  const jetonDuRelais = lireLeJetonDuRelais(request);
+  const entetes = new Headers();
+
+  let ideeRelayee: IdeeRelayeeParLeServeur | null = null;
+
+  if (jetonDuRelais) {
+    entetes.append('set-cookie', effacerLeJetonDuRelais(request));
+
+    try {
+      ideeRelayee = await apiRequest<IdeeRelayeeParLeServeur>(request, '/idea-relays/consume', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ id: jetonDuRelais }),
+      });
+    } catch {
+      // Expirée ou déjà rendue : rien à pré-remplir, le visiteur n'est pas bloqué pour autant.
+      ideeRelayee = null;
+    }
+  }
+
+  return json<ModelsPayload & { initialPrompt: string; ideeRelayee: IdeeRelayeeParLeServeur | null }>(
+    {
+      modelList: visibleModelList,
+      providers: visibleProviders,
+      defaultProvider: localizeProviderInfo(
+        {
+          name: defaultProvider.name,
+          staticModels: defaultProvider.staticModels,
+          getApiKeyLink: defaultProvider.getApiKeyLink,
+          labelForGetApiKey: defaultProvider.labelForGetApiKey,
+          icon: defaultProvider.icon,
+        },
+        language,
+      ),
+      initialPrompt,
+      ideeRelayee,
+    },
+    { headers: entetes },
+  );
 }
 
 export async function action({ request, context }: EnterpriseActionArgs) {
@@ -735,7 +770,12 @@ export default function NewProjectPage() {
   const navigation = useNavigation();
   const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
-  const [prompt, setPrompt] = useState(initialModelsPayload.initialPrompt ?? '');
+
+  // L'idée arrivée d'un autre domaine est posée dans le composeur dès le rendu serveur, sans envoi automatique.
+  const [prompt, setPrompt] = useState(
+    initialModelsPayload.initialPrompt || initialModelsPayload.ideeRelayee?.idea || '',
+  );
+
   const [selectedCategory, setSelectedCategory] = useState<ArtifactCategoryId>(artifactCategoryDefinitions[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -763,7 +803,7 @@ export default function NewProjectPage() {
    * to this form doesn't re-fire an infinite create loop.
    */
   useEffect(() => {
-    if (composerAutoSubmittedRef.current || initialModelsPayload.initialPrompt) {
+    if (composerAutoSubmittedRef.current || initialModelsPayload.initialPrompt || initialModelsPayload.ideeRelayee) {
       return;
     }
 

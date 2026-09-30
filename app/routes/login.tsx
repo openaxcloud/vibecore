@@ -22,6 +22,7 @@ import type { TranslationKey } from '~/lib/i18n/dictionary';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
 import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
+import { origineDeLApplication } from '~/utils/origine-application';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const language = data?.language ?? 'en';
@@ -130,9 +131,11 @@ export function loginFeedbackFromFailure(
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const host = request.headers.get('host')?.toLowerCase() ?? '';
 
-  if (host === 'e-code.ai' || host === 'www.e-code.ai') {
-    const requestUrl = new URL(request.url);
-    const loginUrl = new URL('https://app.e-code.ai/login');
+  const requestUrl = new URL(request.url);
+  const origineApplication = origineDeLApplication(host, requestUrl.protocol);
+
+  if (origineApplication) {
+    const loginUrl = new URL(`${origineApplication}/login`);
     const returnTo = safeReturnTo(requestUrl.searchParams.get('returnTo'));
 
     if (returnTo) {
