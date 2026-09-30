@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, createVerify, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -757,6 +757,24 @@ const contactSalesSchema = z
 const newsletterSubscribeSchema = z.object({
   email: z.string().email().max(320),
   source: z.string().max(64).optional(),
+});
+
+/*
+ * RELAIS DE L'IDÉE ENTRE LES DEUX DOMAINES (BUG-QA0928-IDEE-PERDUE-INSCRIPTION).
+ * L'idée reste ici ; seul un identifiant opaque traverse `e-code.ai` →
+ * `app.e-code.ai`, dans un cookie de domaine posé par le serveur web.
+ */
+const IDEA_RELAY_TTL_SECONDS = 60 * 60;
+
+const ideaRelayCreateSchema = z.object({
+  idea: z.string().trim().min(1).max(20_000),
+  mode: z.enum(['design-first', 'full-app', 'continue-planning']).optional(),
+  model: z.string().trim().min(1).max(200).optional(),
+  provider: z.string().trim().min(1).max(100).optional(),
+});
+
+const ideaRelayConsumeSchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]{32}$/),
 });
 
 const ADMIN_USERS_PAGE_SIZE = 50;
@@ -2547,6 +2565,43 @@ async function consumeRuntimeTicketId(jti: string, expiresAt: number): Promise<b
     return result === 'OK';
   } catch {
     return false;
+  }
+}
+
+const ideaRelaysLocally = new Map<string, { value: string; expiresAt: number }>();
+
+/** Range un relais d'idée. Lève si Redis est configuré mais en panne : le relais n'est pas pris. */
+async function storeIdeaRelay(id: string, value: string): Promise<void> {
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    ideaRelaysLocally.set(id, { value, expiresAt: Date.now() + IDEA_RELAY_TTL_SECONDS * 1000 });
+    setTimeout(() => ideaRelaysLocally.delete(id), IDEA_RELAY_TTL_SECONDS * 1000).unref?.();
+
+    return;
+  }
+
+  await redis.set(`idea-relay:${id}`, value, 'EX', IDEA_RELAY_TTL_SECONDS);
+}
+
+/**
+ * Rend le relais UNE SEULE FOIS : `GETDEL` est atomique, deux lectures
+ * concurrentes ne peuvent pas l'obtenir toutes les deux.
+ */
+async function takeIdeaRelay(id: string): Promise<string | null> {
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    const entry = ideaRelaysLocally.get(id);
+    ideaRelaysLocally.delete(id);
+
+    return entry && entry.expiresAt > Date.now() ? entry.value : null;
+  }
+
+  try {
+    return await redis.getdel(`idea-relay:${id}`);
+  } catch {
+    return null;
   }
 }
 
@@ -10671,6 +10726,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
+  /*
+   * RELAIS DE L'IDÉE TAPÉE SUR L'ACCUEIL (BUG-QA0928-IDEE-PERDUE-INSCRIPTION).
+   *
+   * Mesuré le 2026-09-30 en production : un visiteur arrivé sur `e-code.ai`
+   * perdait son idée au 301 de `/login` vers `app.e-code.ai`, une autre origine
+   * dont le `sessionStorage` est vide. L'idée est donc gardée ICI une heure,
+   * sous un identifiant aléatoire ; seul cet identifiant traverse, dans un
+   * cookie de domaine — jamais l'idée elle-même, ni dans une adresse ni dans un
+   * cookie.
+   *
+   * Dépôt anonyme (le visiteur n'a pas encore de compte), limité en débit.
+   * Retrait réservé à un utilisateur connecté, et une seule fois.
+   */
+  app.post(
+    '/idea-relays',
+    { config: { rateLimit: { max: Number(process.env.IDEA_RELAY_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(ideaRelayCreateSchema, request.body);
+      const id = randomBytes(24).toString('base64url');
+
+      await storeIdeaRelay(id, JSON.stringify(body));
+
+      return reply.code(201).send({ id, expiresInSeconds: IDEA_RELAY_TTL_SECONDS });
+    },
+  );
+
+  app.post('/idea-relays/consume', async (request) => {
+    if (!request.currentUser) {
+      throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), { statusCode: 401, code: 'AUTH_REQUIRED' });
+    }
+
+    const { id } = parse(ideaRelayConsumeSchema, request.body);
+    const value = await takeIdeaRelay(id);
+
+    if (!value) {
+      throw Object.assign(new Error(appPublicEnglish('IDEA_RELAY_NOT_FOUND')), { statusCode: 404, code: 'IDEA_RELAY_NOT_FOUND' });
+    }
+
+    return JSON.parse(value) as z.infer<typeof ideaRelayCreateSchema>;
+  });
+
   app.post(
     '/auth/register',
     {
@@ -11708,6 +11804,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
       request.url.startsWith('/newsletter/subscribe') ||
+      // Dépôt anonyme du relais d'idée — égalité STRICTE : `/idea-relays/consume` reste authentifié.
+      (request.method === 'POST' && request.url.split('?')[0] === '/idea-relays') ||
       request.url.startsWith('/billing/stripe/webhook') ||
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
