@@ -97,7 +97,19 @@ describe('le budget du job tient dans ses propres bornes', () => {
    * Ce cas interdit que les bornes redeviennent incohérentes : quelqu'un qui
    * remonte `globalTimeout` sans toucher au plafond du job le fait rougir.
    */
-  const PREPARATION_MIN = 13;
+  /*
+   * MESURÉ, plus dérivé. Le 2026-09-30 sur la tranche 2/2 du run 36739771036,
+   * étape par étape : 16:08:06 → 16:13:43, soit 5 min 37 s de préparation
+   * (checkout, installation, navigateurs, dépendances locales, base, API,
+   * construction du web, admin).
+   *
+   * ⚠️ Mon chiffre précédent, 13 min, était une SOUSTRACTION entre deux mesures
+   * faites dans des conditions différentes — un job unique à 81 min et une
+   * tranche sur quatre à 30. Il était faux, et tout le calcul de marge reposait
+   * dessus. On arrondit à 8 pour couvrir un coureur plus lent, pas à la mesure
+   * nue : une borne se calcule sur le mauvais jour, pas sur le bon.
+   */
+  const PREPARATION_MIN = 8;
   const MARGE_MINIMALE_MIN = 10;
 
   it('préparation + suite + canari laissent une marge réelle sous le plafond', () => {
