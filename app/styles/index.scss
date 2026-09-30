@@ -22807,6 +22807,33 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   overflow: visible;
 }
 
+/*
+ * BUG-TOAST-GESTES-001 — complète BUG-TOAST-ENTETE-001 (#591), qui a descendu
+ * le bandeau sous le chrome du panneau : l'en-tête n'est plus masqué, mais sur
+ * téléphone le bandeau (pleine largeur, 174 px) se pose désormais sur le HAUT
+ * DU FIL et y captait tous les gestes. Mesuré le 2026-09-29 en boucle locale
+ * sur `ide-mobile-chrome.spec.ts` (« menu contextuel… ») : 11 échecs sur 20,
+ * et dans CHACUN le point touché (70, 120) désignait `#agent-auto-applied-files`
+ * — conteneur `position: fixed`, `z-index: 9999`, y = 104..278 — au lieu du
+ * message ; dans chacune des 9 réussites, le bandeau avait déjà disparu. Le fil,
+ * lui, ne bougeait d'aucun pixel.
+ *
+ * Une notification se lit et offre ses commandes ; elle ne confisque pas le
+ * contenu qu'elle recouvre. Son corps laisse donc passer les gestes, ses
+ * commandes (boutons, liens, « Afficher les détails », détails ouverts) les
+ * gardent. Épinglé par tests/e2e/bandeau-toast-visible.spec.ts.
+ */
+body:has(.bolt-project-statusbar) .Toastify__toast-container,
+body:has(.bolt-project-statusbar) .Toastify__toast {
+  pointer-events: none;
+}
+
+body:has(.bolt-project-statusbar)
+  .Toastify__toast
+  :is(button, a[href], summary, input, select, textarea, [role='button'], details[open]) {
+  pointer-events: auto;
+}
+
 .bolt-agent-applied-toast {
   display: grid;
   min-width: 0;

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-371 entrées.
+372 entrées.
 
 ## Sans section
 
@@ -379,6 +379,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-TYPE-CI-001](docs/bugs/BUG-TYPE-CI-001.md) — `tsconfig.web.json`, le seul fichier que la CI typecheck pour l'application,
 - [BUG-TOAST-ROGNE-001](docs/bugs/BUG-TOAST-ROGNE-001.md) — P1 — les toasts de l'IDE sont dans le DOM mais jamais peints : le bandeau « 1 fichier appliqué » et son « Tout annuler » sont inatteignables
 
+## Mesures sur vrais tours de production — 2026-09-28/29
+
+- [BUG-TOAST-GESTES-001](docs/bugs/BUG-TOAST-GESTES-001.md) — P2 — sur téléphone, le bandeau « 1 fichier appliqué » confisquait les gestes sur le haut du fil.
+
 ## 2026-09-28 — Balayage QA avant lancement
 
 - [BUG-QA0928-COSMETIQUES](docs/bugs/BUG-QA0928-COSMETIQUES.md) — COSMÉTIQUE — trois libellés ou placements trompeurs relevés pendant le balayage du 28/09.
@@ -387,9 +391,9 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0928-MODALE-SANS-FOCUS](docs/bugs/BUG-QA0928-MODALE-SANS-FOCUS.md) — GÊNANT (accessibilité) — la modale « Comment souhaitez-vous continuer ? » de l'accueil ne prend pas le focus.
 - [BUG-QA0928-PALETTE-RESTE-OUVERTE](docs/bugs/BUG-QA0928-PALETTE-RESTE-OUVERTE.md) — GÊNANT — la palette « Search tools, files, and commands… » ouverte depuis la barre d'activité ne se ferme ni quand on ouvre un autre panneau, ni sur un clic ail
 - [BUG-QA0928-PROMPT-TRONQUE](docs/bugs/BUG-QA0928-PROMPT-TRONQUE.md) — GÊNANT — une idée de plus de 8 000 caractères saisie sur l'accueil est tronquée en silence, puis soumise automatiquement.
+- [BUG-QA0928-PROVISION-SANS-QUOTA](docs/bugs/BUG-QA0928-PROVISION-SANS-QUOTA.md) — OBSERVÉ DANS LE CODE, À CONFIRMER — une écriture adressée à un workspace arrêté le fait redémarrer sans vérifier le quota `workspaces.active`.
 - [BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE](docs/bugs/BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE.md) — GÊNANT — si le workspace-manager est injoignable, démarrer un projet bascule en STOPPED les workspaces VIVANTS des autres projets de l'organisation.
 - [BUG-QA0928-RUNTIME-ID-PROJET](docs/bugs/BUG-QA0928-RUNTIME-ID-PROJET.md) — BLOQUANT — le runtime est adressé avec l'identifiant du PROJET au lieu de celui du workspace ; les écritures de l'agent partent dans le vide.
-- [BUG-QA0928-PROVISION-SANS-QUOTA](docs/bugs/BUG-QA0928-PROVISION-SANS-QUOTA.md) — OBSERVÉ DANS LE CODE, À CONFIRMER — une écriture adressée à un workspace arrêté le fait redémarrer sans vérifier le quota `workspaces.active`.
 - [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
 
 ## Résidus non tabulaires — reportés mot pour mot
