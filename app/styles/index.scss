@@ -18799,6 +18799,20 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--bolt-elements-background-depth-1);
 }
 
+/*
+ * Téléphone, panneau de service : le défileur passe SOUS la barre du bas et
+ * réserve en bas `--mobile-nav-height` + `--vc-mobile-panel-gutter`. Le collant
+ * se cale sur ce bas INTÉRIEUR : mesuré en prod le 30/09 à 390, la barre
+ * « Publier » s'arrêtait à 756 et la barre du bas commence à 772 — 16 px (la
+ * gouttière) où le contenu défilait à découvert (« Historique des publications »).
+ * On descend la barre de cette même gouttière, sur les mêmes variables : elle
+ * touche la barre du bas. Repli explicite pour ne jamais perdre le collant.
+ * Épinglé par tests/e2e/publier-pied-colle-barre.spec.ts.
+ */
+.bolt-responsive-ide-mobile .bolt-project-service-panel .bolt-publication-pied {
+  bottom: calc(-1 * (var(--vc-mobile-panel-gutter, 16px) + env(safe-area-inset-bottom, 0px)));
+}
+
 .bolt-publication-republier {
   display: flex;
   width: 100%;
