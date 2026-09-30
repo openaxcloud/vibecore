@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-363 entrées.
+365 entrées.
 
 ## Sans section
 
@@ -383,6 +383,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-TOAST-GESTES-001](docs/bugs/BUG-TOAST-GESTES-001.md) — P2 — sur téléphone, le bandeau « 1 fichier appliqué » confisquait les gestes sur le haut du fil.
 - [BUG-CHAT-REFLEXION-SILENCIEUSE-001](docs/bugs/BUG-CHAT-REFLEXION-SILENCIEUSE-001.md) — P0 — régression introduite par #592 : un tour de construction Power pouvait être coupé par le chien de garde client.
+
+## Sans section
+
+- [BUG-AGENT-BANDEAU-ARRET-FAUX-001](docs/bugs/BUG-AGENT-BANDEAU-ARRET-FAUX-001.md) — P2 — le bandeau « la génération s'est arrêtée en route » s'affiche après un tour qui a RÉUSSI.
+- [BUG-AGENT-IGNORE-CONSIGNE-001](docs/bugs/BUG-AGENT-IGNORE-CONSIGNE-001.md) — P0 — l'agent a écrit des fichiers alors que la consigne lui demandait explicitement de n'en écrire aucun.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
