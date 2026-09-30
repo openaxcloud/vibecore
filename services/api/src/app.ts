@@ -574,6 +574,8 @@ export type WorkspacePodBuildRefusal =
   | 'NO_USER_CONTEXT'
   | 'NO_WEBSOCKET_RUNTIME'
   | 'WORKSPACE_UNREACHABLE'
+  // Le démarrage de l'espace est REFUSÉ pour quota (#628) : réessayer ne changera rien.
+  | 'WORKSPACE_QUOTA'
   | 'AGENT_TOKEN_UNAVAILABLE'
   | 'BUILD_INVOCATION_THREW';
 
@@ -15761,7 +15763,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await ensureWorkspaceReachable(request, authorized);
     } catch (error) {
-      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
+      /*
+       * BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE — un refus pour quota n'est pas un
+       * espace « qui démarre » : le client lisait « réessayez » et réessayait sans
+       * fin, alors que seule la limite de son forfait bloquait.
+       */
+      const refusPourQuota = (error as { code?: unknown })?.code === 'QUOTA_EXCEEDED';
+
+      return {
+        handled: false,
+        refusal: refusPourQuota ? 'WORKSPACE_QUOTA' : 'WORKSPACE_UNREACHABLE',
+        detail: refusalDetail(error),
+      };
     }
 
     let token: string;
@@ -36398,8 +36411,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
            * dans le journal du déploiement, où il est réellement consultable.
            */
-          const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
           const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+
+          // Un refus pour quota se dit comme tel : « réessayez » enverrait le client tourner en rond.
+          const message = appPublicEnglish(refus === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
           const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
           const ligne = `${message} [${refus}]${detail}`;
 
