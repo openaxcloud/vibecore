@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<!-- Même balise viewport que app.e-code.ai : le zoom volontaire reste permis, comme en prod. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>banc-zoom</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 16px; }
+  label { display: block; margin: 24px 0 6px; font-size: 16px; }
+  input { width: 90%; padding: 8px; border: 1px solid #888; }
+  #petit { font-size: 12px; }
+  #normal { font-size: 16px; }
+  #echelle { font-size: 22px; font-weight: bold; }
+</style>
+</head>
+<body>
+  <!-- Lu par XCUITest : le facteur de zoom RÉEL de Safari, mis à jour à chaque changement. -->
+  <p id="echelle" aria-label="echelle">echelle=1.00</p>
+  <label for="petit">Champ 12 px (doit faire zoomer Safari)</label>
+  <input id="petit" aria-label="champ-12px" type="text">
+  <label for="normal">Champ 16 px (ne doit pas zoomer)</label>
+  <input id="normal" aria-label="champ-16px" type="text">
+  <script>
+    const sortie = document.getElementById('echelle');
+    const maj = () => { const v = `echelle=${window.visualViewport.scale.toFixed(2)}`; sortie.textContent = v; sortie.setAttribute('aria-label', v); };
+    window.visualViewport.addEventListener('resize', maj);
+    window.visualViewport.addEventListener('scroll', maj);
+    setInterval(maj, 250);
+  </script>
+</body>
+</html>

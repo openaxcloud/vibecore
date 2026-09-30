@@ -1,0 +1,206 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A1B2C3D4E5F600000000000A /* HoteBancApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000008; };
+		A1B2C3D4E5F600000000000B /* ZoomSafariTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000009; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A1B2C3D4E5F6000000000016 = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A1B2C3D4E5F6000000000001;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D4E5F600000000000E;
+			remoteInfo = HoteBanc;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A1B2C3D4E5F6000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoteBancApp.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomSafariTests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F600000000000C = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HoteBanc.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1B2C3D4E5F600000000000D = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BancUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A1B2C3D4E5F6000000000011 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A1B2C3D4E5F6000000000014 = { isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A1B2C3D4E5F6000000000002 = { isa = PBXGroup; children = ( A1B2C3D4E5F6000000000004, A1B2C3D4E5F6000000000005, A1B2C3D4E5F6000000000003, ); sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000004 = { isa = PBXGroup; children = ( A1B2C3D4E5F6000000000008, ); path = HoteBanc; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000005 = { isa = PBXGroup; children = ( A1B2C3D4E5F6000000000009, ); path = BancUITests; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000003 = { isa = PBXGroup; children = ( A1B2C3D4E5F600000000000C, A1B2C3D4E5F600000000000D, ); name = Products; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A1B2C3D4E5F600000000000E /* HoteBanc */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F600000000001A;
+			buildPhases = ( A1B2C3D4E5F6000000000010, A1B2C3D4E5F6000000000011, A1B2C3D4E5F6000000000012, );
+			buildRules = ( );
+			dependencies = ( );
+			name = HoteBanc;
+			productName = HoteBanc;
+			productReference = A1B2C3D4E5F600000000000C;
+			productType = "com.apple.product-type.application";
+		};
+		A1B2C3D4E5F600000000000F /* BancUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F600000000001D;
+			buildPhases = ( A1B2C3D4E5F6000000000013, A1B2C3D4E5F6000000000014, );
+			buildRules = ( );
+			dependencies = ( A1B2C3D4E5F6000000000015, );
+			name = BancUITests;
+			productName = BancUITests;
+			productReference = A1B2C3D4E5F600000000000D;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A1B2C3D4E5F6000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = { BuildIndependentTargetsInParallel = 1; LastSwiftUpdateCheck = 2600; LastUpgradeCheck = 2600; TargetAttributes = { A1B2C3D4E5F600000000000F = { TestTargetID = A1B2C3D4E5F600000000000E; }; }; };
+			buildConfigurationList = A1B2C3D4E5F6000000000017;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = fr;
+			hasScannedForEncodings = 0;
+			knownRegions = ( fr, en, Base, );
+			mainGroup = A1B2C3D4E5F6000000000002;
+			productRefGroup = A1B2C3D4E5F6000000000003;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = ( A1B2C3D4E5F600000000000E, A1B2C3D4E5F600000000000F, );
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A1B2C3D4E5F6000000000012 = { isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A1B2C3D4E5F6000000000010 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ( A1B2C3D4E5F600000000000A, ); runOnlyForDeploymentPostprocessing = 0; };
+		A1B2C3D4E5F6000000000013 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ( A1B2C3D4E5F600000000000B, ); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A1B2C3D4E5F6000000000015 = { isa = PBXTargetDependency; target = A1B2C3D4E5F600000000000E; targetProxy = A1B2C3D4E5F6000000000016; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A1B2C3D4E5F6000000000018 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ONLY_ACTIVE_ARCH = YES;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F6000000000019 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ONLY_ACTIVE_ARCH = YES;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F600000000001B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.ecode.banc.hote;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F600000000001C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.ecode.banc.hote;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			};
+			name = Release;
+		};
+		A1B2C3D4E5F600000000001E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.ecode.banc.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = HoteBanc;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F600000000001F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphonesimulator";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.ecode.banc.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TEST_TARGET_NAME = HoteBanc;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A1B2C3D4E5F6000000000017 = { isa = XCConfigurationList; buildConfigurations = ( A1B2C3D4E5F6000000000018, A1B2C3D4E5F6000000000019, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		A1B2C3D4E5F600000000001A = { isa = XCConfigurationList; buildConfigurations = ( A1B2C3D4E5F600000000001B, A1B2C3D4E5F600000000001C, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+		A1B2C3D4E5F600000000001D = { isa = XCConfigurationList; buildConfigurations = ( A1B2C3D4E5F600000000001E, A1B2C3D4E5F600000000001F, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Debug; };
+/* End XCConfigurationList section */
+	};
+	rootObject = A1B2C3D4E5F6000000000001;
+}

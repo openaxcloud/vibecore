@@ -1,6 +1,17 @@
 # Banc mobile sur vrai Safari iOS (simulateur Xcode)
 
-**État au 2026-09-30, 10:50 : LE BANC OUVRE, MAIS NE REPRODUIT AUCUN DES TROIS DÉFAUTS.**
+**État au 2026-09-30, 14:10 : LE BANC REPRODUIT LE ZOOM (défaut 1 sur 3), par XCUITest.**
+
+`tests/ios-sim/zoom.sh`, 3 tests, avec un vrai toucher, un vrai clavier et le vrai Safari iOS 26.4 :
+- champ témoin à 12 px : Safari zoome à **1,33** (= 16/12), clavier ouvert ;
+- champ à 16 px : **1,00** ;
+- prod, champs publics (idée de l'accueil, e-mail de connexion) : **aucun zoom** (champ élargi ×1,00), clavier ouvert.
+
+Piège mesuré : au premier usage, iOS pose son écran d'accueil du clavier (« Continuer ») et la saisie est interrompue. Le test le valide.
+
+Pas encore couverts : zone de saisie de l'agent sous le clavier, barre d'onglets non couverte. Tous deux demandent l'IDE, donc une connexion, et on ne saisit pas d'identifiants en prod.
+
+**Ancien état (WebDriver) : LE BANC OUVRE, MAIS NE REPRODUIT AUCUN DES TROIS DÉFAUTS.**
 Après le ménage mémoire, la session WebDriver s'ouvre sur le vrai Safari iOS 26.4.1.
 Mais Safari piloté ne réagit pas comme un doigt :
 - un toucher W3C (`pointerType: touch`) ne donne pas le focus ;
