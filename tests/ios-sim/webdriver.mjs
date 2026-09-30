@@ -76,6 +76,9 @@ async function appel(base, methode, chemin, corps) {
     method: methode,
     headers: corps === undefined ? {} : { 'content-type': 'application/json' },
     body: corps === undefined ? undefined : JSON.stringify(corps),
+
+    // Un pilote muet doit produire une erreur nette, pas un blocage de 300 s.
+    signal: AbortSignal.timeout(90_000),
   });
 
   const json = await reponse.json().catch(() => ({}));

@@ -1,6 +1,14 @@
 # Banc mobile sur vrai Safari iOS (simulateur Xcode)
 
-**État au 2026-09-30 : LE BANC N'OUVRE PAS.** Aucun des trois défauts connus n'a
+**État au 2026-09-30, 10:50 : LE BANC OUVRE, MAIS NE REPRODUIT AUCUN DES TROIS DÉFAUTS.**
+Après le ménage mémoire, la session WebDriver s'ouvre sur le vrai Safari iOS 26.4.1.
+Mais Safari piloté ne réagit pas comme un doigt :
+- un toucher W3C (`pointerType: touch`) ne donne pas le focus ;
+- `sendKeys` donne le focus sans clavier ni zoom, même sur un témoin à 12 px.
+
+Cette voie ne peut donc reproduire ni le zoom, ni le clavier. Piste suivante : XCUITest (vrai toucher).
+
+**État précédent : LE BANC N'OUVRAIT PAS.** Aucun des trois défauts connus n'a
 été reproduit. Il ne vaut donc rien tant que ce n'est pas le cas.
 
 Ce qui est levé :
