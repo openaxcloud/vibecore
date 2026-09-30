@@ -48,6 +48,7 @@ import {
   type LandingExampleId,
 } from '~/lib/i18n/catalogs/marketing-exact-landing-forum';
 import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
+import { daterLeRelais } from '~/utils/idee-relayee';
 import { stashModelHandoff } from '~/utils/model-handoff';
 
 /*
@@ -168,6 +169,9 @@ export default function LandingOptimized() {
       sessionStorage.setItem('pendingBuildMode', mode);
       sessionStorage.setItem('composerBuildIntent', '1');
       sessionStorage.removeItem('triggerBuildOnLanding');
+
+      // BUG-QA0928-IDEE-PERDUE-INSCRIPTION — daté : une idée périmée ne se relance plus toute seule.
+      daterLeRelais(sessionStorage);
 
       /*
        * Forward the visitor's chosen AI model into the same hand-off so

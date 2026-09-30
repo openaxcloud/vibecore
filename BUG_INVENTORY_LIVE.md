@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-373 entrées.
+374 entrées.
 
 ## Sans section
 
@@ -382,6 +382,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Mesures sur vrais tours de production — 2026-09-28/29
 
 - [BUG-TOAST-GESTES-001](docs/bugs/BUG-TOAST-GESTES-001.md) — P2 — sur téléphone, le bandeau « 1 fichier appliqué » confisquait les gestes sur le haut du fil.
+- [BUG-CHAT-REFLEXION-SILENCIEUSE-001](docs/bugs/BUG-CHAT-REFLEXION-SILENCIEUSE-001.md) — P0 — régression introduite par #592 : un tour de construction Power pouvait être coupé par le chien de garde client.
 
 ## 2026-09-28 — Balayage QA avant lancement
 
@@ -394,8 +395,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0928-PROVISION-SANS-QUOTA](docs/bugs/BUG-QA0928-PROVISION-SANS-QUOTA.md) — OBSERVÉ DANS LE CODE, À CONFIRMER — une écriture adressée à un workspace arrêté le fait redémarrer sans vérifier le quota `workspaces.active`.
 - [BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE](docs/bugs/BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE.md) — GÊNANT — si le workspace-manager est injoignable, démarrer un projet bascule en STOPPED les workspaces VIVANTS des autres projets de l'organisation.
 - [BUG-QA0928-RUNTIME-ID-PROJET](docs/bugs/BUG-QA0928-RUNTIME-ID-PROJET.md) — BLOQUANT — le runtime est adressé avec l'identifiant du PROJET au lieu de celui du workspace ; les écritures de l'agent partent dans le vide.
-- [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
 - [BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE](docs/bugs/BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE.md) — BLOQUANT — DÉCISION REQUISE — chaque `PUT /ide-state` portant le fil réécrit, côté serveur, les fichiers du projet avec la dernière version que l'agent leur a d
+- [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
 
 ## Résidus non tabulaires — reportés mot pour mot
 

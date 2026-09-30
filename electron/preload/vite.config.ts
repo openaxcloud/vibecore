@@ -16,6 +16,14 @@ export default defineConfig({
    */
   publicDir: false,
   build: {
+    /*
+     * BUG-QA0928-DEV-WEB-ESBUILD, même cause : sans cible, Vite garde en mode lib
+     * sa cible par défaut (`safari14`, …) qu'esbuild 0.27 (monté par #569)
+     * refuse pour la déstructuration — les trois builds de bureau échouaient
+     * sur TOUTES les propositions depuis le 18/09. Electron embarque un
+     * Chromium et un Node récents : `esnext` est la cible juste.
+     */
+    target: 'esnext',
     lib: {
       entry: resolve('electron/preload/index.ts'),
       formats: ['cjs'],

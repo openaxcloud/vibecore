@@ -15,7 +15,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
-import { Form, Link, useActionData, useNavigation } from 'react-router';
+import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
 import { AUTH_HERO_STATS } from '~/lib/auth-hero-stats';
@@ -24,6 +24,7 @@ import {
   formObject,
   json,
   redirect,
+  safeReturnTo,
   sessionCookie,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
@@ -31,6 +32,7 @@ import {
 import type { TranslationKey } from '~/lib/i18n/dictionary';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
+import { postRegisterDestination } from '~/lib/post-register-destination.server';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const language = data?.language ?? 'en';
@@ -80,21 +82,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect(`https://app.e-code.ai/register${search}`, { status: 301 });
   }
 
-  return json({ language: resolveRequestLocale(request).language });
-}
-
-/*
- * The homepage builder form sends the visitor's app idea as ?prompt=. After registration we forward
- * it to the new-project composer so the first thing they see is their idea ready to build.
- */
-function postRegisterDestination(request: Request): string {
-  const prompt = new URL(request.url).searchParams.get('prompt')?.trim();
-
-  if (prompt) {
-    return `/projects/new?prompt=${encodeURIComponent(prompt)}`;
-  }
-
-  return '/dashboard';
+  return json({
+    language: resolveRequestLocale(request).language,
+    returnTo: safeReturnTo(new URL(request.url).searchParams.get('returnTo')) ?? null,
+  });
 }
 
 type ActionResult =
@@ -203,6 +194,8 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function SignupPage() {
+  // La destination validée par le loader, gardée par le lien « Se connecter ».
+  const returnTo = (useLoaderData<typeof loader>() as { returnTo?: string | null } | undefined)?.returnTo ?? null;
   const { t } = useTranslation();
 
   const actionData = useActionData<typeof action>() as
@@ -269,7 +262,10 @@ export default function SignupPage() {
       footer={
         <>
           {t('auth.signup.footerPrompt')}{' '}
-          <Link to="/login" className="vc-auth-link font-semibold hover:underline">
+          <Link
+            to={returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'}
+            className="vc-auth-link font-semibold hover:underline"
+          >
             {t('auth.signup.signIn')}
           </Link>
         </>
