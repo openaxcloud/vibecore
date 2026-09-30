@@ -72,16 +72,18 @@ lancer sans prévenir.
 
 ## 📤
 
-☐
+☑ 30/09 #611
 
 ## 💻
 
-☐
+☑ 30/09 fusionnée `90e902533`
 
 ## ✅
 
-☐
+☐ pas encore servi en prod au 30/09 13:45
 
 ## Preuve
 
 Repro prod (étapes 1–3) + repro locale (1–5) ci-dessus. Aucun test ne l'épingle — point OUVERT.
+
+**30/09 — PROUVÉ, pas encore servi.** Rouge avant / vert après en local (Chromium), vert en CI : trois contrôles requis verts à la 1re tentative, les deux tests du défaut exécutés (✓), rapport Playwright présent (10,7 Mo). Épinglé par `tests/e2e/idee-accueil-survit-inscription.spec.ts`, `app/utils/idee-relayee.spec.ts`, `app/routes/signup.spec.ts`. « Testé live » reste ☐ tant que le correctif n'est pas vu dans le code servi par la prod.
