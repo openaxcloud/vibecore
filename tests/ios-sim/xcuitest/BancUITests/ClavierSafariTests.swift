@@ -86,27 +86,44 @@ final class ClavierSafariTests: XCTestCase {
         // mot de passe une fois le clavier ouvert (y 456–553 contre 480–525, mesuré le 30/09) : on y passe par « Suivant ».
         let champSecret = page.secureTextFields.firstMatch
         let suivant = safari.buttons["Suivant"]
-        if suivant.waitForExistence(timeout: 5) { suivant.tap(); sleep(2) } else { toucher(champSecret) }
+        if suivant.waitForExistence(timeout: 5) { suivant.tap(); sleep(2) }
+        // « Suivant » ne prend pas toujours (passage 10, 30/09) : sinon on ferme le clavier, le champ redevient touchable.
+        if champSecret.value(forKey: "hasKeyboardFocus") as? Bool != true {
+            print("BANC-MESURE connexion suivant-sans-effet → fermeture du clavier")
+            if safari.buttons["OK"].exists { safari.buttons["OK"].tap(); sleep(2) }
+            toucher(champSecret)
+        }
         champSecret.typeText(secret + "\n")
         sleep(10)
         // Contrôle : la connexion a abouti (sinon tout ce qui suit mesurerait la page de connexion).
         XCTAssertFalse(page.buttons["Se connecter"].exists, "connexion locale refusée ou non soumise")
 
         // SANS fermer Safari : le cookie de session (sans « Se souvenir de moi ») meurt avec l'app — mesuré le 30/09.
-        XCUIDevice.shared.system.open(URL(string: "\(base)/projects/\(projet)/ide?panel=agent")!)
+        let urlIde = URL(string: "\(base)/projects/\(projet)/ide?panel=agent")!
+        XCUIDevice.shared.system.open(urlIde)
         sleep(25)
+        // Serveur de DÉVELOPPEMENT (le build de production ne tient pas en 8 Go) : au premier chargement de
+        // l'IDE, Vite découvre une dépendance, ré-optimise et recharge ; la page déjà partie plante en
+        // « Application Error » (mesuré le 30/09 : `@ai-sdk/react`). Artefact du mode dev — on recharge, et on le dit.
+        for essai in 1...2 where page.staticTexts["Application Error"].exists {
+            print("BANC-MESURE ide rechargement=\(essai) cause=application-error-vite-dev")
+            XCUIDevice.shared.system.open(urlIde)
+            sleep(25)
+        }
         let saisie = page.textViews.firstMatch
         XCTAssertTrue(saisie.waitForExistence(timeout: 120), "zone de saisie de l'agent absente")
         joindreCapture("ide-avant-clavier")
+        // Témoin de la barre du bas : son bouton « Ouvrir le sélecteur d’onglets » (relevé dans l'arbre de Safari le 30/09 ;
+        // les onglets eux-mêmes n'y sont PAS exposés en boutons « Passer à l’onglet… »).
         // Contrôle positif : sans clavier, la barre d'onglets est là et touchable — sinon « non visible » ne mesure rien.
-        let ongletAvant = page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Passer à l’onglet'")).firstMatch
+        let ongletAvant = page.buttons["Ouvrir le sélecteur d’onglets"]
         XCTAssertTrue(ongletAvant.exists && ongletAvant.isHittable, "barre d'onglets introuvable avant le clavier : la mesure du défaut 3 serait vide")
         print("BANC-MESURE ide barreAvantClavier=\(ongletAvant.frame.minY)-\(ongletAvant.frame.maxY)")
         toucher(saisie)
         let haut = hautDuClavier()
         sleep(1)
         let cadreSaisie = saisie.frame
-        let onglet = page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Passer à l’onglet'")).firstMatch
+        let onglet = page.buttons["Ouvrir le sélecteur d’onglets"]
         let barreVisible = onglet.exists && onglet.isHittable
         let cadreBarre = onglet.exists ? onglet.frame : .zero
         joindreCapture("ide-clavier-ouvert")
