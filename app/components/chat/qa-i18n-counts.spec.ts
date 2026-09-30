@@ -123,6 +123,7 @@ describe('BUG-QA-I18N-COUNT-003 — rendu réel des compteurs, EN et FR', () => 
       'baseChatAst.phrases.emptyYet',
       { title: 'deployments' },
       'No deployments yet',
+
       // Le français « Aucun {title} » ne pouvait pas s'accorder (« Aucun deployments », « Aucun base de données ») — 01/10.
       'Rien pour l’instant dans « deployments »',
     ],
