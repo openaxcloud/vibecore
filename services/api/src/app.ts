@@ -320,6 +320,7 @@ import { githubConnector, resolveGithubCredentials } from './integrations/provid
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
 import { connectorPublicErrorMessage } from './integrations/providers/public-error-copy.js';
+import { defaultOrganizationName } from './default-organization-name.js';
 import { supabaseConnector } from './integrations/providers/supabase.js';
 import {
   ConnectorProviderError,
@@ -10811,7 +10812,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       const organization = await store.createOrganization({
-        name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
+        name: body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale),
         slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
@@ -11328,7 +11329,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             organizationId = existingOrgs[0].id;
           } else {
             const org = await store.createOrganization({
-              name: `${profile.name ?? profile.email}'s Organization`,
+              name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
               slug: `org-${user.id.slice(-8)}`,
               ownerUserId: user.id,
             });
@@ -11517,7 +11518,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           oidcOrgId = oidcUserOrgs[0].id;
         } else {
           const org = await store.createOrganization({
-            name: `${profile.name ?? profile.email}'s Organization`,
+            name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
             slug: `org-${user.id.slice(-8)}`,
             ownerUserId: user.id,
           });
@@ -20748,7 +20749,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = request.currentUser!;
 
       const org = await store.createOrganization({
-        name: `${user.name ?? user.email}'s Organization`,
+        name: defaultOrganizationName(user.name ?? user.email, transactionalLocaleForRequest(request)),
         slug: `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
