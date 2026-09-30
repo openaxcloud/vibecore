@@ -43,7 +43,7 @@ jobs:
             });
 
             const requiredChecks = ['Install, test, build, scan', 'CodeQL Analysis'];
-            const optionalChecks = ['Quality Analysis', 'Deploy Preview'];
+            const optionalChecks = ['Quality Analysis'];
             const failedChecks = [];
             const passedChecks = [];
 
