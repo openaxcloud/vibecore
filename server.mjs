@@ -128,7 +128,15 @@ async function arreter(signal) {
 
   arretEnCours = true;
   console.log(JSON.stringify({ event: 'arret.signal', signal, attenteMaxMs: ATTENTE_MAX_MS }));
-  server?.close((erreur) => erreur && console.error(erreur));
+
+  /*
+   * Les connexions keep-alive INACTIVES que nginx garde ouvertes retenaient le
+   * processus jusqu'au bout de sa grâce : mesuré par la chaîne de livraison le
+   * 2026-09-30 à 19:51:46, un pod web sans travail a consommé ses 30 s et fini
+   * tué (`phase=Failed`). On les ferme tout de suite ; celles qui travaillent
+   * finissent leur requête.
+   */
+  const connexionsFermees = new Promise((resolve) => server?.close(resolve));
   server?.closeIdleConnections?.();
 
   const attendreLesTours = globalThis[Symbol.for('vibecore.attendreLesTours')];
@@ -141,6 +149,8 @@ async function arreter(signal) {
     console.log(JSON.stringify({ event: 'arret.fin', restants: 0, attenteMs: 0, registre: 'jamais-charge' }));
   }
 
+  /* Les requêtes ordinaires encore en vol ont quelques secondes pour finir. */
+  await Promise.race([connexionsFermees, new Promise((resolve) => setTimeout(resolve, 5_000).unref())]);
   process.exit(0);
 }
 
