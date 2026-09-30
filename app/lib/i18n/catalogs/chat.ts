@@ -186,6 +186,8 @@ export const chatEn = {
     'Connect a real provider by saving its connection string as an encrypted project secret. E-Code detects Postgres, MySQL, MongoDB and Redis URLs from secrets and uses them for schema browsing, backups and read-only queries.',
   'chat.copy.connectAServiceToSyncData_643c4e95': 'Connect a service to sync data and automate your project.',
   'chat.copy.connected_c2f9b7b4': 'Connected',
+  'chat.copy.statusbarWorkspaceUnavailable': 'Unavailable',
+  'chat.copy.statusbarWorkspaceUnavailableTitle': 'The workspace is not running — no live connection',
   'chat.copy.connectedAccountsData_b6b14f3b': 'Connected Accounts & Data',
   'chat.copy.connectGithub_ab6f5ed0': 'Connect GitHub',
   'chat.copy.connectionLostReconnecting_f155d22d': 'Connection lost. Reconnecting…',
@@ -1763,6 +1765,8 @@ export const chatFr = {
   'chat.copy.connectAServiceToSyncData_643c4e95':
     'Connectez un service pour synchroniser les données et automatiser votre projet.',
   'chat.copy.connected_c2f9b7b4': 'Connecté',
+  'chat.copy.statusbarWorkspaceUnavailable': 'Indisponible',
+  'chat.copy.statusbarWorkspaceUnavailableTitle': 'L’espace de travail ne tourne pas — aucune connexion active',
   'chat.copy.connectedAccountsData_b6b14f3b': 'Comptes et données connectés',
   'chat.copy.connectGithub_ab6f5ed0': 'Connectez-vous à GitHub',
   'chat.copy.connectionLostReconnecting_f155d22d': 'Connexion perdue. Reconnexion…',
