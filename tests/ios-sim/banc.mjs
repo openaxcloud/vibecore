@@ -57,7 +57,26 @@ export function preparerAppareil() {
       simctl('boot', udid);
     }
 
-    simctl('bootstatus', udid, '-b');
+    /*
+     * PAS `simctl bootstatus -b` : mesuré le 2026-09-30, il attend sans fin
+     * après un redémarrage alors que l'appareil répond déjà (`spawn` rc=0). On
+     * sonde donc l'appareil lui-même, avec un délai borné et une erreur nette.
+     */
+    /*
+     * Un `spawn` sain prend jusqu'à ~17 s sur cette machine (mesuré) : un délai de 5 s
+     * l'abattait et fabriquait un faux « muet ». 60 s par essai, 5 essais.
+     */
+    for (let essai = 0; essai < 5; essai++) {
+      try {
+        execFileSync('xcrun', ['simctl', 'spawn', udid, '/usr/bin/true'], { timeout: 60000, stdio: 'ignore' });
+
+        return;
+      } catch {
+        execFileSync('sleep', ['5']);
+      }
+    }
+
+    throw new Error(`appareil ${udid} démarré mais muet après 5 × 60 s (simctl spawn sans réponse)`);
   };
 
   /*
@@ -80,14 +99,36 @@ export function preparerAppareil() {
   demarrer();
 
   // Réglages de l'APPAREIL (pas du Mac) : inspecteur et automatisation à distance.
+  let modifie = false;
+
   for (const domaine of ['com.apple.WebInspector', 'com.apple.mobilesafari']) {
     for (const cle of ['RemoteInspectorEnabled', 'RemoteAutomationEnabled']) {
-      simctl('spawn', udid, 'defaults', 'write', domaine, cle, '-bool', 'true');
+      let actuel = '';
+
+      try {
+        actuel = simctl('spawn', udid, 'defaults', 'read', domaine, cle);
+      } catch {
+        actuel = '';
+      }
+
+      if (actuel !== '1') {
+        simctl('spawn', udid, 'defaults', 'write', domaine, cle, '-bool', 'true');
+        modifie = true;
+      }
     }
   }
 
-  simctl('shutdown', udid);
-  demarrer();
+  /*
+   * Redémarrage SEULEMENT si un réglage vient d'être écrit (le démon d'inspection
+   * doit le relire). Mesuré le 2026-09-30 : un rallumage IMMÉDIAT après
+   * l'extinction laisse l'appareil muet plus de 180 s ; avec 30 s de pause, il
+   * répond en 5 s.
+   */
+  if (modifie) {
+    simctl('shutdown', udid);
+    execFileSync('sleep', ['30']);
+    demarrer();
+  }
 
   return udid;
 }
