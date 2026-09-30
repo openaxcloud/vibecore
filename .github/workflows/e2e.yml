@@ -376,4 +376,7 @@ jobs:
       - name: E2E gate (bounded waiver)
         env:
           E2E_EXPECTED_REPORTS: '2'
+          # Mesuré le 2026-09-30 : 199 et 173 cas par tranche. Le plancher
+          # attrape la tranche qui n'a RIEN fait, il n'arbitre pas l'équilibre.
+          E2E_MIN_TESTS_PER_REPORT: '30'
         run: node scripts/e2e-gate.mjs $(find tranches -name 'playwright-results.json' | sort | tr '\n' ' ')

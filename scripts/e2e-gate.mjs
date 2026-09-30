@@ -153,9 +153,32 @@ function walk(suites, trail) {
   }
 }
 
-for (const report of reports) {
+/*
+ * UNE TRANCHE VIDE EST UNE TRANCHE VERTE. C'est le trou que laissait la version
+ * précédente : elle EXIGEAIT ses rapports, pas qu'ils contiennent des tests.
+ * Un rapport présent mais vide — mauvais motif de découpe, filtre trop large,
+ * specs non trouvés — aurait fait passer la porte au vert sur rien du tout.
+ *
+ * Mesuré le 2026-09-30 : tranche 1 = 199 cas, tranche 2 = 173. Le plancher est
+ * délibérément bas (30) : il n'arbitre pas l'équilibre entre tranches, il
+ * attrape la tranche qui n'a RIEN fait.
+ */
+const PLANCHER_PAR_RAPPORT = Number(process.env.E2E_MIN_TESTS_PER_REPORT ?? '30');
+
+reports.forEach((report, index) => {
+  const avant = results.size;
   walk(report.suites, []);
-}
+
+  const dansCeRapport = results.size - avant;
+
+  if (dansCeRapport < PLANCHER_PAR_RAPPORT) {
+    fail(
+      `report ${index + 1}/${reports.length} (${reportPaths[index]}) carries only ${dansCeRapport} test(s), ` +
+        `below the floor of ${PLANCHER_PAR_RAPPORT}. An empty shard is a green shard — the gate does not ` +
+        'pass on a shard that ran nothing.',
+    );
+  }
+});
 
 const failed = [...results.entries()].filter(([, status]) => status === 'failed').map(([key]) => key);
 const waived = policy.waived ?? [];
