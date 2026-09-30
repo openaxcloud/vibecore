@@ -813,7 +813,20 @@ export default function NewProjectPage() {
 
     clearModelHandoff();
 
-    const handoffPrompt = stashedPrompt.trim().slice(0, PROMPT_MAX_CHARS);
+    const handoffPrompt = stashedPrompt.trim();
+
+    /*
+     * BUG-QA0928-PROMPT-TRONQUE — plus de `slice(0, PROMPT_MAX_CHARS)` suivi d'un
+     * envoi : la fin de l'idée (souvent les exigences les plus précises) était
+     * coupée en silence. Trop longue, l'idée est posée ENTIÈRE dans le composeur,
+     * dont le compteur passe en erreur et bloque l'envoi : l'utilisateur voit le
+     * dépassement et raccourcit lui-même.
+     */
+    if (handoffPrompt.length > PROMPT_MAX_CHARS) {
+      setPrompt(handoffPrompt);
+      return;
+    }
+
     setPrompt(handoffPrompt);
 
     const submitBody: Record<string, string> = { prompt: handoffPrompt };
