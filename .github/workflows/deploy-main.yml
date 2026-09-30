@@ -412,7 +412,14 @@ jobs:
     # detach the deploy from the gate.
     needs: [resolve-target, release-gate, preflight-gates]
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # 130 et non 90. Ce job fait DEUX `helm upgrade --atomic` (le rollout, puis la
+    # phase 2 d'armement) et éventuellement un `helm rollback`, chacun budgété à
+    # 25 min depuis qu'une période de grâce longue laisse les tours d'agent se
+    # terminer. 43 min de construction mesurées + 2 × 25 = 93 min : à 90, le
+    # coureur tuait le job AVANT ses propres horloges — et un job tué n'écrit
+    # aucun rapport, donc la production restait dans un état qu'on ne pouvait pas
+    # lire. Épinglé par tests/guards/budget-drain-deploiement.spec.ts.
+    timeout-minutes: 130
     permissions:
       contents: read
       id-token: write # the ONLY job that can exchange a WIF token
@@ -1622,11 +1629,37 @@ jobs:
             /tmp/valeurs-fichier.json /tmp/valeurs-release.json
 
           echo "helm --set args: ${SETS[*]}"
+          # BUDGET : 25 min, et pas 10.
+          #
+          # Ce n'est pas « on se donne de l'air ». C'est une contrainte d'ORDRE.
+          # Trois horloges courent pendant cet upgrade, et elles doivent expirer
+          # dans cet ordre, du plus petit au plus grand :
+          #
+          #   1. le hook de migration      activeDeadlineSeconds: 300  (5 min)
+          #   2. le délai de progrès K8s   progressDeadlineSeconds: 900 (15 min)
+          #   3. CE budget                 25 min
+          #
+          # Si deux d'entre elles expirent ENSEMBLE, celle qui rend l'erreur n'est
+          # pas celle qui connaît la cause. Mesuré le 2026-09-04 (run 1453) : le
+          # hook et Helm étaient tous deux à 600 s, Helm a rendu « context deadline
+          # exceeded » et son rollback atomique a emporté le Job de migration avant
+          # que quiconque puisse lire pourquoi — 10 minutes de silence.
+          #
+          # À 10 min, ce budget expirait AVANT le délai de progrès de Kubernetes :
+          # `--atomic` annulait donc un rollout que Kubernetes considérait encore
+          # comme en cours. Mesuré le 2026-09-30 : l'upgrade sain le plus récent a
+          # pris 7 min 22 s — 2 min 38 s de marge sur 10. Un seul pod qui met une
+          # minute de plus à se vider faisait revenir la production en arrière.
+          #
+          # Et c'est la condition pour allonger la période de grâce afin qu'un tour
+          # d'agent en cours (2 à 4 min) finisse avant que son pod disparaisse : un
+          # rollout plus lent PARCE QU'IL PROTÈGE DU TRAVAIL ne doit pas être lu
+          # comme un échec. Épinglé par tests/guards/budget-drain-deploiement.spec.ts.
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
             --reuse-values \
             --atomic \
-            --timeout 10m \
+            --timeout 25m \
             "${SETS[@]}"
           # From here on, a failure means production has ALREADY been changed. The
           # rollback step below keys off this marker so it never reverts a healthy
@@ -1644,7 +1677,7 @@ jobs:
               dep="deploy/${HELM_RELEASE}-vibecore-platform-${svc}"
             fi
             echo "::group::rollout status ${dep}"
-            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
+            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=22m
             echo "::endgroup::"
           done
           # P11 screenshotter — only exists once a runtime-tier deploy has asserted
@@ -1652,7 +1685,7 @@ jobs:
           # for the Deployment instead of failing a web-only deploy that predates it.
           if kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-screenshotter" >/dev/null 2>&1; then
             echo "::group::rollout status deploy/${HELM_RELEASE}-vibecore-platform-screenshotter"
-            kubectl -n "${HELM_NAMESPACE}" rollout status "deploy/${HELM_RELEASE}-vibecore-platform-screenshotter" --timeout=5m
+            kubectl -n "${HELM_NAMESPACE}" rollout status "deploy/${HELM_RELEASE}-vibecore-platform-screenshotter" --timeout=22m
             echo "::endgroup::"
           else
             echo "screenshotter Deployment absent (not yet enabled by a runtime-tier deploy) — skipped"
@@ -2012,12 +2045,12 @@ jobs:
             --namespace "${HELM_NAMESPACE}" \
             --reuse-values \
             --atomic \
-            --timeout 10m \
+            --timeout 25m \
             --set "platformEnv.runtime.previewUrlTemplate=https://{workspaceId}-{port}.preview.e-code.ai/" \
             --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" \
             --set-string "platformEnv.runtime.deploymentAccessActivationEnabled=1"
           kubectl -n "${HELM_NAMESPACE}" rollout status \
-            "deploy/${HELM_RELEASE}-vibecore-platform-api" --timeout=5m
+            "deploy/${HELM_RELEASE}-vibecore-platform-api" --timeout=22m
 
       # D2 (approved 2026-07-17): POST-DEPLOY proof that the rollback flag
       # survived the upgrade — checked against the LIVE cluster (rendered
@@ -2074,7 +2107,12 @@ jobs:
         run: |
           set -uo pipefail
           echo "::error::post-rollout verification failed — rolling production back to revision ${PREV_REVISION}"
-          if helm rollback "${HELM_RELEASE}" "${PREV_REVISION}" -n "${HELM_NAMESPACE}" --wait --timeout 10m; then
+          # MÊME BUDGET QUE L'ALLER. Un rollback remplace les pods exactement comme
+          # un upgrade : il subit donc la même période de grâce. Laissé à 10 min, il
+          # aurait expiré sur un rollback SAIN et déclenché l'escalade « ROLLBACK
+          # FAILED — production is on an unverified release », qui est le message le
+          # plus alarmant du workflow. Un faux positif à cet endroit coûte une nuit.
+          if helm rollback "${HELM_RELEASE}" "${PREV_REVISION}" -n "${HELM_NAMESPACE}" --wait --timeout 25m; then
             echo "rolled back to revision ${PREV_REVISION}"
           else
             echo "::error::ROLLBACK FAILED — production is on an unverified release. Escalate now."
@@ -2083,7 +2121,7 @@ jobs:
           for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             [ -n "${dep}" ] || continue
-            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m || true
+            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=22m || true
           done
           {
             echo "## ⚠️ Rolled back"

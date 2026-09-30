@@ -32,6 +32,22 @@ spec:
   # (overridable per service via values) so the guarantee survives
   # `helm upgrade --reuse-values`, which ignores newly-added values keys.
   minReadySeconds: {{ $svc.minReadySeconds | default 10 }}
+  # LE DÉLAI DE PROGRÈS DOIT DÉPASSER LE TEMPS QU'UN POD MET À PARTIR.
+  #
+  # Défaut Kubernetes : 600 s. Avec `maxUnavailable: 0` et `maxSurge: 1`, les pods
+  # se remplacent UN PAR UN et un pod en terminaison compte encore dans le total —
+  # donc le drain de l'ancien est sur le chemin critique. Un pas de remplacement
+  # coûte : grâce (au plus) + minReadySeconds + démarrage du nouveau pod
+  # (3 min 20 s mesurées le 2026-09-30 sur `web` entre deux pods du même rollout).
+  #
+  # Tant que la grâce vaut 30 s, 600 s suffisent largement. Mais dès qu'on
+  # l'allonge pour laisser un tour d'agent se terminer, ce défaut devient le
+  # PREMIER à céder : Kubernetes marque `ProgressDeadlineExceeded` sur un rollout
+  # parfaitement sain, simplement lent parce qu'il protège du travail. D'où une
+  # valeur explicite et surdimensionnée, et le garde
+  # tests/guards/budget-drain-deploiement.spec.ts qui rougit si une grâce dépasse
+  # ce délai.
+  progressDeadlineSeconds: {{ $svc.progressDeadlineSeconds | default 1200 }}
   strategy:
     type: RollingUpdate
     rollingUpdate:
