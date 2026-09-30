@@ -1,7 +1,13 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
 import { detectUserLanguage } from '~/lib/i18n/language';
-import { arbitreDe, decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
+import {
+  arbitreDe,
+  decoderLane,
+  estFichierDeDemarrage,
+  identifiantDeLane,
+  textesDesLanes,
+} from '~/lib/runtime/agent-lane-writes';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import {
   analyserGeneration,
@@ -32,8 +38,37 @@ const logger = createScopedLogger('useMessageParser');
  * pour un identifiant de message ordinaire, et on laisse passer. C'est ce qui
  * garantit qu'un projet sans sous-agents se comporte exactement comme avant.
  */
+const refusDeDemarrageSignales = new Set<string>();
+
 function ecritureAutorisee(data: { messageId: string; action: { type: string; filePath?: string } }): boolean {
   const lane = decoderLane(data.messageId);
+
+  /*
+   * Un sous-agent n'écrit jamais la chaîne de démarrage : c'est le coordinateur
+   * qui l'intègre (voir `estFichierDeDemarrage`). Témoin émis :
+   * `lane.fichier-de-demarrage.refuse`.
+   */
+  if (
+    lane &&
+    (data.action.type === 'file' || data.action.type === 'diff') &&
+    data.action.filePath &&
+    estFichierDeDemarrage(data.action.filePath)
+  ) {
+    const cle = `${data.messageId}:${data.action.filePath}`;
+
+    if (!refusDeDemarrageSignales.has(cle)) {
+      refusDeDemarrageSignales.add(cle);
+      logger.warn(
+        JSON.stringify({
+          event: 'lane.fichier-de-demarrage.refuse',
+          roleId: lane.roleId,
+          filePath: data.action.filePath,
+        }),
+      );
+    }
+
+    return false;
+  }
 
   if (!lane || data.action.type !== 'file' || !data.action.filePath) {
     return true;
