@@ -281,7 +281,11 @@ import {
   resolveCompactPreviewRunState,
 } from '~/lib/runtime/preview-run-state';
 import { projectPanelRefreshIntervalMs } from '~/utils/project-panel-refresh';
-import { countHiddenMobileBottomTabs, selectVisibleMobileBottomTabs } from '~/lib/mobile-bottom-tabs';
+import {
+  countHiddenMobileBottomTabs,
+  defilementPourMontrer,
+  selectVisibleMobileBottomTabs,
+} from '~/lib/mobile-bottom-tabs';
 import {
   ECODE_MOBILE_MORE_ITEMS,
   ECODE_MOBILE_TOOLS,
@@ -9733,6 +9737,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [mobileBottomTabs, mobileOpenTabs],
     );
 
+    /*
+     * L'onglet actif de la barre du bas doit être ENTIER dans sa bande : à 390,
+     * quatre places ne tiennent pas en 146 px et la bande défile. Sans ce
+     * défilement, l'onglet actif (souvent le 4e) restait coupé à moitié contre
+     * « + » (mesuré en prod le 30/09). Épinglé par ide-mobile-chrome.spec.ts.
+     */
+    const bandeOngletsBasRef = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(() => {
+      const bande = bandeOngletsBasRef.current;
+      const actif = bande?.querySelector<HTMLElement>('[aria-current="page"]');
+
+      if (!bande || !actif) {
+        return;
+      }
+
+      const b = bande.getBoundingClientRect();
+      const a = actif.getBoundingClientRect();
+      const cible = defilementPourMontrer({ left: b.left, right: b.right, scrollLeft: bande.scrollLeft }, a);
+
+      if (cible !== bande.scrollLeft) {
+        bande.scrollLeft = cible;
+      }
+    }, [activeMobileOpenTabId, mobileBottomTabs]);
+
     const showMobileChrome = useMobileIde && clientHydrated;
 
     const keybindingSections = useMemo(
@@ -10166,6 +10195,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
                 <span className="bolt-mobile-replit-divider" aria-hidden />
                 <div
+                  ref={bandeOngletsBasRef}
                   className="bolt-mobile-replit-panel-scroll"
                   role="group"
                   aria-label={t('baseChatMobileHeader.openTabs')}
