@@ -52,9 +52,22 @@ concurrency:
 
 jobs:
   e2e:
-    name: Playwright local stack
+    # ⚠️ CE JOB NE PORTE PLUS LE NOM REQUIS. La protection de branche exige
+    # « Playwright local stack » ; c'est le job `verdict` en fin de fichier qui
+    # le porte désormais. Renommer celui-ci sans renommer celui-là ferait
+    # attendre à la protection un contrôle qui n'existe plus — et plus aucune
+    # proposition ne pourrait jamais fusionner. Épinglé par
+    # tests/guards/e2e-tranches.spec.ts.
+    name: E2E tranche ${{ matrix.shard }}/4
+    strategy:
+      # Une tranche rouge ne doit pas annuler les autres : on veut les quatre
+      # rapports, y compris quand l'un d'eux porte l'échec à expliquer.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     runs-on: ubuntu-latest
-    # 75 min pour la suite requise, comme avant, + 15 min pour le canari iOS
+    # Plafond par TRANCHE. Une tranche joue un quart des specs : elle n'a
+    # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
     # borné ci-dessous. Épinglé par tests/guards/ci-canari-borne.spec.ts.
     timeout-minutes: 90
     # Forked PRs can't read the AI provider secrets (so the run would hard-fail
@@ -214,18 +227,35 @@ jobs:
             CIBLE="tests/e2e"
           fi
 
+          # Une suite ciblée ne se découpe pas : on la joue entière sur la
+          # tranche 1 et les autres n'ont rien à faire.
+          DECOUPE="--shard=${{ matrix.shard }}/4"
+          if [ -n "${{ inputs.spec }}" ]; then
+            DECOUPE=""
+          fi
+
           PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-results.json \
-            pnpm exec playwright test "$CIBLE" --project=chromium \
+            pnpm exec playwright test "$CIBLE" --project=chromium $DECOUPE \
               --grep-invert @runtime --reporter=list,json
           echo "playwright exit: $?"
 
-      # Fails on any failure that is NOT waived, on an expired waiver, and on a
-      # waived test that has started passing. The policy path is hard-coded in
-      # the script, so this cannot be widened from the workflow.
-      - name: E2E gate (bounded waiver)
-        run: node scripts/e2e-gate.mjs playwright-results.json
+      # La porte ne juge PLUS ici : une tranche seule ne voit qu'un quart des
+      # specs, et la faire conclure sur ce quart serait exactement
+      # l'affaiblissement qu'une découpe introduit sans le dire. Elle juge dans
+      # le job `verdict`, sur les quatre rapports réunis.
+      - name: Rapport de la tranche
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultats-tranche-${{ matrix.shard }}
+          path: playwright-results.json
+          if-no-files-found: error
+          retention-days: 7
 
+      # Ces deux suites ne se découpent pas — elles tiennent en quelques minutes
+      # et se jouent une fois, sur la première tranche.
       - name: Playwright mobile viewport tests
+        if: matrix.shard == 1
         run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
 
       # LE MOTEUR D'AVI. `playwright.config.ts` définit un projet `webkit-iphone`
@@ -254,6 +284,7 @@ jobs:
       # alors que la porte ci-dessus avait déjà rendu « gate passes ». Un canari
       # qui dépasse est maintenant marqué en échec, et le job se termine.
       - name: Canari iOS — Playwright WebKit iPhone (non bloquant)
+        if: matrix.shard == 1
         id: canari_ios
         continue-on-error: true
         timeout-minutes: 15
@@ -273,7 +304,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-report
+          name: playwright-report-tranche-${{ matrix.shard }}
           path: |
             playwright-report
             playwright-results.json
@@ -282,3 +313,44 @@ jobs:
             /tmp/vibecore-api.log
             /tmp/vibecore-web.log
           if-no-files-found: ignore
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LE VERDICT. Ce job — et lui seul — porte le nom que la protection de branche
+  # exige. Le renommer, ou le supprimer, ferait attendre à GitHub un contrôle
+  # qui ne se présente jamais : aucune proposition ne pourrait plus fusionner.
+  # ═══════════════════════════════════════════════════════════════════════════
+  verdict:
+    name: Playwright local stack
+    needs: e2e
+    # `always()` pour que le verdict tombe MÊME si une tranche échoue ou se fait
+    # annuler. C'est le cas qui compte : sans lui, une tranche perdue laisserait
+    # le contrôle requis sans conclusion, et on retomberait dans le silence que
+    # cette découpe existe pour supprimer.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        with:
+          node-version: 22
+
+      - name: Rassembler les rapports des quatre tranches
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        with:
+          pattern: resultats-tranche-*
+          path: tranches
+
+      - name: Ce qui est réellement arrivé
+        run: |
+          echo "rapports reçus :"
+          find tranches -name 'playwright-results.json' | sort | sed 's/^/  /'
+          echo "total : $(find tranches -name 'playwright-results.json' | wc -l)"
+
+      # La porte EXIGE ses quatre rapports. Une tranche manquante la fait
+      # rougir : un vert sur trois quarts des specs serait un vert menteur.
+      - name: E2E gate (bounded waiver)
+        env:
+          E2E_EXPECTED_REPORTS: '4'
+        run: node scripts/e2e-gate.mjs $(find tranches -name 'playwright-results.json' | sort | tr '\n' ' ')
