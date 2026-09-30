@@ -8054,6 +8054,22 @@ body :where(.lucide, svg[data-lucide]) {
  * un `:where()` — donc (0,1,0) — les entrées restaient carrées de 44px et
  * rognaient leur libellé : le menu s'ouvrait sur cinq pastilles muettes.
  */
+/*
+ * Le panneau reçoit le focus pour le garder DANS le menu (téléphone,
+ * MessageContextMenu) — ce n'est pas une commande : pas d'anneau. Vu le 01/10 sur
+ * Safari iOS : son contour par défaut entourait toute la barre après un appui
+ * long. Les actions gardent leur `:focus-visible` pour le clavier.
+ */
+.bolt-message-context-menu:focus {
+  /*
+   * `body :where([tabindex]):focus-visible` (anneau d'accessibilité) pose un
+   * contour ET une ombre de 4 px : l'ombre restait en halo bleu pâle autour de la
+   * barre et remplaçait son ombre portée. On rend les deux (spécificité 0,2,0).
+   */
+  outline: none;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.35);
+}
+
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-footer,
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-footer {
   display: flex;
