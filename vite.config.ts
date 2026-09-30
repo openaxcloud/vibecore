@@ -188,6 +188,14 @@ export default defineConfig((config) => {
     optimizeDeps: {
       include: IDE_OPTIMIZE_DEPS,
       esbuildOptions: {
+        /*
+         * BUG-QA0928-DEV-WEB-ESBUILD — même cible que `build.target`. Sans elle,
+         * le pré-bundling garde la cible par défaut de Vite 5 (`safari14`, …),
+         * qu'esbuild 0.27 (monté par #569) refuse pour la déstructuration :
+         * `pnpm run dev:web` mourait sur toute installation neuve, et la CI ne
+         * le voyait pas (elle teste l'image, pas le serveur de dev).
+         */
+        target: 'esnext',
         define: {
           global: 'globalThis',
         },
