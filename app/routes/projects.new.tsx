@@ -63,6 +63,7 @@ import { detectApplePlatform, submitShortcutLabel as resolveSubmitShortcutLabel 
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { lireIdeeRelayee, oublierLeRelais } from '~/utils/idee-relayee';
 import { clearModelHandoff, readModelHandoff, resolveHandoffModelSelection } from '~/utils/model-handoff';
 import { projectIdePath } from '~/utils/project-url';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
@@ -767,16 +768,19 @@ export default function NewProjectPage() {
     }
 
     let stashedPrompt: string | null = null;
-    let intent: string | null = null;
 
     try {
-      stashedPrompt = sessionStorage.getItem('pendingAppDescription');
-      intent = sessionStorage.getItem('composerBuildIntent');
+      /*
+       * BUG-QA0928-IDEE-PERDUE-INSCRIPTION — une idée sans date ou périmée est
+       * oubliée ici au lieu d'être soumise : restée dans l'onglet, elle créait
+       * des heures plus tard un projet que l'utilisateur n'avait pas redemandé.
+       */
+      stashedPrompt = lireIdeeRelayee(sessionStorage);
     } catch {
       return;
     }
 
-    if (intent !== '1' || !stashedPrompt || !stashedPrompt.trim()) {
+    if (!stashedPrompt) {
       return;
     }
 
@@ -803,10 +807,7 @@ export default function NewProjectPage() {
       : null;
 
     try {
-      sessionStorage.removeItem('composerBuildIntent');
-      sessionStorage.removeItem('pendingAppDescription');
-      sessionStorage.removeItem('pendingBuildMode');
-      sessionStorage.removeItem('triggerBuildOnLanding');
+      oublierLeRelais(sessionStorage);
     } catch {
       // best-effort cleanup; the ref above already prevents a re-submit
     }

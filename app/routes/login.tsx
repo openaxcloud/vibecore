@@ -169,6 +169,14 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     language: resolveRequestLocale(request).language,
     oauth: oauth && oauthError ? { provider: oauth, error: oauthError, detail: oauthDetail } : null,
     providers,
+
+    /*
+     * BUG-QA0928-IDEE-PERDUE-INSCRIPTION — la destination, validée ICI (côté
+     * serveur), pour que le lien « Inscrivez-vous » la garde. Sans elle, l'inconnu
+     * venu de l'accueil (`returnTo=/projects/new`) s'inscrivait et atterrissait
+     * sur un tableau de bord vide, son idée oubliée.
+     */
+    returnTo: safeReturnTo(url.searchParams.get('returnTo')) ?? null,
   });
 }
 
@@ -277,6 +285,7 @@ export default function LoginPage() {
         oauth?: { provider: string; error: string; detail?: string | null } | null;
         providers?: Array<{ provider: string; ready: boolean }>;
         language?: string;
+        returnTo?: string | null;
       }
     | undefined;
 
@@ -383,7 +392,10 @@ export default function LoginPage() {
       footer={
         <>
           {t('auth.login.footerPrompt')}{' '}
-          <Link to="/register" className="vc-auth-link font-semibold hover:underline">
+          <Link
+            to={loaderData?.returnTo ? `/register?returnTo=${encodeURIComponent(loaderData.returnTo)}` : '/register'}
+            className="vc-auth-link font-semibold hover:underline"
+          >
             {t('auth.login.registerFree')}
           </Link>
         </>
