@@ -491,6 +491,52 @@ Un point n'est « fait » QUE quand ✅ Testé live est coché ; 📤 Dispatché
 
 **Règle commune** — Ne passer un point en ✅ QU'APRÈS test réel (vérif live à l'écran + greps de contrôle) — jamais sur « dispatché » ni « codé ». Quand Avi dit « fais-moi le point », TOUJOURS lire d'abord les 4 fichiers de suivi et dire précisément où ça en est.
 
+## Fusionner : UNE À LA FOIS, et on attend que ça atterrisse
+
+**Deux fusions rapprochées se détruisent l'une l'autre.** GitHub ne garde qu'**un
+seul run EN ATTENTE par groupe de concurrence**. Le déploiement de la première
+fusion patiente ; la seconde fusion arrive, l'écarte, et repart de zéro. Trois
+fusions de plus et plus rien n'atterrit jamais.
+
+⚠️ **`cancel-in-progress: false` ne protège pas de ça** — et c'est le piège :
+le réglage est déjà bon, on croit donc être couvert. Il protège un déploiement
+qui TOURNE. Il ne protège pas celui qui ATTEND son tour, et quand les coureurs
+sont saturés, tous attendent.
+
+**Mesuré le 2026-09-30, et ça a coûté cinq heures.** Sept correctifs fusionnés
+dans la matinée, dont le défaut bloquant qui faisait perdre un client au moment
+de l'inscription. **Cinq déploiements annulés d'affilée** — 09:27, 09:37, 10:05,
+10:10, 10:14 — chacun avec **zéro job exécuté** : ils n'ont jamais démarré. À
+midi, la production servait encore le code de la veille.
+
+**La règle :**
+
+1. On fusionne **une** proposition.
+2. On **attend que son déploiement soit SERVI** — vérifié par les trois niveaux :
+   ce que Helm demande, l'empreinte épinglée sur les pods, et le registre qui
+   confirme que le tag porte bien cette empreinte.
+3. **Ensuite seulement** la suivante.
+
+Ce n'est pas plus lent. Le 2026-09-30, fusionner en rafale a livré **zéro**
+correctif en cinq heures.
+
+**Le contrôle, avant de fusionner** — un déploiement est-il déjà en vol ?
+
+```
+gh run list -R openaxcloud/vibecore --workflow deploy-main.yml --limit 3 \
+  --json status,conclusion,headSha,createdAt
+```
+
+S'il y en a un en `queued` ou `in_progress`, **on ne fusionne pas**. On attend.
+
+⚠️ **Corollaire mesuré le même jour** : un déploiement qui prend enfin son tour
+déploie **SON** commit, pas la tête de `main`. La production peut donc servir un
+code ANTÉRIEUR à ce qui attendait. Le 30/09 à 12:15, le servi était
+`90e902533b` (11:55) alors que `a24429442b` (13:14) patientait — quatre
+correctifs sur cinq n'étaient pas en production alors qu'on les croyait livrés.
+**Vérifier le CONTENU du SHA servi, jamais le numéro seul** :
+`git merge-base --is-ancestor <commit-de-fusion> <sha-servi>`.
+
 ## Déploiement prod (mécanisme réel)
 
 **Runbook complet + commandes exactes : [`docs/DEPLOY_RUNBOOK.md`](docs/DEPLOY_RUNBOOK.md).** Vérité terrain reconstituée le 2026-07-07.
