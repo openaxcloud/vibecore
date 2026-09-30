@@ -41,16 +41,18 @@ Non essayé ici — la contre-épreuve reste à faire.
 
 ## 📤
 
-☐
+☑ 30/09 #610
 
 ## 💻
 
-☐
+☑ 30/09 fusionnée `d9335f199`
 
 ## ✅
 
-☐
+☐ pas encore servi en prod au 30/09 13:45
 
 ## Preuve
 
 Journal de démarrage ci-dessus. Aucun test — point OUVERT.
+
+**30/09 — PROUVÉ.** `vite optimize` : 4 864 erreurs → 0 ; build electron main : 11 erreurs → vert ; contre-épreuves rouges. En CI, le build desktop est vert sur #610 et rouge sur toutes les PR qui n'ont pas le correctif, avec exactement cette erreur (`Transforming destructuring … safari14`). Épinglé par `tests/guards/pre-bundling-cible.spec.ts`. Sans effet sur l'image servie (dev et desktop seulement).

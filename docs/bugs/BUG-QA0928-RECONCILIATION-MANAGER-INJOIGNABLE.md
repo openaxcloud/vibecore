@@ -39,16 +39,18 @@ Dans la réconciliation, n'utiliser que `managerStatus === 404` ; garder `isRunt
 
 ## 📤
 
-☐
+☑ 29/09 #597
 
 ## 💻
 
-☐
+☐ PR #597 ouverte — `main` fusionnée dedans le 30/09 (`146f2c26e`), CI en cours
 
 ## ✅
 
-☐
+☐ pas encore servi en prod au 30/09 13:45
 
 ## Preuve
 
 Repro locale ci-dessus. Aucun test — point OUVERT.
+
+**30/09 — CORRIGÉ, pas encore prouvé en CI** (la dernière tentative E2E était `cancelled` : elle ne prouve rien). Tests prêts dans la PR ; voir sa description.
