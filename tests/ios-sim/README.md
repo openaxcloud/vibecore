@@ -1,6 +1,24 @@
 # Banc mobile sur vrai Safari iOS (simulateur Xcode)
 
-**État : PRÉPARÉ, NON VALIDÉ.** Aucun parcours n'a encore tourné jusqu'au bout.
+**État au 2026-09-30 : LE BANC N'OUVRE PAS.** Aucun des trois défauts connus n'a
+été reproduit. Il ne vaut donc rien tant que ce n'est pas le cas.
+
+Ce qui est levé :
+- `safaridriver --enable` a été fait par Avi. Vérifié : une session s'ouvre sur
+  le Safari du Mac.
+- Les clés d'automatisation doivent être écrites dans le **conteneur de Safari**
+  (`xcrun simctl get_app_container <udid> com.apple.mobilesafari data`
+  → `Library/Preferences/com.apple.mobilesafari.plist`), appareil éteint.
+  `simctl spawn … defaults write` écrit ailleurs, et Safari ne le lit pas.
+- Le pilote atteint `Booted` puis `WaitingForAppLaunch` (journal du service
+  `com.apple.WebDriver.HTTPService`).
+
+Ce qui bloque, mesuré : la machine. 8 Go de RAM, charge moyenne 20 à 26 sur
+8 cœurs, 16 Mo libres, swap massif, deux simulateurs démarrés. L'iOS simulé
+reste sur son rouet de démarrage plus de 10 minutes, et le pilote abandonne
+après 30 s.
+
+**Ancien état :** Aucun parcours n'a encore tourné jusqu'au bout.
 Tant que le banc n'a pas montré les deux défauts connus (zone de saisie sous le
 clavier, zoom sous 16 px), il ne prouve rien.
 
