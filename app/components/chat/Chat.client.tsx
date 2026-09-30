@@ -35,6 +35,8 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { useRattrapageALaReprise } from '~/lib/hooks/useRattrapageALaReprise';
+import { estUneCoupureReseau } from '~/lib/chat/rattrapage-reprise';
 import { leTourAEcritDesFichiers, messageDeCommitDuTour, statistiquesDuTour } from '~/components/chat/fin-de-tour';
 import {
   consommerPrompt,
@@ -445,6 +447,12 @@ export const ChatImpl = memo(
     const stallWatchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     /*
+     * Rattrapage à la reprise — armé par `onError` et le chien de garde, défini
+     * après `useChat` (il a besoin de `setMessages`) : d'où la référence.
+     */
+    const armerRattrapageRef = useRef<() => void>(() => undefined);
+
+    /*
      * Fast-recovery for a stuck stream: `isLoadingRef` mirrors the latest
      * `isLoading` so a deferred timer reads the CURRENT value (not a stale
      * closure), and `handledCompletionsRef` tracks how many authoritative
@@ -849,6 +857,18 @@ export const ChatImpl = memo(
         setFakeLoading(false);
 
         /*
+         * UNE CONNEXION PERDUE N'EST PAS UN TOUR PERDU. Mesuré le 2026-09-30 :
+         * connexion coupée à 42 s, le serveur est allé au bout et a facturé le
+         * tour, et le navigateur n'en gardait que le début. Le serveur écrit
+         * désormais la réponse complète (#609) ; on va la chercher. Seules les
+         * erreurs RÉSEAU arment le rattrapage — une erreur rendue par le serveur
+         * dit que le tour a échoué, il n'y a rien à attendre.
+         */
+        if (estUneCoupureReseau(e)) {
+          armerRattrapageRef.current();
+        }
+
+        /*
          * A dropped connection / stream error mid-generation never delivers the
          * closing </boltAction>, so any in-flight file actions would otherwise
          * spin forever. Abort them like a manual stop does.
@@ -1026,6 +1046,9 @@ export const ChatImpl = memo(
             setFakeLoading(false);
             workbenchStore.abortAllActions();
             toast.warning(copy['chatClient.generation.stalled']);
+
+            /* Un flux muet est une connexion perdue : le serveur a pu finir sans nous. */
+            armerRattrapageRef.current();
           }
         }, 10_000);
       }
@@ -1095,6 +1118,20 @@ export const ChatImpl = memo(
     useEffect(() => {
       latestMessagesRef.current = messages;
     }, [messages]);
+
+    const { armer: armerRattrapage } = useRattrapageALaReprise({
+      enabled: Boolean(projectIdeMode && projectId),
+      projectId,
+      isLoading,
+      conversationId: () => backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId,
+      messages: () => latestMessagesRef.current,
+      appliquer: (fil) => {
+        latestMessagesRef.current = fil;
+        setMessages(fil);
+      },
+    });
+
+    armerRattrapageRef.current = armerRattrapage;
 
     useEffect(() => {
       Cookies.set('selectedModel', model, { expires: 30 });
