@@ -84,6 +84,36 @@ for (const panneau of PANNEAUX) {
   const sous16 = champs.filter((c) => c.police < 16);
   console.log(`BANC-MESURE champs panneau=${panneau} total=${champs.length} visibles=${champs.filter((c) => c.visible).length} sous16=${sous16.length}`);
 }
+/*
+ * L'ÉDITEUR avec un fichier ouvert : `?panel=editor` sans fichier n'a aucun champ.
+ * On ouvre README.md depuis le panneau Fichiers — c'est le geste d'Avi.
+ * `contenteditable` n'est PAS couvert par le plancher global de 16 px.
+ */
+await page.goto(`${base}/projects/${BANC_PROJET}/ide?panel=files`, { timeout: 180_000 });
+await page.waitForTimeout(7_000);
+const fichier = page.getByText('README.md', { exact: true }).first();
+if (await fichier.count()) {
+  await fichier.click();
+  await page.waitForTimeout(6_000);
+  const editeur = await page.evaluate(() =>
+    [...document.querySelectorAll('[contenteditable=""], [contenteditable="true"], textarea')].map((el) => {
+      const r = el.getBoundingClientRect();
+      return {
+        balise: el.tagName.toLowerCase() + (el.isContentEditable ? '[contenteditable]' : ''),
+        classe: (typeof el.className === 'string' ? el.className : '').split(/\s+/).slice(0, 2).join('.'),
+        libelle: el.getAttribute('aria-label') || '',
+        indice: el.getAttribute('placeholder') || '',
+        police: parseFloat(getComputedStyle(el).fontSize),
+        visible: r.width > 4 && r.height > 4 && r.top < innerHeight && r.bottom > 0,
+        haut: Math.round(r.top),
+      };
+    }),
+  );
+  for (const ch of editeur) tous.push({ panneau: 'files>README.md', ...ch });
+  console.log(`BANC-MESURE champs panneau=files>README.md total=${editeur.length} visibles=${editeur.filter((c) => c.visible).length} sous16=${editeur.filter((c) => c.police < 16).length} polices=${[...new Set(editeur.map((c) => c.police))].join(',')}`);
+} else {
+  console.log('BANC-MESURE champs panneau=files>README.md README.md-introuvable');
+}
 await navigateur.close();
 
 writeFileSync(join(SORTIE, 'champs.json'), JSON.stringify(tous, null, 2));
@@ -93,6 +123,7 @@ for (const c of tous.filter((c) => c.police < 16)) {
 // Liste pour XCUITest : champs VISIBLES qu'on peut désigner (libellé ou indice), dédoublonnés par panneau.
 const vus = new Set();
 const cible = tous
+  .map((c) => (c.panneau.includes('>') && c.balise.includes('[contenteditable]') && !c.libelle ? { ...c, libelle: '@textview' } : c))
   .filter((c) => c.visible && (c.libelle || c.indice))
   .filter((c) => !vus.has(`${c.panneau}|${c.libelle}|${c.indice}`) && vus.add(`${c.panneau}|${c.libelle}|${c.indice}`))
   .map((c) => [c.panneau, `${c.police}px`, c.libelle.replaceAll('|', ' ').replaceAll(';;', ' '), c.indice.replaceAll('|', ' ').replaceAll(';;', ' ')].join('|'));

@@ -112,6 +112,11 @@ final class ClavierSafariTests: XCTestCase {
         let url = URL(string: "\(c.base)/projects/\(c.projet)/ide?panel=\(panneau)")!
         XCUIDevice.shared.system.open(url)
         sleep(attente)
+        // Attendre l'IDE RÉELLEMENT chargé, pas un délai fixe : serveur de dev + machine chargée = pages
+        // encore blanches à 18 s (captures du 30/09, passage 20). Témoin : le bouton de la barre du bas.
+        if !page.buttons["Ouvrir le sélecteur d’onglets"].waitForExistence(timeout: 90) {
+            print("BANC-MESURE ide panneau=\(panneau) non-charge-apres-90s")
+        }
         // Serveur de DÉVELOPPEMENT (le build de production ne tient pas en 8 Go) : au premier chargement de
         // l'IDE, Vite découvre une dépendance, ré-optimise et recharge ; la page déjà partie plante en
         // « Application Error » (mesuré le 30/09 : `@ai-sdk/react`). Artefact du mode dev — on recharge, et on le dit.
@@ -201,6 +206,7 @@ final class ClavierSafariTests: XCTestCase {
         let c = try contexteLocal()
         guard let brut = env["BANC_CHAMPS"], !brut.isEmpty else { throw XCTSkip("BANC_CHAMPS absent : inventaire non fourni") }
         let champs = brut.components(separatedBy: ";;").map { $0.components(separatedBy: "|") }.filter { $0.count >= 4 }
+            .filter { ch in (env["BANC_PANNEAUX"] ?? "").isEmpty || (env["BANC_PANNEAUX"] ?? "").components(separatedBy: " ").contains(ch[0]) }
         print("BANC-MESURE zoom inventaire=\(champs.count)")
         XCTAssertGreaterThan(champs.count, 0, "inventaire vide : la mesure ne mesurerait rien")
         seConnecter(c)
@@ -211,14 +217,22 @@ final class ClavierSafariTests: XCTestCase {
             let (panneau, police, libelle, indice) = (ch[0], ch[1], ch[2], ch[3])
             let nom = "\(panneau)/\(libelle.isEmpty ? indice : libelle)"
             // Recharger à CHAQUE champ : un zoom déjà pris fausserait la mesure du suivant.
-            ouvrirIde(c, panneau: panneau, attente: panneau == panneauCourant ? 10 : 18)
+            // « files>README.md » : ouvrir le panneau, puis toucher le fichier (l'éditeur n'a de champ qu'avec un fichier ouvert).
+            let etapes = panneau.components(separatedBy: ">")
+            ouvrirIde(c, panneau: etapes[0], attente: panneau == panneauCourant ? 10 : 18)
             panneauCourant = panneau
-            let pred = libelle.isEmpty
+            if etapes.count > 1 {
+                let f = page.staticTexts[etapes[1]].firstMatch
+                if f.waitForExistence(timeout: 10) { f.tap(); sleep(8) } else { print("BANC-MESURE zoom \(etapes[1]) introuvable dans l'arbre") }
+            }
+            let pred = libelle == "@textview"
+                ? NSPredicate(format: "elementType == %d", XCUIElement.ElementType.textView.rawValue)
+                : libelle.isEmpty
                 ? NSPredicate(format: "placeholderValue == %@", indice)
                 : NSPredicate(format: "label == %@ OR placeholderValue == %@", libelle, indice.isEmpty ? libelle : indice)
             let el = page.descendants(matching: .any).matching(pred).firstMatch
             guard el.waitForExistence(timeout: 8), el.frame.width > 0, el.frame.minY >= 0 else {
-                introuvables.append(nom); print("BANC-MESURE zoom champ=\(nom) police=\(police) introuvable"); continue
+                introuvables.append(nom); print("BANC-MESURE zoom champ=\(nom) police=\(police) introuvable"); joindreCapture("introuvable-\(panneau)"); continue
             }
             let avant = el.frame.width
             toucher(el)
@@ -235,5 +249,7 @@ final class ClavierSafariTests: XCTestCase {
         print("BANC-MESURE zoom bilan mesures=\(mesures) zoomes=\(zoomes.count) introuvables=\(introuvables.count) sansClavier=\(sansClavier.count)")
         XCTAssertGreaterThan(mesures, 0, "aucun champ réellement touché avec clavier : la mesure ne vaut rien")
         XCTAssertTrue(zoomes.isEmpty, "Safari zoome sur : \(zoomes.joined(separator: " ; "))")
+        // Une absence de mesure n'est pas un verdict (règle 26) : un champ non atteint laisse le test ROUGE.
+        XCTAssertTrue(introuvables.isEmpty && sansClavier.isEmpty, "champs NON MESURÉS : introuvables \(introuvables) ; sans clavier \(sansClavier)")
     }
 }
