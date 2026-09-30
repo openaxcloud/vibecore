@@ -272,8 +272,8 @@ export default function LandingOptimized() {
       >
         <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10" />
 
-        <div className="container-responsive relative z-10 max-w-7xl text-center px-4 py-20">
-          <div className="space-y-8">
+        <div className="container-responsive relative z-10 max-w-7xl text-center px-4 pb-16 pt-4 sm:py-20">
+          <div className="space-y-5 sm:space-y-8">
             {/*
              * `flex-wrap` broke the pill below ~430px: the label alone is wider
              * than the row, so the two decorative sparkles wrapped onto lines of
@@ -316,7 +316,7 @@ export default function LandingOptimized() {
               {copy.hero.description}
             </p>
 
-            <div className="max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <div className="max-w-4xl mx-auto mt-5 sm:mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
               <div className="relative group">
                 <div className="absolute -inset-1 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-all duration-300 bg-gradient-to-br from-ecode-orange via-ecode-orange-light to-ecode-yellow" />
 

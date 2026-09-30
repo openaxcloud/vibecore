@@ -111,6 +111,9 @@ export default defineConfig({
 
         // Un rognage par conteneur de défilement : mesuré identique sur les deux moteurs, épinglé sur les deux.
         /bandeau-toast-visible\.spec\.ts/,
+
+        // Le titre de l'accueil prend six lignes en français sur WebKit, trois sur Chromium : c'est ici que le champ sortait de l'écran.
+        /accueil-champ-au-premier-ecran\.spec\.ts/,
       ],
     },
   ],
