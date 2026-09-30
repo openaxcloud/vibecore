@@ -593,6 +593,49 @@ correctifs sur cinq n'étaient pas en production alors qu'on les croyait livrés
 **Vérifier le CONTENU du SHA servi, jamais le numéro seul** :
 `git merge-base --is-ancestor <commit-de-fusion> <sha-servi>`.
 
+### JAMAIS une proposition DOCUMENTAIRE juste après du code
+
+**C'est la plus traître des quatre, parce que personne n'y est pour rien.** Les
+trois règles ci-dessus disent quand attendre. Celle-ci dit ce qu'il ne faut
+jamais mettre en deuxième position.
+
+Un commit documentaire est filtré par `paths-ignore` : son déploiement ne part
+pas. Mais il avance quand même `main`, et **avancer `main` écarte le
+déploiement en attente**. Enchaîné juste après une fusion de code, il produit
+donc exactement ce qu'il faut pour perdre une livraison :
+
+1. le code est fusionné ; son déploiement prend sa place dans la file ;
+2. le commit documentaire arrive et **écarte** ce déploiement ;
+3. `paths-ignore` fait **sauter** le sien.
+
+Résultat : **plus aucun déploiement ne porte le code**, et rien n'alerte. Pas
+de rouge, pas de run annulé à lire, pas de message. La production sert le code
+d'avant et la proposition est marquée « fusionnée ».
+
+Le piège est double : un commit documentaire paraît **inoffensif**, donc c'est
+précisément celui qu'on enchaîne sans réfléchir quand on veut « profiter » de
+l'attente.
+
+**La règle :**
+
+* une proposition documentaire part **seule**, ou **en dernier après que le
+  déploiement du code a été SERVI** — vérifié par les trois niveaux, pas par
+  son numéro ;
+* si elle est déjà passée dans le mauvais ordre, **il n'y a rien à corriger
+  côté dépôt** : le code est bien sur `main`, c'est le déploiement qui manque.
+  On le relance à la main, c'est le seul chemin —
+  `gh workflow run deploy-main.yml -R openaxcloud/vibecore --ref main`
+  (`workflow_dispatch` ignore `paths-ignore`, c'est justement pour ça) ;
+* et **le contrôle qui l'attrape après coup**, en une commande : le dernier
+  déploiement `success` porte-t-il le commit de fusion du code ?
+  `git merge-base --is-ancestor <commit-de-fusion> <sha-servi>`. Un `non` sur
+  une proposition fusionnée depuis longtemps, c'est ce cas-là.
+
+⚠️ **Et ça ne se limite pas aux `docs(...)`.** Tout commit dont les chemins
+tombent entièrement sous `paths-ignore` a le même effet : un `.md`, un fichier
+de suivi, un `.gitignore`. Le déclencheur n'est pas le préfixe du message,
+c'est **l'ensemble des chemins touchés** — le vérifier avant, pas après.
+
 ## Déploiement prod (mécanisme réel)
 
 **Runbook complet + commandes exactes : [`docs/DEPLOY_RUNBOOK.md`](docs/DEPLOY_RUNBOOK.md).** Vérité terrain reconstituée le 2026-07-07.

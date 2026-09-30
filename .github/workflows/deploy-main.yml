@@ -81,6 +81,23 @@ on:
     # only drive CI. A change to this very workflow takes effect on the next
     # push regardless, since GitHub reads the workflow from the pushed ref — and
     # `workflow_dispatch` below is always available to force a deploy on demand.
+    #
+    # ⚠️ CE QUE CE RAISONNEMENT NE COUVRE PAS — mesuré le 2026-09-30.
+    #
+    # « Un commit qui touche aussi du code produit déploie quand même » est vrai
+    # POUR CE COMMIT-LÀ, et c'est ce qui rend le commentaire ci-dessus
+    # rassurant à tort. Ce qu'il oublie, c'est le commit PRÉCÉDENT : avancer
+    # `main` écarte le déploiement qui ATTEND dans le groupe de concurrence.
+    #
+    # Un commit purement documentaire enchaîné juste après une fusion de code
+    # écarte donc le déploiement du code, puis saute le sien. Plus aucun
+    # déploiement ne porte ce code, et rien n'alerte — ni rouge, ni run annulé.
+    #
+    # `paths-ignore` n'échange jamais un déploiement contre rien ; c'est l'ORDRE
+    # des fusions qui le fait. Voir « JAMAIS une proposition DOCUMENTAIRE juste
+    # après du code » dans CLAUDE.md, et le seul chemin de reprise :
+    # `gh workflow run deploy-main.yml -R openaxcloud/vibecore --ref main`.
+    # Épinglé par tests/guards/deploiement-docs-saute.spec.ts.
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
