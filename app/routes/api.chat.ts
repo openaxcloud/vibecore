@@ -27,6 +27,7 @@ import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
+import { reponseAPersister } from '~/lib/.server/persistance-reponse';
 import { demandeAPersister } from '~/lib/.server/persistance-demande';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
@@ -659,6 +660,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let fichiersEmis = 0;
 
+  /*
+   * Le texte de TOUS les segments du tour, tel que le serveur l'a produit : il
+   * est écrit en base à la fin du tour, que le navigateur soit encore là ou non
+   * (`persistance-reponse.ts`).
+   */
+  let contenuDuTour = '';
+
   const encoder: TextEncoder = new TextEncoder();
 
   let progressCounter: number = 1;
@@ -966,6 +974,45 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         let messageSliceId = 0;
 
         const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
+
+        /*
+         * Écrit la réponse complète du serveur sur la ligne du navigateur (même
+         * `clientId`, `upsert` côté API). N'interrompt JAMAIS le tour : un échec
+         * est journalisé, la fin du tour continue.
+         */
+        const persisterLaReponseDuServeur = async () => {
+          const reponse = reponseAPersister({
+            conversationId: demande?.conversationId,
+            clientId: identifiantDuMessageDeReponse,
+            contenu: contenuDuTour,
+          });
+
+          if (!reponse || !projectId) {
+            return;
+          }
+
+          try {
+            await apiRequest(request, `/projects/${projectId}/ai/conversations/${reponse.conversationId}/transcript`, {
+              method: 'PUT',
+              redirectOn401: false,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: [{ clientId: reponse.clientId, role: 'assistant', content: reponse.content }],
+              }),
+            });
+            logger.info(
+              JSON.stringify({ event: 'chat.reponse.persistee', projectId, caracteres: reponse.content.length }),
+            );
+          } catch (error) {
+            logger.warn(
+              JSON.stringify({
+                event: 'chat.reponse.non-persistee',
+                projectId,
+                erreur: error instanceof Error ? error.message : String(error),
+              }),
+            );
+          }
+        };
 
         /*
          * Une bascule de fournisseur est DITE : annotation sur le message (rendue
@@ -1784,6 +1831,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             // Accumulates across continuation segments: chaque segment ajoute ses fichiers.
             fichiersEmis += compterActionsDeFichier(content);
+            contenuDuTour += content ?? '';
 
             /*
              * A build that ends without EVER emitting a `<boltAction type="file">`
@@ -1840,6 +1888,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               }
 
               tourDejaFacture = true;
+
+              /*
+               * La réponse complète est écrite ICI, au point de sortie commun à
+               * toutes les fins de tour, avant la facturation. Mesuré le
+               * 2026-09-30 : client coupé en plein flux, le serveur finissait le
+               * tour (19 932 caractères) et la base n'en gardait que 1 080.
+               */
+              await persisterLaReponseDuServeur();
 
               const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
 

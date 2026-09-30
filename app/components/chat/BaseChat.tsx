@@ -3756,6 +3756,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * closes — so keyboard users aren't dumped at the top of the document.
      */
     const commandPaletteReturnFocusRef = useRef<HTMLElement | null>(null);
+    const commandPaletteClosedByOutsideClickRef = useRef(false);
     useEffect(() => {
       if (commandPaletteOpen) {
         commandPaletteReturnFocusRef.current = document.activeElement as HTMLElement | null;
@@ -3765,9 +3766,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const previous = commandPaletteReturnFocusRef.current;
       commandPaletteReturnFocusRef.current = null;
 
+      // Fermée par un clic ailleurs : le focus appartient à ce que l'on vient de cliquer.
+      if (commandPaletteClosedByOutsideClickRef.current) {
+        commandPaletteClosedByOutsideClickRef.current = false;
+        return;
+      }
+
       if (previous && typeof previous.focus === 'function') {
         requestAnimationFrame(() => previous.focus());
       }
+    }, [commandPaletteOpen]);
+
+    /*
+     * BUG-QA0928-PALETTE-RESTE-OUVERTE — sur ordinateur (≥ 1200 px), le calque qui
+     * ferme la palette au clic est masqué (palette voulue non modale), et rien
+     * d'autre ne la fermait : elle restait par-dessus tout panneau ouvert ensuite,
+     * seule Échap la fermait. Un appui hors de la palette la ferme désormais.
+     */
+    useEffect(() => {
+      if (!commandPaletteOpen) {
+        return undefined;
+      }
+
+      const fermerSiAilleurs = (event: PointerEvent) => {
+        const cible = event.target as Element | null;
+
+        if (cible?.closest?.('.bolt-project-command-palette')) {
+          return;
+        }
+
+        commandPaletteClosedByOutsideClickRef.current = true;
+        setCommandPaletteOpen(false);
+      };
+
+      document.addEventListener('pointerdown', fermerSiAilleurs, true);
+
+      return () => document.removeEventListener('pointerdown', fermerSiAilleurs, true);
     }, [commandPaletteOpen]);
 
     const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);

@@ -114,6 +114,9 @@ export default defineConfig({
 
         // BUG-QA0928-MODALE-SANS-FOCUS : mesuré sur WebKit (focus resté dans la page), épinglé sur ce moteur aussi.
         /modale-accueil-prend-le-focus\.spec\.ts/,
+
+        // Le titre de l'accueil prend six lignes en français sur WebKit, trois sur Chromium : c'est ici que le champ sortait de l'écran.
+        /accueil-champ-au-premier-ecran\.spec\.ts/,
       ],
     },
   ],

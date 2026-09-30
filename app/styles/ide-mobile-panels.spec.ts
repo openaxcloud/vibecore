@@ -343,7 +343,10 @@ describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèm
   it('les journaux du serveur de la Webview et le message d’un problème passent par la lecture humaine', () => {
     const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
 
-    expect(preview).toContain("import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';");
+    expect(preview).toMatch(/import \{[^}]*\btexteRuntimeLisible\b[^}]*\} from '~\/lib\/ide\/runtime-log-line';/);
+
+    // BUG-LOGS-JSON-001 (30/09) : AUCUN journal de l'Aperçu n'est plus rendu brut — les trois cartes comprises.
+    expect(preview).not.toMatch(/\{logs\.join\('\\n'\)\}/);
     expect(preview).toMatch(/workspaceLogs\.slice\(-120\)\.map\(\(ligne\) => texteRuntimeLisible\(String\(ligne\)\)\)/);
     expect(BASE_CHAT).toContain("<p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>");
   });

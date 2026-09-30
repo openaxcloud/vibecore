@@ -48,7 +48,9 @@ import {
   type LandingExampleId,
 } from '~/lib/i18n/catalogs/marketing-exact-landing-forum';
 import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
+import { daterLeRelais } from '~/utils/idee-relayee';
 import { stashModelHandoff } from '~/utils/model-handoff';
+import { PROMPT_MAX_CHARS } from '~/utils/prompt-validation';
 
 /*
  * Number of reveal-and-retry attempts the "Watch Demo" CTA makes while the lazy
@@ -97,6 +99,24 @@ export default function LandingOptimized() {
     const trimmed = description.trim();
 
     if (!trimmed) {
+      return;
+    }
+
+    /*
+     * BUG-QA0928-PROMPT-TRONQUE — au-delà de la limite du composeur, l'idée
+     * partait quand même, puis était coupée à 8 000 caractères et soumise sans un
+     * mot. On le dit ICI, avec la longueur réelle, avant tout envoi.
+     */
+    if (trimmed.length > PROMPT_MAX_CHARS) {
+      const nombre = (valeur: number) => new Intl.NumberFormat(language).format(valeur);
+
+      toast({
+        title: copy.toast.tooLongTitle,
+        description: copy.toast.tooLongDescription
+          .replace('{characters}', nombre(trimmed.length))
+          .replace('{maximum}', nombre(PROMPT_MAX_CHARS)),
+      });
+
       return;
     }
 
@@ -168,6 +188,9 @@ export default function LandingOptimized() {
       sessionStorage.setItem('pendingBuildMode', mode);
       sessionStorage.setItem('composerBuildIntent', '1');
       sessionStorage.removeItem('triggerBuildOnLanding');
+
+      // BUG-QA0928-IDEE-PERDUE-INSCRIPTION — daté : une idée périmée ne se relance plus toute seule.
+      daterLeRelais(sessionStorage);
 
       /*
        * Forward the visitor's chosen AI model into the same hand-off so
@@ -249,8 +272,8 @@ export default function LandingOptimized() {
       >
         <div className="absolute inset-0 bg-grid-pattern opacity-5 dark:opacity-10" />
 
-        <div className="container-responsive relative z-10 max-w-7xl text-center px-4 py-20">
-          <div className="space-y-8">
+        <div className="container-responsive relative z-10 max-w-7xl text-center px-4 pb-16 pt-4 sm:py-20">
+          <div className="space-y-5 sm:space-y-8">
             {/*
              * `flex-wrap` broke the pill below ~430px: the label alone is wider
              * than the row, so the two decorative sparkles wrapped onto lines of
@@ -293,7 +316,7 @@ export default function LandingOptimized() {
               {copy.hero.description}
             </p>
 
-            <div className="max-w-4xl mx-auto mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
+            <div className="max-w-4xl mx-auto mt-5 sm:mt-8 animate-fade-in" style={{ animationDelay: '400ms' }}>
               <div className="relative group">
                 <div className="absolute -inset-1 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-all duration-300 bg-gradient-to-br from-ecode-orange via-ecode-orange-light to-ecode-yellow" />
 

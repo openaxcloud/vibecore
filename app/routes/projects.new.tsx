@@ -63,6 +63,7 @@ import { detectApplePlatform, submitShortcutLabel as resolveSubmitShortcutLabel 
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { lireIdeeRelayee, oublierLeRelais } from '~/utils/idee-relayee';
 import { clearModelHandoff, readModelHandoff, resolveHandoffModelSelection } from '~/utils/model-handoff';
 import { projectIdePath } from '~/utils/project-url';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
@@ -767,16 +768,19 @@ export default function NewProjectPage() {
     }
 
     let stashedPrompt: string | null = null;
-    let intent: string | null = null;
 
     try {
-      stashedPrompt = sessionStorage.getItem('pendingAppDescription');
-      intent = sessionStorage.getItem('composerBuildIntent');
+      /*
+       * BUG-QA0928-IDEE-PERDUE-INSCRIPTION — une idée sans date ou périmée est
+       * oubliée ici au lieu d'être soumise : restée dans l'onglet, elle créait
+       * des heures plus tard un projet que l'utilisateur n'avait pas redemandé.
+       */
+      stashedPrompt = lireIdeeRelayee(sessionStorage);
     } catch {
       return;
     }
 
-    if (intent !== '1' || !stashedPrompt || !stashedPrompt.trim()) {
+    if (!stashedPrompt) {
       return;
     }
 
@@ -803,17 +807,27 @@ export default function NewProjectPage() {
       : null;
 
     try {
-      sessionStorage.removeItem('composerBuildIntent');
-      sessionStorage.removeItem('pendingAppDescription');
-      sessionStorage.removeItem('pendingBuildMode');
-      sessionStorage.removeItem('triggerBuildOnLanding');
+      oublierLeRelais(sessionStorage);
     } catch {
       // best-effort cleanup; the ref above already prevents a re-submit
     }
 
     clearModelHandoff();
 
-    const handoffPrompt = stashedPrompt.trim().slice(0, PROMPT_MAX_CHARS);
+    const handoffPrompt = stashedPrompt.trim();
+
+    /*
+     * BUG-QA0928-PROMPT-TRONQUE — plus de `slice(0, PROMPT_MAX_CHARS)` suivi d'un
+     * envoi : la fin de l'idée (souvent les exigences les plus précises) était
+     * coupée en silence. Trop longue, l'idée est posée ENTIÈRE dans le composeur,
+     * dont le compteur passe en erreur et bloque l'envoi : l'utilisateur voit le
+     * dépassement et raccourcit lui-même.
+     */
+    if (handoffPrompt.length > PROMPT_MAX_CHARS) {
+      setPrompt(handoffPrompt);
+      return;
+    }
+
     setPrompt(handoffPrompt);
 
     const submitBody: Record<string, string> = { prompt: handoffPrompt };
