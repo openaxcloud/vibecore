@@ -13,11 +13,11 @@ section: "Mesures sur vrais tours de production — 2026-09-28/29"
 
 ## 💻 Codé
 
-☐ — `app/styles/index.scss` : le corps du bandeau laisse passer les gestes, ses commandes les gardent (même famille `body:has(.bolt-project-statusbar)` que BUG-TOAST-ENTETE-001, sans toucher à son placement).
+☑ #602 (`a9e99cbdc1`), servi le 2026-09-30 (bundle client : règle `…statusbar) .Toastify__toast{pointer-events:none}` présente) — `app/styles/index.scss` : le corps du bandeau laisse passer les gestes, ses commandes les gardent (même famille `body:has(.bolt-project-statusbar)` que BUG-TOAST-ENTETE-001, sans toucher à son placement).
 
 ## ✅ Testé live
 
-☐
+☑ 2026-09-30 — test d'origine `tests/e2e/ide-mobile-chrome.spec.ts:1221`, non modifié, **20 passés / 0 échec sans retry** sur la branche de #602 (run `36638192896`), contre 11/20 échecs avant ; A/B bandeau affiché à chaque appui (run `36636177847`) : témoin 20/20 échecs, corrigé 0/20 ; dans la suite complète de #602, 1221 passe du premier coup. Épinglé par `tests/e2e/bandeau-toast-visible.spec.ts`. ⚠️ Vérifié en Chromium ; pas sur un iPhone réel.
 
 ## Preuve
 
