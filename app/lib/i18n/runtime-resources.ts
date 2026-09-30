@@ -62,6 +62,7 @@ import { deploySurfacesEn, deploySurfacesFr } from './catalogs/deploy-surfaces';
 import { designPaletteEn, designPaletteFr } from './catalogs/design-palette';
 import { desktopSettingsEn, desktopSettingsFr } from './catalogs/desktop-settings';
 import { diffViewEn, diffViewFr } from './catalogs/diff-view';
+import { ecrituresEnAttenteEn, ecrituresEnAttenteFr } from './catalogs/ecritures-en-attente';
 import { enterpriseSsoSettingsEn, enterpriseSsoSettingsFr } from './catalogs/enterprise-sso-settings';
 import { errorSurfacesEn, errorSurfacesFr } from './catalogs/error-surfaces';
 import { featuresSettingsEn, featuresSettingsFr } from './catalogs/features-settings';
@@ -188,6 +189,7 @@ export const RESOURCES: Record<SupportedLanguage, { translation: Record<string, 
       ...actionRunnerEn,
       ...accountSettingsConnectedEn,
       ...appliedFilesToastEn,
+      ...ecrituresEnAttenteEn,
       ...adminOauthProvidersEn,
       ...adminBillingEn,
       ...adminInfrastructureEn,
@@ -344,6 +346,7 @@ export const RESOURCES: Record<SupportedLanguage, { translation: Record<string, 
       ...actionRunnerFr,
       ...accountSettingsConnectedFr,
       ...appliedFilesToastFr,
+      ...ecrituresEnAttenteFr,
       ...adminOauthProvidersFr,
       ...adminBillingFr,
       ...adminInfrastructureFr,

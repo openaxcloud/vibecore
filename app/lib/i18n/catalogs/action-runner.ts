@@ -6,6 +6,8 @@ export const actionRunnerEn = {
   'actionRunner.error.shellExecutionFailed': 'Failed To Execute Shell Command: {message}\n\nOutput:\n{output}',
   'actionRunner.error.timeout': '{actionType} action timed out after {seconds} seconds',
   'actionRunner.error.actionFailed': 'Action failed',
+  'actionRunner.error.workspaceNotStarted':
+    'The workspace has not started — this file is kept and will be written as soon as it starts.',
   'actionRunner.error.noShellResponse': 'No response from shell',
   'actionRunner.error.startFailed': 'Failed To Start Application',
   'actionRunner.error.noOutputAvailable': 'No Output Available',
@@ -87,6 +89,8 @@ export const actionRunnerFr: ActionRunnerCopy = {
     'Échec de l’exécution de la commande shell : {message}\n\nSortie :\n{output}',
   'actionRunner.error.timeout': 'L’action {actionType} a dépassé le délai maximal de {seconds} secondes',
   'actionRunner.error.actionFailed': 'Échec de l’action',
+  'actionRunner.error.workspaceNotStarted':
+    'L’espace de travail n’a pas démarré — ce fichier est conservé et sera écrit dès qu’il démarrera.',
   'actionRunner.error.noShellResponse': 'Aucune réponse du shell',
   'actionRunner.error.startFailed': 'Impossible de démarrer l’application',
   'actionRunner.error.noOutputAvailable': 'Aucune sortie disponible',
