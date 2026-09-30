@@ -105,3 +105,54 @@ describe('règle : aucun « Aucun / Aucune » directement suivi d’un marqueur 
     expect(fautifs).toEqual([]);
   });
 });
+
+/*
+ * Même famille, vue le 01/10 sur Safari iOS (panneau Journaux) : l'indication du
+ * champ de recherche disait « Journaux de recherche » — le VERBE anglais « Search
+ * logs » traduit comme un NOM. Trois clés l'étaient (« Commandes de recherche »,
+ * « Points de contrôle des agents de recherche »). Les deux vrais noms sont
+ * nommés ci-dessous : un ajout doit être une décision, pas un oubli.
+ */
+describe('règle : « Search … » (verbe) n’est jamais traduit par « … de recherche » (nom)', () => {
+  const NOMS_LEGITIMES = new Set([
+    'settings.copy.searchQuery_3ad6e0f4',
+    'chat.copy.searchAndAnalyticsIndexing_3c363e99',
+  ]);
+
+  it('aucune clé fautive dans les catalogues', async () => {
+    const { readdirSync } = await import('node:fs');
+    const dossier = new URL('../../lib/i18n/catalogs/', import.meta.url).pathname;
+    const fautives: string[] = [];
+
+    const paires = (bloc: string) =>
+      new Map([...bloc.matchAll(/'([\w.]+)':\s*\n?\s*(['"])((?:(?!\2).)*)\2/gu)].map((m) => [m[1], m[3]]));
+
+    for (const fichier of readdirSync(dossier).filter((f) => f.endsWith('.ts') && !f.endsWith('.spec.ts'))) {
+      const source = readFileSync(dossier + fichier, 'utf8');
+      const debutFr = source.search(/export const \w+Fr\b/u);
+
+      if (debutFr < 0) {
+        continue;
+      }
+
+      const en = paires(source.slice(0, debutFr));
+      const fr = paires(source.slice(debutFr));
+
+      for (const [cle, anglais] of en) {
+        const francais = fr.get(cle);
+
+        if (
+          francais &&
+          /^Search\s/u.test(anglais) &&
+          /\bde recherche\b/u.test(francais) &&
+          !/^(Rechercher|Recherchez|Chercher|Filtrer)/u.test(francais) &&
+          !NOMS_LEGITIMES.has(cle)
+        ) {
+          fautives.push(`${cle} : « ${anglais} » → « ${francais} »`);
+        }
+      }
+    }
+
+    expect(fautives).toEqual([]);
+  });
+});
