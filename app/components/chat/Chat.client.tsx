@@ -809,6 +809,18 @@ export const ChatImpl = memo(
             data: requestData,
             ...chatRequestBodyBase,
             ...(requestBody ?? {}),
+
+            /*
+             * LU AU MOMENT DE L'ENVOI, PAS AU RENDU. Le serveur n'écrit la demande
+             * et la réponse en base (#581, #609) que s'il connaît la conversation.
+             * `chatRequestBodyBase` la lit au dernier rendu : mesuré en production
+             * le 2026-09-30, le premier message d'un projet partait avec
+             * `conversationId: null`, et le serveur, allé au bout du tour après une
+             * coupure, n'écrivait RIEN — sans le dire.
+             */
+            ...((backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId)
+              ? { conversationId: backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId }
+              : {}),
           },
           '/api/chat',
         ),
@@ -1133,6 +1145,24 @@ export const ChatImpl = memo(
 
     armerRattrapageRef.current = armerRattrapage;
 
+    /*
+     * Envoyer, mais seulement une fois la conversation créée : c'est elle qui dit
+     * au serveur où écrire la demande et la réponse. Sans cette attente, le
+     * PREMIER message d'un projet part sans conversation (mesuré le 2026-09-30).
+     * La création est dédoublonnée (`creationDeConversationRef`) et ne coûte
+     * qu'une fois ; si elle échoue, on envoie quand même — comme avant.
+     */
+    const envoyer = useCallback(
+      async (...args: Parameters<typeof append>) => {
+        await ensureProjectAiConversation().catch((erreur) => {
+          logger.warn('conversation non créée avant l’envoi', (erreur as Error)?.message);
+        });
+
+        return append(...args);
+      },
+      [append, ensureProjectAiConversation],
+    );
+
     useEffect(() => {
       Cookies.set('selectedModel', model, { expires: 30 });
       Cookies.set('selectedProvider', provider.name, { expires: 30 });
@@ -1368,10 +1398,22 @@ export const ChatImpl = memo(
          * 30s window) so a persistent failure can't loop; quota/auth/token errors
          * are not transient and fall straight through to the alert.
          */
+        /*
+         * PAS SUR UNE COUPURE RÉSEAU. Une erreur sans code HTTP prend ici
+         * `statusCode: 500` par défaut et passait donc pour « transitoire ».
+         * Mesuré en production le 2026-09-30 : connexion coupée, `reload()`
+         * retirait la réponse affichée et RENVOYAIT la demande pendant que le
+         * serveur finissait le premier tour — un second tour facturé si le
+         * réseau revient à cet instant. Le rattrapage (`onError`) va chercher
+         * la réponse que le serveur est en train d'écrire.
+         */
+        const coupureReseau = estUneCoupureReseau(error);
+
         const isTransient =
           (errorType === 'network' || errorType === 'rate_limit') &&
           errorInfo.isRetryable !== false &&
-          context === 'chat';
+          context === 'chat' &&
+          !coupureReseau;
 
         const now = Date.now();
 
@@ -1676,7 +1718,7 @@ export const ChatImpl = memo(
             baselineFileCount: countWorkspaceFiles(workbenchStore.files.get()),
           };
 
-          append({
+          void envoyer({
             role: 'user',
             content: prompt,
           });
@@ -1688,7 +1730,7 @@ export const ChatImpl = memo(
       return () => {
         cancelled = true;
       };
-    }, [append, copy, model, projectId, projectIdeMode, provider, runAnimation, filesHydrated]);
+    }, [envoyer, copy, model, projectId, projectIdeMode, provider, runAnimation, filesHydrated]);
 
     useEffect(() => {
       const prompt = searchParams.get('prompt')?.trim();
@@ -1750,14 +1792,14 @@ export const ChatImpl = memo(
       }
 
       runAnimation();
-      append({
+      void envoyer({
         role: 'user',
         content: prompt,
       });
 
       clearPromptParams();
     }, [
-      append,
+      envoyer,
       model,
       projectId,
       projectIdeMode,
@@ -2110,7 +2152,7 @@ export const ChatImpl = memo(
         console.info(
           `[send] branch=append (with modified-files artifact) → POST /api/chat, messages=${messages.length}`,
         );
-        append(
+        await envoyer(
           {
             role: 'user',
             content: messageText,
@@ -2127,7 +2169,7 @@ export const ChatImpl = memo(
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
 
         console.info(`[send] branch=append (plain) → POST /api/chat, messages=${messages.length}`);
-        append(
+        await envoyer(
           {
             role: 'user',
             content: messageText,

@@ -50,4 +50,34 @@ describe('câblage du rattrapage à la reprise', () => {
     expect(rejouer).toBeGreaterThan(autoriser);
     expect(appliquer).toBeGreaterThan(rejouer);
   });
+
+  it('le numéro de conversation est lu AU MOMENT DE L’ENVOI (sinon le 1er message part sans, et le serveur n’écrit rien)', () => {
+    const source = lire('app/components/chat/Chat.client.tsx');
+
+    const corps = source.slice(
+      source.indexOf('experimental_prepareRequestBody'),
+      source.indexOf("'/api/chat',\n        ),"),
+    );
+
+    expect(corps).toContain('...(requestBody ?? {}),');
+    expect(corps.indexOf('backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId')).toBeGreaterThan(
+      corps.indexOf('...(requestBody ?? {}),'),
+    );
+  });
+
+  it('chaque envoi d’un message utilisateur attend la création de la conversation', () => {
+    const source = lire('app/components/chat/Chat.client.tsx');
+
+    expect(source).toMatch(/const envoyer = useCallback\(\s*async[\s\S]{0,80}await ensureProjectAiConversation\(\)/);
+    expect(source.match(/[^.a-zA-Z]append\(\s*\{\s*role: 'user'/g) ?? []).toEqual([]);
+    expect((source.match(/envoyer\(\s*\{\s*role: 'user'/g) ?? []).length).toBe(4);
+  });
+
+  it('une coupure réseau ne déclenche pas le renvoi automatique (second tour facturé)', () => {
+    const source = lire('app/components/chat/Chat.client.tsx');
+    const transitoire = source.slice(source.indexOf('const isTransient ='), source.indexOf('const now = Date.now();'));
+
+    expect(transitoire).toContain('!coupureReseau');
+    expect(source).toContain('const coupureReseau = estUneCoupureReseau(error);');
+  });
 });
