@@ -125,7 +125,7 @@ describe('le budget du job tient dans ses propres bornes', () => {
 
     expect(
       marge,
-      `pire cas : ${PREPARATION_MIN} (préparation) + ${suite} (suite) + ${canari} (canari) = ` +
+      `pire cas : ${PREPARATION_MIN} (préparation) + ${suite} (suite) + ${minutesCanari} (canari) = ` +
         `${PREPARATION_MIN + suite + minutesCanari} min pour un plafond de ${plafond}. ` +
         `Marge ${marge} min, minimum exigé ${MARGE_MINIMALE_MIN}. Un job tué n'écrit aucun rapport.`,
     ).toBeGreaterThanOrEqual(MARGE_MINIMALE_MIN);
