@@ -103,6 +103,7 @@ import {
   useComposerHandoffLayoutEffect,
 } from './composer-handoff';
 import { devServerStatusText } from './dev-server-status';
+import { etatDeConnexionBarre } from './connexion-barre-etat';
 
 import {
   TAB_DRAG_PANE_MIME,
@@ -4536,41 +4537,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * already drives .bolt-connection-status (no new polling) plus the live
      * workspace status for the 'Reconnecting' nuance.
      */
-    const statusbarConnection = !isOnline
-      ? ({
-          state: 'offline',
-          label: t('chat.copy.offline_e01fa717'),
-          color: 'var(--vc-ide-accent-error)',
-          text: t('chat.copy.varStatusErrorText_f1e5857c'),
-        } as const)
-      : /*
-         * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
-         * chaîne. Les deux comparaisons `=== 'STARTING'` / `=== 'PENDING'` étaient
-         * donc TOUJOURS fausses (TS2367, que le `@ts-nocheck` en tête de fichier
-         * empêchait de voir).
-         *
-         * Conséquence réelle : pendant tout le démarrage à froid, la barre de statut
-         * annonçait « Connected » au lieu de « Reconnecting ». Le produit affirmait
-         * une connexion qui n'existait pas encore.
-         *
-         * On lit le champ `status` et on compare en minuscules, comme le fait déjà
-         * `workspaceUiState` : le domaine de valeurs mélange les casses selon la
-         * source.
-         */
-        workspaceLoading ||
-          ['starting', 'booting', 'pending'].includes(runtimeWorkspaceStatus?.status?.toLowerCase() ?? '')
-        ? ({
-            state: 'reconnecting',
-            label: t('chat.copy.reconnecting_9d80f91f'),
-            color: 'var(--vc-ide-accent-warning)',
-            text: t('chat.copy.varStatusWarningText_58e57537'),
-          } as const)
-        : ({
-            state: 'connected',
-            label: t('chat.copy.connected_c2f9b7b4'),
-            color: 'var(--vc-ide-accent-success)',
-            text: t('chat.copy.varStatusSuccessText_8712f526'),
-          } as const);
+    /*
+     * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
+     * chaîne : on en lit le champ `status`. La décision elle-même vit dans
+     * `etatDeConnexionBarre`, tenue par son test.
+     */
+    const etatDeConnexion = etatDeConnexionBarre({
+      enLigne: isOnline,
+      chargement: workspaceLoading,
+      statutWorkspace: runtimeWorkspaceStatus?.status,
+      etatRuntime: runtimeUiState,
+    });
+
+    const statusbarConnection = {
+      offline: {
+        state: 'offline',
+        title: t('chat.copy.offlineEditsStayLocalUntilThe_6c528a0d'),
+        label: t('chat.copy.offline_e01fa717'),
+        color: 'var(--vc-ide-accent-error)',
+        text: t('chat.copy.varStatusErrorText_f1e5857c'),
+      },
+      error: {
+        state: 'error',
+        title: t('chat.copy.statusbarWorkspaceUnavailableTitle'),
+        label: t('chat.copy.statusbarWorkspaceUnavailable'),
+        color: 'var(--vc-ide-accent-error)',
+        text: t('chat.copy.varStatusErrorText_f1e5857c'),
+      },
+      reconnecting: {
+        state: 'reconnecting',
+        title: t('chat.copy.workspaceRuntimeIsStartingOrReconnecting_dae64fde'),
+        label: t('chat.copy.reconnecting_9d80f91f'),
+        color: 'var(--vc-ide-accent-warning)',
+        text: t('chat.copy.varStatusWarningText_58e57537'),
+      },
+      connected: {
+        state: 'connected',
+        title: t('chat.copy.workspaceConnectionHealthy_f87a6d3a'),
+        label: t('chat.copy.connected_c2f9b7b4'),
+        color: 'var(--vc-ide-accent-success)',
+        text: t('chat.copy.varStatusSuccessText_8712f526'),
+      },
+    }[etatDeConnexion];
 
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
@@ -10611,13 +10619,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-pill"
                 role="status"
                 aria-live="polite"
-                title={
-                  statusbarConnection.state === 'offline'
-                    ? t('chat.copy.offlineEditsStayLocalUntilThe_6c528a0d')
-                    : statusbarConnection.state === 'reconnecting'
-                      ? t('chat.copy.workspaceRuntimeIsStartingOrReconnecting_dae64fde')
-                      : t('chat.copy.workspaceConnectionHealthy_f87a6d3a')
-                }
+                title={statusbarConnection.title}
               >
                 <span
                   aria-hidden
