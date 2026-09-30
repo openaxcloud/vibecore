@@ -55,6 +55,29 @@ export function estAncetre(commit, descendant) {
   }
 }
 
+/*
+ * ⚠️ POURQUOI CETTE FONCTION EXISTE — `estAncetre` NE PEUT PAS DISTINGUER
+ * « pas un ancêtre » de « commit inconnu ».
+ *
+ * `git merge-base --is-ancestor` sort en 1 dans le premier cas et en 128 dans
+ * le second ; les deux passent par le même `catch`, qui rend `false`. Ma
+ * première version se contentait d'entourer l'appel d'un `try/catch` en
+ * pensant y attraper le SHA inconnu : cette branche était du CODE MORT, et un
+ * tag servi absent du dépôt local rendait un « en retard » FAUX — exactement
+ * le verdict que ce script existe pour ne jamais produire.
+ *
+ * Mesuré le 2026-09-30 : `estAncetre('HEAD', 'deadbeefdeadbeef')` ne jette
+ * rien et rend `false`. Épinglé par scripts/tiers-a-jour.spec.mjs.
+ */
+export function commitConnu(sha) {
+  try {
+    execSync(`git cat-file -e ${sha}^{commit}`, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function tagsServis() {
   const brut = execSync(
     'helm -n vibecore get values vibecore --kube-context connectgateway_vibecore-495216_europe-west9_vibecore-prod-app -o json',
@@ -87,15 +110,20 @@ function principal() {
        * ⚠️ Le tag servi est un SHA court. `merge-base` le résout tant que
        * l'objet est connu localement : sans `git fetch` récent, on rendrait un
        * faux « en retard ». D'où l'échec bruyant plutôt qu'un verdict.
+       *
+       * Et ce contrôle se fait AVANT la comparaison, par `commitConnu` : un
+       * `try/catch` autour de `estAncetre` n'attrape rien du tout (voir le
+       * commentaire de `commitConnu`).
        */
-      let aJour;
-
-      try {
-        aJour = estAncetre(attendu, servi);
-      } catch {
-        console.error(`✖ commit servi ${servi} inconnu localement — lancez 'git fetch origin' d'abord.`);
+      if (!commitConnu(servi)) {
+        console.error(
+          `✖ commit servi ${servi} inconnu localement — lancez 'git fetch origin' d'abord.\n` +
+            "  Sans cet objet, la comparaison rendrait « en retard » pour un service peut-être à jour.",
+        );
         process.exit(2);
       }
+
+      const aJour = estAncetre(attendu, servi);
 
       lignes.push({ tier, service, servi, attendu: attendu.slice(0, 10), aJour });
 

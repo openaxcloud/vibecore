@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { CHEMINS_PAR_TIER, SERVICES_PAR_TIER } from './tiers-a-jour.mjs';
+import { CHEMINS_PAR_TIER, SERVICES_PAR_TIER, commitConnu, estAncetre } from './tiers-a-jour.mjs';
 
 /**
  * LA CARTE RECOPIÉE NE DOIT PAS DÉRIVER DE L'ORIGINALE.
@@ -66,5 +66,53 @@ describe('la carte des tiers reste alignée sur le déploiement', () => {
 
   it('CONTRE-ÉPREUVE — un chemin inventé n’est PAS dans le workflow', () => {
     expect(/chemin-qui-n-existe-pas\//u.test(WORKFLOW)).toBe(false);
+  });
+});
+
+/*
+ * UN SHA INCONNU NE DOIT JAMAIS SE LIRE COMME « EN RETARD ».
+ *
+ * `git merge-base --is-ancestor` sort en 1 pour « pas un ancêtre » et en 128
+ * pour « commit inconnu ». Les deux lèvent, donc les deux rendent `false` :
+ * entourer l'appel d'un `try/catch` en espérant y attraper le second est du
+ * code mort — c'était le cas de ma première version, et un tag servi absent du
+ * dépôt local produisait un « en retard » FAUX. Exactement le verdict que ce
+ * script existe pour ne jamais rendre.
+ *
+ * Ces trois cas sont couplés dans les deux sens (règle 6) : le témoin prouve
+ * que la mesure mesure quelque chose, le défaut prouve que l'ancienne approche
+ * ne marchait pas, et la garde prouve que la nouvelle marche.
+ */
+describe('un commit servi inconnu localement est refusé, pas interprété', () => {
+  it('TÉMOIN — sur un vrai couple de commits, la comparaison répond juste', () => {
+    expect(estAncetre('HEAD~1', 'HEAD'), 'la mesure ne mesure rien').toBe(true);
+    expect(estAncetre('HEAD', 'HEAD~1')).toBe(false);
+  });
+
+  it('LE DÉFAUT — `estAncetre` ne peut PAS signaler un SHA inconnu : elle rend false, comme « pas un ancêtre »', () => {
+    let jete = false;
+
+    try {
+      expect(estAncetre('HEAD', 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef')).toBe(false);
+    } catch (error) {
+      jete = error?.matcherResult ? false : true;
+    }
+
+    expect(jete, 'si elle jetait, le try/catch de la première version aurait suffi').toBe(false);
+  });
+
+  it('LA GARDE — `commitConnu` distingue les deux cas', () => {
+    expect(commitConnu('HEAD'), 'HEAD doit être connu, sinon la garde ne mesure rien').toBe(true);
+    expect(commitConnu('deadbeefdeadbeefdeadbeefdeadbeefdeadbeef')).toBe(false);
+  });
+
+  it('et le script vérifie le SHA servi AVANT de le comparer', () => {
+    const source = readFileSync(join(__dirname, 'tiers-a-jour.mjs'), 'utf8');
+    const posGarde = source.indexOf('if (!commitConnu(servi))');
+    const posCompare = source.indexOf('const aJour = estAncetre(attendu, servi)');
+
+    expect(posGarde, '`commitConnu(servi)` introuvable dans le corps du script').toBeGreaterThan(-1);
+    expect(posCompare, 'la comparaison introuvable : la garde ne mesure rien').toBeGreaterThan(-1);
+    expect(posGarde, 'la vérification doit précéder la comparaison').toBeLessThan(posCompare);
   });
 });
