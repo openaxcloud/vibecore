@@ -58,13 +58,20 @@ jobs:
     # attendre à la protection un contrôle qui n'existe plus — et plus aucune
     # proposition ne pourrait jamais fusionner. Épinglé par
     # tests/guards/e2e-tranches.spec.ts.
-    name: E2E tranche ${{ matrix.shard }}/4
+    name: E2E tranche ${{ matrix.shard }}/2
     strategy:
       # Une tranche rouge ne doit pas annuler les autres : on veut les quatre
       # rapports, y compris quand l'un d'eux porte l'échec à expliquer.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        # DEUX tranches, pas quatre. Arbitrage du 2026-09-30, chiffres à
+        # l'appui : la suite entière prenait 81 min sous un plafond de 90 — neuf
+        # minutes de marge, d'où deux exécutions sans le moindre verdict. Quatre
+        # tranches ramènent chacune à ~30 min mais QUADRUPLENT les jobs, et la
+        # file était le goulot du jour (10 runs en cours, 6 en attente). Deux
+        # tranches donnent ~45 min, soit le double de marge sous le plafond,
+        # pour deux fois moins de jobs. On rachète la marge sans affamer la file.
+        shard: [1, 2]
     runs-on: ubuntu-latest
     # Plafond par TRANCHE. Une tranche joue un quart des specs : elle n'a
     # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
@@ -229,7 +236,7 @@ jobs:
 
           # Une suite ciblée ne se découpe pas : on la joue entière sur la
           # tranche 1 et les autres n'ont rien à faire.
-          DECOUPE="--shard=${{ matrix.shard }}/4"
+          DECOUPE="--shard=${{ matrix.shard }}/2"
           if [ -n "${{ inputs.spec }}" ]; then
             DECOUPE=""
           fi
@@ -336,7 +343,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Rassembler les rapports des quatre tranches
+      - name: Rassembler les rapports des tranches
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: resultats-tranche-*
@@ -352,5 +359,5 @@ jobs:
       # rougir : un vert sur trois quarts des specs serait un vert menteur.
       - name: E2E gate (bounded waiver)
         env:
-          E2E_EXPECTED_REPORTS: '4'
+          E2E_EXPECTED_REPORTS: '2'
         run: node scripts/e2e-gate.mjs $(find tranches -name 'playwright-results.json' | sort | tr '\n' ' ')
