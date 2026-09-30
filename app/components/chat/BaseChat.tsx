@@ -156,6 +156,8 @@ import {
   decalageAAnnulerClavierOuvert,
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
+  suivreHauteurDeRepos,
+  type HauteurDeRepos,
 } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
@@ -3179,8 +3181,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
+      /*
+       * Référence du rétrécissement : la hauteur de mise en page AU REPOS.
+       * Safari iOS 26 rétrécit `innerHeight` avec le clavier (699 → 362, mesuré
+       * le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
+       */
+      let repos: HauteurDeRepos | undefined;
+
       const updateVisualViewportHeight = () => {
         const vue = window.visualViewport;
+
+        repos = suivreHauteurDeRepos(repos, window.innerWidth, window.innerHeight);
+
         const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
 
@@ -3219,10 +3231,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * se lit depuis le haut du document — décalée, elle sort de l'écran
          * (page blanche, socle flottant, zone de saisie invisible).
          */
-        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
+        if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))) {
           document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
 
-          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+          if (decalageAAnnulerClavierOuvert(repos.hauteur, vue ?? undefined) > 0) {
             window.scrollTo(0, 0);
           }
         } else {

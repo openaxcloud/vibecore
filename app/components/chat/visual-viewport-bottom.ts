@@ -74,3 +74,36 @@ export function decalageAAnnulerClavierOuvert(
 
   return Math.max(0, Math.round(vue.offsetTop));
 }
+
+/**
+ * HAUTEUR DE MISE EN PAGE AU REPOS — la référence du rétrécissement.
+ *
+ * Mesuré le 2026-09-30 sur Safari iOS 26 (simulateur, 390 pt), dans l'IDE :
+ * clavier levé, Safari rétrécit AUSSI la fenêtre de mise en page
+ * (`innerHeight` 699 → 362) et fait défiler le document de 337. « Mise en page
+ * moins vue » vaut alors 362 − 362 = 0 : le clavier n'était jamais vu, le socle
+ * d'onglets restait affiché au bas de la fenêtre rétrécie (y 347–391) et le
+ * défilement de 337 n'était jamais annulé — zone de saisie repoussée en haut
+ * (y 61–109), fil hors de l'écran.
+ *
+ * Ce que le clavier prend se mesure donc depuis la plus grande hauteur de mise
+ * en page vue AU REPOS, à largeur égale ; un changement de largeur (rotation)
+ * repart de la hauteur du moment. La barre d'outils de Safari qui se replie ne
+ * fait que monter la référence (plus grande hauteur) : jamais un faux clavier.
+ */
+export interface HauteurDeRepos {
+  largeur: number;
+  hauteur: number;
+}
+
+export function suivreHauteurDeRepos(
+  precedente: HauteurDeRepos | undefined,
+  largeur: number,
+  hauteurMiseEnPage: number,
+): HauteurDeRepos {
+  if (!precedente || precedente.largeur !== largeur) {
+    return { largeur, hauteur: hauteurMiseEnPage };
+  }
+
+  return { largeur, hauteur: Math.max(precedente.hauteur, hauteurMiseEnPage) };
+}
