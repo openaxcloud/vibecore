@@ -41,4 +41,12 @@ describe('la consigne du premier projet', () => {
       expect(consigne, ancien).not.toContain(ancien);
     }
   });
+
+  it('garde la barre HAUTE pour une idée ambitieuse — les exigences s’adaptent, elles ne disparaissent pas', () => {
+    const consigne = consignePremierProjet('Un tableau de bord SaaS de suivi des ventes', WEB);
+
+    expect(consigne).toContain('AN AMBITIOUS IDEA');
+    expect(consigne).toContain('loading / empty / error / success states');
+    expect(consigne).toContain('tests for that workflow');
+  });
 });
