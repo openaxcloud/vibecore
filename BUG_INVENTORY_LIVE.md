@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-363 entrées.
+365 entrées.
 
 ## Sans section
 
@@ -383,6 +383,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-TOAST-GESTES-001](docs/bugs/BUG-TOAST-GESTES-001.md) — P2 — sur téléphone, le bandeau « 1 fichier appliqué » confisquait les gestes sur le haut du fil.
 - [BUG-CHAT-REFLEXION-SILENCIEUSE-001](docs/bugs/BUG-CHAT-REFLEXION-SILENCIEUSE-001.md) — P0 — régression introduite par #592 : un tour de construction Power pouvait être coupé par le chien de garde client.
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA0930-OFFRE-PERDUE-TARIFS](docs/bugs/BUG-QA0930-OFFRE-PERDUE-TARIFS.md) — BLOQUANT (paiement) — « Choisir Core » et « Choisir Pro » sur la page tarifs mènent à une inscription
+- [BUG-QA0930-TARIFS-INCOHERENTS](docs/bugs/BUG-QA0930-TARIFS-INCOHERENTS.md) — BLOQUANT (paiement) — la page tarifs et le parcours de paiement vendent deux grilles différentes.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
