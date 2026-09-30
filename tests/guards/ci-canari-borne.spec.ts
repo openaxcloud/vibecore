@@ -30,15 +30,33 @@ const jobDuCanari = Object.values(workflow.jobs).find((job) =>
 
 const etapes = jobDuCanari?.steps ?? [];
 const canari = etapes.find((etape) => etape.id === 'canari_ios');
-const indexPorte = etapes.findIndex((etape) => (etape.run ?? '').includes('scripts/e2e-gate.mjs'));
+
+/*
+ * MISE À JOUR DU 2026-09-30 — LA PROTECTION A CHANGÉ DE FORME, ET ELLE EST
+ * PLUS FORTE.
+ *
+ * Ce garde exigeait que la porte rende son verdict AVANT le canari, dans le
+ * même job : c'était le seul moyen de protéger le verdict quand les deux
+ * partageaient un budget. Depuis la découpe en tranches, la porte vit dans un
+ * job SÉPARÉ (`verdict`, celui qui porte le nom requis) et le canari dans une
+ * tranche. Le canari ne peut donc plus, structurellement, consommer le budget
+ * du contrôle requis ni le faire annuler.
+ *
+ * On n'assouplit pas le garde, on le rebrase sur la garantie plus forte : la
+ * porte doit être AILLEURS que dans le job du canari, et le job qui rend le
+ * verdict ne doit contenir aucun canari.
+ */
+const jobDuVerdict = Object.values(workflow.jobs).find((job) =>
+  (job.steps ?? []).some((etape) => (etape.run ?? '').includes('scripts/e2e-gate.mjs')),
+);
 
 /** Budget dont disposait le job AVANT l'ajout du canari : mesuré suffisant pour la suite requise. */
 const BUDGET_HISTORIQUE_MIN = 75;
 
 describe('le canari iOS est borné et ne peut plus faire annuler le contrôle requis', () => {
-  it('TÉMOIN — le canari et la porte E2E sont bien trouvés dans le même job', () => {
+  it('TÉMOIN — le canari et la porte sont tous deux trouvés', () => {
     expect(canari, 'étape canari_ios introuvable : la garde ne mesure rien').toBeDefined();
-    expect(indexPorte, 'porte e2e-gate introuvable dans le job du canari').toBeGreaterThanOrEqual(0);
+    expect(jobDuVerdict, 'aucun job n’exécute e2e-gate : la garde ne mesure rien').toBeDefined();
   });
 
   it('le canari reste non bloquant', () => {
@@ -55,7 +73,16 @@ describe('le canari iOS est borné et ne peut plus faire annuler le contrôle re
     expect(job - (canari?.['timeout-minutes'] ?? job)).toBeGreaterThanOrEqual(BUDGET_HISTORIQUE_MIN);
   });
 
-  it('la porte rend son verdict AVANT le canari', () => {
-    expect(indexPorte).toBeLessThan(etapes.indexOf(canari as Etape));
+  it('LA GARANTIE, désormais structurelle : la porte n’est PAS dans le job du canari', () => {
+    expect(
+      jobDuVerdict,
+      'si la porte revient dans le job du canari, un canari lent peut de nouveau faire annuler le verdict',
+    ).not.toBe(jobDuCanari);
+  });
+
+  it('et le job qui rend le verdict ne contient aucun canari', () => {
+    const canaris = (jobDuVerdict?.steps ?? []).filter((etape) => etape.id === 'canari_ios');
+
+    expect(canaris, 'un canari dans le job du verdict remettrait les deux dans le même budget').toHaveLength(0);
   });
 });
