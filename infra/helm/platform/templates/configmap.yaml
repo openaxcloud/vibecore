@@ -103,6 +103,17 @@ data:
   # ECODE_PARALLEL_SUBAGENTS_ENABLED note below.
   BILLING_CREDITS_SHADOW: "true"
 
+  # Multi-tenant anti-abuse guardrails (P0-A2-14 — ReputationTier /
+  # BillingAccountBinding / per-tier caps + burst walls). "false" = OBSERVE ONLY:
+  # the decision is computed and every would-be refusal is audited
+  # (tenant.guardrail.refused) and counted
+  # (tenant_guardrail_refusals_total{enforced="false"}), but nothing is blocked.
+  # Flip to "true" to ENFORCE — do that only after reading the refusal counter,
+  # since it will start returning 402/429 to real tenants.
+  # Hardcoded literal (NOT a values key) for the same --reuse-values reason as
+  # BILLING_CREDITS_SHADOW above.
+  TENANT_GUARDRAILS_ENABLED: "false"
+
   # Replit-parity managed model registry, read-through. "true" makes
   # GET /orgs/:id/ai/models return the admin-owned provider/model registry
   # (seeded enabled-by-default at API boot — seedProviderRegistry, app.ts:5722)
