@@ -277,6 +277,40 @@ final class ClavierSafariTests: XCTestCase {
     }
 
     /*
+     * SERVICE WORKER DE L'APP, ISOLÉ (sans l'app) — page témoin qui installe EXACTEMENT
+     * app/lib/pwa-service-worker.server.ts (chemins sous /sw/), serveur toujours en ligne.
+     * Mesuré le 30/09 dans le banc : l'IDE affichait « Vous êtes hors ligne » alors que le serveur
+     * répondait et n'avait reçu AUCUNE requête — l'échec venait du service worker.
+     */
+    func test6_serviceWorker_neServiraitPasHorsLigneServeurEnLigne() {
+        let base = "http://127.0.0.1:8765/sw"
+        ouvrir("\(base)/index.html")
+        let pret = page.staticTexts.matching(NSPredicate(format: "label CONTAINS 'sw-pret'")).firstMatch
+        XCTAssertTrue(pret.waitForExistence(timeout: 30), "service worker non installé : la mesure ne vaut rien")
+        var etats: [String] = []
+        let lire = { () -> String in
+            let e = self.page.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'etat'")).firstMatch
+            return e.waitForExistence(timeout: 15) ? e.label : "RIEN"
+        }
+        for n in 1...8 {
+            XCUIDevice.shared.system.open(URL(string: "\(base)/page.html?n=\(n)")!)
+            sleep(3)
+            let e = lire(); etats.append(e); print("BANC-MESURE sw navigation=\(n) \(e)")
+        }
+        // Navigations RAPPROCHÉES : une nouvelle avant la fin de la précédente (ce que fait le banc).
+        for n in 9...12 {
+            XCUIDevice.shared.system.open(URL(string: "\(base)/page.html?n=\(n)a")!)
+            XCUIDevice.shared.system.open(URL(string: "\(base)/page.html?n=\(n)b")!)
+            sleep(4)
+            let e = lire(); etats.append(e); print("BANC-MESURE sw navigation=\(n) rapprochee \(e)")
+        }
+        joindreCapture("sw-fin")
+        let horsLigne = etats.filter { $0.contains("HORS-LIGNE") }.count
+        print("BANC-MESURE sw bilan hors-ligne=\(horsLigne)/\(etats.count) controle=\(etats.filter { $0.contains("controle=true") }.count)")
+        XCTAssertEqual(horsLigne, 0, "le service worker sert la page hors ligne alors que le serveur répond")
+    }
+
+    /*
      * PARCOURS — un défaut signalé par Avi se rejoue ici au vrai toucher, étape par étape.
      * BANC_PARCOURS = étapes séparées par « ;; » :
      *   ide:<panneau>        ouvre l'IDE sur ce panneau (attend le chargement réel)
@@ -331,6 +365,11 @@ final class ClavierSafariTests: XCTestCase {
                 XCUIDevice.shared.system.open(URL(string: "http://127.0.0.1:8765/theme.html?t=\(arg)")!)
                 if !page.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'theme'")).firstMatch.waitForExistence(timeout: 20) { manques.append(etape) }
                 sleep(1)
+            case "appuilong":
+                // Appui long au doigt (1,2 s) sur le plus bas des éléments dont le libellé commence par <arg>.
+                let cibles = page.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", arg)).allElementsBoundByIndex.filter { $0.exists && $0.frame.minY > 60 && $0.frame.maxY < 680 }
+                guard let cible = cibles.max(by: { $0.frame.minY < $1.frame.minY }) else { manques.append(etape); print("BANC-MESURE parcours INTROUVABLE \(etape)"); continue }
+                cible.press(forDuration: 1.2); sleep(1)
             case "saisie":
                 let z = page.textViews["Prompt de l’agent"]
                 if !z.waitForExistence(timeout: 20) { manques.append(etape); continue }

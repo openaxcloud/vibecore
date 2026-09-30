@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>sw-temoin</title></head><body>
+<h1 id="e" aria-label="etat ACCUEIL">ACCUEIL</h1>
+<script>
+  // Enregistre EXACTEMENT le service worker de l'app (app/lib/pwa-service-worker.server.ts), portée /sw/.
+  navigator.serviceWorker.register('/sw/sw.js', { scope: '/sw/' }).then(() => navigator.serviceWorker.ready).then(() => {
+    const t = `etat ACCUEIL sw-pret controle=${!!navigator.serviceWorker.controller}`;
+    document.getElementById('e').textContent = t; document.getElementById('e').setAttribute('aria-label', t);
+  });
+</script></body></html>
