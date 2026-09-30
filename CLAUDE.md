@@ -548,6 +548,34 @@ Le prix du lot, énoncé pour qu'il soit choisi et non subi : **un correctif
 fautif emmène les deux autres au rollback.** C'est acceptable parce que les trois
 sont verts avant d'entrer ; ça ne le serait pas autrement.
 
+### On n'attend QUE pour un déploiement qui compte encore
+
+**Précision d'Avi du 2026-09-30, après un cas réel.** La règle « ne pas fusionner
+tant qu'un déploiement est en vol » ne vaut que pour un déploiement **qui porte
+la tête de `main`**. Un déploiement **déjà dépassé par un autre** ne mérite
+aucune attente : il sera écarté de toute façon, et le retenir ne protège rien.
+
+Le cas : le déploiement de 14:22 attendait depuis 1 h 27, bloqué sur la porte de
+release ; celui de 15:46 l'avait déjà dépassé. Retenir #613 pour lui, c'était
+laisser en place **la cause même du blocage** — #613 ramenait la suite E2E de
+81 à 45 min — au nom d'une victime déjà perdue.
+
+**Le contrôle, avant de renoncer à fusionner :**
+
+```
+gh run list -R openaxcloud/vibecore --workflow deploy-main.yml --limit 2 \
+  --json status,conclusion,headSha,createdAt
+git rev-parse --short=10 origin/main
+```
+
+Si le `headSha` du déploiement en vol **n'est pas** la tête de `main`, il est
+déjà dépassé : on fusionne.
+
+⚠️ **Et le vrai goulot n'est pas la file de déploiement, c'est l'E2E.** Le
+déploiement s'arrête sur « Release gate — required checks green for THIS
+commit », qui attend `Production E2E` sur le même commit. Le pipeline seul fait
+37 min ; c'est l'E2E devant lui qui fait les heures.
+
 **Le contrôle, avant de fusionner** — un déploiement est-il déjà en vol ?
 
 ```
