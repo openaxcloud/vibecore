@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-374 entrées.
+375 entrées.
 
 ## Sans section
 
@@ -397,6 +397,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0928-RUNTIME-ID-PROJET](docs/bugs/BUG-QA0928-RUNTIME-ID-PROJET.md) — BLOQUANT — le runtime est adressé avec l'identifiant du PROJET au lieu de celui du workspace ; les écritures de l'agent partent dans le vide.
 - [BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE](docs/bugs/BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE.md) — BLOQUANT — DÉCISION REQUISE — chaque `PUT /ide-state` portant le fil réécrit, côté serveur, les fichiers du projet avec la dernière version que l'agent leur a d
 - [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
+
+## Sans section
+
+- [undefined](docs/bugs/BUG-I18N-APERCU-TERME-INTERDIT-001.md)
 
 ## Résidus non tabulaires — reportés mot pour mot
 
