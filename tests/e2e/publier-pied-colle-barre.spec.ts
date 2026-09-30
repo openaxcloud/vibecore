@@ -47,7 +47,9 @@ test('Publier (390) : la barre collante touche la barre du bas, sans bande à d�
     const pied = document.querySelector('.bolt-publication-pied')!.getBoundingClientRect();
 
     // Le haut de la barre du bas, tel que la prod le mesure : 844 − 72 = 772.
-    const hauteurBarre = parseFloat(getComputedStyle(document.querySelector('.bolt-workbench-mobile')!).getPropertyValue('--mobile-nav-height'));
+    const hauteurBarre = parseFloat(
+      getComputedStyle(document.querySelector('.bolt-workbench-mobile')!).getPropertyValue('--mobile-nav-height'),
+    );
 
     return {
       defile: d.scrollHeight > d.clientHeight && d.scrollTop > 0,
