@@ -11,6 +11,9 @@ import { expect, test } from '@playwright/test';
  * Parcours réel : le formulaire, puis l'API réelle pour lire le nom obtenu.
  */
 
+// Un client français : navigateur en français.
+test.use({ locale: 'fr-FR' });
+
 const API_BASE_URL =
   process.env.PLAYWRIGHT_API_URL ?? process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
