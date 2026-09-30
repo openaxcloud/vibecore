@@ -115,6 +115,17 @@ export default defineConfig({
         // BUG-QA0928-MODALE-SANS-FOCUS : mesuré sur WebKit (focus resté dans la page), épinglé sur ce moteur aussi.
         /modale-accueil-prend-le-focus\.spec\.ts/,
 
+        /*
+         * PAS `idee-entre-domaines.spec.ts`, et ce n'est pas un oubli. Mesuré le
+         * 2026-09-30 : le WebKit de Playwright ne garde AUCUN cookie `Secure` reçu
+         * en http — ni sur 127.0.0.1, ni sur localhost, ni sur *.localhost ;
+         * Chromium les garde. La CI sert le build de production en http, avec des
+         * cookies `Secure` : sous WebKit, l'inscription ne connecte jamais le
+         * visiteur. Le test y échouait 5/5 et faisait expirer ce canari. Ce
+         * parcours se prouve sur WebKit en production (https) :
+         * `docs/bugs/qa-2026-09-28/verif-live-idee-deux-domaines.mjs`.
+         */
+
         // Le titre de l'accueil prend six lignes en français sur WebKit, trois sur Chromium : c'est ici que le champ sortait de l'écran.
         /accueil-champ-au-premier-ecran\.spec\.ts/,
       ],
