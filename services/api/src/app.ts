@@ -15295,6 +15295,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * observe the pod arriving. Reopening with the same deterministic id returns
    * the existing pod, so this is safe to call even while a start is in flight.
    */
+  /*
+   * RÉSERVER UN CRÉNEAU `workspaces.active` AVANT DE DÉMARRER.
+   *
+   * Un espace déjà compté (PENDING/STARTING/RUNNING) ne consomme rien : on le
+   * redémarre librement, c'est le cas du pod ramassé dont la ligne est restée
+   * RUNNING. Sinon, sous verrou par organisation : libérer les créneaux fantômes,
+   * vérifier le quota, puis marquer l'espace STARTING — c'est cette écriture,
+   * DANS le verrou, qui empêche deux démarrages concurrents de passer le même
+   * décompte.
+   *
+   * Partagé par le redémarrage explicite et par le démarrage À LA DEMANDE
+   * (BUG-QA0928-PROVISION-SANS-QUOTA : ce dernier n'avait aucun contrôle, et une
+   * simple lecture sur l'onglet d'un autre projet donnait un second espace actif
+   * à un compte gratuit).
+   */
+  const reserverUnCreneauActif = async (request: any, organizationId: string | undefined, workspaceId: string) => {
+    const existant = await store.getWorkspace(workspaceId);
+    const dejaCompte = !!existant && ['PENDING', 'STARTING', 'RUNNING'].includes(existant.status as string);
+
+    if (!organizationId || dejaCompte) {
+      return false;
+    }
+
+    await store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
+      await ensureQuota(request, organizationId, 'workspaces.active');
+      await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
+    });
+
+    // Vrai quand un créneau vient d'être pris : l'appelant le rend (FAILED) si le démarrage échoue pour de bon.
+    return true;
+  };
+
   const provisionWorkspaceOnDemand = async (
     request: any,
     authorized: { workspaceId: string; projectId: string; organizationId?: string },
@@ -15307,6 +15340,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
+
+    const organisation =
+      authorized.organizationId ?? (await store.getProject(authorized.projectId))?.organizationId ?? undefined;
+
+    await reserverUnCreneauActif(request, organisation, authorized.workspaceId);
 
     /*
      * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
@@ -15439,6 +15477,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       await demarrageDemande;
     })().catch((error) => {
+      /*
+       * REFUS POUR QUOTA (BUG-QA0928-PROVISION-SANS-QUOTA) : ce n'est pas une
+       * panne, c'est la règle du forfait. On le journalise sans le compter comme
+       * échec, et on GARDE la fenêtre : la réarmer referait le contrôle — et son
+       * audit `quota.exceeded` — à chacune des dizaines de lectures d'une
+       * ouverture d'IDE.
+       */
+      if (error?.code === 'QUOTA_EXCEEDED') {
+        journal?.warn(
+          { workspaceId, event: 'workspace.read_triggered_start_refused_quota', quotaKey: error.quotaKey },
+          'demarrage declenche par une lecture refuse : quota atteint',
+        );
+
+        return;
+      }
+
       /*
        * JAMAIS AVALÉ (BUG-RUNTIME-SILENCE-002). Ajouter un déclenchement dont
        * l'échec disparaît dans un `catch` vide remplacerait un blocage
@@ -17921,33 +17975,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Serialize the check to avoid TOCTOU; the slow manager restart stays outside
      * the lock. A restart of an already-active workspace consumes nothing.
      */
-    const existingForRestart = await store.getWorkspace(authorized.workspaceId);
-
-    const restartCountsAsActive =
-      !!existingForRestart && ['PENDING', 'STARTING', 'RUNNING'].includes(existingForRestart.status as string);
-
-    const restartOrgId = authorized.organizationId;
-
-    if (restartOrgId && !restartCountsAsActive) {
-      await store.withSerializedMutation(`workspaces:${restartOrgId}`, async () => {
-        /*
-         * Free any phantom (GC'd-but-RUNNING) slot before counting, identical to
-         * the start handler — otherwise a stale RUNNING row 429s a legitimate
-         * restart of another workspace for a quota-limited org.
-         */
-        await reconcileOrphanedActiveWorkspaces(restartOrgId, authorized.workspaceId);
-        await ensureQuota(request, restartOrgId, 'workspaces.active');
-
-        /*
-         * Claim the active slot INSIDE the lock by flipping the record to a
-         * counted state (STARTING). Without a state write here the lock is inert:
-         * concurrent restarts each pass the same count and all bypass the limit
-         * (countActiveWorkspaces counts PENDING/STARTING/RUNNING). The manager
-         * restart below reconciles to RUNNING/FAILED; the catch resets on error.
-         */
-        await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' });
-      });
-    }
+    const creneauReserve = await reserverUnCreneauActif(request, authorized.organizationId, authorized.workspaceId);
 
     /*
      * Resolve the org's plan + resource entitlements exactly like the start
@@ -18034,7 +18062,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * (flipped to STARTING), reset to FAILED so the slot isn't leaked (a stuck
        * STARTING would count against workspaces.active forever), then rethrow.
        */
-      if (restartOrgId && !restartCountsAsActive) {
+      if (creneauReserve) {
         await store
           .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
           .catch(() => undefined);
