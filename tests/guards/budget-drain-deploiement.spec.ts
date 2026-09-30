@@ -211,6 +211,47 @@ describe('les quatre horloges du déploiement expirent dans le bon ordre', () =>
     ).toBeLessThan(budgetMin);
   });
 
+  it('0 → 1 : la grâce dépasse la borne d’attente du SERVEUR, sinon rien de tout ceci ne sert', () => {
+    /*
+     * LE COUPLAGE, RENDU MÉCANIQUE.
+     *
+     * Une grâce longue ne protège un tour que si le processus attend vraiment la
+     * fin des tours avant de sortir. Mesuré le 2026-09-30 à 21:51:46 : un pod web
+     * arrêté par l'autoscaler a consommé ses 30 s ENTIÈRES et fini en
+     * `phase=Failed` — il ne sortait pas de lui-même. Livrer la grâce seule ne
+     * protégerait donc rien et rendrait chaque terminaison aussi longue que la
+     * grâce, à chaque déploiement ET à chaque réduction d'échelle.
+     *
+     * Ce cas ÉCHOUE donc volontairement tant que `server.mjs` ne porte pas sa
+     * borne d'attente. C'est le seul moyen de garantir « jamais la grâce sans
+     * l'arrêt propre » sans compter sur la mémoire de qui fusionne : la
+     * proposition ne peut pas passer au vert avant que la part serveur soit là.
+     *
+     * Et dans l'autre sens : la grâce doit DÉPASSER la borne, sinon le SIGKILL du
+     * kubelet tranche avant que le serveur ait fini d'attendre, et la borne ne
+     * décide plus rien.
+     */
+    const serveur = readFileSync(join(racine, 'server.mjs'), 'utf8');
+    const m = /ARRET_ATTENTE_MAX_MS\s*\?\?\s*([\d_]+)/u.exec(serveur);
+
+    expect(
+      m,
+      "`server.mjs` ne porte pas de borne d'attente des tours : la grâce longue ne protégerait " +
+        'RIEN et rendrait chaque terminaison aussi longue qu\'elle. Fusionner d\'abord la part ' +
+        'serveur (#642), puis cette proposition — jamais l\'inverse.',
+    ).not.toBeNull();
+
+    const borneServeurS = Number(m![1].replace(/_/gu, '')) / 1000;
+
+    for (const { nom, grace } of gracesEffectives.filter((s) => s.nom === 'web')) {
+      expect(
+        grace,
+        `${nom} : grâce ${grace} s ≤ borne d'attente du serveur ${borneServeurS} s. Le kubelet tuerait ` +
+          'le processus avant la fin de son attente, et la borne ne décide plus rien.',
+      ).toBeGreaterThan(borneServeurS);
+    }
+  });
+
   it('CONTRE-ÉPREUVE — le préStop reste bien À L’INTÉRIEUR de la grâce', () => {
     /*
      * `preStop` court PENDANT la période de grâce, il ne s'y ajoute pas. Une
