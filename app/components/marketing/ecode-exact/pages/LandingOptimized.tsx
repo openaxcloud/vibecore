@@ -50,6 +50,7 @@ import {
 import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
 import { daterLeRelais } from '~/utils/idee-relayee';
 import { stashModelHandoff } from '~/utils/model-handoff';
+import { PROMPT_MAX_CHARS } from '~/utils/prompt-validation';
 
 /*
  * Number of reveal-and-retry attempts the "Watch Demo" CTA makes while the lazy
@@ -98,6 +99,24 @@ export default function LandingOptimized() {
     const trimmed = description.trim();
 
     if (!trimmed) {
+      return;
+    }
+
+    /*
+     * BUG-QA0928-PROMPT-TRONQUE — au-delà de la limite du composeur, l'idée
+     * partait quand même, puis était coupée à 8 000 caractères et soumise sans un
+     * mot. On le dit ICI, avec la longueur réelle, avant tout envoi.
+     */
+    if (trimmed.length > PROMPT_MAX_CHARS) {
+      const nombre = (valeur: number) => new Intl.NumberFormat(language).format(valeur);
+
+      toast({
+        title: copy.toast.tooLongTitle,
+        description: copy.toast.tooLongDescription
+          .replace('{characters}', nombre(trimmed.length))
+          .replace('{maximum}', nombre(PROMPT_MAX_CHARS)),
+      });
+
       return;
     }
 
