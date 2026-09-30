@@ -41,7 +41,7 @@ import {
 import { recordAgentRepairEvent } from '~/lib/persistence/agentRepairEventSync';
 import { getRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { foldCommandExitCode } from '~/lib/runtime/command-exit';
-import { ActionRunner } from '~/lib/runtime/action-runner';
+import { ActionRunner, actionApresReprise } from '~/lib/runtime/action-runner';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from '~/lib/runtime/preview-dependencies';
 import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
 import { runProjectDoctor } from '~/lib/runtime/project-doctor';
@@ -239,6 +239,13 @@ export class WorkbenchStore {
   #terminalStore = new TerminalStore(this.#runtime);
 
   #reloadedMessages = new Set<string>();
+
+  /*
+   * Messages dont la réponse a été RATTRAPÉE depuis le serveur après une
+   * coupure (voir `autoriserLaReprise`). Seuls leurs fichiers interrompus
+   * peuvent être réécrits.
+   */
+  #messagesRattrapes = new Set<string>();
   #previewStartPromise: Promise<string> | undefined;
 
   /*
@@ -3006,6 +3013,20 @@ export class WorkbenchStore {
     Object.values(this.artifacts.get()).forEach((artifact) => artifact.runner.abortStreamingFileActions());
   }
 
+  /**
+   * Autorise la réécriture des fichiers INTERROMPUS de ce message, pour le
+   * rattrapage à la reprise : la réponse complète revient du serveur, le
+   * parseur la rejoue, et chaque fichier que la coupure avait laissé annulé
+   * est écrit avec son contenu complet.
+   *
+   * Réservé à un message dont le flux s'est terminé ANORMALEMENT. Un Arrêt
+   * volontaire n'appelle jamais ceci : ce que l'utilisateur a arrêté reste
+   * arrêté.
+   */
+  autoriserLaReprise(messageId: string) {
+    this.#messagesRattrapes.add(messageId);
+  }
+
   setReloadedMessages(messages: string[]) {
     this.#reloadedMessages = new Set(messages);
   }
@@ -3119,7 +3140,13 @@ export class WorkbenchStore {
       unreachable('Artifact not found');
     }
 
-    const action = artifact.runner.actions.get()[data.actionId];
+    /*
+     * Rattrapage : la fermeture NON streamée d'un fichier que la coupure avait
+     * annulé le réarme, et il est réécrit avec le contenu complet. Le passage
+     * streamé ne réarme rien — on ne repeint pas l'éditeur morceau par morceau
+     * avec un texte déjà connu.
+     */
+    const action = actionApresReprise(artifact.runner, data, isStreaming, this.#messagesRattrapes.has(data.messageId));
 
     if (!action || action.executed) {
       return;

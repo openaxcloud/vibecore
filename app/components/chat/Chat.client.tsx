@@ -35,6 +35,8 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { useRattrapageALaReprise } from '~/lib/hooks/useRattrapageALaReprise';
+import { estUneCoupureReseau } from '~/lib/chat/rattrapage-reprise';
 import { leTourAEcritDesFichiers, messageDeCommitDuTour, statistiquesDuTour } from '~/components/chat/fin-de-tour';
 import {
   consommerPrompt,
@@ -445,6 +447,12 @@ export const ChatImpl = memo(
     const stallWatchdogRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     /*
+     * Rattrapage à la reprise — armé par `onError` et le chien de garde, défini
+     * après `useChat` (il a besoin de `setMessages`) : d'où la référence.
+     */
+    const armerRattrapageRef = useRef<() => void>(() => undefined);
+
+    /*
      * Fast-recovery for a stuck stream: `isLoadingRef` mirrors the latest
      * `isLoading` so a deferred timer reads the CURRENT value (not a stale
      * closure), and `handledCompletionsRef` tracks how many authoritative
@@ -801,6 +809,18 @@ export const ChatImpl = memo(
             data: requestData,
             ...chatRequestBodyBase,
             ...(requestBody ?? {}),
+
+            /*
+             * LU AU MOMENT DE L'ENVOI, PAS AU RENDU. Le serveur n'écrit la demande
+             * et la réponse en base (#581, #609) que s'il connaît la conversation.
+             * `chatRequestBodyBase` la lit au dernier rendu : mesuré en production
+             * le 2026-09-30, le premier message d'un projet partait avec
+             * `conversationId: null`, et le serveur, allé au bout du tour après une
+             * coupure, n'écrivait RIEN — sans le dire.
+             */
+            ...((backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId)
+              ? { conversationId: backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId }
+              : {}),
           },
           '/api/chat',
         ),
@@ -847,6 +867,18 @@ export const ChatImpl = memo(
       onError: (e) => {
         console.error('[chat-onError] /api/chat request failed (may be a pre-fetch throw swallowed by the SDK):', e);
         setFakeLoading(false);
+
+        /*
+         * UNE CONNEXION PERDUE N'EST PAS UN TOUR PERDU. Mesuré le 2026-09-30 :
+         * connexion coupée à 42 s, le serveur est allé au bout et a facturé le
+         * tour, et le navigateur n'en gardait que le début. Le serveur écrit
+         * désormais la réponse complète (#609) ; on va la chercher. Seules les
+         * erreurs RÉSEAU arment le rattrapage — une erreur rendue par le serveur
+         * dit que le tour a échoué, il n'y a rien à attendre.
+         */
+        if (estUneCoupureReseau(e)) {
+          armerRattrapageRef.current();
+        }
 
         /*
          * A dropped connection / stream error mid-generation never delivers the
@@ -1026,6 +1058,9 @@ export const ChatImpl = memo(
             setFakeLoading(false);
             workbenchStore.abortAllActions();
             toast.warning(copy['chatClient.generation.stalled']);
+
+            /* Un flux muet est une connexion perdue : le serveur a pu finir sans nous. */
+            armerRattrapageRef.current();
           }
         }, 10_000);
       }
@@ -1095,6 +1130,38 @@ export const ChatImpl = memo(
     useEffect(() => {
       latestMessagesRef.current = messages;
     }, [messages]);
+
+    const { armer: armerRattrapage } = useRattrapageALaReprise({
+      enabled: Boolean(projectIdeMode && projectId),
+      projectId,
+      isLoading,
+      conversationId: () => backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId,
+      messages: () => latestMessagesRef.current,
+      appliquer: (fil) => {
+        latestMessagesRef.current = fil;
+        setMessages(fil);
+      },
+    });
+
+    armerRattrapageRef.current = armerRattrapage;
+
+    /*
+     * Envoyer, mais seulement une fois la conversation créée : c'est elle qui dit
+     * au serveur où écrire la demande et la réponse. Sans cette attente, le
+     * PREMIER message d'un projet part sans conversation (mesuré le 2026-09-30).
+     * La création est dédoublonnée (`creationDeConversationRef`) et ne coûte
+     * qu'une fois ; si elle échoue, on envoie quand même — comme avant.
+     */
+    const envoyer = useCallback(
+      async (...args: Parameters<typeof append>) => {
+        await ensureProjectAiConversation().catch((erreur) => {
+          logger.warn('conversation non créée avant l’envoi', (erreur as Error)?.message);
+        });
+
+        return append(...args);
+      },
+      [append, ensureProjectAiConversation],
+    );
 
     useEffect(() => {
       Cookies.set('selectedModel', model, { expires: 30 });
@@ -1331,10 +1398,22 @@ export const ChatImpl = memo(
          * 30s window) so a persistent failure can't loop; quota/auth/token errors
          * are not transient and fall straight through to the alert.
          */
+        /*
+         * PAS SUR UNE COUPURE RÉSEAU. Une erreur sans code HTTP prend ici
+         * `statusCode: 500` par défaut et passait donc pour « transitoire ».
+         * Mesuré en production le 2026-09-30 : connexion coupée, `reload()`
+         * retirait la réponse affichée et RENVOYAIT la demande pendant que le
+         * serveur finissait le premier tour — un second tour facturé si le
+         * réseau revient à cet instant. Le rattrapage (`onError`) va chercher
+         * la réponse que le serveur est en train d'écrire.
+         */
+        const coupureReseau = estUneCoupureReseau(error);
+
         const isTransient =
           (errorType === 'network' || errorType === 'rate_limit') &&
           errorInfo.isRetryable !== false &&
-          context === 'chat';
+          context === 'chat' &&
+          !coupureReseau;
 
         const now = Date.now();
 
@@ -1639,7 +1718,7 @@ export const ChatImpl = memo(
             baselineFileCount: countWorkspaceFiles(workbenchStore.files.get()),
           };
 
-          append({
+          void envoyer({
             role: 'user',
             content: prompt,
           });
@@ -1651,7 +1730,7 @@ export const ChatImpl = memo(
       return () => {
         cancelled = true;
       };
-    }, [append, copy, model, projectId, projectIdeMode, provider, runAnimation, filesHydrated]);
+    }, [envoyer, copy, model, projectId, projectIdeMode, provider, runAnimation, filesHydrated]);
 
     useEffect(() => {
       const prompt = searchParams.get('prompt')?.trim();
@@ -1713,14 +1792,14 @@ export const ChatImpl = memo(
       }
 
       runAnimation();
-      append({
+      void envoyer({
         role: 'user',
         content: prompt,
       });
 
       clearPromptParams();
     }, [
-      append,
+      envoyer,
       model,
       projectId,
       projectIdeMode,
@@ -2073,7 +2152,7 @@ export const ChatImpl = memo(
         console.info(
           `[send] branch=append (with modified-files artifact) → POST /api/chat, messages=${messages.length}`,
         );
-        append(
+        await envoyer(
           {
             role: 'user',
             content: messageText,
@@ -2090,7 +2169,7 @@ export const ChatImpl = memo(
           uploadedFiles.length > 0 ? { experimental_attachments: await filesToAttachments(uploadedFiles) } : undefined;
 
         console.info(`[send] branch=append (plain) → POST /api/chat, messages=${messages.length}`);
-        append(
+        await envoyer(
           {
             role: 'user',
             content: messageText,

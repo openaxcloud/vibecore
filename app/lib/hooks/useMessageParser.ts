@@ -170,6 +170,33 @@ const messageParser = new EnhancedStreamingMessageParser({
     },
   },
 });
+
+/*
+ * Messages à REPARSER DEPUIS LE DÉBUT — voir `rejouerLeMessage`. La valeur est
+ * le contenu complet attendu : le rejeu n'a lieu que quand le message porte
+ * CE contenu, jamais sur un rendu intermédiaire de l'ancienne version.
+ */
+const messagesARejouer = new Map<string, string>();
+
+/**
+ * Rejouer un message depuis le début, pour le rattrapage à la reprise.
+ *
+ * Le parseur est INCRÉMENTAL : il retient, par message, la position déjà lue.
+ * Quand la réponse complète revient du serveur, lui donner le texte entier ne
+ * rejouerait que la suite — et le fichier que la coupure avait laissé ouvert ne
+ * recevrait jamais sa vraie fermeture. On oublie donc l'état de ce message au
+ * passage où il porte le contenu complet : le parseur relit tout, les actions
+ * déjà terminées sont reconnues et sautées par le moteur, le fichier
+ * interrompu est réécrit, les suivantes s'exécutent.
+ *
+ * Attendre le contenu complet n'est pas une précaution de style : un passage
+ * intermédiaire sur l'ANCIENNE version, remis à zéro, refermerait le fichier
+ * tronqué une seconde fois — et l'écrirait tronqué.
+ */
+export function rejouerLeMessage(messageId: string, contenuComplet: string) {
+  messagesARejouer.set(messageId, contenuComplet);
+}
+
 const extractTextContent = (message: Message) =>
   Array.isArray(message.content)
     ? (message.content.find((item) => item.type === 'text')?.text as string) || ''
@@ -191,6 +218,12 @@ export function useMessageParser() {
         let newParsedContent = '';
 
         let replaceContent = reset;
+
+        if (messagesARejouer.get(message.id) === extractTextContent(message)) {
+          messagesARejouer.delete(message.id);
+          messageParser.resetMessage(message.id);
+          replaceContent = true;
+        }
 
         try {
           newParsedContent = messageParser.parse(message.id, extractTextContent(message));
