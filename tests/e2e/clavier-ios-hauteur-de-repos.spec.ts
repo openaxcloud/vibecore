@@ -102,15 +102,50 @@ test('clavier levé (fenêtre de mise en page rétrécie, comme iOS 26) : socle 
   );
   await expect(socle, 'le socle d’onglets flotte au-dessus du clavier au lieu d’être couvert').toBeHidden();
 
-  await expect
-    .poll(
-      async () => {
-        const r = await composeur.boundingBox();
-        return r ? Math.round(r.y + r.height) : Number.NaN;
-      },
-      { message: 'la zone de saisie déborde sous le bas visible (362)' },
-    )
-    .toBeLessThanOrEqual(362);
+  /*
+   * En cas d'échec, le message dit l'état RÉEL de la mise en page (le 30/09, un
+   * premier essai en CI a rendu 454 sans trace exploitable — la valeur exacte du
+   * cas « règle absente » — puis est passé au second).
+   */
+  const etat = () =>
+    page.evaluate(() => {
+      const d = (sel: string) => {
+        const e = document.querySelector(sel);
+
+        if (!e) {
+          return `${sel}=absent`;
+        }
+
+        const r = e.getBoundingClientRect();
+        const cs = getComputedStyle(e);
+
+        return `${sel}=[${Math.round(r.top)}-${Math.round(r.bottom)} fs=${cs.flexShrink} fb=${cs.flexBasis} h=${cs.height} minh=${cs.minHeight} parent=${e.parentElement?.className.toString().split(/\s+/).slice(0, 2).join('.')} rang=${e.parentElement ? [...e.parentElement.children].indexOf(e) : -1}]`;
+      };
+
+      return [
+        '.bolt-mobile-agent-start-state',
+        '.bolt-project-agent-scroll',
+        '.bolt-project-agent-composer',
+        '.bolt-project-agent-panel',
+      ]
+        .map(d)
+        .join(' ');
+    });
+
+  let bas = Number.NaN;
+
+  for (let essai = 0; essai < 25; essai += 1) {
+    const r = await composeur.boundingBox();
+    bas = r ? Math.round(r.y + r.height) : Number.NaN;
+
+    if (bas <= 362) {
+      break;
+    }
+
+    await page.waitForTimeout(200);
+  }
+
+  expect(bas, `la zone de saisie déborde sous le bas visible (362) — ${await etat()}`).toBeLessThanOrEqual(362);
 
   const cadre = (await composeur.boundingBox())!;
   expect(cadre.y, 'la zone de saisie est repoussée hors du haut de l’écran').toBeGreaterThanOrEqual(0);
