@@ -43,7 +43,7 @@ Dans la réconciliation, n'utiliser que `managerStatus === 404` ; garder `isRunt
 
 ## 💻
 
-☐ PR #597 ouverte — `main` fusionnée dedans le 30/09 (`146f2c26e`), CI en cours
+☑ 30/09 fusionnée `6cebe6438` (#597, par la coordination)
 
 ## ✅
 

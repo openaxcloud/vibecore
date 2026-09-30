@@ -133,7 +133,7 @@ le manager était injoignable (corrigé dans la même branche, BUG-QA0928-RECONC
 
 ## 💻
 
-☐ PR #597 ouverte — `main` fusionnée dedans le 30/09 (`146f2c26e`), CI en cours
+☑ 30/09 fusionnée `6cebe6438` (#597, par la coordination)
 
 ## ✅
 
