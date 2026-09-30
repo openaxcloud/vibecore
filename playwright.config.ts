@@ -19,6 +19,31 @@ const webServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER
 
 export default defineConfig({
   testDir: './tests/e2e',
+
+  /*
+   * UNE SUITE QUI EXPIRE NE REND AUCUN VERDICT — et un run `cancelled` ne
+   * prouve rien, ni dans un sens ni dans l'autre.
+   *
+   * Mesuré le 2026-09-30 sur le contrôle requis de #597 : tentative 1 lancée à
+   * 03:42, `cancelled` à 05:13 — quatre-vingt-onze minutes, zéro ligne de
+   * verdict, aucun rapport. Le coureur GitHub a tué le processus au plafond du
+   * job (`timeout-minutes: 75` dans `.github/workflows/e2e.yml`), et Playwright,
+   * qui n'avait AUCUNE borne globale, n'a rien eu le temps d'écrire.
+   *
+   * La borne ci-dessous est volontairement SOUS le plafond du job : c'est
+   * Playwright qui doit s'arrêter le premier, parce que lui sait rendre un
+   * rapport en s'arrêtant. Tué par le coureur, il ne laisse rien — et une suite
+   * qui ne rend rien ne protège plus rien, elle fait seulement patienter.
+   */
+  globalTimeout: 60 * 60_000,
+
+  /*
+   * Au-delà de vingt échecs, la suite ne mesure plus un défaut mais un
+   * environnement cassé. On s'arrête et on rend le rapport tant qu'il reste du
+   * temps pour l'écrire.
+   */
+  maxFailures: process.env.CI ? 20 : 0,
+
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: false,
