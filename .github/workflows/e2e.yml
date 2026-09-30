@@ -3,6 +3,13 @@ name: Production E2E
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      spec:
+        description: >-
+          Chemin d'un spec à jouer SEUL, pour prouver un correctif précis sans
+          attendre la suite entière. Vide = suite complète, comme avant.
+        required: false
+        type: string
   push:
     # `main` was missing here, and that was not a cosmetic gap: the production
     # deploy gate requires E2E to be green for the exact commit it deploys, and a
@@ -196,8 +203,19 @@ jobs:
       - name: Playwright auth, project, IDE, terminal, billing mock flows
         run: |
           set +e
+
+          # Un correctif se prouve par le scénario qui le couvre, pas par
+          # quatre-vingt-dix minutes de suite entière. Vide = comportement
+          # d'avant, à l'octet près.
+          CIBLE="${{ inputs.spec }}"
+          if [ -n "$CIBLE" ]; then
+            echo "::notice::suite ciblée sur $CIBLE"
+          else
+            CIBLE="tests/e2e"
+          fi
+
           PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-results.json \
-            pnpm exec playwright test tests/e2e --project=chromium \
+            pnpm exec playwright test "$CIBLE" --project=chromium \
               --grep-invert @runtime --reporter=list,json
           echo "playwright exit: $?"
 
