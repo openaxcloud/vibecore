@@ -156,6 +156,7 @@ import {
   decalageAAnnulerClavierOuvert,
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
+  revelerLeChampActif,
   suivreHauteurDeRepos,
   type HauteurDeRepos,
 } from './visual-viewport-bottom';
@@ -3237,6 +3238,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           if (decalageAAnnulerClavierOuvert(repos.hauteur, vue ?? undefined) > 0) {
             window.scrollTo(0, 0);
           }
+
+          /*
+           * La coque tient dans la vue : un champ plus bas que le bas visible
+           * reste sous le clavier (« Nom du projet », Paramètres, mesuré le
+           * 30/09 sur iOS 26). On le ramène dans SA zone de défilement ;
+           * `nearest` ne bouge rien quand il est déjà visible (composeur).
+           */
+          revelerLeChampActif(document);
         } else {
           document.documentElement.removeAttribute('data-vc-clavier');
         }

@@ -107,3 +107,43 @@ export function suivreHauteurDeRepos(
 
   return { largeur, hauteur: Math.max(precedente.hauteur, hauteurMiseEnPage) };
 }
+
+/**
+ * Clavier levé et défilement de Safari annulé : le champ ACTIF doit rester visible.
+ *
+ * Mesuré le 2026-09-30 (Safari iOS 26, banc XCUITest) : une fois le clavier vu,
+ * `window.scrollTo(0, 0)` annule le défilement que Safari faisait pour montrer le
+ * champ — voulu pour le composeur, collé au bas de la vue. Mais « Nom du projet »
+ * (Paramètres, y 446–484) restait alors SOUS la barre ∧ ∨ ✓ et la pastille
+ * d'adresse (bas visible 409). On ramène le champ dans SA zone de défilement ;
+ * `nearest` ne bouge rien quand il est déjà visible.
+ */
+export function champSaisissable(element: Element | null): element is HTMLElement {
+  if (!element || !('scrollIntoView' in element)) {
+    return false;
+  }
+
+  const balise = element.tagName;
+
+  return (
+    balise === 'TEXTAREA' ||
+    balise === 'SELECT' ||
+    (balise === 'INPUT' &&
+      !['button', 'checkbox', 'radio', 'range', 'submit', 'reset', 'file', 'color', 'image'].includes(
+        ((element as HTMLInputElement).type || '').toLowerCase(),
+      )) ||
+    (element as HTMLElement).isContentEditable === true
+  );
+}
+
+export function revelerLeChampActif(doc: Document): boolean {
+  const actif = doc.activeElement;
+
+  if (!champSaisissable(actif)) {
+    return false;
+  }
+
+  actif.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+
+  return true;
+}

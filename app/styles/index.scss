@@ -25778,6 +25778,19 @@ body:has(.bolt-project-statusbar)
    * derrière la pastille d'adresse de Safari. L'état de départ cède donc et
    * défile ; le composeur garde sa hauteur. Au repos, rien ne change.
    */
+  /*
+   * Clavier levé : les surfaces FIXES (panneaux service, fichiers, éditeur…)
+   * s'arrêtent au bas VISIBLE. Mesuré le 2026-09-30 sur Safari iOS 26 : la
+   * fenêtre de mise en page reste à 699 px quand la vue tombe à 362 ; le
+   * conteneur des panneaux service (`bottom: 0`) gardait donc 48–699, et
+   * « Nom du projet » (Paramètres, y 446–484) restait sous la barre ∧ ∨ ✓ —
+   * pour le navigateur il était « visible » dans sa zone, rien ne le ramenait.
+   * `--vc-mobile-visual-viewport-bottom` vaut ce que le clavier recouvre (337).
+   */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed {
+    bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+  }
+
   html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-mobile-agent-start-state {
     flex-shrink: 1;
     min-height: 0;

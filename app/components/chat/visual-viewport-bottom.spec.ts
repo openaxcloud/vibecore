@@ -6,6 +6,8 @@ import {
   decalageAAnnulerClavierOuvert,
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
+  revelerLeChampActif,
+  champSaisissable,
   suivreHauteurDeRepos,
   SEUIL_CLAVIER_PX,
 } from './visual-viewport-bottom';
@@ -142,6 +144,58 @@ describe('Safari iOS 26 — la fenêtre de mise en page rétrécit AVEC le clavi
     r = suivreHauteurDeRepos(r, 844, 340);
     expect(r).toEqual({ largeur: 844, hauteur: 340 });
     expect(clavierProbablementOuvert(retrecissementDeLaVue(r.hauteur, { height: 340, offsetTop: 0 }))).toBe(false);
+  });
+});
+
+describe('clavier levé : le champ actif reste visible (Paramètres, 30/09)', () => {
+  // Éléments minimaux : la fonction ne lit que tagName, type, isContentEditable et scrollIntoView.
+  const element = (tagName: string, type = '', isContentEditable = false) => {
+    const appels: unknown[] = [];
+    const el = { tagName, type, isContentEditable, scrollIntoView: (o?: unknown) => appels.push(o) };
+
+    return { el: el as unknown as Element, appels };
+  };
+
+  const doc = (actif: Element | null) => ({ activeElement: actif }) as unknown as Document;
+
+  it('ramène le champ actif dans sa zone de défilement, au plus près', () => {
+    const { el, appels } = element('INPUT', 'text');
+
+    expect(revelerLeChampActif(doc(el))).toBe(true);
+    expect(appels).toEqual([{ block: 'nearest', inline: 'nearest' }]);
+
+    for (const [balise, type, editable] of [
+      ['TEXTAREA', '', false],
+      ['SELECT', '', false],
+      ['DIV', '', true],
+    ] as const) {
+      expect(champSaisissable(element(balise, type, editable).el), balise).toBe(true);
+    }
+  });
+
+  it('ne fait rien sans champ de saisie actif (bouton, case à cocher, rien)', () => {
+    const bouton = element('BUTTON');
+
+    expect(revelerLeChampActif(doc(bouton.el))).toBe(false);
+    expect(bouton.appels).toEqual([]);
+    expect(champSaisissable(element('INPUT', 'checkbox').el)).toBe(false);
+    expect(revelerLeChampActif(doc(null))).toBe(false);
+  });
+
+  it('BaseChat le fait dès que le clavier est vu — pas seulement quand Safari a décalé la page', () => {
+    const baseChat = readFileSync(new URL('./BaseChat.tsx', import.meta.url).pathname, 'utf8');
+
+    const branche = baseChat.slice(
+      baseChat.indexOf('if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur'),
+      baseChat.indexOf("document.documentElement.removeAttribute('data-vc-clavier');"),
+    );
+
+    expect(branche).toContain('revelerLeChampActif(document);');
+
+    // Hors du bloc `scrollTo` : au passage 14 le décalage valait 0, ce bloc ne s'exécutait pas.
+    expect(branche.indexOf('revelerLeChampActif(document);')).toBeGreaterThan(
+      branche.indexOf('window.scrollTo(0, 0);\n          }'),
+    );
   });
 });
 
