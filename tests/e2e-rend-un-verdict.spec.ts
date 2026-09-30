@@ -61,4 +61,18 @@ describe('le plafond de temps de la suite E2E', () => {
   it('la suite s’arrête après une rafale d’échecs plutôt que d’épuiser son temps', () => {
     expect(CONFIG).toMatch(/maxFailures:\s*process\.env\.CI\s*\?\s*\d+\s*:\s*0/u);
   });
+
+  it('on peut prouver un correctif par SON scénario, sans jouer la suite entière', () => {
+    /*
+     * Sans cette entrée, la seule façon de re-tester un correctif était de
+     * relancer les quatre-vingt-dix minutes — ce qui, quand la suite expire, ne
+     * fait que racheter le même silence. Le défaut par défaut ne change pas :
+     * entrée vide = `tests/e2e`, comme avant.
+     */
+    expect(WORKFLOW, "l'entrée `spec` doit exister pour cibler un scénario").toMatch(/inputs:\s*\n\s*spec:/u);
+    expect(WORKFLOW, 'le chemin ciblé doit être passé à Playwright').toContain('CIBLE="${{ inputs.spec }}"');
+    expect(WORKFLOW, 'entrée vide = suite complète, sinon on change le comportement par défaut').toContain(
+      'CIBLE="tests/e2e"',
+    );
+  });
 });
