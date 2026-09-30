@@ -1120,6 +1120,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const fichiersRefuses = refusExpliciteDeFichiers(skillUserPrompt);
 
         /*
+         * LA BARRIÈRE À L'EXÉCUTION. Le refus change le prompt et la relance ; il
+         * doit aussi changer ce qui S'EXÉCUTE. Un modèle ne garantit rien — mesuré
+         * le 2026-09-30, des sous-agents ont écrit malgré « N'écris aucun
+         * fichier ». Le navigateur, qui exécute les actions, reçoit donc la
+         * consigne sous forme de donnée, et refuse toute action de ce tour
+         * (`useMessageParser`, `ecritureAutorisee`). Émise AVANT toute génération :
+         * elle doit précéder la première action.
+         */
+        if (fichiersRefuses) {
+          dataStream.writeMessageAnnotation({ type: 'consigneSansFichier' });
+        }
+
+        /*
          * RPL-SK-001.2 — surface the progressive-disclosure trace as an annotation
          * so the lazy loading (L1 for all installed skills, L2 only for triggered
          * ones) is observable per turn, not just claimed.
