@@ -32,8 +32,53 @@ const logger = createScopedLogger('useMessageParser');
  * pour un identifiant de message ordinaire, et on laisse passer. C'est ce qui
  * garantit qu'un projet sans sous-agents se comporte exactement comme avant.
  */
-function ecritureAutorisee(data: { messageId: string; action: { type: string; filePath?: string } }): boolean {
+/*
+ * LES TOURS OÙ L'UTILISATEUR A DIT « AUCUN FICHIER ».
+ *
+ * Le serveur les marque d'une annotation `consigneSansFichier` (api.chat.ts),
+ * posée avant toute génération. C'est une BARRIÈRE, pas une consigne de plus au
+ * modèle : mesuré en production le 2026-09-30, « N'écris aucun fichier » a été
+ * respecté par l'agent principal et ignoré par deux sous-agents, dont les
+ * fichiers ont atterri dans le projet. Un modèle ne garantit rien ; le moteur,
+ * lui, peut refuser. Toute action de ces tours — fichier, commande, démarrage —
+ * est donc refusée, celles des sous-agents comprises.
+ */
+const toursSansFichier = new Set<string>();
+const refusDejaSignales = new Set<string>();
+
+function consigneSansFichier(message: Message): boolean {
+  return (message.annotations ?? []).some(
+    (annotation) =>
+      typeof annotation === 'object' &&
+      annotation !== null &&
+      (annotation as { type?: unknown }).type === 'consigneSansFichier',
+  );
+}
+
+function ecritureAutorisee(data: {
+  messageId: string;
+  actionId?: string;
+  action: { type: string; filePath?: string };
+}): boolean {
   const lane = decoderLane(data.messageId);
+
+  if (toursSansFichier.has(lane?.messageId ?? data.messageId)) {
+    const cle = `${data.messageId}:${data.actionId ?? data.action.filePath ?? data.action.type}`;
+
+    if (!refusDejaSignales.has(cle)) {
+      refusDejaSignales.add(cle);
+      logger.warn(
+        JSON.stringify({
+          event: 'ecriture.refusee.consigne',
+          messageId: data.messageId,
+          type: data.action.type,
+          filePath: data.action.filePath,
+        }),
+      );
+    }
+
+    return false;
+  }
 
   if (!lane || data.action.type !== 'file' || !data.action.filePath) {
     return true;
@@ -189,6 +234,11 @@ export function useMessageParser() {
     for (const [index, message] of messages.entries()) {
       if (message.role === 'assistant' || message.role === 'user') {
         let newParsedContent = '';
+
+        /* Avant de parser : la barrière doit précéder la première action du tour. */
+        if (message.role === 'assistant' && consigneSansFichier(message)) {
+          toursSansFichier.add(message.id);
+        }
 
         let replaceContent = reset;
 

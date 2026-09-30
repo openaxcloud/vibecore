@@ -1,5 +1,7 @@
 import type { Message } from 'ai';
+import { stripInternalAgentScaffolding } from '~/lib/chat/agent-message-scaffolding';
 import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
+import { refusExpliciteDeFichiers } from '~/lib/runtime/annonce-sans-artefact';
 
 export type AgentRoleId = 'architect' | 'frontend' | 'backend' | 'devops' | 'qa';
 
@@ -204,6 +206,23 @@ function getTextContent(message: Omit<Message, 'id'> | Message): string {
   return '';
 }
 
+/**
+ * Le texte que l'UTILISATEUR a écrit, sans ce que nous y ajoutons.
+ *
+ * Le composeur préfixe chaque message de `[Model: …]`, `[Provider: …]` et d'une
+ * enveloppe `<vibecore_agent_request>` d'environ 390 caractères. Mesurer la
+ * complexité sur le message brut, c'est mesurer NOTRE préambule : mesuré en
+ * production le 2026-09-30, « Crée le fichier note.txt. Rien d'autre. » (70
+ * caractères) arrivait à 466, franchissait le seuil de 180, et lançait des
+ * sous-agents qui réécrivaient `package.json`. L'enveloppe contient aussi
+ * « applied », qui suffisait à lui seul à allumer le signal `app`.
+ */
+export function texteDeLUtilisateur(message: Omit<Message, 'id'> | Message): string {
+  return stripInternalAgentScaffolding(getTextContent(message))
+    .replace(/\[(?:Model|Provider): [^\]\n]*\]\s*/g, '')
+    .trim();
+}
+
 export function shouldUseAgentOrchestration(
   messages: Array<Omit<Message, 'id'> | Message>,
   chatMode?: string,
@@ -214,9 +233,21 @@ export function shouldUseAgentOrchestration(
   }
 
   const lastUserMessage = [...messages].reverse().find((message) => message.role === 'user');
-  const content = lastUserMessage ? getTextContent(lastUserMessage).toLowerCase() : '';
+  const content = lastUserMessage ? texteDeLUtilisateur(lastUserMessage).toLowerCase() : '';
 
   if (!content) {
+    return false;
+  }
+
+  /*
+   * L'UTILISATEUR A DIT NON AUX FICHIERS : pas de sous-agents. Leur consigne de
+   * rôle leur ordonne d'écrire (« Write the files you own »), et elle arrive
+   * APRÈS la sienne. Mesuré en production le 2026-09-30 : « N'écris aucun
+   * fichier », l'agent principal obéit, et l'architecte et la QA écrivent
+   * `docs/ARCHITECTURE.md` et un test. Même le bouton « Plan » ne passe pas
+   * outre : les rôles existent pour écrire.
+   */
+  if (refusExpliciteDeFichiers(content)) {
     return false;
   }
 
