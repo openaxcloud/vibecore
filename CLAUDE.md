@@ -520,6 +520,34 @@ midi, la production servait encore le code de la veille.
 Ce n'est pas plus lent. Le 2026-09-30, fusionner en rafale a livré **zéro**
 correctif en cinq heures.
 
+### Le lot de trois — décision d'Avi du 2026-09-30, après mesure
+
+**On fusionne par LOTS DE TROIS, pas une à la fois.** Le chiffre qui a tranché :
+
+    pipeline seul, file vide, la nuit          37 min
+    en journée, file chargée          1 h 09 à 2 h 51
+
+**Le pipeline ne fait que 37 minutes ; tout le reste est de l'attente de file.**
+Sérialiser à l'unité plafonnait donc à **quatre livraisons par jour ouvré**, ce
+qui est intenable avec une dizaine de correctifs prouvés en attente. Le lot garde
+ce qui protégeait — **un seul déploiement en vol** — et triple le débit.
+
+**Quatre conditions, non négociables :**
+
+1. **Seuls des correctifs DÉJÀ VERTS** entrent dans un lot. Jamais un « corrigé
+   en local », jamais un « ça devrait passer ».
+2. **Pas deux correctifs touchant la même zone** dans le même lot — sinon un
+   retour arrière ne dira pas lequel était fautif, et on aura échangé du débit
+   contre de l'aveuglement.
+3. **Trois au maximum.**
+4. **Ce qui touche la chaîne de livraison elle-même part SEUL** : workflows de
+   déploiement, configuration de test, portes. Un lot qui casse la chaîne qu'on
+   utilise pour le corriger n'a plus de sortie de secours.
+
+Le prix du lot, énoncé pour qu'il soit choisi et non subi : **un correctif
+fautif emmène les deux autres au rollback.** C'est acceptable parce que les trois
+sont verts avant d'entrer ; ça ne le serait pas autrement.
+
 **Le contrôle, avant de fusionner** — un déploiement est-il déjà en vol ?
 
 ```
