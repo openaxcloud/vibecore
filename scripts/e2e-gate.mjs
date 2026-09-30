@@ -165,6 +165,29 @@ function walk(suites, trail) {
  */
 const PLANCHER_PAR_RAPPORT = Number(process.env.E2E_MIN_TESTS_PER_REPORT ?? '30');
 
+/*
+ * ⚠️ COMMENT LIRE « 1 failed » ALORS QUE LA PORTE REND SUCCESS — la question se
+ * repose tous les quelques mois, et on s'y trompe. Elle m'a eu le 2026-09-30.
+ *
+ * 1. UNE LIGNE `✘` DANS LE JOURNAL N'EST PAS UN ÉCHEC. Le rapporteur `list`
+ *    imprime un `✘` à CHAQUE tentative ratée, y compris celles d'un test qui
+ *    passera au second essai. Choisir un `✘` au hasard dans le journal, c'est
+ *    lire une tentative, pas un verdict — j'avais ainsi attribué l'échec à
+ *    « publication à la Replit » alors qu'il s'agissait d'un autre test.
+ *
+ * 2. SEULE LA CLÉ COMPTE. La porte reconstruit `basename(fichier) › titre`,
+ *    en écartant le premier niveau de suite. C'est CETTE chaîne qui est
+ *    comparée à la dérogation, pas ce qu'affiche le journal.
+ *
+ * 3. UN ÉCHEC DÉROGÉ EST UN ÉCHEC CONNU, DATÉ ET BORNÉ. La dérogation porte une
+ *    date d'expiration ; passée cette date, la porte refuse. Un test `unstable`
+ *    est dérogé PARCE QU'IL FLOTTE : son vert ne prouve rien, donc son rouge ne
+ *    doit pas casser la construction.
+ *
+ * Pour retrouver la vraie clé d'un échec, ne pas lire le journal : rejouer ce
+ * fichier sur le rapport téléchargé, il imprime les clés telles qu'il les voit.
+ */
+
 reports.forEach((report, index) => {
   const avant = results.size;
   walk(report.suites, []);
