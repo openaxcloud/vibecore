@@ -119,6 +119,14 @@ test('première ouverture d’un projet : l’historique de l’agent n’écras
   );
 
   // Première ouverture, navigateur neuf : aucun cache local du fil.
+  const rejouees: string[] = [];
+
+  page.on('request', (requete) => {
+    if (/\/agent-patch-proposals\//.test(new URL(requete.url()).pathname) && requete.method() !== 'GET') {
+      rejouees.push(`${requete.method()} ${new URL(requete.url()).pathname}`);
+    }
+  });
+
   await page
     .context()
     .addCookies([{ name: 'vc_session', value: auth.token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
@@ -129,27 +137,26 @@ test('première ouverture d’un projet : l’historique de l’agent n’écras
   await page.waitForLoadState('load');
 
   /*
-   * On SURVEILLE pendant 30 s : un toast « fichier appliqué » ou un stockage
-   * réécrit, à n'importe quel moment de la fenêtre, est le défaut. Une attente
-   * fixe puis une seule lecture laissait passer le rejeu (toast déjà refermé,
-   * ou rejeu survenu après la lecture).
+   * On SURVEILLE pendant 30 s. Le rejeu côté client se voit à deux signaux
+   * déterministes : des écritures de propositions de patch (3 mesurées sans le
+   * correctif, 0 avec) et le toast « fichier appliqué ».
+   *
+   * Ce test ne relit PAS le stockage : un second chemin, côté SERVEUR, y
+   * réécrit l'historique de l'agent à chaque `PUT /ide-state` portant le fil
+   * (BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE) — il demande une décision sur la
+   * source de vérité des fichiers et a sa propre fiche. Affirmer ici un
+   * stockage intact rendrait rouge un correctif qui fait exactement ce qu'il
+   * annonce.
    */
   const echeance = Date.now() + 30_000;
 
   let toastVu = false;
-  let stockage: string | null = VERSION_UTILISATEUR;
 
-  while (Date.now() < echeance) {
-    toastVu ||= (await page.locator('.bolt-agent-applied-toast').count()) > 0;
-    stockage = await lireLeStockage(request, projectId, auth.token);
-
-    if (toastVu || stockage !== VERSION_UTILISATEUR) {
-      break;
-    }
-
+  while (Date.now() < echeance && !toastVu && rejouees.length === 0) {
+    toastVu = (await page.locator('.bolt-agent-applied-toast').count()) > 0;
     await page.waitForTimeout(1_000);
   }
 
+  expect(rejouees, 'aucune action historique de l’agent n’est rejouée à l’ouverture').toEqual([]);
   expect(toastVu, 'aucun « fichier appliqué » à l’ouverture : l’agent n’a rien fait').toBe(false);
-  expect(stockage, 'le travail de l’utilisateur est intact').toBe(VERSION_UTILISATEUR);
 });
