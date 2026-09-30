@@ -76,7 +76,23 @@ jobs:
     # Plafond par TRANCHE. Une tranche joue un quart des specs : elle n'a
     # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
     # borné ci-dessous. Épinglé par tests/guards/ci-canari-borne.spec.ts.
-    timeout-minutes: 90
+    # BUDGET RENDU COHÉRENT AVEC SES PROPRES BORNES, 2026-09-30.
+    #
+    # Avant : préparation ~13 min + suite plafonnée à 60 par `globalTimeout` +
+    # canari plafonné à 15 = 88 min pour un job plafonné à 90. DEUX minutes de
+    # marge dans le pire cas autorisé par nos propres bornes — et un job tué par
+    # le coureur n'écrit AUCUN rapport, ce qui rejoue exactement le silence que
+    # la découpe existe pour supprimer.
+    #
+    # Le plafond ne protège plus de la lenteur (c'est le rôle de `globalTimeout`,
+    # qui s'applique PAR TRANCHE) : il protège d'un job pendu. 105 laisse 17 min
+    # de marge dans le pire cas, et ~43 dans le cas mesuré.
+    #
+    # ⚠️ Le correctif STRUCTUREL serait de sortir le canari dans son propre job :
+    # non bloquant, il n'a rien à faire dans le budget d'un contrôle requis. Il
+    # coûte la duplication des 172 lignes de préparation — deux copies qui
+    # divergeront. À faire par une action composite, pas par un copier-coller.
+    timeout-minutes: 105
     # Forked PRs can't read the AI provider secrets (so the run would hard-fail
     # on the secret-validation step anyway), and same-repo PR branches run
     # arbitrary code with the real prod keys injected. Restrict to non-fork

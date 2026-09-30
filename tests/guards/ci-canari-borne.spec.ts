@@ -86,3 +86,36 @@ describe('le canari iOS est borné et ne peut plus faire annuler le contrôle re
     expect(canaris, 'un canari dans le job du verdict remettrait les deux dans le même budget').toHaveLength(0);
   });
 });
+
+describe('le budget du job tient dans ses propres bornes', () => {
+  /*
+   * Mesuré le 2026-09-30 : préparation ~13 min + suite plafonnée par
+   * `globalTimeout` + canari plafonné = 88 min pour un job plafonné à 90. Deux
+   * minutes de marge dans le PIRE cas autorisé par nos propres bornes — et un
+   * job tué par le coureur n'écrit aucun rapport.
+   *
+   * Ce cas interdit que les bornes redeviennent incohérentes : quelqu'un qui
+   * remonte `globalTimeout` sans toucher au plafond du job le fait rougir.
+   */
+  const PREPARATION_MIN = 13;
+  const MARGE_MINIMALE_MIN = 10;
+
+  it('préparation + suite + canari laissent une marge réelle sous le plafond', () => {
+    const config = readFileSync(join(__dirname, '..', '..', 'playwright.config.ts'), 'utf8');
+    const m = /globalTimeout:\s*(\d+)\s*\*\s*60_000/u.exec(config);
+
+    expect(m, '`globalTimeout` introuvable : la garde ne mesure rien').not.toBeNull();
+
+    const suite = Number(m![1]);
+    const minutesCanari = canari?.['timeout-minutes'] ?? 0;
+    const plafond = jobDuCanari?.['timeout-minutes'] ?? 0;
+    const marge = plafond - (PREPARATION_MIN + suite + minutesCanari);
+
+    expect(
+      marge,
+      `pire cas : ${PREPARATION_MIN} (préparation) + ${suite} (suite) + ${canari} (canari) = ` +
+        `${PREPARATION_MIN + suite + minutesCanari} min pour un plafond de ${plafond}. ` +
+        `Marge ${marge} min, minimum exigé ${MARGE_MINIMALE_MIN}. Un job tué n'écrit aucun rapport.`,
+    ).toBeGreaterThanOrEqual(MARGE_MINIMALE_MIN);
+  });
+});
