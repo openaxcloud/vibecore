@@ -40,13 +40,21 @@ curl -fsS -m 5 http://127.0.0.1:3001/health >/dev/null && curl -fsS -m 5 -o /dev
 BANC_PROJET=$(python3 "$ICI/compte-test.py") && [ -n "$BANC_PROJET" ] || { echo "COMPTE DE TEST KO"; exit 1; }
 export BANC_PROJET
 echo "projet de test : $BANC_PROJET"
+# Inventaire des champs de l'IDE (WebKit, police calculée) AVANT le simulateur : les deux ne tournent pas ensemble (8 Go).
+if [ "${INVENTAIRE:-oui}" = oui ]; then
+  APP="$APP" SORTIE="$SORTIE" BANC_PROJET="$BANC_PROJET" node "$ICI/champs-ide.mjs" > "$SORTIE/champs.log" 2>&1 || { echo "INVENTAIRE KO"; grep -iE "error|BANC-MESURE" "$SORTIE/champs.log" | tail -20; exit 1; }
+  grep "BANC-MESURE" "$SORTIE/champs.log"
+  export BANC_CHAMPS="$(cat "$SORTIE/champs.liste")"
+fi
 ( cd "$ICI/page-zoom" && exec python3 -m http.server 8765 --bind 127.0.0.1 ) >/dev/null 2>&1 & PIDS="$PIDS $!"
 xcrun simctl boot "$U" >/dev/null 2>&1
 rm -rf "$SORTIE/clavier.xcresult"
+# TESTS : liste d'identifiants XCUITest séparés par des espaces (défaut : clavier + zoom dans l'app + témoin 12 px).
+ONLY=""; for t in ${TESTS:-ClavierSafariTests ZoomSafariTests/test1_champ12pxFaitZoomer}; do ONLY="$ONLY -only-testing:BancUITests/$t"; done
 etat() { echo "[$1] $(docker ps -a --filter name=vc-banc-ios --format '{{.Names}}={{.Status}}' | tr '\n' ' ') swap=$(sysctl -n vm.swapusage | awk '{print $6}')"; }
 etat avant-test
-TEST_RUNNER_BANC_IDE_BASE="$BANC_IDE_BASE" TEST_RUNNER_BANC_COURRIEL="$BANC_COURRIEL" TEST_RUNNER_BANC_SECRET="$BANC_SECRET" TEST_RUNNER_BANC_PROJET="$BANC_PROJET" \
-xcodebuild test -project "$ICI/xcuitest/BancIOS.xcodeproj" -scheme BancIOS -only-testing:BancUITests/ClavierSafariTests \
+TEST_RUNNER_BANC_IDE_BASE="$BANC_IDE_BASE" TEST_RUNNER_BANC_COURRIEL="$BANC_COURRIEL" TEST_RUNNER_BANC_SECRET="$BANC_SECRET" TEST_RUNNER_BANC_PROJET="$BANC_PROJET" TEST_RUNNER_BANC_CHAMPS="${BANC_CHAMPS:-}" TEST_RUNNER_BANC_URL=http://127.0.0.1:8765/index.html \
+xcodebuild test -project "$ICI/xcuitest/BancIOS.xcodeproj" -scheme BancIOS $ONLY \
   -destination "platform=iOS Simulator,id=$U" -resultBundlePath "$SORTIE/clavier.xcresult" > "$SORTIE/clavier.log" 2>&1
 RC=$?
 etat apres-test

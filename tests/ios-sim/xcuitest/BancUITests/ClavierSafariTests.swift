@@ -55,7 +55,11 @@ final class ClavierSafariTests: XCTestCase {
         ouvrir(env["BANC_CLAVIER_URL"] ?? "http://127.0.0.1:8765/clavier.html")
         let champ = page.descendants(matching: .any).matching(NSPredicate(format: "label == 'champ-clavier'")).firstMatch
         XCTAssertTrue(champ.waitForExistence(timeout: 60), "page témoin non chargée (champ-clavier absent)")
+        let lireVue = { self.page.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'ih='")).firstMatch.label }
+        print("BANC-MESURE vue sans-clavier \(lireVue())")
         toucher(champ)
+        sleep(2)
+        print("BANC-MESURE vue clavier-ouvert \(lireVue())")
         let haut = hautDuClavier()
         sleep(1)
         let pied = page.buttons["temoin-pied-fixe"].frame
@@ -70,18 +74,22 @@ final class ClavierSafariTests: XCTestCase {
      * L'IDE LOCAL (127.0.0.1, compte de TEST) : taper des identifiants de test
      * n'est permis que parce que l'hôte est local. Jamais sur la prod.
      */
-    func test2_ide_zoneDeSaisieEtBarreDuBas() throws {
+    /// Identifiants de TEST et hôte LOCAL, ou saut du test.
+    private func contexteLocal() throws -> (base: String, courriel: String, secret: String, projet: String) {
         guard let base = env["BANC_IDE_BASE"], let courriel = env["BANC_COURRIEL"], let secret = env["BANC_SECRET"], let projet = env["BANC_PROJET"] else {
             throw XCTSkip("BANC_IDE_BASE / BANC_COURRIEL / BANC_SECRET / BANC_PROJET absents")
         }
         XCTAssertTrue(base.hasPrefix("http://127.0.0.1") || base.hasPrefix("http://localhost"), "identifiants de test : hôte LOCAL uniquement")
+        return (base, courriel, secret, projet)
+    }
 
-        ouvrir("\(base)/login")
+    private func seConnecter(_ c: (base: String, courriel: String, secret: String, projet: String)) {
+        ouvrir("\(c.base)/login")
         // Dans la PAGE : `safari.textFields.firstMatch` attrape la barre d'adresse de Safari (mesuré le 30/09).
         let champCourriel = page.textFields["Adresse e-mail"]
         XCTAssertTrue(champCourriel.waitForExistence(timeout: 90), "formulaire de connexion absent")
         toucher(champCourriel)
-        champCourriel.typeText(courriel)
+        champCourriel.typeText(c.courriel)
         // La barre « Précédent / Suivant / OK » et la suggestion « Mots de passe » RECOUVRENT le champ
         // mot de passe une fois le clavier ouvert (y 456–553 contre 480–525, mesuré le 30/09) : on y passe par « Suivant ».
         let champSecret = page.secureTextFields.firstMatch
@@ -93,23 +101,56 @@ final class ClavierSafariTests: XCTestCase {
             if safari.buttons["OK"].exists { safari.buttons["OK"].tap(); sleep(2) }
             toucher(champSecret)
         }
-        champSecret.typeText(secret + "\n")
+        champSecret.typeText(c.secret + "\n")
         sleep(10)
         // Contrôle : la connexion a abouti (sinon tout ce qui suit mesurerait la page de connexion).
         XCTAssertFalse(page.buttons["Se connecter"].exists, "connexion locale refusée ou non soumise")
+    }
 
-        // SANS fermer Safari : le cookie de session (sans « Se souvenir de moi ») meurt avec l'app — mesuré le 30/09.
-        let urlIde = URL(string: "\(base)/projects/\(projet)/ide?panel=agent")!
-        XCUIDevice.shared.system.open(urlIde)
-        sleep(25)
+    /// Ouvre un panneau de l'IDE SANS fermer Safari (le cookie de session meurt avec l'app — mesuré le 30/09).
+    private func ouvrirIde(_ c: (base: String, courriel: String, secret: String, projet: String), panneau: String, attente: UInt32 = 25) {
+        let url = URL(string: "\(c.base)/projects/\(c.projet)/ide?panel=\(panneau)")!
+        XCUIDevice.shared.system.open(url)
+        sleep(attente)
         // Serveur de DÉVELOPPEMENT (le build de production ne tient pas en 8 Go) : au premier chargement de
         // l'IDE, Vite découvre une dépendance, ré-optimise et recharge ; la page déjà partie plante en
         // « Application Error » (mesuré le 30/09 : `@ai-sdk/react`). Artefact du mode dev — on recharge, et on le dit.
         for essai in 1...2 where page.staticTexts["Application Error"].exists {
-            print("BANC-MESURE ide rechargement=\(essai) cause=application-error-vite-dev")
-            XCUIDevice.shared.system.open(urlIde)
+            print("BANC-MESURE ide rechargement=\(essai) panneau=\(panneau) cause=application-error-vite-dev")
+            XCUIDevice.shared.system.open(url)
             sleep(25)
         }
+    }
+
+    /// Bord bas de la zone VISIBLE clavier ouvert : le plus haut du clavier, de sa barre d'aide et de la pastille d'adresse.
+    private func bordBasVisible(_ hautClavier: CGFloat) -> CGFloat {
+        var bord = hautClavier
+        for el in [safari.buttons["Précédent"], safari.textFields["TabBarItemTitle"]] where el.exists && el.frame.minY > 200 {
+            bord = min(bord, el.frame.minY)
+        }
+        return bord
+    }
+
+    /// Bas de la zone VISIBLE clavier ouvert, en points d'écran, lu sur la page témoin : sa barre suit `visualViewport`.
+    /// Il tient compte de tout ce que Safari pose au-dessus du clavier (pastille d'adresse flottante, barre ∧ ∨ ✓) —
+    /// ce que le seul cadre du clavier ne dit pas (mesuré le 30/09 : champ à 398–446 « au-dessus du clavier » mais
+    /// caché sous la pastille).
+    private func basVisibleTemoin() -> CGFloat {
+        ouvrir(env["BANC_CLAVIER_URL"] ?? "http://127.0.0.1:8765/clavier.html")
+        let champ = page.descendants(matching: .any).matching(NSPredicate(format: "label == 'champ-clavier'")).firstMatch
+        XCTAssertTrue(champ.waitForExistence(timeout: 60), "page témoin non chargée")
+        toucher(champ)
+        sleep(2)
+        let bas = page.buttons["temoin-barre-visuelle"].frame.maxY
+        print("BANC-MESURE basVisibleTemoin=\(bas)")
+        return bas
+    }
+
+    func test2_ide_zoneDeSaisieEtBarreDuBas() throws {
+        let c = try contexteLocal()
+        let basVisible = basVisibleTemoin()
+        seConnecter(c)
+        ouvrirIde(c, panneau: "agent")
         let saisie = page.textViews.firstMatch
         XCTAssertTrue(saisie.waitForExistence(timeout: 120), "zone de saisie de l'agent absente")
         joindreCapture("ide-avant-clavier")
@@ -119,7 +160,12 @@ final class ClavierSafariTests: XCTestCase {
         let ongletAvant = page.buttons["Ouvrir le sélecteur d’onglets"]
         XCTAssertTrue(ongletAvant.exists && ongletAvant.isHittable, "barre d'onglets introuvable avant le clavier : la mesure du défaut 3 serait vide")
         print("BANC-MESURE ide barreAvantClavier=\(ongletAvant.frame.minY)-\(ongletAvant.frame.maxY)")
+        let lireDiag = { () -> String in let d = self.page.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'diag '")).firstMatch; return d.exists ? d.label : "diag-absent" }
+        print("BANC-MESURE diag sans-clavier \(lireDiag())")
         toucher(saisie)
+        for i in 1...4 { sleep(1); print("BANC-MESURE diag clavier+\(i)s \(lireDiag())") }
+        let ch = page.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'diagchaine'")).firstMatch
+        print("BANC-MESURE \(ch.exists ? ch.label : "diagchaine-absent")")
         let haut = hautDuClavier()
         sleep(1)
         let cadreSaisie = saisie.frame
@@ -129,7 +175,65 @@ final class ClavierSafariTests: XCTestCase {
         joindreCapture("ide-clavier-ouvert")
         print("BANC-MESURE ide hautClavier=\(haut) saisie=\(cadreSaisie.minY)-\(cadreSaisie.maxY) barre=\(cadreBarre.minY)-\(cadreBarre.maxY) barreVisible=\(barreVisible)")
 
-        XCTAssertLessThanOrEqual(cadreSaisie.maxY, haut + 1, "DÉFAUT 2 : la zone de saisie passe sous le clavier (bas \(cadreSaisie.maxY) > haut du clavier \(haut))")
+        let bord = min(bordBasVisible(haut), basVisible)
+        print("BANC-MESURE ide bordBasVisible=\(bord)")
+        XCTAssertLessThanOrEqual(cadreSaisie.maxY, bord + 1, "DÉFAUT 2 : la zone de saisie passe sous le bord visible (bas \(cadreSaisie.maxY) > \(bord))")
+        // La BARRE D'OUTILS du composeur (sous le champ) doit tenir aussi — pas seulement le champ.
+        let joindre = page.buttons["Joindre des images"]
+        XCTAssertTrue(joindre.exists, "bouton « Joindre des images » introuvable : la mesure de la barre d'outils serait vide")
+        print("BANC-MESURE ide barreOutilsComposeur=\(joindre.frame.minY)-\(joindre.frame.maxY)")
+        XCTAssertLessThanOrEqual(joindre.frame.maxY, bord + 1, "DÉFAUT 2 : la barre d'outils du composeur passe sous le bord visible (\(joindre.frame.maxY) > \(bord))")
+        // Collée au bas de la zone visible : sa barre d'outils (Agent, Power, trombone…) tient sous le champ, ~70 pt.
+        XCTAssertGreaterThanOrEqual(cadreSaisie.maxY, bord - 110, "DÉFAUT 2 : la zone de saisie est repoussée loin du clavier (bas \(cadreSaisie.maxY), bord visible \(bord)) — le fil est coupé")
         XCTAssertFalse(barreVisible && cadreBarre.maxY <= haut + 1, "DÉFAUT 3 : la barre d'onglets du bas flotte au-dessus du clavier au lieu d'être couverte")
+    }
+
+    /*
+     * ZOOM DANS L'APPLICATION — chaque champ de l'IDE qu'un doigt atteint.
+     *
+     * L'inventaire (panneau, police CALCULÉE, libellé) vient de `champs-ide.mjs`
+     * (WebKit, profil iPhone) par BANC_CHAMPS. Ici, le vrai Safari : on touche le
+     * champ et on mesure l'élargissement de son cadre — méthode validée par le
+     * témoin de ZoomSafariTests (rapport 1,33 sur un champ de 12 px, 1,00 sur 16 px).
+     * Un rapport > 1,03 = Safari a zoomé = défaut, même rare.
+     */
+    func test3_ide_aucunChampNeFaitZoomer() throws {
+        let c = try contexteLocal()
+        guard let brut = env["BANC_CHAMPS"], !brut.isEmpty else { throw XCTSkip("BANC_CHAMPS absent : inventaire non fourni") }
+        let champs = brut.components(separatedBy: ";;").map { $0.components(separatedBy: "|") }.filter { $0.count >= 4 }
+        print("BANC-MESURE zoom inventaire=\(champs.count)")
+        XCTAssertGreaterThan(champs.count, 0, "inventaire vide : la mesure ne mesurerait rien")
+        seConnecter(c)
+        var zoomes: [String] = [], introuvables: [String] = [], sansClavier: [String] = []
+        var mesures = 0
+        var panneauCourant = ""
+        for ch in champs {
+            let (panneau, police, libelle, indice) = (ch[0], ch[1], ch[2], ch[3])
+            let nom = "\(panneau)/\(libelle.isEmpty ? indice : libelle)"
+            // Recharger à CHAQUE champ : un zoom déjà pris fausserait la mesure du suivant.
+            ouvrirIde(c, panneau: panneau, attente: panneau == panneauCourant ? 10 : 18)
+            panneauCourant = panneau
+            let pred = libelle.isEmpty
+                ? NSPredicate(format: "placeholderValue == %@", indice)
+                : NSPredicate(format: "label == %@ OR placeholderValue == %@", libelle, indice.isEmpty ? libelle : indice)
+            let el = page.descendants(matching: .any).matching(pred).firstMatch
+            guard el.waitForExistence(timeout: 8), el.frame.width > 0, el.frame.minY >= 0 else {
+                introuvables.append(nom); print("BANC-MESURE zoom champ=\(nom) police=\(police) introuvable"); continue
+            }
+            let avant = el.frame.width
+            toucher(el)
+            sleep(2)
+            let apres = el.frame.width
+            let clavier = safari.keyboards.firstMatch.exists
+            let rapport = avant > 0 ? apres / avant : 0
+            print("BANC-MESURE zoom champ=\(nom) police=\(police) rapport=\(String(format: "%.3f", rapport)) clavier=\(clavier)")
+            if !clavier { sansClavier.append(nom); continue }
+            mesures += 1
+            if rapport > 1.03 { zoomes.append("\(nom) (\(police), ×\(String(format: "%.2f", rapport)))"); joindreCapture("zoom-\(panneau)") }
+            if safari.buttons["OK"].exists { safari.buttons["OK"].tap() }
+        }
+        print("BANC-MESURE zoom bilan mesures=\(mesures) zoomes=\(zoomes.count) introuvables=\(introuvables.count) sansClavier=\(sansClavier.count)")
+        XCTAssertGreaterThan(mesures, 0, "aucun champ réellement touché avec clavier : la mesure ne vaut rien")
+        XCTAssertTrue(zoomes.isEmpty, "Safari zoome sur : \(zoomes.joined(separator: " ; "))")
     }
 }

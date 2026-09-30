@@ -17,13 +17,25 @@
   <label for="saisie">Zone de saisie</label>
   <textarea id="saisie" aria-label="champ-clavier"></textarea>
   <button id="pied" aria-label="temoin-pied-fixe">pied fixe</button>
+  <p id="mesure" aria-label="mesure-vue">ih=?</p>
   <button id="barre" aria-label="temoin-barre-visuelle">barre visuelle</button>
   <script>
     const barre = document.getElementById('barre');
     const placer = () => { const v = window.visualViewport; barre.style.top = `${v.offsetTop + v.height - 48}px`; };
     window.visualViewport.addEventListener('resize', placer);
     window.visualViewport.addEventListener('scroll', placer);
-    setInterval(placer, 200);
+    /* Les grandeurs exactes qu'utilise BaseChat (visual-viewport-bottom.ts), et le nombre d'événements reçus. */
+    let evResize = 0, evScroll = 0, evWin = 0;
+    window.visualViewport.addEventListener('resize', () => evResize++);
+    window.visualViewport.addEventListener('scroll', () => evScroll++);
+    window.addEventListener('resize', () => evWin++);
+    const mesurer = () => {
+      const v = window.visualViewport;
+      const t = `ih=${window.innerHeight} vh=${Math.round(v.height)} ot=${Math.round(v.offsetTop)} retr=${Math.round(window.innerHeight - v.height)} evvv=${evResize} evscroll=${evScroll} evwin=${evWin}`;
+      const m = document.getElementById('mesure');
+      m.textContent = t; m.setAttribute('aria-label', t);
+    };
+    setInterval(() => { placer(); mesurer(); }, 200);
     placer();
   </script>
 </body>
