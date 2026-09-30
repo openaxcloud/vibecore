@@ -2698,5 +2698,9 @@
   "IDEA_RELAY_NOT_FOUND": {
     "en": "This idea is no longer available.",
     "fr": "Cette idée n’est plus disponible."
+  },
+  "DEPLOY_WORKSPACE_QUOTA": {
+    "en": "Your plan allows one active workspace at a time, and another of your projects is using it. Stop that project’s workspace, or upgrade your plan, then publish again.",
+    "fr": "Votre forfait permet un seul espace de travail actif à la fois, et un autre de vos projets l’utilise. Arrêtez l’espace de ce projet, ou passez à un forfait supérieur, puis publiez de nouveau."
   }
 }
