@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1B2C3D4E5F600000000000A /* HoteBancApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000008; };
 		A1B2C3D4E5F600000000000B /* ZoomSafariTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6000000000009; };
+		C1A55E0000000000000000F2 /* ClavierSafariTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1A55E0000000000000000F1; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,6 +25,7 @@
 /* Begin PBXFileReference section */
 		A1B2C3D4E5F6000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HoteBancApp.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ZoomSafariTests.swift; sourceTree = "<group>"; };
+		C1A55E0000000000000000F1 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClavierSafariTests.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F600000000000C = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HoteBanc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F600000000000D = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BancUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -36,7 +38,7 @@
 /* Begin PBXGroup section */
 		A1B2C3D4E5F6000000000002 = { isa = PBXGroup; children = ( A1B2C3D4E5F6000000000004, A1B2C3D4E5F6000000000005, A1B2C3D4E5F6000000000003, ); sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000004 = { isa = PBXGroup; children = ( A1B2C3D4E5F6000000000008, ); path = HoteBanc; sourceTree = "<group>"; };
-		A1B2C3D4E5F6000000000005 = { isa = PBXGroup; children = ( A1B2C3D4E5F6000000000009, ); path = BancUITests; sourceTree = "<group>"; };
+		A1B2C3D4E5F6000000000005 = { isa = PBXGroup; children = ( A1B2C3D4E5F6000000000009, C1A55E0000000000000000F1, ); path = BancUITests; sourceTree = "<group>"; };
 		A1B2C3D4E5F6000000000003 = { isa = PBXGroup; children = ( A1B2C3D4E5F600000000000C, A1B2C3D4E5F600000000000D, ); name = Products; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
@@ -88,7 +90,7 @@
 
 /* Begin PBXSourcesBuildPhase section */
 		A1B2C3D4E5F6000000000010 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ( A1B2C3D4E5F600000000000A, ); runOnlyForDeploymentPostprocessing = 0; };
-		A1B2C3D4E5F6000000000013 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ( A1B2C3D4E5F600000000000B, ); runOnlyForDeploymentPostprocessing = 0; };
+		A1B2C3D4E5F6000000000013 = { isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ( A1B2C3D4E5F600000000000B, C1A55E0000000000000000F2, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>banc-clavier</title>
+<style>
+  body { font-family: -apple-system, sans-serif; margin: 16px; min-height: 100vh; }
+  textarea { width: 90%; font-size: 16px; height: 60px; }
+  /* Témoin « couvert » : collé au bas de la fenêtre de MISE EN PAGE — le clavier doit le recouvrir. */
+  #pied { position: fixed; left: 0; right: 0; bottom: 0; height: 48px; background: #c33; color: #fff; }
+  /* Témoin « non couvert » : replacé au-dessus du clavier par la fenêtre VISUELLE. */
+  #barre { position: fixed; left: 0; right: 0; height: 48px; background: #36c; color: #fff; top: 0; }
+</style>
+</head>
+<body>
+  <label for="saisie">Zone de saisie</label>
+  <textarea id="saisie" aria-label="champ-clavier"></textarea>
+  <button id="pied" aria-label="temoin-pied-fixe">pied fixe</button>
+  <button id="barre" aria-label="temoin-barre-visuelle">barre visuelle</button>
+  <script>
+    const barre = document.getElementById('barre');
+    const placer = () => { const v = window.visualViewport; barre.style.top = `${v.offsetTop + v.height - 48}px`; };
+    window.visualViewport.addEventListener('resize', placer);
+    window.visualViewport.addEventListener('scroll', placer);
+    setInterval(placer, 200);
+    placer();
+  </script>
+</body>
+</html>
