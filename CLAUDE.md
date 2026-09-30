@@ -491,6 +491,108 @@ Un point n'est « fait » QUE quand ✅ Testé live est coché ; 📤 Dispatché
 
 **Règle commune** — Ne passer un point en ✅ QU'APRÈS test réel (vérif live à l'écran + greps de contrôle) — jamais sur « dispatché » ni « codé ». Quand Avi dit « fais-moi le point », TOUJOURS lire d'abord les 4 fichiers de suivi et dire précisément où ça en est.
 
+## Fusionner : UNE À LA FOIS, et on attend que ça atterrisse
+
+**Deux fusions rapprochées se détruisent l'une l'autre.** GitHub ne garde qu'**un
+seul run EN ATTENTE par groupe de concurrence**. Le déploiement de la première
+fusion patiente ; la seconde fusion arrive, l'écarte, et repart de zéro. Trois
+fusions de plus et plus rien n'atterrit jamais.
+
+⚠️ **`cancel-in-progress: false` ne protège pas de ça** — et c'est le piège :
+le réglage est déjà bon, on croit donc être couvert. Il protège un déploiement
+qui TOURNE. Il ne protège pas celui qui ATTEND son tour, et quand les coureurs
+sont saturés, tous attendent.
+
+**Mesuré le 2026-09-30, et ça a coûté cinq heures.** Sept correctifs fusionnés
+dans la matinée, dont le défaut bloquant qui faisait perdre un client au moment
+de l'inscription. **Cinq déploiements annulés d'affilée** — 09:27, 09:37, 10:05,
+10:10, 10:14 — chacun avec **zéro job exécuté** : ils n'ont jamais démarré. À
+midi, la production servait encore le code de la veille.
+
+**La règle :**
+
+1. On fusionne **une** proposition.
+2. On **attend que son déploiement soit SERVI** — vérifié par les trois niveaux :
+   ce que Helm demande, l'empreinte épinglée sur les pods, et le registre qui
+   confirme que le tag porte bien cette empreinte.
+3. **Ensuite seulement** la suivante.
+
+Ce n'est pas plus lent. Le 2026-09-30, fusionner en rafale a livré **zéro**
+correctif en cinq heures.
+
+### Le lot de trois — décision d'Avi du 2026-09-30, après mesure
+
+**On fusionne par LOTS DE TROIS, pas une à la fois.** Le chiffre qui a tranché :
+
+    pipeline seul, file vide, la nuit          37 min
+    en journée, file chargée          1 h 09 à 2 h 51
+
+**Le pipeline ne fait que 37 minutes ; tout le reste est de l'attente de file.**
+Sérialiser à l'unité plafonnait donc à **quatre livraisons par jour ouvré**, ce
+qui est intenable avec une dizaine de correctifs prouvés en attente. Le lot garde
+ce qui protégeait — **un seul déploiement en vol** — et triple le débit.
+
+**Quatre conditions, non négociables :**
+
+1. **Seuls des correctifs DÉJÀ VERTS** entrent dans un lot. Jamais un « corrigé
+   en local », jamais un « ça devrait passer ».
+2. **Pas deux correctifs touchant la même zone** dans le même lot — sinon un
+   retour arrière ne dira pas lequel était fautif, et on aura échangé du débit
+   contre de l'aveuglement.
+3. **Trois au maximum.**
+4. **Ce qui touche la chaîne de livraison elle-même part SEUL** : workflows de
+   déploiement, configuration de test, portes. Un lot qui casse la chaîne qu'on
+   utilise pour le corriger n'a plus de sortie de secours.
+
+Le prix du lot, énoncé pour qu'il soit choisi et non subi : **un correctif
+fautif emmène les deux autres au rollback.** C'est acceptable parce que les trois
+sont verts avant d'entrer ; ça ne le serait pas autrement.
+
+### On n'attend QUE pour un déploiement qui compte encore
+
+**Précision d'Avi du 2026-09-30, après un cas réel.** La règle « ne pas fusionner
+tant qu'un déploiement est en vol » ne vaut que pour un déploiement **qui porte
+la tête de `main`**. Un déploiement **déjà dépassé par un autre** ne mérite
+aucune attente : il sera écarté de toute façon, et le retenir ne protège rien.
+
+Le cas : le déploiement de 14:22 attendait depuis 1 h 27, bloqué sur la porte de
+release ; celui de 15:46 l'avait déjà dépassé. Retenir #613 pour lui, c'était
+laisser en place **la cause même du blocage** — #613 ramenait la suite E2E de
+81 à 45 min — au nom d'une victime déjà perdue.
+
+**Le contrôle, avant de renoncer à fusionner :**
+
+```
+gh run list -R openaxcloud/vibecore --workflow deploy-main.yml --limit 2 \
+  --json status,conclusion,headSha,createdAt
+git rev-parse --short=10 origin/main
+```
+
+Si le `headSha` du déploiement en vol **n'est pas** la tête de `main`, il est
+déjà dépassé : on fusionne.
+
+⚠️ **Et le vrai goulot n'est pas la file de déploiement, c'est l'E2E.** Le
+déploiement s'arrête sur « Release gate — required checks green for THIS
+commit », qui attend `Production E2E` sur le même commit. Le pipeline seul fait
+37 min ; c'est l'E2E devant lui qui fait les heures.
+
+**Le contrôle, avant de fusionner** — un déploiement est-il déjà en vol ?
+
+```
+gh run list -R openaxcloud/vibecore --workflow deploy-main.yml --limit 3 \
+  --json status,conclusion,headSha,createdAt
+```
+
+S'il y en a un en `queued` ou `in_progress`, **on ne fusionne pas**. On attend.
+
+⚠️ **Corollaire mesuré le même jour** : un déploiement qui prend enfin son tour
+déploie **SON** commit, pas la tête de `main`. La production peut donc servir un
+code ANTÉRIEUR à ce qui attendait. Le 30/09 à 12:15, le servi était
+`90e902533b` (11:55) alors que `a24429442b` (13:14) patientait — quatre
+correctifs sur cinq n'étaient pas en production alors qu'on les croyait livrés.
+**Vérifier le CONTENU du SHA servi, jamais le numéro seul** :
+`git merge-base --is-ancestor <commit-de-fusion> <sha-servi>`.
+
 ## Déploiement prod (mécanisme réel)
 
 **Runbook complet + commandes exactes : [`docs/DEPLOY_RUNBOOK.md`](docs/DEPLOY_RUNBOOK.md).** Vérité terrain reconstituée le 2026-07-07.
