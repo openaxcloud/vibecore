@@ -96,15 +96,21 @@ for (const viewport of VIEWPORTS) {
       const projectId = await compteEtProjet(page, theme);
       await page.goto(`/projects/${projectId}/deployments`, { waitUntil: 'domcontentloaded' });
 
-      const bande = page.getByTestId('project-nav-strip');
-      await expect(bande).toBeVisible({ timeout: 60_000 });
+      /*
+       * Ancré sur la navigation elle-même (son nom accessible), qui existe AVANT
+       * et APRÈS le correctif — pas sur un repère que seul le correctif ajoute.
+       * La bande visible est le parent qui la découpe.
+       */
+      const navigation = page.getByRole('navigation', { name: /Navigation du projet|Project navigation/ });
+      await expect(navigation).toBeVisible({ timeout: 60_000 });
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
-      // UIB-04 — chaque onglet est entièrement dans la bande, l'onglet courant compris.
-      const onglets = await bande.evaluate((strip) => {
+      // UIB-04 — chaque onglet est entièrement dans la bande visible, l'onglet courant compris.
+      const onglets = await navigation.evaluate((nav) => {
+        const strip = nav.parentElement ?? nav;
         const box = strip.getBoundingClientRect();
 
-        return Array.from(strip.querySelectorAll('a')).map((link) => {
+        return Array.from(nav.querySelectorAll('a')).map((link) => {
           const r = link.getBoundingClientRect();
 
           return {
@@ -115,12 +121,14 @@ for (const viewport of VIEWPORTS) {
         });
       });
 
-      expect(onglets.length, 'onglets du projet').toBeGreaterThanOrEqual(10);
-      expect(
-        onglets.filter((o) => !o.dedans).map((o) => o.libelle),
-        'onglets hors de la bande visible',
-      ).toEqual([]);
-      expect(onglets.find((o) => o.courant)?.libelle, 'onglet courant').toBeTruthy();
+      expect.soft(onglets.length, 'onglets du projet').toBeGreaterThanOrEqual(10);
+      expect
+        .soft(
+          onglets.filter((o) => !o.dedans).map((o) => o.libelle),
+          'onglets hors de la bande visible',
+        )
+        .toEqual([]);
+      expect.soft(onglets.find((o) => o.courant)?.libelle, 'onglet courant').toBeTruthy();
 
       // UIB-03 — le pied de la barre latérale porte le nom du compte authentifié.
       const menuDuCompte = page.locator('aside').getByRole('button', { name: /Menu du compte|Account menu/ });
