@@ -252,4 +252,99 @@ final class ClavierSafariTests: XCTestCase {
         // Une absence de mesure n'est pas un verdict (règle 26) : un champ non atteint laisse le test ROUGE.
         XCTAssertTrue(introuvables.isEmpty && sansClavier.isEmpty, "champs NON MESURÉS : introuvables \(introuvables) ; sans clavier \(sansClavier)")
     }
+
+    /*
+     * Clavier levé sur un champ BAS d'un panneau service : « Nom du projet » (Paramètres).
+     * Mesuré le 30/09 : il restait à y 446–484, sous la barre ∧ ∨ ✓ (bas visible 409) — le conteneur fixe
+     * des panneaux service gardait la hauteur de la mise en page (699) quand la vue tombait à 362.
+     */
+    func test5_reglages_champBasVisibleClavierLeve() throws {
+        let c = try contexteLocal()
+        let basVisible = basVisibleTemoin()
+        seConnecter(c)
+        ouvrirIde(c, panneau: "settings", attente: 10)
+        let champ = page.textFields["Nom du projet"]
+        XCTAssertTrue(champ.waitForExistence(timeout: 30), "champ « Nom du projet » introuvable")
+        // Précondition : au repos, le champ est plus bas que le futur bas visible — sinon on ne mesure rien.
+        XCTAssertGreaterThan(champ.frame.maxY, basVisible, "le champ est déjà au-dessus du bas visible : mesure vide")
+        toucher(champ)
+        sleep(2)
+        joindreCapture("reglages-clavier-leve")
+        print("BANC-MESURE reglages champ=\(champ.frame.minY)-\(champ.frame.maxY) basVisible=\(basVisible)")
+        XCTAssertTrue(safari.keyboards.firstMatch.exists, "aucun clavier : la mesure ne vaut rien")
+        XCTAssertLessThanOrEqual(champ.frame.maxY, basVisible + 1, "le champ actif reste sous le bas visible (\(champ.frame.maxY) > \(basVisible))")
+        XCTAssertGreaterThanOrEqual(champ.frame.minY, 40, "le champ actif est sorti par le haut")
+    }
+
+    /*
+     * PARCOURS — un défaut signalé par Avi se rejoue ici au vrai toucher, étape par étape.
+     * BANC_PARCOURS = étapes séparées par « ;; » :
+     *   ide:<panneau>        ouvre l'IDE sur ce panneau (attend le chargement réel)
+     *   tap:<libellé>        touche l'élément de la PAGE dont le libellé vaut exactement <libellé>
+     *   tapdebut:<préfixe>   … dont le libellé commence par <préfixe>
+     *   saisie               touche la zone de saisie de l'agent (ouvre le clavier)
+     *   ok                   referme le clavier (bouton « OK » de Safari) s'il est là
+     *   attendre:<s>         pause
+     *   capture:<nom>        capture d'écran + arbre complet (cadres) joints au résultat
+     *   cadre:<libellé>      écrit le cadre de l'élément (BANC-MESURE cadre …)
+     *   glisser:haut|bas     fait défiler la page d'un geste
+     * Une étape introuvable est écrite et fait échouer le parcours : une capture d'un état
+     * qu'on n'a pas atteint ne prouve rien.
+     */
+    func test4_parcours() throws {
+        let c = try contexteLocal()
+        guard let brut = env["BANC_PARCOURS"], !brut.isEmpty else { throw XCTSkip("BANC_PARCOURS absent") }
+        seConnecter(c)
+        var manques: [String] = []
+        for etape in brut.components(separatedBy: ";;") where !etape.isEmpty {
+            let (verbe, arg): (String, String) = {
+                guard let i = etape.firstIndex(of: ":") else { return (etape, "") }
+                return (String(etape[..<i]), String(etape[etape.index(after: i)...]))
+            }()
+            print("BANC-MESURE parcours étape=\(etape)")
+            let parLibelle = { (p: NSPredicate) -> XCUIElement in self.page.descendants(matching: .any).matching(p).firstMatch }
+            switch verbe {
+            case "ide": ouvrirIde(c, panneau: arg, attente: 10)
+            case "tap", "tapdebut", "cadre":
+                let el = parLibelle(verbe == "tapdebut" ? NSPredicate(format: "label BEGINSWITH %@", arg) : NSPredicate(format: "label == %@", arg))
+                if !el.waitForExistence(timeout: 10) { manques.append(etape); print("BANC-MESURE parcours INTROUVABLE \(etape)"); continue }
+                if verbe == "cadre" { print("BANC-MESURE cadre \(arg)=\(el.frame.minX),\(el.frame.minY),\(el.frame.maxX),\(el.frame.maxY)") }
+                else { el.tap(); sleep(2) }
+            case "tapbas":
+                // Plusieurs éléments portent ce libellé (« Agent » : titre de l'en-tête ET bouton de mode) : le plus bas.
+                let tous = page.descendants(matching: .any).matching(NSPredicate(format: "label == %@", arg)).allElementsBoundByIndex.filter { $0.exists && $0.frame.width > 0 }
+                guard let bas = tous.max(by: { $0.frame.minY < $1.frame.minY }) else { manques.append(etape); print("BANC-MESURE parcours INTROUVABLE \(etape)"); continue }
+                bas.tap(); sleep(2)
+            case "cadres":
+                for (i, e) in page.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", arg)).allElementsBoundByIndex.enumerated() where e.exists {
+                    print("BANC-MESURE cadres \(arg)#\(i) type=\(e.elementType.rawValue) \(e.frame.minX),\(e.frame.minY),\(e.frame.maxX),\(e.frame.maxY) libellé=\(e.label.prefix(300))")
+                }
+            case "glisserfil":
+                // Vrai glissé au doigt sur le fil (remonter) : `swipeDown()` sur la page ne faisait rien défiler (30/09).
+                // glisserfil = remonter (doigt vers le bas) ; glisserfil:bas = descendre (doigt vers le haut).
+                let (y0, y1): (CGFloat, CGFloat) = arg == "bas" ? (0.7, 0.2) : (0.25, 0.7)
+                page.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: y0))
+                    .press(forDuration: 0.05, thenDragTo: page.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: y1)))
+                sleep(2)
+            case "theme":
+                // Cookie `ecode_theme` posé depuis la page du banc (même hôte, autre port) : passe avant le thème du compte.
+                XCUIDevice.shared.system.open(URL(string: "http://127.0.0.1:8765/theme.html?t=\(arg)")!)
+                if !page.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'theme'")).firstMatch.waitForExistence(timeout: 20) { manques.append(etape) }
+                sleep(1)
+            case "saisie":
+                let z = page.textViews["Prompt de l’agent"]
+                if !z.waitForExistence(timeout: 20) { manques.append(etape); continue }
+                toucher(z)
+            case "ok": if safari.buttons["OK"].exists { safari.buttons["OK"].tap(); sleep(1) }
+            case "attendre": sleep(UInt32(arg) ?? 2)
+            case "glisser": arg == "haut" ? page.swipeDown() : page.swipeUp(); sleep(1)
+            case "capture":
+                joindreCapture(arg)
+                let arbre = XCTAttachment(string: page.debugDescription)
+                arbre.name = "arbre-\(arg)"; arbre.lifetime = .keepAlways; add(arbre)
+            default: manques.append(etape)
+            }
+        }
+        XCTAssertTrue(manques.isEmpty, "étapes non atteintes : \(manques)")
+    }
 }

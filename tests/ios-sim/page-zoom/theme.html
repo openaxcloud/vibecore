@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>banc-theme</title></head>
+<body>
+<p id="etat" aria-label="theme-pose">…</p>
+<script>
+  /*
+   * Pose le thème de l'app locale pour les captures clair / sombre du banc.
+   * Les cookies ne sont pas séparés par PORT : posé ici (127.0.0.1:8765), `ecode_theme` part aussi vers
+   * l'app (127.0.0.1:5173). Il passe avant le thème enregistré côté serveur (app/lib/stores/theme.ts).
+   */
+  const t = new URLSearchParams(location.search).get('t') === 'dark' ? 'dark' : 'light';
+  document.cookie = `ecode_theme=${t}; path=/; max-age=86400; samesite=lax`;
+  document.getElementById('etat').textContent = `theme=${t}`;
+  document.getElementById('etat').setAttribute('aria-label', `theme-pose ${t}`);
+</script>
+</body></html>
