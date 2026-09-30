@@ -927,9 +927,9 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.logs.empty.cleared':
     'Les journaux visibles ont été effacés pour cette session. Rechargez-les pour récupérer la dernière sortie de l’environnement d’exécution.',
   'baseChatAst.logs.empty.stream':
-    'Aucun {stream} pour le moment. Démarrez l’espace de travail ou exécutez une commande pour afficher la sortie ici.',
+    'Rien dans « {stream} » pour le moment. Démarrez l’espace de travail ou exécutez une commande pour afficher la sortie ici.',
   'baseChatAst.logs.empty.filtered': 'Aucun résultat dans {stream} ne correspond à ce filtre.',
-  'baseChatAst.logs.empty.visible': 'Aucun {stream} n’est visible pour le moment.',
+  'baseChatAst.logs.empty.visible': 'Rien de visible dans « {stream} » pour le moment.',
   'baseChatAst.logs.empty.secondaryFiltered': 'Aucun journal du flux secondaire ne correspond à ce filtre.',
   'baseChatAst.logs.empty.secondary':
     'Aucun journal dans le flux secondaire pour le moment. Démarrez l’espace de travail ou exécutez une commande pour afficher la sortie ici.',
@@ -1406,7 +1406,7 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.counts.presenceOnline_other': '{shown} utilisateurs en ligne, curseurs et sélections synchronisés.',
   'baseChatAst.counts.lastDeployments_one': 'Dernier déploiement, le plus récent à droite.',
   'baseChatAst.counts.lastDeployments_other': 'Les {count} derniers déploiements, le plus récent à droite.',
-  'baseChatAst.phrases.emptyYet': 'Aucun {title} pour l’instant',
+  'baseChatAst.phrases.emptyYet': 'Rien pour l’instant dans « {title} »',
   'baseChatAst.phrases.shortcutFor': 'Raccourci {label}',
   'baseChatAst.phrases.runOutcome': '{status} · code de sortie {code}',
   'baseChatAst.phrases.authorVersion': '{author} · v{version}',

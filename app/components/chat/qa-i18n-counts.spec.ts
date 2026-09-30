@@ -123,7 +123,8 @@ describe('BUG-QA-I18N-COUNT-003 — rendu réel des compteurs, EN et FR', () => 
       'baseChatAst.phrases.emptyYet',
       { title: 'deployments' },
       'No deployments yet',
-      'Aucun deployments pour l’instant',
+      // Le français « Aucun {title} » ne pouvait pas s'accorder (« Aucun deployments », « Aucun base de données ») — 01/10.
+      'Rien pour l’instant dans « deployments »',
     ],
     ['baseChatAst.phrases.shortcutFor', { label: 'Ctrl+K' }, 'Ctrl+K shortcut', 'Raccourci Ctrl+K'],
     ['baseChatAst.phrases.runOutcome', { status: 'failed', code: 1 }, 'failed · exit 1', 'failed · code de sortie 1'],

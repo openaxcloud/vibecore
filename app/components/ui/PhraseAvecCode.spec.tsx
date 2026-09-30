@@ -67,3 +67,41 @@ describe('règle : plus aucune phrase découpée autour d’un <code> dans BaseC
     expect(source.match(new RegExp(MOTIF, 'g')) ?? []).toEqual([]);
   });
 });
+
+/*
+ * Même famille, vue le 01/10 sur Safari iOS (panneau Journaux) : « Aucun Console
+ * pour le moment ». Un déterminant suivi d'un marqueur ne peut pas s'accorder
+ * en français — le mot inséré a son propre genre, son nombre et sa majuscule
+ * (« Aucun Console », « Aucun Journaux des flux de travail », « Aucun base de
+ * données »). La règle vise TOUS les catalogues français.
+ */
+describe('règle : aucun « Aucun / Aucune » directement suivi d’un marqueur dans les catalogues français', () => {
+  const MOTIF = /\b(Aucun|Aucune)\s+\{\w+\}/u;
+
+  it('contrôle positif : le motif reconnaît le modèle d’origine', () => {
+    expect(MOTIF.test('Aucun {stream} pour le moment.')).toBe(true);
+  });
+
+  it('aucun modèle français ne l’emploie', async () => {
+    const { readdirSync } = await import('node:fs');
+    const dossier = new URL('../../lib/i18n/catalogs/', import.meta.url).pathname;
+    const fautifs: string[] = [];
+
+    for (const fichier of readdirSync(dossier).filter((f) => f.endsWith('.ts') && !f.endsWith('.spec.ts'))) {
+      const source = readFileSync(dossier + fichier, 'utf8');
+      const debutFr = source.search(/export const \w+Fr\b/u);
+
+      if (debutFr < 0) {
+        continue;
+      }
+
+      for (const ligne of source.slice(debutFr).split('\n')) {
+        if (MOTIF.test(ligne)) {
+          fautifs.push(`${fichier} : ${ligne.trim()}`);
+        }
+      }
+    }
+
+    expect(fautifs).toEqual([]);
+  });
+});
