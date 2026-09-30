@@ -147,6 +147,9 @@ export const PublicationReplit = memo(
     const copy = getPublicationCopy(language);
     const dernier = deployments[0];
 
+    // Même règle que le bouton principal (`intentionDeRepublication`) : « Re- » seulement s'il y a un déploiement à rejouer.
+    const dejaPublie = deployments.length > 0;
+
     const etapes = useMemo(() => etapesDePublication(dernier), [dernier]);
     const journal = useMemo(() => lignesDeJournal(dernier), [dernier]);
     const echecs = useMemo(() => resumeDesEchecs(deployments), [deployments]);
@@ -191,7 +194,7 @@ export const PublicationReplit = memo(
     return (
       <div className="bolt-publication" data-testid="publication">
         <header className="bolt-publication-entete">
-          <h2>{copy['publication.title']}</h2>
+          <h2>{dejaPublie ? copy['publication.title'] : copy['publication.titleFirst']}</h2>
           <p>{copy['publication.subtitle']}</p>
           <button
             type="button"
@@ -567,7 +570,7 @@ export const PublicationReplit = memo(
             onClick={onRepublier}
           >
             <span className="i-ph:rocket-launch" aria-hidden />
-            {deployments.length > 0 ? copy['publication.republish'] : copy['publication.publish']}
+            {dejaPublie ? copy['publication.republish'] : copy['publication.publish']}
           </button>
         </div>
       </div>

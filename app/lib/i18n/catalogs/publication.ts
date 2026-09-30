@@ -4,6 +4,7 @@
  */
 export const publicationEn = {
   'publication.title': 'Republish your app',
+  'publication.titleFirst': 'Publish your app',
   'publication.subtitle': 'Configure how your app is published and who can access it.',
   'publication.adjustSettings': 'Adjust settings',
   'publication.tab.overview': 'Overview',
@@ -87,6 +88,7 @@ export type PublicationCopy = Readonly<Record<PublicationKey, string>>;
 
 export const publicationFr: PublicationCopy = {
   'publication.title': 'Republier votre application',
+  'publication.titleFirst': 'Publier votre application',
   'publication.subtitle': 'Choisissez comment votre application est publiée et qui peut y accéder.',
   'publication.adjustSettings': 'Ajuster les réglages',
   'publication.tab.overview': 'Vue d’ensemble',
