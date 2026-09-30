@@ -68,7 +68,6 @@ export const chatEn = {
   'chat.copy.allTime_dbad49d8': 'All time',
   'chat.copy.allUsers_ce832d9b': 'All users',
   'chat.copy.alreadyScaffoldedAuthFilesAlreadyExist_6ffb7ffc': 'Already scaffolded — auth files already exist',
-  'chat.copy.andEnableItTheSchedulerWill_c6c6f347': ') and enable it — the scheduler will actually run it.',
   'chat.copy.anthropic_b780a23b': 'Anthropic',
   'chat.copy.apacheKafka_d646e904': 'Apache Kafka',
   'chat.copy.apiKeys_e18ffc8d': 'API Keys',
@@ -373,7 +372,6 @@ export const chatEn = {
   'chat.copy.follow_66587a7a': 'Follow',
   'chat.copy.for_f7880600': 'For',
   'chat.copy.forViteThisIsUsuallyDist_03b25ded': 'For Vite this is usually dist.',
-  'chat.copy.forYou_c10f85ac': 'for you.',
   'chat.copy.framework_fb001b2c': 'Framework',
   'chat.copy.frameworkDetected_7a55cf59': 'Framework detected',
   'chat.copy.fullPalette_49524ad9': 'full palette',
@@ -601,7 +599,6 @@ export const chatEn = {
   'chat.copy.noTasksConfiguredForThisWorkflow_e345761c': 'No tasks configured for this workflow.',
   'chat.copy.notificationPreferences_a92e15bc': 'Notification Preferences',
   'chat.copy.noToolsFoundFor_57552084': 'No tools found for "',
-  'chat.copy.notScheduledEnterACronExpression_4b9e799a': 'Not scheduled. Enter a cron expression (e.g.',
   'chat.copy.noWebhooksConfigured_8cb1dd66': 'No webhooks configured',
   'chat.copy.npmIPgBcryptjsJsonwebtokenCookie_479d8370': 'npm i pg bcryptjs jsonwebtoken cookie-parser',
   'chat.copy.npmRunDev_4eedebe9': 'npm run dev',
@@ -627,7 +624,6 @@ export const chatEn = {
   'chat.copy.openPreview_7a3aa872': 'Open preview',
   'chat.copy.openProjectFile_f9fc8bf6': 'Open project file',
   'chat.copy.openrouter_12ecf701': 'OpenRouter',
-  'chat.copy.openTheLogsPanelToInspect_cc12758f': '). Open the Logs panel to inspect the raw audit trail.',
   'chat.copy.optionalCommentEGYouHost_de88ef9c': 'Optional comment (e.g. you@host)',
   'chat.copy.optionalDomainToAttachToThe_839fb219':
     'Optional domain to attach to the deployment after DNS verification.',
@@ -808,7 +804,6 @@ export const chatEn = {
   'chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1':
     'Save the current file immediately. Autosave still handles normal edits.',
   'chat.copy.saveVariable_568937f7': 'Save Variable',
-  'chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b': 'Scaffold real email/password auth into this app — a',
   'chat.copy.scanCancelledLocallyNoCompletedScan_344286af':
     'Scan cancelled locally. No completed scan was accepted in this browser session.',
   'chat.copy.scanCancelledLocallyReloadThePanel_919bd102':
@@ -930,8 +925,6 @@ export const chatEn = {
   'chat.copy.sync_905f6309': 'Sync',
   'chat.copy.system_bc0792d8': 'System',
   'chat.copy.tabActions_b7a78b89': 'Tab actions',
-  'chat.copy.tableMigrationAnExpressSessionJwt_120a5fe5':
-    'table migration, an Express session/JWT router (signup / login / logout / me), and a login page — backed by your project Postgres. Idempotent; sets',
   'chat.copy.tabSwitcher_36e22491': 'Tab switcher',
   'chat.copy.tags_848eed0f': 'Tags',
   'chat.copy.targetCheckpoint_8dfbabe1': 'Target checkpoint',
@@ -1644,7 +1637,6 @@ export const chatFr = {
   'chat.copy.allUsers_ce832d9b': 'Tous les utilisateurs',
   'chat.copy.alreadyScaffoldedAuthFilesAlreadyExist_6ffb7ffc':
     "Déjà échafaudé : les fichiers d'authentification existent déjà",
-  'chat.copy.andEnableItTheSchedulerWill_c6c6f347': ") et activez-le - le planificateur l'exécutera réellement.",
   'chat.copy.anthropic_b780a23b': 'Anthropic',
   'chat.copy.apacheKafka_d646e904': 'Apache Kafka',
   'chat.copy.apiKeys_e18ffc8d': 'Clés API',
@@ -1949,7 +1941,6 @@ export const chatFr = {
   'chat.copy.follow_66587a7a': 'Suivre',
   'chat.copy.for_f7880600': 'Pour',
   'chat.copy.forViteThisIsUsuallyDist_03b25ded': "Pour Vite, c'est généralement dist.",
-  'chat.copy.forYou_c10f85ac': 'pour toi.',
   'chat.copy.framework_fb001b2c': 'Cadre',
   'chat.copy.frameworkDetected_7a55cf59': 'Cadre détecté',
   'chat.copy.fullPalette_49524ad9': 'palette complète',
@@ -2188,7 +2179,6 @@ export const chatFr = {
   'chat.copy.noTasksConfiguredForThisWorkflow_e345761c': 'Aucune tâche configurée pour ce flux de travail.',
   'chat.copy.notificationPreferences_a92e15bc': 'Préférences de notifications',
   'chat.copy.noToolsFoundFor_57552084': 'Aucun outil trouvé pour "',
-  'chat.copy.notScheduledEnterACronExpression_4b9e799a': 'Non programmé. Entrez une expression cron (par ex.',
   'chat.copy.noWebhooksConfigured_8cb1dd66': 'Aucun webhook configuré',
   'chat.copy.npmIPgBcryptjsJsonwebtokenCookie_479d8370': 'npm i pg bcryptjs jsonwebtoken cookie-parser',
   'chat.copy.npmRunDev_4eedebe9': 'npm run dev',
@@ -2217,8 +2207,6 @@ export const chatFr = {
   'chat.copy.openPreview_7a3aa872': "Ouvrir l'aperçu",
   'chat.copy.openProjectFile_f9fc8bf6': 'Ouvrir le fichier de projet',
   'chat.copy.openrouter_12ecf701': 'OpenRouter',
-  'chat.copy.openTheLogsPanelToInspect_cc12758f':
-    "). Ouvrez le panneau Journaux pour inspecter la piste d'audit brute.",
   'chat.copy.optionalCommentEGYouHost_de88ef9c': 'Commentaire facultatif (par exemple, vous@hôte)',
   'chat.copy.optionalDomainToAttachToThe_839fb219':
     'Domaine facultatif à attacher au déploiement après vérification DNS.',
@@ -2403,8 +2391,6 @@ export const chatFr = {
   'chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1':
     'Enregistrez immédiatement le fichier actuel. La sauvegarde automatique gère toujours les modifications normales.',
   'chat.copy.saveVariable_568937f7': 'Enregistrer la variable',
-  'chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b':
-    'Échafaudez une véritable authentification par e-mail/mot de passe dans cette application - un',
   'chat.copy.scanCancelledLocallyNoCompletedScan_344286af':
     "Scan annulé localement. Aucune analyse terminée n'a été acceptée dans cette session de navigateur.",
   'chat.copy.scanCancelledLocallyReloadThePanel_919bd102':
@@ -2531,8 +2517,6 @@ export const chatFr = {
   'chat.copy.sync_905f6309': 'Synchroniser',
   'chat.copy.system_bc0792d8': 'Système',
   'chat.copy.tabActions_b7a78b89': 'Actions des onglets',
-  'chat.copy.tableMigrationAnExpressSessionJwt_120a5fe5':
-    'migration de table, une session Express/routeur JWT (inscription/connexion/déconnexion/moi) et une page de connexion — soutenue par votre projet Postgres. Idempotent; ensembles',
   'chat.copy.tabSwitcher_36e22491': "Sélecteur d'onglets",
   'chat.copy.tags_848eed0f': 'Étiquettes',
   'chat.copy.targetCheckpoint_8dfbabe1': 'Point de contrôle cible',

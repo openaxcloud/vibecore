@@ -42,8 +42,14 @@ export const baseChatAstEn = {
   'baseChatAst.patch.hunks_one': '{count} hunk',
   'baseChatAst.patch.hunks_other': '{count} hunks',
   'baseChatAst.patch.selected': '{count} selected',
-  'baseChatAst.monitoring.hiddenRoutine_one': '{count} routine internal event hidden (',
-  'baseChatAst.monitoring.hiddenRoutine_other': '{count} routine internal events hidden (',
+  'baseChatAst.monitoring.hiddenRoutine_one':
+    '{count} routine internal event hidden ({code}). Open the Logs panel to inspect the raw audit trail.',
+  'baseChatAst.monitoring.hiddenRoutine_other':
+    '{count} routine internal events hidden ({code}). Open the Logs panel to inspect the raw audit trail.',
+  'baseChatAst.integrations.authDescription':
+    'Scaffold real email/password auth into this app — a {users} table migration, an Express session/JWT router (signup / login / logout / me), and a login page — backed by your project Postgres. Idempotent; sets {secret} for you.',
+  'baseChatAst.workflows.notScheduled':
+    'Not scheduled. Enter a cron expression (e.g. {exemple}) and enable it — the scheduler will actually run it.',
   'baseChatAst.files.projectCount_one': '{count} file in the project',
   'baseChatAst.files.projectCount_other': '{count} files in the project',
   'baseChatAst.files.changedCount_one': '{count} changed file',
@@ -752,8 +758,14 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.patch.hunks_one': '{count} segment',
   'baseChatAst.patch.hunks_other': '{count} segments',
   'baseChatAst.patch.selected': '{count} sélectionné(s)',
-  'baseChatAst.monitoring.hiddenRoutine_one': '{count} événement interne de routine caché (',
-  'baseChatAst.monitoring.hiddenRoutine_other': '{count} événements internes de routine cachés (',
+  'baseChatAst.monitoring.hiddenRoutine_one':
+    "{count} événement interne de routine caché ({code}). Ouvrez le panneau Journaux pour inspecter la piste d'audit brute.",
+  'baseChatAst.monitoring.hiddenRoutine_other':
+    "{count} événements internes de routine cachés ({code}). Ouvrez le panneau Journaux pour inspecter la piste d'audit brute.",
+  'baseChatAst.integrations.authDescription':
+    'Ajoute à cette application une véritable authentification par e-mail et mot de passe : une migration de la table {users}, un routeur Express de session/JWT (inscription / connexion / déconnexion / moi) et une page de connexion, adossés à la base Postgres du projet. Idempotent ; définit {secret} pour vous.',
+  'baseChatAst.workflows.notScheduled':
+    "Non programmé. Entrez une expression cron (par ex. {exemple}) et activez-le : le planificateur l'exécutera réellement.",
   'baseChatAst.files.projectCount_one': '{count} fichier dans le projet',
   'baseChatAst.files.projectCount_other': '{count} fichiers dans le projet',
   'baseChatAst.files.changedCount_one': '{count} fichier modifié',
