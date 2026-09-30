@@ -1,0 +1,2840 @@
+[
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/",
+  "err": null,
+  "title": "E-Code — Créez, déployez et faites évoluer vos applications avec l’IA",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2288,
+  "h1": [
+   "Créez et déployez\ndes applications de production\nen quelques minutes"
+  ],
+  "lang": "fr",
+  "wide": [
+   "button.group flex shrink-0 items-center gap-2 px-3 sm:px- right=530",
+   "div.shrink-0 rounded-md bg-gradient-to-r from-ecode-or right=442",
+   "svg.[object SVGAnimatedString] right=436",
+   "path.[object SVGAnimatedString] right=428",
+   "rect.[object SVGAnimatedString] right=433"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/pricing",
+  "err": null,
+  "title": "Tarifs — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 5789,
+  "h1": [
+   "Des tarifs qui évoluent\navec votre croissance"
+  ],
+  "lang": "fr",
+  "wide": [
+   "table.w-full min-w-[760px] text-sm right=777",
+   "thead.border-b border-bolt-elements-borderColor bg-bolt- right=777",
+   "tr. right=777",
+   "th.p-5 text-center font-semibold text-bolt-elements-t right=396",
+   "th.p-5 text-center font-semibold text-[var(--ecode-ac right=496"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Connexion - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 673,
+  "h1": [
+   "Ravi de vous revoir"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/signup",
+  "err": null,
+  "title": "Créer un compte - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 877,
+  "h1": [
+   "Créez votre compte"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Créer un compte - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 877,
+  "h1": [
+   "Créez votre compte"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/login",
+  "err": null,
+  "title": "Cette page est introuvable · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1866,
+  "h1": [
+   "Cette page est introuvable"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/login",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/signup",
+  "err": null,
+  "title": "Cette page est introuvable · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1866,
+  "h1": [
+   "Cette page est introuvable"
+  ],
+  "lang": "fr",
+  "wide": [
+   "span.bolt-route-loader-bar right=523"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/signup",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/gallery",
+  "err": null,
+  "title": "Galerie - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2081,
+  "h1": [
+   "Les applications de la communauté — remixez-en une pour commencer"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/templates",
+  "err": null,
+  "title": "Modèles — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 6047,
+  "h1": [
+   "Démarrez plus vite avec des modèles E-Code prêts pour la production"
+  ],
+  "lang": "fr",
+  "wide": [
+   "span.bolt-route-loader-bar right=582"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2780,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 10021,
+  "h1": [],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4273,
+  "h1": [
+   "Le blog E-Code"
+  ],
+  "lang": "fr",
+  "wide": [
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=463",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=539",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=665",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=771",
+   "span.bolt-route-loader-bar right=614"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/terms",
+  "err": null,
+  "title": "Conditions d’utilisation — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4789,
+  "h1": [
+   "Conditions d’utilisation"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/privacy",
+  "err": null,
+  "title": "Politique de confidentialité — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 3562,
+  "h1": [
+   "Politique de confidentialité"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/forgot-password",
+  "err": null,
+  "title": "Mot de passe oublié - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 368,
+  "h1": [
+   "Mot de passe oublié ?"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Connexion - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 673,
+  "h1": [
+   "Ravi de vous revoir"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Connexion - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 673,
+  "h1": [
+   "Ravi de vous revoir"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://app.e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page introuvable · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1861,
+  "h1": [
+   "Cette page est introuvable"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "404 GET https://app.e-code.ai/n-existe-pas-qa"
+  ]
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/",
+  "err": null,
+  "title": "E-Code — Créez, déployez et faites évoluer vos applications avec l’IA",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2288,
+  "h1": [
+   "Créez et déployez\ndes applications de production\nen quelques minutes"
+  ],
+  "lang": "fr",
+  "wide": [
+   "button.group flex shrink-0 items-center gap-2 px-3 sm:px- right=530",
+   "div.shrink-0 rounded-md bg-gradient-to-r from-ecode-or right=442",
+   "svg.[object SVGAnimatedString] right=436",
+   "path.[object SVGAnimatedString] right=428",
+   "rect.[object SVGAnimatedString] right=433"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/pricing",
+  "err": null,
+  "title": "Tarifs — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 5789,
+  "h1": [
+   "Des tarifs qui évoluent\navec votre croissance"
+  ],
+  "lang": "fr",
+  "wide": [
+   "table.w-full min-w-[760px] text-sm right=777",
+   "thead.border-b border-bolt-elements-borderColor bg-bolt- right=777",
+   "tr. right=777",
+   "th.p-5 text-center font-semibold text-bolt-elements-t right=396",
+   "th.p-5 text-center font-semibold text-[var(--ecode-ac right=496"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Connexion - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 673,
+  "h1": [
+   "Ravi de vous revoir"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Créer un compte - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 877,
+  "h1": [
+   "Créez votre compte"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Créer un compte - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 877,
+  "h1": [
+   "Créez votre compte"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/login",
+  "err": null,
+  "title": "Cette page est introuvable · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1866,
+  "h1": [
+   "Cette page est introuvable"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/login",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/signup",
+  "err": null,
+  "title": "Cette page est introuvable · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1866,
+  "h1": [
+   "Cette page est introuvable"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/signup",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/gallery",
+  "err": null,
+  "title": "Galerie - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2081,
+  "h1": [
+   "Les applications de la communauté — remixez-en une pour commencer"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/templates",
+  "err": null,
+  "title": "Modèles — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 6047,
+  "h1": [
+   "Démarrez plus vite avec des modèles E-Code prêts pour la production"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2780,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 10021,
+  "h1": [],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4273,
+  "h1": [
+   "Le blog E-Code"
+  ],
+  "lang": "fr",
+  "wide": [
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=463",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=539",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=665",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=771"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/terms",
+  "err": null,
+  "title": "Conditions d’utilisation — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4789,
+  "h1": [
+   "Conditions d’utilisation"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/privacy",
+  "err": null,
+  "title": "Politique de confidentialité — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 3562,
+  "h1": [
+   "Politique de confidentialité"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/forgot-password",
+  "err": null,
+  "title": "Mot de passe oublié - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 368,
+  "h1": [
+   "Mot de passe oublié ?"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Connexion - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 673,
+  "h1": [
+   "Ravi de vous revoir"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Connexion - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 673,
+  "h1": [
+   "Ravi de vous revoir"
+  ],
+  "lang": "fr",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "webkit-390",
+  "url": "https://e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page introuvable · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1861,
+  "h1": [
+   "Cette page est introuvable"
+  ],
+  "lang": "fr",
+  "wide": [
+   "span.bolt-route-loader-bar right=623"
+  ],
+  "errs": [],
+  "bad": [
+   "404 GET https://e-code.ai/n-existe-pas-qa"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/",
+  "err": null,
+  "title": "E-Code — Build, ship and scale apps with AI",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1777,
+  "h1": [
+   "Build and deploy\nproduction apps\nin minutes"
+  ],
+  "lang": "en",
+  "wide": [
+   "button.group flex shrink-0 items-center gap-2 px-3 sm:px- right=492",
+   "div.shrink-0 rounded-md bg-gradient-to-r from-ecode-or right=406",
+   "svg.[object SVGAnimatedString] right=400",
+   "rect.[object SVGAnimatedString] right=397",
+   "path.[object SVGAnimatedString] right=398"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/pricing",
+  "err": null,
+  "title": "Pricing — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4451,
+  "h1": [
+   "Pricing that scales\nwith your growth"
+  ],
+  "lang": "en",
+  "wide": [
+   "table.w-full min-w-[760px] text-sm right=777",
+   "thead.border-b border-bolt-elements-borderColor bg-bolt- right=777",
+   "tr. right=777",
+   "th.p-5 text-center font-semibold text-[var(--ecode-ac right=479",
+   "th.p-5 text-center font-semibold text-bolt-elements-t right=593"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/signup",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/login",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1483,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=563"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/login",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/signup",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1483,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/signup",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/gallery",
+  "err": null,
+  "title": "Gallery - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1602,
+  "h1": [
+   "Apps the community built — remix one to start"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/templates",
+  "err": null,
+  "title": "Templates — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4990,
+  "h1": [
+   "Start faster with production-ready E-Code templates"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2135,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 8662,
+  "h1": [],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 3429,
+  "h1": [
+   "The E-Code blog"
+  ],
+  "lang": "en",
+  "wide": [
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=461",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=587",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=703"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/terms",
+  "err": null,
+  "title": "Terms of Service — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4009,
+  "h1": [
+   "Terms of Service"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/privacy",
+  "err": null,
+  "title": "Privacy Policy — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2801,
+  "h1": [
+   "Privacy Policy"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=393"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/forgot-password",
+  "err": null,
+  "title": "Forgot password - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 245,
+  "h1": [
+   "Forgot your password?"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=413"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://app.e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page not found · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1491,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/n-existe-pas-qa"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/",
+  "err": null,
+  "title": "E-Code — Build, ship and scale apps with AI",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1777,
+  "h1": [
+   "Build and deploy\nproduction apps\nin minutes"
+  ],
+  "lang": "en",
+  "wide": [
+   "button.group flex shrink-0 items-center gap-2 px-3 sm:px- right=492",
+   "div.shrink-0 rounded-md bg-gradient-to-r from-ecode-or right=406",
+   "svg.[object SVGAnimatedString] right=400",
+   "rect.[object SVGAnimatedString] right=397",
+   "path.[object SVGAnimatedString] right=398"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/pricing",
+  "err": null,
+  "title": "Pricing — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4451,
+  "h1": [
+   "Pricing that scales\nwith your growth"
+  ],
+  "lang": "en",
+  "wide": [
+   "table.w-full min-w-[760px] text-sm right=777",
+   "thead.border-b border-bolt-elements-borderColor bg-bolt- right=777",
+   "tr. right=777",
+   "th.p-5 text-center font-semibold text-[var(--ecode-ac right=479",
+   "th.p-5 text-center font-semibold text-bolt-elements-t right=593"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/login",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1483,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=517"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/login",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/signup",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1483,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=494"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/signup",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/gallery",
+  "err": null,
+  "title": "Gallery - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1602,
+  "h1": [
+   "Apps the community built — remix one to start"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/templates",
+  "err": null,
+  "title": "Templates — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4990,
+  "h1": [
+   "Start faster with production-ready E-Code templates"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2135,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 8662,
+  "h1": [],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 3429,
+  "h1": [
+   "The E-Code blog"
+  ],
+  "lang": "en",
+  "wide": [
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=461",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=587",
+   "button.inline-flex min-h-[44px] shrink-0 cursor-pointer i right=703"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/terms",
+  "err": null,
+  "title": "Terms of Service — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 4009,
+  "h1": [
+   "Terms of Service"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/privacy",
+  "err": null,
+  "title": "Privacy Policy — E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 2801,
+  "h1": [
+   "Privacy Policy"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/forgot-password",
+  "err": null,
+  "title": "Forgot password - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 245,
+  "h1": [
+   "Forgot your password?"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-390",
+  "url": "https://e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page not found · E-Code",
+  "sw": 390,
+  "cw": 390,
+  "textLen": 1491,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/n-existe-pas-qa"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/",
+  "err": null,
+  "title": "E-Code — Build, ship and scale apps with AI",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1988,
+  "h1": [
+   "Build and deploy\nproduction apps\nin minutes"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/pricing",
+  "err": null,
+  "title": "Pricing — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 4585,
+  "h1": [
+   "Pricing that scales\nwith your growth"
+  ],
+  "lang": "en",
+  "wide": [
+   "table.w-full min-w-[760px] text-sm right=785",
+   "thead.border-b border-bolt-elements-borderColor bg-bolt- right=785",
+   "tr. right=785",
+   "th.p-5 text-center font-semibold text-bolt-elements-t right=785",
+   "tbody. right=785"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/signup",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/login",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1617,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/login",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/signup",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1617,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/signup",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/gallery",
+  "err": null,
+  "title": "Gallery - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1736,
+  "h1": [
+   "Apps the community built — remix one to start"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/templates",
+  "err": null,
+  "title": "Templates — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 5124,
+  "h1": [
+   "Start faster with production-ready E-Code templates"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 2269,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 8796,
+  "h1": [],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 3563,
+  "h1": [
+   "The E-Code blog"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/terms",
+  "err": null,
+  "title": "Terms of Service — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 4143,
+  "h1": [
+   "Terms of Service"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/privacy",
+  "err": null,
+  "title": "Privacy Policy — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 2935,
+  "h1": [
+   "Privacy Policy"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/forgot-password",
+  "err": null,
+  "title": "Forgot password - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 245,
+  "h1": [
+   "Forgot your password?"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://app.e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page not found · E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1625,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/n-existe-pas-qa"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/",
+  "err": null,
+  "title": "E-Code — Build, ship and scale apps with AI",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1988,
+  "h1": [
+   "Build and deploy\nproduction apps\nin minutes"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/pricing",
+  "err": null,
+  "title": "Pricing — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 4585,
+  "h1": [
+   "Pricing that scales\nwith your growth"
+  ],
+  "lang": "en",
+  "wide": [
+   "table.w-full min-w-[760px] text-sm right=785",
+   "thead.border-b border-bolt-elements-borderColor bg-bolt- right=785",
+   "tr. right=785",
+   "th.p-5 text-center font-semibold text-bolt-elements-t right=785",
+   "tbody. right=785"
+  ],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 646,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/login",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1617,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/login",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/signup",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1617,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=1072"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/signup",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/gallery",
+  "err": null,
+  "title": "Gallery - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1736,
+  "h1": [
+   "Apps the community built — remix one to start"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/templates",
+  "err": null,
+  "title": "Templates — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 5124,
+  "h1": [
+   "Start faster with production-ready E-Code templates"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 2269,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 8796,
+  "h1": [],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 3563,
+  "h1": [
+   "The E-Code blog"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/terms",
+  "err": null,
+  "title": "Terms of Service — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 4143,
+  "h1": [
+   "Terms of Service"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/privacy",
+  "err": null,
+  "title": "Privacy Policy — E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 2935,
+  "h1": [
+   "Privacy Policy"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/forgot-password",
+  "err": null,
+  "title": "Forgot password - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 245,
+  "h1": [
+   "Forgot your password?"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 483,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-768",
+  "url": "https://e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page not found · E-Code",
+  "sw": 768,
+  "cw": 768,
+  "textLen": 1625,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/n-existe-pas-qa",
+   "FAILED net::ERR_ABORTED https://e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/",
+  "err": null,
+  "title": "E-Code — Build, ship and scale apps with AI",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1961,
+  "h1": [
+   "Build and deploy\nproduction apps\nin minutes"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/pricing",
+  "err": null,
+  "title": "Pricing — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 4635,
+  "h1": [
+   "Pricing that scales\nwith your growth"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 816,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/signup",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 999,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 999,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/login",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1667,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/login",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/auth/signup",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1667,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=2236"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://app.e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/auth/signup",
+   "401 GET https://app.e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/gallery",
+  "err": null,
+  "title": "Gallery - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1786,
+  "h1": [
+   "Apps the community built — remix one to start"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/templates",
+  "err": null,
+  "title": "Templates — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 5174,
+  "h1": [
+   "Start faster with production-ready E-Code templates"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 2319,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 8846,
+  "h1": [],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 3613,
+  "h1": [
+   "The E-Code blog"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/terms",
+  "err": null,
+  "title": "Terms of Service — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 4193,
+  "h1": [
+   "Terms of Service"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/privacy",
+  "err": null,
+  "title": "Privacy Policy — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 2985,
+  "h1": [
+   "Privacy Policy"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/forgot-password",
+  "err": null,
+  "title": "Forgot password - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 408,
+  "h1": [
+   "Forgot your password?"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 816,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 816,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://app.e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://app.e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page not found · E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1675,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "bad": [
+   "404 GET https://app.e-code.ai/n-existe-pas-qa"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/",
+  "err": null,
+  "title": "E-Code — Build, ship and scale apps with AI",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1961,
+  "h1": [
+   "Build and deploy\nproduction apps\nin minutes"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/pricing",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/pricing",
+  "err": null,
+  "title": "Pricing — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 4635,
+  "h1": [
+   "Pricing that scales\nwith your growth"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/login",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 816,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": [
+   "FAILED net::ERR_ABORTED https://app.e-code.ai/api/impersonation.data?_routes=routes%2Fapi.impersonation"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/signup",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 999,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/register",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/register",
+  "err": null,
+  "title": "Create an account - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 999,
+  "h1": [
+   "Create your account"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/auth/login",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/login",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1667,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=2143"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/login",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/auth/signup",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/auth/signup",
+  "err": null,
+  "title": "This page could not be found · E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1667,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [
+   "span.bolt-route-loader-bar right=2193"
+  ],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()",
+   "console: Failed to load resource: the server responded with a status of 401 ()",
+   "console: Error fetching configured providers: Error\n    at zt (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:5605)\n    at async _t (https://e-code.ai/assets/source-control-connections-y-v0kOSf.js:1:6191)"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/auth/signup",
+   "401 GET https://e-code.ai/api/configured-providers"
+  ]
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/gallery",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/gallery",
+  "err": null,
+  "title": "Gallery - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1786,
+  "h1": [
+   "Apps the community built — remix one to start"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/templates",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/templates",
+  "err": null,
+  "title": "Templates — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 5174,
+  "h1": [
+   "Start faster with production-ready E-Code templates"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/enterprise",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/enterprise",
+  "err": null,
+  "title": "Enterprise - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 2319,
+  "h1": [
+   "Enterprise"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/docs",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/docs",
+  "err": null,
+  "title": "Documentation — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 8846,
+  "h1": [],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/blog",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/blog",
+  "err": null,
+  "title": "Blog — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 3613,
+  "h1": [
+   "The E-Code blog"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/terms",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/terms",
+  "err": null,
+  "title": "Terms of Service — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 4193,
+  "h1": [
+   "Terms of Service"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/privacy",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/privacy",
+  "err": null,
+  "title": "Privacy Policy — E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 2985,
+  "h1": [
+   "Privacy Policy"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/forgot-password",
+  "status": 200,
+  "finalUrl": "https://e-code.ai/forgot-password",
+  "err": null,
+  "title": "Forgot password - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 408,
+  "h1": [
+   "Forgot your password?"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/projects",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fprojects",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 816,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/dashboard",
+  "status": 200,
+  "finalUrl": "https://app.e-code.ai/login?returnTo=%2Fdashboard",
+  "err": null,
+  "title": "Login - E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 816,
+  "h1": [
+   "Welcome back"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [],
+  "bad": []
+ },
+ {
+  "cfg": "chromium-1440",
+  "url": "https://e-code.ai/n-existe-pas-qa",
+  "status": 404,
+  "finalUrl": "https://e-code.ai/n-existe-pas-qa",
+  "err": null,
+  "title": "Page not found · E-Code",
+  "sw": 1440,
+  "cw": 1440,
+  "textLen": 1675,
+  "h1": [
+   "This page could not be found"
+  ],
+  "lang": "en",
+  "wide": [],
+  "errs": [
+   "console: Failed to load resource: the server responded with a status of 404 ()"
+  ],
+  "bad": [
+   "404 GET https://e-code.ai/n-existe-pas-qa"
+  ]
+ }
+]

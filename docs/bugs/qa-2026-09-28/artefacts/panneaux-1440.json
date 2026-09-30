@@ -1,0 +1,58 @@
+[
+ {
+  "nom": "Git",
+  "clic": true,
+  "texte": "Bitbucket Connect a Bitbucket account for hosted Git workflows. Connect Bitbucket",
+  "erreurAffichee": [],
+  "evts": []
+ },
+ {
+  "nom": "Packages",
+  "clic": true,
+  "texte": "WORKSPACE PACKAGE SUMMARY NPM No lockfile detected yet MANIFESTS 1 package.json INDEXED FILES 7 Project storage plus runtime package files RUNTIME Failed remote LOCKFILES 0 Install will create one",
+  "erreurAffichee": [],
+  "evts": []
+ },
+ {
+  "nom": "Database",
+  "clic": true,
+  "texte": "All databases Refresh No database yet Provision a managed Postgres database for this project. The schema browser, SQL editor, and backups will use it. Create database",
+  "erreurAffichee": [],
+  "evts": []
+ },
+ {
+  "nom": "Secrets",
+  "clic": true,
+  "texte": "Secrets are encrypted and injected into your app as environment variables.",
+  "erreurAffichee": [],
+  "evts": []
+ },
+ {
+  "nom": "Deployments",
+  "clic": true,
+  "texte": "Republish your app Configure how your app is published and who can access it. Adjust settings Current status Not published Nothing published yet. Connected domain(s) Add a domain No domain yet — publishing will create one. Sharing Public Anyone on the internet",
+  "erreurAffichee": [],
+  "evts": []
+ },
+ {
+  "nom": "Monitoring",
+  "clic": true,
+  "texte": "15m 1h 24h Refresh metrics Workspace Runtime: Starting local-dev Deployments 0 No deployment recorded User events 13 1h window · 1 routine event hidden Tracked files 7 1h window Deployments No deployment recorded for this project yet. Activity rate 13 of 13 ev",
+  "erreurAffichee": [],
+  "evts": []
+ },
+ {
+  "nom": "Settings",
+  "clic": true,
+  "texte": "WORKSPACE Shared project configuration and governance. Project Metadata, repository and export controls Security Password policy, sessions and account protection AI Provider routing, agent defaults and keys",
+  "erreurAffichee": [],
+  "evts": []
+ },
+ {
+  "nom": "All tools",
+  "clic": true,
+  "texte": "TOOLS Editor Code editor ↵ Webview App preview ⌘↵ Library Browse project files ⌘P Search Find in files ↵ Locks Locked files ↵ Overview Project summary ↵ Agent Studio Agent supervisor ↵ Database SQL browser ↵ Object Storage File storage ↵ Packages Dependencies ",
+  "erreurAffichee": [],
+  "evts": []
+ }
+]

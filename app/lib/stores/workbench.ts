@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import { confirmWriteWithinDeadline, WRITE_CONFIRMATION_TIMEOUT_MS } from '~/lib/runtime/confirm-write';
 import { EditorStore } from './editor';
 import { fileHistoryStore } from './fileHistory';
+import { MessagesRecharges } from './messages-recharges';
 import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
 import {
   appendWorkspaceLogLines,
@@ -238,7 +239,14 @@ export class WorkbenchStore {
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(this.#runtime);
 
-  #reloadedMessages = new Set<string>();
+  /*
+   * RÉSOLUTION DU CONFLIT, 2026-09-30 : les deux côtés gardent leur apport.
+   * Cette branche remplace le `Set` par `MessagesRecharges` ; `main` ajoute
+   * `#messagesRattrapes`, qui est un champ DISTINCT et toujours utilisé
+   * (3 occurrences). Prendre un seul côté aurait silencieusement supprimé
+   * l'autre — c'est exactement la perte que la règle 24 vise.
+   */
+  #reloadedMessages = new MessagesRecharges();
 
   /*
    * Messages dont la réponse a été RATTRAPÉE depuis le serveur après une
@@ -541,6 +549,7 @@ export class WorkbenchStore {
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
       this.filesHydrated.set(false);
+      this.#reloadedMessages.oublier();
     }
 
     /*
@@ -3028,7 +3037,17 @@ export class WorkbenchStore {
   }
 
   setReloadedMessages(messages: string[]) {
-    this.#reloadedMessages = new Set(messages);
+    this.#reloadedMessages.remplacer(messages);
+  }
+
+  /**
+   * BUG-QA0929-REOUVERTURE-REJOUE — le fil relu depuis le SERVEUR. Tenu à part :
+   * `setReloadedMessages` (appelé avant chaque passe du parseur avec le cache
+   * local, vide sur un appareil neuf) ne doit pas l'effacer, sinon les écritures
+   * historiques de l'agent sont rejouées par-dessus le travail de l'utilisateur.
+   */
+  markHydratedMessages(messages: string[]) {
+    this.#reloadedMessages.marquerHydrates(messages);
   }
 
   addArtifact({ messageId, title, id, type }: ArtifactCallbackData) {
@@ -3051,21 +3070,21 @@ export class WorkbenchStore {
         this.#runtime,
         () => this.boltTerminal,
         (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
+          if (this.#reloadedMessages.contient(messageId)) {
             return;
           }
 
           this.actionAlert.set(alert);
         },
         (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
+          if (this.#reloadedMessages.contient(messageId)) {
             return;
           }
 
           this.supabaseAlert.set(alert);
         },
         (alert) => {
-          if (this.#reloadedMessages.has(messageId)) {
+          if (this.#reloadedMessages.contient(messageId)) {
             return;
           }
 
@@ -3152,7 +3171,7 @@ export class WorkbenchStore {
       return;
     }
 
-    if (this.#reloadedMessages.has(data.messageId)) {
+    if (this.#reloadedMessages.contient(data.messageId)) {
       artifact.runner.skipAction(data.actionId);
       return;
     }
