@@ -12,7 +12,6 @@ SORTIE="${SORTIE:-$ICI/../../test-results/ios-sim}"; mkdir -p "$SORTIE"
 set -a; . "$ICI/compte-test.exemple.env"; set +a
 export DATABASE_URL=postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore REDIS_URL=redis://127.0.0.1:56379
 export API_HOST=127.0.0.1 API_PORT=3001 API_BASE_URL=http://127.0.0.1:3001 SAAS_API_URL=http://127.0.0.1:3001 HUSKY=0
-ORB_AVANT=$(docker info >/dev/null 2>&1 && echo oui || echo non)
 PIDS=""
 eteindre() {
   echo "== extinction"
@@ -20,11 +19,14 @@ eteindre() {
   for port in 5173 3001 8765; do lsof -nP -iTCP:$port -sTCP:LISTEN -t 2>/dev/null | xargs kill 2>/dev/null; done
   (cd "$APP" && docker compose -p vc-banc-ios --env-file /dev/null -f docker-compose.dev.yml down -v >/dev/null 2>&1)
   xcrun simctl shutdown "$U" >/dev/null 2>&1
-  AUTRES=$(docker ps -q 2>/dev/null | wc -l | tr -d ' ')
-  if [ "$ORB_AVANT" = non ] && [ "$AUTRES" = 0 ]; then osascript -e 'quit app "OrbStack"' >/dev/null 2>&1; echo "OrbStack quitté"; else echo "OrbStack laissé (allumé avant, ou $AUTRES conteneur(s) d'une autre session)"; fi
+  [ "$ORB_PRIS" = oui ] && "$ICI/orbstack-verrou.sh" rendre
 }
+ORB_PRIS=non
 trap eteindre EXIT
-open -a OrbStack; for i in $(seq 1 60); do docker info >/dev/null 2>&1 && break; sleep 2; done
+# Verrou partagé : OrbStack ne se ferme que quand la DERNIÈRE session le rend.
+"$ICI/orbstack-verrou.sh" prendre; RC_ORB=$?
+[ "$RC_ORB" != 3 ] && ORB_PRIS=oui
+[ "$RC_ORB" = 0 ] || { echo "ORBSTACK KO ($RC_ORB)"; exit 1; }
 # Base NEUVE à chaque passage : un volume resté d'un passage interrompu rend l'inscription 409.
 (cd "$APP" && docker compose -p vc-banc-ios --env-file /dev/null -f docker-compose.dev.yml down -v) >> "$SORTIE/bases.log" 2>&1
 (cd "$APP" && POSTGRES_PORT=55432 REDIS_PORT=56379 docker compose -p vc-banc-ios --env-file /dev/null -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis) > "$SORTIE/bases.log" 2>&1 || { echo "BASES KO (voir bases.log)"; tail -20 "$SORTIE/bases.log"; exit 1; }
