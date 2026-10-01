@@ -37,6 +37,8 @@ export const invitationsEn = {
   'invitations.error.notFound': 'This invitation is no longer available. Reload the page and try again.',
   'invitations.error.conflict': 'This invitation changed before the action completed. Reload and try again.',
   'invitations.error.rateLimited': 'Too many invitation requests were sent. Wait a moment and try again.',
+  'invitations.error.seatLimit':
+    'Your plan has no free seat left for another member. Upgrade your plan, or revoke a pending invitation, to invite this colleague.',
   'invitations.error.rejected': 'The invitation action could not be completed. Review the details and try again.',
   'invitations.error.unavailable': 'The invitation service is temporarily unavailable. Try again shortly.',
   'invitations.form.title': 'Create an invitation',
@@ -86,6 +88,10 @@ export const invitationsEn = {
   'invitations.accept.error.invalid': 'This invitation is invalid, expired, or has already been used.',
   'invitations.accept.error.rateLimited': 'Too many attempts were made. Wait a moment, then try again.',
   'invitations.accept.error.unavailable': 'Invitations are temporarily unavailable. Try again shortly.',
+  'invitations.accept.error.emailMismatch':
+    'This invitation was sent to a different email address. Sign in with the invited address to accept it.',
+  'invitations.accept.error.seatLimit':
+    'The team that invited you has no free seat left on its plan. Let the person who invited you know: they need to free a seat or upgrade.',
 } as const;
 
 export type InvitationsCopy = { [Key in keyof typeof invitationsEn]: string };
@@ -131,6 +137,8 @@ export const invitationsFr: InvitationsCopy = {
     'Cette invitation a changé avant la fin de l’action. Rechargez la page, puis réessayez.',
   'invitations.error.rateLimited':
     'Trop de demandes d’invitation ont été envoyées. Patientez un instant, puis réessayez.',
+  'invitations.error.seatLimit':
+    'Votre forfait n’a plus de place libre pour un membre de plus. Passez à un forfait supérieur, ou révoquez une invitation en attente, pour inviter ce collègue.',
   'invitations.error.rejected':
     'Impossible d’effectuer l’action sur l’invitation. Vérifiez les informations, puis réessayez.',
   'invitations.error.unavailable':
@@ -185,6 +193,10 @@ export const invitationsFr: InvitationsCopy = {
     'Trop de tentatives ont été effectuées. Patientez un instant, puis réessayez.',
   'invitations.accept.error.unavailable':
     'Les invitations sont temporairement indisponibles. Réessayez dans quelques instants.',
+  'invitations.accept.error.emailMismatch':
+    'Cette invitation a été envoyée à une autre adresse e-mail. Connectez-vous avec l’adresse invitée pour l’accepter.',
+  'invitations.accept.error.seatLimit':
+    'L’équipe qui vous a invité n’a plus de place libre sur son forfait. Prévenez la personne qui vous a invité : elle doit libérer une place ou changer de forfait.',
 };
 
 export type InvitationActionStatusCode = 'created' | 'resent' | 'expired';
@@ -198,6 +210,7 @@ export type InvitationActionErrorCode =
   | 'notFound'
   | 'conflict'
   | 'rateLimited'
+  | 'seatLimit'
   | 'rejected'
   | 'unavailable';
 
@@ -338,6 +351,8 @@ export function invitationActionErrorMessage(
       return copy['invitations.error.conflict'];
     case 'rateLimited':
       return copy['invitations.error.rateLimited'];
+    case 'seatLimit':
+      return copy['invitations.error.seatLimit'];
     case 'rejected':
       return copy['invitations.error.rejected'];
     case 'unavailable':

@@ -803,8 +803,16 @@ export const ChatImpl = memo(
        * sanitized-with-a-loud-log only when JSON.stringify would throw. This is the
        * fix for the reopened-project send-stall where append() produced zero POST.
        */
-      experimental_prepareRequestBody: ({ id, messages: requestMessages, requestData, requestBody }) =>
-        ensureJsonSafeBody(
+      experimental_prepareRequestBody: ({ id, messages: requestMessages, requestData, requestBody }) => {
+        /*
+         * La demande part avec les fichiers tels qu'ils sont : c'est CE que l'agent
+         * lit. Un enregistrement de l'utilisateur après cet instant, l'agent ne
+         * l'a pas vu — l'acceptation de ses propositions le fusionne au lieu de
+         * l'écraser (`AgentPatchProposal.contenuLu`).
+         */
+        workbenchStore.noterLaLectureDeLAgent();
+
+        return ensureJsonSafeBody(
           {
             id,
             messages: requestMessages,
@@ -825,7 +833,8 @@ export const ChatImpl = memo(
               : {}),
           },
           '/api/chat',
-        ),
+        );
+      },
 
       /*
        * Coalesce token-by-token stream updates into ~40ms frames. Without this
