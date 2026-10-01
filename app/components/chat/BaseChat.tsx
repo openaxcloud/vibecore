@@ -165,6 +165,7 @@ import {
   type HauteurDeRepos,
 } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
+import { PhraseAvecCode } from '~/components/ui/PhraseAvecCode';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { initialesPersonne, libellePersonne } from '~/utils/person-label';
@@ -19658,9 +19659,10 @@ function ProjectMonitoringPanel({
            * une chaîne traduite — « événement interne de routines ». Une clé
            * plurielle par langue règle les deux.
            */}
-          {t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
-          <code>project.ide_state.*</code>
-          {t('chat.copy.openTheLogsPanelToInspect_cc12758f')}
+          <PhraseAvecCode
+            texte={t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
+            codes={{ code: 'project.ide_state.*' }}
+          />
         </div>
       ) : null}
     </div>
@@ -20338,9 +20340,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   </small>
                 ) : (
                   <small className="bolt-project-workflow-nextrun">
-                    {t('chat.copy.notScheduledEnterACronExpression_4b9e799a')}
-                    <code>0 3 * * *</code>
-                    {t('chat.copy.andEnableItTheSchedulerWill_c6c6f347')}
+                    <PhraseAvecCode texte={t('baseChatAst.workflows.notScheduled')} codes={{ exemple: '0 3 * * *' }} />
                   </small>
                 )}
               </form>
@@ -20715,11 +20715,10 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
         <div>
           <PanelSectionTitle>{t('chat.copy.addAuthentication_2855841d')}</PanelSectionTitle>
           <p className="text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b')}
-            <code>users</code>
-            {t('chat.copy.tableMigrationAnExpressSessionJwt_120a5fe5')}
-            <code>AUTH_JWT_SECRET</code>
-            {t('chat.copy.forYou_c10f85ac')}
+            <PhraseAvecCode
+              texte={t('baseChatAst.integrations.authDescription')}
+              codes={{ users: 'users', secret: 'AUTH_JWT_SECRET' }}
+            />
           </p>
         </div>
         <button
