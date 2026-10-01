@@ -10813,11 +10813,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         email: user.email,
       });
 
-      const organization = await store.createOrganization({
-        name: body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale),
-        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
-        ownerUserId: user.id,
-      });
+      const organizationName = body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale);
+      const baseSlug = body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`;
+
+      /*
+       * UIB-10 — Organization.slug est @unique. Mesuré le 2026-10-01 : un second
+       * client qui choisissait un nom d'organisation déjà pris (« Acme ») recevait
+       * une erreur 500 — APRÈS la création de son compte, qui restait sans
+       * organisation ; en réessayant, « adresse déjà utilisée ». À l'inscription,
+       * le nom n'est qu'un libellé : on garde le nom choisi et on rend le slug
+       * unique avec un suffixe tiré de l'utilisateur (même forme que l'import).
+       */
+      let organization;
+
+      try {
+        organization = await store.createOrganization({ name: organizationName, slug: baseSlug, ownerUserId: user.id });
+      } catch (error) {
+        if ((error as { code?: string } | null)?.code !== 'P2002') {
+          throw error;
+        }
+
+        organization = await store.createOrganization({
+          name: organizationName,
+          slug: `${baseSlug}-${user.id.slice(-6)}`,
+          ownerUserId: user.id,
+        });
+      }
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
