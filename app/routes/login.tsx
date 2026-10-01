@@ -575,6 +575,7 @@ export default function LoginPage() {
               pendingProvider={pendingProvider}
               onStart={startOAuth}
               disabled={isSubmitting}
+              returnTo={loaderData?.returnTo}
             />
           ) : null}
           {providerReady('google') ? (
@@ -585,6 +586,7 @@ export default function LoginPage() {
               pendingProvider={pendingProvider}
               onStart={startOAuth}
               disabled={isSubmitting}
+              returnTo={loaderData?.returnTo}
             />
           ) : null}
         </div>
