@@ -506,16 +506,63 @@ jobs:
           #
           # On interroge donc le dernier déploiement RÉUSSI de ce workflow : la
           # seule base qui décrive ce qui tourne vraiment.
+          #
+          # ⚠️ ET ON NE FAIT PAS CONFIANCE AU PREMIER RESULTAT — mesure du
+          # 2026-10-01. `?branch=main&status=success&per_page=1` a rendu, deux
+          # fois dans la meme journee, un run du 2026-09-10 : trois semaines de
+          # retard, alors que des deploiements reussis du jour meme existaient.
+          # L'index des runs est a coherence differee, et un `per_page=1` fait
+          # dependre toute la detection de sa fraicheur.
+          #
+          # Consequence mesuree : la base etait a ~1 000 commits de HEAD, le
+          # motif de base partagee matchait forcement, et le deploiement
+          # reconstruisait LES QUATRE tiers. Deux deploiements sur quatre ce
+          # jour-la. Jamais faux — seulement deux a quatre fois plus lent, et
+          # c'est ce qui a etrangle la file toute la journee.
+          #
+          # On demande donc PLUSIEURS candidats et on choisit cote client le
+          # plus PROCHE de HEAD (distance en commits), ce qui ne depend plus de
+          # l'ordre rendu par l'API. Epingle par
+          # tests/guards/base-du-dernier-deploiement.spec.ts.
           BASE=""
-          LAST_DEPLOYED="$(gh api \
-            "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-main.yml/runs?branch=main&status=success&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || echo "")"
+          CANDIDATS_ERR="$(mktemp)"
+          CANDIDATS="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-main.yml/runs?branch=main&status=success&per_page=50" \
+            --jq '.workflow_runs[].head_sha' 2>"${CANDIDATS_ERR}" || true)"
+          # Regle 13 : on ne masque PAS l'erreur de la commande dont on lit le
+          # resultat. Un 403 sur `actions: read` rendrait une liste vide, et une
+          # liste vide se lit comme « aucun deploiement reussi ».
+          if [ -z "${CANDIDATS}" ] && [ -s "${CANDIDATS_ERR}" ]; then
+            echo "::warning::l'API des runs n'a rien rendu — voici son erreur :"
+            sed 's/^/  gh: /' "${CANDIDATS_ERR}"
+          fi
+          rm -f "${CANDIDATS_ERR}"
 
-          if printf '%s' "${LAST_DEPLOYED}" | grep -Eq '^[0-9a-f]{40}$' \
-            && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
-            && git merge-base --is-ancestor "${LAST_DEPLOYED}" HEAD 2>/dev/null; then
-            BASE="${LAST_DEPLOYED}"
-            echo "Base = dernier deploiement reussi (${BASE})"
+          MEILLEURE_DISTANCE=""
+          NB_CANDIDATS=0
+          NB_RETENUS=0
+          for CANDIDAT in ${CANDIDATS}; do
+            NB_CANDIDATS=$((NB_CANDIDATS + 1))
+            printf '%s' "${CANDIDAT}" | grep -Eq '^[0-9a-f]{40}$' || continue
+            git cat-file -e "${CANDIDAT}^{commit}" 2>/dev/null || continue
+            git merge-base --is-ancestor "${CANDIDAT}" HEAD 2>/dev/null || continue
+            DISTANCE="$(git rev-list --count "${CANDIDAT}..HEAD" 2>/dev/null || echo "")"
+            printf '%s' "${DISTANCE}" | grep -Eq '^[0-9]+$' || continue
+            NB_RETENUS=$((NB_RETENUS + 1))
+            if [ -z "${MEILLEURE_DISTANCE}" ] || [ "${DISTANCE}" -lt "${MEILLEURE_DISTANCE}" ]; then
+              MEILLEURE_DISTANCE="${DISTANCE}"
+              BASE="${CANDIDAT}"
+            fi
+          done
+          echo "Candidats de base : ${NB_CANDIDATS} rendus, ${NB_RETENUS} ancetres de HEAD"
+
+          if [ -n "${BASE}" ]; then
+            echo "Base = deploiement reussi le plus proche (${BASE}, a ${MEILLEURE_DISTANCE} commit(s) de HEAD)"
+            # Le signal qui aurait revele le defaut du jour : une base lointaine
+            # n'est pas fausse, mais elle fait tout reconstruire. On le DIT.
+            if [ "${MEILLEURE_DISTANCE}" -gt 50 ]; then
+              echo "::warning::la base retenue est a ${MEILLEURE_DISTANCE} commits de HEAD — tous les tiers vont probablement etre reconstruits"
+            fi
           elif printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
             BASE="${BEFORE_SHA}"
             echo "::warning::dernier deploiement reussi introuvable — repli sur le push precedent (${BASE}) ; des tiers peuvent etre manques"
