@@ -199,8 +199,8 @@ export default function Careers() {
                     </div>
                     <a
                       href="/contact"
-                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-white font-medium hover:opacity-90 min-h-[44px] whitespace-nowrap transition-opacity"
-                      style={{ backgroundColor: '#F26207' }}
+                      className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-[var(--ecode-accent-contrast)] font-medium hover:opacity-90 min-h-[44px] whitespace-nowrap transition-opacity"
+                      style={{ backgroundColor: 'var(--ecode-accent)' }}
                       data-testid={`link-apply-${role.id}`}
                     >
                       {copy.roles.apply}
@@ -281,8 +281,8 @@ export default function Careers() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a
                     href="/contact"
-                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: '#F26207' }}
+                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-[var(--ecode-accent-contrast)] min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: 'var(--ecode-accent)' }}
                     data-testid="link-careers-contact"
                   >
                     {copy.cta.contact}

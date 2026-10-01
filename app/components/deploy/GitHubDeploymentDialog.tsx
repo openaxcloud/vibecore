@@ -973,7 +973,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                               key={repo.full_name}
                               type="button"
                               onClick={() => setRepoName(repo.name)}
-                              className="w-full p-3 text-left rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 transition-colors group border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark hover:border-[var(--ecode-accent)]/30"
+                              className="w-full p-3 text-left rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 transition-colors group border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)]"
                               whileHover={{ scale: 1.01 }}
                               whileTap={{ scale: 0.99 }}
                             >

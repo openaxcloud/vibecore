@@ -427,7 +427,7 @@ export default function ContactSales() {
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] hover:opacity-90 transition-opacity disabled:opacity-60 disabled:pointer-events-none"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-[var(--ecode-accent-contrast)] min-h-[44px] hover:opacity-90 transition-opacity disabled:opacity-60 disabled:pointer-events-none"
                           style={{ backgroundColor: 'var(--ecode-accent)' }}
                           data-testid="button-contact-sales-submit"
                         >

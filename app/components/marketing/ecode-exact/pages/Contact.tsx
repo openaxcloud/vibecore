@@ -266,7 +266,7 @@ export default function Contact() {
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
               <span
-                className="inline-flex h-14 w-14 items-center justify-center rounded-xl mb-5 text-white shadow-sm"
+                className="inline-flex h-14 w-14 items-center justify-center rounded-xl mb-5 text-[var(--ecode-accent-contrast)] shadow-sm"
                 style={{ backgroundColor: 'var(--ecode-accent)' }}
               >
                 <Mail className="h-7 w-7" />
@@ -294,7 +294,7 @@ export default function Contact() {
                   <Card key={channel.id}>
                     <CardContent className="pt-6 text-center">
                       <span
-                        className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-white shadow-sm"
+                        className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-[var(--ecode-accent-contrast)] shadow-sm"
                         style={{ backgroundColor: 'var(--ecode-accent)' }}
                       >
                         <Icon className="h-6 w-6" />
@@ -440,7 +440,7 @@ export default function Contact() {
                         <button
                           type="submit"
                           disabled={isSubmitting}
-                          className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-md text-sm font-medium text-white min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
+                          className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-md text-sm font-medium text-[var(--ecode-accent-contrast)] min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none"
                           style={{ backgroundColor: 'var(--ecode-accent)' }}
                           data-testid="button-contact-submit"
                         >

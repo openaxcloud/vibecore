@@ -69,12 +69,13 @@ interface EmptyStateProps {
 /*
  * UNIF lot 4 — source UNIQUE du style « bouton primary » de l'IDE (décision
  * B2/K1 de docs/UX_UNIFORMIZATION_AUDIT.md) : CTA plein `--vc-ide-accent-action`
- * + texte blanc. `PanelButton` (project-ide/PanelPrimitives) importe cette
+ * + encre `--vc-cta-accent-foreground` (foncée sur l'orange vif du thème sombre :
+ * le blanc y tombait à 2,8:1). `PanelButton` (project-ide/PanelPrimitives) importe cette
  * constante ; l'ancien style teinté `bg-bolt-elements-button-primary-*` n'est
  * plus qu'un alias legacy hors panneaux IDE.
  */
 export const IDE_PRIMARY_ACCENT_CLASSES =
-  'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
+  'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-[var(--vc-cta-accent-foreground,var(--vc-ide-on-accent-action))] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
 
 const PRIMARY_CTA_CLASSES = classNames(
   'inline-flex items-center justify-center rounded-md font-medium',

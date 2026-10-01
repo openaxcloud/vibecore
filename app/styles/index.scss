@@ -528,6 +528,8 @@ html:has(.vc-app-shell-grid) body {
   // la coque user area (.vc-user-area-shell) le remappe sur le ton renforcé
   // SCR-007, car blanc sur l'orange de marque #f97316 = 2,80:1 (< 4,5 AA).
   --vc-cta-accent: var(--vc-ide-accent-action);
+  /* Encre du CTA plein, jumelle de son fond : foncée sur l'orange vif du thème sombre, blanche sur l'orange profond du clair. */
+  --vc-cta-accent-foreground: var(--vc-ide-on-accent-action);
   --vc-action-primary-strong: #c2410c;
   // SCR-007 : survol du bouton primaire porteur de texte blanc. Il remplace
   // `hover:brightness-110`, qui ECLAIRCIT le fond (#c2410c x1.1 = 4,41:1) et
@@ -562,6 +564,7 @@ html:has(.vc-app-shell-grid) body {
    */
   --vc-ide-on-accent-action: #111827;
   --vc-ide-on-accent-error: #111827;
+  --vc-ide-on-accent-error-hover-mix: white;
 
   /*
    * En sombre les canoniques passent déjà AA sur leur propre teinte
@@ -608,7 +611,7 @@ html:has(.vc-app-shell-grid) body {
   --popover: 221.7 29.1% 15.5%;
   --popover-foreground: 205.7 53.8% 97.5%;
   --primary: 24 96% 49%;
-  --primary-foreground: 210 40% 98%;
+  --primary-foreground: 221 39% 11%;
   --secondary: 222.9 21.6% 19%;
   --secondary-foreground: 205.7 53.8% 97.5%;
   --muted: 222.9 21.6% 19%;
@@ -869,6 +872,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-animation-drop-zone: 100ms;
   --vc-animation-typing: 1.4s;
   --vc-run-stop-bg: #f85149;
+  --vc-run-stop-fg: #111827;
   --vc-accessibility-focus-width: 2px;
   --vc-accessibility-reduced-motion-duration: 50ms;
   --vc-accessibility-contrast-text: #f5f9fc;
@@ -1081,6 +1085,9 @@ html:has(.vc-app-shell-grid) body {
   /* Voir la note en tête de `:root` : l'encre sur aplat s'inverse avec le thème. */
   --vc-ide-on-accent-action: #ffffff;
   --vc-ide-on-accent-error: #ffffff;
+  /* Le fond d'arrêt (--vc-run-stop-bg, #f85149) est le même dans les deux thèmes : son encre aussi. */
+  --vc-run-stop-fg: #111827;
+  --vc-ide-on-accent-error-hover-mix: black;
 
   /*
    * Variantes « sur teinte » : même famille que les canoniques ci-dessus, mais
@@ -1130,7 +1137,7 @@ html:has(.vc-app-shell-grid) body {
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
   --primary: 24 96% 49%;
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 221 39% 11%;
   --secondary: 39 96% 56%;
   --secondary-foreground: 0 0% 0%;
   --muted: 210 17% 96%;
@@ -1389,6 +1396,7 @@ html:has(.vc-app-shell-grid) body {
    */
   --vc-ide-on-accent-action: #111827;
   --vc-ide-on-accent-error: #111827;
+  --vc-ide-on-accent-error-hover-mix: white;
   // AI gradient stops. Already hard-coded in the agent placeholder SVG served
   // by services/api; declaring them makes the pair part of the token layer
   // instead of a duplicated literal.
@@ -4057,7 +4065,7 @@ body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator)
 
 body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app']) {
   background: var(--vc-run-stop-bg);
-  color: #ffffff;
+  color: var(--vc-run-stop-fg);
 }
 
 body
@@ -4375,6 +4383,8 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   // SCR-007 : les CTA pleins à texte blanc du user area utilisent le ton
   // renforcé (5,16:1) — l'orange de marque reste pour bordures/icônes/anneaux.
   --vc-cta-accent: var(--vc-action-primary-strong);
+  /* Zone utilisateur : fond #c2410c dans les deux thèmes, le blanc y tient (≈ 5,2:1). */
+  --vc-cta-accent-foreground: #ffffff;
   --vc-ide-accent-primary: var(--vc-action-primary);
   --vc-ide-accent: var(--vc-action-primary);
   --vc-ide-text-on-accent: var(--vc-action-primary-foreground);
@@ -4407,6 +4417,7 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 
   /* Déjà assez sombre en clair : le ton fort s'aligne sur l'accent courant. */
   --vc-action-primary-strong: #c2410c;
+  --vc-cta-accent-foreground: #ffffff;
   --vc-action-primary-hover: #9a3412;
   --vc-action-primary-foreground: #ffffff;
   --bolt-elements-bg-depth-4: rgb(231 233 235 / 0.84);
@@ -6499,7 +6510,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-workbench-mobile-run-action[data-run-state='stopping'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 24%);
   background: var(--vc-ide-accent-error);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-error);
 }
 
 .bolt-workbench-mobile-run-action.is-error,
@@ -7336,7 +7347,7 @@ body :where(.lucide, svg[data-lucide]) {
   height: 28px;
   border-radius: 7px;
   background: var(--vc-ide-accent-action);
-  color: white !important;
+  color: var(--vc-ide-on-accent-action) !important;
   padding: 0 9px;
   font-size: 11px !important;
   font-weight: 750;
@@ -7447,10 +7458,16 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-run-button.is-running {
   background: var(--vc-ide-accent-error);
+  color: var(--vc-ide-on-accent-error) !important;
 }
 
 .bolt-project-run-button.is-running:hover {
-  background: color-mix(in srgb, var(--vc-ide-accent-error), black 12%) !important;
+  /*
+   * Le survol s'éloigne de l'ENCRE, pas toujours vers le noir : encre foncée en
+   * sombre → on éclaircit (assombrir donnait 4,19:1) ; encre blanche en clair →
+   * on assombrit.
+   */
+  background: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-error-hover-mix) 12%) !important;
 }
 
 /*
@@ -9256,7 +9273,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 0;
   border-radius: 8px;
   background: var(--vc-ide-accent-action, #1488fc);
-  color: #fff;
+  color: var(--vc-ide-on-accent-action);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
   padding: 4px;
 }
@@ -9920,7 +9937,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 0;
   border-radius: 10px;
   background: var(--vc-ide-accent-action, #2563eb);
-  color: #fff;
+  color: var(--vc-ide-on-accent-action);
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
@@ -10057,7 +10074,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-secrets-add {
   background: var(--vc-ide-accent-action, #2563eb);
-  color: #fff;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-secrets-add:disabled {
@@ -10874,7 +10891,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid var(--vc-ide-bg-panel);
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-on-accent-action);
   font-size: 9px;
   font-weight: 700;
   line-height: 12px;
@@ -11068,7 +11085,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail-item[data-tone='danger'] .bolt-project-ide-rail-badge {
   background: var(--vc-ide-accent-error);
-  color: white;
+  color: var(--vc-ide-on-accent-error);
 }
 
 .bolt-project-ide-rail-more-trigger {
@@ -11280,7 +11297,7 @@ body :where(.lucide, svg[data-lucide]) {
     var(--vc-ide-accent-action),
     color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
   );
-  color: white;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-project-agent-title {
@@ -11385,7 +11402,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-mode--segmented button[aria-pressed='true'] {
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.06);
 }
 
@@ -12026,7 +12043,7 @@ body :where(.lucide, svg[data-lucide]) {
     var(--vc-ide-accent-action),
     color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
   );
-  color: white;
+  color: var(--vc-ide-on-accent-action);
   font-size: 32px;
   opacity: 0.75;
 }
@@ -13646,7 +13663,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid transparent;
   border-radius: 6px;
   background: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-action));
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   font-size: 12px;
   font-weight: 700;
   margin-top: 24px;
@@ -16859,7 +16876,7 @@ body :where(.lucide, svg[data-lucide]) {
     var(--vc-ide-accent-action),
     color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
   );
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -20134,7 +20151,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-guided-tour-card footer div button:last-child {
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-project-guided-tour-card button:disabled {
@@ -20813,7 +20830,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       justify-content: center;
       border-radius: 999px;
       background: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-action));
-      color: #ffffff;
+      color: var(--vc-ide-on-accent-action);
       font-weight: 800;
     }
 
@@ -30067,7 +30084,7 @@ body:has(.bolt-project-statusbar)
   padding: 12px 24px;
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   font-size: 13px;
   font-weight: 600;
   border: 0;

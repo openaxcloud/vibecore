@@ -102,7 +102,7 @@ export default function Pricing() {
     },
     core: {
       icon: <Star className="h-6 w-6" />,
-      gradient: 'from-[var(--ecode-accent)] to-[var(--ecode-accent)]/80',
+      gradient: 'from-[var(--ecode-accent)] to-[color-mix(in_srgb,var(--ecode-accent)_80%,transparent)]',
       description: '€25/mo of credits, collaborators and any-region publishing',
       popular: true,
       ctaVariant: 'default',
@@ -444,7 +444,7 @@ export default function Pricing() {
             >
               <Badge
                 variant="secondary"
-                className="mb-4 px-6 py-2 text-[13px] font-semibold bg-[var(--ecode-accent)]/10 border-[var(--ecode-accent)]/20 text-[var(--ecode-accent)]"
+                className="mb-4 px-6 py-2 text-[13px] font-semibold bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] border-[color-mix(in_srgb,var(--ecode-accent)_20%,transparent)] text-[var(--ecode-accent)]"
                 data-testid="badge-savings"
               >
                 <Sparkles className="h-4 w-4 mr-2 text-[var(--ecode-accent)]" />
@@ -458,7 +458,7 @@ export default function Pricing() {
             >
               <span className="text-[var(--ecode-text)]">Pricing that scales</span>
               <br />
-              <span className="bg-gradient-to-r from-[var(--ecode-accent)] to-[var(--ecode-accent)]/80 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-[var(--ecode-accent)] to-[color-mix(in_srgb,var(--ecode-accent)_80%,transparent)] bg-clip-text text-transparent">
                 with your growth
               </span>
             </h1>
@@ -542,8 +542,8 @@ export default function Pricing() {
                         ? 'border-2 border-[var(--ecode-accent)] shadow-[0_8px_32px_-8px_rgba(242,98,7,0.4)]'
                         : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)]'
                     }
-                    ${hoveredCard === tier.name && !tier.popular ? 'shadow-[0_8px_24px_-8px_rgba(242,98,7,0.2)] border-[var(--ecode-accent)]/30' : ''}
-                    ${!tier.popular ? 'hover:border-[var(--ecode-accent)]/30' : ''}
+                    ${hoveredCard === tier.name && !tier.popular ? 'shadow-[0_8px_24px_-8px_rgba(242,98,7,0.2)] border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)]' : ''}
+                    ${!tier.popular ? 'hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)]' : ''}
                     backdrop-blur-sm bg-[var(--ecode-surface)]
                   `}
                 >
@@ -601,10 +601,10 @@ export default function Pricing() {
                     <Button
                       className={`w-full h-11 sm:h-12 text-[13px] sm:text-base font-semibold transition-all duration-200 ${
                         tier.popular
-                          ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-white shadow-lg hover:shadow-xl'
+                          ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-[var(--ecode-accent-contrast)] shadow-lg hover:shadow-xl'
                           : tier.enterprise
-                            ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-white'
-                            : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] hover:border-[var(--ecode-accent)]/30 hover:bg-[var(--ecode-accent)]/5'
+                            ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-[var(--ecode-accent-contrast)]'
+                            : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)]'
                       }`}
                       variant={tier.popular || tier.enterprise ? 'default' : 'outline'}
                       onClick={() => handleSelectPlan(tier)}
@@ -621,7 +621,7 @@ export default function Pricing() {
                           <li key={idx} className="flex items-start gap-3 group">
                             {feature.included ? (
                               <div
-                                className={`mt-0.5 transition-colors duration-200 ${feature.highlight ? 'text-[var(--ecode-accent)]' : 'text-[var(--ecode-accent)]/70'}`}
+                                className={`mt-0.5 transition-colors duration-200 ${feature.highlight ? 'text-[var(--ecode-accent)]' : 'text-[color-mix(in_srgb,var(--ecode-accent)_70%,transparent)]'}`}
                               >
                                 <CheckCircle2 className="h-5 w-5" />
                               </div>
@@ -763,7 +763,7 @@ export default function Pricing() {
                         {category.features.map((feature, featureIdx) => (
                           <tr
                             key={featureIdx}
-                            className="border-b border-[var(--ecode-border)] hover:bg-[var(--ecode-accent)]/5 transition-colors duration-200"
+                            className="border-b border-[var(--ecode-border)] hover:bg-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)] transition-colors duration-200"
                             data-testid={`row-feature-${feature.name.toLowerCase().replace(/\s/g, '-')}`}
                           >
                             <td className="p-6 font-medium text-[var(--ecode-text-secondary)]">{feature.name}</td>
@@ -811,7 +811,7 @@ export default function Pricing() {
               transition={{ duration: 0.6 }}
               className="space-y-6"
             >
-              <Badge className="bg-[var(--ecode-accent)]/20 text-[var(--ecode-accent)] border-[var(--ecode-accent)]/30">
+              <Badge className="bg-[color-mix(in_srgb,var(--ecode-accent)_20%,transparent)] text-[var(--ecode-accent)] border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)]">
                 <Building2 className="h-4 w-4 mr-2" />
                 Enterprise Solutions
               </Badge>
@@ -853,7 +853,7 @@ export default function Pricing() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-[var(--ecode-surface)] border-white/20 text-white hover:bg-white/10 hover:border-[var(--ecode-accent)]/50 transition-all duration-200"
+                  className="bg-[var(--ecode-surface)] border-white/20 text-white hover:bg-white/10 hover:border-[color-mix(in_srgb,var(--ecode-accent)_50%,transparent)] transition-all duration-200"
                   onClick={() => navigate('/docs/enterprise')}
                   data-testid="button-enterprise-learn"
                 >
@@ -869,7 +869,7 @@ export default function Pricing() {
               transition={{ duration: 0.6 }}
               className="relative"
             >
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:border-[var(--ecode-accent)]/30 transition-all duration-300">
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-white">Enterprise includes:</CardTitle>
                 </CardHeader>
@@ -951,7 +951,7 @@ export default function Pricing() {
                 style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'forwards' }}
               >
                 <Card
-                  className="bg-[var(--ecode-surface)] border-[var(--ecode-border)] hover:border-[var(--ecode-accent)]/30 hover:shadow-[0_4px_16px_-4px_rgba(242,98,7,0.15)] transition-all duration-300"
+                  className="bg-[var(--ecode-surface)] border-[var(--ecode-border)] hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] hover:shadow-[0_4px_16px_-4px_rgba(242,98,7,0.15)] transition-all duration-300"
                   data-testid={`faq-card-${idx}`}
                 >
                   <CardHeader>
@@ -969,7 +969,7 @@ export default function Pricing() {
 
       {/* CTA Section - E-Code Orange Gradient */}
       <section
-        className="py-20 bg-gradient-to-r from-[var(--ecode-accent)] to-[var(--ecode-accent)]/80"
+        className="py-20 bg-gradient-to-r from-[var(--ecode-accent)] to-[color-mix(in_srgb,var(--ecode-accent)_80%,transparent)]"
         data-testid="section-cta"
       >
         <div className="container-responsive max-w-4xl text-center">
