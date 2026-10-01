@@ -76,7 +76,12 @@ jobs:
     # Plafond par TRANCHE. Une tranche joue un quart des specs : elle n'a
     # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
     # borné ci-dessous. Épinglé par tests/guards/ci-canari-borne.spec.ts.
-    timeout-minutes: 90
+    # 110 et non 90 : `globalTimeout` est passé à 75 min (voir playwright.config.ts),
+    # et la borne de Playwright doit rester SOUS le plafond du job — sinon le
+    # coureur tue le processus avant qu'il ait écrit son rapport, et une suite
+    # qui ne rend rien ne protège plus rien. 8 (préparation mesurée) + 75
+    # (suite) + 15 (canari) = 98, soit 12 min de marge.
+    timeout-minutes: 110
     # Forked PRs can't read the AI provider secrets (so the run would hard-fail
     # on the secret-validation step anyway), and same-repo PR branches run
     # arbitrary code with the real prod keys injected. Restrict to non-fork
