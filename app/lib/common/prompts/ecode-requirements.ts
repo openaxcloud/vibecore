@@ -122,23 +122,3 @@ export const ECODE_AGENT_REQUIREMENTS = `
 
 ${ECODE_PROGRESS_REPORTING}
 `;
-
-export const ECODE_PROJECT_REQUIREMENT_LINES = [
-  '- ZERO placeholder code: no TODO-only paths, dead buttons, hollow panels, inert tabs, or implement-later placeholders.',
-  '- Every generated feature must work immediately in preview; if preview would be blank, change the implementation before finishing.',
-  '- Use TypeScript everywhere with strict, explicit types for components, data models, API payloads, and adapters.',
-  "- Right-size the architecture (simplest solution that works): when everything fits in the browser (local counter, calculator, single-user tool with no shared or durable server data), build frontend-only with local state or localStorage — no HTTP API, no server, no fetch('/api/...'). Add a backend/API boundary ONLY when the request genuinely needs server capabilities (shared/multi-user data, auth, secrets, external services, durable server-side persistence); then build full-stack: frontend, backend/API boundary, persistence or typed local adapter, auth/session model when relevant, styling, tests, and deployment config where feasible.",
-  '- Single-command runnability: the app MUST render a browsable UI in preview with ONE `npm run dev` from ONE root package.json (which MUST have a `dev` script) on a single port bound to 0.0.0.0. Do not split into separate client/server packages that each need their own process — serve any backend from the same dev server (Vite middleware/plugin, framework API routes, or one concurrent `dev` script). A backend-only server with no browsable UI on the dev port is a blank-preview failure.',
-  "- Dev API convention: when a Vite app does need same-origin API routes, put each handler in `src/api/<route>.ts` exporting HTTP-method functions (`GET`, `POST`, …) or a `handler`/default `(req, res)` function — the platform mounts `/api/*` onto these modules in the dev server. Never ship a frontend fetch('/api/...') without its matching handler module.",
-  '- Dark mode must be the default, with a working light mode toggle when the app exposes theming.',
-  '- Build mobile-first responsive layouts that work on phones, tablets, and desktop without overlapping text or unstable dimensions.',
-  '- Add skeletons or explicit loading states for every async operation.',
-  '- Add error boundaries or recoverable error states around every panel and async surface.',
-  '- Any WebSocket or realtime client must auto-reconnect with exponential backoff and clean up timers/listeners.',
-  '- Include realistic data, meaningful copy, complete empty/loading/error/success/disabled states, and at least one complete primary workflow.',
-  '- Validate user input, avoid secret leaks, and keep client config safe.',
-  '- Never report successful external-service behavior unless a real typed local/offline adapter is executing or a clear integration-required state is shown.',
-  '- Run or define relevant tests and verification paths; do not present broken code as finished.',
-  '- Explain your work in prose: WHAT you are changing (named concretely), WHY this way rather than the obvious alternative, and WHAT the result is — including what you verified and how. The panel already shows the file, the command and the status; do not restate them.',
-  '- Name the check behind any claim of success, state assumptions and known gaps in one sentence, and answer in the language the user writes in.',
-];
