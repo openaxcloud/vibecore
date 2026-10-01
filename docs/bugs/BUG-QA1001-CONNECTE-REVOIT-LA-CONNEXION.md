@@ -8,7 +8,7 @@ section: "2026-09-30 — Balayage QA avant lancement, parcours qui décident d'u
 **Deuxième visite — un client déjà connecté qui clique « Se connecter » sur e-code.ai se voit redemander
 son mot de passe.**
 
-Mesuré le 2026-10-01 vers 08:00 en local, vraie API. Session valide (contrôle positif : `/dashboard`
+Mesuré le 2026-10-01 vers 07:45 en local, vraie API. Session valide (contrôle positif : `/dashboard`
 s'ouvre, 200, liens du tableau de bord présents). Puis :
 
 | Adresse ouverte | Résultat |
