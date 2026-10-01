@@ -1,3 +1,4 @@
+import { isUnlimitedLimit } from '@vibecore/billing';
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
 
 export const upgradeEn = {
@@ -35,6 +36,10 @@ export const upgradeEn = {
   'upgrade.limit.members_other': '{count} team members',
   'upgrade.limit.messages_one': '{count} AI message / month',
   'upgrade.limit.messages_other': '{count} AI messages / month',
+  'upgrade.limit.projects_unlimited': 'Unlimited projects',
+  'upgrade.limit.workspaces_unlimited': 'Unlimited active workspaces',
+  'upgrade.limit.members_unlimited': 'Unlimited team members',
+  'upgrade.limit.messages_unlimited': 'Unlimited AI messages / month',
   'upgrade.limit.storage': '{count} GB storage',
   'upgrade.enterprise.features': 'Custom quotas, SSO/SAML and premium support',
   'upgrade.actions.current': 'Current plan',
@@ -85,6 +90,10 @@ export const upgradeFr: UpgradeCopy = {
   'upgrade.limit.members_other': '{count} membres de l’équipe',
   'upgrade.limit.messages_one': '{count} message IA / mois',
   'upgrade.limit.messages_other': '{count} messages IA / mois',
+  'upgrade.limit.projects_unlimited': 'Projets illimités',
+  'upgrade.limit.workspaces_unlimited': 'Espaces de travail actifs illimités',
+  'upgrade.limit.members_unlimited': 'Membres de l’équipe illimités',
+  'upgrade.limit.messages_unlimited': 'Messages IA illimités / mois',
   'upgrade.limit.storage': '{count} Go de stockage',
   'upgrade.enterprise.features': 'Quotas personnalisés, SSO/SAML et assistance premium',
   'upgrade.actions.current': 'Formule actuelle',
@@ -125,6 +134,10 @@ export function upgradeLimitLabel(
   kind: 'projects' | 'workspaces' | 'members' | 'messages',
   count: number,
 ): string {
+  if (isUnlimitedLimit(count)) {
+    return copy[`upgrade.limit.${kind}_unlimited`];
+  }
+
   const category =
     new Intl.PluralRules(language === 'fr' ? 'fr-FR' : 'en-US').select(count) === 'one' ? 'one' : 'other';
 
