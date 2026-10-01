@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-376 entrées.
+377 entrées.
 
 ## Sans section
 
@@ -405,6 +405,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [undefined](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
+- [undefined](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
 
 ## Résidus non tabulaires — reportés mot pour mot
 

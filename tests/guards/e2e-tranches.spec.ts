@@ -24,38 +24,35 @@ const WORKFLOW = parse(readFileSync(join(RACINE, '.github/workflows/e2e.yml'), '
 const NOM_REQUIS = 'Playwright local stack';
 
 describe('la découpe en tranches ne casse pas la protection de branche', () => {
-  it('LE DÉNOMINATEUR DE `--shard` ÉGALE LE NOMBRE DE TRANCHES', () => {
+  it('LE DÉNOMINATEUR DE `--shard` EST DÉRIVÉ DE LA MATRICE, JAMAIS RÉÉCRIT', () => {
     /*
-     * Trou trouvé par la contre-épreuve du 2026-10-01, en portant la découpe de
-     * deux à quatre tranches : laisser `--shard=N/2` avec une matrice de quatre
-     * laissait TOUS les gardes au vert.
+     * Trou trouvé par contre-épreuve le 2026-10-01, en portant la découpe de deux
+     * à quatre tranches : laisser `--shard=N/2` avec une matrice de quatre
+     * laissait les SOIXANTE-DIX gardes au vert.
      *
-     * Ce que ça produit : les tranches 3 et 4 lancent `--shard=3/2` et
-     * `--shard=4/2`, que Playwright refuse — et la porte, qui exige quatre
-     * rapports portant chacun des tests, échouerait loin de la cause. Pire si le
-     * dénominateur est plus GRAND que la matrice : une partie des specs ne serait
-     * jouée par personne, et la porte verrait quatre rapports pleins sans voir
-     * qu'il manque un quart de la suite.
+     * La première version de ce cas comparait le nombre écrit au nombre de
+     * tranches. C'était un pansement : elle tolérait encore que le chiffre soit
+     * écrit DEUX FOIS, donc qu'il puisse diverger entre deux éditions. La bonne
+     * forme est de ne pas l'écrire du tout — `strategy.job-total` est le nombre
+     * de tranches que GitHub a réellement lancées.
      *
-     * C'est le défaut le plus coûteux de cette famille : une couverture amputée
-     * qui se présente comme un succès.
+     * Ce cas interdit donc le dénominateur littéral, dans les deux sens : trop
+     * petit, des tranches lancent un numéro que Playwright refuse ; trop grand,
+     * une part de la suite n'est jouée par PERSONNE et la porte voit des
+     * rapports pleins sans pouvoir le voir.
      */
-    const tranches = (WORKFLOW.jobs.e2e as { strategy?: { matrix?: { shard?: number[] } } }).strategy?.matrix?.shard ?? [];
-
-    expect(tranches.length, 'matrice de tranches introuvable : la garde ne mesure rien').toBeGreaterThan(0);
-
     const brut = readFileSync(join(__dirname, '..', '..', '.github/workflows/e2e.yml'), 'utf8');
-    const denominateurs = [...brut.matchAll(/--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/gu)].map((x) => Number(x[1]));
+    const decoupes = [...brut.matchAll(/--shard=\$\{\{ matrix\.shard \}\}\/([^"]+)"/gu)].map((m) => m[1]);
 
-    expect(denominateurs.length, '`--shard=${{ matrix.shard }}/N` introuvable').toBeGreaterThan(0);
+    expect(decoupes.length, '`--shard=${{ matrix.shard }}/…` introuvable : la garde ne mesure rien').toBeGreaterThan(0);
 
-    for (const d of denominateurs) {
+    for (const d of decoupes) {
       expect(
         d,
-        `\`--shard=…/${d}\` alors que la matrice compte ${tranches.length} tranches. ` +
-          'Trop petit : des tranches lancent un numéro que Playwright refuse. Trop grand : une part ' +
-          'de la suite n’est jouée par personne, et la porte ne peut pas le voir.',
-      ).toBe(tranches.length);
+        `le dénominateur de \`--shard\` vaut « ${d} » : il est écrit en dur. Il doit être ` +
+          '`${{ strategy.job-total }}`, sinon il peut diverger du nombre de tranches — et un ' +
+          "dénominateur qui diverge perd une part de la suite SANS que rien ne rougisse.",
+      ).toBe('${{ strategy.job-total }}');
     }
   });
 

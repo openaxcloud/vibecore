@@ -157,7 +157,15 @@ jobs:
 
           # Une suite ciblée ne se découpe pas : on la joue entière sur la
           # tranche 1 et les autres n'ont rien à faire.
-          DECOUPE="--shard=${{ matrix.shard }}/4"
+          # LE DÉNOMINATEUR EST DÉRIVÉ DE LA MATRICE, PAS RÉÉCRIT.
+          #
+          # `strategy.job-total` est le nombre de tranches que GitHub a réellement
+          # lancées. L'écrire en dur une seconde fois a été un vrai défaut : en
+          # portant la découpe de 2 à 4, laisser `/2` ici gardait les 70 gardes au
+          # VERT. Un dénominateur trop grand fait qu'une part de la suite n'est
+          # jouée par PERSONNE, et la porte voit des rapports pleins sans pouvoir
+          # le voir — une couverture amputée qui se présente comme un succès.
+          DECOUPE="--shard=${{ matrix.shard }}/${{ strategy.job-total }}"
           if [ -n "${{ inputs.spec }}" ]; then
             DECOUPE=""
           fi
