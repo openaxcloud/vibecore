@@ -241,3 +241,89 @@ test('clavier levé sur un champ bas (Paramètres) : le champ actif reste visibl
   expect(bas, 'le champ actif reste sous le bas visible (362)').toBeLessThanOrEqual(362);
   expect(haut, 'le champ actif est sorti par le haut').toBeGreaterThanOrEqual(0);
 });
+
+/*
+ * Le chemin de l'utilisateur pressé (01/10) : à l'ouverture à froid, l'IDE montre
+ * d'abord une COQUILLE (`PendingComposerShell`, un `BaseChat` déjà utilisable),
+ * puis la remplace par le vrai chat quand la mémoire du projet arrive — React
+ * démonte et remonte BaseChat. Toucher la zone de saisie dans cet intervalle,
+ * c'est lever le clavier AVANT la bascule.
+ *
+ * Avant #664, la hauteur de repos était locale à l'effet de BaseChat : remonté
+ * clavier levé, il la réapprenait à 362 et ne voyait plus jamais le clavier —
+ * zone de saisie sous le clavier. En CI, le test ci-dessus tombait dans ce cas
+ * au hasard de la vitesse de la machine (18 premiers essais rouges sur 25, même
+ * mise en page à chaque fois) ; en local jamais (12/12 vert sans le correctif).
+ * Ce test PROVOQUE la condition au lieu de l'attendre : la mémoire du projet
+ * est retenue jusqu'à ce que le clavier soit levé.
+ */
+test('clavier levé PENDANT le chargement : la bascule coquille → vrai chat garde le clavier vu', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(120_000);
+
+  const { token, projectId } = await createProjectSession(request);
+
+  let relacher: () => void = () => undefined;
+
+  const retenue = new Promise<void>((resolve) => {
+    relacher = resolve;
+  });
+
+  let retenues = 0;
+
+  await page.route('**/ide-state**', async (route) => {
+    if (route.request().method() !== 'GET') {
+      return route.continue();
+    }
+
+    retenues += 1;
+    await retenue;
+
+    return route.continue();
+  });
+
+  await page
+    .context()
+    .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+
+  const composeur = page.locator('.bolt-project-agent-composer').first();
+  const champ = composeur.locator('textarea').first();
+  await expect(champ).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => retenues, { message: 'la mémoire du projet n’a pas été demandée' }).toBeGreaterThan(0);
+
+  const champDeLaCoquille = await champ.elementHandle();
+  await champ.focus();
+  await page.setViewportSize({ width: 390, height: 362 });
+  await expect(page.locator('html'), 'clavier non vu dans la coquille').toHaveAttribute('data-vc-clavier', 'ouvert');
+
+  // Précondition : la bascule n'a PAS encore eu lieu — sinon ce test ne mesure rien.
+  expect(
+    await champDeLaCoquille!.evaluate((n) => n.isConnected),
+    'la coquille a déjà été remplacée avant le clavier levé : la condition n’est pas réunie',
+  ).toBe(true);
+
+  relacher();
+
+  await expect
+    .poll(() => champDeLaCoquille!.evaluate((n) => n.isConnected), {
+      timeout: 30_000,
+      message: 'la coquille n’a jamais été remplacée par le vrai chat',
+    })
+    .toBe(false);
+
+  await expect(
+    page.locator('html'),
+    'clavier perdu à la bascule : `data-vc-clavier` retiré (hauteur de repos réapprise clavier levé)',
+  ).toHaveAttribute('data-vc-clavier', 'ouvert');
+  await stable(composeur);
+
+  const cadre = (await composeur.boundingBox())!;
+  expect(
+    Math.round(cadre.y + cadre.height),
+    'la zone de saisie passe sous le clavier après la bascule',
+  ).toBeLessThanOrEqual(362);
+});
