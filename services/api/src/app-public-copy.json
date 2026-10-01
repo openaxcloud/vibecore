@@ -3,6 +3,10 @@
     "en": "The request could not be completed. Please try again.",
     "fr": "La requête n’a pas pu aboutir. Veuillez réessayer."
   },
+  "DEFAULT_ORGANIZATION_NAME": {
+    "en": "{owner}'s Organization",
+    "fr": "Organisation de {owner}"
+  },
   "INTERNAL_SERVER_ERROR": {
     "en": "Internal server error",
     "fr": "Une erreur interne est survenue. Veuillez réessayer."
