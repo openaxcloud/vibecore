@@ -369,7 +369,14 @@ final class ClavierSafariTests: XCTestCase {
                 // Appui long au doigt (1,2 s) sur le plus bas des éléments dont le libellé commence par <arg>.
                 let cibles = page.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", arg)).allElementsBoundByIndex.filter { $0.exists && $0.frame.minY > 60 && $0.frame.maxY < 680 }
                 guard let cible = cibles.max(by: { $0.frame.minY < $1.frame.minY }) else { manques.append(etape); print("BANC-MESURE parcours INTROUVABLE \(etape)"); continue }
-                cible.press(forDuration: 1.2); sleep(1)
+                // Au centre de son CADRE : `press` sur l'élément échoue (« Not hittable ») pour un texte recouvert par un calque (30/09).
+                cible.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).press(forDuration: 1.2); sleep(1)
+            case "url":
+                // Page publique de l'app locale (marketing) : base + chemin, SANS fermer Safari.
+                XCUIDevice.shared.system.open(URL(string: "\(c.base)\(arg)")!); sleep(8)
+            case "taper":
+                // Saisie dans le champ qui a le focus (ex. faire apparaître le bouton d'envoi du composeur).
+                safari.typeText(arg); sleep(1)
             case "saisie":
                 let z = page.textViews["Prompt de l’agent"]
                 if !z.waitForExistence(timeout: 20) { manques.append(etape); continue }

@@ -76,6 +76,10 @@ rm -rf "$SORTIE/clavier.xcresult"
 ONLY=""; for t in ${TESTS:-ClavierSafariTests ZoomSafariTests/test1_champ12pxFaitZoomer}; do ONLY="$ONLY -only-testing:BancUITests/$t"; done
 etat() { echo "[$1] $(docker ps -a --filter name=vc-banc-ios --format '{{.Names}}={{.Status}}' | tr '\n' ' ') swap=$(sysctl -n vm.swapusage | awk '{print $6}')"; }
 etat avant-test
+# Les bases doivent être VIVANTES au départ du test : OrbStack est tombé plusieurs fois entre le montage et le test
+# (01/10), et le passage continuait en produisant des captures d'écrans en erreur 503. Une base perdue = arrêt bruyant.
+vivants=$(docker ps --filter name=vc-banc-ios --filter status=running -q 2>/dev/null | wc -l | tr -d ' ')
+[ "$vivants" -ge 2 ] || { echo "BASES PERDUES avant le test (${vivants}/2 conteneurs) — OrbStack tombé ? Passage arrêté, rien n'est mesuré."; exit 1; }
 TEST_RUNNER_BANC_IDE_BASE="$BANC_IDE_BASE" TEST_RUNNER_BANC_COURRIEL="$BANC_COURRIEL" TEST_RUNNER_BANC_SECRET="$BANC_SECRET" TEST_RUNNER_BANC_PROJET="$BANC_PROJET" TEST_RUNNER_BANC_CHAMPS="${BANC_CHAMPS:-}" TEST_RUNNER_BANC_URL=http://127.0.0.1:8765/index.html TEST_RUNNER_BANC_PANNEAUX="${BANC_PANNEAUX:-}" TEST_RUNNER_BANC_PARCOURS="${BANC_PARCOURS:-}" \
 xcodebuild test -project "$ICI/xcuitest/BancIOS.xcodeproj" -scheme BancIOS $ONLY \
   -destination "platform=iOS Simulator,id=$U" -resultBundlePath "$SORTIE/clavier.xcresult" > "$SORTIE/clavier.log" 2>&1
