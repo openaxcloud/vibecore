@@ -187,6 +187,17 @@ export interface AgentPatchProposal {
   contenuLu?: string;
   lueA?: number;
   conflit?: boolean;
+
+  /*
+   * RELUE DE LA BASE à la réouverture : née dans une page précédente, souvent
+   * d'un tour interrompu. Ce qui la qualifiait là-bas (`enFlux`, `tronquee`,
+   * `conflit`) n'est pas en base — elle peut être un fragment, ou la version
+   * que l'utilisateur avait écartée. Jamais appliquée automatiquement : elle
+   * attend la revue. Mesuré le 2026-10-01 (tour coupé à 12:19) : une
+   * proposition figée en `applying`, une autre `pending` pour un fichier absent
+   * de la réponse finale.
+   */
+  relueDeLaBase?: boolean;
 }
 
 const WORKSPACE_LOG_LIMIT = 500;
@@ -709,7 +720,16 @@ export class WorkbenchStore {
         continue;
       }
 
-      this.agentPatchProposals.setKey(proposal.id, proposal);
+      /*
+       * `applying` relu de la base : aucune page ne l'applique (celle qui le
+       * faisait a disparu, son dernier envoi avec elle). Il redevient
+       * acceptable — sinon `acceptAgentPatchProposal` l'ignore pour toujours.
+       */
+      this.agentPatchProposals.setKey(proposal.id, {
+        ...proposal,
+        status: proposal.status === 'applying' ? 'pending' : proposal.status,
+        relueDeLaBase: true,
+      });
       this.#agentPatchOriginals.set(proposal.actionId, proposal.originalContent);
     }
 

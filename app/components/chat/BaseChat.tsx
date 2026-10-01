@@ -4019,13 +4019,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (
-          !shouldAutoApplyPatch({
-            autoApplyEnabled: projectAutoApply,
-            status: proposal.status,
-            enFlux: proposal.enFlux,
-            tronquee: proposal.tronquee,
-            conflit: proposal.conflit,
-          })
+          /*
+           * La proposition ENTIÈRE : chaque marque qui interdit l'application
+           * automatique (`enFlux`, `tronquee`, `conflit`, `relueDeLaBase`…)
+           * arrive ainsi à la règle sans qu'on ait à penser à la recopier ici.
+           */
+          !shouldAutoApplyPatch({ ...proposal, autoApplyEnabled: projectAutoApply })
         ) {
           continue;
         }

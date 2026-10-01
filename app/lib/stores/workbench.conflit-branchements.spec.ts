@@ -31,9 +31,9 @@ describe('branchements du garde-fou de conflit', () => {
     expect(bloc).toContain('workbenchStore.noterLaLectureDeLAgent();');
   });
 
-  it('BaseChat passe `conflit` à la règle d’application automatique', () => {
-    const bloc = blocApres(lire('../../components/chat/BaseChat.tsx'), '!shouldAutoApplyPatch({', 400);
+  it('BaseChat passe la proposition ENTIÈRE à la règle d’application automatique — `conflit` et `relueDeLaBase` compris', () => {
+    const bloc = blocApres(lire('../../components/chat/BaseChat.tsx'), '!shouldAutoApplyPatch({', 120);
 
-    expect(bloc).toContain('conflit: proposal.conflit');
+    expect(bloc).toContain('!shouldAutoApplyPatch({ ...proposal, autoApplyEnabled: projectAutoApply })');
   });
 });
