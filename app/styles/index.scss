@@ -4485,15 +4485,19 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
  * À partir de 1024 px seulement : l'affichage mobile est gelé sur la référence
  * d'Avi. Hors zone utilisateur (IDE, authentification) : non concerné.
  */
+.vc-user-area-shell {
+  --vc-user-area-placeholder: #7d8796;
+}
+
+:root[data-theme='light'] .vc-user-area-shell {
+  --vc-user-area-placeholder: #6b7280;
+}
+
+/*
+ * Le jeton est défini HORS de tout `@media` (TINT-SWEEP-002 : aucune couleur ne
+ * dépend du format) ; seule son APPLICATION est réservée au bureau.
+ */
 @media (min-width: 1024px) {
-  .vc-user-area-shell {
-    --vc-user-area-placeholder: #7d8796;
-  }
-
-  :root[data-theme='light'] .vc-user-area-shell {
-    --vc-user-area-placeholder: #6b7280;
-  }
-
   .vc-user-area-shell :is(input, textarea)::placeholder {
     color: var(--vc-user-area-placeholder) !important;
     opacity: 1;
