@@ -29,6 +29,7 @@ import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-er
 import { apiRequest } from '~/lib/enterprise-api.server';
 import { reponseAPersister } from '~/lib/.server/persistance-reponse';
 import { demandeAPersister } from '~/lib/.server/persistance-demande';
+import { avecSuiviDuTour } from '~/lib/.server/tours-en-cours';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
 import { BUDGET_PAR_SEGMENT_MS, MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
@@ -743,7 +744,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     let lastChunk: string | undefined = undefined;
 
     const dataStream = createDataStream({
-      async execute(dataStream) {
+      /*
+       * Le tour reste OUVERT dans le registre des tours tant qu'`execute` court —
+       * et `execute` attend la fin de toute la chaîne du tour (`enVol`). C'est ce
+       * que le serveur attend avant de s'arrêter (`server.mjs`, tours-en-cours).
+       */
+      execute: avecSuiviDuTour(`chat:${projectId ?? 'sans-projet'}`, async (dataStream) => {
         /*
          * Scope a per-request Anthropic cache tally to this execute's async
          * context. The provider's wire reader (spawned during streamText below)
@@ -1118,6 +1124,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * relance d'annonce écrivait quand même onze fichiers refusés.
          */
         const fichiersRefuses = refusExpliciteDeFichiers(skillUserPrompt);
+
+        /*
+         * LA BARRIÈRE À L'EXÉCUTION. Le refus change le prompt et la relance ; il
+         * doit aussi changer ce qui S'EXÉCUTE. Un modèle ne garantit rien — mesuré
+         * le 2026-09-30, des sous-agents ont écrit malgré « N'écris aucun
+         * fichier ». Le navigateur, qui exécute les actions, reçoit donc la
+         * consigne sous forme de donnée, et refuse toute action de ce tour
+         * (`useMessageParser`, `ecritureAutorisee`). Émise AVANT toute génération :
+         * elle doit précéder la première action.
+         */
+        if (fichiersRefuses) {
+          dataStream.writeMessageAnnotation({ type: 'consigneSansFichier' });
+        }
 
         /*
          * RPL-SK-001.2 — surface the progressive-disclosure trace as an annotation
@@ -2624,7 +2643,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             message: copy.responseInterrupted,
           } satisfies ProgressAnnotation);
         }
-      },
+      }),
       onError: (error: any) => {
         /*
          * SUR ABANDON, `onFinish` NE S'EXÉCUTE PAS — `onError` OUI.
