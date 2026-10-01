@@ -118,7 +118,8 @@ describe('projects/new action', () => {
     expect(response.headers.get('location')).not.toContain('model=');
     expect(response.headers.get('location')).not.toContain('provider=');
 
-    expect(fromAiBody?.prompt).toEqual(expect.stringContaining('Production quality bar:'));
+    expect(fromAiBody?.prompt).toEqual(expect.stringContaining('<vibecore_project_brief>'));
+    expect(fromAiBody?.prompt).toEqual(expect.stringContaining('SIZE THE APP TO THE IDEA'));
     expect(fromAiBody?.prompt).toEqual(expect.stringContaining('Build a production analytics dashboard'));
 
     const pendingPrompt = ideStateBody?.state?.chat?.pendingPrompt;
