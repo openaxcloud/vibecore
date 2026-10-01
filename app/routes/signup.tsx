@@ -33,6 +33,7 @@ import type { TranslationKey } from '~/lib/i18n/dictionary';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
 import { postRegisterDestination } from '~/lib/post-register-destination.server';
+import { espaceDuClientDejaConnecte } from '~/lib/session-ouverte.server';
 import { origineDeLApplication } from '~/utils/origine-application';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -83,6 +84,13 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   if (origineApplication) {
     // Preserve ?prompt= (and any other query) so the homepage builder prompt survives the host hop.
     return redirect(`${origineApplication}/register${requestUrl.search}`, { status: 301 });
+  }
+
+  // Un client déjà connecté n'a rien à faire ici — et ne doit pas ouvrir un second compte par erreur.
+  const espace = await espaceDuClientDejaConnecte(request);
+
+  if (espace) {
+    return redirect(espace);
   }
 
   return json({

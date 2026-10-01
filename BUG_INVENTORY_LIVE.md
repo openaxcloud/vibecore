@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-381 entrées.
+384 entrées.
 
 ## Sans section
 
@@ -412,6 +412,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [CONSTAT-CI-ATTENTE-DU-VERDICT-001](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
 - [DETTE-CI-TRANCHES-DESEQUILIBREES-001](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA1001-CONNECTE-REVOIT-LA-CONNEXION](docs/bugs/BUG-QA1001-CONNECTE-REVOIT-LA-CONNEXION.md) — Deuxième visite — un client déjà connecté qui clique « Se connecter » sur e-code.ai se voit redemander
 
 ## Résidus non tabulaires — reportés mot pour mot
 
