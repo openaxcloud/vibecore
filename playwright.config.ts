@@ -112,6 +112,9 @@ export default defineConfig({
         // Un rognage par conteneur de défilement : mesuré identique sur les deux moteurs, épinglé sur les deux.
         /bandeau-toast-visible\.spec\.ts/,
 
+        // BUG-QA0928-MODALE-SANS-FOCUS : mesuré sur WebKit (focus resté dans la page), épinglé sur ce moteur aussi.
+        /modale-accueil-prend-le-focus\.spec\.ts/,
+
         /*
          * PAS `idee-entre-domaines.spec.ts`, et ce n'est pas un oubli. Mesuré le
          * 2026-09-30 : le WebKit de Playwright ne garde AUCUN cookie `Secure` reçu

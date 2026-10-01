@@ -1,5 +1,6 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
+import { estRefusFauteDeWorkspace, retenirEcriture } from './ecritures-en-attente';
 import { applyEntryExportReconcile } from './entry-export-reconcile';
 import { ensureEntryImportsResolvable } from './entry-placeholder';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
@@ -890,6 +891,14 @@ export class ActionRunner {
   }
 
   #formatActionError(error: unknown) {
+    /*
+     * BUG-QA0928-RUNTIME-ID-PROJET — « Remote workspace has not been started »
+     * ne dit ni ce qui s'est passé ni quoi faire. La phrase dit les deux.
+     */
+    if (estRefusFauteDeWorkspace(error)) {
+      return actionRunnerText('actionRunner.error.workspaceNotStarted');
+    }
+
     if (error instanceof Error) {
       return error.message;
     }
@@ -1111,13 +1120,24 @@ export class ActionRunner {
     // remove trailing slashes
     folder = folder.replace(/\/+$/g, '');
 
+    /*
+     * BUG-QA0928-RUNTIME-ID-PROJET — un refus FAUTE DE WORKSPACE ne doit pas
+     * perdre le fichier. On ne s'arrête donc pas au dossier : on va jusqu'au
+     * contenu FINAL (nettoyé, auto-réparé), c'est lui qu'on garde pour le rejeu.
+     */
+    let refusFauteDeWorkspace: unknown;
+
     if (folder !== '.') {
       try {
         await this.#runtime.createDirectory(folder);
         logger.debug('Created folder', folder);
       } catch (error) {
-        logger.error('Failed to create folder\n\n', error);
-        throw error;
+        if (!estRefusFauteDeWorkspace(error)) {
+          logger.error('Failed to create folder\n\n', error);
+          throw error;
+        }
+
+        refusFauteDeWorkspace = error;
       }
     }
 
@@ -1197,13 +1217,27 @@ export class ActionRunner {
     }
 
     try {
+      if (refusFauteDeWorkspace) {
+        throw refusFauteDeWorkspace;
+      }
+
       await this.#runtime.writeFile(relativePath, payload, { streaming: isStreaming });
       logger.debug(`File written ${relativePath}`);
 
       // Après succès seulement : un échec doit laisser le chemin réécrivable.
       this.#lastWrittenFingerprint.set(relativePath, contentFingerprint);
     } catch (error) {
-      logger.error('Failed to write file\n\n', error);
+      /*
+       * Seule l'écriture FAISANT FOI est gardée : un morceau de flux est partiel
+       * par définition, et l'écriture de fermeture de l'action le remplacera.
+       */
+      if (estRefusFauteDeWorkspace(error) && !isStreaming) {
+        retenirEcriture(relativePath, payload);
+        logger.warn(`Workspace absent : ${relativePath} est gardé pour être écrit au prochain démarrage`);
+      } else {
+        logger.error('Failed to write file\n\n', error);
+      }
+
       throw error;
     }
 

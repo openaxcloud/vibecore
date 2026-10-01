@@ -381,7 +381,16 @@ export function MenuContextuel({
      * le fil reculait de 45 px à l'ouverture ; sur l'iPhone d'Avi il disparaissait
      * derrière le menu (07/09 08:03, « on ne voit plus le contenu »).
      */
-    (premier ?? panneau.current)?.focus({ preventScroll: true });
+    /*
+     * SUR TÉLÉPHONE, LE FOCUS VA AU MENU, PAS À SA PREMIÈRE ICÔNE. Vu le 01/10 sur
+     * Safari iOS (banc XCUITest) : après un appui long, Safari tient le focus
+     * programmatique pour « visible » et peignait l'anneau bleu de `:focus-visible`
+     * sur « Copier », comme si le doigt l'avait choisie. Le panneau (`tabIndex=-1`)
+     * garde le focus DANS le menu — lecteur d'écran et Échap inchangés — sans
+     * désigner d'action. Ailleurs (souris, clavier), la première action reste
+     * désignée : c'est ce qu'attend le clavier.
+     */
+    (cibleFeuilleMobile(document) ? panneau.current : (premier ?? panneau.current))?.focus({ preventScroll: true });
 
     /*
      * EN PHASE DE CAPTURE, et en consommant la touche : le gestionnaire de

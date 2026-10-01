@@ -320,6 +320,7 @@ import { githubConnector, resolveGithubCredentials } from './integrations/provid
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
 import { connectorPublicErrorMessage } from './integrations/providers/public-error-copy.js';
+import { defaultOrganizationName } from './default-organization-name.js';
 import { supabaseConnector } from './integrations/providers/supabase.js';
 import {
   ConnectorProviderError,
@@ -574,6 +575,8 @@ export type WorkspacePodBuildRefusal =
   | 'NO_USER_CONTEXT'
   | 'NO_WEBSOCKET_RUNTIME'
   | 'WORKSPACE_UNREACHABLE'
+  // Le démarrage de l'espace est REFUSÉ pour quota (#628) : réessayer ne changera rien.
+  | 'WORKSPACE_QUOTA'
   | 'AGENT_TOKEN_UNAVAILABLE'
   | 'BUILD_INVOCATION_THREW';
 
@@ -10811,7 +10814,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       const organization = await store.createOrganization({
-        name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
+        name: body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale),
         slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
@@ -11328,7 +11331,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             organizationId = existingOrgs[0].id;
           } else {
             const org = await store.createOrganization({
-              name: `${profile.name ?? profile.email}'s Organization`,
+              name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
               slug: `org-${user.id.slice(-8)}`,
               ownerUserId: user.id,
             });
@@ -11517,7 +11520,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           oidcOrgId = oidcUserOrgs[0].id;
         } else {
           const org = await store.createOrganization({
-            name: `${profile.name ?? profile.email}'s Organization`,
+            name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
             slug: `org-${user.id.slice(-8)}`,
             ownerUserId: user.id,
           });
@@ -15393,6 +15396,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * observe the pod arriving. Reopening with the same deterministic id returns
    * the existing pod, so this is safe to call even while a start is in flight.
    */
+  /*
+   * RÉSERVER UN CRÉNEAU `workspaces.active` AVANT DE DÉMARRER.
+   *
+   * Un espace déjà compté (PENDING/STARTING/RUNNING) ne consomme rien : on le
+   * redémarre librement, c'est le cas du pod ramassé dont la ligne est restée
+   * RUNNING. Sinon, sous verrou par organisation : libérer les créneaux fantômes,
+   * vérifier le quota, puis marquer l'espace STARTING — c'est cette écriture,
+   * DANS le verrou, qui empêche deux démarrages concurrents de passer le même
+   * décompte.
+   *
+   * Partagé par le redémarrage explicite et par le démarrage À LA DEMANDE
+   * (BUG-QA0928-PROVISION-SANS-QUOTA : ce dernier n'avait aucun contrôle, et une
+   * simple lecture sur l'onglet d'un autre projet donnait un second espace actif
+   * à un compte gratuit).
+   */
+  const reserverUnCreneauActif = async (request: any, organizationId: string | undefined, workspaceId: string) => {
+    const existant = await store.getWorkspace(workspaceId);
+    const dejaCompte = !!existant && ['PENDING', 'STARTING', 'RUNNING'].includes(existant.status as string);
+
+    if (!organizationId || dejaCompte) {
+      return false;
+    }
+
+    await store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
+      await ensureQuota(request, organizationId, 'workspaces.active');
+      await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
+    });
+
+    // Vrai quand un créneau vient d'être pris : l'appelant le rend (FAILED) si le démarrage échoue pour de bon.
+    return true;
+  };
+
   const provisionWorkspaceOnDemand = async (
     request: any,
     authorized: { workspaceId: string; projectId: string; organizationId?: string },
@@ -15405,6 +15441,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
+
+    const organisation =
+      authorized.organizationId ?? (await store.getProject(authorized.projectId))?.organizationId ?? undefined;
+
+    await reserverUnCreneauActif(request, organisation, authorized.workspaceId);
 
     /*
      * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
@@ -15537,6 +15578,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       await demarrageDemande;
     })().catch((error) => {
+      /*
+       * REFUS POUR QUOTA (BUG-QA0928-PROVISION-SANS-QUOTA) : ce n'est pas une
+       * panne, c'est la règle du forfait. On le journalise sans le compter comme
+       * échec, et on GARDE la fenêtre : la réarmer referait le contrôle — et son
+       * audit `quota.exceeded` — à chacune des dizaines de lectures d'une
+       * ouverture d'IDE.
+       */
+      if (error?.code === 'QUOTA_EXCEEDED') {
+        journal?.warn(
+          { workspaceId, event: 'workspace.read_triggered_start_refused_quota', quotaKey: error.quotaKey },
+          'demarrage declenche par une lecture refuse : quota atteint',
+        );
+
+        return;
+      }
+
       /*
        * JAMAIS AVALÉ (BUG-RUNTIME-SILENCE-002). Ajouter un déclenchement dont
        * l'échec disparaît dans un `catch` vide remplacerait un blocage
@@ -15707,7 +15764,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await ensureWorkspaceReachable(request, authorized);
     } catch (error) {
-      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
+      /*
+       * BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE — un refus pour quota n'est pas un
+       * espace « qui démarre » : le client lisait « réessayez » et réessayait sans
+       * fin, alors que seule la limite de son forfait bloquait.
+       */
+      const refusPourQuota = (error as { code?: unknown })?.code === 'QUOTA_EXCEEDED';
+
+      return {
+        handled: false,
+        refusal: refusPourQuota ? 'WORKSPACE_QUOTA' : 'WORKSPACE_UNREACHABLE',
+        detail: refusalDetail(error),
+      };
     }
 
     let token: string;
@@ -17676,7 +17744,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * workspace to STOPPED: that would mislabel a running pod and let the
            * org under-count its active quota / exceed its concurrent limit.
            */
-          shouldStop = isRuntimeWorkspaceGone(error);
+          /*
+           * BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE — surtout pas
+           * `isRuntimeWorkspaceGone`, qui compte aussi le manager INJOIGNABLE comme
+           * « disparu » : c'est juste pour un arrêt idempotent, faux ici. Mesuré le
+           * 2026-09-28 : manager coupé → la seule ligne vivante passait STOPPED et
+           * le quota était contourné. Seul un 404 du manager dit « disparu ».
+           */
+          shouldStop = (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
         }
 
         if (shouldStop) {
@@ -18019,33 +18094,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Serialize the check to avoid TOCTOU; the slow manager restart stays outside
      * the lock. A restart of an already-active workspace consumes nothing.
      */
-    const existingForRestart = await store.getWorkspace(authorized.workspaceId);
-
-    const restartCountsAsActive =
-      !!existingForRestart && ['PENDING', 'STARTING', 'RUNNING'].includes(existingForRestart.status as string);
-
-    const restartOrgId = authorized.organizationId;
-
-    if (restartOrgId && !restartCountsAsActive) {
-      await store.withSerializedMutation(`workspaces:${restartOrgId}`, async () => {
-        /*
-         * Free any phantom (GC'd-but-RUNNING) slot before counting, identical to
-         * the start handler — otherwise a stale RUNNING row 429s a legitimate
-         * restart of another workspace for a quota-limited org.
-         */
-        await reconcileOrphanedActiveWorkspaces(restartOrgId, authorized.workspaceId);
-        await ensureQuota(request, restartOrgId, 'workspaces.active');
-
-        /*
-         * Claim the active slot INSIDE the lock by flipping the record to a
-         * counted state (STARTING). Without a state write here the lock is inert:
-         * concurrent restarts each pass the same count and all bypass the limit
-         * (countActiveWorkspaces counts PENDING/STARTING/RUNNING). The manager
-         * restart below reconciles to RUNNING/FAILED; the catch resets on error.
-         */
-        await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' });
-      });
-    }
+    const creneauReserve = await reserverUnCreneauActif(request, authorized.organizationId, authorized.workspaceId);
 
     /*
      * Resolve the org's plan + resource entitlements exactly like the start
@@ -18132,7 +18181,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * (flipped to STARTING), reset to FAILED so the slot isn't leaked (a stuck
        * STARTING would count against workspaces.active forever), then rethrow.
        */
-      if (restartOrgId && !restartCountsAsActive) {
+      if (creneauReserve) {
         await store
           .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
           .catch(() => undefined);
@@ -20713,7 +20762,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = request.currentUser!;
 
       const org = await store.createOrganization({
-        name: `${user.name ?? user.email}'s Organization`,
+        name: defaultOrganizationName(user.name ?? user.email, transactionalLocaleForRequest(request)),
         slug: `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
@@ -36363,8 +36412,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
            * dans le journal du déploiement, où il est réellement consultable.
            */
-          const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
           const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+
+          // Un refus pour quota se dit comme tel : « réessayez » enverrait le client tourner en rond.
+          const message = appPublicEnglish(refus === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
           const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
           const ligne = `${message} [${refus}]${detail}`;
 
