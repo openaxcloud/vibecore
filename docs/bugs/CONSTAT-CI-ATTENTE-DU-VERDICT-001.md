@@ -1,3 +1,8 @@
+---
+id: CONSTAT-CI-ATTENTE-DU-VERDICT-001
+section: "2026-10-01 — Chaîne de tests : chemin critique de la porte de release"
+---
+
 # CONSTAT-CI-ATTENTE-DU-VERDICT-001
 
 **Nature** — CONSTAT, pas un défaut. **Aucun correctif propre : il se règle par ailleurs.**

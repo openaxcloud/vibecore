@@ -1,3 +1,8 @@
+---
+id: DETTE-CI-TRANCHES-DESEQUILIBREES-001
+section: "2026-10-01 — Chaîne de tests : chemin critique de la porte de release"
+---
+
 # DETTE-CI-TRANCHES-DESEQUILIBREES-001
 
 **Nature** — DETTE, pas un défaut. **À ne pas traiter dans l'urgence.**

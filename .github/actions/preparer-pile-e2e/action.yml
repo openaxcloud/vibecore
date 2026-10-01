@@ -28,7 +28,17 @@ inputs:
 runs:
   using: composite
   steps:
-  - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+    # ⚠️ PAS DE `actions/checkout` ICI, ET CE N'EST PAS UN OUBLI.
+    #
+    # Une action LOCALE doit être présente sur le disque pour que GitHub puisse
+    # la charger — donc le dépôt doit déjà être sorti AVANT l'appel. Mettre le
+    # checkout dans l'action crée une impasse, et GitHub le dit mot pour mot :
+    # « Can't find 'action.yml' … Did you forget to run actions/checkout before
+    # running your local action? » Mesuré sur #661, les quatre tranches en échec.
+    #
+    # Le checkout reste donc dans chaque job appelant. C'est UNE ligne dupliquée,
+    # contre les 92 que cette action partage — et la garde vérifie le partage de
+    # la PRÉPARATION (pile, base, API, web), pas celui du checkout.
 
   - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
     with:

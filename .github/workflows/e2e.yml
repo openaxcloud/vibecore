@@ -131,6 +131,10 @@ jobs:
       #
       # `chromium` seulement : WebKit ne sert qu'au canari, et l'installer ici
       # remettrait du temps sur le chemin critique de la porte requise.
+      # Le dépôt doit être sorti AVANT l'appel d'une action locale, sinon GitHub
+      # ne trouve pas son `action.yml`. Voir le commentaire en tête de l'action.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - uses: ./.github/actions/preparer-pile-e2e
         with:
           navigateurs: chromium
@@ -293,6 +297,10 @@ jobs:
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
     steps:
+      # Le dépôt doit être sorti AVANT l'appel d'une action locale, sinon GitHub
+      # ne trouve pas son `action.yml`. Voir le commentaire en tête de l'action.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - uses: ./.github/actions/preparer-pile-e2e
         with:
           navigateurs: chromium,webkit

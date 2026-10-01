@@ -402,10 +402,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE](docs/bugs/BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE.md) — BLOQUANT (premier déploiement) — RÉGRESSION de #628 (servi le 30/09). Un client gratuit dont un autre
 
-## Sans section
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
 
-- [undefined](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
-- [undefined](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
+- [CONSTAT-CI-ATTENTE-DU-VERDICT-001](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
+- [DETTE-CI-TRANCHES-DESEQUILIBREES-001](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
 
 ## Résidus non tabulaires — reportés mot pour mot
 
