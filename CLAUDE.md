@@ -417,6 +417,30 @@ généraux : ce sont des pièges qui ont déjà coûté.
     worktree : vérifier vers quoi le paquet résout. Pour une sortie tronquée :
     filtrer sur la ligne de verdict, jamais sur les dernières lignes.
 
+29. **UN DIAGNOSTIC PAR PRÉSENCE D'UN MOT-CLÉ DANS UN MESSAGE D'ERREUR ACCUSE
+    LA MAUVAISE CAUSE.** Chercher un mot dans la réponse d'un service, c'est
+    croire que ce mot ne peut y apparaître que pour la raison qu'on imagine.
+
+    Mesuré le 2026-09-28 sur la publication de la carte de routage. L'extrait
+    cherchait `fallback` dans le corps d'un refus `400` et concluait « l'image
+    déployée ne connaît pas encore la 7e ligne ». Le mot ÉTAIT bien là — mais
+    dans la **liste des valeurs autorisées** que la validation renvoie, donc
+    dans un refus qui disait exactement l'inverse : le serveur connaissait la
+    ligne. Le diagnostic accusait le déploiement pendant que la cause était
+    ailleurs.
+
+    C'est la famille du `tail -4` et de la requête croisée : l'instrument rend
+    quelque chose de plausible, et ce quelque chose ne parle pas de l'objet.
+    Ici le piège est pire, parce que la présence du mot est une COÏNCIDENCE
+    STRUCTURELLE — un message de validation cite toujours le vocabulaire qu'il
+    valide, donc il contiendra toujours le mot qu'on y cherche.
+
+    **Le contrôle** : diagnostiquer sur un champ STRUCTURÉ, jamais sur la
+    présence d'un mot dans une phrase. Le `code` de l'erreur, le champ qui
+    nomme la propriété refusée, le statut HTTP. Et quand seul le texte est
+    disponible, se demander d'abord **pour quelles autres raisons ce mot
+    pourrait s'y trouver** — s'il en existe une, le test ne vaut rien.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
