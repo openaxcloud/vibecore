@@ -51,4 +51,30 @@ describe('messages rechargés', () => {
     expect(recharges.contient('aimsg_a1')).toBe(false);
     expect(recharges.contient('m1')).toBe(false);
   });
+
+  /*
+   * Mesuré en production le 2026-10-01 à 12:52 (projets cmupj5bfb…, cmupj5r9b…) :
+   * à la réouverture, la page a renvoyé des propositions de SOUS-AGENTS
+   * (`…::lane:devops-0:2`, `…::lane:qa-0:0`) et importé des fichiers — alors que
+   * leur message était relu. Les lanes sont parsées sous leur propre identifiant
+   * (`<message>::lane:<rôle>`), que `contient` ne reconnaissait pas : leurs
+   * écritures historiques échappaient à BUG-QA0929.
+   */
+  it('les SOUS-AGENTS d’un message rechargé sont rechargés eux aussi', () => {
+    const recharges = new MessagesRecharges();
+
+    recharges.marquerHydrates(['aimsg_a1']);
+    recharges.remplacer(['m2']);
+
+    expect(recharges.contient('aimsg_a1::lane:devops')).toBe(true);
+    expect(recharges.contient('m2::lane:qa')).toBe(true);
+  });
+
+  it('TÉMOIN POSITIF — les sous-agents d’un message produit en direct ne le sont pas', () => {
+    const recharges = new MessagesRecharges();
+
+    recharges.marquerHydrates(['aimsg_a1']);
+
+    expect(recharges.contient('m-en-direct::lane:devops')).toBe(false);
+  });
 });

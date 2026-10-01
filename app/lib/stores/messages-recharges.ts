@@ -15,6 +15,8 @@
  *     `remplacer` : c'était précisément le défaut, le cache local étant vide sur
  *     un appareil neuf.
  */
+import { decoderLane } from '~/lib/runtime/agent-lane-writes';
+
 export class MessagesRecharges {
   #duCache = new Set<string>();
   #hydrates = new Set<string>();
@@ -29,8 +31,16 @@ export class MessagesRecharges {
     }
   }
 
+  /**
+   * Un SOUS-AGENT appartient à son message : ses écritures sont parsées sous
+   * `<message>::lane:<rôle>` (voir `identifiantDeLane`), et un message rechargé
+   * l'est avec ses sous-agents. Mesuré le 2026-10-01 à 12:52 : sans cela, la
+   * page rouverte rejouait les écritures historiques des sous-agents.
+   */
   contient(id: string): boolean {
-    return this.#duCache.has(id) || this.#hydrates.has(id);
+    const message = decoderLane(id)?.messageId ?? id;
+
+    return this.#duCache.has(message) || this.#hydrates.has(message);
   }
 
   oublier(): void {
