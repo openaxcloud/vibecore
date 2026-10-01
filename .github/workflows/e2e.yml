@@ -58,7 +58,7 @@ jobs:
     # attendre à la protection un contrôle qui n'existe plus — et plus aucune
     # proposition ne pourrait jamais fusionner. Épinglé par
     # tests/guards/e2e-tranches.spec.ts.
-    name: E2E tranche ${{ matrix.shard }}/2
+    name: E2E tranche ${{ matrix.shard }}/4
     strategy:
       # Une tranche rouge ne doit pas annuler les autres : on veut les quatre
       # rapports, y compris quand l'un d'eux porte l'échec à expliquer.
@@ -71,9 +71,10 @@ jobs:
         # file était le goulot du jour (10 runs en cours, 6 en attente). Deux
         # tranches donnent ~45 min, soit le double de marge sous le plafond,
         # pour deux fois moins de jobs. On rachète la marge sans affamer la file.
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     runs-on: ubuntu-latest
-    # Plafond par TRANCHE. Une tranche joue un quart des specs : elle n'a
+    # Plafond par TRANCHE. Une tranche joue un QUART des specs — remis à quatre
+    # tranches le 2026-10-01 parce que la suite a dépassé son budget : elle n'a
     # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
     # borné ci-dessous. Épinglé par tests/guards/ci-canari-borne.spec.ts.
     timeout-minutes: 90
@@ -156,7 +157,7 @@ jobs:
 
           # Une suite ciblée ne se découpe pas : on la joue entière sur la
           # tranche 1 et les autres n'ont rien à faire.
-          DECOUPE="--shard=${{ matrix.shard }}/2"
+          DECOUPE="--shard=${{ matrix.shard }}/4"
           if [ -n "${{ inputs.spec }}" ]; then
             DECOUPE=""
           fi
@@ -337,5 +338,5 @@ jobs:
       # rougir : un vert sur trois quarts des specs serait un vert menteur.
       - name: E2E gate (bounded waiver)
         env:
-          E2E_EXPECTED_REPORTS: '2'
+          E2E_EXPECTED_REPORTS: '4'
         run: node scripts/e2e-gate.mjs $(find tranches -name 'playwright-results.json' | sort | tr '\n' ' ')
