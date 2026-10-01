@@ -12,6 +12,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { getInvitationsCopy, interpolateInvitationsCopy, invitationRoleLabel } from '~/lib/i18n/catalogs/invitations';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { estUnRefusFauteDePlace } from '~/lib/refus-place-equipe.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 /*
@@ -48,7 +49,13 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   ];
 };
 
-type AcceptInvitationErrorCode = 'tokenRequired' | 'invalid' | 'rateLimited' | 'unavailable';
+type AcceptInvitationErrorCode =
+  | 'tokenRequired'
+  | 'invalid'
+  | 'rateLimited'
+  | 'unavailable'
+  | 'emailMismatch'
+  | 'seatLimit';
 type AcceptInvitationActionData = {
   feedbackCode?: 'accepted';
   roleKey?: string;
@@ -101,8 +108,33 @@ export async function action({ request }: EnterpriseActionArgs) {
       return actionData({ errorCode: 'invalid' }, error.status);
     }
 
+    // Le forfait de l'équipe n'a plus de place : réessayer n'y changera rien.
+    if (await estUnRefusFauteDePlace(error)) {
+      return actionData({ errorCode: 'seatLimit' }, 429);
+    }
+
     if (isApiResponse(error, 429)) {
       return actionData({ errorCode: 'rateLimited' }, error.status);
+    }
+
+    /*
+     * BUG-QA0930-INVITATION-MESSAGE-TROMPEUR — un refus 403 a une cause que
+     * l'invité peut corriger lui-même (se connecter avec l'adresse invitée). Le
+     * rendre en « temporairement indisponibles, réessayez » le faisait réessayer
+     * sans fin. (L'adresse non vérifiée n'est plus un refus : l'invitation vaut
+     * vérification depuis la décision d'Avi du 2026-10-01.)
+     */
+    if (isApiResponse(error, 403)) {
+      const code = (
+        (await error
+          .clone()
+          .json()
+          .catch(() => null)) as { code?: string } | null
+      )?.code;
+
+      if (code === 'INVITE_EMAIL_MISMATCH') {
+        return actionData({ errorCode: 'emailMismatch' }, 403);
+      }
     }
 
     return actionData({ errorCode: 'unavailable' }, error instanceof Response ? error.status : 500);
