@@ -2,7 +2,7 @@
 
 import { cleanup, render, screen } from '@testing-library/react';
 import { planByKey } from '@vibecore/billing';
-import { FREE_PLAN_PROJECTS_CAP } from '@vibecore/billing/src/plafonds';
+import { FREE_PLAN_PROJECTS_CAP, isUnlimitedLimit } from '@vibecore/billing/src/plafonds';
 import type { FormEventHandler, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -222,7 +222,7 @@ describe('upgrade i18n', () => {
   });
 });
 
-describe('upgradeLimitLabel — sentinelle « aucun plafond » (UIB-06, brouillon en attente d’Avi)', () => {
+describe('upgradeLimitLabel — sentinelle « aucun plafond » (UIB-06)', () => {
   it('dit « illimités », jamais « 1 000 000 »', () => {
     const fr = getUpgradeCopy('fr');
     const en = getUpgradeCopy('en');
@@ -233,7 +233,12 @@ describe('upgradeLimitLabel — sentinelle « aucun plafond » (UIB-06, brouillo
     expect(upgradeLimitLabel(fr, 'fr', 'projects', 25)).toBe('25 projets');
   });
 
-  it('le plafond gratuit vit dans UNE constante, et le quota appliqué la suit', () => {
+  it('la formule gratuite n’a AUCUN plafond chiffré de projets (règle du 4 août, confirmée par Avi le 01/10)', () => {
+    /*
+     * Le seul verrou de l'offre gratuite est un projet publié ACTIF à la fois,
+     * appliqué à la publication. Si ce test rougit, quelqu'un a inventé un quota.
+     */
     expect(planByKey('free').limits['projects.count']).toBe(FREE_PLAN_PROJECTS_CAP);
+    expect(isUnlimitedLimit(FREE_PLAN_PROJECTS_CAP)).toBe(true);
   });
 });

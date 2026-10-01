@@ -22,10 +22,12 @@ export function isUnlimitedLimit(value: number): boolean {
 }
 
 /**
- * Plafond de projets de la formule gratuite — DÉCISION D'AVI EN ATTENTE (UIB-06).
+ * Projets de la formule gratuite : AUCUN plafond chiffré — règle validée avec un
+ * expert le 4 août, confirmée par Avi le 01/10 (UIB-06).
  *
- * Aujourd'hui : aucun plafond publié (sentinelle), que /upgrade affichait
- * « 1 000 000 projets ». Si Avi fixe un nombre, il se change ICI, en une ligne :
- * le quota appliqué par l'API et l'affichage suivent tous les deux.
+ * Le seul verrou de l'offre gratuite est UN projet publié ACTIF à la fois
+ * (appliqué à la publication, `services/api/src/app.ts`, « Contrat Starter »).
+ * Mettre ici un nombre reviendrait à inventer un quota : c'est une décision
+ * d'Avi, pas un réglage. L'affichage dit « Projets illimités ».
  */
 export const FREE_PLAN_PROJECTS_CAP: number = NO_PUBLISHED_CAP;

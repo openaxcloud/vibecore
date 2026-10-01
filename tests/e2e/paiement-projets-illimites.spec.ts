@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * UIB-06 (brouillon, décision d'Avi en attente) — /upgrade ne montre jamais la
+ * UIB-06 — /upgrade ne montre jamais la
  * sentinelle « 1 000 000 projets » ; et la page se charge VRAIMENT.
  *
  * Mesuré le 2026-10-01 : la première version de ce correctif importait l'index
