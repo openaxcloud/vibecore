@@ -1,9 +1,10 @@
 import { redirect, type LoaderFunctionArgs } from 'react-router';
-import { apiRequest, cookieSecure } from '~/lib/enterprise-api.server';
+import { apiRequest, cookieSecure, safeReturnTo } from '~/lib/enterprise-api.server';
 import { classifyOAuthStartFailure } from '~/lib/oauth-start-failure';
 
 const oauthStateCookie = 'vc_oauth_state';
 const oauthLinkCookie = 'vc_oauth_link';
+const oauthReturnCookie = 'vc_oauth_return';
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const provider = providerName(params.provider);
@@ -75,6 +76,21 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     isLink
       ? `${oauthLinkCookie}=1; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=600`
       : `${oauthLinkCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`,
+  );
+
+  /*
+   * BUG-QA0930-OAUTH-OUBLIE-LA-DESTINATION — la destination du visiteur (son
+   * idée à poser dans /projects/new, l'offre à payer…) survit à l'aller-retour
+   * chez le fournisseur, comme `vc_oauth_state`. Filtrée ici par `safeReturnTo`,
+   * et de nouveau au retour : jamais une adresse hors du site.
+   */
+  const destination = safeReturnTo(new URL(request.url).searchParams.get('returnTo'));
+
+  headers.append(
+    'Set-Cookie',
+    destination
+      ? `${oauthReturnCookie}=${encodeURIComponent(destination)}; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=600`
+      : `${oauthReturnCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`,
   );
 
   return redirect(url.toString(), { headers });

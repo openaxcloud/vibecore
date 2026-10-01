@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-377 entrées.
+381 entrées.
 
 ## Sans section
 
@@ -401,6 +401,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
 - [BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE](docs/bugs/BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE.md) — BLOQUANT (premier déploiement) — RÉGRESSION de #628 (servi le 30/09). Un client gratuit dont un autre
+- [BUG-QA0930-OAUTH-OUBLIE-LA-DESTINATION](docs/bugs/BUG-QA0930-OAUTH-OUBLIE-LA-DESTINATION.md) — BLOQUANT (inscription) — s'inscrire ou se connecter avec Google / GitHub renvoie TOUJOURS au tableau
+- [BUG-QA0930-OFFRE-PERDUE-TARIFS](docs/bugs/BUG-QA0930-OFFRE-PERDUE-TARIFS.md) — BLOQUANT (paiement) — « Choisir Core » et « Choisir Pro » sur la page tarifs mènent à une inscription
+- [BUG-QA0930-PREMIER-PROJET-TOUR-COUPE](docs/bugs/BUG-QA0930-PREMIER-PROJET-TOUR-COUPE.md) — BLOQUANT (premier projet) — TRANSMIS, hors du périmètre de la session QA (relance instruite).
+- [BUG-QA0930-TARIFS-INCOHERENTS](docs/bugs/BUG-QA0930-TARIFS-INCOHERENTS.md) — BLOQUANT (paiement) — la page tarifs et le parcours de paiement vendent deux grilles différentes.
 - [BUG-QA0930-INVITATION-MESSAGE-TROMPEUR](docs/bugs/BUG-QA0930-INVITATION-MESSAGE-TROMPEUR.md) — BLOQUANT (inviter un collègue) — le collègue invité qui vient de créer son compte ne rejoint jamais
 - [BUG-QA0930-INVITATION-SANS-PLACE](docs/bugs/BUG-QA0930-INVITATION-SANS-PLACE.md) — BLOQUANT (inviter un collègue) — une équipe au forfait gratuit (ou Pro) envoie des invitations que
 
