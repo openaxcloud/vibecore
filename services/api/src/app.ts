@@ -308,6 +308,8 @@ import {
   type StaticBuildLog,
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
+import { libererUnCreneauPourPublier } from './liberer-creneau.js';
+import { toursEnCoursDuProjet, type LecteurRedisDesTours } from './tours-partages.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import { forwardedAgentQuery } from './forwarded-agent-query.js';
 import {
@@ -577,6 +579,8 @@ export type WorkspacePodBuildRefusal =
   | 'WORKSPACE_UNREACHABLE'
   // Le démarrage de l'espace est REFUSÉ pour quota (#628) : réessayer ne changera rien.
   | 'WORKSPACE_QUOTA'
+  // Quota, et l'autre espace a un tour d'agent en cours : on ne l'a PAS arrêté (#642).
+  | 'WORKSPACE_QUOTA_BUSY'
   | 'AGENT_TOKEN_UNAVAILABLE'
   | 'BUILD_INVOCATION_THREW';
 
@@ -679,6 +683,12 @@ export interface ApiAppOptions {
    * implementation so the deploy flow can be driven without a live pod.
    */
   buildStaticInWorkspacePod?: WorkspacePodStaticBuild;
+  /**
+   * Où lire les tours de génération en cours (tours-partages.ts). Par défaut, le
+   * Redis de `REDIS_URL` ; `null` = illisible, et alors aucun espace n'est mis en
+   * veille. Les tests le fixent pour mesurer UN monde, pas celui de la machine.
+   */
+  toursPartages?: LecteurRedisDesTours | null;
 
   /**
    * Override the platform Prometheus registry. Production/dev create a fresh one;
@@ -15734,6 +15744,133 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const DEPLOY_MAX_PULL_FILE_BYTES = 2 * 1024 * 1024; // matches the agent's default WORKSPACE_MAX_FILE_BYTES
 
+  /*
+   * Met en veille l'autre espace actif de l'organisation pour publier ce projet —
+   * jamais un espace qui a un tour d'agent en cours (liberer-creneau.ts).
+   */
+  const DEPLOY_AUTO_SLEEP_WAIT_MS = Math.max(0, Number(process.env.DEPLOY_AUTO_SLEEP_WAIT_MS ?? 4 * 60_000) || 0);
+
+  const libererUnCreneauPourPublierCeProjet = async (
+    request: any,
+    cible: { workspaceId: string; projectId: string; organizationId: string },
+    progress?: { onLog?: (log: StaticBuildLog) => void },
+  ) => {
+    const redis = options.toursPartages === undefined ? runtimeTicketStore() : (options.toursPartages ?? undefined);
+    const lireLesTours = (projectId: string) => toursEnCoursDuProjet(redis, projectId);
+
+    const ligne = (message: string) =>
+      progress?.onLog?.({ timestamp: new Date().toISOString(), level: 'warn', message });
+
+    const issue = await libererUnCreneauPourPublier({
+      attenteMaxMs: DEPLOY_AUTO_SLEEP_WAIT_MS,
+      autresEspacesActifs: async () => {
+        const actifs = (await store.listActiveWorkspaces(cible.organizationId).catch(() => [])).filter(
+          (espace) => espace.id !== cible.workspaceId,
+        );
+
+        return Promise.all(
+          actifs.map(async (espace) => ({
+            workspaceId: espace.id,
+            projectId: espace.projectId,
+            nomDuProjet: (await store.getProject(espace.projectId).catch(() => undefined))?.name ?? espace.projectId,
+          })),
+        );
+      },
+      toursEnCours: lireLesTours,
+      /*
+       * Sonde DIRECTE, pas `agentRequest` : sur un agent muet, `agentRequest`
+       * redémarre l'espace (démarrage déclenché par une lecture) — la sonde
+       * ranimait l'espace qu'on cherchait à mettre en veille. Mesuré en écrivant
+       * le test : l'espace A repassait STARTING. Agent muet = pas de build en cours,
+       * comme pour le ramassage du manager.
+       */
+      agentOccupe: async (workspaceId) => {
+        let jeton: string;
+
+        try {
+          jeton = await agentToken(workspaceId);
+        } catch {
+          return false;
+        }
+
+        try {
+          const reponse = await fetch(`${agentBaseUrl(workspaceId)}/busy`, {
+            headers: { authorization: `Bearer ${jeton}` },
+            signal: AbortSignal.timeout(2_500),
+          });
+          const corps = (await reponse.json().catch(() => null)) as { busy?: unknown } | null;
+
+          return reponse.ok && corps?.busy === true;
+        } catch {
+          return false;
+        }
+      },
+      mettreEnVeilleEtReserver: (espaces) =>
+        store.withSerializedMutation(`workspaces:${cible.organizationId}`, async () => {
+          // Revérifié SOUS le verrou : un tour lancé à l'instant ne doit pas être coupé.
+          for (const espace of espaces) {
+            if ((await lireLesTours(espace.projectId)) !== 0) {
+              return 'tour-apparu' as const;
+            }
+          }
+
+          for (const espace of espaces) {
+            try {
+              // Arrêt, pas suppression : le pod part, le volume et ses fichiers restent.
+              await managerRequest(`/workspaces/${encodeURIComponent(espace.workspaceId)}/stop`, { method: 'POST' });
+            } catch (error) {
+              if (!isRuntimeWorkspaceGone(error)) {
+                throw error;
+              }
+            }
+
+            await store.updateWorkspaceStatus({ workspaceId: espace.workspaceId, status: 'STOPPED' });
+            await audit(request, store, {
+              organizationId: cible.organizationId,
+              action: 'runtime.workspace.auto_sleep',
+              resourceType: 'workspace',
+              resourceId: espace.workspaceId,
+              metadata: { trigger: 'deploy', forProjectId: cible.projectId },
+            });
+          }
+
+          /*
+           * Le décompte est mis en cache pour la durée de la requête : sans cette
+           * invalidation, la revérification relit « 1 espace actif » — celui qu'on
+           * vient d'arrêter — et refuse quand même. Mesuré en écrivant le test.
+           */
+          invalidateQuotaUsageCache(request, cible.organizationId, 'workspaces.active');
+
+          // Le créneau libéré est pris DANS le même verrou : un onglet resté ouvert sur l'autre projet ne le reprend pas.
+          await ensureQuota(request, cible.organizationId, 'workspaces.active');
+          await store
+            .updateWorkspaceStatus({ workspaceId: cible.workspaceId, status: 'STARTING' })
+            .catch(() => undefined);
+
+          return 'fait' as const;
+        }),
+      annoncer: (evenement) => {
+        if (evenement.type === 'veille') {
+          ligne(appPublicEnglish('DEPLOY_WORKSPACE_AUTO_SLEPT', { project: evenement.espace.nomDuProjet }));
+        } else {
+          ligne(
+            appPublicEnglish('DEPLOY_WORKSPACE_WAITING_TURN', {
+              project: evenement.espaces.map((espace) => espace.nomDuProjet).join(', '),
+              minutes: evenement.minutes,
+            }),
+          );
+        }
+      },
+    });
+
+    request.log?.info?.(
+      { event: 'deploy.liberation-creneau', etat: issue.etat, projectId: cible.projectId },
+      'quota: liberation of another workspace for a deploy',
+    );
+
+    return issue;
+  };
+
   const realBuildStaticInWorkspacePod: WorkspacePodStaticBuild = async (
     request,
     project,
@@ -15761,21 +15898,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * seule phrase qui disait pourquoi le déploiement ne partait pas, et
      * l'utilisateur recevait « Échec » sans rien d'autre (règle 13).
      */
+    /*
+     * BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE — un refus pour quota n'est pas un
+     * espace « qui démarre » : le client lisait « réessayez » et réessayait sans
+     * fin, alors que seule la limite de son forfait bloquait. L'espace réellement
+     * injoignable, lui, garde son « réessayez ».
+     */
+    const refusDeDemarrage = (error: unknown) => ({
+      handled: false as const,
+      refusal: ((error as { code?: unknown })?.code === 'QUOTA_EXCEEDED'
+        ? 'WORKSPACE_QUOTA'
+        : 'WORKSPACE_UNREACHABLE') as WorkspacePodBuildRefusal,
+      detail: refusalDetail(error),
+    });
+
     try {
       await ensureWorkspaceReachable(request, authorized);
     } catch (error) {
-      /*
-       * BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE — un refus pour quota n'est pas un
-       * espace « qui démarre » : le client lisait « réessayez » et réessayait sans
-       * fin, alors que seule la limite de son forfait bloquait.
-       */
-      const refusPourQuota = (error as { code?: unknown })?.code === 'QUOTA_EXCEEDED';
+      if ((error as { code?: unknown })?.code !== 'QUOTA_EXCEEDED') {
+        return refusDeDemarrage(error);
+      }
 
-      return {
-        handled: false,
-        refusal: refusPourQuota ? 'WORKSPACE_QUOTA' : 'WORKSPACE_UNREACHABLE',
-        detail: refusalDetail(error),
-      };
+      /*
+       * Décision d'Avi du 2026-10-01 : on met en veille l'AUTRE espace au lieu de
+       * renvoyer le client le fermer à la main — sauf s'il a un tour d'agent en
+       * cours (liberer-creneau.ts).
+       */
+      let liberation: Awaited<ReturnType<typeof libererUnCreneauPourPublierCeProjet>>;
+
+      try {
+        liberation = await libererUnCreneauPourPublierCeProjet(request, authorized, progress);
+      } catch (erreurDeLiberation) {
+        return refusDeDemarrage(erreurDeLiberation);
+      }
+
+      if (liberation.etat === 'occupe') {
+        return {
+          handled: false,
+          refusal: 'WORKSPACE_QUOTA_BUSY',
+          detail: liberation.espaces.map((espace) => espace.nomDuProjet).join(', '),
+        };
+      }
+
+      if (liberation.etat === 'inconnu') {
+        return refusDeDemarrage(error);
+      }
+
+      try {
+        await ensureWorkspaceReachable(request, authorized);
+      } catch (secondeErreur) {
+        return refusDeDemarrage(secondeErreur);
+      }
     }
 
     let token: string;
@@ -36371,7 +36544,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const hookResult = await triggerProviderDeployHook(body.provider);
 
     let staticBuildFailed = false;
-    let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+    let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }> = [];
+
+    // Vrai quand le refus final dit déjà tout (génération en cours) : l'avis « nous attendons » serait périmé.
+    let avisPerimes = false;
     let workspaceBuildTempDir: string | undefined;
 
     if (body.provider === 'static') {
@@ -36415,9 +36591,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
 
           // Un refus pour quota se dit comme tel : « réessayez » enverrait le client tourner en rond.
-          const message = appPublicEnglish(refus === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
+          const message =
+            refus === 'WORKSPACE_QUOTA_BUSY'
+              ? appPublicEnglish('DEPLOY_WORKSPACE_QUOTA_BUSY', { project: workspaceAttempt.detail ?? '' })
+              : appPublicEnglish(refus === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
           const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
-          const ligne = `${message} [${refus}]${detail}`;
+
+          /*
+           * Le refus « génération en cours » est écrit EXACTEMENT comme son modèle :
+           * c'est ce qui permet de le traduire à la lecture (localizeDeploymentRecord),
+           * et le nom du projet y figure déjà.
+           */
+          const ligne = refus === 'WORKSPACE_QUOTA_BUSY' ? message : `${message} [${refus}]${detail}`;
+
+          avisPerimes = refus === 'WORKSPACE_QUOTA_BUSY';
 
           buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message: ligne });
           request.log?.error?.(
@@ -36442,7 +36629,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      staticBuildLogs = staticBuild.logs;
+      /*
+       * Les AVIS (`warn` : autre espace mis en veille, attente d'un tour) sont émis
+       * en direct, avant le build ; le journal final ne garde que celui du build.
+       * Sans ce report, le client ne lirait jamais qu'on a mis son projet en veille.
+       */
+      const avisEnDirect = avisPerimes
+        ? []
+        : liveLog.filter(
+            (ligne) => ligne.level === 'warn' && !staticBuild.logs.some((autre) => autre.message === ligne.message),
+          );
+
+      staticBuildLogs = [...avisEnDirect, ...staticBuild.logs];
 
       if (staticBuild.ok && staticBuild.outputDir) {
         try {
@@ -38362,7 +38560,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let staticBuildFailed = false;
     let workspaceBuildTempDir: string | undefined;
 
-    const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+    const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }> = [];
 
     if (source.provider === 'static') {
       /*

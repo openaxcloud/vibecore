@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 
 import {
+  avisDuDeploiement,
   domainesConnectes,
   formaterMontant,
   gabaritsDisponibles,
@@ -152,6 +153,9 @@ export const PublicationReplit = memo(
 
     const etapes = useMemo(() => etapesDePublication(dernier), [dernier]);
     const journal = useMemo(() => lignesDeJournal(dernier), [dernier]);
+
+    // « Nous avons mis en veille votre projet X… » : dit ici, pas enfoui dans le journal.
+    const avis = useMemo(() => avisDuDeploiement(dernier), [dernier]);
     const echecs = useMemo(() => resumeDesEchecs(deployments), [deployments]);
     const domaines = useMemo(() => domainesConnectes(deployments), [deployments]);
     const gabarits = useMemo(() => gabaritsDisponibles(carteTarifaire), [carteTarifaire]);
@@ -356,6 +360,16 @@ export const PublicationReplit = memo(
                 </header>
 
                 <BarreDesEtapes etapes={etapes} copy={copy} />
+
+                {avis ? (
+                  <p
+                    className="bolt-publication-avis break-words [overflow-wrap:anywhere]"
+                    role="status"
+                    data-testid="publication-avis"
+                  >
+                    {avis}
+                  </p>
+                ) : null}
 
                 {journauxOuverts && journal.length > 0 ? (
                   <pre className="bolt-publication-journal" data-testid="publication-journal">
