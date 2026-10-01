@@ -4017,7 +4017,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           continue;
         }
 
-        if (!shouldAutoApplyPatch({ autoApplyEnabled: projectAutoApply, status: proposal.status })) {
+        if (
+          !shouldAutoApplyPatch({
+            autoApplyEnabled: projectAutoApply,
+            status: proposal.status,
+            enFlux: proposal.enFlux,
+            tronquee: proposal.tronquee,
+          })
+        ) {
           continue;
         }
 
