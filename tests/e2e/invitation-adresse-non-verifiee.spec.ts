@@ -9,6 +9,11 @@ import { ouvrirDesPlaces } from './places-equipe';
  * EMAIL_NOT_VERIFIED : son adresse n'est pas encore vérifiée. Il réessaie sans
  * fin et ne rejoint jamais l'équipe qui l'a invité.
  *
+ * Décision d'Avi du 2026-10-01 : l'invitation VAUT vérification de l'adresse
+ * (envoyée à cette adresse, lien à usage unique et limité dans le temps — tenu
+ * côté API par invitation-vaut-verification.spec.ts). Le collègue tout juste
+ * inscrit rejoint donc l'équipe directement, et son adresse est vérifiée.
+ *
  * Parcours réel : comptes créés par l'API, invitation par l'API (le jeton est
  * rendu hors production), puis la page d'acceptation dans le navigateur.
  */
@@ -16,7 +21,7 @@ import { ouvrirDesPlaces } from './places-equipe';
 const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
-test('le collègue dont l’adresse n’est pas vérifiée apprend quoi faire — pas « réessayez »', async ({
+test('le collègue tout juste inscrit (adresse pas encore vérifiée) rejoint l’équipe — l’invitation vaut vérification', async ({
   page,
   request,
 }) => {
@@ -72,11 +77,15 @@ test('le collègue dont l’adresse n’est pas vérifiée apprend quoi faire �
   await page.goto(`/invitations/accept?token=${encodeURIComponent(jetonInvitation)}&lang=fr`);
   await page.getByRole('button', { name: /Accepter l.invitation/i }).click();
 
-  // Le message dit la vraie cause et ce qu'il faut faire…
-  await expect(page.getByText(/vérifi\w*.{0,12}votre adresse e-mail/i).first()).toBeVisible({ timeout: 20_000 });
+  // Mesuré AVANT la décision : « Vérifiez d'abord votre adresse e-mail… » (et avant #650 : « réessayez »).
+  await expect(page.getByText(/Invitation acceptée/i).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/temporairement indisponibles|Vérifiez d.abord votre adresse/i)).toHaveCount(0);
 
-  // … et jamais « temporairement indisponibles, réessayez » : réessayer ne changera rien.
-  await expect(page.getByText(/temporairement indisponibles/i)).toHaveCount(0);
+  // L'adresse est désormais vérifiée : le lien, envoyé à cette seule boîte, l'a prouvé.
+  const moi = await request.get(`${apiBaseUrl}/auth/me`, { headers: { authorization: `Bearer ${jetonCollegue}` } });
+
+  expect(moi.ok(), await moi.text()).toBe(true);
+  expect(((await moi.json()) as { user: { emailVerifiedAt?: string | null } }).user.emailVerifiedAt).toBeTruthy();
 });
 
 test('accepter depuis un AUTRE compte que l’adresse invitée : le message le dit — pas « réessayez »', async ({

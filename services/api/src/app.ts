@@ -21330,16 +21330,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * The email match alone is not enough: account email is user-mutable, so an
-     * attacker could set their address to the invite's target and join. Require
-     * the accepter's email to be VERIFIED so the binding is to a proven owner of
-     * that address.
+     * L'INVITATION VAUT VÉRIFICATION DE L'ADRESSE (décision d'Avi du 2026-10-01).
+     *
+     * L'adresse d'un compte se modifie : la correspondance seule ne prouve rien —
+     * d'où l'ancienne exigence d'une adresse déjà vérifiée. Mais le JETON, lui,
+     * n'a été envoyé qu'à cette boîte : le présenter prouve qu'on la lit. On
+     * vérifie donc l'adresse ICI, aux trois conditions posées par Avi :
+     *   1. invitation envoyée à CETTE adresse exacte (contrôle juste au-dessus) ;
+     *   2. lien à USAGE UNIQUE, et 3. LIMITÉ DANS LE TEMPS : la vérification n'est
+     *      écrite qu'APRÈS la consommation atomique du jeton (`acceptedAt` nul et
+     *      `expiresAt` à venir, dans la même écriture) — un lien rejoué ou expiré
+     *      ne vérifie rien.
+     * Tenu par invitation-vaut-verification.spec.ts (un cas par condition).
      */
-    if (!request.currentUser!.emailVerifiedAt) {
-      return reply
-        .code(403)
-        .send({ error: appPublicEnglish('INVITATION_EMAIL_VERIFICATION_REQUIRED'), code: 'EMAIL_NOT_VERIFIED' });
-    }
+    const adresseAVerifier = !request.currentUser!.emailVerifiedAt;
 
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
 
@@ -21359,6 +21363,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(400)
         .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
+    }
+
+    if (adresseAVerifier) {
+      await store.updateUser({ userId: request.currentUser!.id, emailVerifiedAt: new Date().toISOString() });
+      await audit(request, store, {
+        organizationId: invitation.organizationId,
+        action: 'auth.email.verify',
+        resourceType: 'user',
+        resourceId: request.currentUser!.id,
+        metadata: { via: 'invitation', inviteId: invitation.id },
+      });
     }
 
     if (!existingMembership) {

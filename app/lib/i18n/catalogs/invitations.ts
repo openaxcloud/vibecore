@@ -88,8 +88,6 @@ export const invitationsEn = {
   'invitations.accept.error.invalid': 'This invitation is invalid, expired, or has already been used.',
   'invitations.accept.error.rateLimited': 'Too many attempts were made. Wait a moment, then try again.',
   'invitations.accept.error.unavailable': 'Invitations are temporarily unavailable. Try again shortly.',
-  'invitations.accept.error.emailNotVerified':
-    'Verify your email address first: open the verification email we sent you, then come back to this invitation.',
   'invitations.accept.error.emailMismatch':
     'This invitation was sent to a different email address. Sign in with the invited address to accept it.',
   'invitations.accept.error.seatLimit':
@@ -195,8 +193,6 @@ export const invitationsFr: InvitationsCopy = {
     'Trop de tentatives ont été effectuées. Patientez un instant, puis réessayez.',
   'invitations.accept.error.unavailable':
     'Les invitations sont temporairement indisponibles. Réessayez dans quelques instants.',
-  'invitations.accept.error.emailNotVerified':
-    'Vérifiez d’abord votre adresse e-mail : ouvrez l’e-mail de vérification que nous vous avons envoyé, puis revenez sur cette invitation.',
   'invitations.accept.error.emailMismatch':
     'Cette invitation a été envoyée à une autre adresse e-mail. Connectez-vous avec l’adresse invitée pour l’accepter.',
   'invitations.accept.error.seatLimit':

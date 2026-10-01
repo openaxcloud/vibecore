@@ -54,7 +54,6 @@ type AcceptInvitationErrorCode =
   | 'invalid'
   | 'rateLimited'
   | 'unavailable'
-  | 'emailNotVerified'
   | 'emailMismatch'
   | 'seatLimit';
 type AcceptInvitationActionData = {
@@ -119,11 +118,11 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     /*
-     * BUG-QA0930-INVITATION-MESSAGE-TROMPEUR — les deux refus 403 de l'API ont
-     * une cause que l'invité peut corriger lui-même. Les rendre en
-     * « temporairement indisponibles, réessayez » le faisait réessayer sans fin :
-     * mesuré le 2026-10-01, un collègue tout juste inscrit ne rejoignait jamais
-     * l'équipe qui l'avait invité.
+     * BUG-QA0930-INVITATION-MESSAGE-TROMPEUR — un refus 403 a une cause que
+     * l'invité peut corriger lui-même (se connecter avec l'adresse invitée). Le
+     * rendre en « temporairement indisponibles, réessayez » le faisait réessayer
+     * sans fin. (L'adresse non vérifiée n'est plus un refus : l'invitation vaut
+     * vérification depuis la décision d'Avi du 2026-10-01.)
      */
     if (isApiResponse(error, 403)) {
       const code = (
@@ -132,10 +131,6 @@ export async function action({ request }: EnterpriseActionArgs) {
           .json()
           .catch(() => null)) as { code?: string } | null
       )?.code;
-
-      if (code === 'EMAIL_NOT_VERIFIED') {
-        return actionData({ errorCode: 'emailNotVerified' }, 403);
-      }
 
       if (code === 'INVITE_EMAIL_MISMATCH') {
         return actionData({ errorCode: 'emailMismatch' }, 403);
