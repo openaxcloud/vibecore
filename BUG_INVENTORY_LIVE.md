@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-381 entrées.
+384 entrées.
 
 ## Sans section
 
@@ -407,6 +407,12 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0930-TARIFS-INCOHERENTS](docs/bugs/BUG-QA0930-TARIFS-INCOHERENTS.md) — BLOQUANT (paiement) — la page tarifs et le parcours de paiement vendent deux grilles différentes.
 - [BUG-QA0930-INVITATION-MESSAGE-TROMPEUR](docs/bugs/BUG-QA0930-INVITATION-MESSAGE-TROMPEUR.md) — BLOQUANT (inviter un collègue) — le collègue invité qui vient de créer son compte ne rejoint jamais
 - [BUG-QA0930-INVITATION-SANS-PLACE](docs/bugs/BUG-QA0930-INVITATION-SANS-PLACE.md) — BLOQUANT (inviter un collègue) — une équipe au forfait gratuit (ou Pro) envoie des invitations que
+
+## Sans section
+
+- [BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001](docs/bugs/BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001.md) — NON-DÉFAUT — retiré après mesure.
+- [BUG-DEPLOY-SURVEILLANCE-TIERS-001](docs/bugs/BUG-DEPLOY-SURVEILLANCE-TIERS-001.md) — P2 — rien ne vérifie qu'un service tourne bien sur le dernier commit ayant touché SON code.
+- [BUG-REDIS-CHUTE-AU-BANC-001](docs/bugs/BUG-REDIS-CHUTE-AU-BANC-001.md) — À ÉTABLIR — Redis est tombé pendant un passage de banc en local, sous une charge qui n'était pas décrite comme extraordinaire.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
