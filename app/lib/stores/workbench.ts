@@ -77,6 +77,7 @@ import {
   patchContentFingerprint,
   type PatchAdmission,
 } from '~/lib/stores/agent-patch-flood-guard';
+import { decoderLane } from '~/lib/runtime/agent-lane-writes';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
 import { fusionnerATroisVoies } from '~/utils/fusion-a-trois-voies';
 import { KeyedMutex } from '~/lib/common/keyed-mutex';
@@ -311,6 +312,9 @@ export class WorkbenchStore {
    * peuvent être réécrits.
    */
   #messagesRattrapes = new Set<string>();
+
+  /** Voir `reprendreLeTourInterrompu`. */
+  #toursInterrompusARevoir = new Set<string>();
   #previewStartPromise: Promise<string> | undefined;
 
   /*
@@ -3228,6 +3232,21 @@ export class WorkbenchStore {
    * local, vide sur un appareil neuf) ne doit pas l'effacer, sinon les écritures
    * historiques de l'agent sont rejouées par-dessus le travail de l'utilisateur.
    */
+  /**
+   * LE TOUR QUE CE NAVIGATEUR A VU PARTIR ET PAS FINIR.
+   *
+   * Mesuré le 2026-10-01 : connexion perdue, onglet fermé, le serveur va au
+   * bout ; à la réouverture, le message relu est protégé contre le rejeu
+   * (BUG-QA0929) et ses fichiers ne sont jamais écrits — le projet reste à
+   * moitié construit. Pour CE message seulement (et ses sous-agents), les
+   * fichiers deviennent des propositions EN REVUE (`relueDeLaBase` : jamais
+   * appliquées automatiquement, l'utilisateur a pu travailler ailleurs
+   * entre-temps), et les commandes ne sont pas relancées.
+   */
+  reprendreLeTourInterrompu(messageId: string) {
+    this.#toursInterrompusARevoir.add(messageId);
+  }
+
   markHydratedMessages(messages: string[]) {
     this.#reloadedMessages.marquerHydrates(messages);
   }
@@ -3353,7 +3372,19 @@ export class WorkbenchStore {
       return;
     }
 
-    if (this.#reloadedMessages.contient(data.messageId)) {
+    /*
+     * LE TOUR INTERROMPU, REPRIS À LA RÉOUVERTURE (voir `reprendreLeTourInterrompu`).
+     * Ses fichiers passent par le chemin normal — un `diff` doit être résolu —
+     * mais finissent EN REVUE ; ses commandes ne sont pas relancées.
+     */
+    const aRevoir = this.#toursInterrompusARevoir.has(decoderLane(data.messageId)?.messageId ?? data.messageId);
+
+    if (aRevoir && data.action.type !== 'file' && data.action.type !== 'diff') {
+      artifact.runner.skipAction(data.actionId);
+      return;
+    }
+
+    if (!aRevoir && this.#reloadedMessages.contient(data.messageId)) {
       artifact.runner.skipAction(data.actionId);
       return;
     }
@@ -3437,8 +3468,8 @@ export class WorkbenchStore {
     }
 
     if (data.action.type === 'file') {
-      if (this.agentPatchReviewRequired.get()) {
-        this.#queueAgentPatchProposal(data, isStreaming);
+      if (this.agentPatchReviewRequired.get() || aRevoir) {
+        this.#queueAgentPatchProposal(data, isStreaming, aRevoir);
 
         /*
          * Une fermeture par le FILET (écriture interrompue en route) n'est pas une
@@ -3745,9 +3776,18 @@ export class WorkbenchStore {
     this.#maybeRunDeferredStart(artifactId);
   }
 
-  #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean) {
+  #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean, aRevoir = false) {
     if (data.action.type !== 'file') {
       return;
+    }
+
+    /* Le tour repris ne propose que sa fermeture, et rien pour un fichier déjà identique. */
+    if (aRevoir) {
+      const actuel = this.#filesStore.getFile(path.join(this.#runtime.workdir, data.action.filePath));
+
+      if (isStreaming || (actuel?.type === 'file' && actuel.content === data.action.content)) {
+        return;
+      }
     }
 
     /*
@@ -3829,6 +3869,7 @@ export class WorkbenchStore {
       tronquee: !isStreaming && data.fermetureDeSecours === true,
       contenuLu,
       lueA,
+      ...(aRevoir ? { relueDeLaBase: true } : {}),
     });
     this.#syncAgentPatchProposalToServer(proposalId);
 
