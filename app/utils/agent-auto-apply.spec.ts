@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { autoApplyAttemptKey, isRiskyAgentPatchPath, shouldAutoApplyPatch } from './agent-auto-apply';
+import {
+  propositionsAMontrer,
+  autoApplyAttemptKey,
+  isRiskyAgentPatchPath,
+  shouldAutoApplyPatch,
+} from './agent-auto-apply';
 
 describe('isRiskyAgentPatchPath', () => {
   it('flags dependency manifests at the project root', () => {
@@ -117,5 +122,42 @@ describe('autoApplyAttemptKey', () => {
     };
 
     expect(autoApplyAttemptKey(input)).toBe(autoApplyAttemptKey(input));
+  });
+});
+
+/*
+ * Mesure à venir en production (#667 servi) ; constat de lecture du code le
+ * 2026-10-01 : avec l'application automatique — le réglage par défaut — la file
+ * de revue du chat était VIDE, quoi qu'il y ait dedans. Une proposition mise en
+ * revue pour conflit attendait une revue que personne ne voyait.
+ */
+describe('ce que la file de revue du chat montre', () => {
+  const p = (id: string, extra: Record<string, unknown> = {}) => ({ id, status: 'pending', ...extra });
+
+  it('avec l’application automatique, elle montre ce que l’application automatique ne prendra JAMAIS', () => {
+    const propositions = [
+      p('ordinaire'),
+      p('conflit', { conflit: true }),
+      p('relue', { relueDeLaBase: true }),
+      p('tronquee', { tronquee: true }),
+      p('echec', { status: 'failed' }),
+    ];
+
+    expect(propositionsAMontrer(propositions, true).map((x) => x.id)).toEqual([
+      'conflit',
+      'relue',
+      'tronquee',
+      'echec',
+    ]);
+  });
+
+  it('jamais une proposition encore en flux ou en cours d’application : elle va aboutir d’elle-même', () => {
+    expect(propositionsAMontrer([p('flux', { enFlux: true }), p('cours', { status: 'applying' })], true)).toEqual([]);
+  });
+
+  it('sans application automatique, elle montre tout, comme avant', () => {
+    const propositions = [p('ordinaire'), p('conflit', { conflit: true })];
+
+    expect(propositionsAMontrer(propositions, false)).toEqual(propositions);
   });
 });

@@ -135,3 +135,31 @@ export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
 export function autoApplyAttemptKey(input: AutoApplyAttemptKeyInput): string {
   return `${input.id}:${input.updatedAt}:${input.proposedContent.length}`;
 }
+
+/**
+ * LES PROPOSITIONS QUE LA FILE DE REVUE DU CHAT MONTRE.
+ *
+ * Sans application automatique : toutes celles en attente. AVEC (le réglage
+ * par défaut) : celles que l'application automatique ne prendra JAMAIS — un
+ * conflit avec ce que l'utilisateur a enregistré, une proposition relue de la
+ * base, une écriture tronquée, un échec. La file restait vide dans ce mode :
+ * ces propositions attendaient une revue que personne ne voyait.
+ *
+ * Jamais une proposition encore en flux ou en cours d'application : elle va
+ * aboutir d'elle-même.
+ */
+export function propositionsAMontrer<T extends Omit<AutoApplyDecisionInput, 'autoApplyEnabled'>>(
+  propositions: readonly T[],
+  autoApplyEnabled: boolean,
+): T[] {
+  if (!autoApplyEnabled) {
+    return [...propositions];
+  }
+
+  return propositions.filter(
+    (proposition) =>
+      !proposition.enFlux &&
+      proposition.status !== 'applying' &&
+      !shouldAutoApplyPatch({ ...proposition, autoApplyEnabled: true }),
+  );
+}

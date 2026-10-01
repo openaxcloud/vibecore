@@ -147,7 +147,7 @@ import {
   type CheckpointSnapshotPairing,
 } from '~/lib/chat/checkpoint-snapshots';
 import { useAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
-import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
+import { autoApplyAttemptKey, propositionsAMontrer, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
@@ -2201,13 +2201,15 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   const { t } = useTranslation();
   const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
 
-  const visibleProposals = useMemo(() => {
-    if (autoApplyEnabled) {
-      return [];
-    }
-
-    return proposals;
-  }, [proposals, autoApplyEnabled]);
+  /*
+   * Avec l'application automatique, la file ne montre que ce qu'elle ne
+   * prendra JAMAIS (conflit, proposition relue, tronquée, échec) — elle était
+   * vide, et ces propositions attendaient une revue que personne ne voyait.
+   */
+  const visibleProposals = useMemo(
+    () => propositionsAMontrer(proposals, Boolean(autoApplyEnabled)),
+    [proposals, autoApplyEnabled],
+  );
 
   useEffect(() => {
     setSelectedHunksByProposal((current) => {
@@ -7606,7 +7608,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [activateMobileTool]);
 
     const shouldRenderAgentPatchReviewQueue =
-      projectIdeMode && !projectAutoApply && pendingAgentPatchProposals.length > 0;
+      projectIdeMode && propositionsAMontrer(pendingAgentPatchProposals, projectAutoApply).length > 0;
 
     const shouldRenderAgentComposer = !projectIdeMode || !useMobileIde || mobilePanel === 'chat';
 
