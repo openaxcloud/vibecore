@@ -97,6 +97,18 @@ const REFUS_DE_FICHIERS: readonly RegExp[] = [
   /\bwait (?:for )?my (?:approval|confirmation|go-ahead|validation|ok)\b/,
 ];
 
+/*
+ * UNE RESTRICTION DE PORTÉE N'EST PAS UN REFUS. « Ne modifie rien d'autre »,
+ * « aucun autre fichier », « don't touch any other files » disent OÙ écrire,
+ * pas de ne rien écrire. Mesuré en production le 2026-10-01 à 16:44 : « Ajoute
+ * […] une ligne à src/App.tsx. Ne modifie rien d'autre, aucun autre fichier. »
+ * était classé refus, et la barrière jetait l'écriture de l'agent en silence.
+ * Un passage qui porte l'un de ces mots ne compte pas comme refus ; chaque
+ * passage est examiné, si bien qu'un vrai refus ailleurs dans le message reste
+ * reconnu.
+ */
+const RESTRICTION_DE_PORTEE = /\b(?:autres?|other|others|else)\b|\bd'autres?\b/;
+
 function normaliser(texte: string): string {
   return texte
     .normalize('NFD')
@@ -114,7 +126,9 @@ export function refusExpliciteDeFichiers(texte: string | undefined | null): bool
 
   const t = normaliser(texte);
 
-  return REFUS_DE_FICHIERS.some((motif) => motif.test(t));
+  return REFUS_DE_FICHIERS.some((motif) =>
+    [...t.matchAll(new RegExp(motif.source, 'g'))].some((passage) => !RESTRICTION_DE_PORTEE.test(passage[0])),
+  );
 }
 
 export type FinDeTour = Readonly<{

@@ -171,6 +171,37 @@ describe('l’utilisateur a dit non — la relance ne passe JAMAIS par-dessus', 
     expect(refusExpliciteDeFichiers(texte)).toBe(false);
   });
 
+  /*
+   * UNE RESTRICTION DE PORTÉE N'EST PAS UN REFUS. Mesuré en production le
+   * 2026-10-01 à 16:44 (projet cmuprkura…) : « Ajoute à la toute fin de
+   * src/App.tsx […] une ligne de commentaire. Ne modifie rien d'autre, aucun
+   * autre fichier. » — classé « n'écris aucun fichier » : l'écriture de l'agent
+   * est refusée par la barrière (`ecriture.refusee.consigne`), en silence. Le
+   * tour annonce son travail, rien n'est écrit.
+   */
+  it.each([
+    "Ajoute à la toute fin de src/App.tsx, après la dernière ligne, une ligne de commentaire // signé par l'agent. Ne modifie rien d'autre, aucun autre fichier.",
+    "Change le titre. Ne modifie rien d'autre dans le fichier.",
+    'Ne touche à aucun autre fichier.',
+    'Corrige le bouton, mais ne modifie pas les autres fichiers.',
+    "Ne crée pas d'autres fichiers que App.tsx.",
+    'Only change the header. Do not touch any other files.',
+    "Fix the bug and don't change anything else in the code.",
+  ])('restriction de portée, pas un refus : %s', (texte) => {
+    expect(refusExpliciteDeFichiers(texte)).toBe(false);
+  });
+
+  it.each([
+    "N'écris aucun fichier. Ne modifie rien d'autre.",
+    "Ne modifie rien d'autre. N'écris aucun fichier pour l'instant.",
+    'Ne modifie aucun fichier.',
+
+    /* La restriction est le PREMIER passage du même motif ; le refus, que seul ce motif reconnaît, vient après. */
+    "Ne crée pas d'autres fichiers. Et ne génère pas encore le code.",
+  ])('un VRAI refus reste reconnu, même à côté d’une restriction : %s', (texte) => {
+    expect(refusExpliciteDeFichiers(texte)).toBe(true);
+  });
+
   it('TÉMOIN — absent, nul ou vide ne lève pas', () => {
     expect(refusExpliciteDeFichiers(undefined)).toBe(false);
     expect(refusExpliciteDeFichiers(null)).toBe(false);
