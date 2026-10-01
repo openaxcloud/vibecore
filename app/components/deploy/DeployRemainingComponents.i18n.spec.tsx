@@ -34,7 +34,6 @@ vi.mock('framer-motion', async () => {
 });
 
 import DeployChatAlert from './DeployAlert';
-import { DeploymentTypeSelector } from './DeploymentTypeSelector';
 import { formatBuildFailureOutput, getBoltDeployProviders } from './deployUtils';
 import { getDeploymentType, getDeploymentTypes } from './deployment-types';
 import {
@@ -113,35 +112,6 @@ describe('remaining deployment catalog and pure helpers', () => {
     expect(formatBuildFailureOutput(diagnostic)).toBe(diagnostic);
     expect(formatBuildFailureOutput('x'.repeat(5000))).toHaveLength(4026);
     expect(formatBuildFailureOutput(undefined)).toBe('Build failed with no output captured.');
-  });
-});
-
-describe('DeploymentTypeSelector i18n and responsive behavior', () => {
-  it('switches French and English live, keeps long labels wrapped, and disables unavailable compute', async () => {
-    const onSelect = vi.fn();
-    const { i18n } = renderWithLanguage('fr', <DeploymentTypeSelector selected="static" onSelect={onSelect} />);
-
-    expect(screen.getByText('Type de déploiement')).toBeTruthy();
-    expect(screen.getByText('Mise à l’échelle automatique')).toBeTruthy();
-
-    const staticTier = screen.getByTestId('deployment-type-static');
-    const reservedTier = screen.getByTestId('deployment-type-reserved-vm');
-
-    expect(staticTier.className).toContain('min-h-11');
-    expect(staticTier.className).toContain('min-w-0');
-    expect(reservedTier).toHaveProperty('disabled', true);
-    expect(reservedTier.getAttribute('title')).toContain('infrastructure de calcul managée');
-
-    fireEvent.click(staticTier);
-    expect(onSelect).toHaveBeenCalledWith('static');
-
-    await act(async () => {
-      await i18n.changeLanguage('en');
-    });
-
-    expect(screen.getByText('Deployment type')).toBeTruthy();
-    expect(screen.getByText('Autoscale')).toBeTruthy();
-    expect(screen.queryByText('Mise à l’échelle automatique')).toBeNull();
   });
 });
 
@@ -235,7 +205,6 @@ describe('remaining deployment source guard', () => {
       'app/components/deploy/GitHubDeploy.client.tsx',
       'app/components/deploy/GitLabDeploy.client.tsx',
       'app/components/deploy/DeployAlert.tsx',
-      'app/components/deploy/DeploymentTypeSelector.tsx',
       'app/components/deploy/deployment-types.ts',
       'app/components/deploy/deployUtils.ts',
     ];

@@ -31,7 +31,6 @@ vi.mock('./WebSearch.client', () => ({
     <button type="button">{triggerLabel}</button>
   ),
 }));
-vi.mock('~/components/chat/ModelSelector', () => ({ ModelSelector: () => null }));
 vi.mock('~/lib/stores/settings', () => ({ LOCAL_PROVIDERS: [] }));
 vi.mock('~/components/ui/ColorSchemeDialog', () => ({
   ColorSchemeDialog: ({ triggerLabel = 'Design palette' }: { triggerLabel?: string }) => (
