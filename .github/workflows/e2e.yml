@@ -134,8 +134,50 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # LES BINAIRES DES NAVIGATEURS SE TÉLÉCHARGENT À CHAQUE PASSAGE, ET C'EST
+      # LE DEUXIÈME POSTE DE TOUTE LA CHAÎNE DE LIVRAISON.
+      #
+      # Mesuré le 2026-09-30 sur la tranche 1 de l'E2E de `1fb51f092a` : l'étape
+      # « Install Playwright browsers » a pris 10 min 33 s, sur une tranche de
+      # 57 min 30 s qui est elle-même sur le chemin critique de la porte de
+      # release — donc de chaque mise en production. Décomposition de cette
+      # porte, le même jour : 2 s d'attente de coureur, 10 min 33 s ici,
+      # 27 min 47 s de suite, 15 min 12 s de canari, 8 min 38 s d'attente du job
+      # de verdict.
+      #
+      # La clé porte la VERSION de Playwright, pas le hachage du lockfile : les
+      # binaires ne dépendent que d'elle, et une clé sur le lockfile serait
+      # invalidée par n'importe quelle autre dépendance — un cache qui ne sert
+      # jamais coûte le temps de sa restauration sans rien rendre.
+      #
+      # `install-deps` (apt) reste HORS cache : il installe dans l'image du
+      # coureur, pas dans un répertoire qu'on puisse restaurer. L'étape
+      # d'installation tourne donc toujours : sur succès du cache, les
+      # `playwright install` deviennent des non-opérations, ils ne sont pas
+      # sautés. C'est voulu — un cache partiel ou corrompu doit être réparé par
+      # l'installation, jamais contourné par un `if`.
+      - name: Lire la version de Playwright (clé du cache)
+        id: version_playwright
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').devDependencies['@playwright/test'] || require('./package.json').dependencies['@playwright/test']")"
+          if [ -z "${version}" ] || [ "${version}" = "undefined" ]; then
+            echo "::error::version de @playwright/test introuvable dans package.json — sans elle la clé du cache serait constante, donc fausse."
+            exit 1
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Playwright ${version}"
+
+      - name: Cache des binaires de navigateurs
+        id: cache_navigateurs
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.2.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ms-playwright-${{ runner.os }}-${{ steps.version_playwright.outputs.version }}
+
       - name: Install Playwright browsers
         run: |
+          echo "cache des navigateurs : succes=${{ steps.cache_navigateurs.outputs.cache-hit == 'true' }} cle=${{ steps.cache_navigateurs.outputs.cache-primary-key }}"
           # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
           # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
           # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
