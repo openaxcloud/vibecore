@@ -25,6 +25,7 @@ import {
 } from '~/lib/i18n/catalogs/organization-access';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { BUILTIN_ROLE_ORDER, getBuiltinRoleLabels } from '~/lib/rbac-catalog';
+import { estUnRefusFauteDePlace } from '~/lib/refus-place-equipe.server';
 import { userFacingLabel } from '~/lib/user-facing-labels';
 
 export const meta: MetaFunction = ({ matches }) => {
@@ -148,6 +149,11 @@ export async function action({ request }: EnterpriseActionArgs) {
         },
         { status: 403 },
       );
+    }
+
+    // Le forfait de l'équipe n'a plus de place : le dire, au lieu du refus générique (ou du texte brut de l'API).
+    if (await estUnRefusFauteDePlace(error)) {
+      return json({ error: copy['organizationAccess.invitations.seatLimit'] }, { status: 429 });
     }
 
     if (error instanceof Response) {

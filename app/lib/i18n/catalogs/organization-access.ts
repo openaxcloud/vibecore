@@ -125,6 +125,8 @@ export const organizationAccessEn = {
   'organizationAccess.invitations.actionForbidden':
     'You need the “Manage members” permission and may invite only roles that you are allowed to assign.',
   'organizationAccess.invitations.actionFailed': 'Could not complete the invitation action.',
+  'organizationAccess.invitations.seatLimit':
+    'Your plan has no free seat left for another member. Upgrade your plan, or revoke a pending invitation, to invite this colleague.',
   'organizationAccess.invitations.inviteTitle': 'Invite a member',
   'organizationAccess.invitations.email': 'Email',
   'organizationAccess.invitations.emailPlaceholder': 'person@company.com',
@@ -281,6 +283,8 @@ export const organizationAccessFr: OrganizationAccessCopy = {
   'organizationAccess.invitations.actionForbidden':
     'Vous devez disposer de l’autorisation « Gérer les membres » et ne pouvez inviter que des rôles que vous êtes autorisé à attribuer.',
   'organizationAccess.invitations.actionFailed': 'Impossible d’effectuer l’action sur l’invitation.',
+  'organizationAccess.invitations.seatLimit':
+    'Votre forfait n’a plus de place libre pour un membre de plus. Passez à un forfait supérieur, ou révoquez une invitation en attente, pour inviter ce collègue.',
   'organizationAccess.invitations.inviteTitle': 'Inviter un membre',
   'organizationAccess.invitations.email': 'E-mail',
   'organizationAccess.invitations.emailPlaceholder': 'personne@entreprise.fr',

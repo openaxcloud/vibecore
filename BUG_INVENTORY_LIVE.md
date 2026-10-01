@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-381 entrées.
+385 entrées.
 
 ## Sans section
 
@@ -405,8 +405,18 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0930-OFFRE-PERDUE-TARIFS](docs/bugs/BUG-QA0930-OFFRE-PERDUE-TARIFS.md) — BLOQUANT (paiement) — « Choisir Core » et « Choisir Pro » sur la page tarifs mènent à une inscription
 - [BUG-QA0930-PREMIER-PROJET-TOUR-COUPE](docs/bugs/BUG-QA0930-PREMIER-PROJET-TOUR-COUPE.md) — BLOQUANT (premier projet) — TRANSMIS, hors du périmètre de la session QA (relance instruite).
 - [BUG-QA0930-TARIFS-INCOHERENTS](docs/bugs/BUG-QA0930-TARIFS-INCOHERENTS.md) — BLOQUANT (paiement) — la page tarifs et le parcours de paiement vendent deux grilles différentes.
-- [BUG-QA1001-PRO-UNE-SEULE-PLACE](docs/bugs/BUG-QA1001-PRO-UNE-SEULE-PLACE.md) — Le forfait Pro (29 €/mois) n'avait qu'UNE place d'équipe — celle du propriétaire : un client qui paie ne
+- [BUG-QA0930-INVITATION-MESSAGE-TROMPEUR](docs/bugs/BUG-QA0930-INVITATION-MESSAGE-TROMPEUR.md) — BLOQUANT (inviter un collègue) — le collègue invité qui vient de créer son compte ne rejoint jamais
+- [BUG-QA0930-INVITATION-SANS-PLACE](docs/bugs/BUG-QA0930-INVITATION-SANS-PLACE.md) — BLOQUANT (inviter un collègue) — une équipe au forfait gratuit (ou Pro) envoie des invitations que
+
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
+
+- [CONSTAT-CI-ATTENTE-DU-VERDICT-001](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
+- [DETTE-CI-TRANCHES-DESEQUILIBREES-001](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
 - [BUG-QA1001-ANNUEL-FACTURE-AU-MOIS](docs/bugs/BUG-QA1001-ANNUEL-FACTURE-AU-MOIS.md) — Paiement : un client qui choisit la facturation ANNUELLE est abonné au prix MENSUEL quand le prix annuel
+- [BUG-QA1001-PRO-UNE-SEULE-PLACE](docs/bugs/BUG-QA1001-PRO-UNE-SEULE-PLACE.md) — Le forfait Pro (29 €/mois) n'avait qu'UNE place d'équipe — celle du propriétaire : un client qui paie ne
 
 ## Résidus non tabulaires — reportés mot pour mot
 
