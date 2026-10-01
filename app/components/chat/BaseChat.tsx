@@ -161,8 +161,7 @@ import {
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
   revelerLeChampActif,
-  suivreHauteurDeRepos,
-  type HauteurDeRepos,
+  memoriserHauteurDeRepos,
 } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
@@ -3186,17 +3185,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
-      /*
-       * Référence du rétrécissement : la hauteur de mise en page AU REPOS.
-       * Safari iOS 26 rétrécit `innerHeight` avec le clavier (699 → 362, mesuré
-       * le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
-       */
-      let repos: HauteurDeRepos | undefined;
-
       const updateVisualViewportHeight = () => {
         const vue = window.visualViewport;
 
-        repos = suivreHauteurDeRepos(repos, window.innerWidth, window.innerHeight);
+        /*
+         * Référence du rétrécissement : la hauteur de mise en page AU REPOS, mémorisée
+         * pour la PAGE (un rejeu de cet effet, clavier levé, ne la fait pas repartir de
+         * la hauteur rétrécie). Safari iOS 26 rétrécit `innerHeight` avec le clavier
+         * (699 → 362, mesuré le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
+         */
+        const repos = memoriserHauteurDeRepos(window.innerWidth, window.innerHeight);
 
         const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);

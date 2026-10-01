@@ -68,6 +68,30 @@ async function createProjectSession(request: APIRequestContext) {
   throw new Error(`Impossible d'ouvrir une session de test : ${lastBody}`);
 }
 
+/*
+ * Une mesure de référence ne se prend que sur une mise en page STABLE : deux
+ * lectures identiques à 300 ms d'intervalle. Au premier chargement, le projet
+ * arrive pendant que l'on mesure ; une hauteur lue sur un état transitoire est
+ * exactement la famille de défauts que ces tests gardent (01/10).
+ */
+async function stable(locator: import('@playwright/test').Locator) {
+  let precedent = '';
+
+  await expect
+    .poll(
+      async () => {
+        const r = await locator.boundingBox();
+        const courant = r ? `${Math.round(r.y)}:${Math.round(r.height)}` : 'absent';
+        const tient = courant !== 'absent' && courant === precedent;
+        precedent = courant;
+
+        return tient;
+      },
+      { intervals: [300], timeout: 30_000, message: 'la mise en page ne se stabilise pas' },
+    )
+    .toBe(true);
+}
+
 test('clavier levé (fenêtre de mise en page rétrécie, comme iOS 26) : socle couvert, zone de saisie visible', async ({
   page,
   request,
@@ -92,6 +116,8 @@ test('clavier levé (fenêtre de mise en page rétrécie, comme iOS 26) : socle 
 
   // Précondition de la mesure : l'état de départ (le cas mesuré sur iOS) est affiché.
   await expect(page.locator('.bolt-mobile-agent-start-state')).toBeVisible();
+
+  await stable(composeur);
 
   // « Clavier levé » à la manière d'iOS 26 : innerHeight ET vue tombent à 362.
   await page.setViewportSize({ width: 390, height: 362 });
@@ -122,14 +148,22 @@ test('clavier levé (fenêtre de mise en page rétrécie, comme iOS 26) : socle 
         return `${sel}=[${Math.round(r.top)}-${Math.round(r.bottom)} fs=${cs.flexShrink} fb=${cs.flexBasis} h=${cs.height} minh=${cs.minHeight} parent=${e.parentElement?.className.toString().split(/\s+/).slice(0, 2).join('.')} rang=${e.parentElement ? [...e.parentElement.children].indexOf(e) : -1}]`;
       };
 
-      return [
-        '.bolt-mobile-agent-start-state',
-        '.bolt-project-agent-scroll',
-        '.bolt-project-agent-composer',
-        '.bolt-project-agent-panel',
-      ]
-        .map(d)
-        .join(' ');
+      return (
+        [
+          `attr=${document.documentElement.getAttribute('data-vc-clavier') ?? 'absent'}`,
+          `socle=${getComputedStyle(document.querySelector('.bolt-mobile-replit-nav') ?? document.body).display}`,
+          `ide-mobile=${Boolean(document.querySelector('.bolt-responsive-ide-mobile'))}`,
+        ].join(' ') +
+        ' ' +
+        [
+          '.bolt-mobile-agent-start-state',
+          '.bolt-project-agent-scroll',
+          '.bolt-project-agent-composer',
+          '.bolt-project-agent-panel',
+        ]
+          .map(d)
+          .join(' ')
+      );
     });
 
   let bas = Number.NaN;
@@ -180,6 +214,8 @@ test('clavier levé sur un champ bas (Paramètres) : le champ actif reste visibl
   await expect(champ).toBeVisible({ timeout: 60_000 });
 
   // Précondition : au repos, le champ est plus bas que le futur bas visible — sinon le test ne mesure rien.
+  await stable(champ);
+
   const avant = (await champ.boundingBox())!;
   expect(avant.y + avant.height, 'le champ est déjà au-dessus de 362 : la mesure serait vide').toBeGreaterThan(362);
 
