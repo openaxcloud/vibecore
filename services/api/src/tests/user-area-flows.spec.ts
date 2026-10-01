@@ -121,6 +121,9 @@ describe('invitation guards (BUG-USR-010 / BUG-USR-011)', () => {
 
   it('accepts a first invite but refuses a DUPLICATE pending invite → 409 ALREADY_INVITED', async () => {
     ctx = await setup();
+    // Le forfait Pro n'a qu'une place (le propriétaire) : une invitation y est refusée dès la création
+    // (BUG-QA0930-INVITATION-SANS-PLACE). Ce test porte sur le doublon, il lui faut des places libres.
+    await ctx.store.upsertSubscription({ organizationId: ctx.orgId, planKey: 'team', status: 'ACTIVE' });
 
     const first = await invite('teammate@flows.test');
     expect(first.statusCode).toBe(201);

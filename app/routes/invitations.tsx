@@ -44,6 +44,7 @@ import {
   type InvitationsCopy,
 } from '~/lib/i18n/catalogs/invitations';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { estUnRefusFauteDePlace } from '~/lib/refus-place-equipe.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 type Invitation = {
@@ -243,7 +244,7 @@ function actionError(errorCode: InvitationActionErrorCode, status: number) {
   return json<InvitationsActionData>({ errorCode }, { status });
 }
 
-function invitationApiError(error: unknown) {
+async function invitationApiError(error: unknown) {
   if (isForbiddenApiResponse(error)) {
     return actionError('permission', 403);
   }
@@ -255,6 +256,10 @@ function invitationApiError(error: unknown) {
 
     if (error.status === 409) {
       return actionError('conflict', 409);
+    }
+
+    if (await estUnRefusFauteDePlace(error)) {
+      return actionError('seatLimit', 429);
     }
 
     if (error.status === 429) {

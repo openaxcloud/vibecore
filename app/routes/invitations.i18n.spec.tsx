@@ -353,7 +353,7 @@ describe('invitations SSR metadata and source safeguards', () => {
     expect(scan.parseErrors).toEqual([]);
     expect(scan.findings).toEqual([]);
     expect(catalogs.issues).toEqual([]);
-    expect(catalogs.metrics).toMatchObject({ enEntries: 80, frEntries: 80, matchingKeys: 80, pluralFamilies: 1 });
+    expect(catalogs.metrics).toMatchObject({ enEntries: 83, frEntries: 83, matchingKeys: 83, pluralFamilies: 1 });
     expect(routeSource).toContain('resolveRequestLocale(request).language');
     expect(routeSource).toContain('export const meta');
     expect(routeSource).toContain('export function ErrorBoundary');
