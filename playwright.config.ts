@@ -35,7 +35,26 @@ export default defineConfig({
    * rapport en s'arrêtant. Tué par le coureur, il ne laisse rien — et une suite
    * qui ne rend rien ne protège plus rien, elle fait seulement patienter.
    */
-  globalTimeout: 60 * 60_000,
+  /*
+   * 75 ET NON 60 — mesuré, pas choisi.
+   *
+   * Le 2026-10-01, l'étape de suite de la tranche 1 a duré 3601 s : exactement
+   * cette borne, à la seconde près. Elle n'a donc pas fini, elle a été COUPÉE,
+   * et la porte a vu des tests « did not run ». Cause : les specs E2E sont
+   * passés de 48 à 55 fichiers dans la nuit, et la tranche 1 en portait déjà 44
+   * sur 48 (Playwright découpe par fichier, pas par durée — voir
+   * docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md).
+   *
+   * Le vrai remède est le découpage en quatre tranches ; celui-ci est le filet
+   * qui empêche la suite d'être coupée en attendant, et il reste utile après :
+   * une borne qui tranche AVANT que la suite ait fini ne protège rien, elle
+   * transforme une suite lente en suite muette.
+   *
+   * Le plafond du job suit (110 min dans e2e.yml) : cette borne doit rester
+   * SOUS lui, parce que Playwright sait rendre un rapport en s'arrêtant alors
+   * qu'un job tué par le coureur ne laisse rien.
+   */
+  globalTimeout: 75 * 60_000,
 
   /*
    * Au-delà de vingt échecs, la suite ne mesure plus un défaut mais un
