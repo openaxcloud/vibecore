@@ -147,3 +147,27 @@ export function revelerLeChampActif(doc: Document): boolean {
 
   return true;
 }
+
+/**
+ * La hauteur au repos est mémorisée pour la PAGE, pas pour un effet.
+ *
+ * Vu en CI le 01/10 (premier essai à froid, `clavier-ios-hauteur-de-repos`) :
+ * les règles « clavier levé » cessaient de s'appliquer quelques instants après
+ * la levée du clavier. Si l'effet de mesure est rejoué — ou BaseChat remonté —
+ * pendant que le clavier est levé, une référence locale repartait de la hauteur
+ * RÉTRÉCIE (362) : rétrécissement 0, clavier perdu. Sur iPhone, un remontage
+ * pendant la saisie aurait le même effet. Une rotation (largeur changée)
+ * repart toujours de zéro (`suivreHauteurDeRepos`).
+ */
+let reposDeLaPage: HauteurDeRepos | undefined;
+
+export function memoriserHauteurDeRepos(largeur: number, hauteurMiseEnPage: number): HauteurDeRepos {
+  reposDeLaPage = suivreHauteurDeRepos(reposDeLaPage, largeur, hauteurMiseEnPage);
+
+  return reposDeLaPage;
+}
+
+/** Pour les tests : repartir d'une page neuve. */
+export function oublierHauteurDeRepos(): void {
+  reposDeLaPage = undefined;
+}

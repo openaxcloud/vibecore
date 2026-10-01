@@ -9,6 +9,8 @@ import {
   revelerLeChampActif,
   champSaisissable,
   suivreHauteurDeRepos,
+  memoriserHauteurDeRepos,
+  oublierHauteurDeRepos,
   SEUIL_CLAVIER_PX,
 } from './visual-viewport-bottom';
 
@@ -92,7 +94,10 @@ describe('BUG-KEYBOARD-ZOOM-001 — clavier iOS : détection par le rétrécisse
      */
     expect(baseChat).toContain('clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))');
     expect(baseChat).toContain('decalageAAnnulerClavierOuvert(repos.hauteur, vue ?? undefined)');
-    expect(baseChat).toContain('repos = suivreHauteurDeRepos(repos, window.innerWidth, window.innerHeight);');
+
+    // Mémorisée pour la PAGE : un rejeu de l'effet, clavier levé, ne repart pas de la hauteur rétrécie (01/10).
+    expect(baseChat).toContain('const repos = memoriserHauteurDeRepos(window.innerWidth, window.innerHeight);');
+    expect(baseChat).not.toMatch(/let repos: HauteurDeRepos/u);
     expect(baseChat).not.toMatch(/retrecissementDeLaVue\(window\.innerHeight/u);
     expect(baseChat).not.toMatch(/decalageAAnnulerClavierOuvert\(window\.innerHeight/u);
     expect(baseChat).toContain('window.scrollTo(0, 0);');
@@ -144,6 +149,39 @@ describe('Safari iOS 26 — la fenêtre de mise en page rétrécit AVEC le clavi
     r = suivreHauteurDeRepos(r, 844, 340);
     expect(r).toEqual({ largeur: 844, hauteur: 340 });
     expect(clavierProbablementOuvert(retrecissementDeLaVue(r.hauteur, { height: 340, offsetTop: 0 }))).toBe(false);
+  });
+});
+
+describe('la hauteur au repos survit à un rejeu de la mesure, clavier levé (CI, 01/10)', () => {
+  /*
+   * Premier essai à froid de `clavier-ios-hauteur-de-repos` : les règles « clavier
+   * levé » cessaient de s'appliquer. Un effet rejoué (ou BaseChat remonté) pendant
+   * que le clavier est levé faisait repartir une référence LOCALE de 362.
+   */
+  it('un rejeu pendant le clavier garde 699 — le clavier reste vu', () => {
+    oublierHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 699);
+
+    // Premier effet : clavier levé.
+    expect(memoriserHauteurDeRepos(390, 362).hauteur).toBe(699);
+
+    // Effet REJOUÉ (remontage) pendant que le clavier est toujours levé.
+    const apresRejeu = memoriserHauteurDeRepos(390, 362);
+    expect(apresRejeu.hauteur).toBe(699);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(apresRejeu.hauteur, { height: 362, offsetTop: 0 }))).toBe(
+      true,
+    );
+  });
+
+  it('contre-épreuve : une référence locale, recréée au rejeu, perdait le clavier', () => {
+    const locale = suivreHauteurDeRepos(undefined, 390, 362);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(locale.hauteur, { height: 362, offsetTop: 0 }))).toBe(false);
+  });
+
+  it('une rotation repart de zéro, même mémorisée', () => {
+    oublierHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 699);
+    expect(memoriserHauteurDeRepos(844, 340)).toEqual({ largeur: 844, hauteur: 340 });
   });
 });
 
