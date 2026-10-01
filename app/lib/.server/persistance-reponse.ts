@@ -17,6 +17,8 @@
  * Étape 2 sur 3. L'étape 1 (#581) écrit la DEMANDE avant l'appel au modèle.
  * Épinglé par `persistance-reponse.spec.ts` et `persistance-reponse-cablage.spec.ts`.
  */
+import { sansReflexion } from '~/lib/chat/rattrapage-reprise';
+
 export interface ReponseAPersister {
   conversationId: string;
   clientId: string;
@@ -30,7 +32,15 @@ export function reponseAPersister(input: {
 }): ReponseAPersister | null {
   const conversationId = typeof input.conversationId === 'string' ? input.conversationId.trim() : '';
   const clientId = typeof input.clientId === 'string' ? input.clientId.trim() : '';
-  const content = typeof input.contenu === 'string' ? input.contenu : '';
+
+  /*
+   * JAMAIS DE RAISONNEMENT dans la version du serveur : c'est ainsi que le
+   * rattrapage, côté navigateur, la distingue de la copie partielle que le
+   * navigateur enregistre lui-même pendant le tour (`estLaVersionDuServeur`).
+   * Le texte du modèle n'en porte pas aujourd'hui ; ce retrait garantit qu'il
+   * n'en portera pas demain.
+   */
+  const content = typeof input.contenu === 'string' ? sansReflexion(input.contenu).texte : '';
 
   /*
    * Une réponse vide ne s'écrit pas : elle écraserait la ligne que le

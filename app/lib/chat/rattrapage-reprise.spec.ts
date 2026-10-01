@@ -120,6 +120,69 @@ describe('le plan de rattrapage', () => {
     expect(plan).toBeNull();
   });
 
+  /*
+   * Mesuré en production le 2026-10-01 à 12:20 (projet cmupi39un…) : coupure
+   * EN PLEIN raisonnement. Le texte local hors raisonnement est vide ; la base
+   * portait la copie partielle que le NAVIGATEUR avait lui-même enregistrée,
+   * raisonnement compris. Vide + n'importe quoi = « prolongement » : le
+   * rattrapage l'a recollée (raisonnement en double) et s'est déclaré appliqué,
+   * avant que le serveur ait fini — 3 fichiers sur 13. Le serveur n'écrit
+   * JAMAIS de raisonnement (mesuré : 0 bloc dans sa version de 26 176
+   * caractères) : une version qui en porte n'est pas la sienne.
+   */
+  it("n'apporte rien tant que la base ne porte que la copie partielle du NAVIGATEUR, coupée en plein raisonnement", async () => {
+    const idUtilisateur = await identifiantServeurDuMessage('c', 'u1');
+    const partielle = `${REFLEXION('Je planifie la structure.')}Voici`;
+
+    const plan = await planDeRattrapage(
+      'c',
+      [
+        { id: 'u1', role: 'user', content: 'Fais une app' },
+        { id: 'a1', role: 'assistant', content: '<div class="__boltThought__">Je planifie la str' },
+      ],
+      [
+        { id: idUtilisateur, role: 'user', content: 'Fais une app' },
+        { id: 'aimsg_x', role: 'assistant', content: partielle },
+      ],
+    );
+
+    expect(plan).toBeNull();
+  });
+
+  it('prend la version FINALE du serveur, sans raisonnement, quand elle arrive', async () => {
+    const idUtilisateur = await identifiantServeurDuMessage('c', 'u1');
+    const local = '<div class="__boltThought__">Je planifie la str';
+
+    const plan = await planDeRattrapage(
+      'c',
+      [
+        { id: 'u1', role: 'user', content: 'Fais une app' },
+        { id: 'a1', role: 'assistant', content: local },
+      ],
+      [
+        { id: idUtilisateur, role: 'user', content: 'Fais une app' },
+        { id: 'aimsg_x', role: 'assistant', content: 'Voici ma démarche.' },
+      ],
+    );
+
+    expect(plan).toEqual({ type: 'completer', messageId: 'a1', contenu: `${local}</div>\nVoici ma démarche.` });
+  });
+
+  it("n'AJOUTE pas non plus une copie du navigateur quand la page n'avait encore rien reçu", async () => {
+    const idUtilisateur = await identifiantServeurDuMessage('c', 'u1');
+
+    const plan = await planDeRattrapage(
+      'c',
+      [{ id: 'u1', role: 'user', content: 'Fais une app' }],
+      [
+        { id: idUtilisateur, role: 'user', content: 'Fais une app' },
+        { id: 'aimsg_x', role: 'assistant', content: `${REFLEXION('Je planifie.')}Voici` },
+      ],
+    );
+
+    expect(plan).toBeNull();
+  });
+
   it("ne prend jamais la réponse d'un AUTRE tour", async () => {
     const plan = await planDeRattrapage(
       'c',
