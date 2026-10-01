@@ -10,6 +10,8 @@ export const organizationMembersEn = {
   'organizationMembers.errors.temporaryLoad': 'Organization members are temporarily unavailable.',
   'organizationMembers.errors.emailRequired': 'Enter an email address to send an invitation.',
   'organizationMembers.errors.invitationFailed': 'The invitation could not be sent.',
+  'organizationMembers.errors.seatLimit':
+    'Your plan has no free seat left for another member. Upgrade your plan, or revoke a pending invitation, to invite this colleague.',
   'organizationMembers.errors.invitationRequired': 'Choose an invitation and try again.',
   'organizationMembers.errors.invitationAction': 'The invitation action could not be completed.',
   'organizationMembers.errors.memberRequired': 'Choose a member and try again.',
@@ -96,6 +98,8 @@ export const organizationMembersFr: OrganizationMembersCopy = {
   'organizationMembers.errors.temporaryLoad': 'Les membres de l’organisation sont temporairement indisponibles.',
   'organizationMembers.errors.emailRequired': 'Saisissez une adresse e-mail pour envoyer une invitation.',
   'organizationMembers.errors.invitationFailed': 'Impossible d’envoyer l’invitation.',
+  'organizationMembers.errors.seatLimit':
+    'Votre forfait n’a plus de place libre pour un membre de plus. Passez à un forfait supérieur, ou révoquez une invitation en attente, pour inviter ce collègue.',
   'organizationMembers.errors.invitationRequired': 'Choisissez une invitation, puis réessayez.',
   'organizationMembers.errors.invitationAction': 'Impossible de terminer l’action sur l’invitation.',
   'organizationMembers.errors.memberRequired': 'Choisissez un membre, puis réessayez.',

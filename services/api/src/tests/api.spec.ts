@@ -1243,13 +1243,25 @@ describe('SaaS API', () => {
     // Invite acceptance now requires a verified email.
     await store.updateUser({ userId: invitee.user.id, emailVerifiedAt: new Date().toISOString() });
 
-    const created = await app.inject({
-      method: 'POST',
-      url: `/orgs/${owner.organization.id}/invitations`,
-      headers: { authorization: `Bearer ${owner.token}` },
-      payload: { email: invitee.user.email, roleKey: 'member' },
-    });
+    const inviter = () =>
+      app.inject({
+        method: 'POST',
+        url: `/orgs/${owner.organization.id}/invitations`,
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { email: invitee.user.email, roleKey: 'member' },
+      });
+
+    // Forfait gratuit, place unique déjà prise : l'invitation est refusée dès sa création
+    // (BUG-QA0930-INVITATION-SANS-PLACE), au lieu d'échouer chez l'invité après son inscription.
+    const refused = await inviter();
+    expect(refused.statusCode).toBe(429);
+    expect(refused.json()).toMatchObject({ code: 'QUOTA_EXCEEDED', quotaKey: 'team.members' });
+
+    // L'acceptation reste gardée : invitation créée quand il restait des places, puis l'équipe repasse en gratuit.
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+    const created = await inviter();
     expect(created.statusCode).toBe(201);
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'CANCELED' });
 
     const accepted = await app.inject({
       method: 'POST',
