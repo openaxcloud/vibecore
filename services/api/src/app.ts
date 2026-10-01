@@ -25048,6 +25048,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { removed: true };
   });
+  /**
+   * UIB-16 — le panneau Collaborateurs nomme les personnes.
+   *
+   * Mesuré le 2026-10-01 sur la copie locale : la présence affichait
+   * « Participant 1 » pour l'utilisateur connecté. Les lignes de présence, de
+   * collaborateurs et de commentaires ne portaient que `userId`, et l'interface
+   * se rabattait sur un libellé générique. On joint le NOM seulement (jamais
+   * l'adresse) : ce que voient déjà les membres du projet.
+   */
+  async function avecNomPersonne<T extends { userId: string }>(lignes: T[]): Promise<Array<T & { name?: string }>> {
+    const noms = new Map<string, string | undefined>();
+
+    await Promise.all(
+      [...new Set(lignes.map((ligne) => ligne.userId).filter(Boolean))].map(async (userId) => {
+        noms.set(userId, (await store.findUserById(userId))?.name ?? undefined);
+      }),
+    );
+
+    return lignes.map((ligne) => ({ ...ligne, name: noms.get(ligne.userId) }));
+  }
+
+  const avecNomUnePersonne = async <T extends { userId: string }>(ligne: T) => (await avecNomPersonne([ligne]))[0];
+
   app.get('/projects/:projectId/collaboration', async (request) => {
     const project = await requireProject(
       request,
@@ -25065,9 +25088,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : {};
 
     return {
-      collaborators: await store.listProjectCollaborators(project.id),
-      presence: await store.listCollaborationPresence(project.id),
-      comments: await store.listCollaborationComments(project.id),
+      collaborators: await avecNomPersonne(await store.listProjectCollaborators(project.id)),
+      presence: await avecNomPersonne(await store.listCollaborationPresence(project.id)),
+      comments: await avecNomPersonne(await store.listCollaborationComments(project.id)),
       activity: await store.listProjectActivity(project.id),
       shareLinks: (await store.listProjectShareLinks(project.id)).map(({ tokenHash: _tokenHash, ...link }) => link),
       documents: collaborationState.documents ?? {},
@@ -25107,9 +25130,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
       terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
     });
-    collaborationBroker.publish(project.id, { type: 'presence.update', presence });
+    const presenceNommee = await avecNomUnePersonne(presence);
+    collaborationBroker.publish(project.id, { type: 'presence.update', presence: presenceNommee });
 
-    return { presence };
+    return { presence: presenceNommee };
   });
   app.delete('/projects/:projectId/collaboration/presence/:sessionId', async (request, reply) => {
     const project = await requireProject(
@@ -25836,13 +25860,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })();
     });
 
-    collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
+    collaborationBroker.publish(project.id, { type: 'presence.join', presence: await avecNomUnePersonne(presence) }, client);
     client.send(
       JSON.stringify({
         type: 'collaboration.ready',
         projectId: project.id,
-        presence: await store.listCollaborationPresence(project.id),
-        comments: await store.listCollaborationComments(project.id),
+        presence: await avecNomPersonne(await store.listCollaborationPresence(project.id)),
+        comments: await avecNomPersonne(await store.listCollaborationComments(project.id)),
         timestamp: new Date().toISOString(),
       }),
     );
@@ -25910,7 +25934,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
           });
           ownPresenceUpdatedAt = updated.updatedAt;
-          collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
+          collaborationBroker.publish(
+            project.id,
+            { type: 'presence.update', presence: await avecNomUnePersonne(updated) },
+            client,
+          );
 
           return;
         }
