@@ -129,15 +129,15 @@ le manager était injoignable (corrigé dans la même branche, BUG-QA0928-RECONC
 
 ## 📤
 
-☐
+☑ 29/09 #597
 
 ## 💻
 
-☐ branche `fix/ecritures-refusees-workspace`
+☑ 30/09 fusionnée `6cebe6438` (#597, par la coordination)
 
 ## ✅
 
-☐
+☐ pas encore servi en prod au 30/09 13:45
 
 ## Preuve
 
@@ -171,3 +171,5 @@ manager en local). Tenu par les tests ci-dessous.
 Contre-épreuves : 11 mécanismes cassés un à un, 11 rouges.
 
 Point OUVERT jusqu'à la preuve en production (déploiement + journaux sans appel sur id de projet).
+
+**30/09 — CORRIGÉ, pas encore prouvé en CI** (la dernière tentative E2E était `cancelled` : elle ne prouve rien). Tests prêts dans la PR ; voir sa description.
