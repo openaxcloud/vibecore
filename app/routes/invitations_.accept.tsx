@@ -48,7 +48,13 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   ];
 };
 
-type AcceptInvitationErrorCode = 'tokenRequired' | 'invalid' | 'rateLimited' | 'unavailable';
+type AcceptInvitationErrorCode =
+  | 'tokenRequired'
+  | 'invalid'
+  | 'rateLimited'
+  | 'unavailable'
+  | 'emailNotVerified'
+  | 'emailMismatch';
 type AcceptInvitationActionData = {
   feedbackCode?: 'accepted';
   roleKey?: string;
@@ -103,6 +109,30 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (isApiResponse(error, 429)) {
       return actionData({ errorCode: 'rateLimited' }, error.status);
+    }
+
+    /*
+     * BUG-QA0930-INVITATION-MESSAGE-TROMPEUR — les deux refus 403 de l'API ont
+     * une cause que l'invité peut corriger lui-même. Les rendre en
+     * « temporairement indisponibles, réessayez » le faisait réessayer sans fin :
+     * mesuré le 2026-10-01, un collègue tout juste inscrit ne rejoignait jamais
+     * l'équipe qui l'avait invité.
+     */
+    if (isApiResponse(error, 403)) {
+      const code = (
+        (await error
+          .clone()
+          .json()
+          .catch(() => null)) as { code?: string } | null
+      )?.code;
+
+      if (code === 'EMAIL_NOT_VERIFIED') {
+        return actionData({ errorCode: 'emailNotVerified' }, 403);
+      }
+
+      if (code === 'INVITE_EMAIL_MISMATCH') {
+        return actionData({ errorCode: 'emailMismatch' }, 403);
+      }
     }
 
     return actionData({ errorCode: 'unavailable' }, error instanceof Response ? error.status : 500);
