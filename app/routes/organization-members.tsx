@@ -23,6 +23,7 @@ import {
   resolveOrganizationMembersLanguage,
 } from '~/lib/i18n/catalogs/organization-members';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { estUnRefusFauteDePlace } from '~/lib/refus-place-equipe.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 export const meta: MetaFunction = ({ matches }) => {
@@ -153,6 +154,10 @@ export async function action({ request }: EnterpriseActionArgs) {
     } catch (error) {
       if (isReauthRedirect(error)) {
         throw error;
+      }
+
+      if (await estUnRefusFauteDePlace(error)) {
+        return json({ error: copy['organizationMembers.errors.seatLimit'] }, { status: 429 });
       }
 
       if (error instanceof Response) {

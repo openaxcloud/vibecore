@@ -89,6 +89,12 @@ export interface AutoApplyDecisionInput {
 
   /** Fermée par le filet de fin de flux : contenu incomplet, jamais appliqué automatiquement. */
   tronquee?: boolean;
+
+  /** Ne se combine pas avec ce que l'utilisateur a enregistré : attend sa revue (voir `AgentPatchProposal.conflit`). */
+  conflit?: boolean;
+
+  /** Relue de la base à la réouverture : attend la revue (voir `AgentPatchProposal.relueDeLaBase`). */
+  relueDeLaBase?: boolean;
 }
 
 export interface AutoApplyAttemptKeyInput {
@@ -109,7 +115,14 @@ export interface AutoApplyAttemptKeyInput {
  * queue instead of being accepted silently.
  */
 export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
-  return input.autoApplyEnabled && input.status === 'pending' && !input.enFlux && !input.tronquee;
+  return (
+    input.autoApplyEnabled &&
+    input.status === 'pending' &&
+    !input.enFlux &&
+    !input.tronquee &&
+    !input.conflit &&
+    !input.relueDeLaBase
+  );
 }
 
 /**
