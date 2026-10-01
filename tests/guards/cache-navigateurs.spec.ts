@@ -22,10 +22,33 @@ import { parse } from 'yaml';
  *    de sa cause. L'installation doit TOUJOURS tourner : sur succès elle ne fait
  *    rien, et sur cache abîmé elle répare.
  */
-const workflow = readFileSync(join(__dirname, '..', '..', '.github/workflows/e2e.yml'), 'utf8');
-const analyse = parse(workflow) as { jobs: Record<string, { steps?: Array<Record<string, unknown>> }> };
+/*
+ * ⚠️ 3. LE GARDE QUI REGARDE AU MAUVAIS ENDROIT. Ce fichier lisait les étapes
+ *    de `e2e.yml`. #661 a déplacé la préparation dans une ACTION COMPOSITE, et
+ *    il n'y a plus une seule étape d'installation dans le workflow — le garde
+ *    aurait donc passé au vert sur un cache absent. C'est la même faute que
+ *    #661 a trouvée sur trois autres gardes : la cible déménage, le garde
+ *    continue de certifier le vide. Il lit maintenant les DEUX fichiers, et un
+ *    cas vérifie que les jobs passent bien par l'action commune.
+ */
+const RACINE = join(__dirname, '..', '..');
+const CHEMIN_ACTION = '.github/actions/preparer-pile-e2e/action.yml';
 
-const etapes = Object.values(analyse.jobs).flatMap((job) => job.steps ?? []);
+const workflow = readFileSync(join(RACINE, '.github/workflows/e2e.yml'), 'utf8');
+const analyse = parse(workflow) as {
+  jobs: Record<string, { steps?: Array<Record<string, unknown>> }>;
+};
+
+const action = parse(readFileSync(join(RACINE, CHEMIN_ACTION), 'utf8')) as {
+  inputs?: Record<string, unknown>;
+  runs?: { steps?: Array<Record<string, unknown>> };
+};
+
+const etapesDuWorkflow = Object.values(analyse.jobs).flatMap((job) => job.steps ?? []);
+const etapesDeLAction = action.runs?.steps ?? [];
+
+/* Le garde lit ce qui est EXÉCUTÉ, où que le code habite. */
+const etapes = [...etapesDuWorkflow, ...etapesDeLAction];
 const etapeCache = etapes.find((e) => String(e.uses ?? '').startsWith('actions/cache@'));
 const etapeInstall = etapes.find((e) => String(e.name ?? '') === 'Install Playwright browsers');
 
@@ -76,6 +99,40 @@ describe('le cache des navigateurs Playwright', () => {
       String(lecture?.run ?? ''),
       'elle ne refuse pas une version introuvable : la clé deviendrait constante en silence',
     ).toMatch(/exit 1/u);
+  });
+
+  it('LA CLÉ PORTE AUSSI L’ENSEMBLE DE NAVIGATEURS — sinon le canari iOS ne cache jamais WebKit', () => {
+    /*
+     * Trouvé en portant ce cache sur l'action composite de #661, qui a une
+     * entrée `navigateurs` : la suite bloquante installe `chromium` seul, le
+     * canari iOS `chromium,webkit`. Avec une clé commune, le cache écrit par la
+     * suite est restauré pour le canari, qui retélécharge WebKit à CHAQUE
+     * passage sans jamais pouvoir le mémoriser — le cache paraît fonctionner et
+     * ne rend rien là où le poste est le plus gros.
+     */
+    const cle = String((etapeCache?.with as Record<string, unknown>)?.key ?? '');
+
+    expect(
+      cle,
+      `la clé « ${cle} » ne distingue pas les ensembles de navigateurs : le canari iOS partagerait ` +
+        'le cache de la suite bloquante et retéléchargerait WebKit à chaque passage.',
+    ).toMatch(/inputs\.navigateurs/u);
+
+    expect(
+      action.inputs,
+      "l'action composite n'a plus d'entrée `navigateurs` : la clé ci-dessus référence une entrée " +
+        'inexistante, donc une chaîne vide — la clé redevient commune aux deux jobs.',
+    ).toHaveProperty('navigateurs');
+  });
+
+  it('les jobs passent bien par l’action commune — sinon ce garde lit un fichier que personne n’exécute', () => {
+    const appels = etapesDuWorkflow.filter((e) => String(e.uses ?? '').startsWith('./.github/actions/preparer-pile-e2e'));
+
+    expect(
+      appels.length,
+      `aucun job de e2e.yml n'appelle \`./${CHEMIN_ACTION.replace('/action.yml', '')}\` : les étapes de cache ` +
+        'que ce garde vérifie ne seraient jouées par personne.',
+    ).toBeGreaterThan(0);
   });
 
   it('le succès du cache est JOURNALISÉ, pour qu’on puisse mesurer ce qu’il économise', () => {

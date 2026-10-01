@@ -3,6 +3,10 @@
     "en": "The request could not be completed. Please try again.",
     "fr": "La requête n’a pas pu aboutir. Veuillez réessayer."
   },
+  "DEFAULT_ORGANIZATION_NAME": {
+    "en": "{owner}'s Organization",
+    "fr": "Organisation de {owner}"
+  },
   "INTERNAL_SERVER_ERROR": {
     "en": "Internal server error",
     "fr": "Une erreur interne est survenue. Veuillez réessayer."
@@ -2582,6 +2586,10 @@
   "ALREADY_INVITED": {
     "en": "There is already a pending invitation for that email.",
     "fr": "Une invitation est déjà en attente pour cette adresse e-mail."
+  },
+  "TEAM_SEAT_LIMIT": {
+    "en": "Your plan has no free seat left for another member. Upgrade your plan, or revoke a pending invitation, to invite this colleague.",
+    "fr": "Votre forfait n’a plus de place libre pour un membre de plus. Passez à un forfait supérieur, ou révoquez une invitation en attente, pour inviter ce collègue."
   },
   "ENTITLEMENT_CHECK_UNAVAILABLE": {
     "en": "Your plan limits could not be verified right now. Try again in a moment — no deployment was created.",

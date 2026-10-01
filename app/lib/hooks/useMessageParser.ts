@@ -1,7 +1,13 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
 import { detectUserLanguage } from '~/lib/i18n/language';
-import { arbitreDe, decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
+import {
+  arbitreDe,
+  decoderLane,
+  estFichierDeDemarrage,
+  identifiantDeLane,
+  textesDesLanes,
+} from '~/lib/runtime/agent-lane-writes';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import {
   analyserGeneration,
@@ -45,6 +51,7 @@ const logger = createScopedLogger('useMessageParser');
  */
 const toursSansFichier = new Set<string>();
 const refusDejaSignales = new Set<string>();
+const refusDeDemarrageSignales = new Set<string>();
 
 function consigneSansFichier(message: Message): boolean {
   return (message.annotations ?? []).some(
@@ -72,6 +79,33 @@ function ecritureAutorisee(data: {
           event: 'ecriture.refusee.consigne',
           messageId: data.messageId,
           type: data.action.type,
+          filePath: data.action.filePath,
+        }),
+      );
+    }
+
+    return false;
+  }
+
+  /*
+   * Un sous-agent n'écrit jamais la chaîne de démarrage : c'est le coordinateur
+   * qui l'intègre (voir `estFichierDeDemarrage`). Témoin émis :
+   * `lane.fichier-de-demarrage.refuse`.
+   */
+  if (
+    lane &&
+    (data.action.type === 'file' || data.action.type === 'diff') &&
+    data.action.filePath &&
+    estFichierDeDemarrage(data.action.filePath)
+  ) {
+    const cle = `${data.messageId}:${data.action.filePath}`;
+
+    if (!refusDeDemarrageSignales.has(cle)) {
+      refusDeDemarrageSignales.add(cle);
+      logger.warn(
+        JSON.stringify({
+          event: 'lane.fichier-de-demarrage.refuse',
+          roleId: lane.roleId,
           filePath: data.action.filePath,
         }),
       );
@@ -117,8 +151,21 @@ const messageParser = new EnhancedStreamingMessageParser({
        * distinction, la fréquence réelle des flux tronqués reste introuvable —
        * et c'est le chiffre qui décide si le filet est un garde-fou ou une
        * réparation majeure.
+       *
+       * UN SOUS-AGENT COUPÉ N'EST PAS UNE GÉNÉRATION ARRÊTÉE. Mesuré en
+       * production le 2026-09-30, trois tours sur trois : le rôle « frontend »
+       * atteint son plafond de jetons, son artefact est refermé par le filet, et
+       * le bandeau annonce « la génération s'est arrêtée en route — l'application
+       * ne peut pas démarrer » alors que le coordinateur a fini proprement
+       * (`finishReason: stop`) et que le constat lui-même ne trouve AUCUNE entrée
+       * manquante. Le coordinateur intègre le travail des rôles ; c'est SA fin
+       * qui dit si la génération est complète.
        */
-      if (data.fermetureDeSecours) {
+      const lane = decoderLane(data.messageId);
+
+      if (data.fermetureDeSecours && lane) {
+        logger.warn(JSON.stringify({ event: 'lane.tronquee', artifactId: data.artifactId, roleId: lane.roleId }));
+      } else if (data.fermetureDeSecours) {
         logger.warn('Artefact fermé par le filet de fin de flux (balise </boltArtifact> absente)', data.artifactId);
 
         /*
@@ -191,6 +238,26 @@ const messageParser = new EnhancedStreamingMessageParser({
       logger.trace('onActionClose', data.action);
 
       if (!ecritureAutorisee(data)) {
+        return;
+      }
+
+      /*
+       * LE FICHIER TRONQUÉ D'UN SOUS-AGENT NE S'ÉCRIT PAS. Le filet referme les
+       * lanes à la FIN du tour entier — donc APRÈS que le coordinateur a écrit
+       * ses propres fichiers. Écrire ici le morceau reçu du rôle coupé, c'est
+       * remplacer la version intégrée et complète par un début de fichier. Le
+       * coordinateur intègre ; le morceau est abandonné, et dit.
+       */
+      if (data.fermetureDeSecours && decoderLane(data.messageId)) {
+        logger.warn(
+          JSON.stringify({
+            event: 'lane.fichier-tronque.ignore',
+            messageId: data.messageId,
+            type: data.action.type,
+            filePath: 'filePath' in data.action ? data.action.filePath : undefined,
+          }),
+        );
+
         return;
       }
 

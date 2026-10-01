@@ -24,16 +24,18 @@ Non vérifié en production (pas de compte) ni sur téléphone.
 
 ## 📤
 
-☐
+☑ 30/09 #614
 
 ## 💻
 
-☐
+☑ 30/09 fusionnée `20d30026c`
 
 ## ✅
 
-☐
+☐ pas encore servi en prod au 30/09 13:45
 
 ## Preuve
 
 Repro locale. Aucun test — point OUVERT.
+
+**30/09 — PROUVÉ, pas encore servi.** Vert en CI (3 requis, 1re tentative, test ✓, rapport présent). Épinglé par `tests/e2e/palette-se-ferme-au-clic-ailleurs.spec.ts`.
