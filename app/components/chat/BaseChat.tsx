@@ -4024,6 +4024,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             status: proposal.status,
             enFlux: proposal.enFlux,
             tronquee: proposal.tronquee,
+            conflit: proposal.conflit,
           })
         ) {
           continue;

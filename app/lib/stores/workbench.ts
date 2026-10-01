@@ -78,6 +78,7 @@ import {
   type PatchAdmission,
 } from '~/lib/stores/agent-patch-flood-guard';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
+import { fusionnerATroisVoies } from '~/utils/fusion-a-trois-voies';
 import { KeyedMutex } from '~/lib/common/keyed-mutex';
 import { createSampler } from '~/utils/sampler';
 import { syncWriteContent } from '~/lib/stores/workbench-sync';
@@ -165,6 +166,27 @@ export interface AgentPatchProposal {
    */
   enFlux?: boolean;
   tronquee?: boolean;
+
+  /*
+   * CE QUE L'AGENT AVAIT LU, ET QUAND.
+   *
+   * `originalContent` est le fichier au PREMIER MORCEAU de l'action — or l'agent
+   * a lu le projet plus tôt, à l'envoi de la demande. Un enregistrement de
+   * l'utilisateur entre les deux est dans `originalContent` mais pas dans la
+   * version de l'agent : la comparer à `originalContent` ferait passer sa
+   * disparition pour une modification voulue par l'agent.
+   *
+   * `contenuLu` : le fichier tel que l'agent l'a lu (base de la fusion à trois
+   * voies) ; `lueA` : l'instant de cette lecture, sur l'horloge des
+   * enregistrements de l'utilisateur.
+   *
+   * `conflit` : la modification de l'agent ne se combine pas avec ce que
+   * l'utilisateur a enregistré depuis. Rien n'a été écrit ; la proposition
+   * attend la revue, jamais appliquée automatiquement.
+   */
+  contenuLu?: string;
+  lueA?: number;
+  conflit?: boolean;
 }
 
 const WORKSPACE_LOG_LIMIT = 500;
@@ -372,6 +394,19 @@ export class WorkbenchStore {
    */
   #streamMaterializedPaths = new Set<string>();
   #agentPatchOriginals = new Map<string, string>();
+
+  /*
+   * Une horloge, pas `Date.now()` : un enregistrement et une lecture dans la
+   * même milliseconde doivent rester ordonnés.
+   */
+  #horloge = 0;
+  #lectureDeLAgent: { fichiers: ReturnType<FilesStore['files']['get']>; instant: number } | null = null;
+
+  /** Dernier enregistrement de l'UTILISATEUR, par fichier, sur `#horloge`. */
+  #enregistrementsUtilisateur = new Map<string, number>();
+
+  /** Fichiers que l'agent est en train d'enregistrer : ces `saveFile` ne sont pas ceux de l'utilisateur. */
+  #enregistrementsDeLAgent = new Set<string>();
 
   /*
    * Serializes agent-patch applies per file path so two multi-agent lanes never
@@ -2217,6 +2252,14 @@ export class WorkbenchStore {
     }
   }
 
+  /**
+   * L'agent LIT le projet : la demande part, avec les fichiers tels qu'ils sont.
+   * Appelé à la préparation de chaque requête de conversation.
+   */
+  noterLaLectureDeLAgent() {
+    this.#lectureDeLAgent = { fichiers: this.#filesStore.files.get(), instant: ++this.#horloge };
+  }
+
   setShowWorkbench(show: boolean) {
     this.showWorkbench.set(show);
   }
@@ -2353,6 +2396,10 @@ export class WorkbenchStore {
      */
 
     await this.#filesStore.saveFile(filePath, document.value, options);
+
+    if (!this.#enregistrementsDeLAgent.has(filePath)) {
+      this.#enregistrementsUtilisateur.set(filePath, ++this.#horloge);
+    }
 
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
@@ -2660,7 +2707,47 @@ export class WorkbenchStore {
          */
         const freshBeforeWrite = this.#filesStore.getFile(proposal.filePath)?.content;
 
+        /*
+         * CE QUE L'UTILISATEUR ENREGISTRE FAIT FOI (décision d'Avi, 2026-10-01).
+         *
+         * Le fichier a été enregistré par l'utilisateur depuis que l'agent l'a lu :
+         * l'agent refait sa modification sur la version à jour (fusion à trois
+         * voies, base = ce qu'il avait lu). Si les deux ne se combinent pas, il
+         * n'écrit RIEN — la proposition attend la revue, et l'utilisateur est
+         * prévenu. Mesuré avant ce garde-fou : trois fois sur trois, la ligne de
+         * l'utilisateur disparaissait sans un mot.
+         */
+        const lu = proposal.contenuLu ?? proposal.originalContent;
+
+        const enregistreDepuisLaLecture =
+          (this.#enregistrementsUtilisateur.get(proposal.filePath) ?? 0) > (proposal.lueA ?? 0);
+
+        let fusionne = false;
+
         if (
+          enregistreDepuisLaLecture &&
+          freshBeforeWrite !== undefined &&
+          freshBeforeWrite !== lu &&
+          freshBeforeWrite !== acceptedContent
+        ) {
+          const fusion = fusionnerATroisVoies(lu, acceptedContent, freshBeforeWrite);
+
+          if (!fusion.propre) {
+            return this.#mettreEnConflit(proposal, freshBeforeWrite, acceptedContent);
+          }
+
+          acceptedContent = fusion.contenu;
+          fusionne = true;
+          this.appendWorkspaceLog(
+            workbenchText('workbenchRuntime.patch.fusionneAvecUtilisateur', { file: proposal.relativePath }),
+          );
+          toast.info(workbenchText('workbenchRuntime.patch.fusionneAvecUtilisateur', { file: proposal.relativePath }), {
+            toastId: `fusion-utilisateur-${proposal.relativePath}`,
+          });
+        }
+
+        if (
+          !fusionne &&
           freshBeforeWrite !== undefined &&
           freshBeforeWrite !== proposal.originalContent &&
           freshBeforeWrite !== acceptedContent
@@ -2685,7 +2772,13 @@ export class WorkbenchStore {
            * store/remote briefly out of sync), merge/adopt instead of failing the
            * lane with "Remote file changed since it was loaded".
            */
-          await this.saveFile(proposal.filePath, { onRemoteConflict: 'reconcile' });
+          this.#enregistrementsDeLAgent.add(proposal.filePath);
+
+          try {
+            await this.saveFile(proposal.filePath, { onRemoteConflict: 'reconcile' });
+          } finally {
+            this.#enregistrementsDeLAgent.delete(proposal.filePath);
+          }
         }
 
         const artifact = this.#getArtifact(proposal.artifactId);
@@ -2704,6 +2797,8 @@ export class WorkbenchStore {
         this.agentPatchProposals.setKey(proposalId, {
           ...proposal,
           proposedContent: acceptedContent,
+          conflit: undefined,
+          error: undefined,
           status: 'accepted',
           updatedAt: new Date().toISOString(),
         });
@@ -2741,6 +2836,43 @@ export class WorkbenchStore {
         return 'failed';
       }
     });
+  }
+
+  /**
+   * La modification de l'agent ne se combine pas avec ce que l'utilisateur a
+   * enregistré. Rien n'est écrit : la version de l'utilisateur reste. La
+   * proposition est recalculée CONTRE cette version — la revue montre donc
+   * exactement ce que l'accepter changerait — et attend la décision de
+   * l'utilisateur, jamais appliquée automatiquement.
+   */
+  #mettreEnConflit(proposal: AgentPatchProposal, versionUtilisateur: string, versionAgent: string): 'ignored' {
+    const message = workbenchText('workbenchRuntime.patch.conflitUtilisateur', { file: proposal.relativePath });
+
+    this.agentPatchProposals.setKey(proposal.id, {
+      ...proposal,
+      originalContent: versionUtilisateur,
+      proposedContent: versionAgent,
+      hunks: buildReviewableDiffHunks(proposal.relativePath, versionUtilisateur, versionAgent),
+      contenuLu: versionUtilisateur,
+      lueA: ++this.#horloge,
+      conflit: true,
+      status: 'pending',
+      error: message,
+      updatedAt: new Date().toISOString(),
+    });
+    this.#agentPatchOriginals.set(proposal.actionId, versionUtilisateur);
+    this.#syncAgentPatchProposalToServer(proposal.id);
+    this.actionAlert.set({
+      type: 'warning',
+      title: workbenchText('workbenchRuntime.patch.conflitUtilisateurTitre'),
+      description: message,
+      content: message,
+      source: 'preview',
+    });
+    this.appendWorkspaceLog(message);
+    this.#maybeRunDeferredStart(proposal.artifactId);
+
+    return 'ignored';
   }
 
   async acceptAllAgentPatchProposals(proposalIds?: string[], hunkSelections?: Record<string, string[]>) {
@@ -3650,6 +3782,11 @@ export class WorkbenchStore {
 
     this.#agentPatchOriginals.set(data.actionId, originalContent);
 
+    const previousProposal = this.agentPatchProposals.get()[`${data.artifactId}:${data.actionId}`];
+    const lu = this.#lectureDeLAgent?.fichiers[fullPath];
+    const contenuLu = previousProposal?.contenuLu ?? (lu?.type === 'file' ? lu.content : undefined);
+    const lueA = previousProposal?.lueA ?? this.#lectureDeLAgent?.instant ?? this.#horloge;
+
     const now = new Date().toISOString();
     const proposalId = `${data.artifactId}:${data.actionId}`;
     const previous = this.agentPatchProposals.get()[proposalId];
@@ -3670,6 +3807,8 @@ export class WorkbenchStore {
       updatedAt: now,
       enFlux: isStreaming,
       tronquee: !isStreaming && data.fermetureDeSecours === true,
+      contenuLu,
+      lueA,
     });
     this.#syncAgentPatchProposalToServer(proposalId);
 
