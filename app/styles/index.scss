@@ -7241,6 +7241,22 @@ body :where(.lucide, svg[data-lucide]) {
   }
 }
 
+/*
+ * UIB-08 — fil d'Ariane de l'IDE sur grand bureau.
+ *
+ * Mesuré le 2026-09-30 à 1440 : le nom de l'espace de travail coupé à 53 px sur
+ * 194, alors que la barre du haut avait plusieurs centaines de pixels libres.
+ * Le segment était plafonné à `min(18vw, 190px)` et son sur-titre « ESPACE DE
+ * TRAVAIL » en prend plus de la moitié. Au-delà de 1360 px, le nom a la place
+ * qu'il lui faut ; il se coupe toujours (points de suspension) si la barre se
+ * remplit, puisque les segments restent rétractables.
+ */
+@media (min-width: 1361px) {
+  .bolt-project-breadcrumb-workspace {
+    max-width: min(26vw, 400px);
+  }
+}
+
 @media (min-width: 1600px) and (min-height: 800px) {
   .bolt-responsive-ide-desktop {
     --project-ide-rail-width: 52px;
