@@ -120,3 +120,77 @@ for (const viewport of [
     expect(conserve, `frappe conservée en ${viewport.label}`).toBe(FRAPPE);
   });
 }
+
+/*
+ * Le MODE choisi pendant le chargement survit aussi (01/10). Mesuré à 390, mémoire
+ * du projet retenue : « Assistant » choisi dans la coquille redevenait « Agent »
+ * à la bascule, 3 fois sur 3 — et le message suivant partait en mode Agent, qui
+ * modifie le projet. On vérifie l'affichage ET le `chatMode` réellement envoyé.
+ */
+test('le mode choisi pendant le chargement survit à la bascule — mobile 390', async ({ page, request }) => {
+  test.setTimeout(120_000);
+
+  const { token, projectId } = await createProjectSession(request);
+
+  await page
+    .context()
+    .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // La bascule n'a lieu qu'une fois le choix fait : la mémoire du projet est retenue jusque-là.
+  let relacher: () => void = () => undefined;
+
+  const choixFait = new Promise<void>((resolve) => {
+    relacher = resolve;
+  });
+
+  await page.route('**/api/projects/*/ide-state', async (route) => {
+    if (route.request().method() === 'GET') {
+      await choixFait;
+    }
+
+    await route.continue();
+  });
+
+  const envoyes: Array<{ chatMode?: string }> = [];
+
+  await page.route('**/api/chat', async (route) => {
+    envoyes.push((route.request().postDataJSON() ?? {}) as { chatMode?: string });
+    await route.abort();
+  });
+
+  await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+
+  const declencheur = page.locator('.bolt-chatbox-mode-trigger').first();
+  await expect(declencheur).toBeVisible({ timeout: 60_000 });
+  await expect(declencheur, 'mode par défaut').toContainText('Agent');
+
+  // Témoin : ce nœud précis doit disparaître, sinon la bascule n'a pas eu lieu et le test ne prouve rien.
+  await declencheur.evaluate((element) => element.setAttribute('data-temoin-coquille', 'oui'));
+
+  await declencheur.click();
+  await page.locator('.bolt-chatbox-mode-menu button').filter({ hasText: 'Assistant' }).first().click();
+  await expect(declencheur, 'le choix est pris dans la coquille').toContainText('Assistant');
+
+  relacher();
+
+  await expect(
+    page.locator('[data-temoin-coquille="oui"]'),
+    'la coquille est toujours en place : la bascule n’a pas eu lieu, le test ne prouve rien',
+  ).toHaveCount(0, { timeout: 30_000 });
+  await page.waitForTimeout(1000);
+
+  await expect(declencheur, 'mode perdu à la bascule : « Assistant » est redevenu « Agent »').toContainText(
+    'Assistant',
+  );
+
+  const champ = page.locator('.bolt-project-agent-composer textarea').first();
+  await champ.click();
+  await champ.fill('Que fait ce projet ?');
+  await page.keyboard.press('Enter');
+
+  await expect
+    .poll(() => envoyes.length, { message: 'aucune requête de chat envoyée', timeout: 15_000 })
+    .toBeGreaterThan(0);
+  expect(envoyes[0].chatMode, 'la requête part en mode Agent alors que l’écran affiche Assistant').toBe('discuss');
+});

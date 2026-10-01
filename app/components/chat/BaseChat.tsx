@@ -103,6 +103,7 @@ import {
   composerHandoffScope,
   peekPendingComposerInput,
   takePendingComposerInput,
+  takePendingComposerMode,
   useComposerHandoffLayoutEffect,
 } from './composer-handoff';
 import { devServerStatusText } from './dev-server-status';
@@ -2453,6 +2454,9 @@ interface BaseChatProps {
   data?: JSONValue[] | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
+
+  /** La coquille d'avant-chargement déclare chaque choix de mode au passe-plat (voir `composer-handoff.ts`). */
+  onProjectAgentExecutionModeChange?: (mode: string) => void;
   append?: (message: Message) => void;
   onRewindToMessage?: (messageId: string) => void;
   resetChat?: () => void;
@@ -2511,6 +2515,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       data,
       chatMode,
       setChatMode,
+      onProjectAgentExecutionModeChange,
       append,
       onRewindToMessage,
       resetChat,
@@ -3837,6 +3842,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
+
+    /*
+     * Le mode choisi DANS LA COQUILLE d'avant-chargement survit à la bascule vers
+     * le vrai chat, comme la frappe. Mesuré le 01/10 à 390 (mémoire du projet
+     * retenue) : « Assistant » choisi dans la coquille redevenait « Agent » à la
+     * bascule, 3 fois sur 3, sans un mot — et le message suivant partait en mode
+     * Agent, qui modifie le projet, au lieu de répondre à une question. On rend
+     * l'affichage ET le `chatMode` envoyé avec la requête, sinon l'écran mentirait.
+     */
+    const modeHandoffDoneRef = useRef(false);
+
+    useComposerHandoffLayoutEffect(() => {
+      if (modeHandoffDoneRef.current) {
+        return;
+      }
+
+      modeHandoffDoneRef.current = true;
+
+      const handedOver = takePendingComposerMode(
+        composerHandoffScope(projectId, typeof window === 'undefined' ? undefined : window.location.pathname),
+      );
+
+      const entry = PROJECT_AGENT_EXECUTION_MODES.find((item) => item.id === handedOver);
+
+      if (!entry) {
+        return;
+      }
+
+      setProjectAgentExecutionMode(entry.id);
+      setChatMode?.(entry.chatMode);
+      onProjectAgentExecutionModeChange?.(entry.id);
+    }, [onProjectAgentExecutionModeChange, projectId, setChatMode]);
+
     const isAgentRunning = projectIdeMode && isStreaming;
     const stopAgentLabel = projectAgentStopLabel(provider?.name, model, language);
     const [projectAgentPanelOpen, setProjectAgentPanelOpen] = useState(true);
@@ -8057,6 +8095,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   const executionEntry = PROJECT_AGENT_EXECUTION_MODES.find((entry) => entry.id === execution);
                   setProjectAgentExecutionMode(execution);
                   setChatMode?.(executionEntry?.chatMode ?? 'build');
+                  onProjectAgentExecutionModeChange?.(execution);
                 }}
                 placeholder={
                   projectIdeMode
