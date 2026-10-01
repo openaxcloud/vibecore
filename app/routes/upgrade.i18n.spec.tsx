@@ -1,6 +1,8 @@
 /** @vitest-environment jsdom */
 
 import { cleanup, render, screen } from '@testing-library/react';
+import { planByKey } from '@vibecore/billing';
+import { FREE_PLAN_PROJECTS_CAP } from '@vibecore/billing/src/plafonds';
 import type { FormEventHandler, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -217,5 +219,21 @@ describe('upgrade i18n', () => {
         matches: [{ id: 'root', data: { language: 'fr' } }] as never,
       })?.[0],
     ).toEqual({ title: 'Changer de formule - E-Code' });
+  });
+});
+
+describe('upgradeLimitLabel — sentinelle « aucun plafond » (UIB-06, brouillon en attente d’Avi)', () => {
+  it('dit « illimités », jamais « 1 000 000 »', () => {
+    const fr = getUpgradeCopy('fr');
+    const en = getUpgradeCopy('en');
+
+    expect(upgradeLimitLabel(fr, 'fr', 'projects', 1_000_000)).toBe('Projets illimités');
+    expect(upgradeLimitLabel(en, 'en', 'projects', 1_000_000)).toBe('Unlimited projects');
+    expect(upgradeLimitLabel(fr, 'fr', 'workspaces', 1_000_000)).toBe('Espaces de travail actifs illimités');
+    expect(upgradeLimitLabel(fr, 'fr', 'projects', 25)).toBe('25 projets');
+  });
+
+  it('le plafond gratuit vit dans UNE constante, et le quota appliqué la suit', () => {
+    expect(planByKey('free').limits['projects.count']).toBe(FREE_PLAN_PROJECTS_CAP);
   });
 });
