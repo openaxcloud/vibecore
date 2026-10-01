@@ -718,6 +718,39 @@ déterministe et qui passe une fois sur trois n'est pas un défaut produit » re
 les tests d'interface et de rendu. Il ne vaut **pas** quand l'énoncé du test porte sur
 l'intégrité des données de l'utilisateur.
 
+
+### `paths-ignore` PASSE AVANT la détection de tiers — ne jamais estimer le coût d'un lot sans l'avoir mesuré
+
+**Je me suis trompé là-dessus le 2026-10-01, par écrit, en gras, dans le fichier que lit
+Avi.** J'avais annoncé que #637 reconstruirait **les quatre tiers** parce qu'elle touche
+`.github/workflows/deploy-main.yml`, qui est bien dans le motif de base partagée. Son
+déploiement est en réalité **entièrement sauté** : coût **zéro**, pas trois heures.
+
+**Le mécanisme, dans l'ordre :**
+
+1. **`paths-ignore`** décide s'il y a un déploiement **du tout**. Il saute quand **tous**
+   les fichiers du commit matchent `**/*.md`, `docs/**`, `.github/**`, `tests/**`,
+   `**/*.spec.{ts,tsx,mjs,js}` ou `playwright*.config.ts`.
+2. **`Detect changed tiers`** décide seulement ensuite **lesquels** reconstruire — et c'est
+   là que vit le motif de base partagée.
+
+Vérifier (2) en oubliant (1) fait estimer trois heures pour un lot qui coûte zéro. Et
+l'inverse est pire : un lot qu'on croit gratuit peut déployer pour **un seul** fichier non
+ignoré — #661 déploie à cause du seul `scripts/e2e-gate.mjs`, au milieu de neuf fichiers
+qui, eux, sont ignorés.
+
+**Le geste :** ne jamais estimer, **mesurer** — `scripts/declenche-un-deploiement.mjs` lit
+le `paths-ignore` du workflow et répond, et il **lève** si le motif a disparu plutôt que de
+rendre « rien à ignorer ». Avec un **contrôle positif** dans la même commande : un fichier
+de code produit doit rendre « DÉPLOIE », sinon c'est l'outil qui est muet, pas le lot qui
+est gratuit.
+
+**Et la conséquence qui compte vraiment :** un lot qui **saute** son déploiement n'est pas
+gratuit, il est **dangereux**. Il avance `main`, donc il **écarte** le déploiement qui
+attend dans le groupe de concurrence, puis ne déploie rien lui-même. Les lots qui sautent
+ne se fusionnent que **file de déploiement vide**. C'est la règle d'au-dessus — celle-ci
+dit juste comment savoir, sans se tromper, lesquels sautent.
+
 ## Déploiement prod (mécanisme réel)
 
 **Runbook complet + commandes exactes : [`docs/DEPLOY_RUNBOOK.md`](docs/DEPLOY_RUNBOOK.md).** Vérité terrain reconstituée le 2026-07-07.

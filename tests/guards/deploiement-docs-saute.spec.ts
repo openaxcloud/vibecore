@@ -64,6 +64,49 @@ describe('le déploiement sauté par un commit documentaire', () => {
     ).toBe(true);
   });
 
+  it('C — `paths-ignore` passe AVANT la détection de tiers, et le même chemin est dans les deux listes', () => {
+    /*
+     * L'erreur que ce cas épingle est la mienne, du 2026-10-01 : j'ai annoncé
+     * par écrit que cette proposition reconstruirait LES QUATRE TIERS, parce
+     * que `deploy-main.yml` est dans le motif de base partagée. C'est vrai, et
+     * sans effet : `paths-ignore` est un filtre de DÉCLENCHEUR, il décide s'il
+     * y a un déploiement DU TOUT, donc il passe avant. Coût réel : zéro.
+     *
+     * Le jour où `.github/**` sort de `paths-ignore`, l'estimation change du
+     * tout au tout — et c'est CE test qui doit le dire.
+     */
+    const motifs = declencheurs?.push?.['paths-ignore'] ?? [];
+
+    expect(
+      motifs,
+      'sans `.github/**` ignoré, toute proposition touchant un workflow DÉPLOIE — et celle qui touche ' +
+        '`deploy-main.yml` reconstruit les quatre tiers. La règle de CLAUDE.md et mes estimations sont à refaire.',
+    ).toContain('.github/**');
+
+    // L'autre moitié du couple : le motif de base partagée contient bien ce
+    // même fichier. Sans elle, le cas ci-dessus n'épinglerait qu'une liste.
+    const motifBasePartagee = /grep -Eq '\^\((?<corps>[^']*deploy-main[^']*)\)'/u.exec(WORKFLOW_BRUT);
+
+    expect(
+      motifBasePartagee,
+      'le motif de base partagée ne nomme plus `deploy-main.yml` : le piège d’estimation a disparu, ' +
+        'ou il a changé de forme — relire la règle avant de supposer',
+    ).not.toBeNull();
+
+    const regexBase = new RegExp(`^(${motifBasePartagee!.groups!.corps})`, 'u');
+
+    expect(
+      regexBase.test('.github/workflows/deploy-main.yml'),
+      'le fichier est censé matcher la base partagée : c’est ce qui rend l’estimation naïve tentante',
+    ).toBe(true);
+
+    expect(
+      regexBase.test('app/lib/stores/workbench.ts'),
+      'CONTRÔLE NÉGATIF — du code produit ne doit PAS matcher la base partagée, sinon le motif extrait ' +
+        'est trop large et le cas ci-dessus passerait au vert pour une mauvaise raison',
+    ).toBe(false);
+  });
+
   it('et le piège est expliqué là où on le rencontre, pas seulement dans CLAUDE.md', () => {
     /*
      * Volontairement ancré sur une CHAÎNE DU WORKFLOW, pas sur de la prose de
