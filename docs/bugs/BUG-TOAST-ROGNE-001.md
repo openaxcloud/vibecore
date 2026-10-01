@@ -16,7 +16,7 @@ id: BUG-TOAST-ROGNE-001
 
 ## ✅ Testé live
 
-☐ — correctif posé et épinglé ; la vérification à l'écran attend le déploiement.
+☑ 30/09 — preuve live en prod à 390 px (Chromium), compte QA jetable : bannière peinte (capture), boutons actifs sous pointer-events ; WebKit profil iPhone le 28/09 + épinglé par `tests/e2e/bandeau-toast-visible.spec.ts`.
 
 ## Preuve
 

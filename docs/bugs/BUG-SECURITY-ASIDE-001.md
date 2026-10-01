@@ -16,7 +16,7 @@ id: BUG-SECURITY-ASIDE-001
 
 ## ✅ Testé live
 
-☐
+☑ 30/09 — preuve live en prod à 390 px (Chromium), compte QA jetable : « Dernière analyse » entière ; aucun des 29 panneaux ne déborde à 390 (sonde validée par un témoin de 520 px) + épinglé par `app/styles/ide-mobile-panels.spec.ts`.
 
 ## Preuve
 

@@ -16,7 +16,7 @@ id: BUG-TAB-SWITCHER-SHORTCUTS-001
 
 ## ✅ Testé live
 
-☐
+☑ 30/09 — preuve live en prod à 390 px (Chromium), compte QA jetable : raccourcis 71 px de haut contre 101 px pour les onglets, tous égaux (capture) + épinglé par `app/styles/av-ux-12points.spec.ts`.
 
 ## Preuve
 
