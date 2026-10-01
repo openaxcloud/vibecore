@@ -141,6 +141,30 @@ export interface AgentPatchProposal {
   createdAt: string;
   updatedAt: string;
   error?: string;
+
+  /*
+   * UN ÉTAT INTERMÉDIAIRE N'EST PAS UN ÉTAT FINAL.
+   *
+   * Mesuré en production le 2026-10-01, trois fois sur trois : en mode Agent,
+   * une modification de fichier existant n'arrivait qu'en partie. La proposition
+   * est créée dès les premiers morceaux du flux ; l'application automatique
+   * l'acceptait aussitôt — elle écrivait le FRAGMENT — puis `skipAction`
+   * marquait l'action « exécutée », et la vraie fermeture, porteuse du contenu
+   * complet, était jetée par la garde `action.executed`. Résultat :
+   * `index.html` réduit à deux lignes, page blanche, bandeau « fichiers
+   * appliqués ».
+   *
+   * `enFlux` : la dernière mise à jour vient d'un morceau en flux — la
+   * proposition n'est pas finie, on ne l'applique pas. Elle ne le redevient
+   * qu'à la fermeture NON streamée de l'action.
+   *
+   * `tronquee` : cette fermeture vient du filet de fin de flux (écriture
+   * interrompue en route) — le contenu est incomplet. Jamais appliquée
+   * automatiquement ; elle reste dans la file de revue, visible, et le
+   * rattrapage à la reprise la complète quand la réponse entière revient.
+   */
+  enFlux?: boolean;
+  tronquee?: boolean;
 }
 
 const WORKSPACE_LOG_LIMIT = 500;
@@ -2515,7 +2539,13 @@ export class WorkbenchStore {
   ): Promise<'accepted' | 'failed' | 'ignored' | 'rejected'> {
     const proposal = this.agentPatchProposals.get()[proposalId];
 
-    if (!proposal || proposal.status === 'applying') {
+    /*
+     * Une proposition encore EN FLUX n'est qu'un morceau : l'accepter écrirait le
+     * fragment et marquerait l'action exécutée, ce qui ferait jeter la vraie
+     * fermeture (voir `AgentPatchProposal.enFlux`). Vaut pour l'application
+     * automatique comme pour un clic.
+     */
+    if (!proposal || proposal.status === 'applying' || proposal.enFlux) {
       return 'ignored';
     }
 
@@ -3258,7 +3288,13 @@ export class WorkbenchStore {
       if (this.agentPatchReviewRequired.get()) {
         this.#queueAgentPatchProposal(data, isStreaming);
 
-        if (!isStreaming) {
+        /*
+         * Une fermeture par le FILET (écriture interrompue en route) n'est pas une
+         * vraie fin : marquer l'action exécutée ferait jeter la vraie fermeture
+         * que le rattrapage à la reprise apporte avec le contenu complet. L'action
+         * reste ouverte ; la proposition, marquée tronquée, attend dans la file.
+         */
+        if (!isStreaming && !data.fermetureDeSecours) {
           artifact.runner.skipAction(data.actionId);
         }
 
@@ -3632,6 +3668,8 @@ export class WorkbenchStore {
       status: previous?.status === 'accepted' || previous?.status === 'rejected' ? previous.status : 'pending',
       createdAt: previous?.createdAt ?? now,
       updatedAt: now,
+      enFlux: isStreaming,
+      tronquee: !isStreaming && data.fermetureDeSecours === true,
     });
     this.#syncAgentPatchProposalToServer(proposalId);
 
