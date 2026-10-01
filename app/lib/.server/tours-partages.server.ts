@@ -61,12 +61,22 @@ export async function annoncerUnTourPartage(
     await Promise.race([
       redis.eval(SCRIPT_ANNONCER, 1, cle, echeance, membre, DUREE_MAX_D_UN_TOUR_MS),
       new Promise((_, rejeter) => {
-        minuteur = setTimeout(() => rejeter(new Error('délai de l’annonce dépassé')), DELAI_ANNONCE_MS);
+        // Un code, pas une phrase : cette erreur n'est jamais montrée, seulement journalisée.
+        minuteur = setTimeout(
+          () => rejeter(Object.assign(new Error(), { code: 'TOUR_ANNONCE_DELAI_DEPASSE' })),
+          DELAI_ANNONCE_MS,
+        );
       }),
     ]);
   } catch (error) {
     // On retire quand même à la fin : une annonce arrivée en retard ne doit pas survivre au tour.
-    logger.warn(JSON.stringify({ event: 'tour-partage.annonce-echouee', projectId, raison: String(error) }));
+    logger.warn(
+      JSON.stringify({
+        event: 'tour-partage.annonce-echouee',
+        projectId,
+        raison: (error as { code?: string })?.code ?? String(error),
+      }),
+    );
   } finally {
     clearTimeout(minuteur);
   }
