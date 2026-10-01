@@ -25784,6 +25784,47 @@ body:has(.bolt-project-statusbar)
   }
 
   /*
+   * Clavier ouvert sur l'ÉTAT DE DÉPART (carte « Agent prêt » + suggestions).
+   * Mesuré le 2026-09-30, Safari iOS 26 simulé, 390 pt : `main` suit la vue et
+   * tombe à 362 px ; l'état de départ, une grille dont la hauteur minimale est
+   * son contenu, garde ses 287 px ; la zone du composeur, seule à céder, tombe
+   * à 27 px — et le composeur (117 px) déborde de 90 px sous le bas visible,
+   * derrière la pastille d'adresse de Safari. L'état de départ cède donc et
+   * défile ; le composeur garde sa hauteur. Au repos, rien ne change.
+   */
+  /*
+   * Clavier levé : les surfaces FIXES (panneaux service, fichiers, éditeur…)
+   * s'arrêtent au bas VISIBLE. Mesuré le 2026-09-30 sur Safari iOS 26 : la
+   * fenêtre de mise en page reste à 699 px quand la vue tombe à 362 ; le
+   * conteneur des panneaux service (`bottom: 0`) gardait donc 48–699, et
+   * « Nom du projet » (Paramètres, y 446–484) restait sous la barre ∧ ∨ ✓ —
+   * pour le navigateur il était « visible » dans sa zone, rien ne le ramenait.
+   * `--vc-mobile-visual-viewport-bottom` vaut ce que le clavier recouvre (337).
+   */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed {
+    bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+  }
+
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-mobile-agent-start-state {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  html[data-vc-clavier='ouvert']
+    .bolt-responsive-ide-mobile
+    .bolt-mobile-agent-start-state
+    ~ .bolt-project-agent-scroll {
+    /*
+     * `h-full` (100 %) quand la conversation a démarré : sans `height: auto`,
+     * la zone prenait TOUT le panneau et écrasait l'état de départ à 14 px
+     * (mesuré, passage 17). Elle prend la hauteur de son contenu — le composeur.
+     */
+    flex: 0 0 auto;
+    height: auto;
+  }
+
+  /*
    * Carte d'action de l'agent (« Ouvrir la webview · Aperçu de l'application ·
    * Ouvrir → ») — captures 11:03 : trois lignes et un bouton pleine largeur de
    * 44 px, 110 px pris sur le fil pendant que l'agent tourne, le plan coupé
