@@ -262,6 +262,24 @@ const messageParser = new EnhancedStreamingMessageParser({
       }
 
       /*
+       * UNE COMMANDE COUPÉE N'EST PAS UNE COMMANDE. Le filet de fin de flux
+       * referme toute action restée ouverte avec ce qu'il a reçu : pour une
+       * commande, c'est `npm run bu`. L'exécuter, c'est lancer autre chose que
+       * ce que le modèle écrivait — et marquer l'action faite, si bien que la
+       * VRAIE commande, rejouée par le rattrapage, était sautée (épinglé par
+       * `rattrapage-commandes.spec.ts`). Un fichier, lui, devient une
+       * proposition tronquée que le rattrapage complète ; une commande attend
+       * simplement sa vraie fermeture.
+       */
+      if (data.fermetureDeSecours && data.action.type !== 'file') {
+        logger.warn(
+          JSON.stringify({ event: 'commande-tronquee.ignoree', messageId: data.messageId, type: data.action.type }),
+        );
+
+        return;
+      }
+
+      /*
        * Add non-file actions (shell, build, start, etc.) when they close
        * Enhanced parser creates complete shell actions, so they're ready to execute
        */

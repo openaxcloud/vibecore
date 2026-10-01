@@ -142,6 +142,21 @@ export function isLongRunningInstallCommand(command: string): boolean {
   return INSTALL_COMMAND_PATTERN.test(command.trim());
 }
 
+/*
+ * Une installation de paquets SEULE — rien d'enchaîné derrière (`&&`, `;`,
+ * `|`), et pas `npx` : `npx prisma migrate dev` n'est pas une installation.
+ */
+const INSTALLATION_SEULE = /^\s*(?:npm|pnpm|yarn|bun)\s+(?:install|i|ci|add)\b[^;&|]*$/i;
+
+/** Rejouable après une coupure sans effet de bord nouveau (voir `rearmerActionInterrompue`). */
+export function seRejoueSansRisque(action: BoltAction): boolean {
+  if (action.type === 'file' || action.type === 'start') {
+    return true;
+  }
+
+  return action.type === 'shell' && INSTALLATION_SEULE.test(action.content ?? '');
+}
+
 async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Promise<string> {
   /*
    * Bound the request so a silent network stall (half-open connection, no RST)
@@ -178,18 +193,18 @@ export type ActionStatus = 'pending' | 'running' | 'complete' | 'aborted' | 'fai
  * L'action à exécuter pour cet appel, après un éventuel réarmement de reprise.
  *
  * Seule une fermeture NON streamée, dans un message dont la reprise est
- * autorisée, réarme un fichier interrompu (voir `rearmerFichierInterrompu`).
+ * autorisée, réarme une action interrompue (voir `rearmerActionInterrompue`).
  * Partagée par le workbench et par le test qui rejoue le scénario complet :
  * la règle n'existe qu'à un endroit.
  */
 export function actionApresReprise(
-  runner: Pick<ActionRunner, 'actions' | 'rearmerFichierInterrompu'>,
+  runner: Pick<ActionRunner, 'actions' | 'rearmerActionInterrompue'>,
   data: Pick<ActionCallbackData, 'actionId'>,
   isStreaming: boolean,
   repriseAutorisee: boolean,
 ) {
   if (!isStreaming && repriseAutorisee) {
-    runner.rearmerFichierInterrompu(data.actionId);
+    runner.rearmerActionInterrompue(data.actionId);
   }
 
   return runner.actions.get()[data.actionId];
@@ -499,7 +514,7 @@ export class ActionRunner {
   }
 
   /**
-   * RÉARMER UN FICHIER DONT L'ÉCRITURE A ÉTÉ INTERROMPUE.
+   * RÉARMER UNE ACTION QUE LA COUPURE A INTERROMPUE.
    *
    * Quand la connexion tombe en plein tour (Safari mis en arrière-plan, réseau
    * perdu), `abortAll()` annule le fichier en cours. Mais `runAction` l'a déjà
@@ -508,15 +523,20 @@ export class ActionRunner {
    * serveur, la garde `if (action.executed) return` la sauterait, et le fichier
    * resterait tronqué en silence.
    *
-   * On ne réarme QUE ce cas : un FICHIER, marqué exécuté, et ANNULÉ. Un fichier
-   * écrit en entier (`complete`) n'est jamais réécrit ; une commande shell ne
-   * se relance jamais — ses effets de bord (installation, serveur) ne sont pas
-   * rejouables sans risque. Rend `true` si l'action a été réarmée.
+   * On ne réarme QUE ce qui est marqué exécuté ET annulé, et seulement ce qui
+   * se rejoue sans risque : un FICHIER (réécrit en entier), une INSTALLATION de
+   * paquets seule, et le DÉMARRAGE (`start`). Une action finie (`complete`)
+   * n'est jamais refaite ; une commande quelconque ne se relance jamais — un
+   * `seed` ou une migration lancés deux fois ne s'annulent pas.
+   *
+   * Mesuré le 2026-10-01 (`rattrapage-commandes.spec.ts`) : un `npm install`
+   * tué par la coupure restait « exécuté », le rattrapage le sautait, et le
+   * projet repartait sans ses dépendances. Rend `true` si l'action a été réarmée.
    */
-  rearmerFichierInterrompu(actionId: string): boolean {
+  rearmerActionInterrompue(actionId: string): boolean {
     const action = this.actions.get()[actionId];
 
-    if (!action || action.type !== 'file' || !action.executed || action.status !== 'aborted') {
+    if (!action || !action.executed || action.status !== 'aborted' || !seRejoueSansRisque(action)) {
       return false;
     }
 
