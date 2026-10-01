@@ -83,6 +83,12 @@ export interface AutoApplyDecisionInput {
 
   /** Current proposal status — only `'pending'` is eligible for auto-apply. */
   status: string;
+
+  /** La proposition vient d'un morceau en flux : pas finie (voir `AgentPatchProposal.enFlux`). */
+  enFlux?: boolean;
+
+  /** Fermée par le filet de fin de flux : contenu incomplet, jamais appliqué automatiquement. */
+  tronquee?: boolean;
 }
 
 export interface AutoApplyAttemptKeyInput {
@@ -103,7 +109,7 @@ export interface AutoApplyAttemptKeyInput {
  * queue instead of being accepted silently.
  */
 export function shouldAutoApplyPatch(input: AutoApplyDecisionInput): boolean {
-  return input.autoApplyEnabled && input.status === 'pending';
+  return input.autoApplyEnabled && input.status === 'pending' && !input.enFlux && !input.tronquee;
 }
 
 /**

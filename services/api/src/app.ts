@@ -320,6 +320,7 @@ import { githubConnector, resolveGithubCredentials } from './integrations/provid
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
 import { connectorPublicErrorMessage } from './integrations/providers/public-error-copy.js';
+import { defaultOrganizationName } from './default-organization-name.js';
 import { supabaseConnector } from './integrations/providers/supabase.js';
 import {
   ConnectorProviderError,
@@ -574,6 +575,8 @@ export type WorkspacePodBuildRefusal =
   | 'NO_USER_CONTEXT'
   | 'NO_WEBSOCKET_RUNTIME'
   | 'WORKSPACE_UNREACHABLE'
+  // Le démarrage de l'espace est REFUSÉ pour quota (#628) : réessayer ne changera rien.
+  | 'WORKSPACE_QUOTA'
   | 'AGENT_TOKEN_UNAVAILABLE'
   | 'BUILD_INVOCATION_THREW';
 
@@ -10810,11 +10813,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         email: user.email,
       });
 
-      const organization = await store.createOrganization({
-        name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
-        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
-        ownerUserId: user.id,
-      });
+      const organizationName = body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale);
+      const baseSlug = body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`;
+
+      /*
+       * UIB-10 — Organization.slug est @unique. Mesuré le 2026-10-01 : un second
+       * client qui choisissait un nom d'organisation déjà pris (« Acme ») recevait
+       * une erreur 500 — APRÈS la création de son compte, qui restait sans
+       * organisation ; en réessayant, « adresse déjà utilisée ». À l'inscription,
+       * le nom n'est qu'un libellé : on garde le nom choisi et on rend le slug
+       * unique avec un suffixe tiré de l'utilisateur (même forme que l'import).
+       */
+      let organization;
+
+      try {
+        organization = await store.createOrganization({ name: organizationName, slug: baseSlug, ownerUserId: user.id });
+      } catch (error) {
+        if ((error as { code?: string } | null)?.code !== 'P2002') {
+          throw error;
+        }
+
+        organization = await store.createOrganization({
+          name: organizationName,
+          slug: `${baseSlug}-${user.id.slice(-6)}`,
+          ownerUserId: user.id,
+        });
+      }
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
@@ -11328,7 +11352,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             organizationId = existingOrgs[0].id;
           } else {
             const org = await store.createOrganization({
-              name: `${profile.name ?? profile.email}'s Organization`,
+              name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
               slug: `org-${user.id.slice(-8)}`,
               ownerUserId: user.id,
             });
@@ -11517,7 +11541,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           oidcOrgId = oidcUserOrgs[0].id;
         } else {
           const org = await store.createOrganization({
-            name: `${profile.name ?? profile.email}'s Organization`,
+            name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
             slug: `org-${user.id.slice(-8)}`,
             ownerUserId: user.id,
           });
@@ -15761,7 +15785,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await ensureWorkspaceReachable(request, authorized);
     } catch (error) {
-      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
+      /*
+       * BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE — un refus pour quota n'est pas un
+       * espace « qui démarre » : le client lisait « réessayez » et réessayait sans
+       * fin, alors que seule la limite de son forfait bloquait.
+       */
+      const refusPourQuota = (error as { code?: unknown })?.code === 'QUOTA_EXCEEDED';
+
+      return {
+        handled: false,
+        refusal: refusPourQuota ? 'WORKSPACE_QUOTA' : 'WORKSPACE_UNREACHABLE',
+        detail: refusalDetail(error),
+      };
     }
 
     let token: string;
@@ -20748,7 +20783,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = request.currentUser!;
 
       const org = await store.createOrganization({
-        name: `${user.name ?? user.email}'s Organization`,
+        name: defaultOrganizationName(user.name ?? user.email, transactionalLocaleForRequest(request)),
         slug: `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
@@ -36398,8 +36433,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
            * dans le journal du déploiement, où il est réellement consultable.
            */
-          const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
           const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+
+          // Un refus pour quota se dit comme tel : « réessayez » enverrait le client tourner en rond.
+          const message = appPublicEnglish(refus === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
           const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
           const ligne = `${message} [${refus}]${detail}`;
 

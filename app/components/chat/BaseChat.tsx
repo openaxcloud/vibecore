@@ -160,8 +160,12 @@ import {
   decalageAAnnulerClavierOuvert,
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
+  revelerLeChampActif,
+  suivreHauteurDeRepos,
+  type HauteurDeRepos,
 } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
+import { PhraseAvecCode } from '~/components/ui/PhraseAvecCode';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { initialesPersonne, libellePersonne } from '~/utils/person-label';
@@ -3183,8 +3187,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
+      /*
+       * Référence du rétrécissement : la hauteur de mise en page AU REPOS.
+       * Safari iOS 26 rétrécit `innerHeight` avec le clavier (699 → 362, mesuré
+       * le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
+       */
+      let repos: HauteurDeRepos | undefined;
+
       const updateVisualViewportHeight = () => {
         const vue = window.visualViewport;
+
+        repos = suivreHauteurDeRepos(repos, window.innerWidth, window.innerHeight);
+
         const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
 
@@ -3223,12 +3237,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * se lit depuis le haut du document — décalée, elle sort de l'écran
          * (page blanche, socle flottant, zone de saisie invisible).
          */
-        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
+        if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))) {
           document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
 
-          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+          if (decalageAAnnulerClavierOuvert(repos.hauteur, vue ?? undefined) > 0) {
             window.scrollTo(0, 0);
           }
+
+          /*
+           * La coque tient dans la vue : un champ plus bas que le bas visible
+           * reste sous le clavier (« Nom du projet », Paramètres, mesuré le
+           * 30/09 sur iOS 26). On le ramène dans SA zone de défilement ;
+           * `nearest` ne bouge rien quand il est déjà visible (composeur).
+           */
+          revelerLeChampActif(document);
         } else {
           document.documentElement.removeAttribute('data-vc-clavier');
         }
@@ -3996,7 +4018,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           continue;
         }
 
-        if (!shouldAutoApplyPatch({ autoApplyEnabled: projectAutoApply, status: proposal.status })) {
+        if (
+          !shouldAutoApplyPatch({
+            autoApplyEnabled: projectAutoApply,
+            status: proposal.status,
+            enFlux: proposal.enFlux,
+            tronquee: proposal.tronquee,
+          })
+        ) {
           continue;
         }
 
@@ -19630,9 +19659,10 @@ function ProjectMonitoringPanel({
            * une chaîne traduite — « événement interne de routines ». Une clé
            * plurielle par langue règle les deux.
            */}
-          {t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
-          <code>project.ide_state.*</code>
-          {t('chat.copy.openTheLogsPanelToInspect_cc12758f')}
+          <PhraseAvecCode
+            texte={t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
+            codes={{ code: 'project.ide_state.*' }}
+          />
         </div>
       ) : null}
     </div>
@@ -20310,9 +20340,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   </small>
                 ) : (
                   <small className="bolt-project-workflow-nextrun">
-                    {t('chat.copy.notScheduledEnterACronExpression_4b9e799a')}
-                    <code>0 3 * * *</code>
-                    {t('chat.copy.andEnableItTheSchedulerWill_c6c6f347')}
+                    <PhraseAvecCode texte={t('baseChatAst.workflows.notScheduled')} codes={{ exemple: '0 3 * * *' }} />
                   </small>
                 )}
               </form>
@@ -20687,11 +20715,10 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
         <div>
           <PanelSectionTitle>{t('chat.copy.addAuthentication_2855841d')}</PanelSectionTitle>
           <p className="text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b')}
-            <code>users</code>
-            {t('chat.copy.tableMigrationAnExpressSessionJwt_120a5fe5')}
-            <code>AUTH_JWT_SECRET</code>
-            {t('chat.copy.forYou_c10f85ac')}
+            <PhraseAvecCode
+              texte={t('baseChatAst.integrations.authDescription')}
+              codes={{ users: 'users', secret: 'AUTH_JWT_SECRET' }}
+            />
           </p>
         </div>
         <button

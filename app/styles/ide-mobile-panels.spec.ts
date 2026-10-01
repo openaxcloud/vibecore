@@ -413,7 +413,7 @@ describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’acti
       /import \{[^}]*clavierProbablementOuvert,[^}]*retrecissementDeLaVue,[^}]*\} from '\.\/visual-viewport-bottom';/u,
     );
     expect(BASE_CHAT).toContain(
-      'if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {',
+      'if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))) {',
     );
     expect(BASE_CHAT).toContain("document.documentElement.setAttribute('data-vc-clavier', 'ouvert');");
     expect(BASE_CHAT.match(/document\.documentElement\.removeAttribute\('data-vc-clavier'\)/g)?.length).toBe(2);
@@ -1024,7 +1024,12 @@ describe('§26 — l’état de départ du panneau Agent se pose sous l’en-tê
    * depuis. La marge est une gouttière, plus la barre de contexte si elle est
    * affichée — jamais un nombre en dur.
    */
-  const bloc = INDEX.match(/\.bolt-mobile-agent-start-state \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
+  /*
+   * La règle de BASE, seule sur sa ligne : d'autres règles portent la même
+   * classe en fin de sélecteur (clavier levé, 30/09) — la première occurrence
+   * du fichier n'est plus forcément celle-ci.
+   */
+  const bloc = INDEX.match(/\n {2}\.bolt-mobile-agent-start-state \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
 
   it('la marge haute est la gouttière plus la barre de contexte', () => {
     expect(bloc).toContain(

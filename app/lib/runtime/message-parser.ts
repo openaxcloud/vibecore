@@ -76,6 +76,13 @@ export interface ActionCallbackData {
   messageId: string;
   actionId: string;
   action: BoltAction;
+
+  /**
+   * `true` quand l'action a été refermée par le FILET DE FIN DE FLUX : son
+   * contenu est ce qui avait été reçu, sans la balise `</boltAction>`, donc
+   * potentiellement INCOMPLET. L'appelant décide s'il l'écrit.
+   */
+  fermetureDeSecours?: boolean;
 }
 
 export type ArtifactCallback = (data: ArtifactCallbackData) => void;
@@ -739,6 +746,7 @@ export class StreamingMessageParser {
         actionId: String(state.actionId - 1),
 
         action,
+        fermetureDeSecours: true,
       });
     }
 
