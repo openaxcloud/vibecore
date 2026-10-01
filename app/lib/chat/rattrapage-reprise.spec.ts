@@ -2,8 +2,11 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+// eslint-disable-next-line no-restricted-imports -- couple la règle du navigateur à la copie de l'API, qui ne peut pas importer le code du navigateur
+import { decisionEcritureMessage, texteSansReflexion } from '../../../services/api/src/message-ne-raccourcit-pas';
 import {
   contenuARattraper,
+  estLaVersionDuServeur,
   estUneCoupureReseau,
   identifiantServeurDuMessage,
   planDeRattrapage,
@@ -212,5 +215,36 @@ describe('ce qui arme et désarme le rattrapage', () => {
   it('abandonne après quinze minutes', () => {
     expect(rattrapageEncoreOuvert(0, RATTRAPAGE_DUREE_MAX_MS - 1)).toBe(true);
     expect(rattrapageEncoreOuvert(0, RATTRAPAGE_DUREE_MAX_MS)).toBe(false);
+  });
+});
+
+/*
+ * DEUX IMPLÉMENTATIONS, UNE RÈGLE. L'API ne peut pas importer le code du
+ * navigateur : elle a sa copie de « texte sans raisonnement ». Mesuré le
+ * 2026-10-01 : quand les deux côtés ne comparent pas la même chose, la copie
+ * partielle du navigateur passe pour la version du serveur (rattrapage) et
+ * remplace la réponse complète en base (réouverture). Elles doivent rester
+ * identiques.
+ */
+describe('le navigateur et l’API retirent le raisonnement de la même façon', () => {
+  const cas = [
+    'Bonjour',
+    `${REFLEXION('Je réfléchis.')}Bonjour`,
+    `${REFLEXION('a')}x${REFLEXION('b')}y`,
+    '<div class="__boltThought__">coupé en plein raisonn',
+    '',
+  ];
+
+  it.each(cas)('même texte pour %j', (contenu) => {
+    expect(texteSansReflexion(contenu)).toBe(sansReflexion(contenu).texte);
+  });
+
+  it('ce que le rattrapage reconnaît comme la version du serveur, l’API refuse de l’écraser par la copie du navigateur', () => {
+    const serveur = 'Voici ma démarche. Puis les fichiers.';
+    const copie = `${REFLEXION('Je planifie.')}Voici ma`;
+
+    expect(estLaVersionDuServeur(serveur)).toBe(true);
+    expect(estLaVersionDuServeur(copie)).toBe(false);
+    expect(decisionEcritureMessage(serveur, copie).ecrire).toBe(false);
   });
 });
