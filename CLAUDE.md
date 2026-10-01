@@ -635,6 +635,44 @@ l'attente.
 tombent entièrement sous `paths-ignore` a le même effet : un `.md`, un fichier
 de suivi, un `.gitignore`. Le déclencheur n'est pas le préfixe du message,
 c'est **l'ensemble des chemins touchés** — le vérifier avant, pas après.
+### UN TEST NE PART SUR `main` QU'AVEC LE CODE QU'IL VALIDE
+
+Jamais avant. Un test qui arrive seul ne mesure pas un défaut : il mesure une **absence**,
+et il bloque tout le monde pour elle. La porte de release refuse, les déploiements
+s'arrêtent, et chaque session qui fusionne ensuite hérite d'un rouge dont elle n'est pas
+responsable — avec, au bout, un correctif « livré » qui n'a aucun effet parce que son
+déploiement n'est jamais parti.
+
+**Le geste :** le test et le code qu'il valide sont dans la **même** proposition. Si on veut
+livrer le test d'abord pour montrer le défaut, il part avec `test.fail()` ou dans la
+dérogation bornée — pas en rouge nu sur `main`.
+
+⚠️ **CE N'ÉTAIT PAS LA CAUSE LE 2026-10-01, et la nuance vaut la règle.** Le soupçon était
+fondé : `reouverture-ne-rejoue-pas.spec.ts` est arrivé sur `main` par #597, et son sujet —
+« l'historique de l'agent n'écrase pas le travail de l'utilisateur » — est **exactement**
+celui d'un correctif qui attendait encore dans la file (`fix/conflit-utilisateur-agent`).
+Le raccourci tentant était d'en conclure « test livré avant son code, donc `main` rouge
+depuis son arrivée ».
+
+**La mesure a dit non.** Sur les quatorze derniers passages E2E de `main` : **vert dès le
+premier passage après sa fusion, puis neuf verts et un seul rouge.** Ni « rouge depuis
+l'arrivée », ni régression d'une fusion récente — il **flotte**, une fois sur dix.
+
+**Et le vrai enseignement est là, pas dans la règle :**
+
+> **Dans la famille « le travail de l'utilisateur est perdu », un test instable n'est pas
+> du bruit de CI : c'est le défaut qui se montre une fois sur dix.**
+
+Ce test affirme que rien n'est écrasé. Qu'il échoue parfois signifie qu'une fois sur dix,
+en conditions de CI, **ça l'a été**. On ne le stabilise donc pas — on ferme la course qu'il
+observe. C'est ce qui a fait passer `fix/conflit-utilisateur-agent` devant un correctif
+d'inscription bloquant, et cet arbitrage ne se lisait pas dans le compteur de la porte :
+il fallait regarder de quoi le test parlait.
+
+Corollaire de la règle 17 : « un test qu'on croit déterministe et qui passe une fois sur
+trois n'est pas un défaut produit » reste vrai — **sauf quand ce qu'il mesure est une perte
+de données.** Là, chaque échec est une occurrence.
+
 
 ## Déploiement prod (mécanisme réel)
 
