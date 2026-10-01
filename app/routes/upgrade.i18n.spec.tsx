@@ -1,7 +1,8 @@
 /** @vitest-environment jsdom */
 
 import { cleanup, render, screen } from '@testing-library/react';
-import { FREE_PLAN_PROJECTS_CAP, planByKey } from '@vibecore/billing';
+import { planByKey } from '@vibecore/billing';
+import { FREE_PLAN_PROJECTS_CAP } from '@vibecore/billing/src/plafonds';
 import type { FormEventHandler, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 

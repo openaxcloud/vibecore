@@ -1,4 +1,4 @@
-import { isUnlimitedLimit } from '@vibecore/billing';
+import { isUnlimitedLimit } from '@vibecore/billing/src/plafonds';
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
 
 export const upgradeEn = {
