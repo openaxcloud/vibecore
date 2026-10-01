@@ -398,9 +398,9 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE](docs/bugs/BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE.md) — BLOQUANT — DÉCISION REQUISE — chaque `PUT /ide-state` portant le fil réécrit, côté serveur, les fichiers du projet avec la dernière version que l'agent leur a d
 - [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
 
-## Sans section
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
 
-- [undefined](docs/bugs/BUG-I18N-APERCU-TERME-INTERDIT-001.md)
+- [BUG-I18N-APERCU-TERME-INTERDIT-001](docs/bugs/BUG-I18N-APERCU-TERME-INTERDIT-001.md)
 
 ## Résidus non tabulaires — reportés mot pour mot
 

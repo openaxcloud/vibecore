@@ -1,3 +1,8 @@
+---
+id: BUG-I18N-APERCU-TERME-INTERDIT-001
+section: "2026-10-01 — Chaîne de tests : chemin critique de la porte de release"
+---
+
 # BUG-I18N-APERCU-TERME-INTERDIT-001
 
 **Gravité** — GÊNANT pour l'utilisateur, **BLOQUANT pour la lecture de la CI**.
