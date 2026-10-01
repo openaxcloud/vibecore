@@ -674,6 +674,50 @@ trois n'est pas un défaut produit » reste vrai — **sauf quand ce qu'il mesur
 de données.** Là, chaque échec est une occurrence.
 
 
+### « VERT À LA RELANCE » NE PROUVE PAS QUE LE TEST EST EN CAUSE
+
+Un échec intermittent peut être un **défaut** intermittent. La relance ne départage pas les
+deux : elle montre seulement que le défaut ne se produit pas à tous les coups.
+
+**Vécu le 2026-10-01, et j'ai relayé la mauvaise conclusion.**
+`reouverture-ne-rejoue-pas.spec.ts › première ouverture d'un projet : l'historique de
+l'agent n'écrase pas le travail de l'utilisateur` échouait une fois sur dix sur `main`.
+J'ai mesuré proprement — quatorze passages, neuf verts, un rouge, vert dès son arrivée,
+vert à la relance — et j'ai écrit **« le test était instable »**. C'est cette phrase qui a
+été transmise.
+
+**C'était faux.** Ce n'était pas un test qui flotte, c'était la **perte de données
+elle-même**, qui se produisait une fois sur dix. Le correctif #667 (priorité de la
+sauvegarde utilisateur, fusion à trois voies) l'a corrigée. Le test disait la vérité à
+chaque échec.
+
+**La méthode était bonne, la conclusion ne l'était pas** — et c'est ce qui rend l'erreur
+instructive : mesurer beaucoup ne protège pas d'interpréter mal. Les quatorze passages
+établissaient « ça échoue une fois sur dix » ; j'en ai tiré « donc le test est fautif »,
+ce qui ne s'en déduit pas.
+
+**Le geste, avant de dire « instable » :**
+
+1. **Lire ce que le test AFFIRME**, pas seulement son compteur. S'il affirme qu'aucune
+   donnée n'est perdue, chaque échec est une occurrence de perte — pas un faux positif.
+2. **Chercher si un correctif en attente traite ce sujet.** Si oui, l'hypothèse « défaut
+   intermittent » devient la plus probable, et le test devient son meilleur témoin.
+3. **Ne jamais classer « instable » un test de la famille perte de données / corruption /
+   fuite.** Dans ces familles, le coût d'un faux « instable » est un défaut livré ; le coût
+   d'un faux « défaut » est une relance.
+4. **Quand on dérogue, dire lequel des deux on croit.** La dérogation bornée est pour un
+   test qui flotte, pas pour un défaut qu'on ne veut pas regarder.
+
+⚠️ **Et la conséquence sur le compte rendu** : j'ai annoncé « instable » avant d'avoir
+établi la cause, dans un message dont je savais qu'il serait relayé. Une hypothèse
+transmise sans son incertitude devient un fait pour celui qui la reçoit. Le bon énoncé
+était : « échoue une fois sur dix ; j'ignore encore si c'est le test ou le produit ».
+
+Corollaire de la règle 17, qui disait l'inverse pour un autre cas : « un test qu'on croit
+déterministe et qui passe une fois sur trois n'est pas un défaut produit » reste vrai pour
+les tests d'interface et de rendu. Il ne vaut **pas** quand l'énoncé du test porte sur
+l'intégrité des données de l'utilisateur.
+
 ## Déploiement prod (mécanisme réel)
 
 **Runbook complet + commandes exactes : [`docs/DEPLOY_RUNBOOK.md`](docs/DEPLOY_RUNBOOK.md).** Vérité terrain reconstituée le 2026-07-07.
