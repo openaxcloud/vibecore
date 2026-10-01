@@ -29,7 +29,7 @@ import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-er
 import { apiRequest } from '~/lib/enterprise-api.server';
 import { reponseAPersister } from '~/lib/.server/persistance-reponse';
 import { demandeAPersister } from '~/lib/.server/persistance-demande';
-import { avecSuiviDuTour } from '~/lib/.server/tours-en-cours';
+import { avecSuiviDuTourPartage } from '~/lib/.server/tours-partages.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
 import { BUDGET_PAR_SEGMENT_MS, MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
@@ -749,7 +749,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
        * et `execute` attend la fin de toute la chaîne du tour (`enVol`). C'est ce
        * que le serveur attend avant de s'arrêter (`server.mjs`, tours-en-cours).
        */
-      execute: avecSuiviDuTour(`chat:${projectId ?? 'sans-projet'}`, async (dataStream) => {
+      execute: avecSuiviDuTourPartage(projectId, async (dataStream) => {
         /*
          * Scope a per-request Anthropic cache tally to this execute's async
          * context. The provider's wire reader (spawned during streamText below)

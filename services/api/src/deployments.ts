@@ -1040,7 +1040,8 @@ function splitBuildCommand(buildCommand: string): { command: string; args: strin
   return { command, args: rest };
 }
 
-export type StaticBuildLogLevel = 'info' | 'error';
+// `warn` : un avis au client (autre espace mis en veille, attente d'un tour) — affiché par la carte de publication.
+export type StaticBuildLogLevel = 'info' | 'warn' | 'error';
 
 export interface StaticBuildLog {
   timestamp: string;

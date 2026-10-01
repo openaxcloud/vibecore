@@ -361,6 +361,24 @@ export function causeDeLEchec(deploiement: Deploiement | undefined): string | nu
   return parCode.length > 0 ? parCode[parCode.length - 1].message : null;
 }
 
+/*
+ * Ce que le client doit savoir d'une publication même quand elle RÉUSSIT : la
+ * dernière ligne d'avis (`warn`). Décision d'Avi du 2026-10-01 : publier peut
+ * mettre en veille un autre projet du client — et on le lui DIT, dans la carte
+ * qu'il regarde, pas dans un journal qu'il n'ouvrira pas.
+ */
+export function avisDuDeploiement(deploiement: Deploiement | undefined): string | null {
+  const journaux = Array.isArray(deploiement?.logs)
+    ? (deploiement.logs as Array<{ level?: unknown; message?: unknown }>)
+    : [];
+
+  const avis = journaux.filter(
+    (ligne) => ligne?.level === 'warn' && typeof ligne.message === 'string' && ligne.message.trim().length > 0,
+  );
+
+  return avis.length > 0 ? String(avis[avis.length - 1].message).trim() : null;
+}
+
 /**
  * BUG-PUBLISH-NOOP-001 — ce que fait le bouton principal du panneau.
  *

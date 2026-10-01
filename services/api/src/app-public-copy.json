@@ -2707,6 +2707,18 @@
     "en": "This idea is no longer available.",
     "fr": "Cette idée n’est plus disponible."
   },
+  "DEPLOY_WORKSPACE_AUTO_SLEPT": {
+    "en": "We put your project “{project}” to sleep to publish this one: your plan allows one active workspace at a time. Its files are kept — it reopens as soon as you go back to it.",
+    "fr": "Nous avons mis en veille votre projet « {project} » pour publier celui-ci : votre forfait permet un seul espace de travail actif à la fois. Ses fichiers sont conservés ; il se rouvre dès que vous y retournez."
+  },
+  "DEPLOY_WORKSPACE_WAITING_TURN": {
+    "en": "Your project “{project}” has a generation in progress. We are not interrupting it: we are waiting for it to finish (at most {minutes} min) before putting it to sleep to publish this one.",
+    "fr": "Votre projet « {project} » a une génération en cours. Nous ne l’interrompons pas : nous attendons qu’elle se termine (au plus {minutes} min) avant de le mettre en veille pour publier celui-ci."
+  },
+  "DEPLOY_WORKSPACE_QUOTA_BUSY": {
+    "en": "Your project “{project}” still has a generation in progress, and your plan allows one active workspace at a time. We did not interrupt it, so none of that work is lost. Publish again once it has finished, or upgrade your plan.",
+    "fr": "Votre projet « {project} » a toujours une génération en cours, et votre forfait permet un seul espace de travail actif à la fois. Nous ne l’avons pas interrompue, pour ne rien perdre de ce travail. Publiez de nouveau quand elle sera terminée, ou passez à un forfait supérieur."
+  },
   "DEPLOY_WORKSPACE_QUOTA": {
     "en": "Your plan allows one active workspace at a time, and another of your projects is using it. Stop that project’s workspace, or upgrade your plan, then publish again.",
     "fr": "Votre forfait permet un seul espace de travail actif à la fois, et un autre de vos projets l’utilise. Arrêtez l’espace de ce projet, ou passez à un forfait supérieur, puis publiez de nouveau."

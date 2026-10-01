@@ -1,0 +1,13 @@
+0.0s espace qaveillemup4o1u0 — démarrage
+12.2s 1er démarrage : agent joignable
+12.2s écrit et RELU avant la veille : {"src/preuve-veille.ts":"c313a5235bbfbef3","notes/journal du projet.md":"c342677a0608840b"}
+12.5s pod 4d765307…, volume(s) : pvc-qaveillemup4o1u0
+12.5s MISE EN VEILLE : POST /workspaces/qaveillemup4o1u0/stop (la requête de la mise en veille automatique)
+13.5s statut rendu par le manager : STOPPED
+14.3s après veille — pod présent ? false | volumes : pvc-qaveillemup4ngdt=Bound pvc-qaveillemup4o1u0=Bound
+14.3s RÉOUVERTURE (même identifiant, comme un client qui revient sur son projet)
+22.3s réouverture : agent joignable
+22.4s relu après réouverture : {"src/preuve-veille.ts":"c313a5235bbfbef3","notes/journal du projet.md":"c342677a0608840b"}
+22.4s nouveau pod ? true (avant 4d765307…, après 1af1f7a2…)
+VERDICT : FICHIERS INTACTS après veille et réouverture (pod remplacé, volume conservé)
+ESPACE=qaveillemup4o1u0
