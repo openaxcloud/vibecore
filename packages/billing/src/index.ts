@@ -146,7 +146,8 @@ export const billingPlans: BillingPlan[] = [
       'ai.toolCalls': 3_000,
       'deployments.count': 50,
       'previews.public': 10,
-      'team.members': 1,
+      // Décision d'Avi du 2026-10-01 : 5 places (valait 1 — un client Pro ne pouvait inviter personne).
+      'team.members': 5,
       'terminals.concurrent': 4,
       'api.rateLimitPerMinute': 600,
     },
