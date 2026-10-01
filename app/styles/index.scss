@@ -7264,6 +7264,24 @@ body :where(.lucide, svg[data-lucide]) {
  * commandes de l'espace de tr… » à 148 sur 213, la carte ayant toute la
  * hauteur nécessaire. Sous 1024 px : inchangé (mobile gelé).
  */
+/*
+ * UIB-15 — panneau Collaborateurs sur bureau : la carte « Partage et
+ * programmation en binôme » range deux formulaires en grille
+ * `minmax(0, 1fr)`, mais chaque formulaire dimensionnait sa propre piste sur la
+ * largeur minimale de son sélecteur (197 px) : 28 px de débord mesurés à 1440.
+ */
+@media (min-width: 1024px) {
+  .bolt-responsive-ide-desktop .bolt-project-collaboration-form {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-collaboration-form :is(select, input, button) {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
 @media (min-width: 1024px) {
   .bolt-responsive-ide-desktop .bolt-project-package-stat-grid small {
     overflow: visible;
