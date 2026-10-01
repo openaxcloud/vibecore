@@ -7257,6 +7257,21 @@ body :where(.lucide, svg[data-lucide]) {
   }
 }
 
+/*
+ * UIB-14 — cartes du panneau Paquets sur bureau : la description passe à la
+ * ligne au lieu d'être coupée. Mesuré le 2026-10-01 à 1440 : « Stockage du
+ * projet et fichiers de paquet… » coupé à 148 px sur 326, « Exécuteur de
+ * commandes de l'espace de tr… » à 148 sur 213, la carte ayant toute la
+ * hauteur nécessaire. Sous 1024 px : inchangé (mobile gelé).
+ */
+@media (min-width: 1024px) {
+  .bolt-responsive-ide-desktop .bolt-project-package-stat-grid small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+}
+
 @media (min-width: 1600px) and (min-height: 800px) {
   .bolt-responsive-ide-desktop {
     --project-ide-rail-width: 52px;
