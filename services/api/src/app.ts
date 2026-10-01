@@ -21128,15 +21128,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
       }
 
+      /*
+       * BUG-QA0930-INVITATION-SANS-PLACE — l'acceptation consomme une place
+       * (ensureQuota team.members) ; la création ne la consultait pas. Une équipe
+       * gratuite (1 place, prise par le propriétaire) envoyait donc des invitations
+       * que personne ne pourrait jamais accepter : le collègue s'inscrivait,
+       * vérifiait son adresse, puis butait sur un 429. On refuse ici, au moment où
+       * le propriétaire peut encore agir, en comptant aussi les places déjà promises
+       * aux invitations en attente.
+       */
+      const pendingSeats = pendingInvites.filter(
+        (invite) => !invite.acceptedAt && new Date(invite.expiresAt).getTime() > nowMs,
+      ).length;
       const token = createOpaqueToken('invite');
 
-      const invitation = await store.createOrganizationInvite({
-        organizationId: orgId,
-        email: body.email,
-        roleKey,
-        token,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
-      });
+      let invitation: Awaited<ReturnType<typeof store.createOrganizationInvite>>;
+
+      try {
+        invitation = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+          await ensureQuota(request, orgId, 'team.members', pendingSeats + 1);
+
+          return store.createOrganizationInvite({
+            organizationId: orgId,
+            email: body.email,
+            roleKey,
+            token,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+          });
+        });
+      } catch (error: any) {
+        if (error?.code === 'QUOTA_EXCEEDED') {
+          return reply.code(429).send({
+            error: appPublicCopy('TEAM_SEAT_LIMIT', transactionalLocaleForRequest(request)),
+            code: 'QUOTA_EXCEEDED',
+            quotaKey: 'team.members',
+          });
+        }
+
+        throw error;
+      }
       const invitedUser = await store.findUserByEmail(body.email);
       const invitationContent = invitationEmailContent({
         baseUrl: appPublicBaseUrl(),

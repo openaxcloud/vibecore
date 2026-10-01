@@ -12,6 +12,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { getInvitationsCopy, interpolateInvitationsCopy, invitationRoleLabel } from '~/lib/i18n/catalogs/invitations';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { estUnRefusFauteDePlace } from '~/lib/refus-place-equipe.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 /*
@@ -54,7 +55,8 @@ type AcceptInvitationErrorCode =
   | 'rateLimited'
   | 'unavailable'
   | 'emailNotVerified'
-  | 'emailMismatch';
+  | 'emailMismatch'
+  | 'seatLimit';
 type AcceptInvitationActionData = {
   feedbackCode?: 'accepted';
   roleKey?: string;
@@ -105,6 +107,11 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (isApiResponse(error, 400) || isApiResponse(error, 404) || isApiResponse(error, 409)) {
       return actionData({ errorCode: 'invalid' }, error.status);
+    }
+
+    // Le forfait de l'équipe n'a plus de place : réessayer n'y changera rien.
+    if (await estUnRefusFauteDePlace(error)) {
+      return actionData({ errorCode: 'seatLimit' }, 429);
     }
 
     if (isApiResponse(error, 429)) {

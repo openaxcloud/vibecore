@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-376 entrées.
+377 entrées.
 
 ## Sans section
 
@@ -402,6 +402,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE](docs/bugs/BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE.md) — BLOQUANT (premier déploiement) — RÉGRESSION de #628 (servi le 30/09). Un client gratuit dont un autre
 - [BUG-QA0930-INVITATION-MESSAGE-TROMPEUR](docs/bugs/BUG-QA0930-INVITATION-MESSAGE-TROMPEUR.md) — BLOQUANT (inviter un collègue) — le collègue invité qui vient de créer son compte ne rejoint jamais
+- [BUG-QA0930-INVITATION-SANS-PLACE](docs/bugs/BUG-QA0930-INVITATION-SANS-PLACE.md) — BLOQUANT (inviter un collègue) — une équipe au forfait gratuit (ou Pro) envoie des invitations que
 
 ## Résidus non tabulaires — reportés mot pour mot
 

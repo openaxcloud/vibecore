@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { ouvrirDesPlaces } from './places-equipe';
 
 /*
  * BUG-QA0930-INVITATION-MESSAGE-TROMPEUR — mesuré le 2026-10-01 en local, vraie
@@ -38,6 +39,9 @@ test('le collègue dont l’adresse n’est pas vérifiée apprend quoi faire �
     token: string;
     organization: { id: string };
   };
+
+  // Le forfait gratuit n'a qu'une place (le propriétaire) : sans places, l'invitation serait refusée dès sa création.
+  await ouvrirDesPlaces(request, apiBaseUrl, organization.id, 5);
 
   const collegue = `collegue-${suffixe}@local.test`;
 
@@ -96,6 +100,8 @@ test('accepter depuis un AUTRE compte que l’adresse invitée : le message le d
     token: string;
     organization: { id: string };
   };
+
+  await ouvrirDesPlaces(request, apiBaseUrl, organization.id, 5);
 
   const invitation = await request.post(`${apiBaseUrl}/orgs/${organization.id}/invitations`, {
     headers: { authorization: `Bearer ${jetonProprio}` },
