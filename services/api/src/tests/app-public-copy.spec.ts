@@ -209,9 +209,10 @@ describe('backend application response localization', () => {
       matched: true,
       value: 'Le délai d’attente du verrou du projet proj_1 est dépassé.',
     });
-    expect(localizeAppPublicMessage('[image] build build-1 queued (context gs://bucket/object.tgz)', 'fr')).toEqual({
+    // Le chemin interne de stockage (gs://…) n'est plus montré au client.
+    expect(localizeAppPublicMessage('[image] build build-1 queued', 'fr')).toEqual({
       matched: true,
-      value: '[image] compilation build-1 mise en file (contexte gs://bucket/object.tgz)',
+      value: '[image] compilation build-1 mise en file',
     });
   });
 

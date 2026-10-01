@@ -200,24 +200,24 @@
     "fr": "Le callback OAuth nécessite un code ou un profil résolu."
   },
   "OAUTH_TOKEN_MISSING": {
-    "en": "OAuth token response did not include an access token",
-    "fr": "La réponse du jeton OAuth ne contient aucun jeton d’accès."
+    "en": "The sign-in provider did not complete the sign-in. Try again, or use another sign-in method.",
+    "fr": "Le fournisseur de connexion n’a pas terminé la connexion. Réessayez, ou utilisez une autre méthode de connexion."
   },
   "OAUTH_EMAIL_MISMATCH": {
     "en": "OIDC id_token email does not match userinfo email",
     "fr": "L’adresse e-mail de l’id_token OIDC ne correspond pas à celle de userinfo."
   },
   "OAUTH_EMAIL_UNVERIFIED": {
-    "en": "OAuth email is not verified",
-    "fr": "L’adresse e-mail OAuth n’est pas vérifiée."
+    "en": "This provider has not verified your email address. Verify it with them, or sign up with your email and a password.",
+    "fr": "Ce fournisseur n’a pas vérifié votre adresse e-mail. Vérifiez-la chez lui, ou inscrivez-vous avec votre adresse et un mot de passe."
   },
   "OIDC_EMAIL_VERIFICATION_UNKNOWN": {
     "en": "OIDC email verification status is unknown",
     "fr": "Le statut de vérification de l’adresse e-mail OIDC est inconnu."
   },
   "OAUTH_PROFILE_INCOMPLETE": {
-    "en": "OAuth profile is missing email or subject",
-    "fr": "Le profil OAuth ne contient ni adresse e-mail ni identifiant de sujet."
+    "en": "The sign-in provider did not share your email address. Allow it, or use another sign-in method.",
+    "fr": "Le fournisseur de connexion n’a pas transmis votre adresse e-mail. Autorisez-la, ou utilisez une autre méthode de connexion."
   },
   "SAML_ASSERTION_MISSING": {
     "en": "SAML response is missing assertion",
@@ -428,8 +428,8 @@
     "fr": "Impossible d’importer le dépôt. Réessayez."
   },
   "PROJECT_SLUG_INVALID": {
-    "en": "Slug must contain at least one letter or number.",
-    "fr": "Le slug doit contenir au moins une lettre ou un chiffre."
+    "en": "The project address must contain at least one letter or number.",
+    "fr": "L’adresse du projet doit contenir au moins une lettre ou un chiffre."
   },
   "SHARE_LINK_INVALID": {
     "en": "Share link is invalid, expired, or revoked.",
@@ -672,8 +672,8 @@
     "fr": "La création d’une pull request nécessite un compte GitHub connecté. Utilisez l’onglet Git pour pousser votre branche, puis créez la pull request sur GitHub."
   },
   "PROJECT_SLUG_TAKEN": {
-    "en": "A project with this URL slug already exists in this organization.",
-    "fr": "Un projet utilisant déjà ce slug d’URL existe dans cette organisation."
+    "en": "Another project in this organization already uses this address. Choose another one.",
+    "fr": "Un autre projet de cette organisation utilise déjà cette adresse. Choisissez-en une autre."
   },
   "IDE_STATE_VERSION_CONFLICT": {
     "en": "IDE state version conflict",
@@ -1444,20 +1444,20 @@
     "fr": "Fournisseur de connexion non pris en charge."
   },
   "OAUTH_STATE_INVALID": {
-    "en": "Invalid or expired OAuth state",
-    "fr": "État OAuth invalide ou expiré."
+    "en": "This sign-in link has expired. Start the sign-in again.",
+    "fr": "Ce lien de connexion a expiré. Recommencez la connexion."
   },
   "OAUTH_PROVIDER_DISABLED": {
     "en": "This sign-in provider is disabled",
     "fr": "Ce fournisseur de connexion est désactivé."
   },
   "OAUTH_RESOLVE_FAILED": {
-    "en": "OAuth resolve failed",
-    "fr": "La connexion OAuth a échoué."
+    "en": "Sign-in did not go through. Try again.",
+    "fr": "La connexion n’a pas abouti. Réessayez."
   },
   "OAUTH_SESSION_FAILED": {
-    "en": "OAuth login persistence failed",
-    "fr": "La session de connexion OAuth n’a pas pu être enregistrée."
+    "en": "You were signed in, but your session could not be saved. Try again.",
+    "fr": "La connexion a réussi, mais votre session n’a pas pu être enregistrée. Réessayez."
   },
   "OAUTH_ACCOUNT_ALREADY_LINKED": {
     "en": "This {value1} account is already linked to another user.",
@@ -1528,8 +1528,8 @@
     "fr": "État OAuth {value1}"
   },
   "OAUTH_STATE_USER_MISMATCH": {
-    "en": "OAuth state does not belong to the current user",
-    "fr": "L’état OAuth n’appartient pas à l’utilisateur actuel."
+    "en": "This sign-in was started from another account. Start again from the account you want to link.",
+    "fr": "Cette connexion a été lancée depuis un autre compte. Recommencez depuis le compte à relier."
   },
   "CONNECTOR_OAUTH_CANNOT_USE_API_KEY": {
     "en": "Provider {value1} is an OAuth connector and cannot be configured with an API key.",
@@ -1588,8 +1588,8 @@
     "fr": "GitHub a interdit la requête (limite de débit, portée ou politique de l’organisation)."
   },
   "GITHUB_UPSTREAM_HTTP_ERROR": {
-    "en": "GitHub upstream returned HTTP {value1}",
-    "fr": "GitHub a renvoyé le statut HTTP {value1}."
+    "en": "GitHub refused the request (code {value1}). Check that E-Code can access this repository, then try again.",
+    "fr": "GitHub a refusé la demande (code {value1}). Vérifiez qu’E-Code a accès à ce dépôt, puis réessayez."
   },
   "GITHUB_REPOSITORIES_RESPONSE_MALFORMED": {
     "en": "GitHub returned an unexpected repos payload",
@@ -1644,8 +1644,8 @@
     "fr": "{value1} a interdit la requête (limite de débit, portée ou politique)."
   },
   "CONNECTOR_UPSTREAM_HTTP_ERROR": {
-    "en": "{value1} upstream returned HTTP {value2}",
-    "fr": "{value1} a renvoyé le statut HTTP {value2}."
+    "en": "{value1} refused the request (code {value2}). Check the connection, then try again.",
+    "fr": "{value1} a refusé la demande (code {value2}). Vérifiez la connexion, puis réessayez."
   },
   "PROXY_PATH_HOST_FORBIDDEN": {
     "en": "path must stay on the provider host",
@@ -1760,8 +1760,8 @@
     "fr": "La MFA n’est pas activée."
   },
   "ORGANIZATION_NAME_OR_SLUG_TAKEN": {
-    "en": "An organization with this name or slug already exists. Pick a different name.",
-    "fr": "Une organisation portant ce nom ou ce slug existe déjà. Choisissez un autre nom."
+    "en": "This name is already taken. Choose another one.",
+    "fr": "Ce nom est déjà utilisé. Choisissez-en un autre."
   },
   "ORGANIZATION_LAST_OWNER_CANNOT_DEMOTE": {
     "en": "Cannot demote the last organization owner",
@@ -1848,8 +1848,8 @@
     "fr": "Ce projet ne dispose pas encore d’espace de travail. Ouvrez le projet une première fois, puis installez les skills associés à l’espace de travail."
   },
   "SKILL_GITHUB_REPOSITORY_SLUG_INVALID": {
-    "en": "ownerRepo must be a valid \"owner/repo\" GitHub slug",
-    "fr": "ownerRepo doit être un slug GitHub « owner/repo » valide."
+    "en": "Enter the GitHub repository as “owner/repository”.",
+    "fr": "Indiquez le dépôt GitHub sous la forme « propriétaire/dépôt »."
   },
   "SKILL_ALREADY_INSTALLED": {
     "en": "'{value1}' is already installed",
@@ -1880,8 +1880,8 @@
     "fr": "« {value1} » a été refusé par l’audit de sécurité et n’a pas été installé."
   },
   "SKILL_REPOSITORY_SLUG_INVALID": {
-    "en": "ownerRepo must be a valid \"owner/repo\" slug",
-    "fr": "ownerRepo doit être un slug « owner/repo » valide."
+    "en": "Enter the repository as “owner/repository”.",
+    "fr": "Indiquez le dépôt sous la forme « propriétaire/dépôt »."
   },
   "SKILL_NOT_INSTALLED": {
     "en": "'{value1}' is not installed",
@@ -2008,8 +2008,8 @@
     "fr": "L’instantané épinglé n’appartient pas au projet source."
   },
   "GALLERY_SLUG_TAKEN": {
-    "en": "A listing with that slug already exists",
-    "fr": "Une publication utilisant ce slug existe déjà."
+    "en": "This gallery address is already taken. Choose another one.",
+    "fr": "Cette adresse de galerie est déjà utilisée. Choisissez-en une autre."
   },
   "AGENT_MODE_UNAVAILABLE_FOR_PLAN": {
     "en": "The {value1} mode is not available on the {value2} plan.",
@@ -2316,8 +2316,8 @@
     "fr": "Déploiement depuis l’espace de travail : échec de la préparation du bac à sable de compilation isolé (sortie {exitCode})."
   },
   "WORKSPACE_BUILD_DIRECTORY": {
-    "en": "Workspace deploy: building in pod (cwd {path})",
-    "fr": "Déploiement depuis l’espace de travail : compilation dans le pod (cwd {path})"
+    "en": "Deploying from the workspace: building in the project’s workspace ({path})",
+    "fr": "Déploiement depuis l’espace de travail : compilation dans l’espace de travail du projet ({path})"
   },
   "WORKSPACE_BUILD_REACT_GUARD_SKIPPED": {
     "en": "Workspace deploy: React-18 manifest guard skipped ({detail}).",
@@ -2484,8 +2484,8 @@
     "fr": "L’alias ne peut contenir que des lettres, des chiffres, des tirets et des traits de soulignement."
   },
   "MCP_SLUG_FORMAT_INVALID": {
-    "en": "The slug must contain only lowercase letters, numbers, and dashes.",
-    "fr": "Le slug ne peut contenir que des lettres minuscules, des chiffres et des tirets."
+    "en": "The short name can only contain lowercase letters, numbers and hyphens.",
+    "fr": "Le nom court ne peut contenir que des lettres minuscules, des chiffres et des tirets."
   },
   "MCP_PATCH_EMPTY": {
     "en": "Include at least one field to update.",
@@ -2560,16 +2560,16 @@
     "fr": "Le retour arrière n’a pas pu être effectué."
   },
   "APP_IMAGE_BUILD_QUEUED": {
-    "en": "[image] build {buildId} queued (context gs://{bucket}/{object})",
-    "fr": "[image] compilation {buildId} mise en file (contexte gs://{bucket}/{object})"
+    "en": "[image] build {buildId} queued",
+    "fr": "[image] compilation {buildId} mise en file"
   },
   "APP_IMAGE_BUILD_STATUS": {
     "en": "[image] build {buildId}: {status}",
     "fr": "[image] compilation {buildId} : {status}"
   },
   "DEPLOY_STOP_MANAGER_REFUSED": {
-    "en": "workspace-manager refused to stop {deploymentId} (HTTP {status})",
-    "fr": "Le gestionnaire d’espaces de travail a refusé l’arrêt de {deploymentId} (HTTP {status})"
+    "en": "Stopping deployment {deploymentId} was refused (code {status}). Try again in a moment.",
+    "fr": "L’arrêt de la publication {deploymentId} a été refusé (code {status}). Réessayez dans un instant."
   },
   "DEPLOY_INVALID_ID": {
     "en": "Invalid deployment identifier.",

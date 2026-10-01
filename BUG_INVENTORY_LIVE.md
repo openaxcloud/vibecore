@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-381 entrées.
+382 entrées.
 
 ## Sans section
 
@@ -407,6 +407,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0930-TARIFS-INCOHERENTS](docs/bugs/BUG-QA0930-TARIFS-INCOHERENTS.md) — BLOQUANT (paiement) — la page tarifs et le parcours de paiement vendent deux grilles différentes.
 - [BUG-QA0930-INVITATION-MESSAGE-TROMPEUR](docs/bugs/BUG-QA0930-INVITATION-MESSAGE-TROMPEUR.md) — BLOQUANT (inviter un collègue) — le collègue invité qui vient de créer son compte ne rejoint jamais
 - [BUG-QA0930-INVITATION-SANS-PLACE](docs/bugs/BUG-QA0930-INVITATION-SANS-PLACE.md) — BLOQUANT (inviter un collègue) — une équipe au forfait gratuit (ou Pro) envoie des invitations que
+- [BUG-QA1001-JARGON-DANS-LES-MESSAGES](docs/bugs/BUG-QA1001-JARGON-DANS-LES-MESSAGES.md) — Des messages qu'un client peut lire contiennent du vocabulaire de développeur.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

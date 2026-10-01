@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, posix, sep } from 'node:path';
 
+import { appPublicEnglish } from './app-public-copy.js';
 import type { StaticBuildLog, StaticBuildLogLevel } from './deployments.js';
 
 /*
@@ -468,7 +469,8 @@ export async function runWorkspaceStaticBuild(
       }
     }
 
-    log.push('info', `Workspace deploy: building in pod (cwd ${cwd})`);
+    // Par la clé du catalogue, jamais en dur : c'est ce qui permet de le traduire à la lecture du journal.
+    log.push('info', appPublicEnglish('WORKSPACE_BUILD_DIRECTORY', { path: cwd }));
 
     /*
      * 0. React 17/18 manifest guard (see REACT_MANIFEST_REPAIR_SCRIPT). Mirrors the
