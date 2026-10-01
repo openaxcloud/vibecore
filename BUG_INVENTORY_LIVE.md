@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-384 entrées.
+385 entrées.
 
 ## Sans section
 
@@ -413,6 +413,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001](docs/bugs/BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001.md) — NON-DÉFAUT — retiré après mesure.
 - [BUG-DEPLOY-SURVEILLANCE-TIERS-001](docs/bugs/BUG-DEPLOY-SURVEILLANCE-TIERS-001.md) — P2 — rien ne vérifie qu'un service tourne bien sur le dernier commit ayant touché SON code.
 - [BUG-REDIS-CHUTE-AU-BANC-001](docs/bugs/BUG-REDIS-CHUTE-AU-BANC-001.md) — À ÉTABLIR — Redis est tombé pendant un passage de banc en local, sous une charge qui n'était pas décrite comme extraordinaire.
+
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
+
+- [DETTE-CI-ACTION-COMPOSITE-001](docs/bugs/DETTE-CI-ACTION-COMPOSITE-001.md) — Dette assumée — la préparation du job E2E n'est pas factorisée, ce qui empêche de sortir le canari iOS dans son propre job.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
