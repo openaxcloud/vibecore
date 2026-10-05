@@ -409,6 +409,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA0930-INVITATION-SANS-PLACE](docs/bugs/BUG-QA0930-INVITATION-SANS-PLACE.md) — BLOQUANT (inviter un collègue) — une équipe au forfait gratuit (ou Pro) envoie des invitations que
 - [BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE](docs/bugs/BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE.md) — Un client gratuit qui publie un projet pendant qu'un autre de ses projets tient son unique espace actif
 
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
+
+- [CONSTAT-CI-ATTENTE-DU-VERDICT-001](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
+- [DETTE-CI-TRANCHES-DESEQUILIBREES-001](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
+
 ## Résidus non tabulaires — reportés mot pour mot
 
 1 bloc(s) commençaient comme une entrée sans être une ligne de tableau.

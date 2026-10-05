@@ -1,3 +1,5 @@
+import { decoderLane } from '~/lib/runtime/agent-lane-writes';
+
 /**
  * LES MESSAGES DONT LES ACTIONS NE DOIVENT JAMAIS ÊTRE REJOUÉES.
  *
@@ -29,7 +31,22 @@ export class MessagesRecharges {
     }
   }
 
+  /*
+   * LES SOUS-AGENTS HÉRITENT DE LEUR MESSAGE. Leurs actions portent
+   * l'identifiant `<message>::lane:<rôle>`, qui n'est JAMAIS dans ces ensembles :
+   * un message rechargé voyait donc ses actions de coordinateur protégées, et
+   * celles de ses sous-agents rejouées. Mesuré en production le 2026-09-30 : au
+   * rechargement, `package.json` réécrit quatre fois (511, 619, 393, 425 octets),
+   * et la version d'un sous-agent remplaçait celle que le coordinateur avait
+   * intégrée.
+   */
   contient(id: string): boolean {
+    const parent = decoderLane(id)?.messageId;
+
+    return this.#contientExactement(id) || (parent !== undefined && this.#contientExactement(parent));
+  }
+
+  #contientExactement(id: string): boolean {
     return this.#duCache.has(id) || this.#hydrates.has(id);
   }
 
