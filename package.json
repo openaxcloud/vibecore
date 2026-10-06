@@ -372,7 +372,8 @@
       "electron-builder-squirrel-windows": "^26.8.1",
       "vite>esbuild": "0.27.7",
       "bundle-require>esbuild": "0.27.7",
-      "importx>esbuild": "0.27.7"
+      "importx>esbuild": "0.27.7",
+      "proxy-addr": "^2.0.8"
     }
   }
 }
