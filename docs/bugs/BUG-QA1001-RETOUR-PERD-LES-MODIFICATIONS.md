@@ -110,6 +110,20 @@ fermeture)
 ☐ preuve sur le chemin de la production (même banc que la mesure : dix réouvertures, copie SERVEUR lue) à
 refaire avec le correctif
 
+### Seconde mesure, indépendante (2026-10-06, CI, navigateur réel)
+
+`tests/e2e/retour-ne-recule-pas.spec.ts` lancé seul (`workflow_dispatch`, entrée `spec`). En mode spec seul,
+chaque tranche joue tout le spec : quatre exécuteurs indépendants par passage.
+- **SANS correctif** (branche jetable `qa/retour-contre-epreuve` = `main` 682dfb6e8 + le test seul,
+  run 37437263249) : **4 exécuteurs sur 4 en échec, aux 3 tentatives chacun (12/12)**. Un import
+  `replaceExisting` de la copie serveur part à la réouverture ; quand il aboutit, la copie serveur relue
+  vaut `// VERSION-AGENT` au lieu de `// VERSION-UTILISATEUR-ENREGISTREE`.
+- **AVEC correctif** (`e46de90c4e`, run 37437259815) : **4 sur 4 réussis**, au premier essai.
+
+La porte de ces deux passages est rouge pour une autre raison, sans rapport avec le test : en mode spec seul,
+elle juge « vide » une tranche qui n'apporte aucun test NOUVEAU (voir BUG-QA1006-PORTE-E2E-SPEC-SEUL).
+Les verdicts ci-dessus sont lus dans les rapports Playwright des tranches.
+
 ## Preuve
 
 Mesure d'origine : les trois scripts et la sortie des dix réouvertures dans `docs/bugs/qa-2026-10-01/`.
