@@ -4872,7 +4872,9 @@ async function mutateProjectIdeState(
   });
 }
 
-function projectFilesFromPersistedIdeState(state?: PersistedIdeStateLike): Array<{ path: string; content: string }> {
+function projectFilesFromPersistedIdeState(
+  state?: PersistedIdeStateLike,
+): Array<{ path: string; content: string; ecrit?: true }> {
   const persistedManifest = projectFileManifestFromPersistedIdeState(state);
 
   if (persistedManifest.exists) {
@@ -4923,7 +4925,7 @@ function projectFilesFromIdeStateRoot(
 
 function projectFileManifestFromPersistedIdeState(state?: PersistedIdeStateLike): {
   exists: boolean;
-  files: Array<{ path: string; content: string }>;
+  files: Array<{ path: string; content: string; ecrit?: true }>;
 } {
   const root = ideStateObject(state);
   return projectFileManifestFromPersistedInput(root.files);
@@ -4931,7 +4933,7 @@ function projectFileManifestFromPersistedIdeState(state?: PersistedIdeStateLike)
 
 function projectFileManifestFromPersistedInput(input: unknown): {
   exists: boolean;
-  files: Array<{ path: string; content: string }>;
+  files: Array<{ path: string; content: string; ecrit?: true }>;
 } {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
@@ -4946,12 +4948,12 @@ function projectFileManifestFromPersistedInput(input: unknown): {
 
 function projectFilesFromPersistedFileManifest(
   input: unknown,
-): Array<{ path: string; content: string; encoding?: FileEncoding }> {
+): Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 
   const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-  const files: Array<{ path: string; content: string; encoding?: FileEncoding }> = [];
+  const files: Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> = [];
 
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -4972,21 +4974,32 @@ function projectFilesFromPersistedFileManifest(
 
     // Preserve binary encoding if the manifest recorded it (absent = utf8 text).
     const encoding = record.encoding === 'base64' ? 'base64' : undefined;
-    files.push({ path: normalizedPath, content: record.content, ...(encoding ? { encoding } : {}) });
+    files.push({
+      path: normalizedPath,
+      content: record.content,
+      ...(encoding ? { encoding } : {}),
+      ...(record.ecrit === true ? { ecrit: true as const } : {}),
+    });
   }
 
   return files;
 }
 
-function projectFileManifestState(files: Array<{ path: string; content: string; encoding?: FileEncoding }>) {
+function projectFileManifestState(
+  files: Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }>,
+  options: { ecrit?: boolean } = {},
+) {
   return {
     entries: files
       .map((file) => ({
         path: normalizeProjectPath(file.path),
         content: file.content,
         ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+        ...(file.ecrit === true || options.ecrit ? { ecrit: true as const } : {}),
       }))
-      .filter((file): file is { path: string; content: string; encoding?: 'base64' } => Boolean(file.path)),
+      .filter((file): file is { path: string; content: string; encoding?: 'base64'; ecrit?: true } =>
+        Boolean(file.path),
+      ),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -5029,7 +5042,7 @@ async function persistProjectFileManifest(
   projectId: string,
   files: Array<{ path: string; content: string }>,
   updatedByUserId?: string,
-  options: { clearRecoveredChatFiles?: boolean } = {},
+  options: { clearRecoveredChatFiles?: boolean; ecrit?: boolean } = {},
 ) {
   /*
    * Route through the version-guarded mutate loop instead of a bare read +
@@ -5042,7 +5055,7 @@ async function persistProjectFileManifest(
    */
   await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) =>
     mergeProjectIdeState(existing?.state, {
-      files: projectFileManifestState(files),
+      files: projectFileManifestState(files, { ecrit: options.ecrit }),
       ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
     }),
   );
@@ -5065,7 +5078,14 @@ async function persistProjectFileManifest(
  * `/files/import/zip` à la fermeture de l'artefact, et y brancher le manifeste
  * ferait une mutation du blob partagé par FRAGMENT de fichier.
  */
-type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64' };
+/*
+ * `ecrit` — l'entrée a été RÉELLEMENT ÉCRITE (enregistrement, acceptation,
+ * import de fin d'artefact, restauration), par opposition au contenu de départ
+ * (modèle à la création, import initial, duplication) ou récupéré de la
+ * conversation. La conversation peut remplacer le second, jamais le premier
+ * (voir `PUT /projects/:projectId/ide-state`, P0 du 2026-10-06).
+ */
+type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64'; ecrit?: true };
 
 /**
  * BUG-RUNTIME-DIVERGENCE — le seul point de passage des mutations UNITAIRES du
@@ -5193,6 +5213,7 @@ async function persistProjectFileEntry(
       path: chemin,
       content: file.content,
       ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+      ecrit: true,
     };
     const index = entrees.findIndex((e) => normalizeProjectPath(e.path) === chemin);
 
@@ -23493,6 +23514,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const mergedFiles = new Map(projectFilesFromPersistedIdeState(existingState).map((file) => [file.path, file]));
 
       for (const file of generatedFiles) {
+        /*
+         * P0 — LA CONVERSATION NE RÉÉCRIT PAS LE MANIFESTE. Mesuré en production
+         * le 2026-10-06 : l'utilisateur enregistre `src/App.tsx` (son entrée de
+         * manifeste porte sa ligne), puis chaque envoi de l'état — conversation
+         * comprise, toutes les quelques secondes — réextrayait l'écriture
+         * historique de l'agent et la reposait PAR-DESSUS. À la réouverture, le
+         * pod est réensemencé depuis ce manifeste : la modification disparaît ;
+         * après le ramassage (24 h), elle n'existe plus nulle part.
+         *
+         * Les écritures de l'agent atteignent le manifeste par leurs propres
+         * chemins (fermeture d'artefact → `files/import/zip`, acceptation →
+         * `files/write`). La conversation ne remplace donc qu'une entrée qui
+         * n'a jamais été RÉELLEMENT ÉCRITE (`ecrit`) : le modèle de départ, ou un
+         * fichier lui-même récupéré de la conversation — c'est ce qui récupère
+         * un premier tour dont l'artefact ne s'est jamais fermé. Elle comble ce
+         * qui manque. Une écriture réelle n'est jamais remplacée.
+         */
+        if (mergedFiles.get(file.path)?.ecrit) {
+          continue;
+        }
+
         mergedFiles.set(file.path, file);
       }
 
@@ -24474,6 +24516,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
       clearRecoveredChatFiles: body.replaceExisting === true,
+      ecrit: true,
     });
 
     await store.recordProjectActivity({
@@ -28163,6 +28206,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
     await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
       clearRecoveredChatFiles: true,
+      ecrit: true,
     });
 
     /*
