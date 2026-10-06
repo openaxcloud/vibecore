@@ -91,6 +91,19 @@ RUN NODE_OPTIONS=--max-old-space-size=6144 pnpm run build
 FROM build AS prod-deps
 RUN pnpm prune --prod --ignore-scripts
 
+# `pnpm prune --prod` ne suffit PAS dans un espace de travail : `node_modules/.pnpm`
+# est le magasin PARTAGÉ des 36 projets, et élaguer les liens du projet racine n'y
+# ramasse rien. Mesuré le 2026-10-06 en sondant l'image refusée depuis le cluster :
+# 1 554 entrées dans `.pnpm`, **154 atteignables**, 1 400 mortes — dont
+# `@capacitor/android` 8.3.1 (CVE-2026-103922, CRITIQUE), qui vient de `apps/mobile`
+# et n'a aucun lien dans l'image web. La porte de vulnérabilité refusait donc le
+# déploiement sur du code qu'aucune résolution ne peut charger.
+#
+# Une entrée qu'aucun lien ne résout ne peut pas être requise : la supprimer ne
+# change pas ce que le programme charge. Épinglé par
+# `tests/guards/elagage-magasin-pnpm.spec.ts`.
+RUN node scripts/elaguer-magasin-pnpm.mjs /app --supprimer
+
 # ---- production stage ----
 FROM node:22-bookworm-slim AS bolt-ai-production
 WORKDIR /app
