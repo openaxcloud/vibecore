@@ -459,7 +459,19 @@ export default function ProjectDeploymentsPage() {
                 <input type="hidden" name="intent" value="redeploy" />
                 <input type="hidden" name="deploymentId" value={latest?.id ?? ''} />
                 <input type="hidden" name="workspaceId" value={workspaceId} />
-                <DeployActionButton primary type="submit" disabled={busy || !latest}>
+                {/*
+                 * UIB-09 — sans aucune publication, « Republier » n'a rien à republier :
+                 * mesuré le 2026-09-30, il s'affichait quand même en bouton principal
+                 * (seulement grisé) au-dessus de « Pas encore publié ». Masqué sur
+                 * bureau ; sous 1024 px inchangé (mobile gelé).
+                 */}
+                <DeployActionButton
+                  primary
+                  type="submit"
+                  disabled={busy || !latest}
+                  className={latest ? undefined : 'lg:hidden'}
+                  data-testid="deploy-republish"
+                >
                   <Rocket className="h-3.5 w-3.5" aria-hidden /> {copy.actions.republish}
                 </DeployActionButton>
               </Form>
@@ -702,6 +714,7 @@ function DeployPublishCard({
 function DeployActionButton({
   primary,
   children,
+  className,
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { primary?: boolean }) {
   return (
@@ -712,6 +725,7 @@ function DeployActionButton({
         primary
           ? 'font-semibold text-white hover:opacity-90'
           : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
+        className,
       )}
       style={primary ? { background: 'var(--vc-ide-accent-action)' } : undefined}
     >
