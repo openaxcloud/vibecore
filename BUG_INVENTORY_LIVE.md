@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-383 entrées.
+384 entrées.
 
 ## Sans section
 
@@ -412,6 +412,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [CONSTAT-CI-ATTENTE-DU-VERDICT-001](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
 - [DETTE-CI-TRANCHES-DESEQUILIBREES-001](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE](docs/bugs/BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE.md) — BLOQUANT LANCEMENT (droit à l'effacement) — DÉCISION REQUISE — une demande de suppression de compte n'est
 
 ## Résidus non tabulaires — reportés mot pour mot
 

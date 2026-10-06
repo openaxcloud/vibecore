@@ -1,0 +1,30 @@
+import { it, expect } from 'vitest';
+import { writeFileSync } from 'node:fs';
+import { buildApiApp } from '../app.js';
+import { TestApiStore } from './test-api-store.js';
+
+it('repro : 15 jours après une demande de suppression de compte', async () => {
+  const store = new TestApiStore();
+  const app = await buildApiApp({ store });
+  const email = `partant-${Date.now()}@example.com`;
+  const r = await app.inject({ method: 'POST', url: '/auth/register', payload: { email, password: 'password123', name: 'Partant', organizationName: 'Partant' } });
+  const { token, user } = r.json();
+  const h = { authorization: `Bearer ${token}` };
+  const lignes: string[] = [];
+  const demande = await app.inject({ method: 'POST', url: '/account/deletion', headers: h });
+  lignes.push(`demande : ${demande.statusCode} ${JSON.stringify(demande.json())}`);
+  // 15 jours plus tard : on recule la date de la demande, comme le temps l'aurait fait.
+  const u = await store.findUserById(user.id);
+  const il15 = new Date(Date.now() - 15 * 86400000).toISOString();
+  await store.updateUser({ userId: user.id, preferences: { ...(u!.preferences ?? {}), accountDeletion: { requestedAt: il15 } } });
+  const vue = await app.inject({ method: 'GET', url: '/account/deletion', headers: h });
+  lignes.push(`vue à J+15 : ${JSON.stringify(vue.json())}`);
+  const connexion = await app.inject({ method: 'POST', url: '/auth/login', payload: { email, password: 'password123' } });
+  lignes.push(`connexion à J+15 : ${connexion.statusCode}`);
+  const moi = await app.inject({ method: 'GET', url: '/auth/me', headers: { authorization: `Bearer ${connexion.json().token ?? token}` } });
+  lignes.push(`/auth/me à J+15 : ${moi.statusCode} email présent=${JSON.stringify(moi.json()).includes(email)}`);
+  lignes.push(`utilisateur toujours en base : ${Boolean(await store.findUserById(user.id))}`);
+  writeFileSync('/tmp/repro-suppression.txt', lignes.join('\n') + '\n');
+  expect(true).toBe(true);
+  await app.close();
+});
