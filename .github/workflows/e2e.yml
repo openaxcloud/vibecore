@@ -159,8 +159,10 @@ jobs:
             CIBLE="tests/e2e"
           fi
 
-          # Une suite ciblée ne se découpe pas : on la joue entière sur la
-          # tranche 1 et les autres n'ont rien à faire.
+          # Une suite ciblée ne se découpe pas : CHAQUE tranche la joue entière,
+          # soit quatre exécutions indépendantes du même spec. La porte le sait
+          # (E2E_SPEC) : elle attend ce seul fichier, et un échec dans une tranche
+          # n'est jamais effacé par une réussite dans une autre.
           # LE DÉNOMINATEUR EST DÉRIVÉ DE LA MATRICE, PAS RÉÉCRIT.
           #
           # `strategy.job-total` est le nombre de tranches que GitHub a réellement
@@ -355,4 +357,5 @@ jobs:
       - name: E2E gate (bounded waiver)
         env:
           E2E_EXPECTED_REPORTS: '4'
+          E2E_SPEC: ${{ inputs.spec }}
         run: node scripts/e2e-gate.mjs $(find tranches -name 'playwright-results.json' | sort | tr '\n' ' ')
