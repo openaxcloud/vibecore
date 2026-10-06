@@ -17549,6 +17549,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'apply_patch',
       'run_command',
       'restore_snapshot',
+
+      // BUG-QA1006-LECTEUR-CREE-DES-INSTANTANES : un instantané est une écriture (du stockage compté au projet).
+      'create_snapshot',
       'commit_to_git',
       'deploy_project',
     ]);
