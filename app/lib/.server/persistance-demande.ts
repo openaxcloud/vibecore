@@ -26,6 +26,7 @@ export interface DemandeAPersister {
 }
 
 interface MessageEntrant {
+  id?: unknown;
   role?: string;
   content?: unknown;
 }
@@ -110,5 +111,32 @@ export function demandeAPersister(input: {
     return null;
   }
 
-  return { conversationId, clientId: identifiantDeDemande(input.clientMessageId, content), content };
+  /*
+   * LE NAVIGATEUR N'ENVOIE JAMAIS `clientMessageId` — vérifié : aucune
+   * occurrence côté client. Chaque demande retombait donc sur l'empreinte du
+   * contenu, différente de l'identifiant sous lequel le navigateur écrit le
+   * même message : DEUX lignes par question. Mesuré en production le
+   * 2026-09-30 (16:45:44 et 16:45:45, même texte, deux identifiants) — une
+   * question affichée deux fois dès que le fil est relu depuis le serveur.
+   * Or chaque message envoyé porte déjà son identifiant (`sendExtraMessageFields`).
+   */
+  const clientId = identifiantDeDemande(input.clientMessageId ?? idDeLaDerniereDemande(input.messages), content);
+
+  return { conversationId, clientId, content };
+}
+
+function idDeLaDerniereDemande(messages: MessageEntrant[] | undefined): string | undefined {
+  if (!Array.isArray(messages)) {
+    return undefined;
+  }
+
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    if (messages[i]?.role === 'user') {
+      const id = messages[i]?.id;
+
+      return typeof id === 'string' ? id : undefined;
+    }
+  }
+
+  return undefined;
 }

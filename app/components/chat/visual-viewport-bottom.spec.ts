@@ -10,6 +10,7 @@ import {
   champSaisissable,
   suivreHauteurDeRepos,
   memoriserHauteurDeRepos,
+  retenirHauteurDeRepos,
   oublierHauteurDeRepos,
   SEUIL_CLAVIER_PX,
 } from './visual-viewport-bottom';
@@ -153,6 +154,49 @@ describe('Safari iOS 26 — la fenêtre de mise en page rétrécit AVEC le clavi
 });
 
 describe('la hauteur au repos survit à un rejeu de la mesure, clavier levé (CI, 01/10)', () => {
+  it('garde la référence lors du remplacement de la coquille par le chat', async () => {
+    oublierHauteurDeRepos();
+
+    const quitterCoquille = retenirHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 699);
+    quitterCoquille();
+
+    const quitterChat = retenirHauteurDeRepos();
+    await Promise.resolve();
+    expect(memoriserHauteurDeRepos(390, 362).hauteur).toBe(699);
+    quitterChat();
+    await Promise.resolve();
+  });
+
+  it('oublie la hauteur après une navigation, puis mesure la nouvelle fenêtre au repos', async () => {
+    oublierHauteurDeRepos();
+
+    const quitter = retenirHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 844);
+    quitter();
+    await Promise.resolve();
+
+    const revenir = retenirHauteurDeRepos();
+    const repos = memoriserHauteurDeRepos(390, 600);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, { height: 600, offsetTop: 0 }))).toBe(false);
+    revenir();
+    await Promise.resolve();
+  });
+
+  it('une libération répétée ne détruit pas la référence d’une autre mesure', async () => {
+    oublierHauteurDeRepos();
+
+    const premiere = retenirHauteurDeRepos();
+    const seconde = retenirHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 844);
+    premiere();
+    premiere();
+    await Promise.resolve();
+    expect(memoriserHauteurDeRepos(390, 362).hauteur).toBe(844);
+    seconde();
+    await Promise.resolve();
+  });
+
   /*
    * Premier essai à froid de `clavier-ios-hauteur-de-repos` : les règles « clavier
    * levé » cessaient de s'appliquer. Un effet rejoué (ou BaseChat remonté) pendant

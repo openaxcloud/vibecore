@@ -161,6 +161,30 @@ export function revelerLeChampActif(doc: Document): boolean {
  */
 let reposDeLaPage: HauteurDeRepos | undefined;
 
+const mesuresActives = new Set<symbol>();
+
+/**
+ * Conserver la référence pendant un remontage React dans le même passage,
+ * puis l'oublier quand on quitte réellement l'IDE. Sans cette limite, revenir
+ * dans une fenêtre raccourcie ferait cacher le socle sans clavier ouvert.
+ */
+export function retenirHauteurDeRepos(): () => void {
+  const mesure = Symbol();
+  mesuresActives.add(mesure);
+
+  return () => {
+    if (!mesuresActives.delete(mesure)) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      if (mesuresActives.size === 0) {
+        reposDeLaPage = undefined;
+      }
+    });
+  };
+}
+
 export function memoriserHauteurDeRepos(largeur: number, hauteurMiseEnPage: number): HauteurDeRepos {
   reposDeLaPage = suivreHauteurDeRepos(reposDeLaPage, largeur, hauteurMiseEnPage);
 
