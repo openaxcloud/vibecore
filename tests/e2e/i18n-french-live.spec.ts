@@ -48,6 +48,27 @@ function isIdeShellPath(path: string): boolean {
 }
 
 /**
+ * La coque IDE se reconnaît à l'adresse où la page ARRIVE, pas à celle qu'on a
+ * demandée. Depuis #558 (22/09), `/projects/:id/preview` redirige vers
+ * `/projects/:id/ide?panel=preview` : la page auditée EST l'IDE, qui n'a pas de
+ * bascule de langue (décision du 19/08, plus haut). Jugée sur l'adresse demandée,
+ * elle exigeait une bascule absente par conception — l'audit était rouge à toutes
+ * les largeurs depuis cette date, et ce rouge masquait les vrais défauts de la
+ * page. Les autres pages gardent l'exigence entière.
+ */
+function estCoqueIde(page: Page, path: string): boolean {
+  if (isIdeShellPath(path)) {
+    return true;
+  }
+
+  try {
+    return isIdeShellPath(new URL(page.url()).pathname);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * BUG-CI-010 — sous 768 px, la coque applicative REPLIE la bascule de langue
  * dans le menu (bouton « Menu »). Mesuré en réel sur la production, page
  * `/invitations/accept` : l'élément est présent dans le DOM aux TROIS largeurs,
@@ -69,7 +90,7 @@ function isIdeShellPath(path: string): boolean {
 const LARGEUR_REPLI_BASCULE = 768;
 
 function basculeRepliee(page: Page, path: string): boolean {
-  if (isIdeShellPath(path)) {
+  if (estCoqueIde(page, path)) {
     return false;
   }
 
@@ -311,7 +332,7 @@ async function waitForApplicationReady(page: Page, path: string, language: 'en' 
 
   await expect.soft(bootSplash, `${path} ${language} boot splash dismissed`).toHaveCount(0, { timeout: 15_000 });
 
-  if (isIdeShellPath(path)) {
+  if (estCoqueIde(page, path)) {
     // La coque IDE n'a plus de bascule : attendre qu'elle apparaisse ne finirait jamais.
     return;
   }
@@ -574,7 +595,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   expect.soft(layout.bodyTextLength, `${path} (${theme}) non-blank visible text`).toBeGreaterThan(0);
   expect.soft(french.length, `${path} (${theme}) semantic entries scanned`).toBeGreaterThan(0);
 
-  if (isIdeShellPath(path)) {
+  if (estCoqueIde(page, path)) {
     expect
       .soft(languageSwitchCount, `${path} (${theme}) la coque IDE ne remonte PAS de bascule de langue globale`)
       .toBe(0);

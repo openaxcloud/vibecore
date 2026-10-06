@@ -3,6 +3,7 @@ import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { commitAuthorLabel } from './commit-author';
 import {
   computeWorkspaceFilesSignature,
   shouldAdvanceLastFetched,
@@ -1892,7 +1893,9 @@ export function GitTab({ projectId }: GitTabProps) {
                           <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
                           <div className="truncate text-xs text-bolt-elements-textSecondary">
                             {timeAgo(commit.date, activeLanguage, t)} {commit.refs ? `- ${commit.refs}` : ''}
-                            {commit.author ? ` - ${commit.author}` : ''}
+                            {commit.author
+                              ? ` - ${commitAuthorLabel(commit.author, t('idePanels.git.authorYou'))}`
+                              : ''}
                           </div>
                         </div>
                       </button>
