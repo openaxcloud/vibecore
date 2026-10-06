@@ -89,6 +89,13 @@ fichiers interrompus viennent d'être écrits. Un artefact neuf est toujours enr
 
 Non-régression : `app/lib/stores`, `app/lib/runtime`, `app/components/workbench` = 143 fichiers sur 143.
 
+**Second chemin, même perte, corrigé dans la même branche** : BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE — le
+serveur rematérialisait tout le fil à chaque `PUT /ide-state`, même un `PUT` d'interface seule, dans le manifeste
+que lisent l'export, git, la publication et le réensemencement. Fermer le seul chemin navigateur aurait laissé la
+perte se produire au réensemencement.
+
+De bout en bout : `tests/e2e/retour-ne-recule-pas.spec.ts` (navigateur neuf, copie SERVEUR relue après 20 s).
+
 ## 📤
 
 ☑ pris par la session balayage le 2026-10-06 (personne ne le portait ; #600 traite le rejeu des ACTIONS, pas la
@@ -106,4 +113,6 @@ refaire avec le correctif
 ## Preuve
 
 Mesure d'origine : les trois scripts et la sortie des dix réouvertures dans `docs/bugs/qa-2026-10-01/`.
-Garde : épinglé par `app/lib/stores/workbench.retour-ne-recule-pas.spec.ts`. Preuve live : à venir.
+Gardes : épinglé par `app/lib/stores/workbench.retour-ne-recule-pas.spec.ts`,
+`services/api/src/tests/ide-state-materialise-une-fois.spec.ts` et `tests/e2e/retour-ne-recule-pas.spec.ts`.
+Preuve live : à venir.
