@@ -53,12 +53,7 @@ describe('runtime E-Code branding', () => {
     expect(codeowners).toContain('# Code Owners for E-Code');
     expect(codeowners.match(/@openaxcloud/g)?.length).toBeGreaterThanOrEqual(10);
 
-    const brandedSurfaces = [
-      bugReport,
-      issueConfig,
-      changelog,
-      codeowners,
-    ].join('\n');
+    const brandedSurfaces = [bugReport, issueConfig, changelog, codeowners].join('\n');
     expect(brandedSurfaces).not.toMatch(/bolt\.diy|stackblitz-labs\/bolt|thinktank\.ottomator\.ai|@stackblitz-labs/i);
   });
 
