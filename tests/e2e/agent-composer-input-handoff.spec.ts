@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS } from '~/lib/persistence/projectIdeMemory';
 
 /**
  * La frappe faite pendant le chargement de l'historique ne doit pas disparaître.
@@ -137,20 +138,41 @@ test('le mode choisi pendant le chargement survit à la bascule — mobile 390',
     .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
   await page.setViewportSize({ width: 390, height: 844 });
 
-  // La bascule n'a lieu qu'une fois le choix fait : la mémoire du projet est retenue jusque-là.
-  let relacher: () => void = () => undefined;
+  /*
+   * La bascule n'a lieu qu'une fois le choix fait : la mémoire du projet est
+   * retenue DANS la page jusque-là. Retenue au réseau, elle se levait toute seule :
+   * le client abandonne `ide-state` au bout de PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS
+   * et bascule (mesuré en CI le 05/10 sur le test voisin du clavier). Ici la
+   * promesse ignore le signal d'abandon : seul `relacher` la libère.
+   */
+  await page.addInitScript(() => {
+    const fenetre = window as unknown as { __vcRelacher: () => void };
+    const vrai = window.fetch.bind(window);
 
-  const choixFait = new Promise<void>((resolve) => {
-    relacher = resolve;
+    let liberer: () => void = () => undefined;
+
+    const retenue = new Promise<void>((resolve) => {
+      liberer = resolve;
+    });
+
+    fenetre.__vcRelacher = () => liberer();
+
+    window.fetch = (entree: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof entree === 'string' ? entree : entree instanceof URL ? entree.href : entree.url;
+      const methode = (init?.method ?? (entree instanceof Request ? entree.method : 'GET')).toUpperCase();
+
+      if (!url.includes('/ide-state') || methode !== 'GET') {
+        return vrai(entree, init);
+      }
+
+      const sansSignal: RequestInit = { ...init };
+      delete sansSignal.signal;
+
+      return retenue.then(() => vrai(entree, sansSignal));
+    };
   });
 
-  await page.route('**/api/projects/*/ide-state', async (route) => {
-    if (route.request().method() === 'GET') {
-      await choixFait;
-    }
-
-    await route.continue();
-  });
+  const relacher = () => page.evaluate(() => (window as unknown as { __vcRelacher: () => void }).__vcRelacher());
 
   const envoyes: Array<{ chatMode?: string }> = [];
 
@@ -165,14 +187,21 @@ test('le mode choisi pendant le chargement survit à la bascule — mobile 390',
   await expect(declencheur).toBeVisible({ timeout: 60_000 });
   await expect(declencheur, 'mode par défaut').toContainText('Agent');
 
-  // Témoin : ce nœud précis doit disparaître, sinon la bascule n'a pas eu lieu et le test ne prouve rien.
-  await declencheur.evaluate((element) => element.setAttribute('data-temoin-coquille', 'oui'));
+  /*
+   * Au-delà du délai d'abandon du client : la retenue doit tenir, et la coquille de
+   * la ROUTE (remplacée dès que le code de `Chat` est chargé, sans rapport avec
+   * `ide-state`) est alors passée — le choix se fait dans la coquille de `Chat`.
+   */
+  await page.waitForTimeout(PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS + 1_000);
 
   await declencheur.click();
   await page.locator('.bolt-chatbox-mode-menu button').filter({ hasText: 'Assistant' }).first().click();
   await expect(declencheur, 'le choix est pris dans la coquille').toContainText('Assistant');
 
-  relacher();
+  // Témoin posé APRÈS le choix : ce nœud précis doit disparaître, sinon la bascule n'a pas eu lieu.
+  await declencheur.evaluate((element) => element.setAttribute('data-temoin-coquille', 'oui'));
+
+  await relacher();
 
   await expect(
     page.locator('[data-temoin-coquille="oui"]'),
