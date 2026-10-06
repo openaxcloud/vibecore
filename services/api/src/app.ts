@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, createVerify, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -320,6 +320,7 @@ import { githubConnector, resolveGithubCredentials } from './integrations/provid
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
 import { connectorPublicErrorMessage } from './integrations/providers/public-error-copy.js';
+import { defaultOrganizationName } from './default-organization-name.js';
 import { supabaseConnector } from './integrations/providers/supabase.js';
 import {
   ConnectorProviderError,
@@ -574,6 +575,8 @@ export type WorkspacePodBuildRefusal =
   | 'NO_USER_CONTEXT'
   | 'NO_WEBSOCKET_RUNTIME'
   | 'WORKSPACE_UNREACHABLE'
+  // Le démarrage de l'espace est REFUSÉ pour quota (#628) : réessayer ne changera rien.
+  | 'WORKSPACE_QUOTA'
   | 'AGENT_TOKEN_UNAVAILABLE'
   | 'BUILD_INVOCATION_THREW';
 
@@ -757,6 +760,24 @@ const contactSalesSchema = z
 const newsletterSubscribeSchema = z.object({
   email: z.string().email().max(320),
   source: z.string().max(64).optional(),
+});
+
+/*
+ * RELAIS DE L'IDÉE ENTRE LES DEUX DOMAINES (BUG-QA0928-IDEE-PERDUE-INSCRIPTION).
+ * L'idée reste ici ; seul un identifiant opaque traverse `e-code.ai` →
+ * `app.e-code.ai`, dans un cookie de domaine posé par le serveur web.
+ */
+const IDEA_RELAY_TTL_SECONDS = 60 * 60;
+
+const ideaRelayCreateSchema = z.object({
+  idea: z.string().trim().min(1).max(20_000),
+  mode: z.enum(['design-first', 'full-app', 'continue-planning']).optional(),
+  model: z.string().trim().min(1).max(200).optional(),
+  provider: z.string().trim().min(1).max(100).optional(),
+});
+
+const ideaRelayConsumeSchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]{32}$/),
 });
 
 const ADMIN_USERS_PAGE_SIZE = 50;
@@ -2547,6 +2568,43 @@ async function consumeRuntimeTicketId(jti: string, expiresAt: number): Promise<b
     return result === 'OK';
   } catch {
     return false;
+  }
+}
+
+const ideaRelaysLocally = new Map<string, { value: string; expiresAt: number }>();
+
+/** Range un relais d'idée. Lève si Redis est configuré mais en panne : le relais n'est pas pris. */
+async function storeIdeaRelay(id: string, value: string): Promise<void> {
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    ideaRelaysLocally.set(id, { value, expiresAt: Date.now() + IDEA_RELAY_TTL_SECONDS * 1000 });
+    setTimeout(() => ideaRelaysLocally.delete(id), IDEA_RELAY_TTL_SECONDS * 1000).unref?.();
+
+    return;
+  }
+
+  await redis.set(`idea-relay:${id}`, value, 'EX', IDEA_RELAY_TTL_SECONDS);
+}
+
+/**
+ * Rend le relais UNE SEULE FOIS : `GETDEL` est atomique, deux lectures
+ * concurrentes ne peuvent pas l'obtenir toutes les deux.
+ */
+async function takeIdeaRelay(id: string): Promise<string | null> {
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    const entry = ideaRelaysLocally.get(id);
+    ideaRelaysLocally.delete(id);
+
+    return entry && entry.expiresAt > Date.now() ? entry.value : null;
+  }
+
+  try {
+    return await redis.getdel(`idea-relay:${id}`);
+  } catch {
+    return null;
   }
 }
 
@@ -10671,6 +10729,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
+  /*
+   * RELAIS DE L'IDÉE TAPÉE SUR L'ACCUEIL (BUG-QA0928-IDEE-PERDUE-INSCRIPTION).
+   *
+   * Mesuré le 2026-09-30 en production : un visiteur arrivé sur `e-code.ai`
+   * perdait son idée au 301 de `/login` vers `app.e-code.ai`, une autre origine
+   * dont le `sessionStorage` est vide. L'idée est donc gardée ICI une heure,
+   * sous un identifiant aléatoire ; seul cet identifiant traverse, dans un
+   * cookie de domaine — jamais l'idée elle-même, ni dans une adresse ni dans un
+   * cookie.
+   *
+   * Dépôt anonyme (le visiteur n'a pas encore de compte), limité en débit.
+   * Retrait réservé à un utilisateur connecté, et une seule fois.
+   */
+  app.post(
+    '/idea-relays',
+    { config: { rateLimit: { max: Number(process.env.IDEA_RELAY_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(ideaRelayCreateSchema, request.body);
+      const id = randomBytes(24).toString('base64url');
+
+      await storeIdeaRelay(id, JSON.stringify(body));
+
+      return reply.code(201).send({ id, expiresInSeconds: IDEA_RELAY_TTL_SECONDS });
+    },
+  );
+
+  app.post('/idea-relays/consume', async (request) => {
+    if (!request.currentUser) {
+      throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), { statusCode: 401, code: 'AUTH_REQUIRED' });
+    }
+
+    const { id } = parse(ideaRelayConsumeSchema, request.body);
+    const value = await takeIdeaRelay(id);
+
+    if (!value) {
+      throw Object.assign(new Error(appPublicEnglish('IDEA_RELAY_NOT_FOUND')), { statusCode: 404, code: 'IDEA_RELAY_NOT_FOUND' });
+    }
+
+    return JSON.parse(value) as z.infer<typeof ideaRelayCreateSchema>;
+  });
+
   app.post(
     '/auth/register',
     {
@@ -10714,11 +10813,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         email: user.email,
       });
 
-      const organization = await store.createOrganization({
-        name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
-        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
-        ownerUserId: user.id,
-      });
+      const organizationName = body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale);
+      const baseSlug = body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`;
+
+      /*
+       * UIB-10 — Organization.slug est @unique. Mesuré le 2026-10-01 : un second
+       * client qui choisissait un nom d'organisation déjà pris (« Acme ») recevait
+       * une erreur 500 — APRÈS la création de son compte, qui restait sans
+       * organisation ; en réessayant, « adresse déjà utilisée ». À l'inscription,
+       * le nom n'est qu'un libellé : on garde le nom choisi et on rend le slug
+       * unique avec un suffixe tiré de l'utilisateur (même forme que l'import).
+       */
+      let organization;
+
+      try {
+        organization = await store.createOrganization({ name: organizationName, slug: baseSlug, ownerUserId: user.id });
+      } catch (error) {
+        if ((error as { code?: string } | null)?.code !== 'P2002') {
+          throw error;
+        }
+
+        organization = await store.createOrganization({
+          name: organizationName,
+          slug: `${baseSlug}-${user.id.slice(-6)}`,
+          ownerUserId: user.id,
+        });
+      }
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
@@ -11232,7 +11352,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             organizationId = existingOrgs[0].id;
           } else {
             const org = await store.createOrganization({
-              name: `${profile.name ?? profile.email}'s Organization`,
+              name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
               slug: `org-${user.id.slice(-8)}`,
               ownerUserId: user.id,
             });
@@ -11421,7 +11541,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           oidcOrgId = oidcUserOrgs[0].id;
         } else {
           const org = await store.createOrganization({
-            name: `${profile.name ?? profile.email}'s Organization`,
+            name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
             slug: `org-${user.id.slice(-8)}`,
             ownerUserId: user.id,
           });
@@ -11708,6 +11828,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
       request.url.startsWith('/newsletter/subscribe') ||
+      // Dépôt anonyme du relais d'idée — égalité STRICTE : `/idea-relays/consume` reste authentifié.
+      (request.method === 'POST' && request.url.split('?')[0] === '/idea-relays') ||
       request.url.startsWith('/billing/stripe/webhook') ||
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
@@ -15295,6 +15417,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * observe the pod arriving. Reopening with the same deterministic id returns
    * the existing pod, so this is safe to call even while a start is in flight.
    */
+  /*
+   * RÉSERVER UN CRÉNEAU `workspaces.active` AVANT DE DÉMARRER.
+   *
+   * Un espace déjà compté (PENDING/STARTING/RUNNING) ne consomme rien : on le
+   * redémarre librement, c'est le cas du pod ramassé dont la ligne est restée
+   * RUNNING. Sinon, sous verrou par organisation : libérer les créneaux fantômes,
+   * vérifier le quota, puis marquer l'espace STARTING — c'est cette écriture,
+   * DANS le verrou, qui empêche deux démarrages concurrents de passer le même
+   * décompte.
+   *
+   * Partagé par le redémarrage explicite et par le démarrage À LA DEMANDE
+   * (BUG-QA0928-PROVISION-SANS-QUOTA : ce dernier n'avait aucun contrôle, et une
+   * simple lecture sur l'onglet d'un autre projet donnait un second espace actif
+   * à un compte gratuit).
+   */
+  const reserverUnCreneauActif = async (request: any, organizationId: string | undefined, workspaceId: string) => {
+    const existant = await store.getWorkspace(workspaceId);
+    const dejaCompte = !!existant && ['PENDING', 'STARTING', 'RUNNING'].includes(existant.status as string);
+
+    if (!organizationId || dejaCompte) {
+      return false;
+    }
+
+    await store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
+      await ensureQuota(request, organizationId, 'workspaces.active');
+      await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
+    });
+
+    // Vrai quand un créneau vient d'être pris : l'appelant le rend (FAILED) si le démarrage échoue pour de bon.
+    return true;
+  };
+
   const provisionWorkspaceOnDemand = async (
     request: any,
     authorized: { workspaceId: string; projectId: string; organizationId?: string },
@@ -15307,6 +15462,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
+
+    const organisation =
+      authorized.organizationId ?? (await store.getProject(authorized.projectId))?.organizationId ?? undefined;
+
+    await reserverUnCreneauActif(request, organisation, authorized.workspaceId);
 
     /*
      * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
@@ -15439,6 +15599,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       await demarrageDemande;
     })().catch((error) => {
+      /*
+       * REFUS POUR QUOTA (BUG-QA0928-PROVISION-SANS-QUOTA) : ce n'est pas une
+       * panne, c'est la règle du forfait. On le journalise sans le compter comme
+       * échec, et on GARDE la fenêtre : la réarmer referait le contrôle — et son
+       * audit `quota.exceeded` — à chacune des dizaines de lectures d'une
+       * ouverture d'IDE.
+       */
+      if (error?.code === 'QUOTA_EXCEEDED') {
+        journal?.warn(
+          { workspaceId, event: 'workspace.read_triggered_start_refused_quota', quotaKey: error.quotaKey },
+          'demarrage declenche par une lecture refuse : quota atteint',
+        );
+
+        return;
+      }
+
       /*
        * JAMAIS AVALÉ (BUG-RUNTIME-SILENCE-002). Ajouter un déclenchement dont
        * l'échec disparaît dans un `catch` vide remplacerait un blocage
@@ -15609,7 +15785,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await ensureWorkspaceReachable(request, authorized);
     } catch (error) {
-      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
+      /*
+       * BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE — un refus pour quota n'est pas un
+       * espace « qui démarre » : le client lisait « réessayez » et réessayait sans
+       * fin, alors que seule la limite de son forfait bloquait.
+       */
+      const refusPourQuota = (error as { code?: unknown })?.code === 'QUOTA_EXCEEDED';
+
+      return {
+        handled: false,
+        refusal: refusPourQuota ? 'WORKSPACE_QUOTA' : 'WORKSPACE_UNREACHABLE',
+        detail: refusalDetail(error),
+      };
     }
 
     let token: string;
@@ -17578,7 +17765,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * workspace to STOPPED: that would mislabel a running pod and let the
            * org under-count its active quota / exceed its concurrent limit.
            */
-          shouldStop = isRuntimeWorkspaceGone(error);
+          /*
+           * BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE — surtout pas
+           * `isRuntimeWorkspaceGone`, qui compte aussi le manager INJOIGNABLE comme
+           * « disparu » : c'est juste pour un arrêt idempotent, faux ici. Mesuré le
+           * 2026-09-28 : manager coupé → la seule ligne vivante passait STOPPED et
+           * le quota était contourné. Seul un 404 du manager dit « disparu ».
+           */
+          shouldStop = (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
         }
 
         if (shouldStop) {
@@ -17921,33 +18115,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Serialize the check to avoid TOCTOU; the slow manager restart stays outside
      * the lock. A restart of an already-active workspace consumes nothing.
      */
-    const existingForRestart = await store.getWorkspace(authorized.workspaceId);
-
-    const restartCountsAsActive =
-      !!existingForRestart && ['PENDING', 'STARTING', 'RUNNING'].includes(existingForRestart.status as string);
-
-    const restartOrgId = authorized.organizationId;
-
-    if (restartOrgId && !restartCountsAsActive) {
-      await store.withSerializedMutation(`workspaces:${restartOrgId}`, async () => {
-        /*
-         * Free any phantom (GC'd-but-RUNNING) slot before counting, identical to
-         * the start handler — otherwise a stale RUNNING row 429s a legitimate
-         * restart of another workspace for a quota-limited org.
-         */
-        await reconcileOrphanedActiveWorkspaces(restartOrgId, authorized.workspaceId);
-        await ensureQuota(request, restartOrgId, 'workspaces.active');
-
-        /*
-         * Claim the active slot INSIDE the lock by flipping the record to a
-         * counted state (STARTING). Without a state write here the lock is inert:
-         * concurrent restarts each pass the same count and all bypass the limit
-         * (countActiveWorkspaces counts PENDING/STARTING/RUNNING). The manager
-         * restart below reconciles to RUNNING/FAILED; the catch resets on error.
-         */
-        await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' });
-      });
-    }
+    const creneauReserve = await reserverUnCreneauActif(request, authorized.organizationId, authorized.workspaceId);
 
     /*
      * Resolve the org's plan + resource entitlements exactly like the start
@@ -18034,7 +18202,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * (flipped to STARTING), reset to FAILED so the slot isn't leaked (a stuck
        * STARTING would count against workspaces.active forever), then rethrow.
        */
-      if (restartOrgId && !restartCountsAsActive) {
+      if (creneauReserve) {
         await store
           .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
           .catch(() => undefined);
@@ -20615,7 +20783,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = request.currentUser!;
 
       const org = await store.createOrganization({
-        name: `${user.name ?? user.email}'s Organization`,
+        name: defaultOrganizationName(user.name ?? user.email, transactionalLocaleForRequest(request)),
         slug: `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
@@ -20981,15 +21149,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
       }
 
+      /*
+       * BUG-QA0930-INVITATION-SANS-PLACE — l'acceptation consomme une place
+       * (ensureQuota team.members) ; la création ne la consultait pas. Une équipe
+       * gratuite (1 place, prise par le propriétaire) envoyait donc des invitations
+       * que personne ne pourrait jamais accepter : le collègue s'inscrivait,
+       * vérifiait son adresse, puis butait sur un 429. On refuse ici, au moment où
+       * le propriétaire peut encore agir, en comptant aussi les places déjà promises
+       * aux invitations en attente.
+       */
+      const pendingSeats = pendingInvites.filter(
+        (invite) => !invite.acceptedAt && new Date(invite.expiresAt).getTime() > nowMs,
+      ).length;
       const token = createOpaqueToken('invite');
 
-      const invitation = await store.createOrganizationInvite({
-        organizationId: orgId,
-        email: body.email,
-        roleKey,
-        token,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
-      });
+      let invitation: Awaited<ReturnType<typeof store.createOrganizationInvite>>;
+
+      try {
+        invitation = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+          await ensureQuota(request, orgId, 'team.members', pendingSeats + 1);
+
+          return store.createOrganizationInvite({
+            organizationId: orgId,
+            email: body.email,
+            roleKey,
+            token,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+          });
+        });
+      } catch (error: any) {
+        if (error?.code === 'QUOTA_EXCEEDED') {
+          return reply.code(429).send({
+            error: appPublicCopy('TEAM_SEAT_LIMIT', transactionalLocaleForRequest(request)),
+            code: 'QUOTA_EXCEEDED',
+            quotaKey: 'team.members',
+          });
+        }
+
+        throw error;
+      }
       const invitedUser = await store.findUserByEmail(body.email);
       const invitationContent = invitationEmailContent({
         baseUrl: appPublicBaseUrl(),
@@ -21153,16 +21351,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * The email match alone is not enough: account email is user-mutable, so an
-     * attacker could set their address to the invite's target and join. Require
-     * the accepter's email to be VERIFIED so the binding is to a proven owner of
-     * that address.
+     * L'INVITATION VAUT VÉRIFICATION DE L'ADRESSE (décision d'Avi du 2026-10-01).
+     *
+     * L'adresse d'un compte se modifie : la correspondance seule ne prouve rien —
+     * d'où l'ancienne exigence d'une adresse déjà vérifiée. Mais le JETON, lui,
+     * n'a été envoyé qu'à cette boîte : le présenter prouve qu'on la lit. On
+     * vérifie donc l'adresse ICI, aux trois conditions posées par Avi :
+     *   1. invitation envoyée à CETTE adresse exacte (contrôle juste au-dessus) ;
+     *   2. lien à USAGE UNIQUE, et 3. LIMITÉ DANS LE TEMPS : la vérification n'est
+     *      écrite qu'APRÈS la consommation atomique du jeton (`acceptedAt` nul et
+     *      `expiresAt` à venir, dans la même écriture) — un lien rejoué ou expiré
+     *      ne vérifie rien.
+     * Tenu par invitation-vaut-verification.spec.ts (un cas par condition).
      */
-    if (!request.currentUser!.emailVerifiedAt) {
-      return reply
-        .code(403)
-        .send({ error: appPublicEnglish('INVITATION_EMAIL_VERIFICATION_REQUIRED'), code: 'EMAIL_NOT_VERIFIED' });
-    }
+    const adresseAVerifier = !request.currentUser!.emailVerifiedAt;
 
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
 
@@ -21182,6 +21384,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(400)
         .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
+    }
+
+    if (adresseAVerifier) {
+      await store.updateUser({ userId: request.currentUser!.id, emailVerifiedAt: new Date().toISOString() });
+      await audit(request, store, {
+        organizationId: invitation.organizationId,
+        action: 'auth.email.verify',
+        resourceType: 'user',
+        resourceId: request.currentUser!.id,
+        metadata: { via: 'invitation', inviteId: invitation.id },
+      });
     }
 
     if (!existingMembership) {
@@ -36265,8 +36478,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
            * dans le journal du déploiement, où il est réellement consultable.
            */
-          const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
           const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+
+          // Un refus pour quota se dit comme tel : « réessayez » enverrait le client tourner en rond.
+          const message = appPublicEnglish(refus === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
           const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
           const ligne = `${message} [${refus}]${detail}`;
 

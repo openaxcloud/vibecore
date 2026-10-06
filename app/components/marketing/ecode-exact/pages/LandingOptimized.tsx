@@ -48,8 +48,9 @@ import {
   type LandingExampleId,
 } from '~/lib/i18n/catalogs/marketing-exact-landing-forum';
 import { scrollToElement, scrollWindowBy } from '~/lib/scroll-to';
-import { daterLeRelais } from '~/utils/idee-relayee';
+import { daterLeRelais, oublierLeRelais } from '~/utils/idee-relayee';
 import { stashModelHandoff } from '~/utils/model-handoff';
+import { origineDeLApplication } from '~/utils/origine-application';
 import { PROMPT_MAX_CHARS } from '~/utils/prompt-validation';
 
 /*
@@ -222,6 +223,39 @@ export default function LandingOptimized() {
       title: handoffStored ? copy.toast.setupTitle : copy.toast.storageWarningTitle,
       description: handoffStored ? setupDescription : copy.toast.storageWarningDescription,
     });
+
+    /*
+     * BUG-QA0928-IDEE-PERDUE-INSCRIPTION, seconde moitié — sur la vitrine
+     * (`e-code.ai`), la connexion et l'inscription vivent sur une AUTRE origine
+     * (`app.e-code.ai`) où ce `sessionStorage` ne suit pas : mesuré en
+     * production le 2026-09-30, l'idée y arrivait vide. Elle part donc au
+     * serveur, qui ne rend au navigateur qu'un jeton opaque (cookie de domaine),
+     * puis le visiteur va directement sur l'application. Jamais l'idée dans une
+     * adresse. Sur l'application elle-même, rien ne change.
+     */
+    const origineApplication = origineDeLApplication(window.location.host, window.location.protocol);
+
+    if (origineApplication) {
+      try {
+        await fetch('/api/relais-idee', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ idea: prompt, mode }),
+        });
+      } catch {
+        // Le visiteur continue quand même : l'inscription ne doit jamais dépendre du relais.
+      }
+
+      try {
+        oublierLeRelais(sessionStorage);
+      } catch {
+        // sessionStorage indisponible : rien à nettoyer.
+      }
+
+      window.location.assign(`${origineApplication}/projects/new`);
+
+      return;
+    }
 
     navigate('/projects/new');
   };

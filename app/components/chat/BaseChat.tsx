@@ -87,6 +87,9 @@ import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './comp
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { AvisEcrituresEnAttente } from '~/components/chat/AvisEcrituresEnAttente';
+import { getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
+import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attente';
 import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
@@ -103,6 +106,7 @@ import {
   useComposerHandoffLayoutEffect,
 } from './composer-handoff';
 import { devServerStatusText } from './dev-server-status';
+import { etatDeConnexionBarre } from './connexion-barre-etat';
 
 import {
   TAB_DRAG_PANE_MIME,
@@ -156,8 +160,12 @@ import {
   decalageAAnnulerClavierOuvert,
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
+  revelerLeChampActif,
+  suivreHauteurDeRepos,
+  type HauteurDeRepos,
 } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
+import { PhraseAvecCode } from '~/components/ui/PhraseAvecCode';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { initialesPersonne, libellePersonne } from '~/utils/person-label';
@@ -3179,8 +3187,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
+      /*
+       * Référence du rétrécissement : la hauteur de mise en page AU REPOS.
+       * Safari iOS 26 rétrécit `innerHeight` avec le clavier (699 → 362, mesuré
+       * le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
+       */
+      let repos: HauteurDeRepos | undefined;
+
       const updateVisualViewportHeight = () => {
         const vue = window.visualViewport;
+
+        repos = suivreHauteurDeRepos(repos, window.innerWidth, window.innerHeight);
+
         const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
 
@@ -3219,12 +3237,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * se lit depuis le haut du document — décalée, elle sort de l'écran
          * (page blanche, socle flottant, zone de saisie invisible).
          */
-        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
+        if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))) {
           document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
 
-          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+          if (decalageAAnnulerClavierOuvert(repos.hauteur, vue ?? undefined) > 0) {
             window.scrollTo(0, 0);
           }
+
+          /*
+           * La coque tient dans la vue : un champ plus bas que le bas visible
+           * reste sous le clavier (« Nom du projet », Paramètres, mesuré le
+           * 30/09 sur iOS 26). On le ramène dans SA zone de défilement ;
+           * `nearest` ne bouge rien quand il est déjà visible (composeur).
+           */
+          revelerLeChampActif(document);
         } else {
           document.documentElement.removeAttribute('data-vc-clavier');
         }
@@ -3992,7 +4018,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           continue;
         }
 
-        if (!shouldAutoApplyPatch({ autoApplyEnabled: projectAutoApply, status: proposal.status })) {
+        if (
+          /*
+           * La proposition ENTIÈRE : chaque marque qui interdit l'application
+           * automatique (`enFlux`, `tronquee`, `conflit`, `relueDeLaBase`…)
+           * arrive ainsi à la règle sans qu'on ait à penser à la recopier ici.
+           */
+          !shouldAutoApplyPatch({ ...proposal, autoApplyEnabled: projectAutoApply })
+        ) {
           continue;
         }
 
@@ -4570,41 +4603,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * already drives .bolt-connection-status (no new polling) plus the live
      * workspace status for the 'Reconnecting' nuance.
      */
-    const statusbarConnection = !isOnline
-      ? ({
-          state: 'offline',
-          label: t('chat.copy.offline_e01fa717'),
-          color: 'var(--vc-ide-accent-error)',
-          text: t('chat.copy.varStatusErrorText_f1e5857c'),
-        } as const)
-      : /*
-         * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
-         * chaîne. Les deux comparaisons `=== 'STARTING'` / `=== 'PENDING'` étaient
-         * donc TOUJOURS fausses (TS2367, que le `@ts-nocheck` en tête de fichier
-         * empêchait de voir).
-         *
-         * Conséquence réelle : pendant tout le démarrage à froid, la barre de statut
-         * annonçait « Connected » au lieu de « Reconnecting ». Le produit affirmait
-         * une connexion qui n'existait pas encore.
-         *
-         * On lit le champ `status` et on compare en minuscules, comme le fait déjà
-         * `workspaceUiState` : le domaine de valeurs mélange les casses selon la
-         * source.
-         */
-        workspaceLoading ||
-          ['starting', 'booting', 'pending'].includes(runtimeWorkspaceStatus?.status?.toLowerCase() ?? '')
-        ? ({
-            state: 'reconnecting',
-            label: t('chat.copy.reconnecting_9d80f91f'),
-            color: 'var(--vc-ide-accent-warning)',
-            text: t('chat.copy.varStatusWarningText_58e57537'),
-          } as const)
-        : ({
-            state: 'connected',
-            label: t('chat.copy.connected_c2f9b7b4'),
-            color: 'var(--vc-ide-accent-success)',
-            text: t('chat.copy.varStatusSuccessText_8712f526'),
-          } as const);
+    /*
+     * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
+     * chaîne : on en lit le champ `status`. La décision elle-même vit dans
+     * `etatDeConnexionBarre`, tenue par son test.
+     */
+    const etatDeConnexion = etatDeConnexionBarre({
+      enLigne: isOnline,
+      chargement: workspaceLoading,
+      statutWorkspace: runtimeWorkspaceStatus?.status,
+      etatRuntime: runtimeUiState,
+    });
+
+    const statusbarConnection = {
+      offline: {
+        state: 'offline',
+        title: t('chat.copy.offlineEditsStayLocalUntilThe_6c528a0d'),
+        label: t('chat.copy.offline_e01fa717'),
+        color: 'var(--vc-ide-accent-error)',
+        text: t('chat.copy.varStatusErrorText_f1e5857c'),
+      },
+      error: {
+        state: 'error',
+        title: t('chat.copy.statusbarWorkspaceUnavailableTitle'),
+        label: t('chat.copy.statusbarWorkspaceUnavailable'),
+        color: 'var(--vc-ide-accent-error)',
+        text: t('chat.copy.varStatusErrorText_f1e5857c'),
+      },
+      reconnecting: {
+        state: 'reconnecting',
+        title: t('chat.copy.workspaceRuntimeIsStartingOrReconnecting_dae64fde'),
+        label: t('chat.copy.reconnecting_9d80f91f'),
+        color: 'var(--vc-ide-accent-warning)',
+        text: t('chat.copy.varStatusWarningText_58e57537'),
+      },
+      connected: {
+        state: 'connected',
+        title: t('chat.copy.workspaceConnectionHealthy_f87a6d3a'),
+        label: t('chat.copy.connected_c2f9b7b4'),
+        color: 'var(--vc-ide-accent-success)',
+        text: t('chat.copy.varStatusSuccessText_8712f526'),
+      },
+    }[etatDeConnexion];
 
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
@@ -7059,6 +7099,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
+      /*
+       * BUG-QA0928-RUNTIME-ID-PROJET — démarrage refusé pour quota : l'agent ne
+       * pourrait rien écrire. On retient l'envoi ICI, avant l'effacement du
+       * brouillon ci-dessous : `sendMessage` n'est pas attendu, et une garde
+       * posée seulement dans lui laissait la saisie vidée (mesuré sur WebKit).
+       */
+      if (projectIdeMode && demarrageRefusePourQuotaStore.get()) {
+        const avertissement = getEcrituresEnAttenteCopy(i18n.resolvedLanguage ?? i18n.language)[
+          'ecrituresEnAttente.quotaAvantEnvoi'
+        ];
+
+        toast.warning(avertissement, { toastId: 'quota-avant-envoi', autoClose: 12000 });
+
+        return;
+      }
+
       if (sendMessage) {
         sendMessage(event, messageInput);
         setSelectedElement?.(null);
@@ -7918,6 +7974,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ))}
                   </div>
                 )}
+              {projectIdeMode && <AvisEcrituresEnAttente />}
               {projectIdeMode && (
                 <GenerateAppCta
                   files={projectFiles}
@@ -10645,13 +10702,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-pill"
                 role="status"
                 aria-live="polite"
-                title={
-                  statusbarConnection.state === 'offline'
-                    ? t('chat.copy.offlineEditsStayLocalUntilThe_6c528a0d')
-                    : statusbarConnection.state === 'reconnecting'
-                      ? t('chat.copy.workspaceRuntimeIsStartingOrReconnecting_dae64fde')
-                      : t('chat.copy.workspaceConnectionHealthy_f87a6d3a')
-                }
+                title={statusbarConnection.title}
               >
                 <span
                   aria-hidden
@@ -13257,6 +13308,56 @@ function IdeTabBar({
    */
   const [dropSlot, setDropSlot] = useState<number | null>(null);
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const tabStripRef = useRef<HTMLDivElement | null>(null);
+
+  /*
+   * UIB-12 — l'onglet actif reste visible dans la bande, sur bureau.
+   *
+   * Mesuré le 2026-10-01 à 1440 : à partir du cinquième onglet ouvert depuis la
+   * barre d'outils, l'onglet ACTIF sortait de la bande (bord droit à 1205 px pour
+   * une bande finissant à 1076) et la bande restait défilée à 0 — on ouvrait un
+   * panneau sans voir son onglet. On défile juste assez pour le montrer. On règle
+   * `scrollLeft` de la bande, jamais `scrollIntoView` (qui ferait aussi défiler
+   * la page). À partir de 1024 px seulement : l'affichage mobile est gelé.
+   */
+  useEffect(() => {
+    const strip = tabStripRef.current;
+
+    if (!strip || !activeTabId || typeof window === 'undefined' || !window.matchMedia('(min-width: 1024px)').matches) {
+      return;
+    }
+
+    const tab = strip.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(activeTabId)}"]`);
+
+    if (!tab) {
+      return;
+    }
+
+    const stripBox = strip.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+    const style = window.getComputedStyle(strip);
+
+    // La bande a une marge intérieure (et un ajustement magnétique) : on la compte, sinon l'onglet reste rogné de 4 px.
+    const visibleRight = stripBox.right - (Number.parseFloat(style.paddingRight) || 0);
+    const visibleLeft = stripBox.left + (Number.parseFloat(style.paddingLeft) || 0);
+
+    const max = strip.scrollWidth - strip.clientWidth;
+
+    /*
+     * La bande a un ajustement magnétique (`scroll-snap-type: x`) : une position
+     * entre deux débuts d'onglet est ramenée au plus proche (mesuré : 295 au
+     * lieu de 303, onglet encore rogné). Les bords de la bande sont toujours des
+     * positions d'arrêt valides : près de la fin, on vise le bout.
+     */
+    if (tabBox.right > visibleRight) {
+      const target = strip.scrollLeft + Math.ceil(tabBox.right - visibleRight);
+      strip.scrollLeft = target >= max - 24 ? max : target;
+    } else if (tabBox.left < visibleLeft) {
+      const target = strip.scrollLeft - Math.ceil(visibleLeft - tabBox.left);
+      strip.scrollLeft = target <= 24 ? 0 : target;
+    }
+  }, [activeTabId, tabs.length]);
+
   const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
@@ -13649,6 +13750,7 @@ function IdeTabBar({
     <>
       <div className="bolt-project-tabbar" data-tools-panel-open={open ? 'true' : undefined}>
         <div
+          ref={tabStripRef}
           className="bolt-project-tabs"
           role="tablist"
           data-pane-strip={paneId}
@@ -19608,9 +19710,10 @@ function ProjectMonitoringPanel({
            * une chaîne traduite — « événement interne de routines ». Une clé
            * plurielle par langue règle les deux.
            */}
-          {t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
-          <code>project.ide_state.*</code>
-          {t('chat.copy.openTheLogsPanelToInspect_cc12758f')}
+          <PhraseAvecCode
+            texte={t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
+            codes={{ code: 'project.ide_state.*' }}
+          />
         </div>
       ) : null}
     </div>
@@ -20288,9 +20391,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   </small>
                 ) : (
                   <small className="bolt-project-workflow-nextrun">
-                    {t('chat.copy.notScheduledEnterACronExpression_4b9e799a')}
-                    <code>0 3 * * *</code>
-                    {t('chat.copy.andEnableItTheSchedulerWill_c6c6f347')}
+                    <PhraseAvecCode texte={t('baseChatAst.workflows.notScheduled')} codes={{ exemple: '0 3 * * *' }} />
                   </small>
                 )}
               </form>
@@ -20665,11 +20766,10 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
         <div>
           <PanelSectionTitle>{t('chat.copy.addAuthentication_2855841d')}</PanelSectionTitle>
           <p className="text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b')}
-            <code>users</code>
-            {t('chat.copy.tableMigrationAnExpressSessionJwt_120a5fe5')}
-            <code>AUTH_JWT_SECRET</code>
-            {t('chat.copy.forYou_c10f85ac')}
+            <PhraseAvecCode
+              texte={t('baseChatAst.integrations.authDescription')}
+              codes={{ users: 'users', secret: 'AUTH_JWT_SECRET' }}
+            />
           </p>
         </div>
         <button

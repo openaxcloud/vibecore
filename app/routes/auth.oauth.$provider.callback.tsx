@@ -1,8 +1,9 @@
 import { redirect, type LoaderFunctionArgs } from 'react-router';
-import { apiBaseUrl, cookieSecure, sessionCookie } from '~/lib/enterprise-api.server';
+import { apiBaseUrl, cookieSecure, safeReturnTo, sessionCookie } from '~/lib/enterprise-api.server';
 
 const oauthStateCookie = 'vc_oauth_state';
 const oauthLinkCookie = 'vc_oauth_link';
+const oauthReturnCookie = 'vc_oauth_return';
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const provider = providerName(params.provider);
@@ -146,7 +147,13 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     throw failRedirect('missing_token');
   }
 
-  return redirect('/dashboard', {
+  /*
+   * BUG-QA0930-OAUTH-OUBLIE-LA-DESTINATION — la destination gardée au départ,
+   * filtrée DE NOUVEAU (un cookie peut être glissé) ; à défaut, le tableau de bord.
+   */
+  const destination = safeReturnTo(readCookie(request, oauthReturnCookie)) ?? '/dashboard';
+
+  return redirect(destination, {
     headers: [['Set-Cookie', sessionCookie(result.token)], ...clearAuthCookies()],
   });
 }
@@ -159,11 +166,12 @@ function clearLinkCookie() {
   return `${oauthLinkCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`;
 }
 
-/** Both OAuth cookies cleared, as a Set-Cookie header tuple array. */
+/** Every OAuth cookie cleared (state, link, return), as a Set-Cookie header tuple array. */
 function clearAuthCookies(): Array<[string, string]> {
   return [
     ['Set-Cookie', clearStateCookie()],
     ['Set-Cookie', clearLinkCookie()],
+    ['Set-Cookie', `${oauthReturnCookie}=; Path=/; HttpOnly; SameSite=Lax${cookieSecure()}; Max-Age=0`],
   ];
 }
 

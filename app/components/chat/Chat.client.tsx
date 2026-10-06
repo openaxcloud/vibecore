@@ -34,6 +34,8 @@ import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
+import { getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
+import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attente';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { useRattrapageALaReprise } from '~/lib/hooks/useRattrapageALaReprise';
 import { estUneCoupureReseau } from '~/lib/chat/rattrapage-reprise';
@@ -801,8 +803,16 @@ export const ChatImpl = memo(
        * sanitized-with-a-loud-log only when JSON.stringify would throw. This is the
        * fix for the reopened-project send-stall where append() produced zero POST.
        */
-      experimental_prepareRequestBody: ({ id, messages: requestMessages, requestData, requestBody }) =>
-        ensureJsonSafeBody(
+      experimental_prepareRequestBody: ({ id, messages: requestMessages, requestData, requestBody }) => {
+        /*
+         * La demande part avec les fichiers tels qu'ils sont : c'est CE que l'agent
+         * lit. Un enregistrement de l'utilisateur après cet instant, l'agent ne
+         * l'a pas vu — l'acceptation de ses propositions le fusionne au lieu de
+         * l'écraser (`AgentPatchProposal.contenuLu`).
+         */
+        workbenchStore.noterLaLectureDeLAgent();
+
+        return ensureJsonSafeBody(
           {
             id,
             messages: requestMessages,
@@ -823,7 +833,8 @@ export const ChatImpl = memo(
               : {}),
           },
           '/api/chat',
-        ),
+        );
+      },
 
       /*
        * Coalesce token-by-token stream updates into ~40ms frames. Without this
@@ -1220,10 +1231,17 @@ export const ChatImpl = memo(
         return projectAiMessagesToChatMessages(payload.messages);
       },
       applyTranscript: async (backendMessages) => {
+        /*
+         * BUG-QA0929-REOUVERTURE-REJOUE — marquer le fil relu À PART : la passe du
+         * parseur, que `setMessages` déclenche, remplace les messages rechargés par
+         * `initialMessages`, vide sur un appareil neuf, et les écritures
+         * historiques de l'agent étaient rejouées par-dessus le travail de
+         * l'utilisateur.
+         */
+        workbenchStore.markHydratedMessages(backendMessages.map((message) => message.id));
         setMessages(backendMessages);
         latestMessagesRef.current = backendMessages;
         setChatStarted(true);
-        workbenchStore.setReloadedMessages(backendMessages.map((message) => message.id));
         await storeMessageHistory(backendMessages);
       },
       onLoadError: (error) => {
@@ -1942,6 +1960,20 @@ export const ChatImpl = memo(
       if (sendDecision === 'stop-active') {
         abort();
         toast.info(copy['chatClient.generation.stopped']);
+
+        return;
+      }
+
+      /*
+       * BUG-QA0928-RUNTIME-ID-PROJET — le démarrage a été refusé pour quota :
+       * l'agent travaillerait (et consommerait du crédit) pour ne rien pouvoir
+       * écrire. On le dit AVANT, et on garde la saisie intacte.
+       */
+      if (projectIdeMode && demarrageRefusePourQuotaStore.get()) {
+        toast.warning(getEcrituresEnAttenteCopy(language)['ecrituresEnAttente.quotaAvantEnvoi'], {
+          toastId: 'quota-avant-envoi',
+          autoClose: 12000,
+        });
 
         return;
       }

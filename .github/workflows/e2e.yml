@@ -52,9 +52,30 @@ concurrency:
 
 jobs:
   e2e:
-    name: Playwright local stack
+    # ⚠️ CE JOB NE PORTE PLUS LE NOM REQUIS. La protection de branche exige
+    # « Playwright local stack » ; c'est le job `verdict` en fin de fichier qui
+    # le porte désormais. Renommer celui-ci sans renommer celui-là ferait
+    # attendre à la protection un contrôle qui n'existe plus — et plus aucune
+    # proposition ne pourrait jamais fusionner. Épinglé par
+    # tests/guards/e2e-tranches.spec.ts.
+    name: E2E tranche ${{ matrix.shard }}/4
+    strategy:
+      # Une tranche rouge ne doit pas annuler les autres : on veut les quatre
+      # rapports, y compris quand l'un d'eux porte l'échec à expliquer.
+      fail-fast: false
+      matrix:
+        # DEUX tranches, pas quatre. Arbitrage du 2026-09-30, chiffres à
+        # l'appui : la suite entière prenait 81 min sous un plafond de 90 — neuf
+        # minutes de marge, d'où deux exécutions sans le moindre verdict. Quatre
+        # tranches ramènent chacune à ~30 min mais QUADRUPLENT les jobs, et la
+        # file était le goulot du jour (10 runs en cours, 6 en attente). Deux
+        # tranches donnent ~45 min, soit le double de marge sous le plafond,
+        # pour deux fois moins de jobs. On rachète la marge sans affamer la file.
+        shard: [1, 2, 3, 4]
     runs-on: ubuntu-latest
-    # 75 min pour la suite requise, comme avant, + 15 min pour le canari iOS
+    # Plafond par TRANCHE. Une tranche joue un QUART des specs — remis à quatre
+    # tranches le 2026-10-01 parce que la suite a dépassé son budget : elle n'a
+    # jamais approché ce plafond, il reste large exprès. + 15 min de canari iOS
     # borné ci-dessous. Épinglé par tests/guards/ci-canari-borne.spec.ts.
     timeout-minutes: 90
     # Forked PRs can't read the AI provider secrets (so the run would hard-fail
@@ -100,99 +121,23 @@ jobs:
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
+      # LA PRÉPARATION EST PARTAGÉE, PAS DUPLIQUÉE.
+      #
+      # Ces 93 lignes vivaient ici. Elles sont maintenant dans
+      # .github/actions/preparer-pile-e2e, appelée aussi par le job `canari`
+      # ci-dessous. Deux copies auraient divergé au premier changement — c'est
+      # ce que disait docs/bugs/DETTE-CI-ACTION-COMPOSITE-001.md, et c'est la
+      # raison pour laquelle le canari était resté sur le chemin critique.
+      #
+      # `chromium` seulement : WebKit ne sert qu'au canari, et l'installer ici
+      # remettrait du temps sur le chemin critique de la porte requise.
+      # Le dépôt doit être sorti AVANT l'appel d'une action locale, sinon GitHub
+      # ne trouve pas son `action.yml`. Voir le commentaire en tête de l'action.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+      - uses: ./.github/actions/preparer-pile-e2e
         with:
-          node-version: 22
-
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          version: 9.14.4
-          run_install: false
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browsers
-        run: |
-          # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
-          # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
-          # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
-          # 2026-09-09 (run E2E 1828, sha dcfb310f, 49 s) : `Err:10
-          # https://dl.google.com/linux/chrome-stable/deb` — index publié à
-          # 09:41, run à 17:16. Rien ne le retentait.
-          #
-          # Les deux moitiés sont séparées pour ne retenter QUE celle qui dépend
-          # d'un miroir extérieur. Purger /var/lib/apt/lists est ce qui répare
-          # un Hash Sum mismatch : relancer sans purger réutilise l'index périmé.
-          # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
-          # dont on lit le résultat.
-          for attempt in 1 2 3; do
-            if pnpm exec playwright install-deps chromium webkit; then break; fi
-            echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
-            if [ "$attempt" = "3" ]; then exit 1; fi
-            sudo rm -rf /var/lib/apt/lists/*
-            sudo apt-get update || true
-            sleep 10
-          done
-          pnpm exec playwright install chromium
-
-          # WebKit est installé À PART et sans faire échouer l'étape : il ne sert
-          # qu'au canari ci-dessous, qui est non bloquant. Une indisponibilité
-          # amont du binaire ne doit pas fermer la porte E2E de tout le monde.
-          pnpm exec playwright install webkit || echo "::warning::installation de WebKit en échec — le canari iOS sera sauté."
-
-      - name: Validate AI provider secret for E2E
-        run: |
-          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-            echo "Production E2E requires ANTHROPIC_API_KEY because the default IDE model is Anthropic."
-            exit 1
-          fi
-
-      - name: Start local dependencies
-        run: |
-          trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
-          touch .env
-          # BUG-CI-008, règle 7 — la seconde tentative n'existait que dans
-          # i18n-live-audit.yml : les trois fichiers portaient trois niveaux de
-          # robustesse différents pour la MÊME pile. `down -v` uniquement dans
-          # la branche d'échec, pour repartir d'un volume propre.
-          if ! docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit; then
-            echo '::warning::Les dépendances ne sont pas devenues saines ; on repart proprement pour une seconde et dernière tentative.'
-            docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis mailpit || true
-            docker compose --env-file .env -f docker-compose.dev.yml down -v || true
-            docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
-          fi
-          npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
-
-      - name: Prepare database
-        run: |
-          pnpm --filter @vibecore/database db:deploy
-          pnpm --filter @vibecore/database db:seed
-
-      - name: Start API
-        run: |
-          pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
-          echo $! > /tmp/vibecore-api.pid
-          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
-
-      - name: Build web app
-        run: pnpm run build
-
-      - name: Start web app
-        run: |
-          HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
-          echo $! > /tmp/vibecore-web.pid
-          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5173
-
-      # PLAYWRIGHT_SKIP_WEB_SERVER means Playwright no longer boots the admin
-      # dev server (5174) either — the workflow provides it, like the web app.
-      - name: Start admin app
-        run: |
-          pnpm --filter @vibecore/admin dev > /tmp/vibecore-admin.log 2>&1 &
-          echo $! > /tmp/vibecore-admin.pid
-          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
+          navigateurs: chromium
 
       # `@runtime` tests need a live workspace pod + dev server + preview iframe,
       # which this stack does not provide (postgres/redis/mailpit + API + web).
@@ -214,18 +159,43 @@ jobs:
             CIBLE="tests/e2e"
           fi
 
+          # Une suite ciblée ne se découpe pas : on la joue entière sur la
+          # tranche 1 et les autres n'ont rien à faire.
+          # LE DÉNOMINATEUR EST DÉRIVÉ DE LA MATRICE, PAS RÉÉCRIT.
+          #
+          # `strategy.job-total` est le nombre de tranches que GitHub a réellement
+          # lancées. L'écrire en dur une seconde fois a été un vrai défaut : en
+          # portant la découpe de 2 à 4, laisser `/2` ici gardait les 70 gardes au
+          # VERT. Un dénominateur trop grand fait qu'une part de la suite n'est
+          # jouée par PERSONNE, et la porte voit des rapports pleins sans pouvoir
+          # le voir — une couverture amputée qui se présente comme un succès.
+          DECOUPE="--shard=${{ matrix.shard }}/${{ strategy.job-total }}"
+          if [ -n "${{ inputs.spec }}" ]; then
+            DECOUPE=""
+          fi
+
           PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-results.json \
-            pnpm exec playwright test "$CIBLE" --project=chromium \
+            pnpm exec playwright test "$CIBLE" --project=chromium $DECOUPE \
               --grep-invert @runtime --reporter=list,json
           echo "playwright exit: $?"
 
-      # Fails on any failure that is NOT waived, on an expired waiver, and on a
-      # waived test that has started passing. The policy path is hard-coded in
-      # the script, so this cannot be widened from the workflow.
-      - name: E2E gate (bounded waiver)
-        run: node scripts/e2e-gate.mjs playwright-results.json
+      # La porte ne juge PLUS ici : une tranche seule ne voit qu'un quart des
+      # specs, et la faire conclure sur ce quart serait exactement
+      # l'affaiblissement qu'une découpe introduit sans le dire. Elle juge dans
+      # le job `verdict`, sur les quatre rapports réunis.
+      - name: Rapport de la tranche
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: resultats-tranche-${{ matrix.shard }}
+          path: playwright-results.json
+          if-no-files-found: error
+          retention-days: 7
 
+      # Ces deux suites ne se découpent pas — elles tiennent en quelques minutes
+      # et se jouent une fois, sur la première tranche.
       - name: Playwright mobile viewport tests
+        if: matrix.shard == 1
         run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
 
       # LE MOTEUR D'AVI. `playwright.config.ts` définit un projet `webkit-iphone`
@@ -253,6 +223,88 @@ jobs:
       # après une suite Chromium de 60 min, et le contrôle REQUIS était annulé
       # alors que la porte ci-dessus avait déjà rendu « gate passes ». Un canari
       # qui dépasse est maintenant marqué en échec, et le job se termine.
+      - name: Upload E2E traces
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: playwright-report-tranche-${{ matrix.shard }}
+          path: |
+            playwright-report
+            playwright-results.json
+            test-results
+            tmp/ide-panel-audit.json
+            /tmp/vibecore-api.log
+            /tmp/vibecore-web.log
+          if-no-files-found: ignore
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LE VERDICT. Ce job — et lui seul — porte le nom que la protection de branche
+  # exige. Le renommer, ou le supprimer, ferait attendre à GitHub un contrôle
+  # qui ne se présente jamais : aucune proposition ne pourrait plus fusionner.
+  # ═══════════════════════════════════════════════════════════════════════════
+  # LE CANARI iOS, SORTI DU CHEMIN CRITIQUE — 15 min 12 s rendues à chaque mise
+  # en production.
+  #
+  # Il est NON BLOQUANT depuis toujours, et il tournait pourtant dans le job qui
+  # porte le contrôle requis « Playwright local stack » : le job `verdict` porte
+  # `needs: e2e`, donc il attendait le canari. Mesuré le 2026-09-30 sur la
+  # tranche 1 de l'E2E de `1fb51f092a` : 15 min 12 s sur une tranche de
+  # 57 min 30 s, elle-même sur le chemin de la porte de release.
+  #
+  # Il est ici un job à lui, qui n'est dans le `needs` de PERSONNE. Son échec ne
+  # comptait pas ; sa durée ne compte plus non plus.
+  canari-ios:
+    name: Canari iOS WebKit (non bloquant)
+    # Même garde que le job bloquant : pas de fork, pour les mêmes raisons.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    # Son propre plafond : il ne peut plus manger le budget de personne, mais un
+    # job pendu reste un coureur immobilisé.
+    timeout-minutes: 45
+    continue-on-error: true
+    env:
+      CI: true
+      HUSKY: 0
+      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
+      REDIS_URL: redis://127.0.0.1:56379
+      POSTGRES_PORT: 55432
+      REDIS_PORT: 56379
+      API_HOST: 127.0.0.1
+      API_PORT: 3001
+      API_BASE_URL: http://127.0.0.1:3001
+      SAAS_API_URL: http://127.0.0.1:3001
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      # The WORKFLOW owns the servers (prod web below + admin below); without
+      # this flag Playwright's webServer would try to boot a dev server on the
+      # same port and hard-fail now that reuseExistingServer=false in CI.
+      PLAYWRIGHT_SKIP_WEB_SERVER: '1'
+      # Local-stack admin used by gallery-remix-license.spec.ts (curation step).
+      # ADMIN_MFA_REQUIRED=false is the API's own harness escape hatch — the
+      # admin-MFA gate stays ON everywhere else (prod keeps enforcing TOTP).
+      PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
+      ADMIN_MFA_REQUIRED: 'false'
+      # Every test registers a throwaway user, and CI retries multiply that.
+      # The default ceiling (10/min/IP) made the limiter the single biggest
+      # source of run-to-run instability: whichever tests landed in a saturated
+      # window died with `Rate limit exceeded, retry in N seconds`, so a
+      # DIFFERENT test failed on every run of identical code. The limiter exists
+      # to protect production, not a throwaway CI stack — services/api's own
+      # comment says operators may lift it via this variable.
+      AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
+      AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+    steps:
+      # Le dépôt doit être sorti AVANT l'appel d'une action locale, sinon GitHub
+      # ne trouve pas son `action.yml`. Voir le commentaire en tête de l'action.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: ./.github/actions/preparer-pile-e2e
+        with:
+          navigateurs: chromium,webkit
+
       - name: Canari iOS — Playwright WebKit iPhone (non bloquant)
         id: canari_ios
         continue-on-error: true
@@ -269,16 +321,38 @@ jobs:
           fi
           exit 0
 
-      - name: Upload E2E traces
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+  verdict:
+    name: Playwright local stack
+    needs: e2e
+    # `always()` pour que le verdict tombe MÊME si une tranche échoue ou se fait
+    # annuler. C'est le cas qui compte : sans lui, une tranche perdue laisserait
+    # le contrôle requis sans conclusion, et on retomberait dans le silence que
+    # cette découpe existe pour supprimer.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
         with:
-          name: playwright-report
-          path: |
-            playwright-report
-            playwright-results.json
-            test-results
-            tmp/ide-panel-audit.json
-            /tmp/vibecore-api.log
-            /tmp/vibecore-web.log
-          if-no-files-found: ignore
+          node-version: 22
+
+      - name: Rassembler les rapports des tranches
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: resultats-tranche-*
+          path: tranches
+
+      - name: Ce qui est réellement arrivé
+        run: |
+          echo "rapports reçus :"
+          find tranches -name 'playwright-results.json' | sort | sed 's/^/  /'
+          echo "total : $(find tranches -name 'playwright-results.json' | wc -l)"
+
+      # La porte EXIGE ses quatre rapports. Une tranche manquante la fait
+      # rougir : un vert sur trois quarts des specs serait un vert menteur.
+      - name: E2E gate (bounded waiver)
+        env:
+          E2E_EXPECTED_REPORTS: '4'
+        run: node scripts/e2e-gate.mjs $(find tranches -name 'playwright-results.json' | sort | tr '\n' ' ')

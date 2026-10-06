@@ -8054,6 +8054,22 @@ body :where(.lucide, svg[data-lucide]) {
  * un `:where()` — donc (0,1,0) — les entrées restaient carrées de 44px et
  * rognaient leur libellé : le menu s'ouvrait sur cinq pastilles muettes.
  */
+/*
+ * Le panneau reçoit le focus pour le garder DANS le menu (téléphone,
+ * MessageContextMenu) — ce n'est pas une commande : pas d'anneau. Vu le 01/10 sur
+ * Safari iOS : son contour par défaut entourait toute la barre après un appui
+ * long. Les actions gardent leur `:focus-visible` pour le clavier.
+ */
+.bolt-message-context-menu:focus {
+  /*
+   * `body :where([tabindex]):focus-visible` (anneau d'accessibilité) pose un
+   * contour ET une ombre de 4 px : l'ombre restait en halo bleu pâle autour de la
+   * barre et remplaçait son ombre portée. On rend les deux (spécificité 0,2,0).
+   */
+  outline: none;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.35);
+}
+
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-footer,
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-footer {
   display: flex;
@@ -18799,6 +18815,20 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--bolt-elements-background-depth-1);
 }
 
+/*
+ * Téléphone, panneau de service : le défileur passe SOUS la barre du bas et
+ * réserve en bas `--mobile-nav-height` + `--vc-mobile-panel-gutter`. Le collant
+ * se cale sur ce bas INTÉRIEUR : mesuré en prod le 30/09 à 390, la barre
+ * « Publier » s'arrêtait à 756 et la barre du bas commence à 772 — 16 px (la
+ * gouttière) où le contenu défilait à découvert (« Historique des publications »).
+ * On descend la barre de cette même gouttière, sur les mêmes variables : elle
+ * touche la barre du bas. Repli explicite pour ne jamais perdre le collant.
+ * Épinglé par tests/e2e/publier-pied-colle-barre.spec.ts.
+ */
+.bolt-responsive-ide-mobile .bolt-project-service-panel .bolt-publication-pied {
+  bottom: calc(-1 * (var(--vc-mobile-panel-gutter, 16px) + env(safe-area-inset-bottom, 0px)));
+}
+
 .bolt-publication-republier {
   display: flex;
   width: 100%;
@@ -25770,6 +25800,47 @@ body:has(.bolt-project-statusbar)
   }
 
   /*
+   * Clavier ouvert sur l'ÉTAT DE DÉPART (carte « Agent prêt » + suggestions).
+   * Mesuré le 2026-09-30, Safari iOS 26 simulé, 390 pt : `main` suit la vue et
+   * tombe à 362 px ; l'état de départ, une grille dont la hauteur minimale est
+   * son contenu, garde ses 287 px ; la zone du composeur, seule à céder, tombe
+   * à 27 px — et le composeur (117 px) déborde de 90 px sous le bas visible,
+   * derrière la pastille d'adresse de Safari. L'état de départ cède donc et
+   * défile ; le composeur garde sa hauteur. Au repos, rien ne change.
+   */
+  /*
+   * Clavier levé : les surfaces FIXES (panneaux service, fichiers, éditeur…)
+   * s'arrêtent au bas VISIBLE. Mesuré le 2026-09-30 sur Safari iOS 26 : la
+   * fenêtre de mise en page reste à 699 px quand la vue tombe à 362 ; le
+   * conteneur des panneaux service (`bottom: 0`) gardait donc 48–699, et
+   * « Nom du projet » (Paramètres, y 446–484) restait sous la barre ∧ ∨ ✓ —
+   * pour le navigateur il était « visible » dans sa zone, rien ne le ramenait.
+   * `--vc-mobile-visual-viewport-bottom` vaut ce que le clavier recouvre (337).
+   */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed {
+    bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+  }
+
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-mobile-agent-start-state {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  html[data-vc-clavier='ouvert']
+    .bolt-responsive-ide-mobile
+    .bolt-mobile-agent-start-state
+    ~ .bolt-project-agent-scroll {
+    /*
+     * `h-full` (100 %) quand la conversation a démarré : sans `height: auto`,
+     * la zone prenait TOUT le panneau et écrasait l'état de départ à 14 px
+     * (mesuré, passage 17). Elle prend la hauteur de son contenu — le composeur.
+     */
+    flex: 0 0 auto;
+    height: auto;
+  }
+
+  /*
    * Carte d'action de l'agent (« Ouvrir la webview · Aperçu de l'application ·
    * Ouvrir → ») — captures 11:03 : trois lignes et un bouton pleine largeur de
    * 44 px, 110 px pris sur le fil pendant que l'agent tourne, le plan coupé
@@ -27084,6 +27155,73 @@ body:has(.bolt-project-statusbar)
   border-color: var(--vc-auth-border);
   background: var(--vc-auth-field);
   color: var(--vc-auth-text);
+}
+
+/*
+ * AUTH-TYPO-001 — l'échelle typographique des pages d'authentification, BUREAU.
+ *
+ * Mesuré le 2026-09-30 sur la production (/signup, /login, 1440 et 1280, clair
+ * et sombre) : tout le texte rendu à 12 px. Titre « Créez votre compte » à 14 px
+ * au lieu de 32-44, titre du panneau de droite à 14 px, chiffres `text-3xl` à
+ * 12 px, bouton « Créer le compte » à 12 px.
+ *
+ * Même cause, même remède que l'accueil (`[data-ecode-public-chrome='homepage']`)
+ * et la zone utilisateur (`.vc-user-area-shell`) : les règles de densité de l'IDE
+ * (`body :where(h1…h6)` en `!important`, `body :where(div, span, p…)`) aplatissent
+ * toute classe de taille, et chaque coque restaure la sienne. Celle-ci manquait.
+ *
+ * En PIXELS : la base rem vaut 12 px ici, un `2rem` n'y fait que 24 px.
+ *
+ * À partir de 1024 px seulement : l'affichage mobile est gelé sur la référence
+ * d'Avi et ne doit pas bouger.
+ */
+@media (min-width: 1024px) {
+  .vc-auth-page :where([class~='text-[11px]']) {
+    font-size: 11px !important;
+    line-height: 16px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[12px]']) {
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[13px]'], [class~='sm:text-[13px]']) {
+    font-size: 13px !important;
+    line-height: 20px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[14px]'], [class~='sm:text-[14px]']) {
+    font-size: 14px !important;
+    line-height: 22px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[15px]']) {
+    font-size: 15px !important;
+    line-height: 26px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[16px]']:not([class~='sm:text-[13px]'])) {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  .vc-auth-page :where([class~='text-3xl']) {
+    font-size: 30px !important;
+    line-height: 36px !important;
+  }
+
+  .vc-auth-page :where(h1.vc-auth-title) {
+    font-size: clamp(32px, 3vw, 44px) !important;
+    font-weight: 700 !important;
+    line-height: 1.05 !important;
+  }
+
+  .vc-auth-page :where(h2) {
+    font-size: clamp(30px, 2.6vw, 40px) !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+  }
 }
 
 /*
@@ -32389,4 +32527,33 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   gap: 2px;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--bolt-elements-borderColor);
+}
+
+/*
+ * BUG-QA0928-RUNTIME-ID-PROJET — avis « fichiers pas encore écrits » / « quota »
+ * au-dessus du composeur. Jetons du thème IDE uniquement ; bouton à 44 px pour
+ * le doigt (règle des cibles tactiles).
+ */
+.bolt-agent-avis-ecritures {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-accent-warning);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bolt-agent-avis-ecritures button {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
 }

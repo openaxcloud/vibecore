@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { etatDeConnexionBarre } from './connexion-barre-etat';
+
 /**
  * TSNOCHECK-DEBT-001 — la dette masquée est CHIFFRÉE, donc elle ne peut plus
  * grandir en silence.
@@ -45,7 +47,12 @@ describe('TSNOCHECK-DEBT-001 — les plantages masqués sont corrigés', () => {
      * et la barre de statut annonçait « Connected » pendant tout le démarrage.
      */
     expect(CODE).not.toMatch(/runtimeWorkspaceStatus === '(STARTING|PENDING)'/);
-    expect(CODE).toMatch(/runtimeWorkspaceStatus\?\.status\?\.toLowerCase\(\)/);
+
+    // Le champ `status` est lu ici, et la décision (casse comprise) vit dans `etatDeConnexionBarre`.
+    expect(CODE).toMatch(/statutWorkspace:\s*runtimeWorkspaceStatus\?\.status\b/);
+    expect(
+      etatDeConnexionBarre({ enLigne: true, chargement: false, statutWorkspace: 'STARTING', etatRuntime: 'starting' }),
+    ).toBe('reconnecting');
   });
 
   it('déclare `language` dans le panneau Intégrations', () => {

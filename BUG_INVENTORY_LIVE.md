@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-363 entrées.
+383 entrées.
 
 ## Sans section
 
@@ -383,6 +383,35 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-TOAST-GESTES-001](docs/bugs/BUG-TOAST-GESTES-001.md) — P2 — sur téléphone, le bandeau « 1 fichier appliqué » confisquait les gestes sur le haut du fil.
 - [BUG-CHAT-REFLEXION-SILENCIEUSE-001](docs/bugs/BUG-CHAT-REFLEXION-SILENCIEUSE-001.md) — P0 — régression introduite par #592 : un tour de construction Power pouvait être coupé par le chien de garde client.
+
+## 2026-09-28 — Balayage QA avant lancement
+
+- [BUG-QA0928-COSMETIQUES](docs/bugs/BUG-QA0928-COSMETIQUES.md) — COSMÉTIQUE — trois libellés ou placements trompeurs relevés pendant le balayage du 28/09.
+- [BUG-QA0928-DEV-WEB-ESBUILD](docs/bugs/BUG-QA0928-DEV-WEB-ESBUILD.md) — GÊNANT (équipe, pas utilisateur) — `pnpm run dev:web` plante sur toute installation neuve depuis la montée d'esbuild à 0.27.7 (#569, 18/09).
+- [BUG-QA0928-IDEE-PERDUE-INSCRIPTION](docs/bugs/BUG-QA0928-IDEE-PERDUE-INSCRIPTION.md) — BLOQUANT — l'inconnu qui décrit son app sur l'accueil puis s'inscrit arrive sur un tableau de bord vide ; son idée ressurgit plus tard et se lance toute seule.
+- [BUG-QA0928-MODALE-SANS-FOCUS](docs/bugs/BUG-QA0928-MODALE-SANS-FOCUS.md) — GÊNANT (accessibilité) — la modale « Comment souhaitez-vous continuer ? » de l'accueil ne prend pas le focus.
+- [BUG-QA0928-PALETTE-RESTE-OUVERTE](docs/bugs/BUG-QA0928-PALETTE-RESTE-OUVERTE.md) — GÊNANT — la palette « Search tools, files, and commands… » ouverte depuis la barre d'activité ne se ferme ni quand on ouvre un autre panneau, ni sur un clic ail
+- [BUG-QA0928-PROMPT-TRONQUE](docs/bugs/BUG-QA0928-PROMPT-TRONQUE.md) — GÊNANT — une idée de plus de 8 000 caractères saisie sur l'accueil est tronquée en silence, puis soumise automatiquement.
+- [BUG-QA0928-PROVISION-SANS-QUOTA](docs/bugs/BUG-QA0928-PROVISION-SANS-QUOTA.md) — OBSERVÉ DANS LE CODE, À CONFIRMER — une écriture adressée à un workspace arrêté le fait redémarrer sans vérifier le quota `workspaces.active`.
+- [BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE](docs/bugs/BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE.md) — GÊNANT — si le workspace-manager est injoignable, démarrer un projet bascule en STOPPED les workspaces VIVANTS des autres projets de l'organisation.
+- [BUG-QA0928-RUNTIME-ID-PROJET](docs/bugs/BUG-QA0928-RUNTIME-ID-PROJET.md) — BLOQUANT — le runtime est adressé avec l'identifiant du PROJET au lieu de celui du workspace ; les écritures de l'agent partent dans le vide.
+- [BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE](docs/bugs/BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE.md) — BLOQUANT — DÉCISION REQUISE — chaque `PUT /ide-state` portant le fil réécrit, côté serveur, les fichiers du projet avec la dernière version que l'agent leur a d
+- [BUG-QA0929-REOUVERTURE-REJOUE](docs/bugs/BUG-QA0929-REOUVERTURE-REJOUE.md) — BLOQUANT — la première ouverture d'un projet sur un appareil rejoue les écritures historiques de l'agent et écrase en silence le travail de l'utilisateur, avec 
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE](docs/bugs/BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE.md) — BLOQUANT (premier déploiement) — RÉGRESSION de #628 (servi le 30/09). Un client gratuit dont un autre
+- [BUG-QA0930-OAUTH-OUBLIE-LA-DESTINATION](docs/bugs/BUG-QA0930-OAUTH-OUBLIE-LA-DESTINATION.md) — BLOQUANT (inscription) — s'inscrire ou se connecter avec Google / GitHub renvoie TOUJOURS au tableau
+- [BUG-QA0930-OFFRE-PERDUE-TARIFS](docs/bugs/BUG-QA0930-OFFRE-PERDUE-TARIFS.md) — BLOQUANT (paiement) — « Choisir Core » et « Choisir Pro » sur la page tarifs mènent à une inscription
+- [BUG-QA0930-PREMIER-PROJET-TOUR-COUPE](docs/bugs/BUG-QA0930-PREMIER-PROJET-TOUR-COUPE.md) — BLOQUANT (premier projet) — TRANSMIS, hors du périmètre de la session QA (relance instruite).
+- [BUG-QA0930-TARIFS-INCOHERENTS](docs/bugs/BUG-QA0930-TARIFS-INCOHERENTS.md) — BLOQUANT (paiement) — la page tarifs et le parcours de paiement vendent deux grilles différentes.
+- [BUG-QA0930-INVITATION-MESSAGE-TROMPEUR](docs/bugs/BUG-QA0930-INVITATION-MESSAGE-TROMPEUR.md) — BLOQUANT (inviter un collègue) — le collègue invité qui vient de créer son compte ne rejoint jamais
+- [BUG-QA0930-INVITATION-SANS-PLACE](docs/bugs/BUG-QA0930-INVITATION-SANS-PLACE.md) — BLOQUANT (inviter un collègue) — une équipe au forfait gratuit (ou Pro) envoie des invitations que
+
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
+
+- [CONSTAT-CI-ATTENTE-DU-VERDICT-001](docs/bugs/CONSTAT-CI-ATTENTE-DU-VERDICT-001.md)
+- [DETTE-CI-TRANCHES-DESEQUILIBREES-001](docs/bugs/DETTE-CI-TRANCHES-DESEQUILIBREES-001.md)
 
 ## Résidus non tabulaires — reportés mot pour mot
 
