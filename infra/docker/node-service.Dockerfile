@@ -51,6 +51,19 @@ COPY app ./app
 RUN pnpm --filter "${PACKAGE_FILTER}" build
 RUN pnpm deploy --filter "${PACKAGE_FILTER}" --prod --prefer-offline /runtime
 
+# `pnpm deploy --prod` rend un MANIFESTE juste — `/runtime/package.json` déclare
+# 4 dépendances et 0 de développement — mais le magasin posé à côté en contient
+# 1 461. Mesuré le 2026-10-06 en sondant l'image admin refusée, depuis le
+# cluster : **164 entrées atteignables sur 1 461**, 1 297 mortes — dont
+# `tinypool` 1.1.1 (CVE-2026-104848, CRITIQUE), transitif de `vitest`, sans un
+# seul lien vers lui.
+#
+# Le script est copié seul, et non via un `COPY scripts/` large : le contexte de
+# cet étage est volontairement étroit (voir le commentaire de `COPY app` plus
+# haut, BUG-BUILD-002). Épinglé par `tests/guards/elagage-magasin-pnpm.spec.ts`.
+COPY scripts/elaguer-magasin-pnpm.mjs ./scripts/elaguer-magasin-pnpm.mjs
+RUN node scripts/elaguer-magasin-pnpm.mjs /runtime --supprimer
+
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /runtime
 
