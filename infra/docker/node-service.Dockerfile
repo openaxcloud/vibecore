@@ -77,7 +77,30 @@ ARG START_CMD
 ENV START_CMD=${START_CMD}
 ARG KUBECTL_VERSION=v1.35.3
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client \
+# ⚠️ `apt-get upgrade` AVANT l'installation, et ce n'est pas du zèle.
+#
+# Mesuré le 2026-10-06 : la porte de vulnérabilité a refusé le déploiement sur
+# `perl-base` 5.36.0-7+deb12u3 (CVE-2026-13221, CRITIQUE), un paquet SYSTÈME
+# venu de l'image de base. Sondé dans l'image elle-même :
+#
+#   * installé                   : 5.36.0-7+deb12u3
+#   * publié dans bookworm-security : 5.36.0-7+deb12u4  (index Debian, vérifié)
+#   * `bookworm-security` EST déjà dans les sources apt de l'image
+#
+# Le correctif était donc à portée et n'arrivait pas, pour une raison simple :
+# `apt-get install curl` n'installe que `curl`. Il ne met PAS à jour les paquets
+# déjà présents. Tout ce que l'image de base embarque reste donc figé à la
+# version qu'elle avait au moment de sa publication, failles comprises.
+#
+# `--only-upgrade perl-base` aurait suffi aujourd'hui et aurait garanti de
+# recommencer au prochain CVE système. `upgrade` prend l'ensemble des correctifs
+# de sécurité disponibles, ce qui est précisément ce que « image de base à
+# jour » veut dire.
+#
+# Épinglé par `tests/guards/image-de-base-a-jour.spec.ts`.
+RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && apt-get install -y --no-install-recommends ca-certificates curl git openssh-client \
   && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" \
   && curl -fsSLo /tmp/kubectl.sha256 "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl.sha256" \
   && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum -c - \
