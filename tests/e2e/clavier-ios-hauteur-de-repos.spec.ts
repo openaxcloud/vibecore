@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS } from '~/lib/persistence/projectIdeMemory';
 
 /**
  * Clavier levé sur Safari iOS 26 : la barre d'onglets doit être couverte, et la
@@ -265,24 +266,45 @@ test('clavier levé PENDANT le chargement : la bascule coquille → vrai chat ga
 
   const { token, projectId } = await createProjectSession(request);
 
-  let relacher: () => void = () => undefined;
+  /*
+   * La retenue se fait DANS LA PAGE, pas au réseau. Le client abandonne `ide-state`
+   * au bout de PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS puis bascule sur la mémoire
+   * locale : retenue au réseau, ce délai la levait tout seul. Mesuré en CI le 05/10
+   * (`bf5929bd4`) : « coquille déjà remplacée avant le clavier levé », 3 essais sur
+   * 3. Ici la promesse ignore le signal d'abandon : seul `relacher` la libère.
+   */
+  await page.addInitScript(() => {
+    const fenetre = window as unknown as { __vcRetenues: number; __vcRelacher: () => void };
+    const vrai = window.fetch.bind(window);
 
-  const retenue = new Promise<void>((resolve) => {
-    relacher = resolve;
+    let liberer: () => void = () => undefined;
+
+    const retenue = new Promise<void>((resolve) => {
+      liberer = resolve;
+    });
+
+    fenetre.__vcRetenues = 0;
+    fenetre.__vcRelacher = () => liberer();
+
+    window.fetch = (entree: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof entree === 'string' ? entree : entree instanceof URL ? entree.href : entree.url;
+      const methode = (init?.method ?? (entree instanceof Request ? entree.method : 'GET')).toUpperCase();
+
+      if (!url.includes('/ide-state') || methode !== 'GET') {
+        return vrai(entree, init);
+      }
+
+      fenetre.__vcRetenues += 1;
+
+      const sansSignal: RequestInit = { ...init };
+      delete sansSignal.signal;
+
+      return retenue.then(() => vrai(entree, sansSignal));
+    };
   });
 
-  let retenues = 0;
-
-  await page.route('**/ide-state**', async (route) => {
-    if (route.request().method() !== 'GET') {
-      return route.continue();
-    }
-
-    retenues += 1;
-    await retenue;
-
-    return route.continue();
-  });
+  const retenues = () => page.evaluate(() => (window as unknown as { __vcRetenues: number }).__vcRetenues);
+  const relacher = () => page.evaluate(() => (window as unknown as { __vcRelacher: () => void }).__vcRelacher());
 
   await page
     .context()
@@ -293,20 +315,29 @@ test('clavier levé PENDANT le chargement : la bascule coquille → vrai chat ga
   const composeur = page.locator('.bolt-project-agent-composer').first();
   const champ = composeur.locator('textarea').first();
   await expect(champ).toBeVisible({ timeout: 60_000 });
-  await expect.poll(() => retenues, { message: 'la mémoire du projet n’a pas été demandée' }).toBeGreaterThan(0);
+  await expect.poll(retenues, { message: 'la mémoire du projet n’a pas été demandée' }).toBeGreaterThan(0);
 
-  const champDeLaCoquille = await champ.elementHandle();
+  /*
+   * Au-delà du délai d'abandon du client : c'est ce qui se produit sur une machine
+   * lente, et ce qui ne doit plus rien libérer.
+   */
+  await page.waitForTimeout(PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS + 1_000);
   await champ.focus();
   await page.setViewportSize({ width: 390, height: 362 });
   await expect(page.locator('html'), 'clavier non vu dans la coquille').toHaveAttribute('data-vc-clavier', 'ouvert');
 
-  // Précondition : la bascule n'a PAS encore eu lieu — sinon ce test ne mesure rien.
-  expect(
-    await champDeLaCoquille!.evaluate((n) => n.isConnected),
-    'la coquille a déjà été remplacée avant le clavier levé : la condition n’est pas réunie',
-  ).toBe(true);
+  /*
+   * Le champ est saisi APRÈS le clavier levé, quelle que soit la coquille qui
+   * l'affiche. Il y en a deux avant le vrai chat : celle de la route, remplacée
+   * dès que le code de `Chat` est chargé (sans rapport avec `ide-state`), puis
+   * celle de `Chat`, que la retenue tient. Parier sur la première faisait rougir
+   * ce test sur sa précondition (06/10, 3 essais sur 5). La mémoire du projet
+   * étant retenue, le vrai chat ne peut pas être monté : ce champ sera remplacé
+   * au moins une fois, clavier levé — la condition du défaut.
+   */
+  const champDeLaCoquille = await champ.elementHandle();
 
-  relacher();
+  await relacher();
 
   await expect
     .poll(() => champDeLaCoquille!.evaluate((n) => n.isConnected), {
