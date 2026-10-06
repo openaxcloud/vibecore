@@ -155,7 +155,34 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
     await app.close();
   });
 
-  it('contre-épreuve — un NOUVEAU tour de l’agent écrit toujours ses fichiers, par-dessus la version de l’utilisateur', async () => {
+  /*
+   * RELECTURE (Claude, 2026-10-06) — cette contre-épreuve vérifiait qu'un
+   * nouveau tour gagne PAR LE SEUL FIL. Dans le produit, un nouveau tour atteint
+   * la copie serveur par ses chemins réels (acceptation → `files/write`,
+   * fermeture d'artefact → `files/import/zip`) ; le fil n'en est le seul porteur
+   * que si l'onglet s'est fermé avant la fin du tour — et faire gagner l'agent en
+   * silence sur un ENREGISTREMENT de l'utilisateur contredit la décision d'Avi
+   * (#667 : ce que l'utilisateur enregistre fait foi, l'agent passe en revue).
+   * La garantie est donc déplacée sur le chemin réel, et le cas du fil seul est
+   * tenu dans l'autre sens.
+   */
+  it('contre-épreuve — un NOUVEAU tour de l’agent, en fermant son artefact, écrit toujours par-dessus la version de l’utilisateur', async () => {
+    const { app, poserEtat, enregistrerCommeLUtilisateur, copieServeur } = await banc();
+    const premier = messageAgent('a1', '// VERSION-AGENT');
+
+    await poserEtat({ chat: { messages: [premier] } });
+    await enregistrerCommeLUtilisateur('// VERSION-UTILISATEUR\n');
+
+    await poserEtat({ chat: { messages: [premier, messageAgent('a2', '// VERSION-AGENT-NOUVELLE')] } });
+    /* La fermeture de l'artefact du tour a2 importe l'arbre du pod (`#persistRuntimeFilesToProjectStorage`). */
+    await enregistrerCommeLUtilisateur('// VERSION-AGENT-NOUVELLE\n');
+
+    expect(await copieServeur()).toBe('// VERSION-AGENT-NOUVELLE');
+
+    await app.close();
+  });
+
+  it('un nouveau tour connu SEULEMENT par le fil ne remplace pas en silence un enregistrement de l’utilisateur (#667)', async () => {
     const { app, poserEtat, enregistrerCommeLUtilisateur, copieServeur } = await banc();
     const premier = messageAgent('a1', '// VERSION-AGENT');
 
@@ -164,7 +191,7 @@ describe('ide-state — un message de l’agent n’est matérialisé qu’une f
 
     await poserEtat({ chat: { messages: [premier, messageAgent('a2', '// VERSION-AGENT-NOUVELLE')] } });
 
-    expect(await copieServeur()).toBe('// VERSION-AGENT-NOUVELLE');
+    expect(await copieServeur()).toBe('// VERSION-UTILISATEUR');
 
     await app.close();
   });
