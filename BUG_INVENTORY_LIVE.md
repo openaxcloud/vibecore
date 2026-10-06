@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-385 entrées.
+386 entrées.
 
 ## Sans section
 
@@ -420,6 +420,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
 - [DETTE-IMAGES-DEPENDANCES-INUTILES](docs/bugs/DETTE-IMAGES-DEPENDANCES-INUTILES.md)
+- [BUG-QA1006-LIEN-DE-PARTAGE-CONTOURNE-LES-PLACES](docs/bugs/BUG-QA1006-LIEN-DE-PARTAGE-CONTOURNE-LES-PLACES.md) — DÉCISION REQUISE (grille de prix) — un lien de partage de projet donne l'accès en ÉCRITURE à un nombre illimité
 
 ## Résidus non tabulaires — reportés mot pour mot
 

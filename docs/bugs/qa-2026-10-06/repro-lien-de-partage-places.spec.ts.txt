@@ -1,0 +1,30 @@
+import { it } from 'vitest';
+import { writeFileSync } from 'node:fs';
+import { buildApiApp } from '../app.js';
+import { TestApiStore } from './test-api-store.js';
+
+it('mesure : un lien de partage contourne-t-il les places du forfait ?', async () => {
+  const store = new TestApiStore();
+  const app = await buildApiApp({ store });
+  const inscrire = async (email: string, org: string) => (await app.inject({ method: 'POST', url: '/auth/register', payload: { email, password: 'password123', name: email, organizationName: org } })).json();
+  const proprio = await inscrire(`proprio-${Date.now()}@example.com`, 'Atelier gratuit');
+  const H = { authorization: `Bearer ${proprio.token}` };
+  const projet = (await app.inject({ method: 'POST', url: `/orgs/${proprio.organization.id}/projects`, headers: H, payload: { name: 'P' } })).json().project;
+  const lignes: string[] = [];
+  const inv = await app.inject({ method: 'POST', url: `/orgs/${proprio.organization.id}/invitations`, headers: H, payload: { email: `invite-${Date.now()}@example.com`, roleKey: 'member' } });
+  lignes.push(`témoin — invitation sur forfait gratuit (1 place) : ${inv.statusCode} ${inv.json().code ?? ''}`);
+  const lien = await app.inject({ method: 'POST', url: `/projects/${projet.id}/collaboration/share-links`, headers: H, payload: { roleKey: 'member', expiresInMinutes: 60 * 24 * 30 } });
+  lignes.push(`création d'un lien « member » 30 jours : ${lien.statusCode}`);
+  const token = lien.json().token;
+  for (let i = 1; i <= 6; i++) {
+    const c = await inscrire(`ami-${i}-${Date.now()}@example.com`, `Perso ${i}`);
+    const r = await app.inject({ method: 'GET', url: `/collaboration/share-links/${encodeURIComponent(token)}`, headers: { authorization: `Bearer ${c.token}` } });
+    const ecrit = await app.inject({ method: 'PUT', url: `/projects/${projet.id}/ide-state`, headers: { authorization: `Bearer ${c.token}` }, payload: { state: { ui: { x: i } } } });
+    const lit = await app.inject({ method: 'GET', url: `/projects/${projet.id}`, headers: { authorization: `Bearer ${c.token}` } });
+    lignes.push(`ami ${i} : rachat ${r.statusCode} redeemed=${r.json().redeemed} | lit le projet ${lit.statusCode} | ÉCRIT ${ecrit.statusCode}`);
+  }
+  const membres = (await app.inject({ method: 'GET', url: `/orgs/${proprio.organization.id}/members`, headers: H })).json();
+  lignes.push(`membres de l'organisation : ${JSON.stringify(membres).match(/"userId"/g)?.length ?? '?'}`);
+  writeFileSync('/tmp/mesure-lien-places.txt', lignes.join('\n') + '\n');
+  await app.close();
+});

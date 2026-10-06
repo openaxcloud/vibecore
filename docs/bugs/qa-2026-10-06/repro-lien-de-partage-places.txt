@@ -1,0 +1,9 @@
+témoin — invitation sur forfait gratuit (1 place) : 429 QUOTA_EXCEEDED
+création d'un lien « member » 30 jours : 201
+ami 1 : rachat 200 redeemed=true | lit le projet 200 | ÉCRIT 200
+ami 2 : rachat 200 redeemed=true | lit le projet 200 | ÉCRIT 200
+ami 3 : rachat 200 redeemed=true | lit le projet 200 | ÉCRIT 200
+ami 4 : rachat 200 redeemed=true | lit le projet 200 | ÉCRIT 200
+ami 5 : rachat 200 redeemed=true | lit le projet 200 | ÉCRIT 200
+ami 6 : rachat 200 redeemed=true | lit le projet 200 | ÉCRIT 200
+membres de l'organisation : ?
