@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-385 entrées.
+386 entrées.
 
 ## Sans section
 
@@ -420,6 +420,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-SEC-ADMIN-TEST-RUNTIME-001](docs/bugs/BUG-SEC-ADMIN-TEST-RUNTIME-001.md) — P1 — le moteur de test est livré dans l’image admin.
+- [BUG-SEC-SCREENSHOTTER-EGRESS-001](docs/bugs/BUG-SEC-SCREENSHOTTER-EGRESS-001.md) — P1 — la politique réseau du screenshotter était neutralisée par trois autorisations générales.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
