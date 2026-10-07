@@ -7,17 +7,31 @@ import { afterEach, describe, expect, it } from 'vitest';
 /*
  * L'ÉLAGAGE DU MAGASIN pnpm EST CE QUI OUVRE LA PORTE DE VULNÉRABILITÉ.
  *
- * Mesuré le 2026-10-06, en sondant depuis le cluster les deux images que la
- * porte venait de refuser :
+ * ⚠️ LES CHIFFRES DU 2026-10-06 ÉTAIENT FAUX, et d'un facteur neuf. Ils
+ * annonçaient « 154 atteignables sur 1 554 », soit neuf entrées sur dix mortes.
+ * La marche des liens s'arrêtait au premier niveau : elle descendait dans
+ * `<paquet>/node_modules`, qui n'existe pas chez pnpm, au lieu de
+ * `.pnpm/<entrée>/node_modules`, où les dépendances sont posées en VOISINES.
+ *
+ * Remesuré le 2026-10-07 avec la marche réparée, dans la MÊME image servie :
  *
  *     image   entrées .pnpm   atteignables   mortes
- *     web         1 554            154       1 400
- *     admin       1 461            164       1 297
+ *     web         1 554          1 398         156
+ *     admin       1 461          1 312         149
  *
- * Les deux CVE CRITIQUES bloquantes étaient sur des entrées MORTES —
- * `@capacitor/android` 8.3.1 (web) et `tinypool` 1.1.1 (admin), zéro lien vers
- * elles. Ce garde tient les deux moitiés : que le script fasse ce qu'il dit, et
- * que les deux constructions l'appellent vraiment.
+ * Les proportions sont INVERSÉES : neuf sur dix sont vivantes. La version fausse
+ * a tué le crochet pre-upgrade `prisma-migrate` sur
+ * `Cannot find module '@prisma/engines'` — une voisine supprimée — et Helm a
+ * reverti tout seul (`--atomic`).
+ *
+ * Ce qui RESTE vrai : `@capacitor/android` 8.3.1 est bien MORT dans l'image web,
+ * vérifié dans la liste des 156. Ce qui est devenu FAUX : `tinypool` 1.1.1 est
+ * ATTEIGNABLE dans l'image admin, via `vitest@3.2.6` qui y est présent. Cette CVE
+ * ne se ferme donc pas par l'élagage — elle se ferme en sortant `vitest` de
+ * l'image de production.
+ *
+ * Ce garde tient les deux moitiés : que le script fasse ce qu'il dit, et que les
+ * deux constructions l'appellent vraiment.
  */
 
 const RACINE = process.cwd();
@@ -61,6 +75,57 @@ function fabriquerMagasin(vivantes: number, mortes: number): string {
   return bac;
 }
 
+/**
+ * Un faux magasin à la FORME DE pnpm : une entrée dont la dépendance n'est
+ * atteignable que comme VOISINE, et dont le seul lien d'entrée est un FICHIER
+ * dans `.bin` — exactement la forme de `prisma` → `@prisma/engines` qui a tué le
+ * crochet pre-upgrade le 2026-10-07.
+ *
+ *   node_modules/.bin/outil                     -> …/outil/build/index.js  (FICHIER)
+ *   .pnpm/outil@1.0.0/node_modules/outil/
+ *   .pnpm/outil@1.0.0/node_modules/@moteur      -> .pnpm/@moteur+coeur@1.0.0/…/@moteur
+ *   .pnpm/@moteur+coeur@1.0.0/node_modules/@moteur/coeur/
+ *
+ * `@moteur+coeur@1.0.0` n'a AUCUN lien depuis `node_modules/` racine. Seule une
+ * marche transitive correcte le trouve.
+ */
+function fabriquerMagasinTransitif(): { bac: string; magasin: string } {
+  const bac = mkdtempSync(join(tmpdir(), 'elagage-transitif-'));
+  bacs.push(bac);
+
+  const modules = join(bac, 'node_modules');
+  const magasin = join(modules, '.pnpm');
+  const binaires = join(modules, '.bin');
+  mkdirSync(binaires, { recursive: true });
+
+  const outil = join(magasin, 'outil@1.0.0', 'node_modules', 'outil');
+  mkdirSync(join(outil, 'build'), { recursive: true });
+  writeFileSync(join(outil, 'package.json'), JSON.stringify({ name: 'outil', version: '1.0.0' }));
+  writeFileSync(join(outil, 'build', 'index.js'), "require('@moteur/coeur');\n");
+
+  const coeur = join(magasin, '@moteur+coeur@1.0.0', 'node_modules', '@moteur', 'coeur');
+  mkdirSync(coeur, { recursive: true });
+  writeFileSync(join(coeur, 'package.json'), JSON.stringify({ name: '@moteur/coeur', version: '1.0.0' }));
+
+  // la dépendance, posée en VOISINE du paquet dans l'entrée de l'outil
+  symlinkSync(
+    join('..', '..', '@moteur+coeur@1.0.0', 'node_modules', '@moteur'),
+    join(magasin, 'outil@1.0.0', 'node_modules', '@moteur'),
+  );
+
+  // le SEUL lien d'entrée : un fichier dans .bin
+  symlinkSync(join('..', '.pnpm', 'outil@1.0.0', 'node_modules', 'outil', 'build', 'index.js'), join(binaires, 'outil'));
+
+  // du lest mort, pour que le plancher ne soit pas la raison d'un refus
+  for (let i = 0; i < 3; i += 1) {
+    const d = join(magasin, `mort-${i}@1.0.0`, 'node_modules', `mort-${i}`);
+    mkdirSync(d, { recursive: true });
+    writeFileSync(join(d, 'package.json'), JSON.stringify({ name: `mort-${i}`, version: '1.0.0' }));
+  }
+
+  return { bac, magasin };
+}
+
 function lancer(bac: string, ...args: string[]): { code: number; sortie: string } {
   try {
     const sortie = execFileSync('node', [SCRIPT, bac, ...args], { encoding: 'utf8', stdio: 'pipe' });
@@ -97,6 +162,38 @@ describe('l’élagage du magasin pnpm', () => {
       const manifeste = JSON.parse(readFileSync(join(bac, 'node_modules', `vivant-${i}`, 'package.json'), 'utf8'));
       expect(manifeste.name, 'le lien vivant doit encore résoudre vers son paquet').toBe(`vivant-${i}`);
     }
+  });
+
+  it('garde la dépendance atteignable seulement comme VOISINE — le défaut qui a tué prisma-migrate', () => {
+    /*
+     * CE TEST EST LA GARDE DU 2026-10-07. Sans la marche transitive corrigée, le
+     * script marque `outil@1.0.0` (son lien `.bin` le trouve) puis tente de
+     * descendre dans `<fichier>/node_modules`, ce qui n'existe pas : il déclare
+     * donc `@moteur+coeur@1.0.0` morte et la supprime. En production, c'était
+     * `@prisma/engines`, et le crochet pre-upgrade est mort au démarrage —
+     * à des heures de sa cause.
+     */
+    const { bac } = fabriquerMagasinTransitif();
+
+    expect(entrees(bac), 'témoin : le banc porte 5 entrées').toHaveLength(5);
+
+    const { code, sortie } = lancer(bac, '--supprimer', '--plancher=1');
+
+    expect(code, `l’élagage a échoué :\n${sortie}`).toBe(0);
+    expect(sortie, 'les DEUX entrées de la chaîne doivent être atteignables').toMatch(/atteignables\s+: 2/u);
+
+    const survivantes = entrees(bac);
+    expect(survivantes, 'l’outil doit survivre').toContain('outil@1.0.0');
+    expect(
+      survivantes,
+      'la dépendance VOISINE doit survivre — c’est tout le défaut : sans elle l’outil meurt sur MODULE_NOT_FOUND',
+    ).toContain('@moteur+coeur@1.0.0');
+
+    /* et la résolution tient encore, pas seulement le répertoire */
+    const manifeste = JSON.parse(
+      readFileSync(join(bac, 'node_modules', '.pnpm', '@moteur+coeur@1.0.0', 'node_modules', '@moteur', 'coeur', 'package.json'), 'utf8'),
+    );
+    expect(manifeste.name).toBe('@moteur/coeur');
   });
 
   it('REFUSE et ne supprime rien quand trop peu d’entrées sont atteignables', () => {

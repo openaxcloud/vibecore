@@ -93,15 +93,20 @@ RUN pnpm prune --prod --ignore-scripts
 
 # `pnpm prune --prod` ne suffit PAS dans un espace de travail : `node_modules/.pnpm`
 # est le magasin PARTAGÉ des 36 projets, et élaguer les liens du projet racine n'y
-# ramasse rien. Mesuré le 2026-10-06 en sondant l'image refusée depuis le cluster :
-# 1 554 entrées dans `.pnpm`, **154 atteignables**, 1 400 mortes — dont
+# ramasse rien. Mesuré le 2026-10-07 dans l'image servie, marche des liens réparée :
+# 1 554 entrées dans `.pnpm`, **1 398 atteignables**, 156 mortes — dont
 # `@capacitor/android` 8.3.1 (CVE-2026-103922, CRITIQUE), qui vient de `apps/mobile`
 # et n'a aucun lien dans l'image web. La porte de vulnérabilité refusait donc le
 # déploiement sur du code qu'aucune résolution ne peut charger.
 #
+# ⚠️ La première mesure annonçait « 154 atteignables » : la marche s'arrêtait au
+# premier niveau et déclarait mortes 1 244 entrées VIVANTES. Elle a tué le crochet
+# `prisma-migrate` sur `Cannot find module '@prisma/engines'`, et Helm a reverti seul.
+#
 # Une entrée qu'aucun lien ne résout ne peut pas être requise : la supprimer ne
 # change pas ce que le programme charge. Épinglé par
-# `tests/guards/elagage-magasin-pnpm.spec.ts`.
+# `tests/guards/elagage-magasin-pnpm.spec.ts`, dont un cas tient précisément la
+# marche transitive.
 RUN node scripts/elaguer-magasin-pnpm.mjs /app --supprimer
 
 # ---- production stage ----

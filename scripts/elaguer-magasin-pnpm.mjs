@@ -98,7 +98,33 @@ function suivre(repertoire, profondeur) {
 
       if (trouve && !atteintes.has(trouve[1])) {
         atteintes.add(trouve[1]);
-        suivre(join(cible, 'node_modules'), profondeur + 1);
+
+        /*
+         * LES DÉPENDANCES D'UNE ENTRÉE SONT SES VOISINES, PAS SES FILLES.
+         *
+         * Dans un magasin pnpm, `.pnpm/<entrée>/node_modules/` contient le paquet
+         * ET les liens vers ses dépendances, côte à côte :
+         *
+         *     .pnpm/prisma@7.8.0_…/node_modules/
+         *       ├── prisma        ← le paquet
+         *       ├── @prisma       ← sa dépendance (@prisma/engines)
+         *       ├── mysql2
+         *       └── postgres
+         *
+         * `prisma/node_modules/` n'existe pas. Descendre depuis `cible` — qui vaut
+         * `.pnpm/<entrée>/node_modules/<paquet>`, ou carrément un FICHIER quand le
+         * lien vient de `node_modules/.bin/` — ne trouvait donc rien, et le
+         * marquage s'arrêtait au premier niveau.
+         *
+         * Mesuré le 2026-10-07 : le crochet pre-upgrade `prisma-migrate` est mort
+         * sur `Cannot find module '@prisma/engines'`. `prisma` avait survécu (son
+         * lien `.bin` l'avait marqué) mais `@prisma/engines`, voisine et non fille,
+         * avait été supprimée. Helm a reverti tout seul (`--atomic`) : la
+         * production n'a jamais changé.
+         *
+         * On repart donc du magasin et du nom de l'entrée, jamais de `cible`.
+         */
+        suivre(join(magasin, trouve[1], 'node_modules'), profondeur + 1);
       }
 
       continue;
