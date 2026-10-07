@@ -12,7 +12,7 @@ id: BUG-SEC-ADMIN-TEST-RUNTIME-001
 
 ## 💻 Codé
 
-☐ Fusion en attente. `vitest` déplacé vers `devDependencies`, version résolue conservée dans le lockfile. Garde : `tests/guards/admin-dependances-production.spec.ts`, qui exécute une vraie installation de production hors ligne avec l’importeur admin du lockfile et l’élagage Docker, avec témoin positif et absence de vitest/tinypool.
+💻 Fusionné sur main par #679 le 07/10/2026, commit `b06899dc85fba91eb54146027f5b20a50d440a5a`. CI, E2E, sécurité, qualité et Electron verts sur la branche avant fusion. `vitest` déplacé vers `devDependencies`, version résolue conservée dans le lockfile. Garde : `tests/guards/admin-dependances-production.spec.ts`, qui exécute une vraie installation de production hors ligne avec l’importeur admin du lockfile et l’élagage Docker, avec témoin positif et absence de vitest/tinypool.
 
 ## ✅ Testé live
 
