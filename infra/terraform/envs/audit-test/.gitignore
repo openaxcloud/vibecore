@@ -1,0 +1,10 @@
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+credentials/
+.terraform.tfstate.lock.info
+*.tfplan
+apply*.log

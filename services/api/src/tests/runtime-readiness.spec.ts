@@ -16,17 +16,38 @@ describe('isPortReadyFromProbe', () => {
     expect(isPortReadyFromProbe({ kind: 'response', status: 500 })).toBe(false);
   });
 
-  it('is ready once an HTTP request returns a non-5xx response', () => {
+  it('is ready once an HTTP request returns a 2xx/3xx response', () => {
     const probes: PortProbeResult[] = [
       { kind: 'response', status: 200 },
       { kind: 'response', status: 304 },
-      { kind: 'response', status: 404 },
-      { kind: 'response', status: 401 },
+      { kind: 'response', status: 200, bodyBytes: 512 },
     ];
 
     for (const probe of probes) {
       expect(isPortReadyFromProbe(probe)).toBe(true);
     }
+  });
+
+  /*
+   * REGRESSION — SOLUTIONS_REAL_PROOF_BLOCKERS.md §5.
+   *
+   * 404/401 previously counted as READY (the rule was `status < 500`). A dev
+   * server that bound its port but served nothing at `/`, or a proxy answering
+   * "not found" for the workspace, therefore latched the preview to ready —
+   * which both showed a green light over a blank webview AND disarmed the
+   * not-ready -> ready auto-reload recovery.
+   */
+  it('is NOT ready on a 4xx: the port answers, but not with the app', () => {
+    expect(isPortReadyFromProbe({ kind: 'response', status: 404 })).toBe(false);
+    expect(isPortReadyFromProbe({ kind: 'response', status: 401 })).toBe(false);
+    expect(isPortReadyFromProbe({ kind: 'response', status: 403 })).toBe(false);
+  });
+
+  it('is NOT ready on a 200 with an empty body (bound socket, nothing served)', () => {
+    expect(isPortReadyFromProbe({ kind: 'response', status: 200, bodyBytes: 0 })).toBe(false);
+
+    // Body unknown (caller did not read it) still falls back to the status check.
+    expect(isPortReadyFromProbe({ kind: 'response', status: 200 })).toBe(true);
   });
 
   it('models the not-ready -> ready transition the Preview auto-reload edge depends on', () => {

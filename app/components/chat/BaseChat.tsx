@@ -64,12 +64,14 @@ import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from 
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
+import { FileSaveConflictDialog } from '~/components/workbench/FileSaveConflictDialog';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+import { EditorHistoryOverlay } from '~/components/workbench/EditorHistoryOverlay';
 import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
@@ -3355,7 +3357,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * "Error runtime … 500" in Problems and a stuck PENDING/Error status after the
      * preview has already come up. If the runtime errors again the store re-sets it.
      */
-    const previewPortLive = runtimePorts.some((port) => port.ready === true || Boolean(port.url));
+    /*
+     * Must stay identical to `hasLivePreviewPort`: a URL is stamped on EVERY port
+     * the API reports, so the old `|| Boolean(port.url)` made this vacuously true
+     * and wiped genuine runtime errors out of Problems the moment any port existed
+     * (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
+     */
+    const previewPortLive = hasLivePreviewPort(runtimePorts);
     useEffect(() => {
       /*
        * Re-run on workspaceError too: a transient 500 can be re-set AFTER the port
@@ -4986,8 +4994,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       toast.error(`Failed to save file: ${error instanceof Error ? error.message : 'unknown error'}`);
     }, []);
 
+    /*
+     * Route saves through the conflict-aware path: a "changed on disk" race
+     * opens the resolution dialog (reload / keep mine / diff) instead of the
+     * dead-end toast that left the edit stranded (BUG-IDE-004). Every other
+     * failure still reaches handleSaveError.
+     */
     const onProjectEditorSave = useCallback(() => {
-      workbenchStore.saveCurrentDocument().catch(handleSaveError);
+      const filePath = workbenchStore.currentDocument.get()?.filePath;
+
+      if (!filePath) {
+        return;
+      }
+
+      workbenchStore.saveFileWithConflictPrompt(filePath).catch(handleSaveError);
     }, [handleSaveError]);
 
     /*
@@ -4998,7 +5018,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const saveProjectEditorFile = useCallback(
       (filePath: string) => {
-        workbenchStore.saveFile(filePath).catch(handleSaveError);
+        workbenchStore.saveFileWithConflictPrompt(filePath).catch(handleSaveError);
       },
       [handleSaveError],
     );
@@ -6711,7 +6731,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (panel === 'editor') {
           return (
             <div
-              className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
+              className="bolt-project-editor-tool relative min-h-0 flex-1 overflow-hidden"
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
@@ -6772,6 +6792,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onOpenTool={openIdeTool}
                   onOpenFile={(filePath) => openProjectFile(filePath, { preview: false })}
                 />
+              )}
+              {/* File History — bottom-right toggle + standalone panel (independent of Git) */}
+              {currentDocument && !currentDocument.isBinary && (
+                <EditorHistoryOverlay filePath={currentDocument.filePath} content={currentDocument.value} />
               )}
             </div>
           );
@@ -7865,6 +7889,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {/*
+         * Save-conflict resolution, mounted at the IDE root so it covers every
+         * save surface (project editor, workbench, diff view) on desktop and
+         * mobile alike. Renders null unless a conflict is pending.
+         */}
+        <ClientOnly>{() => <FileSaveConflictDialog />}</ClientOnly>
         {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Header structure
             (back · activity · "Shell (Terminal)" · + · ⋮) is the reference; exclude from responsive/
             fan-out/parity passes. */}

@@ -15,23 +15,53 @@
  */
 
 export type PortProbeResult =
-  | { kind: 'response'; status: number }
+  | {
+      kind: 'response';
+      status: number;
+
+      /**
+       * Bytes actually served for the probed document. `undefined` means the
+       * prober did not read the body (older callers); readiness then falls back
+       * to the status check alone.
+       */
+      bodyBytes?: number;
+    }
   | { kind: 'unreachable' };
 
 /**
  * Decide whether a detected workspace port is actually ready to serve content.
  *
- * A port is "ready" only once an HTTP request to it returns a non-5xx response.
- * A connection error (server bound the socket but is not serving yet, or the
- * route 502s through the proxy) and any 5xx are treated as not-ready so the
- * Preview's not-ready -> ready reload edge can fire once it comes up.
+ * A port is ready only when the request REACHED a server that answered with a
+ * success/redirect status AND returned a non-empty body.
+ *
+ * Previously this was `probe.status < 500`, which was far too permissive and is
+ * a proven contributor to the "RUNNING + port open + 0 Problems + blank webview"
+ * state (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5): a **404 counted as ready**, so a
+ * dev server that bound its port but served nothing at `/` — or a proxy that
+ * answered "not found" for the workspace — latched the preview to ready and
+ * disarmed the not-ready -> ready auto-reload recovery.
+ *
+ * Deliberately NOT stricter than this: a Vite `index.html` is legitimately just
+ * `<div id="root"></div><script type="module">`, so requiring substantive
+ * rendered DOM here would false-negative every SPA. Proving the app actually
+ * MOUNTED is a client-side concern and is handled by the blank-preview beacon.
  */
 export function isPortReadyFromProbe(probe: PortProbeResult): boolean {
   if (probe.kind === 'unreachable') {
     return false;
   }
 
-  return probe.status < 500;
+  // 4xx and 5xx both mean "not serving this app"; only 2xx/3xx qualify.
+  if (probe.status >= 400) {
+    return false;
+  }
+
+  // A 200 with zero bytes is a bound socket, not a served application.
+  if (probe.bodyBytes !== undefined && probe.bodyBytes === 0) {
+    return false;
+  }
+
+  return true;
 }
 
 export interface RestoreFile {

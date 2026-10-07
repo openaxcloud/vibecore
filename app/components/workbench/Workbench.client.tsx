@@ -472,9 +472,22 @@ export const Workbench = memo(
     const onFileSave = useCallback(() => {
       const filePath = workbenchStore.currentDocument.get()?.filePath;
 
+      if (!filePath) {
+        return;
+      }
+
       workbenchStore
-        .saveCurrentDocument()
-        .then(() => {
+        .saveFileWithConflictPrompt(filePath)
+        .then((outcome) => {
+          /*
+           * A conflict is not a failure and not a success: the dialog is now
+           * asking the user what to keep. Stay quiet so a toast doesn't claim
+           * the file was saved (or that saving failed) while they decide.
+           */
+          if (outcome === 'conflict') {
+            return;
+          }
+
           /*
            * Refresh all previews via the workbench's own previews store. Using
            * the standalone usePreviewStore() singleton instead spun up a SECOND
@@ -482,7 +495,7 @@ export const Workbench = memo(
            * store bound to a stale runtime after a project switch.
            */
           workbenchStore.refreshAllPreviews();
-          toast.success(filePath ? `Saved ${filePath.split('/').pop()}` : 'File saved', { toastId: 'file-saved' });
+          toast.success(`Saved ${filePath.split('/').pop()}`, { toastId: 'file-saved' });
         })
         .catch(() => {
           toast.error('Failed to update file content');

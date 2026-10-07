@@ -1,0 +1,277 @@
+schema_version: 1
+document:
+  title: "Gate 1 architecture contract registry"
+  audited_sha: "8a93e995b37de513a142acaf41fed364787c5e4e"
+  classification: "observed contracts and proposed formalization"
+  signed_proven: false
+  verdict_ceiling: "PROVEN_REVIEW_PENDING"
+  notes:
+    - "A TypeScript interface, route name or historical document is not external compatibility proof."
+    - "The existing docs/parity/CONTRACT_REGISTRY.yaml remains a referenced parity artifact, not this audit's implementation status."
+
+tracking:
+  referenced_sources:
+    - "DESIGN_PROGRAM_MASTER.md"
+    - "DESIGN_AUDIT_LIVE.md"
+    - "BUG_INVENTORY_LIVE.md"
+    - "PLAN_REMAINING_UNIFIED.md"
+    - "REPLIT_PARITY.md"
+    - "docs/DEPLOY_RUNBOOK.md"
+    - "docs/parity/CONTRACT_REGISTRY.yaml"
+  states_changed: false
+
+contracts:
+  - id: "CTR-WEB-FASTIFY-API"
+    boundary: "web and external clients to Fastify API"
+    kind: "HTTP and WebSocket"
+    producer: "services/api"
+    consumers:
+      - "root web"
+      - "admin"
+      - "mobile"
+      - "worker internal commands"
+    current_artifact: null
+    source_evidence:
+      - "services/api/src/app.ts contains 470 HTTP registrations and 6 WebSocket routes."
+      - "docs/parity/SERVICE_CONTRACTS/README.md:12 marks the remaining API contract UNKNOWN."
+    authentication: "mixed session, bearer, internal shared-secret and route-specific checks"
+    idempotency: "route-specific and not registered centrally"
+    errors: "partially structured, not governed by a common published schema"
+    current_status: "PARTIAL"
+    target_artifact: "versioned OpenAPI plus WebSocket schemas and generated clients"
+    owner: "API architecture owner with domain owners"
+    missing_proof:
+      - "Complete route inventory and consumer mapping."
+      - "Positive, negative, idempotence, concurrency and failure tests per mutation."
+
+  - id: "CTR-AGENT-ROUTING"
+    boundary: "project/admin agent routing"
+    kind: "HTTP OpenAPI"
+    producer: "services/api"
+    consumers:
+      - "web"
+      - "admin"
+    current_artifact: "docs/parity/SERVICE_CONTRACTS/agent-routing.openapi.yaml"
+    source_evidence:
+      - "The artifact declares repoCommit fee92bd0b09159247383814023ae63db8875dd7d, not the audited SHA."
+      - "docs/parity/SERVICE_CONTRACTS/README.md:11 indexes only this API subset."
+    authentication: "documented session and admin controls"
+    idempotency: "GET documented; admin publication explicitly non-idempotent"
+    errors: "selected AGENT_* codes documented"
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_artifact: "OpenAPI regenerated from current behavior with compatibility tests"
+    owner: "agent-AI domain owner"
+    missing_proof:
+      - "Contract-to-code drift validation on audited implementation SHA."
+      - "Independent review and live route evidence."
+
+  - id: "CTR-WORKSPACE-MANAGER"
+    boundary: "API/worker/preview proxy to workspace-manager"
+    kind: "internal HTTP"
+    producer: "services/workspace-manager"
+    consumers:
+      - "services/api"
+      - "services/worker"
+      - "services/preview-proxy"
+    current_artifact: null
+    source_evidence:
+      - "services/workspace-manager/src/app.ts:222-655 defines workspace, deployment, build, capacity and database routes."
+      - "docs/parity/SERVICE_CONTRACTS/README.md:14 marks this service UNKNOWN."
+    authentication: "WORKSPACE_MANAGER_SHARED_SECRET, with dedicated preview internal auth paths"
+    idempotency: "implementation-specific; no central declaration"
+    errors: "selected typed codes, no published schema"
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_artifact: "internal OpenAPI with signed service client and command idempotency"
+    owner: "workspaces-runtime domain owner"
+    missing_proof:
+      - "Concurrent start/restart/delete and manager crash recovery."
+      - "Exact Kubernetes resource and state-machine invariants."
+
+  - id: "CTR-WORKSPACE-AGENT"
+    boundary: "runtime clients to in-workspace agent"
+    kind: "HTTP and WebSocket"
+    producer: "services/workspace-agent"
+    consumers:
+      - "workspace-manager"
+      - "API"
+      - "preview-proxy"
+      - "runtime-remote"
+    current_artifact: "packages/runtime-contract/src/index.ts for client-facing adapter semantics only"
+    source_evidence:
+      - "services/workspace-agent/src/app.ts:709-1381 defines file, patch, command, port, snapshot and terminal endpoints."
+      - "packages/runtime-remote/src/index.ts:54 implements the remote adapter."
+    authentication: "workspace-scoped agent token"
+    idempotency: "not registered per file/command/snapshot operation"
+    errors: "RuntimeError and route-specific payloads"
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_artifact: "OpenAPI plus versioned terminal/log/file-watch WebSocket schemas"
+    owner: "workspaces-runtime domain owner"
+    missing_proof:
+      - "Real node-pty image proof, reconnect and resize."
+      - "Token expiry/rotation and cross-workspace denial."
+
+  - id: "CTR-RUNTIME-ADAPTER"
+    boundary: "IDE to selected runtime"
+    kind: "TypeScript port"
+    producer: "packages/runtime-contract"
+    consumers:
+      - "root web IDE"
+      - "runtime-remote"
+      - "runtime-webcontainer"
+      - "workspace-agent"
+    current_artifact: "packages/runtime-contract/src/index.ts:1-175"
+    source_evidence:
+      - "RuntimeAdapter is declared at line 175."
+      - "RuntimeAdapterProvider selects remote Kubernetes or WebContainer at lines 66-109."
+    authentication: "delegated to adapter implementation"
+    idempotency: "method-specific, not uniformly declared"
+    errors: "RuntimeError contract"
+    current_status: "PARTIAL"
+    target_artifact: "stable TypeScript port plus behavioral conformance suite for both adapters"
+    owner: "IDE/runtime architecture owner"
+    missing_proof:
+      - "Same fixture suite against both adapters."
+      - "Reconnect, reattach, reseed and no-data-loss behavior."
+
+  - id: "CTR-PREVIEW-PROXY"
+    boundary: "browser preview traffic to workspace or deployment"
+    kind: "HTTP, WebSocket and SSE proxy"
+    producer: "services/preview-proxy"
+    consumers:
+      - "browser"
+      - "screenshotter"
+    current_artifact: null
+    source_evidence:
+      - "services/preview-proxy/src/app.ts:464-1922 implements host routing, access checks, wake-up and proxy errors."
+    authentication: "optional tenant/private-port enforcement controlled by configuration"
+    idempotency: "proxy semantics; wake-up mutation requires explicit declaration"
+    errors: "typed PREVIEW_* errors plus HTML starting response"
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_artifact: "proxy behavior contract including cookies, WebSocket, SSE, timeout and access modes"
+    owner: "deployments-preview owner"
+    missing_proof:
+      - "Real ingress-nginx routing and access control."
+      - "Failure-cache and fail-open/fail-closed tests."
+
+  - id: "CTR-AI-GATEWAY"
+    boundary: "API/web agent paths to model providers"
+    kind: "HTTP and streaming"
+    producer: "services/ai-gateway"
+    consumers:
+      - "services/api"
+      - "web server agent orchestration"
+    current_artifact: null
+    source_evidence:
+      - "services/ai-gateway/src/app.ts:25-322 defines health, models, chat and agent runs."
+      - "docs/parity/SERVICE_CONTRACTS/README.md:13 marks the gateway contract UNKNOWN."
+    authentication: "AI_GATEWAY_SHARED_SECRET, configuration-dependent"
+    idempotency: "agent/chat requests not centrally specified"
+    errors: "selected AI_* codes and provider mappings"
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_artifact: "OpenAPI/stream schema with cancellation, budget, usage and provider-failure semantics"
+    owner: "agent-AI domain owner"
+    missing_proof:
+      - "Streaming cancellation and retry without double billing."
+      - "Provider fallback and secret rotation."
+
+  - id: "CTR-CONNECTOR-PROXY"
+    boundary: "platform callers to external providers through stored user credentials"
+    kind: "HTTP streaming proxy"
+    producer: "services/connector-proxy"
+    consumers:
+      - "no deployed consumer proven"
+      - "future API/runtime broker clients"
+    current_artifact: "packages/connector-sdk TypeScript token contract"
+    source_evidence:
+      - "services/connector-proxy/src/app.ts:68-175 implements six provider upstreams and scoped token verification."
+      - "No Helm service or continuous deployment entry was found."
+      - "services/api/src/app.ts:11801-11984 duplicates selected provider proxy behavior."
+    authentication: "broker access token plus stored encrypted provider token"
+    idempotency: "inherits provider method semantics; not declared centrally"
+    errors: "structured proxy errors"
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_artifact: "one authoritative broker OpenAPI and SDK, or explicit retirement ADR"
+    owner: "connectors-secrets domain owner"
+    missing_proof:
+      - "Architecture decision and production deployment path."
+      - "SSRF, cross-user, revocation and body-stream tests."
+
+  - id: "CTR-BULLMQ-JOBS"
+    boundary: "job producers to worker consumers"
+    kind: "BullMQ command/event payloads"
+    producer: "API and enqueue CLI/CronJobs"
+    consumers:
+      - "services/worker workspace-jobs"
+      - "services/worker enterprise-jobs"
+      - "services/worker deploy-jobs"
+    current_artifact: null
+    source_evidence:
+      - "services/worker/src/index.ts:427-535 defines three queues and supported job names."
+      - "services/worker/src/deploy-jobs.ts:17-95 defines API command payload forwarding."
+    authentication: "Redis credentials plus internal API/manager shared secrets"
+    idempotency: "job-specific and not encoded in a versioned schema"
+    errors: "thrown errors drive BullMQ retry; poison-message policy not registered"
+    current_status: "PARTIAL"
+    target_artifact: "versioned JSON Schemas/AsyncAPI with idempotency, retry, timeout and dead-letter policy"
+    owner: "job owner per domain; worker platform owner for transport"
+    missing_proof:
+      - "Duplicate delivery, retry storm, poison message and Redis failover tests."
+
+  - id: "CTR-DATA-PRISMA"
+    boundary: "services and domain modules to persistent data"
+    kind: "Prisma schema and migrations"
+    producer: "packages/database"
+    consumers:
+      - "api"
+      - "workspace-manager"
+      - "worker"
+      - "ai-gateway"
+      - "connector-proxy"
+    current_artifact: "packages/database/prisma/schema.prisma"
+    source_evidence:
+      - "122 models and 85 migration directories."
+      - "Duplicate migration prefixes 0015, 0062, 0063 and 0081."
+    authentication: "DATABASE_URL per process"
+    idempotency: "migration and repository specific"
+    errors: "Prisma/database errors mapped inconsistently at service boundaries"
+    current_status: "PARTIAL"
+    target_artifact: "owned model registry, migration allocation registry and repository ports"
+    owner: "single data architecture and migration owner"
+    missing_proof:
+      - "Fresh and representative upgrade migrations on real PostgreSQL."
+      - "Restore, interruption and concurrent mutation tests."
+
+  - id: "CTR-PLATFORM-DEPLOY"
+    boundary: "GitHub main to Cloud Build, Artifact Registry and Helm"
+    kind: "CI/CD and immutable artifact contract"
+    producer: "GitHub Actions and Cloud Build"
+    consumers:
+      - "GKE platform release"
+    current_artifact: ".github/workflows/deploy-main.yml and infra/helm/platform"
+    source_evidence:
+      - "deploy-main.yml:22-24 states that admin is not built by continuous deployment."
+      - "deploy-main.yml:325-360 omits admin, connector-proxy and screenshotter from applied image tags/rollout checks."
+      - "Helm uses atomic upgrade and SHA tags for selected workloads."
+    authentication: "GitHub WIF and cluster membership"
+    idempotency: "Helm release based; exact artifact set incomplete"
+    errors: "workflow and rollout command failures"
+    current_status: "PARTIAL"
+    target_artifact: "release manifest binding every enabled workload, config hash, digest, SBOM, provenance and rollback revision"
+    owner: "infrastructure/CD owner"
+    missing_proof:
+      - "Full enabled-service rollout and digest/content verification."
+      - "Real rollback on a test cluster."
+
+required_contract_fields:
+  - "stable identifier and version"
+  - "producer and owner"
+  - "consumers"
+  - "authentication and authorization"
+  - "input/output or event schemas"
+  - "error and retry semantics"
+  - "idempotency and linearization point"
+  - "timeouts and cancellation"
+  - "compatibility and deprecation policy"
+  - "positive, negative, concurrency and failure tests"
+  - "evidence SHA and independent reviewer"
+

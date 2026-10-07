@@ -80,6 +80,19 @@ const RUNTIME_ERROR_PATTERN = /\b(error|failed|exception|crash|fatal|cannot\s+re
 const RUNTIME_WARNING_PATTERN = /\b(warn|warning|deprecated)\b/i;
 
 /*
+ * The single strongest "your app is not actually working" signal we have: the
+ * injected reporter served the page and the SPA root never mounted.
+ *
+ * It used to produce NO diagnostic at all — its message ("Preview loaded but the
+ * app never mounted (blank page)…") contains none of the keywords above, so it
+ * matched neither pattern and was silently dropped. That is why Problems read 0
+ * over a blank webview (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5). Matched explicitly
+ * and classified as an ERROR, and never suppressed by `previewLive` — a live
+ * port is exactly the condition under which this fires.
+ */
+const BLANK_PREVIEW_PATTERN = /\bapp never mounted\b|\bblank page\b/i;
+
+/*
  * Cold-start / provisioning failures that are RESOLVED the moment a forwarded port
  * is actually serving: the runtime request 5xx'd (or 425/429), the workspace was
  * momentarily unreachable, or the preview proxy hadn't caught up — then the pod came
@@ -127,8 +140,18 @@ export function buildRuntimeDiagnostics({
       return;
     }
 
-    // Drop stale cold-start runtime errors once the preview is actually serving.
-    if (previewLive && severity === 'error' && TRANSIENT_RUNTIME_ERROR_PATTERN.test(normalizedMessage)) {
+    /*
+     * Drop stale cold-start runtime errors once the preview is actually serving —
+     * but NEVER the blank-preview signal, which by definition only fires when a
+     * port is live and is the one diagnostic that must survive to explain a blank
+     * webview.
+     */
+    if (
+      previewLive &&
+      severity === 'error' &&
+      !BLANK_PREVIEW_PATTERN.test(normalizedMessage) &&
+      TRANSIENT_RUNTIME_ERROR_PATTERN.test(normalizedMessage)
+    ) {
       return;
     }
 
@@ -154,7 +177,7 @@ export function buildRuntimeDiagnostics({
   for (const line of workspaceLogs) {
     const normalizedLine = normalizeRuntimeLine(line);
 
-    if (RUNTIME_ERROR_PATTERN.test(normalizedLine)) {
+    if (BLANK_PREVIEW_PATTERN.test(normalizedLine) || RUNTIME_ERROR_PATTERN.test(normalizedLine)) {
       addDiagnostic('error', normalizedLine);
     } else if (RUNTIME_WARNING_PATTERN.test(normalizedLine)) {
       addDiagnostic('warning', normalizedLine);

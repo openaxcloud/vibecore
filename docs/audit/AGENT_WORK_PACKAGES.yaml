@@ -1,0 +1,621 @@
+schema_version: 1
+document:
+  title: "Gate 1 parallel agent work packages"
+  audited_sha: "8a93e995b37de513a142acaf41fed364787c5e4e"
+  classification: "proposed execution partition after Gate 1 approval"
+  signed_proven: false
+  execution_authorized: false
+  notes:
+    - "Every package starts from the exact audited base or a coordinator-approved descendant."
+    - "No package is complete until merged/pushed code and independent live proof are separately recorded in existing tracking."
+
+tracking:
+  authoritative_files:
+    - "DESIGN_PROGRAM_MASTER.md"
+    - "DESIGN_AUDIT_LIVE.md"
+    - "BUG_INVENTORY_LIVE.md"
+    - "PLAN_REMAINING_UNIFIED.md"
+    - "REPLIT_PARITY.md"
+  state_model:
+    dispatched: false
+    coded_on_main: false
+    tested_live: false
+  states_changed_by_gate_1: false
+
+global_rules:
+  isolation: "One branch or worktree per package; no shared mutable checkout."
+  base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+  update_policy: "Rebase only after the coordinator publishes accepted dependency SHAs."
+  generated_files: "Generated files have one owner and are never hand-edited by consumers."
+  migration_policy: "Only WP-DATA-OWNERSHIP may allocate or modify Prisma migrations."
+  contract_policy: "Contract changes land before or atomically with compatible producers and consumers."
+  evidence_policy: "Raw commands, results, resource IDs and SHA-256 hashes are retained; tests from another SHA are invalid."
+  merge_policy: "Small coherent PR, required tests green, rollback documented, independent reviewer."
+  live_policy: "No package self-signs and no repository-only result is marked Testé live."
+
+central_file_locks:
+  - paths:
+      - "services/api/src/app.ts"
+      - "services/api/src/store.ts"
+      - "services/api/src/prisma-store.ts"
+    owner_package: "WP-API-MODULARIZATION"
+    rule: "Other packages submit a versioned contract request; they do not edit these files concurrently."
+  - paths:
+      - "packages/database/prisma/schema.prisma"
+      - "packages/database/prisma/migrations/**"
+      - "packages/database/generated/**"
+    owner_package: "WP-DATA-OWNERSHIP"
+    rule: "Single migration sequence and generated-client owner."
+  - paths:
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+    owner_package: "WP-GOV-CONTRACTS"
+    rule: "Dependency changes are queued and applied by the coordinator."
+  - paths:
+      - "infra/helm/platform/**"
+      - "infra/helm/workspaces-runtime/**"
+      - ".github/workflows/**"
+      - "cloudbuild.yaml"
+      - "infra/cloudbuild/**"
+    owner_package: "WP-INFRA-CICD"
+    rule: "Product packages publish configuration/contract requirements; infrastructure owner integrates them."
+  - paths:
+      - "docs/audit/**"
+      - "docs/parity/CONTRACT_REGISTRY.yaml"
+    owner_package: "WP-GOV-CONTRACTS"
+    rule: "Evidence artifacts may be added by QA under an allocated evidence subdirectory; registry state has one editor."
+
+work_packages:
+  - id: "WP-GOV-CONTRACTS"
+    objective: "Establish versioned contracts, ownership, CODEOWNERS and enforceable source boundaries."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "architecture and contracts"
+    independent_reviewer_role: "QA counter-audit"
+    allowed_paths:
+      - "docs/audit/**"
+      - "docs/parity/SERVICE_CONTRACTS/**"
+      - "docs/parity/CONTRACT_REGISTRY.yaml"
+      - ".github/CODEOWNERS"
+      - "eslint.config.mjs"
+      - "scripts/check-domain-boundaries.mjs"
+      - "scripts/check-contract-drift.mjs"
+      - "packages/contracts/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+    forbidden_paths:
+      - "services/**/src/**"
+      - "app/**"
+      - "packages/database/prisma/**"
+      - "infra/helm/**"
+      - "infra/terraform/**"
+    consumes_contracts:
+      - "Current Fastify, workspace, agent, preview and queue behavior at the base SHA."
+    produces_contracts:
+      - "OpenAPI registry and generated-client policy."
+      - "WebSocket and BullMQ schema registry."
+      - "Domain import-direction rules."
+    migrations_allowed: false
+    fixtures:
+      - "Complete route/job/socket inventory snapshots."
+      - "Known historical-SHA contract files as negative drift fixtures."
+    mandatory_tests:
+      - "OpenAPI and YAML schema validation."
+      - "Contract-to-route inventory comparison."
+      - "Boundary rule positive and forbidden-import fixtures."
+    expected_evidence:
+      - "Generated inventory and hash."
+      - "CI output proving drift and boundary checks execute."
+    merge_criteria:
+      - "No behavior or production configuration change."
+      - "Every contract has owner, version, consumers, auth, errors and idempotency."
+    dependencies: []
+
+  - id: "WP-CONFIG-SECRETS"
+    objective: "Implement strict per-service configuration schemas and remove browser-owned durable credentials."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "configuration and security"
+    independent_reviewer_role: "security counter-audit"
+    allowed_paths:
+      - "packages/config/**"
+      - ".env.example"
+      - ".env.production.example"
+      - "scripts/validate-production-enterprise.mjs"
+      - "app/lib/stores/vercel.ts"
+      - "app/lib/stores/netlify.ts"
+      - "app/lib/stores/supabase.ts"
+      - "app/lib/.server/**connector**"
+    forbidden_paths:
+      - "packages/database/prisma/**"
+      - "services/api/src/app.ts"
+      - "infra/helm/**"
+      - ".github/workflows/**"
+    consumes_contracts:
+      - "CONFIGURATION_REGISTRY.yaml."
+      - "Per-service required-variable requests from runtime, AI, billing and connectors."
+    produces_contracts:
+      - "Typed service configuration schemas."
+      - "Public-browser configuration allowlist."
+      - "Secret classification and rotation metadata."
+    migrations_allowed: false
+    fixtures:
+      - "Valid, missing, malformed and unknown-key environment maps."
+      - "Browser bundle with sentinel secret as a rejection fixture."
+    mandatory_tests:
+      - "Every service schema accepts valid minimum config."
+      - "Missing production secret fails closed."
+      - "Unknown or malformed values report a typed startup error."
+      - "Production bundle contains no long-lived provider token."
+    expected_evidence:
+      - "Schema validation output and bundle scan."
+      - "Before/after credential storage behavior."
+    merge_criteria:
+      - "No permanent mock configuration."
+      - "Helm changes deferred to WP-INFRA-CICD through a reviewed config contract."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+
+  - id: "WP-API-MODULARIZATION"
+    objective: "Extract API business logic into bounded modules while preserving every existing route contract."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "backend architecture"
+    independent_reviewer_role: "API contract counter-audit"
+    allowed_paths:
+      - "services/api/src/**"
+      - "services/api/vitest.config.ts"
+    forbidden_paths:
+      - "packages/database/prisma/schema.prisma"
+      - "packages/database/prisma/migrations/**"
+      - "app/**"
+      - "infra/**"
+      - ".github/**"
+    consumes_contracts:
+      - "Generated current API contract from WP-GOV-CONTRACTS."
+      - "Repository ports from WP-DATA-OWNERSHIP when available."
+    produces_contracts:
+      - "Internal application-service interfaces."
+      - "Compatibility façade mapping from legacy routes to modules."
+      - "Versioned clients for manager, AI gateway and connector broker."
+    migrations_allowed: false
+    fixtures:
+      - "Golden success/error payloads for every extracted route group."
+      - "Authentication, authorization and idempotency request fixtures."
+    mandatory_tests:
+      - "Route snapshot parity before and after extraction."
+      - "Negative auth/IDOR and validation tests."
+      - "Concurrent mutation tests for module invariants."
+      - "Internal client timeout, retry and cancellation tests."
+    expected_evidence:
+      - "Route inventory remains complete."
+      - "Diff proving route files are façades rather than duplicated business logic."
+    merge_criteria:
+      - "No route removed or silently changed."
+      - "No new direct cross-domain Prisma access."
+      - "Each extraction is independently reversible."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+
+  - id: "WP-DATA-OWNERSHIP"
+    objective: "Assign model ownership, govern migrations and introduce transactional outbox/repository boundaries."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "database architecture"
+    independent_reviewer_role: "database and concurrency counter-audit"
+    allowed_paths:
+      - "packages/database/**"
+      - "packages/*/src/**repository**"
+      - "services/worker/src/**outbox**"
+      - "tests/database/**"
+    forbidden_paths:
+      - "app/**"
+      - "services/api/src/app.ts"
+      - "infra/helm/**"
+      - ".github/workflows/**"
+    consumes_contracts:
+      - "DATA_OWNERSHIP_MATRIX.yaml."
+      - "Domain commands and events from WP-GOV-CONTRACTS."
+    produces_contracts:
+      - "Model ownership registry."
+      - "Migration allocation registry."
+      - "Transactional outbox and processed-event contract."
+    migrations_allowed: true
+    migration_scope:
+      - "Only additive expand/backfill changes until rollback evidence exists."
+      - "One unique monotonic migration identifier per change."
+    fixtures:
+      - "Empty PostgreSQL database."
+      - "Representative previous schema/data snapshot."
+      - "Duplicate and out-of-order event deliveries."
+    mandatory_tests:
+      - "Prisma validate/generate and fresh deploy."
+      - "Representative upgrade, interruption and rerun."
+      - "Concurrent owner mutation and advisory-lock tests."
+      - "Outbox atomicity, duplicate delivery and replay."
+      - "Backup and restore on a real test PostgreSQL instance."
+    expected_evidence:
+      - "Migration SQL hashes and raw database commands."
+      - "Before/after row counts, constraints and restore checks."
+    merge_criteria:
+      - "Old readers remain compatible."
+      - "No destructive contract phase."
+      - "Data owner and rollback window documented."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-API-MODULARIZATION"
+
+  - id: "WP-RUNTIME"
+    objective: "Make workspace-manager the exclusive runtime/Kubernetes owner and prove the complete runtime state machine."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "workspace and sandbox runtime"
+    independent_reviewer_role: "runtime isolation counter-audit"
+    allowed_paths:
+      - "packages/runtime-contract/**"
+      - "packages/runtime-remote/**"
+      - "packages/runtime-webcontainer/**"
+      - "packages/k8s-client/**"
+      - "packages/sandbox-runtime/**"
+      - "packages/workspace-sdk/**"
+      - "services/workspace-manager/**"
+      - "services/workspace-agent/**"
+    forbidden_paths:
+      - "packages/database/prisma/**"
+      - "services/api/src/app.ts"
+      - "app/components/**"
+      - "infra/helm/**"
+      - "infra/terraform/**"
+    consumes_contracts:
+      - "Workspace-manager and workspace-agent contracts."
+      - "RuntimeAdapter behavioral contract."
+    produces_contracts:
+      - "Exclusive Kubernetes mutation port."
+      - "Runtime state-machine and error contract."
+      - "Agent HTTP/WebSocket client schemas."
+    migrations_allowed: false
+    fixtures:
+      - "Minimal projects for supported language/runtime matrix."
+      - "Concurrent start/restart/delete requests."
+      - "Pod loss, API timeout, missing secret, full disk and inaccessible PVC scenarios."
+    mandatory_tests:
+      - "RuntimeAdapter conformance for remote and WebContainer."
+      - "Real PTY, resize, signal, reconnect and isolation."
+      - "gVisor, seccomp, no service-account token and metadata denial."
+      - "Workspace persistence and reattach/reseed without data loss."
+    expected_evidence:
+      - "Real kind/GKE test resource manifests and raw outputs."
+      - "Workspace files/PVC checksums before and after failure."
+    merge_criteria:
+      - "Bolt/WebContainer remains supported."
+      - "No Kubernetes mutation remains outside manager."
+      - "Cluster topology decision accepted by WP-INFRA-CICD."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-API-MODULARIZATION"
+
+  - id: "WP-IDE"
+    objective: "Consolidate IDE state around RuntimeAdapter without replacing Bolt and prove desktop/tablet/mobile behavior."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "IDE frontend"
+    independent_reviewer_role: "accessibility and E2E counter-audit"
+    allowed_paths:
+      - "app/components/workbench/**"
+      - "app/lib/stores/**"
+      - "app/lib/runtime/**"
+      - "packages/editor/**"
+      - "app/styles/components/**workbench**"
+      - "tests/e2e/**ide**"
+    forbidden_paths:
+      - "services/**"
+      - "packages/database/**"
+      - "infra/**"
+      - ".github/**"
+    consumes_contracts:
+      - "RuntimeAdapter and generated API clients."
+    produces_contracts:
+      - "Single-source IDE state ownership map."
+      - "Deep-link and panel-state contract."
+    migrations_allowed: false
+    fixtures:
+      - "Multiple files/tabs, binary and large file."
+      - "Dirty edits, reconnect, runtime restart and manual conflicting change."
+    mandatory_tests:
+      - "File tree/create/move/delete/search and autosave."
+      - "Editor tab, dirty state, diagnostics and keyboard navigation."
+      - "Terminal/process/preview state consistency."
+      - "Playwright at desktop, tablet and mobile widths with screenshots."
+      - "Network disconnect/reconnect and no data loss."
+    expected_evidence:
+      - "Screenshots/videos and accessibility results."
+      - "Store transition traces around reconnect and preview refresh."
+    merge_criteria:
+      - "Existing Bolt IDE remains usable."
+      - "No duplicate durable runtime/file/process authority."
+      - "Async surfaces have loading and recoverable error states."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-RUNTIME"
+
+  - id: "WP-AGENT-AI"
+    objective: "Make AI gateway the provider boundary and harden autonomous agent execution, tools, budgets and recovery."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "agent and model routing"
+    independent_reviewer_role: "agent safety counter-audit"
+    allowed_paths:
+      - "services/ai-gateway/**"
+      - "app/lib/.server/llm/**"
+      - "app/components/chat/**"
+      - "app/lib/runtime/action-runner.ts"
+      - "packages/security/src/**agent**"
+    forbidden_paths:
+      - "packages/database/prisma/**"
+      - "packages/billing/**"
+      - "services/workspace-manager/**"
+      - "infra/**"
+    consumes_contracts:
+      - "AI gateway, agent-tool and usage-event contracts."
+      - "Typed AI configuration from WP-CONFIG-SECRETS."
+    produces_contracts:
+      - "Agent run lifecycle and cancellation contract."
+      - "Structured tool call/result and validation contract."
+      - "Versioned usage events for billing."
+    migrations_allowed: false
+    fixtures:
+      - "Read-only Ask/Plan, autonomous Agent, Debug and Refactor tasks."
+      - "Infinite loop, blocked command, huge output, flaky test and provider failure."
+    mandatory_tests:
+      - "Permission denial for every read-only mutation attempt."
+      - "Timeout, cancellation, retry and crash resume."
+      - "Patch validation before apply and failed-patch review."
+      - "Budget and duplicate usage-event tests."
+      - "Prompt-injection and secret-exfiltration negatives."
+    expected_evidence:
+      - "Structured tool timeline, diffs, validation output and checkpoint."
+      - "Provider/usage correlation IDs."
+    merge_criteria:
+      - "No provider call bypasses AI gateway in managed mode."
+      - "No failed or unsafe patch is auto-applied."
+      - "Billing ownership remains external."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-API-MODULARIZATION"
+      - "WP-CONFIG-SECRETS"
+
+  - id: "WP-CONNECTORS"
+    objective: "Choose and implement one authoritative credential broker with server-only tokens."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "connectors and secret brokerage"
+    independent_reviewer_role: "connector security counter-audit"
+    allowed_paths:
+      - "services/connector-proxy/**"
+      - "packages/connector-sdk/**"
+      - "services/api/src/modules/connectors/**"
+      - "app/lib/**connector**"
+      - "app/routes/**integration**"
+    forbidden_paths:
+      - "services/api/src/app.ts"
+      - "packages/database/prisma/**"
+      - "infra/**"
+      - "packages/security/**"
+    consumes_contracts:
+      - "Connector proxy OpenAPI/SDK."
+      - "Connector data-owner and typed secret configuration contracts."
+    produces_contracts:
+      - "Broker or retirement ADR."
+      - "Scoped broker token and provider error contract."
+    migrations_allowed: false
+    fixtures:
+      - "Each supported provider with GET and streamed body mutation."
+      - "Encoded delimiters, traversal, untrusted host, expired and revoked token."
+    mandatory_tests:
+      - "SSRF and traversal denial."
+      - "Cross-user/project/organization denial."
+      - "Token never reaches browser/logs."
+      - "Revocation and needs_reconnect concurrency."
+      - "Timeout and provider partial response."
+    expected_evidence:
+      - "Network request capture with secrets redacted."
+      - "Deployment/retirement proof for the selected architecture."
+    merge_criteria:
+      - "No duplicate provider proxy path remains authoritative."
+      - "Infrastructure request handed to WP-INFRA-CICD if broker is retained."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-CONFIG-SECRETS"
+      - "WP-API-MODULARIZATION"
+
+  - id: "WP-DEPLOY-STORAGE"
+    objective: "Own immutable build/publish/rollback and project database/object-storage lifecycles."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "deployments and data services"
+    independent_reviewer_role: "deployment/storage counter-audit"
+    allowed_paths:
+      - "services/api/src/modules/deployments/**"
+      - "services/api/src/modules/storage/**"
+      - "services/api/src/modules/databases/**"
+      - "services/api/src/deployments.ts"
+      - "services/api/src/object-storage.ts"
+      - "services/api/src/database-provisioner.ts"
+      - "services/preview-proxy/**"
+      - "services/screenshotter/**"
+      - "packages/sdk/**"
+    forbidden_paths:
+      - "services/api/src/app.ts"
+      - "packages/database/prisma/**"
+      - "packages/billing/**"
+      - "infra/**"
+    consumes_contracts:
+      - "Deployment, release, preview, database and storage contracts."
+    produces_contracts:
+      - "Immutable ReleaseManifest and readiness proof contract."
+      - "Database/storage lifecycle and deletion-proof events."
+    migrations_allowed: false
+    fixtures:
+      - "Static, server, scheduled and preview deployments."
+      - "Real ephemeral PostgreSQL and object bucket."
+      - "HTTP, WebSocket, SSE, cookies, uploads and multiple ports."
+    mandatory_tests:
+      - "Digest/content readiness, rollback and republish."
+      - "Concurrent promotion/rollback and partial build failure."
+      - "Database migration/backup/restore and storage lifecycle."
+      - "Object disappearance observed before teardown."
+      - "Preview private/internal port negative tests."
+    expected_evidence:
+      - "Endpoint content, logs, manifest digest and rollback result."
+      - "Database/object resource IDs and checksums."
+    merge_criteria:
+      - "READY is never inferred only from a database row."
+      - "External resource proof uses dedicated ephemeral test resources."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-API-MODULARIZATION"
+      - "WP-DATA-OWNERSHIP"
+      - "WP-RUNTIME"
+
+  - id: "WP-BILLING"
+    objective: "Make subscriptions, usage, reservation, settlement and reconciliation concurrency-safe."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "billing and ledger"
+    independent_reviewer_role: "financial invariants counter-audit"
+    allowed_paths:
+      - "packages/billing/**"
+      - "services/api/src/modules/billing/**"
+      - "services/worker/src/**metering**"
+      - "scripts/seed-stripe-catalog.mjs"
+      - "tests/billing/**"
+    forbidden_paths:
+      - "services/api/src/app.ts"
+      - "packages/database/prisma/**"
+      - "services/ai-gateway/**"
+      - "infra/**"
+    consumes_contracts:
+      - "Billing/ledger data owner, usage event and Stripe webhook contracts."
+    produces_contracts:
+      - "Reserve, settle, release and reconcile commands."
+      - "Metering event and idempotency key rules."
+    migrations_allowed: false
+    fixtures:
+      - "Stripe test catalog and signed webhook fixtures."
+      - "Two simultaneous reservations/settlements and duplicate events."
+    mandatory_tests:
+      - "Double-entry balance invariants on real PostgreSQL."
+      - "Duplicate/out-of-order webhook."
+      - "Concurrent reserve/settle/release."
+      - "Undercharge/overcharge and refund reconciliation."
+      - "Shadow/live flag transitions."
+    expected_evidence:
+      - "Ledger transaction/entry rows and invariant queries."
+      - "Stripe test event IDs and reconciliation output."
+    merge_criteria:
+      - "No floating balance update outside ledger transaction."
+      - "No live debit without explicit validated activation."
+      - "Any schema request is implemented only by WP-DATA-OWNERSHIP."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-API-MODULARIZATION"
+      - "WP-DATA-OWNERSHIP"
+      - "WP-CONFIG-SECRETS"
+
+  - id: "WP-INFRA-CICD"
+    objective: "Reconcile cluster topology and make build, deploy, isolation, provenance and rollback complete for every enabled workload."
+    base_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+    owner_role: "infrastructure and delivery"
+    independent_reviewer_role: "SRE/supply-chain counter-audit"
+    allowed_paths:
+      - "infra/**"
+      - ".github/workflows/**"
+      - "cloudbuild.yaml"
+      - "Dockerfile"
+      - "docker-compose*.yml"
+      - "services/connector-proxy/Dockerfile"
+      - "services/workspace-agent/Dockerfile"
+      - "docs/DEPLOY_RUNBOOK.md"
+    forbidden_paths:
+      - "app/**"
+      - "services/**/src/**"
+      - "packages/database/**"
+      - "packages/billing/**"
+    consumes_contracts:
+      - "Per-service image, config, secret, identity, port, probe and network requirements."
+      - "Accepted single-cluster or dual-cluster runtime ADR."
+    produces_contracts:
+      - "Release manifest for every enabled workload."
+      - "Per-service Secret/SA/NetworkPolicy mapping."
+      - "Nix build/provenance and cluster topology contract."
+    migrations_allowed: false
+    fixtures:
+      - "Helm default/prod/override values."
+      - "Terraform staging plan."
+      - "kind test cluster and ephemeral image registry."
+    mandatory_tests:
+      - "infra validator, Helm lint/template/schema and policy assertions."
+      - "Terraform fmt/validate/plan."
+      - "Build every enabled image, SBOM, signature and provenance."
+      - "Deploy/rollout admin and all enabled services by digest."
+      - "Network required-flow and denied-flow tests."
+      - "Real Helm rollback on test cluster."
+    expected_evidence:
+      - "Rendered manifests and hashes."
+      - "Image digests, SBOM, signature/provenance and rollout output."
+      - "Before/after cluster resources and rollback endpoint checks."
+    merge_criteria:
+      - "Current infra validator missing-path failure is fixed."
+      - "Admin, connector decision and screenshotter status are explicit."
+      - "No production resource or secret is used for proof."
+    dependencies:
+      - "WP-GOV-CONTRACTS"
+      - "WP-CONFIG-SECRETS"
+      - "WP-RUNTIME"
+      - "WP-CONNECTORS"
+      - "WP-DEPLOY-STORAGE"
+
+  - id: "WP-QA-COUNTERAUDIT"
+    objective: "Independently reproduce claims, exercise negative/concurrency/failure paths and refuse unsupported verdicts."
+    base_commit: "result commit of each reviewed package"
+    owner_role: "independent QA and counter-audit"
+    independent_reviewer_role: "separate release authority"
+    allowed_paths:
+      - "tests/**"
+      - "docs/audit/evidence/**"
+      - "playwright.config.*"
+      - "scripts/audit-*.mjs"
+      - "scripts/validate-*.mjs"
+    forbidden_paths:
+      - "app/** production files"
+      - "services/**/src/** production files"
+      - "packages/**/src/** production files"
+      - "packages/database/prisma/**"
+      - "infra/**"
+      - ".github/workflows/**"
+    consumes_contracts:
+      - "Acceptance criteria, raw evidence and rollback plan from every package."
+    produces_contracts:
+      - "Independent review receipt with exact SHA and artifact hashes."
+      - "Verdict and explicit reserves."
+    migrations_allowed: false
+    fixtures:
+      - "Fresh clone/worktree at exact result SHA."
+      - "Dedicated ephemeral Postgres, object storage, Kubernetes and browser resources."
+    mandatory_tests:
+      - "Recalculate every evidence hash."
+      - "Repeat targeted positive and negative tests."
+      - "Open and run concurrency/failure tests."
+      - "Inspect bypass paths and direct calls."
+      - "Verify rollback and cleanup observation."
+      - "Responsive desktop/tablet/mobile browser proof where UI is affected."
+    expected_evidence:
+      - "Raw commands and outputs independent of implementation agent."
+      - "Invariant-specific reserves with file, symbol, scenario and required correction."
+    merge_criteria:
+      - "Reviewer did not modify production code."
+      - "No required test is skipped."
+      - "Verdict does not exceed evidence."
+    dependencies:
+      - "All implementation package result SHAs under review"
+
+merge_sequence:
+  - "WP-GOV-CONTRACTS"
+  - "WP-CONFIG-SECRETS and initial WP-API-MODULARIZATION"
+  - "WP-DATA-OWNERSHIP"
+  - "WP-RUNTIME, WP-AGENT-AI, WP-CONNECTORS and WP-BILLING in coordinated disjoint worktrees"
+  - "WP-IDE and WP-DEPLOY-STORAGE after stable consumed contracts"
+  - "WP-INFRA-CICD after service/config requirements are accepted"
+  - "WP-QA-COUNTERAUDIT after every coherent result SHA"
+

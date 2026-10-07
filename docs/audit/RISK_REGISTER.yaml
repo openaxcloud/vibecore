@@ -1,0 +1,975 @@
+schemaVersion: 1
+documentId: ECODE-GATE1-RISK-REGISTER
+title: E-Code Gate 1 risk register
+generatedAt: "2026-08-07T00:00:00+03:00"
+audit:
+  repository: openaxcloud/vibecore
+  codeCommit: 8a93e995b37de513a142acaf41fed364787c5e4e
+  decision: NOT_READY
+  scope: risk-security-operations
+  signedProvenAllowed: false
+riskPolicy:
+  severityOrder:
+    - P0
+    - P1
+    - P2
+    - P3
+  definitions:
+    P0: Direct integrity, financial, security, or recovery invariant violation capable of blocking launch or causing irreversible material harm.
+    P1: High-impact exposure or missing proof on a critical path; must be closed before parity or production-readiness signature.
+    P2: Material quality or operational weakness that must be planned and verified but is not by itself a launch-stopping invariant in this audit.
+  acceptanceRules:
+    - P0 and P1 risks cannot be accepted by a code author alone.
+    - Closure requires an exact-commit fix, positive and negative tests, concurrency/failure tests where applicable, and independent review.
+    - External-system claims require real dedicated test infrastructure and raw, hashed evidence.
+    - No risk in this register is SIGNED_PROVEN.
+references:
+  gaps: docs/audit/GAP_REGISTER.yaml
+  securityThreatModel: docs/audit/SECURITY_THREAT_MODEL.md
+  sloCapacity: docs/audit/SLO_AND_CAPACITY_PLAN.md
+  disasterRecovery: docs/audit/DISASTER_RECOVERY_REPORT.md
+  deploymentGroundTruth: docs/DEPLOY_RUNBOOK.md
+  implementationStatus:
+    path: docs/parity/IMPLEMENTATION_STATUS.yaml
+    role: Generated tracker context only; not exact-commit evidence.
+    exactAuditCommitProof: false
+    generatedFromCommit: d3081c344d7089addb05fa4d3cc29517bfb45550
+    auditCommit: 8a93e995b37de513a142acaf41fed364787c5e4e
+  trackers:
+    - PLAN_REMAINING_UNIFIED.md
+    - BUG_INVENTORY_LIVE.md
+    - REPLIT_PARITY.md
+    - DESIGN_PROGRAM_MASTER.md
+    - DESIGN_AUDIT_LIVE.md
+risks:
+  - id: RISK-FIN-001
+    gapIds:
+      - GAP-BILL-LEDGER-ATOMICITY
+    title: Ledger crash window can create credit, lose a hold, or return a false completed settlement
+    severity: P0
+    likelihood: likely_under_fault
+    impact: critical
+    status: OPEN
+    invariant: Every reservation state has exactly one balanced, durably linked ledger effect.
+    scenario: >-
+      The process dies after reservation creation but before reserve posting, or after COMMITTED transition but before
+      settlement posting. Expiration/replay observes the state but not the missing effect and either releases a nonexistent
+      hold or reports the settlement complete.
+    affectedAssets:
+      - customer credit balances
+      - revenue ledger
+      - spend caps
+      - financial reconciliation
+    evidenceRefs:
+      - services/api/src/ledger-store.ts:195-412
+      - services/api/src/tests/ledger-store-db.spec.ts:20-275
+    existingControls:
+      - Transaction entries are balanced inside postTransaction.
+      - Idempotency uniqueness exists per organization and key.
+      - Compare-and-set prevents two callers from winning the same state transition.
+    controlFailure: State transition, ledger posting, and linkage do not share a transaction or durable recovery protocol.
+    requiredTreatment:
+      - Serialize hard-limit decision per organization.
+      - Couple state and ledger effect transactionally or via a recoverable outbox.
+      - Add a reconciler for incomplete reserve, settle, compensate, and release effects.
+    requiredTests:
+      - deterministic two-connection hard-limit race
+      - kill after each write boundary and restart
+      - ledger balance and entitlement reconciliation
+    owner: billing-ledger
+    reviewer: independent-financial-systems-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-FIN-002
+    gapIds:
+      - GAP-BILL-STRIPE-CREDITPACK-IDEMPOTENCY
+    title: Partial Stripe webhook failure can grant the same purchased credit pack twice
+    severity: P0
+    likelihood: plausible
+    impact: critical
+    status: OPEN
+    invariant: One external payment produces at most one entitlement and one ledger credit.
+    scenario: >-
+      Credit-pack creation commits, audit recording throws, the handler deletes the Stripe-event dedup row, and Stripe retries.
+      No uniqueness on payment_intent prevents a second pack.
+    affectedAssets:
+      - credit entitlements
+      - revenue recognition
+      - fraud controls
+      - customer balance
+    evidenceRefs:
+      - services/api/src/app.ts:25561-26007
+      - services/api/src/app.ts:25656-25683
+      - packages/database/prisma/schema.prisma:1983-1994
+      - services/api/src/prisma-store.ts:4745-4762
+    existingControls:
+      - Stripe signatures are verified.
+      - A StripeEvent dedup row rejects a fully completed sequential replay.
+    controlFailure: The dedup fence is reopened after a non-idempotent effect has committed.
+    requiredTreatment:
+      - Unique external payment key on the entitlement.
+      - Durable event/effect state machine with independently retryable audit side effect.
+    requiredTests:
+      - concurrent duplicate delivery in Stripe test mode
+      - audit failure after entitlement creation
+      - handler crash before HTTP acknowledgement
+    owner: billing-platform
+    reviewer: independent-billing-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-REL-001
+    gapIds:
+      - GAP-DEPLOY-ROLLBACK-DIGEST-LINEARIZATION
+    title: Rollback can serve unverified destination bytes with a source digest
+    severity: P0
+    likelihood: plausible_under_fault
+    impact: critical
+    status: OPEN
+    invariant: No restored release receives traffic before final-byte digest verification and durable manifest commit.
+    scenario: >-
+      Restore produces partial or altered destination bytes; the deployment is marked READY; destination digest computation
+      fails and falls back to the source digest. Operators and users see a successful rollback whose manifest does not prove
+      the served bytes.
+    affectedAssets:
+      - published customer applications
+      - release history
+      - incident rollback
+      - artifact integrity
+    evidenceRefs:
+      - services/api/src/app.ts:6644-6726
+      - services/api/src/app.ts:33265-33352
+      - PLAN_REMAINING_UNIFIED.md:42-44
+    existingControls:
+      - Source snapshot digest is checked.
+      - Server rollback resolves retained image digests.
+      - Helm deployment uses atomic rollback on rollout failure.
+    controlFailure: READY precedes destination verification; manifest write is best-effort.
+    requiredTreatment:
+      - Integrate and independently review the unmerged rollback-integrity work.
+      - Use pending/verified manifest states and reconcile interrupted work.
+    requiredTests:
+      - corrupt destination after source verification
+      - fail destination digest computation
+      - crash before manifest and before READY
+      - real publish and rollback by exact digest
+    owner: deployments
+    reviewer: independent-release-integrity-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-FIN-003
+    gapIds:
+      - GAP-BILL-METERING-EXACTLY-ONCE
+      - GAP-BILL-CREDIT-DEBIT-CONCURRENCY
+    title: Metering crash windows permit permanent undercharge, duplicate charge, or negative wallet state
+    severity: P1
+    likelihood: likely_under_retry
+    impact: high
+    status: OPEN
+    invariant: Each measured usage window is charged once and only once, with a reconciliable source identity.
+    scenario: >-
+      A swallowed charge failure consumes lastMeteredAt and loses revenue; a successful charge followed by failed watermark
+      update is retried and charged twice; credit compensation is lost on process crash.
+    affectedAssets:
+      - customer invoices and balances
+      - platform margin
+      - quota and spend-cap enforcement
+    evidenceRefs:
+      - services/api/src/app.ts:3637-3684
+      - services/api/src/metering-service.ts:1-228
+      - services/api/src/deploy-runtime-metering.ts:91-200
+      - services/api/src/credits-service.ts:151-248
+    existingControls:
+      - Advisory locks serialize selected metering loops.
+      - PAYG rows can use a stable reference.
+      - Guarded pack decrements reduce one over-consumption path.
+    controlFailure: Locks do not make charge, usage event, PAYG record, and watermark one durable effect.
+    requiredTreatment:
+      - Durable metering-window identity and state machine.
+      - Reconciliation against runtime/storage/provider source counters.
+    requiredTests:
+      - fault injection at every metering write
+      - duplicate cron and overlapping reconcile
+      - concurrent final-credit consumption
+    owner: billing-metering
+    reviewer: independent-billing-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN_BEFORE_PAID_USE
+
+  - id: RISK-SEC-001
+    gapIds:
+      - GAP-SEC-SECRET-RESOLUTION-FAILOPEN
+    title: Workspaces and deployments can start with silently omitted required secrets
+    severity: P1
+    likelihood: plausible
+    impact: high
+    status: OPEN
+    invariant: A required secret must resolve completely before a workload or deployment can become ready.
+    scenario: Ciphertext corruption, wrong key rotation, or unavailable secret lookup is swallowed and the workload starts with an incomplete environment.
+    affectedAssets:
+      - customer applications
+      - deployment integrity
+      - external databases and APIs
+      - incident diagnostics
+    evidenceRefs:
+      - services/api/src/app.ts:2689-2715
+      - services/api/src/app.ts:13145-13182
+      - packages/security/src/index.ts:100-140
+    existingControls:
+      - AES-GCM storage encryption.
+      - Production encryption key requirement.
+      - Secret-name/value redaction helpers.
+    controlFailure: Availability is prioritized over configuration integrity without an explicit optional-secret policy.
+    requiredTreatment:
+      - Typed required/optional secret resolution result.
+      - Block readiness and emit redacted audit/operational event on required-secret failure.
+    requiredTests:
+      - corrupted ciphertext startup and recovery
+      - missing encryption key in production
+      - log and agent-output secret canary scan
+    owner: secrets-runtime
+    reviewer: application-security
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-SEC-002
+    gapIds:
+      - GAP-SEC-OBJECT-TOKEN-REVOCATION
+      - GAP-STORE-GCS-FAILURE-CONCURRENCY
+    title: Stale workspace token retains destructive object-storage access after authority changes
+    severity: P1
+    likelihood: plausible
+    impact: high
+    status: OPEN
+    invariant: Workspace-derived storage authority ends when the workspace/user/project authority ends.
+    scenario: A token copied from a workspace remains valid for up to seven days after stop, member removal, project transfer, or deletion and can delete a bucket or issue upload URLs.
+    affectedAssets:
+      - project objects
+      - previews and thumbnails
+      - exports and snapshots
+      - deletion compliance
+    evidenceRefs:
+      - services/api/src/app.ts:3186-3254
+      - services/api/src/app.ts:30538-30708
+      - services/api/src/object-storage.ts:227-375
+    existingControls:
+      - Signed token with expiry and projectId.
+      - Object keys and project bucket names are server-derived.
+    controlFailure: No generation/revocation/workspace-state/scope check occurs at authorization time.
+    requiredTreatment:
+      - Short TTL, audience and read/write scope.
+      - Online generation or revocation check tied to workspace and project lifecycle.
+      - Deletion fence blocks new signed URLs and bucket recreation.
+    requiredTests:
+      - old token after stop, removal, transfer, deletion and key rotation
+      - signed upload racing purge
+      - more than 1000 object purge
+    owner: security-storage
+    reviewer: application-security
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-SEC-003
+    gapIds:
+      - GAP-SEC-SSRF-DNS-REBINDING
+    title: DNS rebinding can bypass hostname-only SSRF validation
+    severity: P1
+    likelihood: plausible
+    impact: high
+    status: OPEN
+    invariant: Server-originated requests never reach metadata, loopback, private, link-local, or unauthorized cluster addresses.
+    scenario: A validated public hostname changes or returns a private address at connection time, or a redirect resolves to an unsafe destination.
+    affectedAssets:
+      - cloud metadata credentials
+      - internal APIs and databases
+      - tenant services
+      - model and connector secrets
+    evidenceRefs:
+      - services/api/src/app.ts:2115-2264
+      - services/api/src/mcp-marketplace.ts:330-390
+    existingControls:
+      - Extensive literal-IP canonicalization and private-range blocklist.
+      - HTTPS-only webhook policy.
+      - Redirect and timeout controls on selected clients.
+    controlFailure: DNS answers are not validated and pinned at socket connection time.
+    requiredTreatment:
+      - Safe resolver/agent shared by webhook, Git, MCP and provider clients.
+      - Revalidate each redirect and all A/AAAA answers.
+      - Enforce defense-in-depth egress policy.
+    requiredTests:
+      - controlled rebinding DNS
+      - public-to-private redirect
+      - IPv4 and IPv6 metadata targets
+      - API and workspace egress negative drill
+    owner: application-security
+    reviewer: independent-security-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-SEC-004
+    gapIds:
+      - GAP-SEC-TENANT-ISOLATION-LIVE
+      - GAP-SEC-KYVERNO-ENFORCEMENT
+    title: Tenant and runtime isolation is represented in code but not signed by real negative tests
+    severity: P1
+    likelihood: unknown
+    impact: critical
+    status: OPEN_BLOCKED
+    invariant: No identity or sandbox can observe or affect another tenant or the host.
+    scenario: Route-level ID substitution, shared namespace secret access, unenforced gVisor policy, preview collision, or network-policy drift creates a cross-tenant or host access path not covered by mocks.
+    affectedAssets:
+      - all tenant code and data
+      - host and cloud credentials
+      - runtime secrets
+      - platform availability
+    evidenceRefs:
+      - services/api/src/app.ts:3048-3598
+      - packages/k8s-client/src/index.ts:645-735
+      - infra/kubernetes/workspaces-runtime/networkpolicies.yaml:1-96
+      - infra/admission/kyverno/workspace-security-policies.yaml:10-17
+      - infra/kubernetes/admission-policies/workspace-restricted-policies.yaml:1-80
+    existingControls:
+      - Central authentication, organization and project authorization guards.
+      - gVisor, non-root, seccomp, dropped capabilities and no service-account token in generated pod specs.
+      - Default-deny workspace NetworkPolicy manifests.
+    controlFailure: Two admission-policy sources disagree and the deployment path does not prove either is installed; no real negative isolation suite is attached to the SHA.
+    requiredTreatment:
+      - Canonical Enforce policy installed and drift-checked.
+      - Generated route authorization matrix and live two-tenant test harness.
+      - Reduce manager secret RBAC blast radius.
+    requiredTests:
+      - IDOR and role escalation matrix
+      - cross-project secrets, PVC, DB, object and preview access
+      - hostPath, privileged, non-gVisor and latest-tag rejection
+      - metadata and private egress denial
+    owner: security-platform
+    reviewer: independent-runtime-security-reviewer
+    dueGate: 5
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-SEC-005
+    gapIds:
+      - GAP-SEC-LEGACY-EXPORT-SENSITIVE-FIELDS
+    title: Legacy data export discloses session token hashes and may over-export organization data
+    severity: P1
+    likelihood: likely_when_route_used
+    impact: high
+    status: OPEN
+    invariant: Exported data contains no credential verifier and only datasets explicitly authorized for the requesting role.
+    scenario: An authenticated user calls /auth/export and receives tokenHash plus organization-wide project, usage and AI-cost datasets.
+    affectedAssets:
+      - session security metadata
+      - organization usage and billing data
+      - project metadata
+    evidenceRefs:
+      - services/api/src/app.ts:17433-17470
+      - services/api/src/prisma-store.ts:470-476
+      - services/api/src/prisma-store.ts:5981-5993
+    existingControls:
+      - Authentication is required.
+      - Newer export endpoint uses explicit field selection and no-store.
+    controlFailure: A legacy route bypasses the newer safe serializer.
+    requiredTreatment:
+      - Remove/redirect legacy export and centralize field-selected export policy.
+      - Permission-check each organization dataset.
+    requiredTests:
+      - recursive forbidden-field scan
+      - role-based organization export matrix
+    owner: identity-compliance
+    reviewer: privacy-security
+    dueGate: 2
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-DATA-001
+    gapIds:
+      - GAP-DATA-ACCOUNT-PURGE
+      - GAP-DATA-PROJECT-HARD-DELETE-EXTERNALS
+    title: Account and project deletion can leave live or orphaned external data and ownerless organizations
+    severity: P1
+    likelihood: likely_when_deletion_used
+    impact: high
+    status: OPEN
+    invariant: A deletion is complete only after every owned resource is fenced, deleted, and independently observed absent.
+    scenario: Account intent reaches ready-to-purge but has no executor, legacy delete removes only the user, or project hard-delete removes DB metadata while workloads, PVCs, files, deployments and GCS data remain.
+    affectedAssets:
+      - personal data
+      - customer source code
+      - organization ownership
+      - storage and compute cost
+      - audit/compliance evidence
+    evidenceRefs:
+      - services/api/src/app.ts:9955-10078
+      - services/api/src/app.ts:17473-17516
+      - services/api/src/app.ts:22586-22626
+      - services/api/src/prisma-store.ts:374-394
+      - services/api/src/prisma-store.ts:1008-1012
+    existingControls:
+      - Grace and cancellation state calculations exist.
+      - Database delete errors other than not-found are surfaced.
+      - Project hard-delete requires server-side authorization and optional typed confirmation.
+    controlFailure: No durable cross-system deletion saga, generation fence, recovery, or absence receipt.
+    requiredTreatment:
+      - Durable deletion state machine and per-resource receipts.
+      - Freeze new work, uploads, agents, deploys and billing before purge.
+      - Separate legal-retention records from active personal identifiers.
+    requiredTests:
+      - deletion races with upload, workspace, agent, transfer, publish and billing
+      - process crash at every phase
+      - physical absence before teardown
+    owner: data-lifecycle
+    reviewer: privacy-and-sre
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-REL-002
+    gapIds:
+      - GAP-REL-COLLABORATION-REDIS-OUTAGE
+      - GAP-REL-COLLABORATION-WS-BACKOFF
+    title: Redis outage or WebSocket flapping can silently split collaborators or create unbounded reconnect churn
+    severity: P1
+    likelihood: plausible
+    impact: high
+    status: OPEN
+    invariant: Collaboration either preserves its documented ordering model across replicas or clearly becomes unavailable; reconnect remains bounded.
+    scenario: Redis publish/subscribe fails and each API replica continues local-only, while clients see connected state. Separately, open-close flapping resets backoff immediately and retries forever at minimum delay.
+    affectedAssets:
+      - concurrent source edits
+      - comments and presence
+      - rollback/delete coordination
+      - API and ingress capacity
+    evidenceRefs:
+      - services/api/src/app.ts:7296-7420
+      - app/lib/collaboration/projectCollaborationClient.ts:362-485
+    existingControls:
+      - Redis fan-out includes origin-node deduplication.
+      - Local send failures remove stale peers.
+      - Terminal and file/port watch transports have bounded stability-gated backoff.
+    controlFailure: Broker health is not part of readiness and collaboration client resets before stability.
+    requiredTreatment:
+      - Define CRDT/OT/locking/LWW recovery contract.
+      - Shared-broker degraded health and replay/resync protocol.
+      - Stability-gated bounded reconnect.
+    requiredTests:
+      - two API replicas and controlled Redis loss
+      - simultaneous edit ordering and resync
+      - ingress rapid open-close sequence
+    owner: collaboration
+    reviewer: distributed-systems-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN_FOR_REALTIME_PARITY
+
+  - id: RISK-OPS-001
+    gapIds:
+      - GAP-OBS-FLEET-SIGNALS-AND-ALERTS
+    title: Critical failures may not page an operator or may appear healthy on one replica
+    severity: P1
+    likelihood: likely
+    impact: high
+    status: OPEN
+    invariant: Every critical-path failure is observable fleet-wide and routes to a tested human response.
+    scenario: Per-process metrics omit another failing replica, static alert rules are not installed, or the configured notification channel/host remains a disabled placeholder.
+    affectedAssets:
+      - incident detection and response
+      - billing integrity
+      - workspace availability
+      - security response
+    evidenceRefs:
+      - packages/observability/src/index.ts:162-420
+      - services/api/src/app.ts:8660-8750
+      - infra/observability/prometheus/alert-rules.yaml:1-135
+      - infra/terraform/modules/monitoring/main.tf:1-52
+    existingControls:
+      - Correlation/request IDs.
+      - Structured readiness checks for DB and Redis.
+      - Repository alert and dashboard assets.
+    controlFailure: Deployment, fleet aggregation, delivery and runbook execution are unproven.
+    requiredTreatment:
+      - Deploy and drift-check collectors/rules/dashboards.
+      - Replace placeholders with test notification channels.
+      - Add dependency and shared-broker degraded states.
+    requiredTests:
+      - alert firing and notification receipt
+      - one replica failure hidden by aggregate health
+      - trace through API, runtime, preview, agent and billing
+    owner: sre-observability
+    reviewer: independent-sre
+    dueGate: 5
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-OPS-002
+    gapIds:
+      - GAP-DR-REAL-RESTORE
+    title: Backups may be unusable or recovery may exceed undocumented actual RTO/RPO
+    severity: P1
+    likelihood: unknown
+    impact: critical
+    status: OPEN_BLOCKED
+    invariant: A backup is valid only after an isolated restore and critical-journey verification.
+    scenario: PostgreSQL, PVC, GCS or release artifacts are unavailable or inconsistent during an incident; the only exercised proof is a local archive fixture, not the managed data plane.
+    affectedAssets:
+      - project metadata and source
+      - billing records
+      - workspace volumes
+      - deployment artifacts
+      - recovery time
+    evidenceRefs:
+      - scripts/backup-restore-dry-run.mjs
+      - docs/BACKUP_RESTORE.md
+      - docs/DISASTER_RECOVERY.md
+      - docs/DEPLOY_RUNBOOK.md
+    existingControls:
+      - Local encrypted archive and tamper/checksum validation.
+      - Documented Helm rollback path.
+      - Proposed recovery sequence and RTO/RPO objectives.
+    controlFailure: No managed PostgreSQL/PVC/GCS restore or measured end-to-end recovery report for the audited commit.
+    requiredTreatment:
+      - Regular isolated restore drills with data reconciliation and promotion gate.
+      - Versioned backup inventory and immutable evidence.
+    requiredTests:
+      - PITR at several points around migrations
+      - PVC and object restore with manifest equality
+      - zone/node/manager/DB/Redis loss
+      - post-restore terminal, preview, agent, deploy and webhook journey
+    owner: sre-dr
+    reviewer: independent-sre
+    dueGate: 5
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-PERF-001
+    gapIds:
+      - GAP-PERF-CAPACITY-BASELINE
+      - GAP-QUOTA-CONCURRENCY
+    title: Unmeasured saturation and non-atomic quotas can cause overload, retry storms and cost runaway
+    severity: P1
+    likelihood: plausible
+    impact: high
+    status: OPEN_BLOCKED
+    invariant: Admission and backpressure keep every shared dependency within a measured safe envelope.
+    scenario: Simultaneous workspace wake, preview, agent burst, storage upload or webhook retry exceeds DB connections, Redis, node capacity, queues or provider limits before quotas serialize.
+    affectedAssets:
+      - API and workspace availability
+      - customer latency
+      - cloud and model cost
+      - billing correctness
+    evidenceRefs:
+      - tests/load
+      - services/api/src/app.ts:14539-14731
+      - docs/SLOS.md
+      - docs/PRODUCTION_READINESS.md:21-24
+    existingControls:
+      - k6 scenario sources.
+      - Resource requests/limits and selected quota/advisory locks.
+      - Candidate alert thresholds.
+    controlFailure: No exact-SHA capacity report, cost model, saturation point or autoscaling-lag measurement.
+    requiredTreatment:
+      - Run controlled capacity ladder and failure load.
+      - Enforce queue and concurrency limits at admission.
+      - Size at tested headroom rather than catalogue maximum.
+    requiredTests:
+      - cold and warm workspace start ladder
+      - simultaneous wake and agent burst
+      - retry storm, poison job and provider rate limit
+      - DB, Redis, ingress, node and storage saturation
+    owner: performance-sre
+    reviewer: independent-performance-reviewer
+    dueGate: 5
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-SUPPLY-001
+    gapIds:
+      - GAP-SUPPLY-CHAIN-DEPLOYED-DIGEST
+    title: Mutable CI actions and image tags weaken build-to-runtime artifact integrity
+    severity: P1
+    likelihood: plausible
+    impact: critical
+    status: OPEN
+    invariant: The reviewed source commit uniquely identifies the verified bytes running in every service.
+    scenario: A mutable action or image tag changes after review, web builds against deps:latest, or Helm deploys a tag whose digest lacks matching signature/provenance/SBOM.
+    affectedAssets:
+      - production workloads
+      - customer source and secrets
+      - build credentials
+      - auditability and rollback
+    evidenceRefs:
+      - .github/workflows/deploy-main.yml:76-346
+      - .github/workflows/docker.yml
+      - docs/DEPLOY_RUNBOOK.md
+      - origin/worktree-b6-b7-supply-chain@ef13a9794aabcea4493182fbe7a4956d8fa259d2
+    existingControls:
+      - Workload Identity Federation.
+      - Short-SHA tagging and sequential Cloud Build.
+      - Separate SBOM/provenance/Trivy workflow.
+      - Helm atomic rollout.
+    controlFailure: The production workflow does not require or deploy the verified digest and the signing branch is unmerged.
+    requiredTreatment:
+      - Pin third-party actions by commit.
+      - Build, sign, attest and deploy immutable digests in one gated workflow.
+      - Verify signatures at admission and workload imageID after rollout.
+    requiredTests:
+      - unsigned and tampered image admission denial
+      - wrong provenance subject denial
+      - runtime imageID equals release manifest
+      - rollback preserves exact digest set
+    owner: platform-supply-chain
+    reviewer: independent-supply-chain-reviewer
+    dueGate: 5
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-CACHE-001
+    gapIds:
+      - GAP-BILL-METERING-EXACTLY-ONCE
+    title: Per-process fail-open pricing and routing caches can create replica split-brain
+    severity: P1
+    likelihood: plausible
+    impact: high
+    status: OPEN
+    invariant: A billed or routed operation records and uses one authoritative, valid card version across replicas.
+    scenario: The active DB card is invalid or temporarily unavailable; each process falls back and caches independently for 60 seconds, producing mixed pricing or model routing during the same interval.
+    affectedAssets:
+      - customer charges
+      - model selection and cost
+      - audit reconciliation
+    evidenceRefs:
+      - services/api/src/rate-card-service.ts:1-87
+      - services/api/src/agent-routing-service.ts:1-80
+    existingControls:
+      - Schema validation of stored card data.
+      - Each operation can stamp the version used.
+    controlFailure: Validation failure and DB outage fail open to a process-local fallback with no shared invalidation or degraded state.
+    requiredTreatment:
+      - Versioned immutable card snapshot per operation.
+      - Shared invalidation and explicit degraded policy for billing-authoritative reads.
+    requiredTests:
+      - multiple replicas during card activation
+      - corrupt active card and DB outage
+      - verify recorded price and model version across retries
+    owner: billing-model-routing
+    reviewer: distributed-systems-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN_FOR_PAID_USE
+
+  - id: RISK-SEC-006
+    gapIds:
+      - GAP-PREVIEW-TENANT-PRIVATE-FAILOPEN
+    title: Disabled and fail-open preview authorization can expose another tenant's private runtime
+    severity: P0
+    likelihood: likely
+    impact: critical
+    status: OPEN
+    invariant: An unauthenticated, unauthorized or unresolved preview request never exchanges bytes with a workspace upstream.
+    scenario: >-
+      The deployed proxy leaves tenant/private-port enforcement disabled, or the private-port lookup times out or returns an
+      error. The proxy interprets the port as public and forwards HTTP, WebSocket, SSE or uploaded content to a workspace the
+      caller is not authorized to access.
+    affectedAssets:
+      - tenant source code and application data
+      - development credentials and cookies
+      - workspace network services
+      - customer trust and isolation guarantees
+    evidenceRefs:
+      - services/preview-proxy/src/app.ts:504-539
+      - services/preview-proxy/src/app.ts:1211-1246
+      - infra/helm/platform/templates/configmap.yaml:146-158
+    existingControls:
+      - Optional tenant-cookie and private-port checks exist when explicitly enabled.
+      - Unit tests exercise selected enabled-option paths.
+    controlFailure: Authorization defaults off and private classification explicitly fails open on dependency failure.
+    requiredTreatment:
+      - Make tenant and access-policy enforcement mandatory at startup.
+      - Make unknown/private lookup failure deny before routing and centralize the policy across transports.
+      - Audit denied access with tenant-safe identifiers and bounded dependency timeouts.
+    requiredTests:
+      - two-tenant anonymous and cross-tenant HTTP, WebSocket, SSE, upload and streaming denial
+      - lookup timeout, refusal, non-2xx and malformed response denial
+      - revoked/expired session and scale-to-zero wake denial before upstream bytes
+    owner: preview-platform-security
+    reviewer: independent-tenant-isolation-reviewer
+    dueGate: 2
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-AGENT-001
+    gapIds:
+      - GAP-AGENT-ASK-READONLY-ENFORCEMENT
+    title: Ask mode can execute model- or message-supplied file and shell actions
+    severity: P0
+    likelihood: likely
+    impact: critical
+    status: OPEN
+    invariant: Read-only mode has zero side effects even when model output or repository content is malicious.
+    scenario: >-
+      A prompt-injected model response or crafted replay contains an action tag while Ask is selected. The global message
+      parser lacks the current mode, adds file/shell actions and invokes workbenchStore.runAction, modifying the project or
+      starting a process despite the user selecting read-only behavior.
+    affectedAssets:
+      - project source and Git history
+      - workspace processes and network
+      - databases, secrets and deployments reachable by tools
+      - user consent and agent auditability
+    evidenceRefs:
+      - app/components/chat/BaseChat.tsx:532-547
+      - app/components/chat/BaseChat.tsx:1794-1844
+      - app/lib/hooks/useMessageParser.ts:9-76
+    existingControls:
+      - The UI describes Ask as read-only.
+      - The prompt instructs the model not to edit or execute.
+    controlFailure: A prompt is advisory; no capability check exists at parser, queue or final mutation boundary.
+    requiredTreatment:
+      - Issue immutable server-side capability grants per execution and verify them at every tool side-effect boundary.
+      - Prevent read-only messages from registering or replaying mutating actions.
+      - Record explicit denied-tool audit events without executing client callbacks.
+    requiredTests:
+      - adversarial assistant and user action tags in Ask mode
+      - streaming cancellation, reconnect, replay and mode switch with pending action
+      - filesystem, Git, process, DB, secret, network and deployment state non-mutation proof
+    owner: agent-runtime-security
+    reviewer: independent-agent-security-reviewer
+    dueGate: 2
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-SEC-007
+    gapIds:
+      - GAP-SEC-SECRET-BROWSER-PLAINTEXT
+    title: Project readers and browser surfaces can receive plaintext credential material
+    severity: P0
+    likelihood: likely
+    impact: critical
+    status: OPEN
+    invariant: Secret and credential values are encrypted at rest and never returned to the browser, logs or agent context.
+    scenario: >-
+      A project reader requests env-vars and receives their values, including AUTH_JWT_SECRET created by the auth scaffold, or
+      a security manager invokes secret reveal and receives decrypted material in the browser. A compromised browser,
+      extension, XSS, agent prompt or logged response can then exfiltrate durable credentials.
+    affectedAssets:
+      - application JWT signing keys
+      - database and provider credentials
+      - deployment and integration secrets
+      - tenant sessions and data
+    evidenceRefs:
+      - packages/database/prisma/schema.prisma:513-539
+      - services/api/src/app.ts:21083-21261
+      - services/api/src/tests/env-var-scope-routes.spec.ts
+    existingControls:
+      - ProjectSecret supports encrypted ciphertext and hashed lookup material.
+      - Secret reveal requires security:manage.
+      - Selected logger fields have redaction rules.
+    controlFailure: ProjectEnvVar is plaintext/exportable and both env-var and explicit reveal APIs cross the browser trust boundary.
+    requiredTreatment:
+      - Separate public configuration metadata from non-exportable secret references.
+      - Encrypt or externalize all credential-bearing values and remove raw-value read responses.
+      - Provide brokered runtime/deployment injection, rotation and revocation with access audit.
+    requiredTests:
+      - neutral-name canary across reader, writer and admin API/UI/agent surfaces
+      - ephemeral PostgreSQL dump ciphertext inspection
+      - log, trace, error, export and browser payload exfiltration scan
+      - active-workload rotation and revocation
+    owner: identity-secrets-security
+    reviewer: independent-application-security-reviewer
+    dueGate: 2
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-RUNTIME-001
+    gapIds:
+      - GAP-RUNTIME-WORKSPACE-DELETE-ORPHAN
+    title: Failed workspace cleanup is marked DELETED and permanently hidden from garbage collection
+    severity: P1
+    likelihood: plausible
+    impact: critical
+    status: OPEN
+    invariant: A terminally deleted workspace has no remaining Kubernetes or storage resource and no reusable credential.
+    scenario: >-
+      One Kubernetes delete fails, Promise.allSettled is ignored, and the database row becomes DELETED. garbageCollect reads
+      only non-deleted rows, so the surviving PVC, Secret, Pod or Service is never retried and may retain data, credentials,
+      routability or cost indefinitely.
+    affectedAssets:
+      - project source and persistent volumes
+      - workspace agent credentials
+      - tenant isolation and resource quotas
+      - cluster capacity and cost
+    evidenceRefs:
+      - services/workspace-manager/src/manager.ts:1143-1206
+      - services/workspace-manager/src/manager.spec.ts:125
+    existingControls:
+      - Every Kubernetes delete is attempted.
+      - Garbage collection has an overlap guard and optimistic workspace guard.
+    controlFailure: Per-resource outcomes are discarded and terminal state excludes the failed cleanup from reconciliation.
+    requiredTreatment:
+      - Persist cleanup state and per-resource outcomes.
+      - Reconcile incomplete deletes across process restart until observed absence.
+      - Linearize terminal deletion against reopen and PVC generation.
+    requiredTests:
+      - independent Service, Pod, Secret and PVC delete failure injection
+      - restart and duplicate deletion convergence
+      - concurrent delete, GC and reopen with persistent-data canary
+    owner: workspace-runtime
+    reviewer: independent-runtime-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-DATA-002
+    gapIds:
+      - GAP-DATA-DB-RESTORE-CUTOVER
+    title: Database restore can report COMPLETED while applications still use the old database
+    severity: P1
+    likelihood: likely
+    impact: critical
+    status: OPEN
+    invariant: Restore completion means validated recovered data is the single authoritative target used by the application.
+    scenario: >-
+      CNPG reports the recovery cluster healthy, maintenance marks the restore COMPLETED, but DATABASE_URL is never cut over.
+      Operators and users believe recovery succeeded while workloads continue on old data; an ad hoc later cutover can also
+      create split-brain writes or destroy the only rollback target.
+    affectedAssets:
+      - tenant application data
+      - recovery correctness and RPO
+      - database credentials and connection state
+      - operator incident decisions
+    evidenceRefs:
+      - services/api/src/database-provisioner.ts:388-392
+      - services/api/src/database-provisioner.ts:637-665
+      - services/api/src/app.ts:28566-28585
+    existingControls:
+      - A separate CNPG recovery cluster is created.
+      - Cluster health and readyInstances are polled.
+    controlFailure: No data validation, connection-secret cutover, writer fencing, application readiness or rollback transition exists.
+    requiredTreatment:
+      - Add a durable restore/cutover state machine with old/new target identity and writer fencing.
+      - Validate recovered data and application queries before COMPLETED.
+      - Retain and exercise the prior target until an explicit rollback window closes.
+    requiredTests:
+      - real Postgres/CNPG pre/post snapshot data and active app cutover
+      - crash before and after secret update and readiness
+      - concurrent queries/migration/restore and rollback without split-brain
+    owner: data-platform
+    reviewer: independent-database-recovery-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-DATA-003
+    gapIds:
+      - GAP-IMPORT-PARTIAL-ROLLBACK
+    title: Import failure can leave a visible partial project while reporting rollback
+    severity: P1
+    likelihood: plausible
+    impact: high
+    status: OPEN
+    invariant: A failed import leaves neither a target project nor files, manifest, usage or billing effects.
+    scenario: >-
+      The importer creates the target project and then fails during file, manifest, usage or state persistence. cleanupImport
+      clears only in-memory staging/ledger and changes job state; the partial project survives and a retry can create another
+      project or mismatched usage record.
+    affectedAssets:
+      - imported source and Git expectations
+      - project quotas and usage accounting
+      - user-visible project inventory
+      - credentials found during import
+    evidenceRefs:
+      - services/api/src/app.ts:19190-19194
+      - services/api/src/app.ts:19484-19541
+      - services/api/src/import-pipeline.ts
+    existingControls:
+      - Pre-commit staging and consent/redaction state machine.
+      - In-process credit reservation compensation.
+      - Import state transition tests.
+    controlFailure: The rollback path does not compensate durable target/storage/manifest/usage effects created before COMMITTED.
+    requiredTreatment:
+      - Persist a saga/outbox with idempotent compensators for every effect.
+      - Hide the target until commit publication or durably delete it before terminal failure.
+      - Uniquely bind idempotency key to target and usage effect across replicas.
+    requiredTests:
+      - failure and restart after every durable write boundary
+      - multi-replica same-key concurrency
+      - cancellation/timeout/retry with zero partial visibility and zero charge
+    owner: project-imports
+    reviewer: independent-distributed-systems-reviewer
+    dueGate: 3
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-DEPLOY-002
+    gapIds:
+      - GAP-DEPLOY-REPRODUCIBILITY-PRIVATE-ACCESS
+      - GAP-SUPPLY-CHAIN-DEPLOYED-DIGEST
+    title: Publication can lack immutable revision identity, private access enforcement and operational custom domains
+    severity: P1
+    likelihood: likely
+    impact: high
+    status: OPEN
+    invariant: A published endpoint serves the reviewed immutable artifact under the declared access and domain policy.
+    scenario: >-
+      Production selects the snapshot path because the revision allowlist is empty, publish copies READY metadata/URL without
+      proving artifact bytes, or a user supplies a custom domain/private expectation that is only stored or presented in UI.
+      The endpoint can serve unverifiable bytes publicly, without completed DNS ownership or managed TLS lifecycle.
+    affectedAssets:
+      - deployed application integrity
+      - private customer applications
+      - custom-domain traffic and TLS identity
+      - rollback and incident forensics
+    evidenceRefs:
+      - infra/helm/platform/values-prod.yaml:137-142
+      - services/api/src/deployments.ts:747-793
+      - app/routes/projects.$projectId.deployments.tsx:729-760
+      - services/api/src/app.ts:30780-33800
+    existingControls:
+      - Deployment records, status transitions and publish/rollback routes.
+      - CommitSha and customDomain metadata fields.
+      - A candidate revision-bound path behind an empty rollout allowlist.
+    controlFailure: Metadata and a READY state do not prove immutable runtime bytes, access enforcement, DNS ownership or certificate readiness.
+    requiredTreatment:
+      - Make digest-addressed revision builds the publication identity.
+      - Implement fail-closed public/private/password policy at ingress.
+      - Add custom-domain ownership, DNS and managed TLS state machines with rollback/revocation.
+    requiredTests:
+      - deterministic rebuild and runtime imageID equality
+      - anonymous, cross-tenant, wrong-password and revoked-access denial
+      - dedicated test-domain DNS, TLS issuance, renewal, rollback and cleanup
+    owner: deployments-platform
+    reviewer: independent-deployment-security-reviewer
+    dueGate: 5
+    riskAcceptance: FORBIDDEN
+
+  - id: RISK-SEC-008
+    gapIds:
+      - GAP-SEC-SECRET-SCAN-VERSION-DRIFT
+    title: Older CI secret scanner can report green while a newer pinned-equivalent scan finds untriaged candidates
+    severity: P1
+    likelihood: plausible
+    impact: critical
+    status: OPEN
+    invariant: A green secret gate means the exact repository tree was scanned by the approved engine and every candidate has a reviewed disposition.
+    scenario: >-
+      CI passes with gitleaks 8.21.2, while the same no-git/redacted scan on gitleaks 8.30.1 returns 12 candidates in committed
+      HTML evidence and a browser bundle. If any candidate is real, source consumers receive a credential; if candidates are
+      false positives but remain untriaged, teams may either ignore future failures or add an unsafe broad allowlist.
+    affectedAssets:
+      - repository and CI credentials
+      - captured third-party/session data
+      - users of committed browser assets
+      - confidence in blocking security controls
+    evidenceRefs:
+      - .github/workflows/security.yaml:126-163
+      - .gitleaks.toml:1-52
+      - docs/deploy-evidence/2026-07-21-gallery-pricing-v4/replit-pricing-dom.html
+      - docs/deploy-evidence/2026-07-22-gallery-pricing-har/pricing-dom.html
+      - docs/parity/baseline/snapshots/2026-07-16/gallery-detail-journey-mapper.rendered.html
+      - docs/parity/baseline/snapshots/2026-07-16/pricing.html
+      - docs/parity/baseline/snapshots/2026-07-16/pricing.rendered.html
+      - public/ecode-static/assets/vendor-xterm-DXYfT5Jh.js
+    existingControls:
+      - Blocking no-git gitleaks CI job with repository configuration and redacted SARIF artifact.
+      - Narrow allowlists for several documented synthetic/generated sources.
+      - The reported newer scan used --redact, so this audit does not expose candidate values.
+    controlFailure: Scanner version drift changes detection results and the newer-engine candidates have no reviewed disposition.
+    requiredTreatment:
+      - Pin one approved gitleaks version across CI, local tooling and pre-commit, with automated drift detection.
+      - Triage candidates by redacted fingerprint and rule; never copy their values into tickets or audit docs.
+      - Purge and rotate confirmed credentials, or add narrowly evidenced regression-tested suppression for false positives.
+    requiredTests:
+      - identical-version/config-hash CI and local exact-tree scans
+      - candidate disposition review with no secret material in logs or artifacts
+      - confirmed-secret rotation/revocation and old-value denial
+      - false-positive fixture plus narrow suppression regression
+    owner: application-security-supply-chain
+    reviewer: independent-application-security-reviewer
+    dueGate: 2
+    riskAcceptance: FORBIDDEN

@@ -169,21 +169,31 @@ platformEnv:
   email:
     httpEndpoint: 'https://api.resend.com/emails'
     from: 'no-reply@e-code.ai'
-  # Non-secret Stripe catalog IDs. Populate from `pnpm stripe:seed` after
-  # rotating STRIPE_SECRET_KEY; empty values are intentionally omitted from
-  # the rendered ConfigMap so they cannot mask Secret-sourced env values.
-  # Free has no checkout (short-circuits with STRIPE_FREE_NO_CHECKOUT) and
-  # Enterprise routes to /contact-sales (STRIPE_ENTERPRISE_CONTACT_SALES),
-  # so only Pro and Team need real price IDs for self-serve checkout.
+  # Non-secret Stripe catalog IDs — Replit-parity plans (Starter/Core/Pro/Enterprise),
+  # EUR, monthly + annual. Empty values are intentionally omitted from the rendered
+  # ConfigMap so they cannot mask Secret-sourced env values. Starter is free (no
+  # checkout) and Enterprise is sales-led (/contact-sales), so only Core and Pro
+  # need real Product + monthly + annual Price IDs for self-serve checkout.
+  #
+  # ⚠️ ACTION AVI — the old single-price Pro(€29)/Team(€99) IDs below are the LEGACY
+  # catalog and MUST NOT be reused. Create the new EUR products/prices in Stripe and
+  # paste the six IDs here (or set them via /admin/stripe, which wins over env):
+  #   1. From YOUR Stripe account (test first, then live), run:
+  #        STRIPE_SECRET_KEY=sk_test_… node scripts/seed-stripe-catalog.mjs --json
+  #      → prints STRIPE_CORE_PRODUCT_ID / _PRICE_MONTHLY_ID / _PRICE_ANNUAL_ID and
+  #        the same three for PRO (Core €25/€20, Pro €100/€95, currency EUR).
+  #   2. Paste the six IDs into the fields below.
+  # Required IDs (all from Avi's Stripe account):
+  #   coreProductId, corePriceMonthlyId (€25/mo), corePriceAnnualId (€240/yr → €20/mo)
+  #   proProductId,  proPriceMonthlyId  (€100/mo), proPriceAnnualId  (€1140/yr → €95/mo)
   stripe:
-    freeProductId: ''
-    freePriceId: ''
-    proProductId: 'prod_SmqeF8z5hVEDgn'
-    proPriceId: 'price_1RrGxL2VSIgdqPLPk54OZhZX'
-    teamProductId: 'prod_SmqqkOPRY15MGD'
-    teamPriceId: 'price_1RrH8b2VSIgdqPLPCDou48K3'
+    coreProductId: ''
+    corePriceMonthlyId: ''
+    corePriceAnnualId: ''
+    proProductId: ''
+    proPriceMonthlyId: ''
+    proPriceAnnualId: ''
     enterpriseProductId: ''
-    enterprisePriceId: 'price_1RrHLq2VSIgdqPLP9Z9KniIZ'
   google:
     authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth'
     tokenUrl: 'https://oauth2.googleapis.com/token'

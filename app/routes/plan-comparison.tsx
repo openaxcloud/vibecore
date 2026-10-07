@@ -15,9 +15,9 @@ import { shouldRethrowActionError } from '~/lib/route-reauth';
 export const meta: MetaFunction = () => [{ title: 'Plan comparison - E-Code' }];
 
 const PLANS = [
-  { key: 'free', name: 'Free', summary: 'Public templates and small workspaces.' },
-  { key: 'pro', name: 'Pro', summary: 'Private previews, deployments and stronger models.' },
-  { key: 'team', name: 'Team', summary: 'Collaboration, shared billing and audit logs.' },
+  { key: 'starter', name: 'Starter', summary: 'Free daily Agent credits, public apps and one published project.' },
+  { key: 'core', name: 'Core', summary: '€25/mo of credits, 5 collaborators, any-region publishing.' },
+  { key: 'pro', name: 'Pro', summary: 'The most powerful models, 10 parallel agents, 28-day DB rollbacks.' },
   {
     key: 'enterprise',
     name: 'Enterprise',
@@ -38,7 +38,7 @@ export async function action({ request }: EnterpriseActionArgs) {
     const result = await apiRequest<{ checkoutUrl: string }>(request, `/orgs/${organization.id}/billing/checkout`, {
       method: 'POST',
       body: JSON.stringify({
-        planKey: String(form.get('planKey') ?? 'pro'),
+        planKey: String(form.get('planKey') ?? 'core'),
         successUrl: new URL('/billing', request.url).toString(),
         cancelUrl: new URL('/plan-comparison', request.url).toString(),
       }),

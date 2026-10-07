@@ -42,20 +42,80 @@ const sourceText = readFileSync(billingSrc, 'utf8');
 const plans = parsePlansFromSource(sourceText);
 
 if (plans.length === 0) {
-  console.error('Could not parse billingPlans from packages/billing/src/index.ts');
+  console.error('Could not parse creditPlanCatalog from packages/billing/src/index.ts');
   process.exit(2);
 }
 
 const results = {};
 
 for (const plan of plans) {
-  process.stderr.write(`[seed-stripe] ${plan.key} (${plan.name}, ${plan.monthlyCents}c)\n`);
+  process.stderr.write(
+    `[seed-stripe] ${plan.key} (${plan.name}, monthly=${plan.monthlyCents}c annual=${plan.annualCents}c EUR)\n`,
+  );
 
   const productId = (await findProductByPlanKey(plan.key))?.id ?? (await createProduct(plan)).id;
-  const priceId = (await findPriceByPlanKey(productId, plan.key))?.id ?? (await createPrice(plan, productId)).id;
-
   results[plan.stripeProductEnv] = productId;
-  results[plan.stripePriceEnv] = priceId;
+
+  // Monthly recurring price (every plan, incl. €0 Starter/Enterprise so the
+  // catalog is complete and the checkout price-resolution never 404s).
+  const monthlyId =
+    (await findPriceByPlanKey(productId, plan.key, 'month'))?.id ??
+    (await createPrice(plan, productId, 'month', plan.monthlyCents)).id;
+  results[plan.stripePriceMonthlyEnv] = monthlyId;
+
+  // Annual recurring price only for the paid self-serve tiers (annualCents > 0).
+  if (plan.annualCents > 0) {
+    const annualId =
+      (await findPriceByPlanKey(productId, plan.key, 'year'))?.id ??
+      (await createPrice(plan, productId, 'year', plan.annualCents)).id;
+    results[plan.stripePriceAnnualEnv] = annualId;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Usage-based (PAYG) + add-on catalog — Replit parity, EUR (verified 2026-08-02
+// on docs.replit.com, see docs/BILLING_PAYG_DEPLOYMENTS_PLAN.md §8). All values
+// 1:1 EUR. 1 credit = €0.01.
+// ---------------------------------------------------------------------------
+
+// Two METERED recurring prices (usage_type=metered, aggregate=sum). Overage
+// beyond monthly credits is reported against these as whole credits (cents).
+for (const [key, env] of [
+  ['payg-ai', 'STRIPE_PAYG_AI_PRICE_ID'],
+  ['payg-usage', 'STRIPE_PAYG_USAGE_PRICE_ID'],
+]) {
+  process.stderr.write(`[seed-stripe] ${key} (metered, €0.01/credit EUR)\n`);
+  const productId = (await findProductByPlanKey(key))?.id ?? (await createMeteredProduct(key)).id;
+  const priceId = (await findMeteredPrice(productId, key))?.id ?? (await createMeteredPrice(productId, key)).id;
+  results[env] = priceId;
+}
+
+// Credit packs (one-time): pay X → grant Y credits. Prices = what you PAY.
+for (const pack of [
+  { key: 'pack-100', payCents: 10_000, env: 'STRIPE_CREDIT_PACK_100_PRICE_ID' },
+  { key: 'pack-300', payCents: 29_000, env: 'STRIPE_CREDIT_PACK_300_PRICE_ID' },
+  { key: 'pack-500', payCents: 48_000, env: 'STRIPE_CREDIT_PACK_500_PRICE_ID' },
+  { key: 'pack-1000', payCents: 95_000, env: 'STRIPE_CREDIT_PACK_1000_PRICE_ID' },
+]) {
+  process.stderr.write(`[seed-stripe] ${pack.key} (one-time €${pack.payCents / 100} EUR)\n`);
+  const productId = (await findProductByPlanKey(pack.key))?.id ?? (await createSimpleProduct(pack.key)).id;
+  const priceId =
+    (await findOneTimePrice(productId, pack.key))?.id ?? (await createOneTimePrice(productId, pack.key, pack.payCents)).id;
+  results[pack.env] = priceId;
+}
+
+// Reserved VM (recurring flat monthly subscription add-on, Avi decision a).
+for (const vm of [
+  { key: 'reserved-shared-0.5', cents: 2_000, env: 'STRIPE_RESERVED_VM_SHARED_HALF_PRICE_ID' },
+  { key: 'reserved-dedicated-1', cents: 4_000, env: 'STRIPE_RESERVED_VM_DEDICATED_1_PRICE_ID' },
+  { key: 'reserved-dedicated-2', cents: 8_000, env: 'STRIPE_RESERVED_VM_DEDICATED_2_PRICE_ID' },
+  { key: 'reserved-dedicated-4', cents: 16_000, env: 'STRIPE_RESERVED_VM_DEDICATED_4_PRICE_ID' },
+]) {
+  process.stderr.write(`[seed-stripe] ${vm.key} (recurring €${vm.cents / 100}/mo EUR)\n`);
+  const productId = (await findProductByPlanKey(vm.key))?.id ?? (await createSimpleProduct(vm.key)).id;
+  const priceId =
+    (await findFlatRecurringPrice(productId, vm.key))?.id ?? (await createFlatRecurringPrice(productId, vm.key, vm.cents)).id;
+  results[vm.env] = priceId;
 }
 
 if (json) {
@@ -71,18 +131,19 @@ if (json) {
 async function createProduct(plan) {
   return postForm('/v1/products', {
     name: `VibeCore ${plan.name}`,
-    description: plan.features.join(', '),
+    description: `VibeCore ${plan.name} plan`,
     'metadata[planKey]': plan.key,
   });
 }
 
-async function createPrice(plan, productId) {
+async function createPrice(plan, productId, interval, amountCents) {
   return postForm('/v1/prices', {
     product: productId,
-    currency: 'usd',
-    unit_amount: String(plan.monthlyCents),
-    'recurring[interval]': 'month',
+    currency: 'eur',
+    unit_amount: String(amountCents),
+    'recurring[interval]': interval,
     'metadata[planKey]': plan.key,
+    'metadata[interval]': interval,
   });
 }
 
@@ -92,8 +153,59 @@ async function findProductByPlanKey(planKey) {
   return response.data?.[0];
 }
 
-async function findPriceByPlanKey(productId, planKey) {
-  const query = `product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`;
+// --- PAYG / add-on helpers (metered, one-time, flat-recurring) --------------
+
+async function createSimpleProduct(key) {
+  return postForm('/v1/products', { name: `VibeCore ${key}`, description: `VibeCore ${key}`, 'metadata[planKey]': key });
+}
+const createMeteredProduct = createSimpleProduct;
+
+async function findPriceByShape(productId, key, shape) {
+  const query = `product:'${productId}' AND metadata['shape']:'${shape}' AND active:'true'`;
+  const response = await getJson(`/v1/prices/search?query=${encodeURIComponent(query)}`);
+  return response.data?.[0];
+}
+const findMeteredPrice = (productId, key) => findPriceByShape(productId, key, 'metered');
+const findOneTimePrice = (productId, key) => findPriceByShape(productId, key, 'one_time');
+const findFlatRecurringPrice = (productId, key) => findPriceByShape(productId, key, 'flat_recurring');
+
+// Metered: €0.01 per unit (1 credit = 1 EUR cent), summed over the period.
+async function createMeteredPrice(productId, key) {
+  return postForm('/v1/prices', {
+    product: productId,
+    currency: 'eur',
+    unit_amount: '1',
+    'recurring[interval]': 'month',
+    'recurring[usage_type]': 'metered',
+    'recurring[aggregate_usage]': 'sum',
+    'metadata[planKey]': key,
+    'metadata[shape]': 'metered',
+  });
+}
+
+async function createOneTimePrice(productId, key, amountCents) {
+  return postForm('/v1/prices', {
+    product: productId,
+    currency: 'eur',
+    unit_amount: String(amountCents),
+    'metadata[planKey]': key,
+    'metadata[shape]': 'one_time',
+  });
+}
+
+async function createFlatRecurringPrice(productId, key, amountCents) {
+  return postForm('/v1/prices', {
+    product: productId,
+    currency: 'eur',
+    unit_amount: String(amountCents),
+    'recurring[interval]': 'month',
+    'metadata[planKey]': key,
+    'metadata[shape]': 'flat_recurring',
+  });
+}
+
+async function findPriceByPlanKey(productId, planKey, interval) {
+  const query = `product:'${productId}' AND metadata['planKey']:'${planKey}' AND metadata['interval']:'${interval}' AND active:'true'`;
   const response = await getJson(`/v1/prices/search?query=${encodeURIComponent(query)}`);
   return response.data?.[0];
 }
@@ -152,18 +264,35 @@ function formatStripeError(body) {
 }
 
 function parsePlansFromSource(source) {
+  // Isolate the Replit-parity `creditPlanCatalog` block (Starter/Core/Pro/
+  // Enterprise, EUR, monthly + annual). The legacy `billingPlans` array is NOT
+  // seeded to Stripe any more — the Plan DB table is the credit catalog.
+  const start = source.indexOf('export const creditPlanCatalog');
+
+  if (start === -1) {
+    return [];
+  }
+
+  const block = source.slice(start, source.indexOf('\n];', start));
   const plans = [];
-  const planRegex = /\{\s*key:\s*'(free|pro|team|enterprise)',\s*name:\s*'([^']+)',\s*monthlyCents:\s*(\d+),\s*stripeProductEnv:\s*'([^']+)',\s*stripePriceEnv:\s*'([^']+)',[\s\S]*?features:\s*\[([^\]]+)\]/g;
+
+  // Numbers may use `_` separators (e.g. 24_000). Each credit plan object carries
+  // stripePriceMonthlyEnv/stripePriceAnnualEnv, which distinguishes it from the
+  // legacy billingPlans shape (stripePriceEnv).
+  const planRegex =
+    /key:\s*'(starter|core|pro|enterprise)',\s*name:\s*'([^']+)',\s*monthlyCents:\s*([\d_]+),\s*annualCents:\s*([\d_]+),[\s\S]*?stripeProductEnv:\s*'([^']+)',\s*stripePriceMonthlyEnv:\s*'([^']+)',\s*stripePriceAnnualEnv:\s*'([^']+)'/g;
   let match;
 
-  while ((match = planRegex.exec(source)) !== null) {
+  while ((match = planRegex.exec(block)) !== null) {
     plans.push({
       key: match[1],
       name: match[2],
-      monthlyCents: Number(match[3]),
-      stripeProductEnv: match[4],
-      stripePriceEnv: match[5],
-      features: match[6].split(',').map((f) => f.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean),
+      monthlyCents: Number(match[3].replace(/_/g, '')),
+      annualCents: Number(match[4].replace(/_/g, '')),
+      stripeProductEnv: match[5],
+      stripePriceMonthlyEnv: match[6],
+      stripePriceAnnualEnv: match[7],
+      features: [],
     });
   }
 

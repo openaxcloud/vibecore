@@ -20,10 +20,10 @@ export const meta: MetaFunction = () => [{ title: 'Upgrade - E-Code' }];
 
 /*
  * Plan keys the checkout endpoint actually accepts (billingCheckoutSchema minus
- * the server-rejected ones: 'free' → 400 STRIPE_FREE_NO_CHECKOUT, 'enterprise'
+ * the server-rejected ones: 'starter' → 400 STRIPE_FREE_NO_CHECKOUT, 'enterprise'
  * → 400 STRIPE_ENTERPRISE_CONTACT_SALES).
  */
-const CHECKOUTABLE_PLAN_KEYS = new Set(['pro', 'team']);
+const CHECKOUTABLE_PLAN_KEYS = new Set(['core', 'pro']);
 
 /*
  * Entitled statuses mirrored from the api's billingState/checkout guard: while
@@ -35,19 +35,20 @@ const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['ACTIVE', 'TRIALING', 'PAST_DUE'])
 const euros = (cents: number) => `€${(cents / 100).toFixed(0)}`;
 
 /*
- * The public pricing page links here with display-tier keys (free/core/teams);
- * map them to the legacy checkout enum so the right plan card is suggested.
- * core → 'pro' (cheapest paid tier), teams → 'team'.
+ * The public pricing page links here with the canonical plan key. Core and Pro
+ * are the two self-serve checkout tiers; any legacy alias (team/teams → pro,
+ * free → core) is normalised so the right plan card is preselected. Core is the
+ * default when nothing recognisable is passed.
  */
-function normalizePlanKey(raw: string | null): 'pro' | 'team' {
+function normalizePlanKey(raw: string | null): 'core' | 'pro' {
   const key = (raw ?? '').toLowerCase();
 
-  if (key === 'team' || key === 'teams') {
-    return 'team';
+  if (key === 'pro' || key === 'team' || key === 'teams') {
+    return 'pro';
   }
 
-  // core/pro (and anything else) → 'pro'
-  return 'pro';
+  // core (and anything else) → 'core'
+  return 'core';
 }
 
 interface UpgradePlan {

@@ -15,6 +15,7 @@
  */
 import { createHmac } from 'node:crypto';
 
+import { toCreditPlanKey } from '@vibecore/billing';
 import { Client as PgClient } from 'pg';
 
 /** Minimal manifest shape (structurally compatible with k8s-client's K8sObject). */
@@ -85,15 +86,17 @@ function dbLabels(projectId: string, organizationId?: string): Record<string, st
  * Replit isolates every PAID project per-project from dev onward (Helium dev is
  * already isolated, not just Neon prod); we only mutualise the FREE tier for cost.
  *   free            → 'shared'   (shared CNPG cluster + logical Database CRD)
- *   team/enterprise → 'isolated' (dedicated per-project CNPG Cluster, hibernated)
+ *   Pro/Enterprise → 'isolated' (dedicated per-project CNPG Cluster, hibernated)
  * Both the dev and prod database of a project use the SAME tier as its org plan: a
  * paying customer is never on the shared cluster, even while developing. Hibernation
- * (scale-to-zero) applies to both tiers for cost.
+ * (scale-to-zero) applies to both tiers for cost. Starter/Core stay shared; legacy
+ * keys normalise first (team → pro → isolated).
  */
 export type DatabaseTier = 'shared' | 'isolated';
 
 export function resolveDatabaseTier(planKey: string | undefined): DatabaseTier {
-  return planKey === 'team' || planKey === 'enterprise' ? 'isolated' : 'shared';
+  const key = toCreditPlanKey(planKey);
+  return key === 'pro' || key === 'enterprise' ? 'isolated' : 'shared';
 }
 
 /** Safe Postgres identifier derived from a (cuid) project id. */

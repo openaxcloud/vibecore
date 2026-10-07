@@ -28,7 +28,8 @@ describe('E-Code public marketing API compatibility', () => {
         expect.objectContaining({ id: 'free', tier: 'free', price: 0, interval: 'month' }),
         expect.objectContaining({ id: 'price_core_monthly', tier: 'core', price: 25, interval: 'month' }),
         expect.objectContaining({ id: 'price_core_yearly', tier: 'core', price: 20, interval: 'year' }),
-        expect.objectContaining({ id: 'price_teams_monthly', tier: 'teams', price: 40, interval: 'month' }),
+        expect.objectContaining({ id: 'price_pro_monthly', tier: 'pro', price: 100, interval: 'month' }),
+        expect.objectContaining({ id: 'price_pro_yearly', tier: 'pro', price: 95, interval: 'year' }),
         expect.objectContaining({ id: 'price_enterprise_yearly', tier: 'enterprise', price: 200, interval: 'year' }),
       ]),
     );

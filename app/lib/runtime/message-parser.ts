@@ -9,6 +9,7 @@ import type {
 } from '~/types/actions';
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
+import { stripTransportMarkup, trailingTransportFragmentLength } from '~/utils/transport-markup';
 import { unreachable } from '~/utils/unreachable';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
@@ -36,13 +37,25 @@ const logger = createScopedLogger('MessageParser');
 function withoutTrailingCloseTagPrefix(content: string): string {
   const max = Math.min(content.length, ARTIFACT_ACTION_TAG_CLOSE.length - 1);
 
+  let hold = 0;
+
   for (let k = max; k > 0; k--) {
     if (content.endsWith(ARTIFACT_ACTION_TAG_CLOSE.slice(0, k))) {
-      return content.slice(0, content.length - k);
+      hold = k;
+      break;
     }
   }
 
-  return content;
+  /*
+   * BUG-AGENT-TRANSPORT-MARKUP — the same hazard, but for the model's own
+   * function-call transport markup. A stream that dies mid-wrapper leaves a tail
+   * like `…}\n</antml`, which is NOT a prefix of `</boltAction>` and so slipped
+   * through the loop above and was autosaved verbatim into ten prod files.
+   * Hold back the longer of the two candidate tails.
+   */
+  hold = Math.max(hold, trailingTransportFragmentLength(content));
+
+  return hold > 0 ? content.slice(0, content.length - hold) : content;
 }
 
 export interface ArtifactCallbackData extends BoltArtifactData {
@@ -171,7 +184,14 @@ export function cleanFileActionContent(content: string, _filePath?: string) {
    */
   const stripped = cleanoutMarkdownSyntax(content);
 
-  return cleanHighlightedCodeMarkup(stripped);
+  /*
+   * BUG-AGENT-TRANSPORT-MARKUP — drop any COMPLETE transport wrapper the model
+   * emitted inside the action body (e.g. `…code…</invoke>` right before the
+   * real `</boltAction>`). The write boundary strips these too, but doing it
+   * here keeps the streamed editor preview clean and means the content the
+   * action commits already matches what lands on disk.
+   */
+  return stripTransportMarkup(cleanHighlightedCodeMarkup(stripped)).content;
 }
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();

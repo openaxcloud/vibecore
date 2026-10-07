@@ -7,27 +7,43 @@ describe('workspace status helpers', () => {
     expect(workspaceUiState(null, { ports: [{ port: 5173 }] })).toBe('stopped');
   });
 
-  it('hasLivePreviewPort requires a serving indicator, not mere port presence', () => {
+  it('hasLivePreviewPort requires a PROBED-ready port, not merely a URL', () => {
     expect(hasLivePreviewPort([{ port: 5173 }])).toBe(false);
     expect(hasLivePreviewPort([{ port: 5173, ready: true }])).toBe(true);
-    expect(hasLivePreviewPort([{ port: 5173, url: 'https://x.preview' }])).toBe(true);
+  });
 
-    // The previews store exposes the forwarded URL as baseUrl, not url.
-    expect(hasLivePreviewPort([{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(true);
+  /*
+   * REGRESSION — SOLUTIONS_REAL_PROOF_BLOCKERS.md §5.
+   *
+   * These four cases previously asserted `true`, encoding the very lie that
+   * produced "Workspace RUNNING + port open + 0 Problems + blank webview": the
+   * API stamps a URL on EVERY port it reports (pure string templating, never a
+   * network call — even a `close` event carries one), and the previews store
+   * refuses to create an entry without a URL. Accepting `url`/`baseUrl` as a
+   * serving signal therefore made the predicate vacuously true, and a port that
+   * had died still read as live forever.
+   *
+   * A URL now proves only that a port was once forwarded. Readiness comes solely
+   * from the HTTP probe.
+   */
+  it('does NOT treat a URL-bearing port as serving', () => {
+    expect(hasLivePreviewPort([{ port: 5173, url: 'https://x.preview' }])).toBe(false);
+    expect(hasLivePreviewPort([{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(false);
+
+    // A port explicitly probed not-ready is not live no matter what URL it carries.
+    expect(hasLivePreviewPort([{ port: 5173, ready: false, baseUrl: 'https://x.preview' }])).toBe(false);
   });
 
   it('treats a genuinely-serving port as running even while the status field lags at PENDING', () => {
     /*
      * Cold-start: pod already serving the app, but the backend status has not
-     * reconciled PENDING→RUNNING yet. The live port is the ground truth.
+     * reconciled PENDING→RUNNING yet. A PROBED-ready port is the ground truth.
      */
     expect(isWorkspaceReallyRunning({ status: 'PENDING' }, [{ port: 5173, ready: true }])).toBe(true);
-    expect(isWorkspaceReallyRunning({ status: 'PENDING' }, [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(true);
-    expect(workspaceUiState({ status: 'PENDING' }, { ports: [{ port: 5173, baseUrl: 'https://x.preview' }] })).toBe(
-      'running',
-    );
+    expect(workspaceUiState({ status: 'PENDING' }, { ports: [{ port: 5173, ready: true }] })).toBe('running');
 
-    // Without a serving port a PENDING workspace is not running.
+    // A URL alone no longer promotes a PENDING workspace to running.
+    expect(isWorkspaceReallyRunning({ status: 'PENDING' }, [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(false);
     expect(isWorkspaceReallyRunning({ status: 'PENDING' }, [{ port: 5173 }])).toBe(false);
   });
 
