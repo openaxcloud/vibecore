@@ -91,6 +91,19 @@ RUN NODE_OPTIONS=--max-old-space-size=6144 pnpm run build
 FROM build AS prod-deps
 RUN pnpm prune --prod --ignore-scripts
 
+# `pnpm prune --prod` ne suffit PAS dans un espace de travail : `node_modules/.pnpm`
+# est le magasin PARTAGÉ des 36 projets, et élaguer les liens du projet racine n'y
+# ramasse rien. Mesuré le 2026-10-06 en sondant l'image refusée depuis le cluster :
+# 1 554 entrées dans `.pnpm`, **154 atteignables**, 1 400 mortes — dont
+# `@capacitor/android` 8.3.1 (CVE-2026-103922, CRITIQUE), qui vient de `apps/mobile`
+# et n'a aucun lien dans l'image web. La porte de vulnérabilité refusait donc le
+# déploiement sur du code qu'aucune résolution ne peut charger.
+#
+# Une entrée qu'aucun lien ne résout ne peut pas être requise : la supprimer ne
+# change pas ce que le programme charge. Épinglé par
+# `tests/guards/elagage-magasin-pnpm.spec.ts`.
+RUN node scripts/elaguer-magasin-pnpm.mjs /app --supprimer
+
 # ---- production stage ----
 FROM node:22-bookworm-slim AS bolt-ai-production
 WORKDIR /app
@@ -108,8 +121,31 @@ ENV VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
     DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
 
+# ⚠️ `apt-get upgrade` AVANT l'installation, et ce n'est pas du zèle.
+#
+# Mesuré le 2026-10-06 : la porte de vulnérabilité a refusé le déploiement sur
+# `perl-base` 5.36.0-7+deb12u3 (CVE-2026-13221, CRITIQUE), un paquet SYSTÈME
+# venu de l'image de base. Sondé dans l'image elle-même :
+#
+#   * installé                   : 5.36.0-7+deb12u3
+#   * publié dans bookworm-security : 5.36.0-7+deb12u4  (index Debian, vérifié)
+#   * `bookworm-security` EST déjà dans les sources apt de l'image
+#
+# Le correctif était donc à portée et n'arrivait pas, pour une raison simple :
+# `apt-get install curl` n'installe que `curl`. Il ne met PAS à jour les paquets
+# déjà présents. Tout ce que l'image de base embarque reste donc figé à la
+# version qu'elle avait au moment de sa publication, failles comprises.
+#
+# `--only-upgrade perl-base` aurait suffi aujourd'hui et aurait garanti de
+# recommencer au prochain CVE système. `upgrade` prend l'ensemble des correctifs
+# de sécurité disponibles, ce qui est précisément ce que « image de base à
+# jour » veut dire.
+#
+# Épinglé par `tests/guards/image-de-base-a-jour.spec.ts`.
 # curl for the Kubernetes /health probe + Docker HEALTHCHECK.
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && apt-get install -y --no-install-recommends curl \
   && rm -rf /var/lib/apt/lists/*
 
 # `public/` is bundled into `build/client/` by Vite, so it's not copied separately.
