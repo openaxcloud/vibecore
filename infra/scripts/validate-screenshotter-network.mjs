@@ -46,7 +46,14 @@ export function validateScreenshotterNetwork(rendered) {
     })
     .filter(Boolean);
 
-  const labels = { 'app.kubernetes.io/name': 'screenshotter', 'app.kubernetes.io/part-of': 'vibecore' };
+  const deployment = documents.find(
+    (document) =>
+      document.kind === 'Deployment' &&
+      document.spec.template.metadata.labels?.['app.kubernetes.io/name'] === 'screenshotter',
+  );
+  assert(deployment, 'positive control: rendered screenshotter Deployment exists');
+
+  const labels = deployment.spec.template.metadata.labels;
 
   const policies = documents.filter(
     (document) =>
@@ -63,7 +70,9 @@ export function validateScreenshotterNetwork(rendered) {
     'screenshotter must have its own egress policy',
   );
 
-  const service = documents.find((document) => document.kind === 'Service' && matches(document.spec.selector, labels));
+  const service = documents.find(
+    (document) => document.kind === 'Service' && matches({ matchLabels: document.spec.selector }, labels),
+  );
   assert(service, 'positive control: rendered screenshotter Service exists');
 
   const proxy = documents.find(
