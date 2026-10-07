@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-384 entrées.
+385 entrées.
 
 ## Sans section
 
@@ -416,6 +416,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-06 — Chaîne de livraison : porte de vulnérabilité
 
 - [DETTE-IMAGE-DE-BASE-NON-FIGEE-001](docs/bugs/DETTE-IMAGE-DE-BASE-NON-FIGEE-001.md)
+
+## Sans section
+
+- [BUG-SEC-ADMIN-TEST-RUNTIME-001](docs/bugs/BUG-SEC-ADMIN-TEST-RUNTIME-001.md) — P1 — le moteur de test est livré dans l’image admin.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
