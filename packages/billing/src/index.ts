@@ -1,10 +1,12 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { FREE_PLAN_PROJECTS_CAP, NO_PUBLISHED_CAP } from './plafonds.js';
 import { toCreditPlanKey, CREDIT_PACK_VALIDITY_DAYS, type CreditPlanKey } from './credits.js';
 
 export * from './ai-pricing.js';
 export * from './credits.js';
 export * from './compute-pricing.js';
 export * from './rate-card.js';
+export { FREE_PLAN_PROJECTS_CAP, NO_PUBLISHED_CAP, isUnlimitedLimit } from './plafonds.js';
 export * from './agent-routing.js';
 export * from './catalogue-de-modeles.js';
 export * from './catalogue-integre.js';
@@ -60,15 +62,6 @@ export interface BillingPlan {
   features: string[];
 }
 
-/**
- * Sentinelle « aucun plafond d'OFFRE sur cette dimension ».
- *
- * `assertQuota` bloque dès que la limite vaut 0, et `ensureQuota` lit
- * `limits[key] ?? 0` : une dimension absente bloquerait donc tout. Quand Replit
- * ne publie AUCUN plafond pour une dimension, on ne peut ni inventer un chiffre
- * ni laisser 0 — on déclare explicitement l'absence de plafond commercial.
- */
-const NO_PUBLISHED_CAP = 1_000_000;
 
 export const billingPlans: BillingPlan[] = [
   {
@@ -84,7 +77,7 @@ export const billingPlans: BillingPlan[] = [
        * est une limite technique et non un quota d'offre). Le « 3 » qui figurait
        * ici était une valeur sans source : supprimé plutôt que conservé.
        */
-      'projects.count': NO_PUBLISHED_CAP,
+      'projects.count': FREE_PLAN_PROJECTS_CAP,
       'workspaces.active': 1,
       'workspaces.runtimeMinutes': 300,
       /*
