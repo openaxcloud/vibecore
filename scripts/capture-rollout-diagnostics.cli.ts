@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { capture } from './capture-rollout-diagnostics';
+import { capture } from './capture-rollout-diagnostics.js';
 
 const separator = process.argv.indexOf('--', 2);
 if (separator < 0) {

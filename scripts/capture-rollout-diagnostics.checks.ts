@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { capture, summarize, type Snapshot } from './capture-rollout-diagnostics';
+import { capture, summarize, type Snapshot } from './capture-rollout-diagnostics.js';
 
 function temporary<T>(action: (directory: string) => Promise<T>): Promise<T> {
   const directory = mkdtempSync(join(tmpdir(), 'rollout-diagnostics-'));
