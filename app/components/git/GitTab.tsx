@@ -1889,10 +1889,12 @@ export function GitTab({ projectId }: GitTabProps) {
                         </div>
                         <code className="text-xs text-bolt-elements-textSecondary">{commit.shortSha}</code>
                         <div className="min-w-0">
-                          <div className="truncate font-medium text-bolt-elements-textPrimary">{commit.message}</div>
+                          <div data-user-content className="truncate font-medium text-bolt-elements-textPrimary">
+                            {commit.message}
+                          </div>
                           <div className="truncate text-xs text-bolt-elements-textSecondary">
                             {timeAgo(commit.date, activeLanguage, t)} {commit.refs ? `- ${commit.refs}` : ''}
-                            {commit.author ? ` - ${commit.author}` : ''}
+                            {commit.author ? <span data-user-content>{` - ${commit.author}`}</span> : null}
                           </div>
                         </div>
                       </button>
