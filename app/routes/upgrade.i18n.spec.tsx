@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { FormEventHandler, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -121,6 +121,25 @@ describe('upgrade i18n', () => {
       plans: [{ key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} }],
     });
     expect((screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(new FormData(container.querySelector('form')!).get('interval')).toBe('monthly');
+  });
+
+  it('lets an annual visitor switch to monthly when no annual price is configured', () => {
+    const { container } = renderPage({
+      suggestedPlan: 'pro',
+      interval: 'annual',
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+      plans: [{ key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} }],
+    });
+
+    const checkout = screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement;
+
+    expect(checkout.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: 'Mensuelle' }));
+    expect(checkout.disabled).toBe(false);
     expect(new FormData(container.querySelector('form')!).get('interval')).toBe('monthly');
   });
 

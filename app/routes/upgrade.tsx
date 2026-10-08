@@ -305,7 +305,7 @@ export default function UpgradePage() {
         ) : (
           <p className="break-words text-sm text-bolt-elements-textSecondary">{copy['upgrade.subscription.new']}</p>
         )}
-        {!hasActiveSubscription && annualAvailable ? (
+        {!hasActiveSubscription && (annualAvailable || billingInterval === 'annual') ? (
           <fieldset className="space-y-1">
             <legend className="text-sm font-medium text-bolt-elements-textPrimary">
               {copy['upgrade.interval.legend']}
