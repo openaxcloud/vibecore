@@ -333,7 +333,9 @@ export default function UpgradePage() {
               </label>
             </div>
           </fieldset>
-        ) : null}
+        ) : (
+          <input type="hidden" name="interval" value={billingInterval} />
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           {data.plans.map((plan) => {
             const isCurrent = plan.key === data.currentPlanKey;
@@ -403,7 +405,13 @@ export default function UpgradePage() {
                       : copy['upgrade.actions.changePortal']}
                   </button>
                 ) : isCheckoutable ? (
-                  <button type="submit" name="planKey" value={plan.key} className={ACTION_CTA_CLASS}>
+                  <button
+                    type="submit"
+                    name="planKey"
+                    value={plan.key}
+                    disabled={billingInterval === 'annual' && !plan.annualAvailable}
+                    className={ACTION_CTA_CLASS}
+                  >
                     {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: plan.name })}
                   </button>
                 ) : (
