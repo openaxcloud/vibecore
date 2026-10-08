@@ -91,6 +91,63 @@ RUN NODE_OPTIONS=--max-old-space-size=6144 pnpm run build
 FROM build AS prod-deps
 RUN pnpm prune --prod --ignore-scripts
 
+# `pnpm prune --prod` ne suffit PAS dans un espace de travail : `node_modules/.pnpm`
+# est le magasin PARTAGÉ des 36 projets, et élaguer les liens du projet racine n'y
+# ramasse rien. Mesuré le 2026-10-07 dans l'image servie, marche des liens réparée :
+# 1 554 entrées dans `.pnpm`, **1 398 atteignables**, 156 mortes — dont
+# `@capacitor/android` 8.3.1 (CVE-2026-103922, CRITIQUE), qui vient de `apps/mobile`
+# et n'a aucun lien dans l'image web. La porte de vulnérabilité refusait donc le
+# déploiement sur du code qu'aucune résolution ne peut charger.
+#
+# ⚠️ La première mesure annonçait « 154 atteignables » : la marche s'arrêtait au
+# premier niveau et déclarait mortes 1 244 entrées VIVANTES. Elle a tué le crochet
+# `prisma-migrate` sur `Cannot find module '@prisma/engines'`, et Helm a reverti seul.
+#
+# Une entrée qu'aucun lien ne résout ne peut pas être requise : la supprimer ne
+# change pas ce que le programme charge. Épinglé par
+# `tests/guards/elagage-magasin-pnpm.spec.ts`, dont un cas tient précisément la
+# marche transitive.
+RUN node scripts/elaguer-magasin-pnpm.mjs /app --supprimer
+
+# LE CONTRÔLE POSITIF QUI MANQUAIT : APRÈS ÉLAGAGE, L'IMAGE DOIT DÉMARRER.
+#
+# Les quatre garde-fous du script vérifiaient la cohérence INTERNE de sa propre
+# mesure — un plancher d'atteignables, et `restantes == atteintes`. Les deux
+# étaient vrais d'un marquage FAUX. Résultat, trois trous successifs du même
+# marcheur découverts en PRODUCTION et non à la construction :
+#
+#   1. la marche transitive descendait dans `<paquet>/node_modules`, inexistant
+#      chez pnpm → crochet `prisma-migrate` mort sur `@prisma/engines` (07/10) ;
+#   2. un lien d'entrée venant de `.bin/` désigne un FICHIER, donc ses
+#      dépendances n'étaient jamais parcourues (même cause, même correctif) ;
+#   3. `.pnpm/node_modules/`, le répertoire HOISTÉ que la résolution CJS
+#      traverse, était ignoré → serveur web mort sur
+#      `@smithy/util-config-provider`, pod bloqué 10 min, rollback Helm (08/10).
+#
+# Un garde qui mesure la mesure ne suffit pas. Celui-ci mesure le RÉSULTAT : on
+# démarre le serveur réellement livré et on exige une réponse de `/health`.
+#
+# Viabilité prouvée avant d'écrire cette étape : sondé le 2026-10-08 dans l'image
+# web servie, `node ./server.mjs` sans AUCUNE variable d'environnement répond
+# `/health` en **14 s**. Le démarrage ne dépend donc pas de la base de données,
+# et ce contrôle ne peut pas rougir pour cette raison.
+#
+# `fetch` global de Node 22 est utilisé plutôt que `curl`, absent de cet étage.
+RUN set -e; \
+    NODE_ENV=production PORT=3100 HOST=127.0.0.1 node ./server.mjs & srv=$!; \
+    ok=0; \
+    for i in $(seq 1 40); do \
+      if node -e "fetch('http://127.0.0.1:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then ok=1; break; fi; \
+      sleep 1; \
+    done; \
+    kill "$srv" 2>/dev/null || true; \
+    if [ "$ok" != 1 ]; then \
+      echo "ERREUR: apres elagage, le serveur ne repond plus sur /health."; \
+      echo "        Une entree encore requise a ete supprimee. NE PAS deployer cette image."; \
+      exit 1; \
+    fi; \
+    echo "OK: le serveur demarre et repond sur /health apres elagage."
+
 # ---- production stage ----
 FROM node:22-bookworm-slim AS bolt-ai-production
 WORKDIR /app
@@ -108,8 +165,31 @@ ENV VITE_LOG_LEVEL=${VITE_LOG_LEVEL} \
     DEFAULT_NUM_CTX=${DEFAULT_NUM_CTX} \
     RUNNING_IN_DOCKER=true
 
+# ⚠️ `apt-get upgrade` AVANT l'installation, et ce n'est pas du zèle.
+#
+# Mesuré le 2026-10-06 : la porte de vulnérabilité a refusé le déploiement sur
+# `perl-base` 5.36.0-7+deb12u3 (CVE-2026-13221, CRITIQUE), un paquet SYSTÈME
+# venu de l'image de base. Sondé dans l'image elle-même :
+#
+#   * installé                   : 5.36.0-7+deb12u3
+#   * publié dans bookworm-security : 5.36.0-7+deb12u4  (index Debian, vérifié)
+#   * `bookworm-security` EST déjà dans les sources apt de l'image
+#
+# Le correctif était donc à portée et n'arrivait pas, pour une raison simple :
+# `apt-get install curl` n'installe que `curl`. Il ne met PAS à jour les paquets
+# déjà présents. Tout ce que l'image de base embarque reste donc figé à la
+# version qu'elle avait au moment de sa publication, failles comprises.
+#
+# `--only-upgrade perl-base` aurait suffi aujourd'hui et aurait garanti de
+# recommencer au prochain CVE système. `upgrade` prend l'ensemble des correctifs
+# de sécurité disponibles, ce qui est précisément ce que « image de base à
+# jour » veut dire.
+#
+# Épinglé par `tests/guards/image-de-base-a-jour.spec.ts`.
 # curl for the Kubernetes /health probe + Docker HEALTHCHECK.
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && apt-get install -y --no-install-recommends curl \
   && rm -rf /var/lib/apt/lists/*
 
 # `public/` is bundled into `build/client/` by Vite, so it's not copied separately.
