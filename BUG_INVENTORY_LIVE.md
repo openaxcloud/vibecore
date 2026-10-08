@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-386 entrées.
+387 entrées.
 
 ## Sans section
 
@@ -421,6 +421,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-SEC-ADMIN-TEST-RUNTIME-001](docs/bugs/BUG-SEC-ADMIN-TEST-RUNTIME-001.md) — P1 — le moteur de test est livré dans l’image admin.
 - [BUG-SEC-SCREENSHOTTER-EGRESS-001](docs/bugs/BUG-SEC-SCREENSHOTTER-EGRESS-001.md) — P1 — la politique réseau du screenshotter était neutralisée par trois autorisations générales.
+- [BUG-DEPLOY-ROLLOUT-EVIDENCE-001](docs/bugs/BUG-DEPLOY-ROLLOUT-EVIDENCE-001.md) — P1 — un rollout atomique en échec ne conserve aucun état des pods et Jobs dans les artefacts du pipeline. Le déploiement `37683775662` du commit `74aab77b7f71e5
 
 ## Résidus non tabulaires — reportés mot pour mot
 
