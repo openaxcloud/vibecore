@@ -120,6 +120,16 @@ chaque tranche joue tout le spec : quatre exécuteurs indépendants par passage.
   vaut `// VERSION-AGENT` au lieu de `// VERSION-UTILISATEUR-ENREGISTREE`.
 - **AVEC correctif** (`e46de90c4e`, run 37437259815) : **4 sur 4 réussis**, au premier essai.
 
+### Re-mesure sur `main` du 2026-10-08 (`305d6fe61`, 16 commits de plus)
+
+Même instrument, branches remises à jour : contre-épreuve `qa/retour-contre-epreuve-1008` = `main` + le test seul
+(run 37826663043) ; correctif fusionné avec `main` (`238ea4660a`, run 37826658589).
+- **SANS correctif : 12/12 échecs** (4 exécuteurs × 3 tentatives), un remplacement destructif de la copie serveur
+  part à chaque réouverture.
+- **AVEC correctif : 4/4 réussis, au premier essai.**
+
+Le défaut est toujours présent sur le code du jour, et le correctif le ferme toujours.
+
 La porte de ces deux passages est rouge pour une autre raison, sans rapport avec le test : en mode spec seul,
 elle juge « vide » une tranche qui n'apporte aucun test NOUVEAU (voir BUG-QA1006-PORTE-E2E-SPEC-SEUL).
 Les verdicts ci-dessus sont lus dans les rapports Playwright des tranches.
