@@ -50,3 +50,8 @@ car les derniers peuvent déjà montrer les anciens pods rétablis par le rollba
 `commandExitCode` reste le code de sortie de Helm ; une `captureError` indique une
 preuve manquante, pas une disponibilité confirmée. Les échantillons ne contiennent
 pas de Secrets, specs, variables d'environnement ou journaux applicatifs.
+
+Une erreur d'écriture après le lancement de Helm produit un avertissement et un
+artefact incomplet. Le collecteur attend la fin de Helm et conserve son code de
+sortie pour que le workflow continue à connaître le résultat réel de l'upgrade.
+Une impossibilité d'écrire le premier échantillon bloque avant de lancer Helm.

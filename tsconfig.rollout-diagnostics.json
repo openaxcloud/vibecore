@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.package.node.json",
+  "compilerOptions": { "module": "ESNext", "moduleResolution": "Bundler" },
+  "include": ["scripts/capture-rollout-diagnostics*.ts", "scripts/build-rollout-diagnostics.ts"]
+}

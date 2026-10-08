@@ -12,7 +12,9 @@ P1 — un rollout atomique en échec ne conserve aucun état des pods et Jobs da
 
 ## 💻 Codé
 
-☐ En validation sur branche. Le déploiement conserve des snapshots JSONL des états Kubernetes avant, pendant et après Helm, y compris avant son rollback atomique. Le code de sortie et les sorties standard de Helm sont conservés. L'artefact est envoyé même en échec. La collecte ne persiste ni specs, ni variables d'environnement, ni annotations, ni Secrets, ni journaux applicatifs, ni messages Kubernetes arbitraires. Les erreurs de collecte sont explicites.
+☐ Sur branche ; pas encore fusionné sur main.
+
+Le collecteur est en TypeScript strict, avec bundles reproductibles pour les étapes précédant l'installation npm. Le déploiement conserve des snapshots JSONL des états Kubernetes avant, pendant et après Helm, y compris avant son rollback atomique. Le code de sortie et les sorties standard de Helm sont conservés. L'artefact est envoyé même en échec. La collecte ne persiste ni specs, ni variables d'environnement, ni annotations, ni Secrets, ni journaux applicatifs, ni messages Kubernetes arbitraires. Les erreurs de collecte sont explicites. Si une écriture échoue après le lancement de Helm, le collecteur attend la fin de Helm et retourne son vrai résultat ; il ne laisse pas un déploiement orphelin et ne masque pas son succès à `UPGRADE_APPLIED`.
 
 ## ✅ Testé live
 
@@ -20,4 +22,4 @@ P1 — un rollout atomique en échec ne conserve aucun état des pods et Jobs da
 
 ## Validation locale
 
-Six tests Python hermétiques couvrent les états de migration et init containers, l'exclusion de données confidentielles, les erreurs de collecte, les vrais codes de sortie de trois sous-processus, la disparition des pods au rollback et l'intégration au workflow. Les portes de politique de signature et de livraison par SHA exact restent vertes.
+Les tests Node hermétiques couvrent les états de migration et init containers, l'exclusion de données confidentielles, les vrais codes de sortie 0/1/23, les écritures en échec après spawn (avec témoin physique que Helm a fini), les erreurs de snapshot, la disparition des pods au rollback et l'intégration au workflow. Typecheck strict et reproductibilité des bundles exigés en CI. Les trois états de suivi sont dérivés des sources et affichés côte à côte dans l'index, sans inférer une validation live.

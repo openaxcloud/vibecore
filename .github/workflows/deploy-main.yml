@@ -394,7 +394,7 @@ jobs:
           set -euo pipefail
           python3 scripts/validate-image-signing-wired.py --self-test
           python3 scripts/validate-image-signing-wired.py
-          python3 -m unittest discover -s scripts -p test_rollout_diagnostics.py
+          node --test scripts/capture-rollout-diagnostics.checks.bundle.mjs
 
       # Same idea, applied to the gate itself: prove that THIS workflow still runs
       # the deploy behind the release gate, still withholds WIF from the gate job,
@@ -1623,7 +1623,7 @@ jobs:
             /tmp/valeurs-fichier.json /tmp/valeurs-release.json
 
           echo "helm --set args: ${SETS[*]}"
-          python3 scripts/capture-rollout-diagnostics.py \
+          node scripts/capture-rollout-diagnostics.bundle.mjs \
             --namespace "${HELM_NAMESPACE}" --release "${HELM_RELEASE}" \
             --output "$RUNNER_TEMP/rollout-status.jsonl" -- \
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
