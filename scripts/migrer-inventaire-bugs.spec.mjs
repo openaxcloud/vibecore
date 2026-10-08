@@ -39,6 +39,24 @@ const INVENTAIRE = `# BUG INVENTORY LIVE
 | BUG-C-003 / BUG-D-004 | **Un identifiant composé.** | ☐ | ☐ | ☐ | — |
 `;
 
+describe('états côte à côte dans l’index dérivé', () => {
+  it('relit les trois états depuis la source sans inférer le live', () => {
+    const entree = entreeDuFichier(
+      `---\nid: BUG-X-001\n---\n\n## Bug\n\nUn défaut.\n\n## 📤 Dispatché\n\n☑ pris en charge\n\n## 💻 Codé\n\n☐ sur branche\n\n## ✅ Testé live\n\n☐ non confirmé\n`,
+    );
+    const index = indexDeLInventaire([entree], ['BUG-X-001.md']);
+    expect(index).toContain(
+      '📤 Dispatché : ☑ pris en charge · 💻 Codé : ☐ sur branche · ✅ Testé live : ☐ non confirmé',
+    );
+  });
+
+  it('affiche non renseigné pour les états absents au lieu de les marquer faits', () => {
+    const entree = entreeDuFichier('---\nid: BUG-X-001\n---\n\n## Bug\n\nUn défaut.\n');
+    const index = indexDeLInventaire([entree], ['BUG-X-001.md']);
+    expect(index).toContain('📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné');
+  });
+});
+
 describe('le migrateur du registre de bugs', () => {
   const entrees = lireLesEntrees(INVENTAIRE);
 
@@ -140,9 +158,11 @@ describe('une ligne qui ressemble à une entrée sans en être une', () => {
     expect(residus).toHaveLength(1);
     expect(residus[0].ligne).toBe(4);
     expect(residus[0].texte).toBe(
-      ['| BUG-TRONQUE-> **une décision collée au tableau**', '> sa première ligne de citation', '> sa seconde ligne de citation'].join(
-        '\n',
-      ),
+      [
+        '| BUG-TRONQUE-> **une décision collée au tableau**',
+        '> sa première ligne de citation',
+        '> sa seconde ligne de citation',
+      ].join('\n'),
     );
     expect(residus[0].texte).not.toContain('du texte qui ne la suit plus');
   });
@@ -172,7 +192,12 @@ describe('une ligne qui ressemble à une entrée sans en être une', () => {
 describe("un fichier d'entrée se relit sans rien perdre", () => {
   const ALLER = (champs) =>
     entreeDuFichier(
-      fichierDeLEntree({ id: 'BUG-X-001', section: 'Lot du 16/09', annotation: '', champs: { ID: 'BUG-X-001', ...champs } }),
+      fichierDeLEntree({
+        id: 'BUG-X-001',
+        section: 'Lot du 16/09',
+        annotation: '',
+        champs: { ID: 'BUG-X-001', ...champs },
+      }),
     );
 
   it("retrouve l'identifiant et la section", () => {
@@ -182,9 +207,11 @@ describe("un fichier d'entrée se relit sans rien perdre", () => {
     expect(relu.section).toBe('Lot du 16/09');
   });
 
-  it("retrouve le texte quelle que soit la colonne qui le portait", () => {
+  it('retrouve le texte quelle que soit la colonne qui le portait', () => {
     expect(ALLER({ Bug: '**par la colonne Bug**' }).champs.Bug).toBe('**par la colonne Bug**');
-    expect(ALLER({ "Bug (mots d'Avi)": '**par les mots d Avi**' }).champs["Bug (mots d'Avi)"]).toBe('**par les mots d Avi**');
+    expect(ALLER({ "Bug (mots d'Avi)": '**par les mots d Avi**' }).champs["Bug (mots d'Avi)"]).toBe(
+      '**par les mots d Avi**',
+    );
     expect(ALLER({ Constat: '**par un constat**' }).champs.Constat).toBe('**par un constat**');
   });
 

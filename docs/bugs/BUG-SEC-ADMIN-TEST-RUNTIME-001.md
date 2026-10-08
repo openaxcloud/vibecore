@@ -16,7 +16,7 @@ id: BUG-SEC-ADMIN-TEST-RUNTIME-001
 
 ## ✅ Testé live
 
-☐ Non confirmé. Exiger le scan des nouvelles images puis le rollout et les vérifications de production sur le commit fusionné. Aucune exception Trivy ajoutée.
+☐ Rollout et vérifications de production non confirmés. Le pipeline `37683775662` du commit `74aab77b7f71e513be61c19f5fe4b6223cff1200`, qui inclut #679, a passé le scan des images avant d'échouer à Helm le 07/10/2026. Le blocage du scan a donc été dépassé dans cette exécution ; cela ne prouve pas la mise en production. Aucune exception Trivy ajoutée.
 
 ## Validation locale
 

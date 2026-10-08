@@ -12,7 +12,7 @@ id: BUG-SEC-SCREENSHOTTER-EGRESS-001
 
 ## 💻 Codé
 
-☐ Fusion en attente. Les trois autorisations générales excluent screenshotter de leur egress. L’ingress partagé est conservé dans sa politique existante ; l’egress intra-namespace devient une politique distincte. La politique dédiée autorise DNS kube-system, HTTPS public avec exclusions IPv4 privées/spéciales, et uniquement le port du preview-proxy pour les pods de plateforme.
+☑ Fusionné sur main par #680 le 07/10/2026 (merge `74aab77b7f71e513be61c19f5fe4b6223cff1200`). Les trois autorisations générales excluent screenshotter de leur egress. L’ingress partagé est conservé dans sa politique existante ; l’egress intra-namespace devient une politique distincte. La politique dédiée autorise DNS kube-system, HTTPS public avec exclusions IPv4 privées/spéciales, et uniquement le port du preview-proxy pour les pods de plateforme. Le déploiement de ce SHA a échoué au Helm upgrade ; aucune clôture live.
 
 ## ✅ Testé live
 
