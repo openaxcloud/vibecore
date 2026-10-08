@@ -143,6 +143,30 @@ function suivre(repertoire, profondeur) {
 
 suivre(modules, 0);
 
+/*
+ * LE RÉPERTOIRE HOISTÉ DE pnpm EST UNE RACINE, PAS UN DÉTAIL.
+ *
+ * `node_modules/.pnpm/node_modules/` contient les liens que pnpm hisse — 1 124
+ * entrées sur ce dépôt. Il est ÉCARTÉ du décompte des entrées (`IGNORER`) parce
+ * que ce n'est pas un paquet, et c'est juste. Mais il doit être PARCOURU, parce
+ * que la résolution CJS de Node s'en sert : depuis
+ * `.pnpm/<entrée>/node_modules/<paquet>`, la remontée des `node_modules` passe
+ * par `.pnpm/node_modules` avant d'atteindre la racine.
+ *
+ * Mesuré le 2026-10-08, dans l'image web reconstruite : le serveur refusait de
+ * démarrer sur `Cannot find module '@smithy/util-config-provider'`, requis par
+ * `@smithy/config-resolver@4.1.4`, lui-même tiré par
+ * `@aws-sdk/client-bedrock-runtime`. Les voisines de l'entrée ne portaient que
+ * `@smithy` et `tslib` ; la dépendance manquante n'était atteignable QUE par le
+ * répertoire hoisté. Le pod web est resté 10 minutes à 1 réplique sur 2 mise à
+ * jour, et Helm a reverti (`--atomic`) — la production n'a jamais servi l'image.
+ *
+ * C'est le TROISIÈME trou du même marcheur. D'où le contrôle positif ajouté au
+ * Dockerfile : après élagage, l'image doit DÉMARRER. Un marcheur qui se trompe
+ * doit faire échouer la construction, jamais le déploiement.
+ */
+suivre(join(magasin, 'node_modules'), 1);
+
 const mortes = entrees.filter((n) => !atteintes.has(n));
 
 console.log(`élagage du magasin pnpm — ${racine}`);

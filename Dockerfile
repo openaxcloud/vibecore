@@ -109,6 +109,45 @@ RUN pnpm prune --prod --ignore-scripts
 # marche transitive.
 RUN node scripts/elaguer-magasin-pnpm.mjs /app --supprimer
 
+# LE CONTRÔLE POSITIF QUI MANQUAIT : APRÈS ÉLAGAGE, L'IMAGE DOIT DÉMARRER.
+#
+# Les quatre garde-fous du script vérifiaient la cohérence INTERNE de sa propre
+# mesure — un plancher d'atteignables, et `restantes == atteintes`. Les deux
+# étaient vrais d'un marquage FAUX. Résultat, trois trous successifs du même
+# marcheur découverts en PRODUCTION et non à la construction :
+#
+#   1. la marche transitive descendait dans `<paquet>/node_modules`, inexistant
+#      chez pnpm → crochet `prisma-migrate` mort sur `@prisma/engines` (07/10) ;
+#   2. un lien d'entrée venant de `.bin/` désigne un FICHIER, donc ses
+#      dépendances n'étaient jamais parcourues (même cause, même correctif) ;
+#   3. `.pnpm/node_modules/`, le répertoire HOISTÉ que la résolution CJS
+#      traverse, était ignoré → serveur web mort sur
+#      `@smithy/util-config-provider`, pod bloqué 10 min, rollback Helm (08/10).
+#
+# Un garde qui mesure la mesure ne suffit pas. Celui-ci mesure le RÉSULTAT : on
+# démarre le serveur réellement livré et on exige une réponse de `/health`.
+#
+# Viabilité prouvée avant d'écrire cette étape : sondé le 2026-10-08 dans l'image
+# web servie, `node ./server.mjs` sans AUCUNE variable d'environnement répond
+# `/health` en **14 s**. Le démarrage ne dépend donc pas de la base de données,
+# et ce contrôle ne peut pas rougir pour cette raison.
+#
+# `fetch` global de Node 22 est utilisé plutôt que `curl`, absent de cet étage.
+RUN set -e; \
+    NODE_ENV=production PORT=3100 HOST=127.0.0.1 node ./server.mjs & srv=$!; \
+    ok=0; \
+    for i in $(seq 1 40); do \
+      if node -e "fetch('http://127.0.0.1:3100/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"; then ok=1; break; fi; \
+      sleep 1; \
+    done; \
+    kill "$srv" 2>/dev/null || true; \
+    if [ "$ok" != 1 ]; then \
+      echo "ERREUR: apres elagage, le serveur ne repond plus sur /health."; \
+      echo "        Une entree encore requise a ete supprimee. NE PAS deployer cette image."; \
+      exit 1; \
+    fi; \
+    echo "OK: le serveur demarre et repond sur /health apres elagage."
+
 # ---- production stage ----
 FROM node:22-bookworm-slim AS bolt-ai-production
 WORKDIR /app

@@ -196,6 +196,53 @@ describe('l’élagage du magasin pnpm', () => {
     expect(manifeste.name).toBe('@moteur/coeur');
   });
 
+  it('garde la dépendance atteignable seulement par le répertoire HOISTÉ de pnpm', () => {
+    /*
+     * TROISIÈME TROU DU MÊME MARCHEUR, mesuré le 2026-10-08 dans l'image web
+     * reconstruite : le serveur refusait de démarrer sur
+     * `Cannot find module '@smithy/util-config-provider'`. L'entrée n'était
+     * atteignable ni depuis `node_modules/` racine, ni comme voisine — seulement
+     * par `.pnpm/node_modules/`, le répertoire que pnpm hisse (1 124 entrées sur
+     * ce dépôt) et que la résolution CJS de Node traverse en remontant.
+     */
+    const bac = mkdtempSync(join(tmpdir(), 'elagage-hoiste-'));
+    bacs.push(bac);
+
+    const modules = join(bac, 'node_modules');
+    const magasin = join(modules, '.pnpm');
+    const hoiste = join(magasin, 'node_modules');
+    mkdirSync(hoiste, { recursive: true });
+
+    const appelant = join(magasin, 'appelant@1.0.0', 'node_modules', 'appelant');
+    mkdirSync(appelant, { recursive: true });
+    writeFileSync(join(appelant, 'package.json'), JSON.stringify({ name: 'appelant', version: '1.0.0' }));
+    symlinkSync(join('.pnpm', 'appelant@1.0.0', 'node_modules', 'appelant'), join(modules, 'appelant'));
+
+    const hisse = join(magasin, 'hisse@1.0.0', 'node_modules', 'hisse');
+    mkdirSync(hisse, { recursive: true });
+    writeFileSync(join(hisse, 'package.json'), JSON.stringify({ name: 'hisse', version: '1.0.0' }));
+
+    /* le SEUL chemin vers `hisse` : le répertoire hoisté */
+    symlinkSync(join('..', 'hisse@1.0.0', 'node_modules', 'hisse'), join(hoiste, 'hisse'));
+
+    for (let i = 0; i < 3; i += 1) {
+      const d = join(magasin, `mort-${i}@1.0.0`, 'node_modules', `mort-${i}`);
+      mkdirSync(d, { recursive: true });
+      writeFileSync(join(d, 'package.json'), JSON.stringify({ name: `mort-${i}`, version: '1.0.0' }));
+    }
+
+    expect(entrees(bac), 'témoin : 5 entrées, le répertoire hoisté n’en est pas une').toHaveLength(5);
+
+    const { code, sortie } = lancer(bac, '--supprimer', '--plancher=1');
+
+    expect(code, `l’élagage a échoué :\n${sortie}`).toBe(0);
+    expect(sortie, 'les deux entrées doivent être atteignables').toMatch(/atteignables\s+: 2/u);
+    expect(
+      entrees(bac),
+      'l’entrée hissée doit survivre — sans elle l’image ne DÉMARRE pas, et on ne l’apprend qu’au déploiement',
+    ).toContain('hisse@1.0.0');
+  });
+
   it('REFUSE et ne supprime rien quand trop peu d’entrées sont atteignables', () => {
     /*
      * Le mode de panne redouté : un parcours de liens cassé rend zéro
