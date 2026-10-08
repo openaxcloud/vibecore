@@ -52,10 +52,12 @@ mesure fausse.
 
 ## Ce qui les remplace
 
-Un **contrôle positif qui exerce le résultat**, dans `Dockerfile`, juste après
-l'élagage : on démarre le serveur réellement livré et on exige une réponse de
-`/health`. Si une entrée encore requise a été supprimée, **la construction
-échoue** — plus jamais le déploiement.
+Un **contrôle positif qui exerce le résultat**, livré par #682 et fusionné sur
+`main` (`305d6fe61e`), démarre le serveur réellement livré dans l'image web et exige
+une réponse de `/health` après l'élagage. Si une entrée encore requise a été
+supprimée, la construction web échoue. Ce contrôle est un `RUN` du Dockerfile web,
+distinct du `HEALTHCHECK` au démarrage du conteneur. Il n'est pas ajouté aux images
+de services par cette proposition.
 
 Sa viabilité a été vérifiée avant d'être écrite, et c'est la moitié qu'on oublie :
 sondé dans l'image servie, `node ./server.mjs` répond `/health` en **14 s sans

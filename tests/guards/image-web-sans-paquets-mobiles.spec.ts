@@ -41,7 +41,7 @@ describe('les paquets mobiles restent hors des images de serveur', () => {
     expect(ligne, 'la ligne d’installation n’est plus reconnaissable').not.toBeNull();
     expect(
       ligne![1],
-      'sans `--filter \'!@vibecore/mobile\'`, les 13 paquets @capacitor/* reviennent dans l’image web ' +
+      "sans `--filter '!@vibecore/mobile'`, les 13 paquets @capacitor/* reviennent dans l’image web " +
         'et la porte de vulnérabilité refuse le déploiement sur CVE-2026-103922 (CRITIQUE)',
     ).toMatch(/--filter\s+'!@vibecore\/mobile'/u);
   });
@@ -52,7 +52,7 @@ describe('les paquets mobiles restent hors des images de serveur', () => {
      * déclare Capacitor ailleurs — en particulier pas dans le manifeste RACINE,
      * qui est celui de l'application web.
      */
-    const manifestes: string[] = ['package.json'];
+    const manifestes: string[] = ['package.json', 'infra/package.json'];
 
     for (const groupe of ['apps', 'services', 'packages']) {
       let entrees: string[] = [];
@@ -75,7 +75,12 @@ describe('les paquets mobiles restent hors des images de serveur', () => {
         continue;
       }
 
-      let manifeste: { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
+      let manifeste: {
+        dependencies?: Record<string, string>;
+        devDependencies?: Record<string, string>;
+        optionalDependencies?: Record<string, string>;
+        peerDependencies?: Record<string, string>;
+      };
 
       try {
         manifeste = JSON.parse(readFileSync(join(RACINE, chemin), 'utf8'));
@@ -83,8 +88,13 @@ describe('les paquets mobiles restent hors des images de serveur', () => {
         continue;
       }
 
-      const noms = [...Object.keys(manifeste.dependencies ?? {}), ...Object.keys(manifeste.devDependencies ?? {})];
-      const caps = noms.filter((n) => n.startsWith('@capacitor/'));
+      const noms = [
+        ...Object.keys(manifeste.dependencies ?? {}),
+        ...Object.keys(manifeste.devDependencies ?? {}),
+        ...Object.keys(manifeste.optionalDependencies ?? {}),
+        ...Object.keys(manifeste.peerDependencies ?? {}),
+      ];
+      const caps = noms.filter((n) => n.startsWith('@capacitor/') || n === '@vibecore/mobile');
 
       if (caps.length > 0) {
         fautifs.push(`${chemin} → ${caps.join(', ')}`);
@@ -106,6 +116,8 @@ describe('les paquets mobiles restent hors des images de serveur', () => {
     };
     const caps = Object.keys(mobile.dependencies ?? {}).filter((n) => n.startsWith('@capacitor/'));
 
-    expect(caps.length, 'apps/mobile doit déclarer Capacitor — sinon le motif de recherche est mort').toBeGreaterThan(5);
+    expect(caps.length, 'apps/mobile doit déclarer Capacitor — sinon le motif de recherche est mort').toBeGreaterThan(
+      5,
+    );
   });
 });
