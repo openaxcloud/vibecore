@@ -27,6 +27,12 @@
  * supprimer ne change pas ce que le programme peut charger. C'est ce qui rend ce
  * ramassage sûr par construction, et non une pari sur ce qui « sert ».
  *
+ * ⚠️ AVANT DE TOUCHER À CE FICHIER, lire `docs/LECON_ELAGAGE_MAGASIN_PNPM.md` :
+ * ce marcheur s'est trompé TROIS fois, et les garde-fous ci-dessous n'ont pu en
+ * voir aucune — ils vérifient la cohérence interne de la mesure, qui reste vraie
+ * d'un marquage faux. Le contrôle qui compte est plus bas dans le `Dockerfile` :
+ * après élagage, l'image doit DÉMARRER.
+ *
  * GARDE-FOUS, parce qu'un ramasse-miettes qui se trompe vide une image :
  *   1. refus si le marquage rend MOINS d'entrées atteignables qu'un plancher —
  *      un parcours cassé rendrait zéro, et zéro atteint voudrait dire « tout est
