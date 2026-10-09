@@ -72,9 +72,53 @@ test('la palette se ferme quand on ouvre un autre panneau ou qu’on clique aill
   await page.getByRole('button', { name: /^Git/i }).first().click();
   await expect(palette, 'ouvrir « Git » ferme la palette').toBeHidden({ timeout: 5_000 });
 
-  // 2. Cliquer dans la zone centrale.
+  /*
+   * 2. Cliquer dans la zone centrale.
+   *
+   * ⚠️ CE CAS CLIQUAIT UN PIXEL EN DUR : `page.mouse.click(780, 850)`. Mesuré le
+   * 2026-10-06 : le projet `chromium` — le seul que joue la suite bloquante —
+   * utilise `devices['Desktop Chrome']`, dont la fenêtre fait **1280 × 720**.
+   * Le clic tombait donc **130 px SOUS le bord inférieur**, sur rien. Que la
+   * palette se ferme ou non dépendait alors de qui écoutait au niveau du
+   * document, d'où 6 passages instables sur 15 relevés.
+   *
+   * Un « clic ailleurs » sans témoin n'est pas un geste reproductible. On clique
+   * donc une cible NOMMÉE, et on affirme d'abord qu'elle est bien dans la
+   * fenêtre : le jour où la disposition change, le test dit pourquoi au lieu de
+   * flotter.
+   */
   await ouvrir();
-  await page.mouse.click(780, 850);
+
+  const ailleurs = page.getByTestId('ide-agent-panel');
+  await expect(ailleurs, 'témoin : la cible du « clic ailleurs » existe').toBeVisible({ timeout: 10_000 });
+
+  const cadre = await ailleurs.boundingBox();
+  const fenetre = page.viewportSize();
+
+  /*
+   * Des `if` explicites plutôt que `expect(...).not.toBeNull()` : TypeScript ne
+   * sait pas qu'un `expect` restreint le type, et un `!` non gardé est
+   * précisément le genre de raccourci qui rend un échec illisible.
+   */
+  if (!cadre) {
+    throw new Error('la cible du « clic ailleurs » n’a pas de boîte englobante : il n’y a rien à cliquer');
+  }
+
+  if (!fenetre) {
+    throw new Error('taille de fenêtre inconnue : impossible de vérifier que le clic tombe dedans');
+  }
+
+  const x = cadre.x + cadre.width / 2;
+  const y = cadre.y + cadre.height / 2;
+
+  expect(
+    y,
+    `le point visé (${Math.round(x)}, ${Math.round(y)}) tombe hors de la fenêtre ` +
+      `${fenetre.width}×${fenetre.height} — c’est exactement le défaut d’origine`,
+  ).toBeLessThan(fenetre.height);
+  expect(x, 'le point visé sort de la fenêtre en largeur').toBeLessThan(fenetre.width);
+
+  await page.mouse.click(x, y);
   await expect(palette, 'un clic ailleurs ferme la palette').toBeHidden({ timeout: 5_000 });
 
   // 3. Un clic DANS la palette ne la ferme pas.

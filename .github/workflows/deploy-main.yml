@@ -394,6 +394,7 @@ jobs:
           set -euo pipefail
           python3 scripts/validate-image-signing-wired.py --self-test
           python3 scripts/validate-image-signing-wired.py
+          node --test scripts/capture-rollout-diagnostics.checks.bundle.mjs
 
       # Same idea, applied to the gate itself: prove that THIS workflow still runs
       # the deploy behind the release gate, still withholds WIF from the gate job,
@@ -1622,6 +1623,9 @@ jobs:
             /tmp/valeurs-fichier.json /tmp/valeurs-release.json
 
           echo "helm --set args: ${SETS[*]}"
+          node scripts/capture-rollout-diagnostics.bundle.mjs \
+            --namespace "${HELM_NAMESPACE}" --release "${HELM_RELEASE}" \
+            --output "$RUNNER_TEMP/rollout-status.jsonl" -- \
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
             --reuse-values \
@@ -2090,6 +2094,14 @@ jobs:
             echo ""
             echo "Post-rollout verification failed; production was returned to revision \`${PREV_REVISION}\`."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload rollout status evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rollout-status-${{ needs.resolve-target.outputs.short_sha }}
+          path: ${{ runner.temp }}/rollout-status.jsonl
+          if-no-files-found: warn
 
       - name: Upload release manifest and SBOMs
         if: always()

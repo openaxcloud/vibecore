@@ -86,4 +86,26 @@ COPY infra/package.json ./infra/
 # Install once and persist the pnpm store in the image. Service images run
 # `pnpm deploy --prefer-offline`, so package tarballs must be part of this
 # shared base instead of living only in a transient BuildKit cache mount.
-RUN pnpm install --frozen-lockfile
+#
+# `--filter '!@vibecore/mobile'` — L'APPLICATION MOBILE N'A RIEN A FAIRE DANS LES
+# IMAGES DE SERVEUR, ET SES PAQUETS Y PORTAIENT UNE FAILLE CRITIQUE.
+#
+# Mesure du 2026-10-08 sur l'image web reellement construite, refusee par la porte
+# de vulnerabilite :
+#
+#   Total: 2 (CRITICAL: 2)
+#   @capacitor/android 8.3.1  CVE-2026-103922  CRITICAL  fixed  -> 8.5.1
+#   @capacitor/ios            idem
+#
+# Les 13 paquets `@capacitor/*` sont declares dans `apps/mobile/package.json` et
+# NULLE PART AILLEURS — jamais dans le manifeste racine, qui est celui de
+# l'application web. Ils n'arrivaient donc dans l'image que parce que cette
+# installation hydrate TOUT l'espace de travail.
+#
+# Surete verifiee avant d'ecrire la ligne : aucun paquet de l'espace de travail ne
+# depend de `@vibecore/mobile` — seule sa propre declaration existe. L'exclure ne
+# change donc aucune resolution. Le `COPY apps/mobile/package.json` est conserve :
+# `--frozen-lockfile` valide le lockfile entier, qui declare ce projet.
+#
+# Epingle par `tests/guards/image-web-sans-paquets-mobiles.spec.ts`.
+RUN pnpm install --frozen-lockfile --filter '!@vibecore/mobile'
