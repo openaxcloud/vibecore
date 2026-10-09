@@ -10,6 +10,9 @@ CI de son SHA de fusion est verte ; sa nouvelle livraison reste en cours.
 La décision commerciale **Core 25 / Pro 100** est enregistrée ; devise, catalogue
 Stripe et migration des abonnements ne sont pas attestés. #685 corrige la
 validation CI et reste soumis à ses contrôles avant fusion.
+La contribution de Claude #651 est fusionnée après ses sept contrôles verts,
+sur main `243c315f98a541d9860efe2dd7e7bcbf776d0d4c` ; son déploiement et le
+parcours connecté en production restent à attester.
 
 Preuves et limites : [vérification du 09/10](deploy-evidence/2026-10-09-release-verification.md).
 Le lancement global n'est toujours pas attesté. Les décomptes, PR et mesures

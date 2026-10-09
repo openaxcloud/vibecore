@@ -48,6 +48,15 @@ et le garde de pinning passent localement. Le nom `.checks.mjs` distingue la sui
 Node de la découverte Vitest, sans retirer son exécution obligatoire. Fusion
 subordonnée à la réussite de la CI sur le dernier head ; aucune porte contournée.
 
+## Contribution de Claude intégrée
+
+#651 fusionnée sur main `243c315f98a541d9860efe2dd7e7bcbf776d0d4c` après
+réussite de CI, E2E, sécurité, qualité, validation PR, desktop et audit français
+du head `6b23b962f6699ea239199319335c12f78ec45e94`. Le nom générique de la
+formule gratuite est harmonisé entre billing et upgrade, sans renommer les
+produits ni supprimer la protection annuelle. Sa livraison et sa vérification
+connectée en production ne sont pas encore attestées.
+
 Le lancement global reste non validé : catalogue Stripe/devise/abonnements,
 parcours client complet, isolation réseau effective, restauration, capacité et
 surfaces promises restent soumis à leurs propres preuves.
