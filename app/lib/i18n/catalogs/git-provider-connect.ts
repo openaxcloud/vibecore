@@ -66,7 +66,7 @@ export const gitProviderConnectFr: GitProviderConnectCopy = {
   'gitProvider.gitlab.action': 'Connecter GitLab',
   'gitProvider.gitlab.placeholder': 'https://gitlab.com/acme/app.git',
   'gitProvider.bitbucket.label': 'Bitbucket',
-  'gitProvider.bitbucket.description': 'Connectez un compte Bitbucket pour vos workflows Git hébergés.',
+  'gitProvider.bitbucket.description': 'Connectez un compte Bitbucket pour vos dépôts Git hébergés.',
   'gitProvider.bitbucket.action': 'Connecter Bitbucket',
   'gitProvider.bitbucket.placeholder': 'https://bitbucket.org/acme/app.git',
   'gitProvider.custom.label': 'Dépôt distant personnalisé',
