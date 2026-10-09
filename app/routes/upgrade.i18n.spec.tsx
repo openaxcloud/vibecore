@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { FormEventHandler, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -67,7 +67,7 @@ vi.mock('~/components/enterprise/EnterpriseFormPage', () => ({
   ),
 }));
 
-import UpgradePage, { action, loader, meta } from './upgrade';
+import UpgradePage, { action, loader, meta, upgradePlanName } from './upgrade';
 import { formatUpgradeAmount, getUpgradeCopy, upgradeLimitLabel } from '~/lib/i18n/catalogs/upgrade';
 
 function renderPage(loaderData: unknown, actionData?: unknown) {
@@ -86,6 +86,63 @@ afterEach(() => {
 });
 
 describe('upgrade i18n', () => {
+  it.each([false, true])('blocks an unavailable annual plan with another annual plan present: %s', (otherAnnual) => {
+    const { container } = renderPage({
+      suggestedPlan: 'pro',
+      interval: 'annual',
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+      plans: [
+        { key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} },
+        ...(otherAnnual ? [{ key: 'team', name: 'Team', monthlyCents: 9900, annualAvailable: true, limits: {} }] : []),
+      ],
+    });
+    expect((screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(new FormData(container.querySelector('form')!).get('interval')).toBe('annual');
+    expect(screen.getByText(getUpgradeCopy('fr')['upgrade.price.noAnnual'])).toBeTruthy();
+
+    if (otherAnnual) {
+      expect((screen.getByRole('button', { name: 'Choisir la formule Team' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      );
+    }
+  });
+
+  it('keeps a monthly plan available without an annual price', () => {
+    const { container } = renderPage({
+      suggestedPlan: 'pro',
+      interval: 'monthly',
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+      plans: [{ key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} }],
+    });
+    expect((screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(new FormData(container.querySelector('form')!).get('interval')).toBe('monthly');
+  });
+
+  it('lets an annual visitor switch to monthly when no annual price is configured', () => {
+    const { container } = renderPage({
+      suggestedPlan: 'pro',
+      interval: 'annual',
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+      plans: [{ key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} }],
+    });
+
+    const checkout = screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement;
+
+    expect(checkout.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: 'Mensuelle' }));
+    expect(checkout.disabled).toBe(false);
+    expect(new FormData(container.querySelector('form')!).get('interval')).toBe('monthly');
+  });
+
   it('formats French currency and plurals and falls back to English', () => {
     const french = getUpgradeCopy('fr-FR');
 
@@ -217,5 +274,15 @@ describe('upgrade i18n', () => {
         matches: [{ id: 'root', data: { language: 'fr' } }] as never,
       })?.[0],
     ).toEqual({ title: 'Changer de formule - E-Code' });
+  });
+});
+
+describe('upgradePlanName (UIB-06)', () => {
+  it('nomme la formule gratuite comme /billing, et garde les noms de produit', () => {
+    expect(upgradePlanName({ key: 'free', name: 'Free' }, 'fr')).toBe('Gratuite');
+    expect(upgradePlanName({ key: 'free', name: 'Free' }, 'en')).toBe('Free');
+    expect(upgradePlanName({ key: 'free', name: 'Starter' }, 'fr')).toBe('Starter');
+    expect(upgradePlanName({ key: 'pro', name: 'Core' }, 'fr')).toBe('Core');
+    expect(upgradePlanName({ key: 'enterprise', name: 'Enterprise' }, 'fr')).toBe('Enterprise');
   });
 });

@@ -12,6 +12,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { billingDisplayName } from '~/lib/i18n/catalogs/billing';
 import {
   formatUpgradeAmount,
   formatUpgradeCopy,
@@ -228,6 +229,23 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 }
 
+/**
+ * UIB-06 — la formule gratuite porte le MÊME nom que sur /billing.
+ *
+ * Mesuré le 2026-09-30 : /upgrade affichait « Free » (nom brut de la table
+ * Plan) quand /billing disait « Gratuite » pour la même formule.
+ *
+ * Les noms de formule sont des noms de PRODUIT et restent tels quels (« Core »,
+ * « Pro », « Enterprise » — épinglé par upgrade.i18n.spec.tsx). Seul le mot
+ * générique « Free » de la formule `free` n'en est pas un : il reçoit le
+ * libellé de /billing.
+ */
+export function upgradePlanName(plan: { key: string; name: string }, language: 'en' | 'fr'): string {
+  return plan.key === 'free' && plan.name.trim().toLowerCase() === 'free'
+    ? billingDisplayName('free', language)
+    : plan.name;
+}
+
 /*
  * Real, quota-enforced plan limits (the same records the api enforces) rendered
  * as the card's feature summary — no marketing copy invented here.
@@ -305,7 +323,7 @@ export default function UpgradePage() {
         ) : (
           <p className="break-words text-sm text-bolt-elements-textSecondary">{copy['upgrade.subscription.new']}</p>
         )}
-        {!hasActiveSubscription && annualAvailable ? (
+        {!hasActiveSubscription && (annualAvailable || billingInterval === 'annual') ? (
           <fieldset className="space-y-1">
             <legend className="text-sm font-medium text-bolt-elements-textPrimary">
               {copy['upgrade.interval.legend']}
@@ -333,7 +351,9 @@ export default function UpgradePage() {
               </label>
             </div>
           </fieldset>
-        ) : null}
+        ) : (
+          <input type="hidden" name="interval" value={billingInterval} />
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           {data.plans.map((plan) => {
             const isCurrent = plan.key === data.currentPlanKey;
@@ -353,7 +373,9 @@ export default function UpgradePage() {
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">{plan.name}</h2>
+                  <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+                    {upgradePlanName(plan, language)}
+                  </h2>
                   {isCurrent ? (
                     <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary">
                       {copy['upgrade.badge.current']}
@@ -403,8 +425,14 @@ export default function UpgradePage() {
                       : copy['upgrade.actions.changePortal']}
                   </button>
                 ) : isCheckoutable ? (
-                  <button type="submit" name="planKey" value={plan.key} className={ACTION_CTA_CLASS}>
-                    {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: plan.name })}
+                  <button
+                    type="submit"
+                    name="planKey"
+                    value={plan.key}
+                    disabled={billingInterval === 'annual' && !plan.annualAvailable}
+                    className={ACTION_CTA_CLASS}
+                  >
+                    {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: upgradePlanName(plan, language) })}
                   </button>
                 ) : (
                   <button type="button" disabled className={OUTLINE_CTA_CLASS}>

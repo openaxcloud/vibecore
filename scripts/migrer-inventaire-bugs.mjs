@@ -196,7 +196,7 @@ export function entreeDuFichier(contenu) {
    */
   const champs = {};
 
-  for (const titre of ['Bug', "Bug (mots d'Avi)", 'Constat']) {
+  for (const titre of ['Bug', "Bug (mots d'Avi)", 'Constat', '📤 Dispatché', '💻 Codé', '✅ Testé live']) {
     const motif = new RegExp(`^## ${titre.replace(/[()]/gu, '\\$&')}\\n\\n([\\s\\S]*?)(?=\\n## |$)`, 'mu');
     const corps = motif.exec(contenu);
 
@@ -482,8 +482,8 @@ export function indexDeLInventaire(entrees, noms, residus = []) {
   const lignes = [
     '# Inventaire des bugs — index',
     '',
-    "Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :",
-    "il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et",
+    'Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :',
+    'il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et',
     '`scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.',
     '',
     `${entrees.length} entrées.`,
@@ -497,14 +497,20 @@ export function indexDeLInventaire(entrees, noms, residus = []) {
       lignes.push('', `## ${sectionCourante || 'Sans section'}`, '');
     }
 
-    lignes.push(`- [${entree.id}](${DOSSIER.replace(/\\/gu, '/')}/${noms[index]})${resumeDeLEntree(entree)}`);
+    const etats = ['📤 Dispatché', '💻 Codé', '✅ Testé live'].map((titre) => {
+      const texte = entree.champs[titre]?.split('\n')[0].replace(/\*\*/gu, '').trim();
+      return `${titre} : ${texte ? texte.slice(0, 110).trim() : 'non renseigné'}`;
+    });
+    lignes.push(
+      `- [${entree.id}](${DOSSIER.replace(/\\/gu, '/')}/${noms[index]})${resumeDeLEntree(entree)} — ${etats.join(' · ')}`,
+    );
   }
 
   if (residus.length > 0) {
     lignes.push('', '## Résidus non tabulaires — reportés mot pour mot', '');
     lignes.push(
       `${residus.length} bloc(s) commençaient comme une entrée sans être une ligne de tableau.`,
-      "Ils sont conservés ici tels quels : une migration ne perd pas de contenu en silence.",
+      'Ils sont conservés ici tels quels : une migration ne perd pas de contenu en silence.',
     );
 
     for (const residu of residus) {
@@ -519,10 +525,7 @@ export function indexDeLInventaire(entrees, noms, residus = []) {
 function resumeDeLEntree(entree) {
   const texte = entree.champs.Bug ?? entree.champs["Bug (mots d'Avi)"] ?? entree.champs.Constat ?? '';
   const gras = /\*\*([^*]{3,160})\*\*/u.exec(texte);
-  const brut = (gras ? gras[1] : texte)
-    .replace(/\*\*/gu, '')
-    .replace(/\s+/gu, ' ')
-    .trim();
+  const brut = (gras ? gras[1] : texte).replace(/\*\*/gu, '').replace(/\s+/gu, ' ').trim();
 
   return brut ? ` — ${brut.slice(0, 160)}` : '';
 }
