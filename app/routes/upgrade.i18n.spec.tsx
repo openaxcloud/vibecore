@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { FormEventHandler, ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -86,6 +86,63 @@ afterEach(() => {
 });
 
 describe('upgrade i18n', () => {
+  it.each([false, true])('blocks an unavailable annual plan with another annual plan present: %s', (otherAnnual) => {
+    const { container } = renderPage({
+      suggestedPlan: 'pro',
+      interval: 'annual',
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+      plans: [
+        { key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} },
+        ...(otherAnnual ? [{ key: 'team', name: 'Team', monthlyCents: 9900, annualAvailable: true, limits: {} }] : []),
+      ],
+    });
+    expect((screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(new FormData(container.querySelector('form')!).get('interval')).toBe('annual');
+    expect(screen.getByText(getUpgradeCopy('fr')['upgrade.price.noAnnual'])).toBeTruthy();
+
+    if (otherAnnual) {
+      expect((screen.getByRole('button', { name: 'Choisir la formule Team' }) as HTMLButtonElement).disabled).toBe(
+        false,
+      );
+    }
+  });
+
+  it('keeps a monthly plan available without an annual price', () => {
+    const { container } = renderPage({
+      suggestedPlan: 'pro',
+      interval: 'monthly',
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+      plans: [{ key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} }],
+    });
+    expect((screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(new FormData(container.querySelector('form')!).get('interval')).toBe('monthly');
+  });
+
+  it('lets an annual visitor switch to monthly when no annual price is configured', () => {
+    const { container } = renderPage({
+      suggestedPlan: 'pro',
+      interval: 'annual',
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+      plans: [{ key: 'pro', name: 'Pro', monthlyCents: 2900, annualAvailable: false, limits: {} }],
+    });
+
+    const checkout = screen.getByRole('button', { name: 'Choisir la formule Pro' }) as HTMLButtonElement;
+
+    expect(checkout.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('radio', { name: 'Mensuelle' }));
+    expect(checkout.disabled).toBe(false);
+    expect(new FormData(container.querySelector('form')!).get('interval')).toBe('monthly');
+  });
+
   it('formats French currency and plurals and falls back to English', () => {
     const french = getUpgradeCopy('fr-FR');
 

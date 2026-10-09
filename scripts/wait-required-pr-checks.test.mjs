@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { REQUIRED_PR_CHECKS, requiredCheckState, waitRequiredPrChecks } from './wait-required-pr-checks.mjs';
 
 const successful = () => REQUIRED_PR_CHECKS.map((name, id) => ({ name, id, status: 'completed', conclusion: 'success' }));
@@ -38,4 +39,15 @@ test('uses the newest attempt and ignores unrelated optional checks', () => {
 
 test('propagates API errors without treating missing data as success', async () => {
   await assert.rejects(waitRequiredPrChecks({ listChecks: async () => { throw new Error('API unavailable'); } }), /API unavailable/);
+});
+
+test('the mandatory workflow actually calls the gate on the PR head without ignoring errors', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/pr-release-validation.yaml', import.meta.url), 'utf8');
+  const qualityGate = workflow.split('  validate-release:')[0];
+  assert.match(qualityGate, /await waitRequiredPrChecks\(/);
+  assert.match(qualityGate, /ref: context\.payload\.pull_request\.head\.sha/);
+  assert.match(qualityGate, /github\.paginate\(github\.rest\.checks\.listForRef/);
+  assert.match(qualityGate, /timeout-minutes: 65/);
+  assert.doesNotMatch(qualityGate, /continue-on-error:\s*true/);
+  assert.match(qualityGate, /node --test scripts\/wait-required-pr-checks\.test\.mjs/);
 });
