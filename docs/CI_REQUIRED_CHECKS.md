@@ -28,5 +28,5 @@ affiche `CodeQL Analysis (javascript)` et `CodeQL Analysis (typescript)`.
 Validation : `node --test scripts/wait-required-pr-checks.test.mjs`, cinq tests
 de logique et un garde d'intégration au workflow. Retirer l'attente des contrôles
 absents fait rougir les tests d'enregistrement et de délai. Retirer son appel
-du workflow fait rougir le garde d'intégration. Cette correction ne modifie
-ni les permissions, ni le mécanisme de livraison production.
+du workflow fait rougir le garde d'intégration. Cette correction réduit les
+permissions du jeton de validation ; le mécanisme de livraison production reste inchangé.
