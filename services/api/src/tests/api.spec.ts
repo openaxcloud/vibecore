@@ -1243,13 +1243,25 @@ describe('SaaS API', () => {
     // Invite acceptance now requires a verified email.
     await store.updateUser({ userId: invitee.user.id, emailVerifiedAt: new Date().toISOString() });
 
-    const created = await app.inject({
-      method: 'POST',
-      url: `/orgs/${owner.organization.id}/invitations`,
-      headers: { authorization: `Bearer ${owner.token}` },
-      payload: { email: invitee.user.email, roleKey: 'member' },
-    });
+    const inviter = () =>
+      app.inject({
+        method: 'POST',
+        url: `/orgs/${owner.organization.id}/invitations`,
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { email: invitee.user.email, roleKey: 'member' },
+      });
+
+    // Forfait gratuit, place unique déjà prise : l'invitation est refusée dès sa création
+    // (BUG-QA0930-INVITATION-SANS-PLACE), au lieu d'échouer chez l'invité après son inscription.
+    const refused = await inviter();
+    expect(refused.statusCode).toBe(429);
+    expect(refused.json()).toMatchObject({ code: 'QUOTA_EXCEEDED', quotaKey: 'team.members' });
+
+    // L'acceptation reste gardée : invitation créée quand il restait des places, puis l'équipe repasse en gratuit.
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+    const created = await inviter();
     expect(created.statusCode).toBe(201);
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'CANCELED' });
 
     const accepted = await app.inject({
       method: 'POST',
@@ -3134,7 +3146,7 @@ describe('SaaS API', () => {
     }
   });
 
-  it('creates Stripe checkout through a configured billing endpoint', async () => {
+  it('respects the checkout interval and refuses annual-to-monthly substitution', async () => {
     const previousSecretKey = process.env.STRIPE_SECRET_KEY;
     const previousApiBase = process.env.STRIPE_API_BASE_URL;
     const previousProPrice = process.env.STRIPE_PRO_PRICE_ID;
@@ -3183,6 +3195,30 @@ describe('SaaS API', () => {
     const auth = await register(app, { email: 'checkout@example.com', organizationName: 'Checkout Org' });
 
     try {
+      await store.upsertBillingPlan({
+        key: 'pro',
+        name: 'Pro',
+        monthlyCents: 2900,
+        limits: {},
+        stripePriceId: 'price_checkout_pro',
+        stripePriceMonthlyId: 'price_checkout_pro',
+      });
+      const missingAnnual = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/billing/checkout`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          planKey: 'pro',
+          interval: 'annual',
+          successUrl: 'https://app.example.com/billing/success',
+          cancelUrl: 'https://app.example.com/billing/cancel',
+        },
+      });
+      expect(missingAnnual.statusCode).toBe(503);
+      expect(missingAnnual.json().code).toBe('STRIPE_PRICE_NOT_CONFIGURED');
+      expect(requests).toEqual([]);
+      expect(await store.getBillingCustomer(auth.organization.id)).toBeUndefined();
+
       const response = await app.inject({
         method: 'POST',
         url: `/orgs/${auth.organization.id}/billing/checkout`,
@@ -3206,6 +3242,23 @@ describe('SaaS API', () => {
       expect(requests[1].body['subscription_data[metadata][organizationId]']).toBe(auth.organization.id);
       expect(requests[1].body['subscription_data[metadata][planKey]']).toBe('pro');
       expect(store.auditLogs.some((event) => event.action === 'billing.checkout.create')).toBe(true);
+
+      await store.setPlanStripePrices({ key: 'pro', stripePriceAnnualId: 'price_checkout_annual' });
+      const annual = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/billing/checkout`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          planKey: 'pro',
+          interval: 'annual',
+          successUrl: 'https://app.example.com/billing/success',
+          cancelUrl: 'https://app.example.com/billing/cancel',
+        },
+      });
+      expect(annual.statusCode).toBe(200);
+      expect(requests).toHaveLength(3);
+      expect(requests[2].body['line_items[0][price]']).toBe('price_checkout_annual');
+      expect(requests[2].body['metadata[priceId]']).toBe('price_checkout_annual');
     } finally {
       process.env.STRIPE_SECRET_KEY = previousSecretKey;
       process.env.STRIPE_API_BASE_URL = previousApiBase;

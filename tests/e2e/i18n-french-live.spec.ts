@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 import { expect, test, type ConsoleMessage, type Page, type TestInfo } from '@playwright/test';
+import { isIdeShellPath } from '../i18n/audit-shell-path';
 
 import {
   findFrenchAuditResidue,
@@ -33,7 +34,8 @@ const AUTH_PATHS = [
 const PUBLIC_ERROR_PATHS = ['/__i18n-audit-missing-page__', '/__i18n-audit__/missing/page'] as const;
 
 /*
- * Les deux chemins qui montent la coque de l'IDE. La bascule de langue globale y
+ * Les chemins qui montent la coque de l'IDE, y compris l'alias preview redirigé.
+ * La bascule de langue globale y
  * a été RETIRÉE sur décision produit : elle occupait en permanence une place de
  * la barre — et, sur mobile, une pastille par-dessus la conversation de l'agent —
  * pour un réglage qu'on touche une fois. La langue est détectée au chargement et
@@ -43,10 +45,6 @@ const PUBLIC_ERROR_PATHS = ['/__i18n-audit-missing-page__', '/__i18n-audit__/mis
  * l'invariant INVERSE — la bascule doit être absente. Un simple `skip` laisserait
  * repasser la pastille sans que rien ne le signale.
  */
-function isIdeShellPath(path: string): boolean {
-  return /^\/projects\/[^/]+\/(ide|git)$/u.test(path);
-}
-
 /**
  * BUG-CI-010 — sous 768 px, la coque applicative REPLIE la bascule de langue
  * dans le menu (bouton « Menu »). Mesuré en réel sur la production, page
@@ -686,7 +684,9 @@ async function authenticateFrenchUser(page: Page): Promise<{ organizationId: str
       email: `audit-i18n-${suffix}@local.test`,
       password: 'Password123!',
       name: 'Utilisateur Audit',
-      organizationName: `Organisation Audit ${suffix}`,
+      // Un nom saisi par l'utilisateur n'est pas une traduction UI. Garder une
+      // fixture française, sans suffixe aléatoire qui peut former un mot anglais.
+      organizationName: `Collectif de vérification ${Date.now()}`,
     },
   });
   expect(response.ok(), await response.text()).toBeTruthy();

@@ -323,7 +323,7 @@ export default function UpgradePage() {
         ) : (
           <p className="break-words text-sm text-bolt-elements-textSecondary">{copy['upgrade.subscription.new']}</p>
         )}
-        {!hasActiveSubscription && annualAvailable ? (
+        {!hasActiveSubscription && (annualAvailable || billingInterval === 'annual') ? (
           <fieldset className="space-y-1">
             <legend className="text-sm font-medium text-bolt-elements-textPrimary">
               {copy['upgrade.interval.legend']}
@@ -351,7 +351,9 @@ export default function UpgradePage() {
               </label>
             </div>
           </fieldset>
-        ) : null}
+        ) : (
+          <input type="hidden" name="interval" value={billingInterval} />
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           {data.plans.map((plan) => {
             const isCurrent = plan.key === data.currentPlanKey;
@@ -423,7 +425,13 @@ export default function UpgradePage() {
                       : copy['upgrade.actions.changePortal']}
                   </button>
                 ) : isCheckoutable ? (
-                  <button type="submit" name="planKey" value={plan.key} className={ACTION_CTA_CLASS}>
+                  <button
+                    type="submit"
+                    name="planKey"
+                    value={plan.key}
+                    disabled={billingInterval === 'annual' && !plan.annualAvailable}
+                    className={ACTION_CTA_CLASS}
+                  >
                     {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: upgradePlanName(plan, language) })}
                   </button>
                 ) : (

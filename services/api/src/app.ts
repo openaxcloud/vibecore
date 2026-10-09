@@ -10813,11 +10813,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         email: user.email,
       });
 
-      const organization = await store.createOrganization({
-        name: body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale),
-        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
-        ownerUserId: user.id,
-      });
+      const organizationName = body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale);
+      const baseSlug = body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`;
+
+      /*
+       * UIB-10 — Organization.slug est @unique. Mesuré le 2026-10-01 : un second
+       * client qui choisissait un nom d'organisation déjà pris (« Acme ») recevait
+       * une erreur 500 — APRÈS la création de son compte, qui restait sans
+       * organisation ; en réessayant, « adresse déjà utilisée ». À l'inscription,
+       * le nom n'est qu'un libellé : on garde le nom choisi et on rend le slug
+       * unique avec un suffixe tiré de l'utilisateur (même forme que l'import).
+       */
+      let organization;
+
+      try {
+        organization = await store.createOrganization({ name: organizationName, slug: baseSlug, ownerUserId: user.id });
+      } catch (error) {
+        if ((error as { code?: string } | null)?.code !== 'P2002') {
+          throw error;
+        }
+
+        organization = await store.createOrganization({
+          name: organizationName,
+          slug: `${baseSlug}-${user.id.slice(-6)}`,
+          ownerUserId: user.id,
+        });
+      }
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
@@ -21128,15 +21149,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
       }
 
+      /*
+       * BUG-QA0930-INVITATION-SANS-PLACE — l'acceptation consomme une place
+       * (ensureQuota team.members) ; la création ne la consultait pas. Une équipe
+       * gratuite (1 place, prise par le propriétaire) envoyait donc des invitations
+       * que personne ne pourrait jamais accepter : le collègue s'inscrivait,
+       * vérifiait son adresse, puis butait sur un 429. On refuse ici, au moment où
+       * le propriétaire peut encore agir, en comptant aussi les places déjà promises
+       * aux invitations en attente.
+       */
+      const pendingSeats = pendingInvites.filter(
+        (invite) => !invite.acceptedAt && new Date(invite.expiresAt).getTime() > nowMs,
+      ).length;
       const token = createOpaqueToken('invite');
 
-      const invitation = await store.createOrganizationInvite({
-        organizationId: orgId,
-        email: body.email,
-        roleKey,
-        token,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
-      });
+      let invitation: Awaited<ReturnType<typeof store.createOrganizationInvite>>;
+
+      try {
+        invitation = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+          await ensureQuota(request, orgId, 'team.members', pendingSeats + 1);
+
+          return store.createOrganizationInvite({
+            organizationId: orgId,
+            email: body.email,
+            roleKey,
+            token,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+          });
+        });
+      } catch (error: any) {
+        if (error?.code === 'QUOTA_EXCEEDED') {
+          return reply.code(429).send({
+            error: appPublicCopy('TEAM_SEAT_LIMIT', transactionalLocaleForRequest(request)),
+            code: 'QUOTA_EXCEEDED',
+            quotaKey: 'team.members',
+          });
+        }
+
+        throw error;
+      }
       const invitedUser = await store.findUserByEmail(body.email);
       const invitationContent = invitationEmailContent({
         baseUrl: appPublicBaseUrl(),
@@ -21300,16 +21351,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * The email match alone is not enough: account email is user-mutable, so an
-     * attacker could set their address to the invite's target and join. Require
-     * the accepter's email to be VERIFIED so the binding is to a proven owner of
-     * that address.
+     * L'INVITATION VAUT VÉRIFICATION DE L'ADRESSE (décision d'Avi du 2026-10-01).
+     *
+     * L'adresse d'un compte se modifie : la correspondance seule ne prouve rien —
+     * d'où l'ancienne exigence d'une adresse déjà vérifiée. Mais le JETON, lui,
+     * n'a été envoyé qu'à cette boîte : le présenter prouve qu'on la lit. On
+     * vérifie donc l'adresse ICI, aux trois conditions posées par Avi :
+     *   1. invitation envoyée à CETTE adresse exacte (contrôle juste au-dessus) ;
+     *   2. lien à USAGE UNIQUE, et 3. LIMITÉ DANS LE TEMPS : la vérification n'est
+     *      écrite qu'APRÈS la consommation atomique du jeton (`acceptedAt` nul et
+     *      `expiresAt` à venir, dans la même écriture) — un lien rejoué ou expiré
+     *      ne vérifie rien.
+     * Tenu par invitation-vaut-verification.spec.ts (un cas par condition).
      */
-    if (!request.currentUser!.emailVerifiedAt) {
-      return reply
-        .code(403)
-        .send({ error: appPublicEnglish('INVITATION_EMAIL_VERIFICATION_REQUIRED'), code: 'EMAIL_NOT_VERIFIED' });
-    }
+    const adresseAVerifier = !request.currentUser!.emailVerifiedAt;
 
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
 
@@ -21329,6 +21384,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(400)
         .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
+    }
+
+    if (adresseAVerifier) {
+      await store.updateUser({ userId: request.currentUser!.id, emailVerifiedAt: new Date().toISOString() });
+      await audit(request, store, {
+        organizationId: invitation.organizationId,
+        action: 'auth.email.verify',
+        resourceType: 'user',
+        resourceId: request.currentUser!.id,
+        metadata: { via: 'invitation', inviteId: invitation.id },
+      });
     }
 
     if (!existingMembership) {
@@ -29584,10 +29650,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const plan = await store.getBillingPlan(body.planKey);
 
-    // Pick the interval-specific price; fall back to the legacy single price id.
+    // The legacy price is monthly. An annual choice must never create a monthly subscription.
     const resolvedPriceId =
       body.interval === 'annual'
-        ? (plan?.stripePriceAnnualId ?? plan?.stripePriceMonthlyId ?? plan?.stripePriceId)
+        ? plan?.stripePriceAnnualId
         : (plan?.stripePriceMonthlyId ?? plan?.stripePriceId);
 
     if (!resolvedPriceId) {

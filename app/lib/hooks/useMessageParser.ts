@@ -1,7 +1,13 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
 import { detectUserLanguage } from '~/lib/i18n/language';
-import { arbitreDe, decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
+import {
+  arbitreDe,
+  decoderLane,
+  estFichierDeDemarrage,
+  identifiantDeLane,
+  textesDesLanes,
+} from '~/lib/runtime/agent-lane-writes';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import {
   analyserGeneration,
@@ -45,6 +51,7 @@ const logger = createScopedLogger('useMessageParser');
  */
 const toursSansFichier = new Set<string>();
 const refusDejaSignales = new Set<string>();
+const refusDeDemarrageSignales = new Set<string>();
 
 function consigneSansFichier(message: Message): boolean {
   return (message.annotations ?? []).some(
@@ -72,6 +79,33 @@ function ecritureAutorisee(data: {
           event: 'ecriture.refusee.consigne',
           messageId: data.messageId,
           type: data.action.type,
+          filePath: data.action.filePath,
+        }),
+      );
+    }
+
+    return false;
+  }
+
+  /*
+   * Un sous-agent n'écrit jamais la chaîne de démarrage : c'est le coordinateur
+   * qui l'intègre (voir `estFichierDeDemarrage`). Témoin émis :
+   * `lane.fichier-de-demarrage.refuse`.
+   */
+  if (
+    lane &&
+    (data.action.type === 'file' || data.action.type === 'diff') &&
+    data.action.filePath &&
+    estFichierDeDemarrage(data.action.filePath)
+  ) {
+    const cle = `${data.messageId}:${data.action.filePath}`;
+
+    if (!refusDeDemarrageSignales.has(cle)) {
+      refusDeDemarrageSignales.add(cle);
+      logger.warn(
+        JSON.stringify({
+          event: 'lane.fichier-de-demarrage.refuse',
+          roleId: lane.roleId,
           filePath: data.action.filePath,
         }),
       );

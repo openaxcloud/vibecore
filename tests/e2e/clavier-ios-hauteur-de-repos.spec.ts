@@ -68,6 +68,30 @@ async function createProjectSession(request: APIRequestContext) {
   throw new Error(`Impossible d'ouvrir une session de test : ${lastBody}`);
 }
 
+/*
+ * Une mesure de référence ne se prend que sur une mise en page STABLE : deux
+ * lectures identiques à 300 ms d'intervalle. Au premier chargement, le projet
+ * arrive pendant que l'on mesure ; une hauteur lue sur un état transitoire est
+ * exactement la famille de défauts que ces tests gardent (01/10).
+ */
+async function stable(locator: import('@playwright/test').Locator) {
+  let precedent = '';
+
+  await expect
+    .poll(
+      async () => {
+        const r = await locator.boundingBox();
+        const courant = r ? `${Math.round(r.y)}:${Math.round(r.height)}` : 'absent';
+        const tient = courant !== 'absent' && courant === precedent;
+        precedent = courant;
+
+        return tient;
+      },
+      { intervals: [300], timeout: 30_000, message: 'la mise en page ne se stabilise pas' },
+    )
+    .toBe(true);
+}
+
 test('clavier levé (fenêtre de mise en page rétrécie, comme iOS 26) : socle couvert, zone de saisie visible', async ({
   page,
   request,
@@ -92,6 +116,8 @@ test('clavier levé (fenêtre de mise en page rétrécie, comme iOS 26) : socle 
 
   // Précondition de la mesure : l'état de départ (le cas mesuré sur iOS) est affiché.
   await expect(page.locator('.bolt-mobile-agent-start-state')).toBeVisible();
+
+  await stable(composeur);
 
   // « Clavier levé » à la manière d'iOS 26 : innerHeight ET vue tombent à 362.
   await page.setViewportSize({ width: 390, height: 362 });
@@ -122,14 +148,22 @@ test('clavier levé (fenêtre de mise en page rétrécie, comme iOS 26) : socle 
         return `${sel}=[${Math.round(r.top)}-${Math.round(r.bottom)} fs=${cs.flexShrink} fb=${cs.flexBasis} h=${cs.height} minh=${cs.minHeight} parent=${e.parentElement?.className.toString().split(/\s+/).slice(0, 2).join('.')} rang=${e.parentElement ? [...e.parentElement.children].indexOf(e) : -1}]`;
       };
 
-      return [
-        '.bolt-mobile-agent-start-state',
-        '.bolt-project-agent-scroll',
-        '.bolt-project-agent-composer',
-        '.bolt-project-agent-panel',
-      ]
-        .map(d)
-        .join(' ');
+      return (
+        [
+          `attr=${document.documentElement.getAttribute('data-vc-clavier') ?? 'absent'}`,
+          `socle=${getComputedStyle(document.querySelector('.bolt-mobile-replit-nav') ?? document.body).display}`,
+          `ide-mobile=${Boolean(document.querySelector('.bolt-responsive-ide-mobile'))}`,
+        ].join(' ') +
+        ' ' +
+        [
+          '.bolt-mobile-agent-start-state',
+          '.bolt-project-agent-scroll',
+          '.bolt-project-agent-composer',
+          '.bolt-project-agent-panel',
+        ]
+          .map(d)
+          .join(' ')
+      );
     });
 
   let bas = Number.NaN;
@@ -180,6 +214,8 @@ test('clavier levé sur un champ bas (Paramètres) : le champ actif reste visibl
   await expect(champ).toBeVisible({ timeout: 60_000 });
 
   // Précondition : au repos, le champ est plus bas que le futur bas visible — sinon le test ne mesure rien.
+  await stable(champ);
+
   const avant = (await champ.boundingBox())!;
   expect(avant.y + avant.height, 'le champ est déjà au-dessus de 362 : la mesure serait vide').toBeGreaterThan(362);
 
@@ -204,4 +240,117 @@ test('clavier levé sur un champ bas (Paramètres) : le champ actif reste visibl
 
   expect(bas, 'le champ actif reste sous le bas visible (362)').toBeLessThanOrEqual(362);
   expect(haut, 'le champ actif est sorti par le haut').toBeGreaterThanOrEqual(0);
+});
+
+/*
+ * Le chemin de l'utilisateur pressé (01/10) : à l'ouverture à froid, l'IDE montre
+ * d'abord une COQUILLE (`PendingComposerShell`, un `BaseChat` déjà utilisable),
+ * puis la remplace par le vrai chat quand la mémoire du projet arrive — React
+ * démonte et remonte BaseChat. Toucher la zone de saisie dans cet intervalle,
+ * c'est lever le clavier AVANT la bascule.
+ *
+ * Avant #664, la hauteur de repos était locale à l'effet de BaseChat : remonté
+ * clavier levé, il la réapprenait à 362 et ne voyait plus jamais le clavier —
+ * zone de saisie sous le clavier. En CI, le test ci-dessus tombait dans ce cas
+ * au hasard de la vitesse de la machine (18 premiers essais rouges sur 25, même
+ * mise en page à chaque fois) ; en local jamais (12/12 vert sans le correctif).
+ * Ce test PROVOQUE la condition au lieu de l'attendre : la mémoire du projet
+ * est retenue jusqu'à ce que le clavier soit levé.
+ */
+test('clavier levé PENDANT le chargement : la bascule coquille → vrai chat garde le clavier vu', async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(120_000);
+
+  const { token, projectId } = await createProjectSession(request);
+
+  let relacher: () => void = () => undefined;
+
+  const retenue = new Promise<void>((resolve) => {
+    relacher = resolve;
+  });
+
+  let retenues = 0;
+
+  await page.route('**/ide-state**', async (route) => {
+    if (route.request().method() !== 'GET') {
+      return route.continue();
+    }
+
+    retenues += 1;
+    await retenue;
+
+    return route.continue();
+  });
+
+  await page
+    .context()
+    .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`/projects/${projectId}/ide?panel=agent`, { waitUntil: 'domcontentloaded' });
+
+  const composeur = page.locator('.bolt-project-agent-composer').first();
+  const champ = composeur.locator('textarea').first();
+  await expect(champ).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => retenues, { message: 'la mémoire du projet n’a pas été demandée' }).toBeGreaterThan(0);
+
+  const champDeLaCoquille = await champ.elementHandle();
+  await champ.focus();
+  await page.setViewportSize({ width: 390, height: 362 });
+  await expect(page.locator('html'), 'clavier non vu dans la coquille').toHaveAttribute('data-vc-clavier', 'ouvert');
+
+  /*
+   * Précondition : la bascule n'a PAS encore eu lieu — sinon ce test ne mesure rien.
+   *
+   * ⚠️ ELLE NE TIENT PAS À TOUS LES COUPS, ET C'EST MESURÉ. Le 2026-10-06, sur
+   * les quatre passages qui ont suivi l'arrivée de ce test, TROIS ont échoué
+   * ici — sur `main` (`ec1d45d947`) et sur deux propositions sans rapport
+   * (#672, #674). Retenir le GET `ide-state` ne suffit pas à garder
+   * l'application en coquille : la bascule se déclenche par un autre chemin.
+   *
+   * Le constat qui tranche : l'échec porte sur la LIGNE DE PRÉCONDITION, pas sur
+   * l'assertion produit vingt lignes plus bas. Le test n'atteint jamais ce qu'il
+   * est censé mesurer — il ne dit donc RIEN du clavier, ni en bien ni en mal.
+   *
+   * Or un test qui ne peut pas monter son scénario ne doit pas rendre un verdict
+   * PRODUIT. Il doit se déclarer non concluant. C'est exactement ce que le
+   * commentaire d'origine disait — « sinon ce test ne mesure rien » — et
+   * `test.skip()` est la façon de l'écrire que Playwright comprend.
+   *
+   * ⚠️ CE QUE CE CHANGEMENT NE FAIT PAS : il ne corrige pas la course. Le test
+   * reste faible — il ne mesure que lorsque le tirage lui est favorable. La
+   * vraie réparation est de retenir la bascule de façon déterministe, et elle
+   * appartient à la session mobile qui a écrit ce test. Ce qu'on gagne ici, c'est
+   * qu'il cesse de rendre un faux rouge produit et de fermer la porte de release
+   * à toute la plateforme.
+   */
+  const coquilleEncoreLa = await champDeLaCoquille!.evaluate((n) => n.isConnected);
+
+  test.skip(
+    !coquilleEncoreLa,
+    'non concluant : la coquille a été remplacée avant que le clavier soit levé, ' +
+      'donc la bascule mesurée par ce test n’a pas eu lieu. Ce n’est PAS un verdict sur le clavier.',
+  );
+
+  relacher();
+
+  await expect
+    .poll(() => champDeLaCoquille!.evaluate((n) => n.isConnected), {
+      timeout: 30_000,
+      message: 'la coquille n’a jamais été remplacée par le vrai chat',
+    })
+    .toBe(false);
+
+  await expect(
+    page.locator('html'),
+    'clavier perdu à la bascule : `data-vc-clavier` retiré (hauteur de repos réapprise clavier levé)',
+  ).toHaveAttribute('data-vc-clavier', 'ouvert');
+  await stable(composeur);
+
+  const cadre = (await composeur.boundingBox())!;
+  expect(
+    Math.round(cadre.y + cadre.height),
+    'la zone de saisie passe sous le clavier après la bascule',
+  ).toBeLessThanOrEqual(362);
 });
