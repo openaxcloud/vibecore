@@ -1174,20 +1174,37 @@ jobs:
             fi
             trivy image --quiet --scanners vuln --severity HIGH \
               --ignore-unfixed --ignorefile "${ignorefile}" "${ref}" || true
-            if ! trivy image --quiet --scanners vuln --severity CRITICAL \
+            critical_exit=0
+            trivy image --quiet --scanners vuln --severity CRITICAL \
                    --ignore-unfixed --ignorefile "${ignorefile}" \
                    --format json --output "sbom/${service}.critical.json" \
-                   --exit-code 1 "${ref}"; then
-              echo "::error::CRITICAL fixable vulnerability in ${ref}"
+                   --exit-code 1 "${ref}" || critical_exit=$?
+            if [ "${critical_exit}" -ne 0 ]; then
+              echo "::error::Blocking vulnerability scan failed for ${service} (exit ${critical_exit})"
               rc=1
             fi
             # A CycloneDX inventory alone contains no vulnerability verdict.
             # Preserve the actual blocking result in the always-uploaded artifact,
             # including when the job logs cannot be downloaded in their entirety.
-            jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? |
+            report_valid=false
+            if [ -f "sbom/${service}.critical.json" ] && \
+               jq -e 'type == "object" and (.Results | type == "array")' "sbom/${service}.critical.json" >/dev/null; then
+              report_valid=true
+              jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? |
               [$target, .VulnerabilityID, .PkgName, .InstalledVersion, .FixedVersion] | @tsv' \
               "sbom/${service}.critical.json"
-            trivy image --quiet --format cyclonedx --output "sbom/${service}.cdx.json" "${ref}"
+            else
+              echo "::error::${service}: blocking scan report is missing or malformed"
+              rc=1
+            fi
+            sbom_exit=0
+            trivy image --quiet --format cyclonedx --output "sbom/${service}.cdx.json" "${ref}" || sbom_exit=$?
+            if [ "${sbom_exit}" -ne 0 ]; then rc=1; fi
+            jq -n --arg service "${service}" --arg ref "${ref}" \
+              --argjson scannerExit "${critical_exit}" --argjson reportValid "${report_valid}" \
+              --argjson sbomExit "${sbom_exit}" \
+              '{service: $service, ref: $ref, scannerExit: $scannerExit, reportValid: $reportValid, sbomExit: $sbomExit}' \
+              > "sbom/${service}.scan-status.json"
             echo "::endgroup::"
           done < <(jq -r '.[] | "\(.service) \(.image) \(.digest)"' /tmp/services.json)
 
