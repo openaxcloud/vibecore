@@ -35736,14 +35736,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * can't spam renders.
    */
   app.post('/projects/:projectId/thumbnail/refresh', async (request, reply) => {
-    if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
-    }
-
     const project = await requireObjectStorageProject(request, 'projects:write');
     const body = parse(z.object({ url: z.string().url().max(2048) }), request.body ?? {});
 
-    if (!thumbnailCapturer.enabled) {
+    /*
+     * Stockage coupé = capture d'écran absente : la fonction n'est pas là, rien
+     * n'a échoué. L'IDE appelle cette route seul, à chaque aperçu prêt ; un 404
+     * y était une erreur rouge dans la console du navigateur
+     * (tests/vignette-stockage-coupe.spec.ts). L'accès au projet est vérifié
+     * AVANT, comme pour une vignette réelle.
+     */
+    if (!isObjectStorageEnabled() || !thumbnailCapturer.enabled) {
       return reply.code(202).send({ scheduled: false, enabled: false });
     }
 
