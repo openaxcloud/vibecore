@@ -13,7 +13,7 @@ P1 — Une demande de paiement annuel utilisait le prix mensuel si le prix annue
 
 ## 💻 Codé
 
-☑ Fusionné sur main le 09/10/2026 par #684, commit `a11d0a1687d8edb5a3f4b38f74031d230f289383`. CI, E2E, sécurité et qualité de ce SHA réussis ; livraison en cours, pas encore attestée.
+☑ Fusionné sur main le 09/10/2026 par #684, commit `a11d0a1687d8edb5a3f4b38f74031d230f289383`. CI, E2E, sécurité et qualité de ce SHA réussis ; livraison bloquée au scan des images du run `37885667512`, avant Helm. Pas encore servi par cette livraison.
 
 La route refuse un annuel sans prix annuel avec 503 `STRIPE_PRICE_NOT_CONFIGURED` avant tout appel Stripe. Le formulaire conserve la période et désactive les plans annuels indisponibles. Le prix mensuel historique reste accepté.
 

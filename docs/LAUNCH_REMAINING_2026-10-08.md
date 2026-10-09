@@ -6,10 +6,13 @@ Main `a11d0a1687d8edb5a3f4b38f74031d230f289383` contient #681, #682, #683 et #68
 La livraison #683 a réussi, avec neuf images signées et traçables, sans Capacitor
 dans les SBOM serveur. Le collecteur a conservé les états d'un rollout échoué
 puis d'un rollout réussi. La protection du paiement annuel est fusionnée et la
-CI de son SHA de fusion est verte ; sa nouvelle livraison reste en cours.
+CI de son SHA de fusion est verte ; sa livraison a échoué au scan des images,
+après les deux constructions et avant Helm. La cause exacte n'est pas encore
+récupérable : #687 conserve les verdicts JSON, sans changer le seuil de sécurité.
 La décision commerciale **Core 25 / Pro 100** est enregistrée ; devise, catalogue
 Stripe et migration des abonnements ne sont pas attestés. #685 corrige la
-validation CI et reste soumis à ses contrôles avant fusion.
+validation CI ; tous ses contrôles requis ont réussi avant fusion sur main
+`01b72f6a5c5fe7a1b783dc27730f092922196c6e`.
 La contribution de Claude #651 est fusionnée après ses sept contrôles verts,
 sur main `243c315f98a541d9860efe2dd7e7bcbf776d0d4c` ; son déploiement et le
 parcours connecté en production restent à attester.

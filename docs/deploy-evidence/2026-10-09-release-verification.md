@@ -22,14 +22,19 @@ Ce document sépare fusion, livraison des images et parcours client réel.
   dernières minutes de planification vont du 16 juillet au 1er octobre. Ce nombre
   seul ne prouve pas cinquante pannes actuelles et ne justifie aucune suppression.
 
-## Paiement : fusion attestée, nouvelle livraison en cours
+## Paiement : fusion attestée, livraison bloquée avant Helm
 
 - #684 fusionnée par cette session : main `a11d0a1687d8edb5a3f4b38f74031d230f289383`.
   Ses parents incluent main #683 et le head testé `b8f2a05483f3eca9e7fba23ede9848cba821f984`.
 - CI, E2E, sécurité et qualité de ce SHA de fusion réussis. La porte de livraison
   et le preflight du run [37885667512](https://github.com/openaxcloud/vibecore/actions/runs/37885667512)
-  ont réussi. Construction des images en cours lors de cette rédaction : **ce
-  document n'atteste pas encore le rollout de cette version**.
+  ont réussi, ainsi que les constructions runtime et web. Le contrôle de
+  vulnérabilités a ensuite échoué ; Helm et la comparaison des imageIDs ont
+  été sautés. **Cette version n'a donc pas été livrée par ce run**.
+  L'artefact `11597528856` contient neuf inventaires CycloneDX, sans rapport de
+  vulnérabilités ni manifeste final. Leur champ `vulnerabilities` absent ne
+  prouve pas l'absence de CVE. La cause exacte du scan reste inconnue : les
+  journaux volumineux renvoient `Transport closed` dans cette connexion.
 - La protection refuse l'annuel sans prix annuel avant appel Stripe ; l'interface
   conserve la période et permet de revenir au mensuel. Gardes :
   `services/api/src/tests/api.spec.ts` et `app/routes/upgrade.i18n.spec.tsx`.
@@ -40,13 +45,18 @@ Ce document sépare fusion, livraison des images et parcours client réel.
   Aucun paiement réel effectué. Parcours connecté et responsive du paiement
   non attestés ; la fiche du bug reste ouverte sur la colonne « Testé live ».
 
-## Validation des propositions : correctif distinct en attente
+## Validation des propositions : correctif fusionné
 
 #685 traite la course d'enregistrement des contrôles, les deux contrôles CodeQL,
 les erreurs ignorées et les permissions excessives du jeton. Six contrôles Node
 et le garde de pinning passent localement. Le nom `.checks.mjs` distingue la suite
-Node de la découverte Vitest, sans retirer son exécution obligatoire. Fusion
-subordonnée à la réussite de la CI sur le dernier head ; aucune porte contournée.
+Node de la découverte Vitest, sans retirer son exécution obligatoire. CI, les
+quatre tranches E2E et leur agrégateur, sécurité, qualité et validation PR ont
+réussi sur le head `50b9ab2b480001134332c239a4f4fac91f7cc885`. Fusion sur main
+`01b72f6a5c5fe7a1b783dc27730f092922196c6e` ; aucune porte contournée.
+Les erreurs terminales, les erreurs API et les contrôles jamais enregistrés
+restent bloquants. La livraison automatique de ce nouveau main n'est pas encore
+attestée.
 
 ## Contribution de Claude intégrée
 
@@ -56,6 +66,16 @@ du head `6b23b962f6699ea239199319335c12f78ec45e94`. Le nom générique de la
 formule gratuite est harmonisé entre billing et upgrade, sans renommer les
 produits ni supprimer la protection annuelle. Sa livraison et sa vérification
 connectée en production ne sont pas encore attestées.
+
+## Prochaine preuve nécessaire : résultat du scan bloquant
+
+#687 conserve désormais chaque rapport CRITICAL JSON dans l'artefact envoyé
+avec `always()`. Les cinq contrôles Node exécutent le shell réel avec un scanner
+de test ; tous réussissent. Retirer `--exit-code 1` produit deux échecs. Seuil,
+exceptions par image et refus de livraison inchangés. Cette proposition est
+en attente de CI/fusion ; elle ne répare ni ne masque une vulnérabilité inconnue.
+Un téléchargement local de Trivy a retourné un fichier vide et a été rejeté
+par SHA256 avant exécution. Aucun accès opérateur au cluster n'a été employé.
 
 Le lancement global reste non validé : catalogue Stripe/devise/abonnements,
 parcours client complet, isolation réseau effective, restauration, capacité et
