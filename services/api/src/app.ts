@@ -29673,10 +29673,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const plan = await store.getBillingPlan(body.planKey);
 
-    // Pick the interval-specific price; fall back to the legacy single price id.
+    // The legacy price is monthly. An annual choice must never create a monthly subscription.
     const resolvedPriceId =
       body.interval === 'annual'
-        ? (plan?.stripePriceAnnualId ?? plan?.stripePriceMonthlyId ?? plan?.stripePriceId)
+        ? plan?.stripePriceAnnualId
         : (plan?.stripePriceMonthlyId ?? plan?.stripePriceId);
 
     if (!resolvedPriceId) {
