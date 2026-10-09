@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-388 entrées.
+389 entrées.
 
 ## Sans section
 
@@ -423,6 +423,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-SEC-SCREENSHOTTER-EGRESS-001](docs/bugs/BUG-SEC-SCREENSHOTTER-EGRESS-001.md) — P1 — la politique réseau du screenshotter était neutralisée par trois autorisations générales. — 📤 Dispatché : 📤 Pris en charge le 07/10/2026. · 💻 Codé : ☑ Fusionné sur main par #680 le 07/10/2026 (merge `74aab77b7f71e513be61c19f5fe4b6223cff1200`). Les trois autor · ✅ Testé live : ☐ Non confirmé. Le rendu du graphe ne prouve pas l’application des politiques par le CNI. Il faut inspecter TO
 - [BUG-DEPLOY-ROLLOUT-EVIDENCE-001](docs/bugs/BUG-DEPLOY-ROLLOUT-EVIDENCE-001.md) — P1 — un rollout atomique en échec ne conserve aucun état des pods et Jobs dans les artefacts du pipeline. Le déploiement `37683775662` du commit `74aab77b7f71e5 — 📤 Dispatché : 📤 Pris en charge le 08/10/2026. · 💻 Codé : ☐ Sur branche ; pas encore fusionné sur main. · ✅ Testé live : ☐ Non confirmé. Le prochain pipeline doit produire `rollout-status-<sha>` ; lire les snapshots précédant le ro
 - [BUG-CI-I18N-IDE-ALIAS-001](docs/bugs/BUG-CI-I18N-IDE-ALIAS-001.md) — P1 livraison — l'audit i18n exige la bascule globale sur l'alias preview qui redirige vers la coque IDE, où elle a été retirée par décision produit. Les logs du — 📤 Dispatché : ☑ Pris en charge le 08/10/2026 après lecture des journaux desktop-1024 et desktop-1440. · 💻 Codé : ☐ Sur branche de #681. Le test classe preview avec ide/git et conserve son invariant inverse (absence de bascu · ✅ Testé live : ☐ Non confirmé en production. 102 tests ciblés locaux passent ; la matrice complète de quatre formats doit pas
+
+## 2026-10-08 — Paiement et préparation au lancement
+
+- [BUG-BILLING-ANNUAL-FALLBACK-001](docs/bugs/BUG-BILLING-ANNUAL-FALLBACK-001.md) — P1 — Une demande de paiement annuel utilisait le prix mensuel si le prix annuel manquait. Sans plan annuel disponible, le formulaire omettait aussi la période e — 📤 Dispatché : 📤 Pris en charge le 08/10/2026. · 💻 Codé : ☐ Branche de correctif, fusion sur main à confirmer. · ✅ Testé live : ☐ Production responsive en attente, aucun débit réel effectué.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
