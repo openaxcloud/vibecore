@@ -54,6 +54,11 @@ Node de la découverte Vitest, sans retirer son exécution obligatoire. CI, les
 quatre tranches E2E et leur agrégateur, sécurité, qualité et validation PR ont
 réussi sur le head `50b9ab2b480001134332c239a4f4fac91f7cc885`. Fusion sur main
 `01b72f6a5c5fe7a1b783dc27730f092922196c6e` ; aucune porte contournée.
+Le run de livraison `37890108592` s'est ensuite arrêté à la porte des contrôles
+de ce SHA : l'agrégateur E2E `37890108457` a refusé deux échecs non exemptés,
+palette et envoi d'une réparation vers l'Agent. Les quatre jobs de tranche
+étaient verts, ce qui ne signifie pas que tous leurs tests l'étaient : seul le
+verdict de l'agrégateur atteste l'ensemble. Aucune image construite par ce run.
 Les erreurs terminales, les erreurs API et les contrôles jamais enregistrés
 restent bloquants. La livraison automatique de ce nouveau main n'est pas encore
 attestée.
@@ -70,8 +75,11 @@ connectée en production ne sont pas encore attestées.
 ## Prochaine preuve nécessaire : résultat du scan bloquant
 
 #687 conserve désormais chaque rapport CRITICAL JSON dans l'artefact envoyé
-avec `always()`. Les cinq contrôles Node exécutent le shell réel avec un scanner
-de test ; tous réussissent. Retirer `--exit-code 1` produit deux échecs. Seuil,
+avec `always()`. Les remarques de revue sont traitées dans le head `6b1b5ec` :
+source TypeScript strict et bundle reproductible, poursuite de collecte après
+erreur scanner, rapport absent ou malformé. Les sept contrôles exécutent le shell
+réel avec un scanner de test ; tous réussissent. Retirer `--exit-code 1` produit
+deux échecs. Seuil,
 exceptions par image et refus de livraison inchangés. Cette proposition est
 en attente de CI/fusion ; elle ne répare ni ne masque une vulnérabilité inconnue.
 Un téléchargement local de Trivy a retourné un fichier vide et a été rejeté

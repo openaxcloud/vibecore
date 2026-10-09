@@ -18,7 +18,7 @@ Le collecteur est en TypeScript strict, avec bundles reproductibles pour les ét
 
 ## ✅ Testé live
 
-☑ Collecte exercée en production sur un échec et sur une réussite. Run `37786200279` : 55 événements, nouvelle réplique web en CrashLoopBackOff avant rollback, sortie 1 et collecte complète. Run `37845241136` : artefact `11583536449`, 26 événements, sortie 0 et collecte complète. Épinglé par `scripts/capture-rollout-diagnostics.checks.ts` et son bundle exécuté en CI. Preuve détaillée : `docs/deploy-evidence/2026-10-09-release-verification.md`. Clôture de l'instrumentation seulement : les causes produit du démarrage et du scan ont été traitées séparément par #682 et #683.
+☐ Vérification live complète non attestée : contrôles à l'écran et greps sur les trois formats non réalisés pour cette fiche. La collecte a toutefois été exercée en production sur un échec et sur une réussite. Run `37786200279` : 55 événements, nouvelle réplique web en CrashLoopBackOff avant rollback, sortie 1 et collecte complète. Run `37845241136` : artefact `11583536449`, 26 événements, sortie 0 et collecte complète. Épinglé par `scripts/capture-rollout-diagnostics.checks.ts` et son bundle exécuté en CI. Preuve détaillée : `docs/deploy-evidence/2026-10-09-release-verification.md`. Ces preuves attestent l'instrumentation, pas une validation globale du produit. Les causes du démarrage et du scan ont été traitées séparément par #682 et #683.
 
 ## Validation locale
 
