@@ -1176,10 +1176,17 @@ jobs:
               --ignore-unfixed --ignorefile "${ignorefile}" "${ref}" || true
             if ! trivy image --quiet --scanners vuln --severity CRITICAL \
                    --ignore-unfixed --ignorefile "${ignorefile}" \
+                   --format json --output "sbom/${service}.critical.json" \
                    --exit-code 1 "${ref}"; then
               echo "::error::CRITICAL fixable vulnerability in ${ref}"
               rc=1
             fi
+            # A CycloneDX inventory alone contains no vulnerability verdict.
+            # Preserve the actual blocking result in the always-uploaded artifact,
+            # including when the job logs cannot be downloaded in their entirety.
+            jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? |
+              [$target, .VulnerabilityID, .PkgName, .InstalledVersion, .FixedVersion] | @tsv' \
+              "sbom/${service}.critical.json"
             trivy image --quiet --format cyclonedx --output "sbom/${service}.cdx.json" "${ref}"
             echo "::endgroup::"
           done < <(jq -r '.[] | "\(.service) \(.image) \(.digest)"' /tmp/services.json)
