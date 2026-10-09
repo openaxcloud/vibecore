@@ -50,4 +50,10 @@ test('the mandatory workflow actually calls the gate on the PR head without igno
   assert.match(qualityGate, /timeout-minutes: 65/);
   assert.doesNotMatch(qualityGate, /continue-on-error:\s*true/);
   assert.match(qualityGate, /node --test scripts\/wait-required-pr-checks\.test\.mjs/);
+  assert.doesNotMatch(qualityGate, /\bimport\s*\(|\brequire\s*\(/);
+  assert.doesNotMatch(workflow, /(?:checks|pull-requests):\s*write/);
+  const inline = qualityGate.split('          script: |\n')[1].split('            await waitRequiredPrChecks({')[0];
+  const module = readFileSync(new URL('./wait-required-pr-checks.mjs', import.meta.url), 'utf8');
+  const normalize = (source) => source.replace(/^\s*\/\/.*$/gm, '').replace(/\bexport\s+/g, '').replace(/\s+/g, ' ').trim();
+  assert.equal(normalize(inline), normalize(module), 'CI enforcement must match the behavior tested here');
 });

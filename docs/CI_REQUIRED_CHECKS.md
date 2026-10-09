@@ -16,6 +16,12 @@ contrôle prévaut sur ses anciennes tentatives.
 
 Le workflow utilise le SHA de tête de la proposition, pas le SHA de fusion
 temporaire. Il n'emploie pas `continue-on-error` pour la porte obligatoire.
+Le bloc GitHub Script est autonome : il ne charge aucun module de la proposition
+dans l'action porteuse du jeton. Les permissions du jeton sont en lecture seule
+(`contents`, `checks`, `pull-requests`). Les modifications de workflow restent à
+revoir comme toute modification de politique CI ; la porte de livraison production
+indépendante, liée aux identités des workflows, n'est pas remplacée par ce contrôle.
+Un garde compare le code du bloc autonome au module testé pour prévenir une divergence.
 La sécurité ne repose plus sur le nom inexistant `CodeQL Analysis` : GitHub
 affiche `CodeQL Analysis (javascript)` et `CodeQL Analysis (typescript)`.
 
