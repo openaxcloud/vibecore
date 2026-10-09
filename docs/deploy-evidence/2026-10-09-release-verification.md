@@ -80,10 +80,23 @@ source TypeScript strict et bundle reproductible, poursuite de collecte après
 erreur scanner, rapport absent ou malformé. Les sept contrôles exécutent le shell
 réel avec un scanner de test ; tous réussissent. Retirer `--exit-code 1` produit
 deux échecs. Seuil,
-exceptions par image et refus de livraison inchangés. Cette proposition est
-en attente de CI/fusion ; elle ne répare ni ne masque une vulnérabilité inconnue.
+exceptions par image et refus de livraison inchangés. Les six workflows du head
+`6b1b5ecfe390e15dfd1236a0576f522b585e6e1d` ont réussi, agrégateur E2E inclus.
+#687 est fusionnée sur main `bc263f1bf4cbb63d9fb17bf0992d6856da9d4cb0` ;
+livraison `37929994324` en attente des portes à la collecte. Elle ne répare ni
+ne masque une vulnérabilité inconnue et sa présence en production n'est pas
+encore attestée.
 Un téléchargement local de Trivy a retourné un fichier vide et a été rejeté
 par SHA256 avant exécution. Aucun accès opérateur au cluster n'a été employé.
+
+#688 attend une conversation réellement persistée avant les actions palette
+et réparation. La palette repasse aussi sur le head de #687 sans correctif
+produit : la cause d'hydratation reste une hypothèse. #689 corrige séparément la
+perte de diagnostics entre deux invocations Playwright : trois gardes locales
+vertes, dont deux rouges et un diagnostic effectivement supprimé avec les
+anciens paramètres. Ces deux propositions attendent leur CI et leur fusion ;
+aucune action pendant la coque provisoire ni aucun parcours client live n'est
+déclaré validé.
 
 Le lancement global reste non validé : catalogue Stripe/devise/abonnements,
 parcours client complet, isolation réseau effective, restauration, capacité et
