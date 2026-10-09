@@ -1,14 +1,29 @@
 # Reste à faire pour lancer E-Code / Vibecore — 8 octobre 2026
 
+## Mise à jour vérifiée — 9 octobre
+
+Main `a11d0a1687d8edb5a3f4b38f74031d230f289383` contient #681, #682, #683 et #684.
+La livraison #683 a réussi, avec neuf images signées et traçables, sans Capacitor
+dans les SBOM serveur. Le collecteur a conservé les états d'un rollout échoué
+puis d'un rollout réussi. La protection du paiement annuel est fusionnée et la
+CI de son SHA de fusion est verte ; sa nouvelle livraison reste en cours.
+La décision commerciale **Core 25 / Pro 100** est enregistrée ; devise, catalogue
+Stripe et migration des abonnements ne sont pas attestés. #685 corrige la
+validation CI et reste soumis à ses contrôles avant fusion.
+
+Preuves et limites : [vérification du 09/10](deploy-evidence/2026-10-09-release-verification.md).
+Le lancement global n'est toujours pas attesté. Les décomptes, PR et mesures
+ci-dessous constituent le relevé historique du 08/10, pas une nouvelle mesure du 09/10.
+
 ## État et périmètre
 
-Base consultée : main `74aab77b7f71e513be61c19f5fe4b6223cff1200`.
-PR de livraison en cours : #681, collecteur de diagnostic Helm, supervision du processus et remise en cohérence de l'audit i18n.
+Base historique consultée le 08/10 : main `74aab77b7f71e513be61c19f5fe4b6223cff1200`.
+PR alors en cours : #681, collecteur de diagnostic Helm, supervision du processus et remise en cohérence de l'audit i18n.
 Autorisation d'Avi : fusion et déploiement après contrôles validés, donnée le 08/10/2026.
 
 **Le lancement complet n'est pas validé.** Un build ou un test local vert ne prouve ni le déploiement ni le parcours réel du client.
-Le déploiement main #37683775662 a échoué au Helm upgrade atomique. La cause précise reste inconnue.
-La nouvelle instrumentation conserve les états des pods et Jobs avant rollback ; elle ne répare pas une cause encore inconnue.
+Le déploiement main #37683775662 avait échoué au Helm upgrade atomique ; la cause n'était pas établie à la rédaction initiale.
+Les preuves suivantes ont distingué le crash de démarrage web du blocage par le scan Capacitor. #682 puis #683 ont corrigé ces deux causes ; la nouvelle instrumentation seule ne les réparait pas.
 
 Les quatre suivis ont été lus : DESIGN_PROGRAM_MASTER.md, BUG_INVENTORY_LIVE.md, PLAN_REMAINING_UNIFIED.md, REPLIT_PARITY.md.
 DESIGN_AUDIT_LIVE.md et les registres production/enterprise/audit externe complètent ce bilan.
