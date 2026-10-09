@@ -67,7 +67,7 @@ vi.mock('~/components/enterprise/EnterpriseFormPage', () => ({
   ),
 }));
 
-import UpgradePage, { action, loader, meta } from './upgrade';
+import UpgradePage, { action, loader, meta, upgradePlanName } from './upgrade';
 import { formatUpgradeAmount, getUpgradeCopy, upgradeLimitLabel } from '~/lib/i18n/catalogs/upgrade';
 
 function renderPage(loaderData: unknown, actionData?: unknown) {
@@ -274,5 +274,15 @@ describe('upgrade i18n', () => {
         matches: [{ id: 'root', data: { language: 'fr' } }] as never,
       })?.[0],
     ).toEqual({ title: 'Changer de formule - E-Code' });
+  });
+});
+
+describe('upgradePlanName (UIB-06)', () => {
+  it('nomme la formule gratuite comme /billing, et garde les noms de produit', () => {
+    expect(upgradePlanName({ key: 'free', name: 'Free' }, 'fr')).toBe('Gratuite');
+    expect(upgradePlanName({ key: 'free', name: 'Free' }, 'en')).toBe('Free');
+    expect(upgradePlanName({ key: 'free', name: 'Starter' }, 'fr')).toBe('Starter');
+    expect(upgradePlanName({ key: 'pro', name: 'Core' }, 'fr')).toBe('Core');
+    expect(upgradePlanName({ key: 'enterprise', name: 'Enterprise' }, 'fr')).toBe('Enterprise');
   });
 });
