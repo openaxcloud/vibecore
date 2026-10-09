@@ -49,7 +49,7 @@ test('the mandatory workflow actually calls the gate on the PR head without igno
   assert.match(qualityGate, /github\.paginate\(github\.rest\.checks\.listForRef/);
   assert.match(qualityGate, /timeout-minutes: 65/);
   assert.doesNotMatch(qualityGate, /continue-on-error:\s*true/);
-  assert.match(qualityGate, /node --test scripts\/wait-required-pr-checks\.test\.mjs/);
+  assert.match(qualityGate, /node --test scripts\/wait-required-pr-checks\.checks\.mjs/);
   assert.doesNotMatch(qualityGate, /\bimport\s*\(|\brequire\s*\(/);
   assert.doesNotMatch(workflow, /(?:checks|pull-requests):\s*write/);
   const inline = qualityGate.split('          script: |\n')[1].split('            await waitRequiredPrChecks({')[0];

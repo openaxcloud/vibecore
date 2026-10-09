@@ -25,8 +25,13 @@ Un garde compare le code du bloc autonome au module testé pour prévenir une di
 La sécurité ne repose plus sur le nom inexistant `CodeQL Analysis` : GitHub
 affiche `CodeQL Analysis (javascript)` et `CodeQL Analysis (typescript)`.
 
-Validation : `node --test scripts/wait-required-pr-checks.test.mjs`, cinq tests
+Validation : `node --test scripts/wait-required-pr-checks.checks.mjs`, cinq tests
 de logique et un garde d'intégration au workflow. Retirer l'attente des contrôles
 absents fait rougir les tests d'enregistrement et de délai. Retirer son appel
 du workflow fait rougir le garde d'intégration. Cette correction réduit les
 permissions du jeton de validation ; le mécanisme de livraison production reste inchangé.
+
+Le nom `.checks.mjs` évite que Vitest découvre cette suite `node:test` comme
+un fichier Vitest. Le run `37886840838` a révélé cette collision : 9 171 tests
+Vitest réussis, puis « No test suite found » sur le fichier Node. La suite Node
+reste obligatoire dans le job de validation et n'est pas supprimée.
