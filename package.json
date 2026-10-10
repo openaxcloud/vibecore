@@ -339,7 +339,7 @@
       "shell-quote": "^1.8.4",
       "@modelcontextprotocol/sdk": "^1.29.0",
       "fast-xml-parser": "^5.7.3",
-      "fast-jwt": "^6.2.4",
+      "fast-jwt": "^6.3.4",
       "immutable": "^5.1.5",
       "@xmldom/xmldom": "^0.9.10",
       "plist>@xmldom/xmldom": "^0.8.14",
