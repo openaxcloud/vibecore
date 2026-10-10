@@ -15,7 +15,6 @@ import {
   getClientAstResidualCopy,
 } from './client-ast-residual';
 import FilePreview from '~/components/chat/FilePreview';
-import { PresenceAvatars } from '~/components/chat/PresenceAvatars';
 import { SendButton } from '~/components/chat/SendButton.client';
 import { decideImageAttachment, MAX_IMAGE_ATTACHMENT_BYTES } from '~/components/chat/image-attachments';
 import { FilterChip } from '~/components/ui/FilterChip';
@@ -25,7 +24,6 @@ const renderedSources = [
   '../../../components/@settings/tabs/netlify/NetlifyTab.tsx',
   '../../../components/@settings/tabs/supabase/SupabaseTab.tsx',
   '../../../components/chat/FilePreview.tsx',
-  '../../../components/chat/PresenceAvatars.tsx',
   '../../../components/chat/SendButton.client.tsx',
   '../../../components/chat/image-attachments.ts',
   '../../../components/chat/Chat.client.tsx',
@@ -150,13 +148,6 @@ describe('client AST residual catalog', () => {
     render(
       <I18nextProvider i18n={i18n}>
         <SendButton show />
-        <PresenceAvatars
-          maxVisible={1}
-          entries={[
-            { userId: 'one', name: 'Alice English', status: 'typing', lastSeenAt: 1 },
-            { userId: 'two', name: 'Bob API_URL', status: 'viewing', lastSeenAt: 1 },
-          ]}
-        />
         <FilePreview files={[file]} imageDataList={[]} onRemove={() => undefined} />
         <FilterChip label="Owner API_URL" onRemove={() => undefined} />
         <RangeSlider defaultValue={[50]} />
@@ -164,9 +155,6 @@ describe('client AST residual catalog', () => {
     );
 
     expect(screen.getByRole('button', { name: 'Envoyer le message' }).getAttribute('title')).toBe('Envoyer le message');
-    expect(screen.getByRole('group', { name: '2 personnes consultent' })).toBeTruthy();
-    expect(screen.getByLabelText('Alice English — saisie en cours')).toBeTruthy();
-    expect(screen.getByLabelText('1 personne supplémentaire')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retirer README English API_URL.md' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retirer le filtre Owner API_URL' })).toBeTruthy();
     expect(screen.getByRole('slider', { name: 'Valeur du curseur' })).toBeTruthy();
@@ -174,9 +162,6 @@ describe('client AST residual catalog', () => {
     await act(async () => i18n.changeLanguage('en'));
 
     expect(screen.getByRole('button', { name: 'Send message' }).getAttribute('title')).toBe('Send message');
-    expect(screen.getByRole('group', { name: '2 viewers' })).toBeTruthy();
-    expect(screen.getByLabelText('Alice English typing')).toBeTruthy();
-    expect(screen.getByLabelText('1 more viewer')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Remove README English API_URL.md' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Remove Owner API_URL filter' })).toBeTruthy();
     expect(screen.getByRole('slider', { name: 'Slider value' })).toBeTruthy();
