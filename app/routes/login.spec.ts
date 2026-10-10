@@ -82,6 +82,66 @@ describe('login route loader', () => {
     expect((response as Response).headers.get('location')).toBe('https://app.e-code.ai/login');
   });
 
+  /*
+   * Audit français contre la production, 10/10 : `e-code.ai/login?lang=fr`
+   * redirigeait vers `app.e-code.ai/login` en perdant `lang` — un lien « en
+   * français » ouvert sans cookie de langue retombait sur la langue du
+   * navigateur. `/signup` gardait déjà la requête entière.
+   */
+  for (const lang of ['fr', 'en', 'es', 'ar']) {
+    it(`garde ?lang=${lang} en redirigeant le domaine marketing vers la connexion`, async () => {
+      const response = toResponse(
+        await loader({
+          request: new Request(`http://e-code.ai/login?lang=${lang}`, { headers: { host: 'e-code.ai' } }),
+          params: {},
+          context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+            typeof loader
+          >[0]['context'],
+        }),
+      );
+
+      expect((response as Response).status).toBe(301);
+      expect((response as Response).headers.get('location')).toBe(`https://app.e-code.ai/login?lang=${lang}`);
+    });
+  }
+
+  it('garde la langue ET un returnTo sûr ensemble', async () => {
+    const response = toResponse(
+      await loader({
+        request: new Request(`http://e-code.ai/login?lang=fr&returnTo=${encodeURIComponent('/community')}`, {
+          headers: { host: 'e-code.ai' },
+        }),
+        params: {},
+        context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+          typeof loader
+        >[0]['context'],
+      }),
+    );
+
+    const location = new URL((response as Response).headers.get('location') ?? '');
+    expect(location.origin + location.pathname).toBe('https://app.e-code.ai/login');
+    expect(location.searchParams.get('lang')).toBe('fr');
+    expect(location.searchParams.get('returnTo')).toBe('/community');
+  });
+
+  it('ne recopie pas une langue inconnue ni une valeur arbitraire', async () => {
+    for (const valeur of ['de', 'fr"><script>', 'https://evil.com']) {
+      const response = toResponse(
+        await loader({
+          request: new Request(`http://e-code.ai/login?lang=${encodeURIComponent(valeur)}`, {
+            headers: { host: 'e-code.ai' },
+          }),
+          params: {},
+          context: { cloudflare: { env: {}, cf: {}, ctx: {}, caches: {} } } as unknown as Parameters<
+            typeof loader
+          >[0]['context'],
+        }),
+      );
+
+      expect((response as Response).headers.get('location')).toBe('https://app.e-code.ai/login');
+    }
+  });
+
   it('treats the host case-insensitively', async () => {
     const response = toResponse(
       await loader({

@@ -19,6 +19,7 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import type { TranslationKey } from '~/lib/i18n/dictionary';
+import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
 import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
@@ -140,6 +141,17 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
     if (returnTo) {
       loginUrl.searchParams.set('returnTo', returnTo);
+    }
+
+    /*
+     * La langue demandée suit le saut d'hôte (comme sur `/signup`) : sans elle,
+     * un lien `e-code.ai/login?lang=fr` ouvert sans cookie de langue retombait
+     * sur la langue du navigateur. Seule une langue prise en charge passe.
+     */
+    const langue = normalizeSupportedLanguage(requestUrl.searchParams.get('lang'));
+
+    if (langue) {
+      loginUrl.searchParams.set('lang', langue);
     }
 
     return redirect(loginUrl.toString(), { status: 301 });
