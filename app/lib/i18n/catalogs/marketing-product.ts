@@ -608,7 +608,7 @@ export interface PricingMarketingCopy {
 const nombre = (valeur: number, langue: MarketingLanguage) =>
   new Intl.NumberFormat(langue === 'fr' ? 'fr-FR' : 'en-GB').format(valeur);
 
-function avantagesDuForfait(cle: 'free' | 'pro' | 'team', langue: MarketingLanguage): readonly string[] {
+export function avantagesDuForfait(cle: 'free' | 'pro' | 'team', langue: MarketingLanguage): readonly string[] {
   const f = forfaitsPublics[cle];
   const n = (valeur: number) => nombre(valeur, langue);
 
@@ -653,13 +653,28 @@ export const pricingPlanCopy = {
       name: 'Pro',
       description: 'For makers shipping real apps, with a few collaborators',
       cta: 'Choose Pro',
-      features: avantagesDuForfait('pro', 'en'),
+      features: [
+        '5 seats (you and 4 collaborators)',
+        '25 projects',
+        '4 active workspaces at a time',
+        '1,000 agent messages per month',
+        '50 deployments per month',
+        '25 GB of storage',
+      ],
     },
     team: {
       name: 'Team',
       description: 'For teams building together, with shared billing and audit logs',
       cta: 'Choose Team',
-      features: [...avantagesDuForfait('team', 'en'), 'Shared billing and audit logs'],
+      features: [
+        '25 seats (you and 24 collaborators)',
+        '100 projects',
+        '15 active workspaces at a time',
+        '10,000 agent messages per month',
+        '500 deployments per month',
+        '250 GB of storage',
+        'Shared billing and audit logs',
+      ],
     },
     core: {
       name: 'Core',
@@ -693,13 +708,28 @@ export const pricingPlanCopy = {
       name: 'Pro',
       description: 'Pour publier de vraies applications, avec quelques collaborateurs',
       cta: 'Choisir Pro',
-      features: avantagesDuForfait('pro', 'fr'),
+      features: [
+        '5 places (vous et 4 collaborateurs)',
+        '25 projets',
+        '4 espaces de travail actifs à la fois',
+        '1 000 messages à l’agent par mois',
+        '50 publications par mois',
+        '25 Go de stockage',
+      ],
     },
     team: {
       name: 'Team',
       description: 'Pour les équipes qui créent ensemble, avec facturation partagée et journaux d’audit',
       cta: 'Choisir Team',
-      features: [...avantagesDuForfait('team', 'fr'), 'Facturation partagée et journaux d’audit'],
+      features: [
+        '25 places (vous et 24 collaborateurs)',
+        '100 projets',
+        '15 espaces de travail actifs à la fois',
+        '10 000 messages à l’agent par mois',
+        '500 publications par mois',
+        '250 Go de stockage',
+        'Facturation partagée et journaux d’audit',
+      ],
     },
     core: {
       name: 'Core',
@@ -727,7 +757,7 @@ const euros = (cents: number, langue: MarketingLanguage) =>
   }).format(cents / 100);
 
 /** Le tableau de comparaison, écrit à partir des limites appliquées (Gratuit, Pro, Team, Core). */
-function lignesDeComparaison(langue: MarketingLanguage): readonly (readonly string[])[] {
+export function lignesDeComparaison(langue: MarketingLanguage): readonly (readonly string[])[] {
   const fr = langue === 'fr';
   const { free, pro, team } = forfaitsPublics;
   const n = (valeur: number | null) => (valeur === null ? (fr ? 'Illimité' : 'Unlimited') : nombre(valeur, langue));
@@ -785,7 +815,7 @@ function lignesDeComparaison(langue: MarketingLanguage): readonly (readonly stri
   ];
 }
 
-function reponseAnnuelle(langue: MarketingLanguage): string {
+export function reponseAnnuelle(langue: MarketingLanguage): string {
   const { pro, team } = forfaitsPublics;
   const e = (cents: number) => euros(cents, langue);
 
@@ -815,7 +845,18 @@ export const pricingMarketingCopy = {
     comparisonDescription: 'Every feature, every detail, side by side.',
     comparisonTableLabel: 'Detailed comparison of E-Code pricing plans',
     featuresLabel: 'Features',
-    comparisonRows: lignesDeComparaison('en'),
+    comparisonRows: [
+      ['Monthly price', 'Free', '€29', '€99', 'On quote'],
+      ['Annual price (−20%)', '-', '€278.40', '€950.40', 'On quote'],
+      ['Published projects at a time', '1', 'Unlimited', 'Unlimited', 'Unlimited'],
+      ['Seats', '1', '5', '25', 'Custom'],
+      ['Projects', 'Unlimited', '25', '100', 'Custom'],
+      ['Active workspaces', '1', '4', '15', 'Custom'],
+      ['Agent messages per month', '50', '1,000', '10,000', 'Custom'],
+      ['Deployments per month', 'Unlimited', '50', '500', 'Custom'],
+      ['Storage', '2 GB', '25 GB', '250 GB', 'Custom'],
+      ['SSO / SAML', '-', '-', '-', 'SAML/OIDC + SCIM'],
+    ],
     billingFaq: [
       {
         question: 'How do credits work?',
@@ -834,7 +875,7 @@ export const pricingMarketingCopy = {
       },
       {
         question: 'Do you offer annual billing?',
-        answer: reponseAnnuelle('en'),
+        answer: 'Yes: 20% off. Pro is €278.40 a year instead of €348, and Team is €950.40 a year instead of €1,188. You are billed once for the year.',
       },
       {
         question: 'Do prices include VAT, and can I get an invoice?',
@@ -900,7 +941,18 @@ export const pricingMarketingCopy = {
     comparisonDescription: 'Toutes les fonctionnalités et tous les détails, côte à côte.',
     comparisonTableLabel: 'Comparaison détaillée des offres tarifaires E-Code',
     featuresLabel: 'Fonctionnalités',
-    comparisonRows: lignesDeComparaison('fr'),
+    comparisonRows: [
+      ['Prix mensuel', 'Gratuit', '29 €', '99 €', 'Sur devis'],
+      ['Prix annuel (−20 %)', '-', '278,40 €', '950,40 €', 'Sur devis'],
+      ['Projets publiés simultanément', '1', 'Illimités', 'Illimités', 'Illimités'],
+      ['Places', '1', '5', '25', 'Sur mesure'],
+      ['Projets', 'Illimité', '25', '100', 'Sur mesure'],
+      ['Espaces de travail actifs', '1', '4', '15', 'Sur mesure'],
+      ['Messages à l’agent par mois', '50', '1 000', '10 000', 'Sur mesure'],
+      ['Publications par mois', 'Illimité', '50', '500', 'Sur mesure'],
+      ['Stockage', '2 Go', '25 Go', '250 Go', 'Sur mesure'],
+      ['SSO / SAML', '-', '-', '-', 'SAML/OIDC + SCIM'],
+    ],
     billingFaq: [
       {
         question: 'Comment fonctionnent les crédits ?',
@@ -919,7 +971,7 @@ export const pricingMarketingCopy = {
       },
       {
         question: 'Proposez-vous une facturation annuelle ?',
-        answer: reponseAnnuelle('fr'),
+        answer: 'Oui : 20 % de réduction. Pro coûte 278,40 € par an au lieu de 348 €, et Team 950,40 € par an au lieu de 1 188 €. Le montant annuel est facturé en une fois.',
       },
       {
         question: 'Les prix incluent-ils la TVA et puis-je obtenir une facture ?',
