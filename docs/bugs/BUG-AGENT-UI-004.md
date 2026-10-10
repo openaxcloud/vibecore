@@ -18,6 +18,8 @@ id: BUG-AGENT-UI-004
 
 ☐ à confirmer sur l'iPhone d'Avi
 
+30/09 — non reproduit en prod à 390 px sous **Chromium** : pastille 601→645, centrée, juste au-dessus de la saisie (647) ; épinglé par `app/styles/agent-action-list-density.spec.ts`. **Reste ☐** : l'entrée exige l'iPhone, et un vert Chromium ne prouve rien pour Safari iOS.
+
 ## Preuve
 
 preuve live locale 04/09 : écart 63 → **12 px** à 390 et à 768 ; + épinglé par `app/styles/agent-action-list-density.spec.ts` (le décalage reprend le terme exact de remontée du composeur) et `tests/e2e/agent-action-list-density.spec.ts` (écart mesuré entre 0 et 24 px après remontée réelle du fil). Rattaché à AGM-02 dans `DESIGN_PROGRAM_MASTER.md`.

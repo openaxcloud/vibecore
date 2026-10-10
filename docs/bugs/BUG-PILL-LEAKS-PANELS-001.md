@@ -18,6 +18,8 @@ id: BUG-PILL-LEAKS-PANELS-001
 
 ☐ live iPhone
 
+30/09 — non reproduit en prod à 390 px sous **Chromium** : pastille absente de l'écran sur l'onglet Aperçu (capture) ; épinglé par `tests/e2e/ide-mobile-chrome.spec.ts`. **Reste ☐** : l'entrée exige l'iPhone, et un vert Chromium ne prouve rien pour Safari iOS.
+
 ## Preuve
 
 contre-épreuve dans les DEUX sens : règle retirée → rouge en nommant le coupable (`SPAN.i-ph:arrow-down` peint sur le panneau `preview`) ; pastille supprimée → la moitié « elle se peint au-dessus du fil » rouge. Épinglé par `tests/e2e/ide-mobile-chrome.spec.ts` « elle se peint sur le fil, et sur rien d'autre »
