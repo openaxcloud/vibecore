@@ -76,7 +76,8 @@ describe('remaining marketing EN/FR catalogs', () => {
   it('localizes shared Surface category and navigation chrome', () => {
     const surface = renderInFrench(<EcodeSurfacePage page={ecodeSurfacePages.new} />);
 
-    expect(surface).toContain('Surface de création');
+    // Le sur-titre de catégorie (« Surface de création ») est retiré du gabarit le 2026-10-10.
+    expect(surface).not.toContain('Surface de création');
     expect(surface).toContain('Créer un projet');
     expect(surface).toContain('Routes associées');
     expect(surface).not.toContain('Builder surface');

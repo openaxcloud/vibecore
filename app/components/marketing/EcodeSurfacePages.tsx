@@ -48,8 +48,6 @@ import {
 } from '~/lib/i18n/catalogs/marketing-surface-pages';
 import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 
-const englishSurfaceUi = getMarketingSurfaceCopy('en').ui;
-
 type SurfaceCategory = MarketingSurfaceCategory;
 
 type SurfaceAction = readonly [label: string, to: string];
@@ -118,18 +116,13 @@ function makeSurfacePage(input: SurfacePageInput): EcodeSurfacePageDefinition {
     secondaryAction: input.secondaryAction ?? category.secondaryAction,
     highlights: input.highlights,
     stats: category.stats,
-    sections: input.sections ?? [
-      {
-        title: englishSurfaceUi.workflowTitle(input.title),
-        body: englishSurfaceUi.workflowBody(input.title),
-        items: input.highlights,
-      },
-      {
-        title: englishSurfaceUi.productionControls,
-        body: englishSurfaceUi.productionBody,
-        items: category.controls,
-      },
-    ],
+
+    /*
+     * Plus de sections par défaut : elles portaient du texte de développement
+     * (« … adossée au plan produit importé », « … une page de compatibilité
+     * vide »). Une page sans section écrite n'en affiche pas.
+     */
+    sections: input.sections ?? [],
     relatedRoutes: input.relatedRoutes ?? category.relatedRoutes,
     dynamicCopy: input.dynamicCopy,
   };
@@ -771,24 +764,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
   const localizedTitle = dynamicPageCopy?.title ?? staticPageCopy?.title ?? page.title;
   const localizedDescription = dynamicPageCopy?.description ?? staticPageCopy?.description ?? page.description;
   const localizedHighlights = dynamicPageCopy?.highlights ?? staticPageCopy?.highlights ?? page.highlights;
-  const usesDefaultSections = page.sections[1]?.title === englishSurfaceUi.productionControls;
 
-  const localizedSections = usesDefaultSections
-    ? [
-        {
-          ...page.sections[0],
-          title: localizedCopy.ui.workflowTitle(localizedTitle),
-          body: localizedCopy.ui.workflowBody(localizedTitle),
-          items: localizedHighlights,
-        },
-        {
-          ...page.sections[1],
-          title: localizedCopy.ui.productionControls,
-          body: localizedCopy.ui.productionBody,
-          items: category.controls,
-        },
-      ]
-    : page.sections;
   const localizedPage = {
     ...page,
     title: localizedTitle,
@@ -803,7 +779,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
           ? category.secondaryAction
           : page.secondaryAction,
     stats: category.stats,
-    sections: localizedSections,
+    sections: page.sections,
     relatedRoutes:
       dynamicPageCopy?.relatedRoutes ??
       (page.relatedRoutes === categoryEnglish.relatedRoutes ? category.relatedRoutes : page.relatedRoutes),
@@ -823,10 +799,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
           <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
           <div className="container-responsive relative grid gap-10 py-20 sm:py-28 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="max-w-4xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
-                <Icon className="h-4 w-4" aria-hidden />
-                {localizedPage.eyebrow}
-              </span>
+              <Icon className="h-6 w-6 text-[var(--ecode-accent)]" aria-hidden />
               <h1 className="mt-8 max-w-4xl text-5xl font-bold leading-[1.04] tracking-tight text-[var(--ecode-text)] sm:text-6xl lg:text-7xl">
                 {localizedPage.title}
               </h1>
@@ -843,10 +816,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
               </div>
             </div>
 
-            <aside
-              className="overflow-hidden rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
-              aria-label={localizedCopy.ui.routeDetails(localizedPage.title)}
-            >
+            <aside className="overflow-hidden rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
               <div className="flex h-11 items-center gap-2 border-b border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] px-4">
                 <span className="h-2.5 w-2.5 rounded-full bg-red-400" aria-hidden />
                 <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" aria-hidden />
@@ -856,10 +826,6 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                 </strong>
               </div>
               <div className="grid gap-4 p-5">
-                <div className="flex min-w-0 items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 font-mono text-[12px] text-[var(--ecode-text-secondary)]">
-                  <Terminal className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
-                  <code className="min-w-0 [overflow-wrap:anywhere]">ecode route verify {localizedPage.route}</code>
-                </div>
                 <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                   {localizedPage.stats.map((stat) => (
                     <div
@@ -873,19 +839,12 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                     </div>
                   ))}
                 </div>
-                <div className="flex items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 text-[13px] text-[var(--ecode-text-secondary)]">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
-                  <span>{localizedCopy.ui.importedConfirmation}</span>
-                </div>
               </div>
             </aside>
           </div>
         </section>
 
-        <section
-          className="container-responsive py-16 sm:py-24"
-          aria-label={localizedCopy.ui.importedCapabilities(localizedPage.title)}
-        >
+        <section className="container-responsive py-16 sm:py-24">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {localizedPage.highlights.map((highlight) => (
               <div
@@ -899,25 +858,27 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
           </div>
         </section>
 
-        <section className="container-responsive grid gap-5 lg:grid-cols-2">
-          {localizedPage.sections.map((section) => (
-            <article
-              key={section.title}
-              className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-7"
-            >
-              <h2 className="text-2xl font-bold tracking-tight text-[var(--ecode-text)]">{section.title}</h2>
-              <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{section.body}</p>
-              <ul className="mt-6 grid gap-3">
-                {section.items.map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-[14px] font-medium text-[var(--ecode-text)]">
-                    <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
-        </section>
+        {localizedPage.sections.length > 0 ? (
+          <section className="container-responsive grid gap-5 lg:grid-cols-2">
+            {localizedPage.sections.map((section) => (
+              <article
+                key={section.title}
+                className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-7"
+              >
+                <h2 className="text-2xl font-bold tracking-tight text-[var(--ecode-text)]">{section.title}</h2>
+                <p className="mt-4 text-[15px] leading-7 text-[var(--ecode-text-secondary)]">{section.body}</p>
+                <ul className="mt-6 grid gap-3">
+                  {section.items.map((item) => (
+                    <li key={item} className="flex items-center gap-3 text-[14px] font-medium text-[var(--ecode-text)]">
+                      <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </section>
+        ) : null}
 
         <section
           className="container-responsive py-16 sm:py-24"
@@ -928,9 +889,6 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
               <span className="inline-flex rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-background)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
                 {localizedCopy.ui.connectedRoutes}
               </span>
-              <h2 className="mt-5 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
-                {localizedCopy.ui.connectedTitle}
-              </h2>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               {localizedPage.relatedRoutes.map((route) => (

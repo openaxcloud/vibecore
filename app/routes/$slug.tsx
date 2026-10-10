@@ -28,6 +28,14 @@ import { resolveSurfaceTwin } from '~/lib/surface-twins';
 export const loader = async ({ params, request }: LoaderFunctionArgs) => {
   const slug = params.slug ?? '';
 
+  /*
+   * CONSTAT-PAGES-GABARIT-PUBLIQUES (2026-10-10) : /plans était une page de
+   * remplissage, sans aucun prix. Les offres et leurs prix sont sur /pricing.
+   */
+  if (slug === 'plans') {
+    throw redirect(`/pricing${new URL(request.url).search}`, 301);
+  }
+
   if (!getEcodeSurfacePage(slug)) {
     return data({ notFound: true as const }, { status: 404, statusText: 'Not Found' });
   }
