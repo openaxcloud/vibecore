@@ -1,0 +1,22 @@
+16:23:47 réouverture 1 : marque précédente (aucune) → écran - | serveur - | 1re ligne écran « import { useState } from 'react' »
+        édition 1 : « retour-1-mupquhxh » enregistrée → sur le serveur true
+16:24:05 réouverture 2 : marque précédente retour-1-mupquhxh → écran true | serveur false | 1re ligne écran « // retour-1-mupquhxh »
+        édition 2 : « retour-2-mupquvql » enregistrée → sur le serveur true
+16:24:23 réouverture 3 : marque précédente retour-2-mupquvql → écran true | serveur false | 1re ligne écran « // retour-2-mupquvql »
+        édition 3 : « retour-3-mupqv9xh » enregistrée → sur le serveur true
+16:24:41 réouverture 4 : marque précédente retour-3-mupqv9xh → écran true | serveur false | 1re ligne écran « // retour-3-mupqv9xh »
+        édition 4 : « retour-4-mupqvng2 » enregistrée → sur le serveur true
+16:24:57 réouverture 5 : marque précédente retour-4-mupqvng2 → écran true | serveur false | 1re ligne écran « // retour-4-mupqvng2 »
+        édition 5 : « retour-5-mupqw0ab » enregistrée → sur le serveur true
+16:25:14 réouverture 6 : marque précédente retour-5-mupqw0ab → écran true | serveur false | 1re ligne écran « // retour-5-mupqw0ab »
+        édition 6 : « retour-6-mupqwd8d » enregistrée → sur le serveur true
+16:25:31 réouverture 7 : marque précédente retour-6-mupqwd8d → écran true | serveur false | 1re ligne écran « // retour-6-mupqwd8d »
+        édition 7 : « retour-7-mupqwq73 » enregistrée → sur le serveur true
+16:25:49 réouverture 8 : marque précédente retour-7-mupqwq73 → écran true | serveur false | 1re ligne écran « // retour-7-mupqwq73 »
+        édition 8 : « retour-8-mupqx3ql » enregistrée → sur le serveur true
+16:26:06 réouverture 9 : marque précédente retour-8-mupqx3ql → écran true | serveur false | 1re ligne écran « // retour-8-mupqx3ql »
+        édition 9 : « retour-9-mupqxhhc » enregistrée → sur le serveur true
+16:26:24 réouverture 10 : marque précédente retour-9-mupqxhhc → écran true | serveur false | 1re ligne écran « // retour-9-mupqxhhc »
+        édition 10 : « retour-10-mupqxupg » enregistrée → sur le serveur true
+réouverture finale : marque retour-10-mupqxupg → écran true | serveur false
+VERDICT : 10 PERTE(S) sur 10 retours

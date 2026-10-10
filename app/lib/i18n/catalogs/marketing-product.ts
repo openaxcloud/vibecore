@@ -1,4 +1,5 @@
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
+import { annuelPublicCents, forfaitsPublics } from '~/lib/forfaits-publics';
 
 export type ProductMarketingPageKey =
   | 'ai-agent'
@@ -551,7 +552,7 @@ export function getAiAgentMarketingCopy(language?: string | null): AiAgentMarket
   return aiAgentMarketingCopy[resolveMarketingLanguage(language)];
 }
 
-export type PricingPlanCopyKey = 'free' | 'core' | 'pro' | 'enterprise';
+export type PricingPlanCopyKey = 'free' | 'pro' | 'team' | 'core';
 
 export interface PricingPlanCopy {
   name: string;
@@ -597,6 +598,43 @@ export interface PricingMarketingCopy {
   contactSales: string;
 }
 
+/*
+ * Décision d'Avi du 2026-10-01 : Gratuit, Pro 29 €/mois, Team 99 €/mois, Core sur
+ * mesure (devis). Les avantages des forfaits payants sont ÉCRITS À PARTIR des
+ * limites que le produit applique (`forfaitsPublics`, tenu égal à la facturation
+ * par forfaits-publics.spec.ts) : la page ne peut plus promettre davantage que ce
+ * que le produit fait. Seule la carte Core (offre sur devis) garde un texte libre.
+ */
+const nombre = (valeur: number, langue: MarketingLanguage) =>
+  new Intl.NumberFormat(langue === 'fr' ? 'fr-FR' : 'en-GB').format(valeur);
+
+export function avantagesDuForfait(cle: 'free' | 'pro' | 'team', langue: MarketingLanguage): readonly string[] {
+  const f = forfaitsPublics[cle];
+  const n = (valeur: number) => nombre(valeur, langue);
+
+  if (langue === 'fr') {
+    return [
+      f.places === 1 ? 'Une place : vous seul' : `${n(f.places)} places (vous et ${n(f.places - 1)} collaborateurs)`,
+      f.projets === null ? 'Projets illimités' : `${n(f.projets)} projets`,
+      f.espacesActifs === 1
+        ? 'Un espace de travail actif à la fois'
+        : `${n(f.espacesActifs)} espaces de travail actifs à la fois`,
+      `${n(f.messagesIaParMois)} messages à l’agent par mois`,
+      ...(f.publicationsParMois === null ? [] : [`${n(f.publicationsParMois)} publications par mois`]),
+      `${n(f.stockageGo)} Go de stockage`,
+    ];
+  }
+
+  return [
+    f.places === 1 ? 'One seat: just you' : `${n(f.places)} seats (you and ${n(f.places - 1)} collaborators)`,
+    f.projets === null ? 'Unlimited projects' : `${n(f.projets)} projects`,
+    f.espacesActifs === 1 ? 'One active workspace at a time' : `${n(f.espacesActifs)} active workspaces at a time`,
+    `${n(f.messagesIaParMois)} agent messages per month`,
+    ...(f.publicationsParMois === null ? [] : [`${n(f.publicationsParMois)} deployments per month`]),
+    `${n(f.stockageGo)} GB of storage`,
+  ];
+}
+
 export const pricingPlanCopy = {
   en: {
     free: {
@@ -611,37 +649,36 @@ export const pricingPlanCopy = {
         'Private or password-protected deployments',
       ],
     },
-    core: {
-      name: 'Core',
-      description: '€25/mo of credits, collaborators and any-region publishing',
-      cta: 'Get Core',
-      features: [
-        '€25/mo of credits',
-        'Up to 5 collaborators',
-        'Up to 2 parallel agents',
-        'Unlimited workspaces',
-        'Publish to any region',
-        'Remove "Made with" badge',
-        'AI integrations',
-      ],
-    },
     pro: {
       name: 'Pro',
-      description: 'The most powerful models, more agents, premium support',
-      cta: 'Get Pro',
+      description: 'For makers shipping real apps, with a few collaborators',
+      cta: 'Choose Pro',
       features: [
-        '€100/mo of credits',
-        'Up to 15 collaborators',
-        'Up to 50 viewers',
-        'Up to 10 parallel agents',
-        'Most powerful models',
-        '28-day database rollbacks',
-        'Premium support',
+        '5 seats (you and 4 collaborators)',
+        '25 projects',
+        '4 active workspaces at a time',
+        '1,000 agent messages per month',
+        '50 deployments per month',
+        '25 GB of storage',
       ],
     },
-    enterprise: {
-      name: 'Enterprise',
-      description: 'For large teams, compliance needs and custom infrastructure',
+    team: {
+      name: 'Team',
+      description: 'For teams building together, with shared billing and audit logs',
+      cta: 'Choose Team',
+      features: [
+        '25 seats (you and 24 collaborators)',
+        '100 projects',
+        '15 active workspaces at a time',
+        '10,000 agent messages per month',
+        '500 deployments per month',
+        '250 GB of storage',
+        'Shared billing and audit logs',
+      ],
+    },
+    core: {
+      name: 'Core',
+      description: 'Custom plan for organizations — priced on quote',
       cta: 'Contact Sales',
       features: [
         'SAML/OIDC SSO',
@@ -667,37 +704,36 @@ export const pricingPlanCopy = {
         'Déploiements privés ou protégés par mot de passe',
       ],
     },
-    core: {
-      name: 'Core',
-      description: '25 € de crédits par mois, collaborateurs et publication dans toutes les régions',
-      cta: 'Choisir Core',
-      features: [
-        '25 € de crédits par mois',
-        'Jusqu’à 5 collaborateurs',
-        'Jusqu’à 2 agents en parallèle',
-        'Espaces de travail illimités',
-        'Publication dans toutes les régions',
-        'Suppression du badge « Made with »',
-        'Intégrations IA',
-      ],
-    },
     pro: {
       name: 'Pro',
-      description: 'Les modèles les plus puissants, davantage d’agents et un support Premium',
+      description: 'Pour publier de vraies applications, avec quelques collaborateurs',
       cta: 'Choisir Pro',
       features: [
-        '100 € de crédits par mois',
-        'Jusqu’à 15 collaborateurs',
-        'Jusqu’à 50 lecteurs',
-        'Jusqu’à 10 agents en parallèle',
-        'Modèles les plus puissants',
-        'Retours arrière de base de données sur 28 jours',
-        'Support Premium',
+        '5 places (vous et 4 collaborateurs)',
+        '25 projets',
+        '4 espaces de travail actifs à la fois',
+        '1 000 messages à l’agent par mois',
+        '50 publications par mois',
+        '25 Go de stockage',
       ],
     },
-    enterprise: {
-      name: 'Enterprise',
-      description: 'Pour les grandes équipes, les exigences de conformité et les infrastructures personnalisées',
+    team: {
+      name: 'Team',
+      description: 'Pour les équipes qui créent ensemble, avec facturation partagée et journaux d’audit',
+      cta: 'Choisir Team',
+      features: [
+        '25 places (vous et 24 collaborateurs)',
+        '100 projets',
+        '15 espaces de travail actifs à la fois',
+        '10 000 messages à l’agent par mois',
+        '500 publications par mois',
+        '250 Go de stockage',
+        'Facturation partagée et journaux d’audit',
+      ],
+    },
+    core: {
+      name: 'Core',
+      description: 'Offre sur mesure pour les organisations — sur devis',
       cta: 'Contacter l’équipe commerciale',
       features: [
         'SSO SAML/OIDC',
@@ -711,6 +747,82 @@ export const pricingPlanCopy = {
     },
   },
 } as const satisfies Record<MarketingLanguage, Record<PricingPlanCopyKey, PricingPlanCopy>>;
+
+const euros = (cents: number, langue: MarketingLanguage) =>
+  new Intl.NumberFormat(langue === 'fr' ? 'fr-FR' : 'en-GB', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+
+/** Le tableau de comparaison, écrit à partir des limites appliquées (Gratuit, Pro, Team, Core). */
+export function lignesDeComparaison(langue: MarketingLanguage): readonly (readonly string[])[] {
+  const fr = langue === 'fr';
+  const { free, pro, team } = forfaitsPublics;
+  const n = (valeur: number | null) => (valeur === null ? (fr ? 'Illimité' : 'Unlimited') : nombre(valeur, langue));
+  const surMesure = fr ? 'Sur mesure' : 'Custom';
+
+  return [
+    [
+      fr ? 'Prix mensuel' : 'Monthly price',
+      fr ? 'Gratuit' : 'Free',
+      euros(pro.mensuelCents, langue),
+      euros(team.mensuelCents, langue),
+      fr ? 'Sur devis' : 'On quote',
+    ],
+    [
+      fr ? 'Prix annuel (−20 %)' : 'Annual price (−20%)',
+      '-',
+      euros(annuelPublicCents(pro.mensuelCents), langue),
+      euros(annuelPublicCents(team.mensuelCents), langue),
+      fr ? 'Sur devis' : 'On quote',
+    ],
+    fr
+      ? ['Projets publiés simultanément', '1', 'Illimités', 'Illimités', 'Illimités']
+      : ['Published projects at a time', '1', 'Unlimited', 'Unlimited', 'Unlimited'],
+    [fr ? 'Places' : 'Seats', n(free.places), n(pro.places), n(team.places), surMesure],
+    [fr ? 'Projets' : 'Projects', n(free.projets), n(pro.projets), n(team.projets), surMesure],
+    [
+      fr ? 'Espaces de travail actifs' : 'Active workspaces',
+      n(free.espacesActifs),
+      n(pro.espacesActifs),
+      n(team.espacesActifs),
+      surMesure,
+    ],
+    [
+      fr ? 'Messages à l’agent par mois' : 'Agent messages per month',
+      n(free.messagesIaParMois),
+      n(pro.messagesIaParMois),
+      n(team.messagesIaParMois),
+      surMesure,
+    ],
+    [
+      fr ? 'Publications par mois' : 'Deployments per month',
+      n(free.publicationsParMois),
+      n(pro.publicationsParMois),
+      n(team.publicationsParMois),
+      surMesure,
+    ],
+    [
+      fr ? 'Stockage' : 'Storage',
+      `${n(free.stockageGo)} ${fr ? 'Go' : 'GB'}`,
+      `${n(pro.stockageGo)} ${fr ? 'Go' : 'GB'}`,
+      `${n(team.stockageGo)} ${fr ? 'Go' : 'GB'}`,
+      surMesure,
+    ],
+    ['SSO / SAML', '-', '-', '-', 'SAML/OIDC + SCIM'],
+  ];
+}
+
+export function reponseAnnuelle(langue: MarketingLanguage): string {
+  const { pro, team } = forfaitsPublics;
+  const e = (cents: number) => euros(cents, langue);
+
+  return langue === 'fr'
+    ? `Oui : 20 % de réduction. Pro coûte ${e(annuelPublicCents(pro.mensuelCents))} par an au lieu de ${e(pro.mensuelCents * 12)}, et Team ${e(annuelPublicCents(team.mensuelCents))} par an au lieu de ${e(team.mensuelCents * 12)}. Le montant annuel est facturé en une fois.`
+    : `Yes: 20% off. Pro is ${e(annuelPublicCents(pro.mensuelCents))} a year instead of ${e(pro.mensuelCents * 12)}, and Team is ${e(annuelPublicCents(team.mensuelCents))} a year instead of ${e(team.mensuelCents * 12)}. You are billed once for the year.`;
+}
 
 export const pricingMarketingCopy = {
   en: {
@@ -734,16 +846,15 @@ export const pricingMarketingCopy = {
     comparisonTableLabel: 'Detailed comparison of E-Code pricing plans',
     featuresLabel: 'Features',
     comparisonRows: [
-      ['Monthly price', 'Free', '€25', '€100', 'Custom'],
-      ['Monthly credits', 'Daily', '€25', '€100', 'Custom'],
+      ['Monthly price', 'Free', '€29', '€99', 'On quote'],
+      ['Annual price (−20%)', '-', '€278.40', '€950.40', 'On quote'],
       ['Published projects at a time', '1', 'Unlimited', 'Unlimited', 'Unlimited'],
-      ['Collaborators', '1', '5', '15', 'Custom'],
-      ['Viewers', '-', '-', '50', 'Custom'],
-      ['Parallel agents', '1', '2', '10', 'Custom'],
-      ['Publish regions', '1 region', 'Any', 'Any', 'Selectable'],
-      ['Remove badge', '-', 'Yes', 'Yes', 'Yes'],
-      ['DB rollbacks', '-', '-', '28 days', 'Custom'],
-      ['Most powerful models', '-', '-', 'Yes', 'Yes'],
+      ['Seats', '1', '5', '25', 'Custom'],
+      ['Projects', 'Unlimited', '25', '100', 'Custom'],
+      ['Active workspaces', '1', '4', '15', 'Custom'],
+      ['Agent messages per month', '50', '1,000', '10,000', 'Custom'],
+      ['Deployments per month', 'Unlimited', '50', '500', 'Custom'],
+      ['Storage', '2 GB', '25 GB', '250 GB', 'Custom'],
       ['SSO / SAML', '-', '-', '-', 'SAML/OIDC + SCIM'],
     ],
     billingFaq: [
@@ -765,7 +876,7 @@ export const pricingMarketingCopy = {
       {
         question: 'Do you offer annual billing?',
         answer:
-          'Yes, and it saves you about 20%. Core is €20/mo billed annually (versus €25 month-to-month) and Pro is €95/mo billed annually (versus €100 month-to-month). You are billed once for the year.',
+          'Yes: 20% off. Pro is €278.40 a year instead of €348, and Team is €950.40 a year instead of €1,188. You are billed once for the year.',
       },
       {
         question: 'Do prices include VAT, and can I get an invoice?',
@@ -807,7 +918,7 @@ export const pricingMarketingCopy = {
     ctaBadge: 'Start building today',
     ctaTitle: 'Start free, upgrade when you need more',
     ctaDescription:
-      'Build with free daily Agent credits, then move to Core or Pro for more collaborators, parallel agents and any-region publishing. No credit card required to begin.',
+      'Build with free daily Agent credits, then move to Pro or Team for more seats, projects and agent messages. No credit card required to begin.',
     startFree: 'Start for Free',
     contactSales: 'Contact Sales',
   },
@@ -832,17 +943,16 @@ export const pricingMarketingCopy = {
     comparisonTableLabel: 'Comparaison détaillée des offres tarifaires E-Code',
     featuresLabel: 'Fonctionnalités',
     comparisonRows: [
-      ['Prix mensuel', 'Gratuit', '25 €', '100 €', 'Sur mesure'],
-      ['Crédits mensuels', 'Quotidiens', '25 €', '100 €', 'Sur mesure'],
+      ['Prix mensuel', 'Gratuit', '29 €', '99 €', 'Sur devis'],
+      ['Prix annuel (−20 %)', '-', '278,40 €', '950,40 €', 'Sur devis'],
       ['Projets publiés simultanément', '1', 'Illimités', 'Illimités', 'Illimités'],
-      ['Collaborateurs', '1', '5', '15', 'Sur mesure'],
-      ['Lecteurs', '–', '–', '50', 'Sur mesure'],
-      ['Agents en parallèle', '1', '2', '10', 'Sur mesure'],
-      ['Régions de publication', '1 région', 'Toutes', 'Toutes', 'Au choix'],
-      ['Suppression du badge', '–', 'Oui', 'Oui', 'Oui'],
-      ['Retours arrière de la base', '–', '–', '28 jours', 'Sur mesure'],
-      ['Modèles les plus puissants', '–', '–', 'Oui', 'Oui'],
-      ['SSO / SAML', '–', '–', '–', 'SAML/OIDC + SCIM'],
+      ['Places', '1', '5', '25', 'Sur mesure'],
+      ['Projets', 'Illimité', '25', '100', 'Sur mesure'],
+      ['Espaces de travail actifs', '1', '4', '15', 'Sur mesure'],
+      ['Messages à l’agent par mois', '50', '1 000', '10 000', 'Sur mesure'],
+      ['Publications par mois', 'Illimité', '50', '500', 'Sur mesure'],
+      ['Stockage', '2 Go', '25 Go', '250 Go', 'Sur mesure'],
+      ['SSO / SAML', '-', '-', '-', 'SAML/OIDC + SCIM'],
     ],
     billingFaq: [
       {
@@ -863,7 +973,7 @@ export const pricingMarketingCopy = {
       {
         question: 'Proposez-vous une facturation annuelle ?',
         answer:
-          'Oui, avec environ 20 % d’économie. Core revient à 20 € par mois en facturation annuelle, contre 25 € au mois, et Pro à 95 € par mois, contre 100 € au mois. Le montant annuel est prélevé en une seule fois.',
+          'Oui : 20 % de réduction. Pro coûte 278,40 € par an au lieu de 348 €, et Team 950,40 € par an au lieu de 1 188 €. Le montant annuel est facturé en une fois.',
       },
       {
         question: 'Les prix incluent-ils la TVA et puis-je obtenir une facture ?',
@@ -913,7 +1023,7 @@ export const pricingMarketingCopy = {
     ctaBadge: 'Commencez à créer dès aujourd’hui',
     ctaTitle: 'Commencez gratuitement, évoluez selon vos besoins',
     ctaDescription:
-      'Créez avec des crédits Agent quotidiens gratuits, puis passez à Core ou Pro pour obtenir davantage de collaborateurs, d’agents parallèles et publier dans toutes les régions. Aucune carte bancaire n’est requise pour commencer.',
+      'Créez avec des crédits Agent quotidiens gratuits, puis passez à Pro ou Team pour obtenir davantage de places, de projets et de messages à l’agent. Aucune carte bancaire n’est requise pour commencer.',
     startFree: 'Commencer gratuitement',
     contactSales: 'Contacter l’équipe commerciale',
   },

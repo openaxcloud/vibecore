@@ -4882,7 +4882,22 @@ function projectFilesFromPersistedIdeState(state?: PersistedIdeStateLike): Array
   return projectFilesFromIdeStateRoot(ideStateObject(state));
 }
 
-function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ path: string; content: string }> {
+/*
+ * Les contenus des messages déjà présents dans l'état enregistré : chacun a été
+ * matérialisé par le `PUT` qui l'y a mis. Un message dont le contenu a changé
+ * (flux prolongé) n'y figure pas sous sa nouvelle forme et sera matérialisé.
+ */
+function contenusDesMessagesEnregistres(state: unknown): Set<string> {
+  const chat = ideStateRecord(ideStateRecord(state).chat);
+  const messages = Array.isArray(chat.messages) ? chat.messages : [];
+
+  return new Set(messages.map(persistedIdeMessageContent).filter(Boolean));
+}
+
+function projectFilesFromIdeStateRoot(
+  root: Record<string, unknown>,
+  { dejaMaterialises }: { dejaMaterialises?: ReadonlySet<string> } = {},
+): Array<{ path: string; content: string }> {
   const chat =
     root.chat && typeof root.chat === 'object' && !Array.isArray(root.chat)
       ? (root.chat as Record<string, unknown>)
@@ -4894,7 +4909,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
   for (const message of messages) {
     const content = persistedIdeMessageContent(message);
 
-    if (!content) {
+    if (!content || dejaMaterialises?.has(content)) {
       continue;
     }
 
@@ -9037,6 +9052,11 @@ export async function estimateAiTokens(content: string) {
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
+/** Un identifiant de prix Stripe, et rien d'autre (la base de production a porté une adresse e-mail à cette place). */
+function estUnIdentifiantDePrixStripe(valeur: string | null | undefined): valeur is string {
+  return typeof valeur === 'string' && /^price_[A-Za-z0-9_]+$/.test(valeur.trim());
+}
+
 async function seedBillingPlans(store: ApiStore) {
   /*
    * Admin-managed price IDs (set via /admin/stripe → Plan rows) are AUTHORITATIVE:
@@ -9056,12 +9076,19 @@ async function seedBillingPlans(store: ApiStore) {
       const upper = plan.key.toUpperCase();
       const prior = existing.get(plan.key);
 
+      /*
+       * Une valeur persistée qui n'est PAS un identifiant de prix (une adresse
+       * e-mail, mesurée en production le 2026-10-01) n'est pas « l'édition d'un
+       * admin à préserver » : on l'écarte, sinon elle survit à chaque redémarrage.
+       */
+      const valable = (valeur: string | null | undefined) => (estUnIdentifiantDePrixStripe(valeur) ? valeur : undefined);
+
       const monthly =
-        prior?.stripePriceMonthlyId ??
+        valable(prior?.stripePriceMonthlyId) ??
         process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ??
         process.env[plan.stripePriceEnv];
 
-      const annual = prior?.stripePriceAnnualId ?? process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
+      const annual = valable(prior?.stripePriceAnnualId) ?? process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
 
       return store.upsertBillingPlan({
         key: plan.key,
@@ -23464,7 +23491,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let state = mergeProjectIdeState(existingState?.state, body.state);
 
-    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state));
+    /*
+     * BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE : un message n'est matérialisé
+     * qu'UNE fois. Rematérialiser tout le fil à chaque `PUT` — y compris un `PUT`
+     * qui ne porte que `ui`, puisque la fusion garde le fil enregistré — remettait
+     * la version de l'agent par-dessus l'enregistrement de l'utilisateur.
+     */
+    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state), {
+      dejaMaterialises: contenusDesMessagesEnregistres(existingState?.state),
+    });
 
     if (generatedFiles.length) {
       const mergedFiles = new Map(projectFilesFromPersistedIdeState(existingState).map((file) => [file.path, file]));
@@ -29650,11 +29685,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const plan = await store.getBillingPlan(body.planKey);
 
-    // The legacy price is monthly. An annual choice must never create a monthly subscription.
-    const resolvedPriceId =
-      body.interval === 'annual'
-        ? plan?.stripePriceAnnualId
-        : (plan?.stripePriceMonthlyId ?? plan?.stripePriceId);
+    /*
+     * BUG-QA1001-ANNUEL-FACTURE-AU-MOIS — l'annuel ne retombe JAMAIS sur un prix
+     * mensuel : il retombait sur `stripePriceMonthlyId`, et le client qui avait
+     * choisi « annuel » (−20 %, décision d'Avi) était abonné au mois. Et seul un
+     * VRAI identifiant de prix part chez Stripe — la base de production portait
+     * une adresse e-mail dans le prix annuel Team. Sans prix valable : refus clair,
+     * aucun appel à Stripe.
+     */
+    const resolvedPriceId = [
+      ...(body.interval === 'annual' ? [plan?.stripePriceAnnualId] : [plan?.stripePriceMonthlyId, plan?.stripePriceId]),
+    ].find(estUnIdentifiantDePrixStripe);
 
     if (!resolvedPriceId) {
       throw Object.assign(
