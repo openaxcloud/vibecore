@@ -13,12 +13,12 @@ import {
 } from '~/lib/i18n/catalogs/marketing-exact-agreement-team';
 
 const TEAM_FEATURE_MEDIA: Record<TeamFeatureId, { icon: ComponentType<{ className?: string }>; className: string }> = {
-  multiplayer: { icon: Users, className: 'text-[#F26207]' },
-  versionControl: { icon: GitBranch, className: 'text-[#F26207]' },
+  multiplayer: { icon: Users, className: 'text-[var(--ecode-accent-text)]' },
+  versionControl: { icon: GitBranch, className: 'text-[var(--ecode-accent-text)]' },
   communication: { icon: MessageSquare, className: 'text-green-600' },
   security: { icon: Shield, className: 'text-red-600' },
   environments: { icon: Zap, className: 'text-yellow-600' },
-  performance: { icon: Globe, className: 'text-[#F26207]' },
+  performance: { icon: Globe, className: 'text-[var(--ecode-accent-text)]' },
 };
 
 const TEAM_TESTIMONIAL_AUTHORS: Record<TeamTestimonialId, { person: string; company: string }> = {
@@ -142,7 +142,7 @@ export default function PublicTeamPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-[15px] px-8 w-full sm:w-auto min-h-[44px] bg-transparent text-white border-white hover:bg-white hover:text-[#F26207]"
+                className="text-[15px] px-8 w-full sm:w-auto min-h-[44px] bg-transparent text-white border-white hover:bg-white hover:text-[var(--ecode-accent-text-on-light)]"
               >
                 {copy.cta.secondary}
               </Button>
