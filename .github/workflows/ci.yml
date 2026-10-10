@@ -97,6 +97,9 @@ jobs:
       - name: Rollout evidence regression tests
         run: node --test scripts/capture-rollout-diagnostics.checks.bundle.mjs
 
+      - name: Blocking vulnerability evidence regression tests
+        run: node --test scripts/security-scan-evidence.checks.bundle.mjs
+
       # Standalone bundle (TypeScript source + YAML parser) runs before any
       # setup action or package lifecycle. Its byte-for-byte reproducibility is
       # checked from the strictly typed source after the frozen install below.
@@ -121,6 +124,11 @@ jobs:
         run: |
           pnpm exec tsc --project tsconfig.rollout-diagnostics.json --noEmit --pretty false
           node --import tsx scripts/build-rollout-diagnostics.ts --check
+
+      - name: Strict security scan evidence typecheck and bundle reproducibility
+        run: |
+          pnpm exec tsc --project tsconfig.security-scan-evidence.json --noEmit --pretty false
+          node --import tsx scripts/build-security-scan-evidence.ts --check
 
       # The validator parses the YAML AST instead of grepping text. Keep its
       # strict compilation explicit here so this security gate cannot silently
