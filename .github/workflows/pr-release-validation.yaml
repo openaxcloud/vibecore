@@ -8,71 +8,75 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  checks: write
+  pull-requests: read
+  checks: read
 
 jobs:
   quality-gates:
     name: Quality Gates
     runs-on: ubuntu-latest
+    timeout-minutes: 65
     
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - name: Wait for CI checks
-        uses: lewagon/wait-on-check-action@e106e5c43e8ca1edea6383a39a01c5ca495fd812 # v1.3.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          # Must match the CI job's display name (ci.yml -> jobs.ci.name);
-          # a non-existent name like 'Test' makes the gate wait forever.
-          check-name: 'Install, test, build, scan'
-          running-workflow-name: 'PR Validation'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
+      - name: Check wait regression tests
+        run: node --test scripts/wait-required-pr-checks.checks.mjs
 
-      - name: Check required status checks
+      - name: Wait for required CI checks
         uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
-        continue-on-error: true
         with:
           script: |
-            const { data: checks } = await github.rest.checks.listForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.payload.pull_request.head.sha
+            // Do not import enforcement code from the PR checkout into a token-bearing action.
+            // Keep this workflow-defined gate self-contained; the token is read-only.
+            const REQUIRED_PR_CHECKS = Object.freeze([
+              'Install, test, build, scan',
+              'CodeQL Analysis (javascript)',
+              'CodeQL Analysis (typescript)',
+            ]);
+            function requiredCheckState(checks) {
+              const latest = new Map();
+              for (const check of checks) {
+                if (!REQUIRED_PR_CHECKS.includes(check.name)) continue;
+                if (!latest.has(check.name) || check.id > latest.get(check.name).id) latest.set(check.name, check);
+              }
+              const failed = [];
+              const pending = [];
+              for (const name of REQUIRED_PR_CHECKS) {
+                const check = latest.get(name);
+                if (!check || check.status !== 'completed') pending.push(name);
+                else if (check.conclusion !== 'success') failed.push(`${name}: ${check.conclusion ?? 'missing conclusion'}`);
+              }
+              return { failed, pending };
+            }
+            async function waitRequiredPrChecks({
+              listChecks,
+              now = Date.now,
+              sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+              report = () => {},
+              timeoutMs = 60 * 60 * 1000,
+              intervalMs = 30 * 1000,
+            }) {
+              const deadline = now() + timeoutMs;
+              for (;;) {
+                const { failed, pending } = requiredCheckState(await listChecks());
+                if (failed.length) throw new Error(`Required checks failed: ${failed.join(', ')}`);
+                if (!pending.length) return;
+                if (now() >= deadline) throw new Error(`Timed out waiting for required checks: ${pending.join(', ')}`);
+                report(`Waiting for: ${pending.join(', ')}`);
+                await sleep(Math.min(intervalMs, deadline - now()));
+              }
+            }
+            await waitRequiredPrChecks({
+              listChecks: () => github.paginate(github.rest.checks.listForRef, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.payload.pull_request.head.sha,
+                per_page: 100,
+              }),
+              report: core.info,
             });
-
-            const requiredChecks = ['Install, test, build, scan', 'CodeQL Analysis'];
-            const optionalChecks = ['Quality Analysis', 'Deploy Preview'];
-            const failedChecks = [];
-            const passedChecks = [];
-
-            // Check required workflows
-            for (const checkName of requiredChecks) {
-              const check = checks.check_runs.find(c => c.name === checkName);
-              if (check && check.conclusion === 'success') {
-                passedChecks.push(checkName);
-              } else {
-                failedChecks.push(checkName);
-              }
-            }
-
-            // Report optional checks
-            for (const checkName of optionalChecks) {
-              const check = checks.check_runs.find(c => c.name === checkName);
-              if (check && check.conclusion === 'success') {
-                passedChecks.push(`${checkName} (optional)`);
-              }
-            }
-
-            console.log(`✅ Passed checks: ${passedChecks.join(', ')}`);
-            
-            if (failedChecks.length > 0) {
-              console.log(`❌ Failed required checks: ${failedChecks.join(', ')}`);
-              core.setFailed(`Required checks failed: ${failedChecks.join(', ')}`);
-            } else {
-              console.log(`✅ All required checks passed!`);
-            }
 
   validate-release:
     name: Release Validation
