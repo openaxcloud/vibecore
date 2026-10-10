@@ -4882,7 +4882,22 @@ function projectFilesFromPersistedIdeState(state?: PersistedIdeStateLike): Array
   return projectFilesFromIdeStateRoot(ideStateObject(state));
 }
 
-function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ path: string; content: string }> {
+/*
+ * Les contenus des messages déjà présents dans l'état enregistré : chacun a été
+ * matérialisé par le `PUT` qui l'y a mis. Un message dont le contenu a changé
+ * (flux prolongé) n'y figure pas sous sa nouvelle forme et sera matérialisé.
+ */
+function contenusDesMessagesEnregistres(state: unknown): Set<string> {
+  const chat = ideStateRecord(ideStateRecord(state).chat);
+  const messages = Array.isArray(chat.messages) ? chat.messages : [];
+
+  return new Set(messages.map(persistedIdeMessageContent).filter(Boolean));
+}
+
+function projectFilesFromIdeStateRoot(
+  root: Record<string, unknown>,
+  { dejaMaterialises }: { dejaMaterialises?: ReadonlySet<string> } = {},
+): Array<{ path: string; content: string }> {
   const chat =
     root.chat && typeof root.chat === 'object' && !Array.isArray(root.chat)
       ? (root.chat as Record<string, unknown>)
@@ -4894,7 +4909,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
   for (const message of messages) {
     const content = persistedIdeMessageContent(message);
 
-    if (!content) {
+    if (!content || dejaMaterialises?.has(content)) {
       continue;
     }
 
@@ -23476,7 +23491,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let state = mergeProjectIdeState(existingState?.state, body.state);
 
-    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state));
+    /*
+     * BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE : un message n'est matérialisé
+     * qu'UNE fois. Rematérialiser tout le fil à chaque `PUT` — y compris un `PUT`
+     * qui ne porte que `ui`, puisque la fusion garde le fil enregistré — remettait
+     * la version de l'agent par-dessus l'enregistrement de l'utilisateur.
+     */
+    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state), {
+      dejaMaterialises: contenusDesMessagesEnregistres(existingState?.state),
+    });
 
     if (generatedFiles.length) {
       const mergedFiles = new Map(projectFilesFromPersistedIdeState(existingState).map((file) => [file.path, file]));
