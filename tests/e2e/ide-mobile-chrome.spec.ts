@@ -2591,6 +2591,7 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
 
     // Mesuré avant : quatre messages avant, quatre après — le fil « effacé » revenait.
     await expect(lignes).toHaveCount(0, { timeout: 15_000 });
+
     // 6 s : la fenêtre doit couvrir l'arrivée du traînard retardé ci-dessus.
     await page.waitForTimeout(6000);
     await expect(lignes, 'le fil ne doit pas se remplir à nouveau').toHaveCount(0);
@@ -3152,6 +3153,15 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
       test.setTimeout(150_000);
 
       await ouvrirIde(page, request, { fil: true });
+
+      /*
+       * button-add-tab also exists in PendingComposerShell, which has no sendMessage.
+       * Do not dispatch the task until the real persisted conversation is mounted.
+       */
+      await expect(
+        page.locator('.bolt-user-message-bubble').filter({ hasText: 'Ajoute une page de contact.' }).first(),
+        'la conversation persistée doit être chargée avant de demander une réparation',
+      ).toBeVisible({ timeout: 60_000 });
       await ouvrirOutil(page, 'deployments');
 
       const coque = page.locator('.bolt-responsive-ide-mobile');
