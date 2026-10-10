@@ -92,6 +92,15 @@ export function platformStateLabel(t: TFunction, status: unknown): string {
     case 'warn':
     case 'warning':
       return t('baseChatAst.status.warning');
+
+    /*
+     * UIB-13 — mesuré le 2026-10-01, panneau Paquets à 1440 : la carte
+     * « Environnement d'exécution » affichait « unknown » en anglais. L'appelant
+     * passe `status ?? 'unknown'` : la chaîne n'est pas vide, le repli brut
+     * ci-dessous la rendait telle quelle.
+     */
+    case 'unknown':
+      return t('baseChatAst.status.unknown');
     default:
       return raw || t('baseChatAst.status.unknown');
   }
