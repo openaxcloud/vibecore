@@ -875,7 +875,8 @@ export const pricingMarketingCopy = {
       },
       {
         question: 'Do you offer annual billing?',
-        answer: 'Yes: 20% off. Pro is €278.40 a year instead of €348, and Team is €950.40 a year instead of €1,188. You are billed once for the year.',
+        answer:
+          'Yes: 20% off. Pro is €278.40 a year instead of €348, and Team is €950.40 a year instead of €1,188. You are billed once for the year.',
       },
       {
         question: 'Do prices include VAT, and can I get an invoice?',
@@ -971,7 +972,8 @@ export const pricingMarketingCopy = {
       },
       {
         question: 'Proposez-vous une facturation annuelle ?',
-        answer: 'Oui : 20 % de réduction. Pro coûte 278,40 € par an au lieu de 348 €, et Team 950,40 € par an au lieu de 1 188 €. Le montant annuel est facturé en une fois.',
+        answer:
+          'Oui : 20 % de réduction. Pro coûte 278,40 € par an au lieu de 348 €, et Team 950,40 € par an au lieu de 1 188 €. Le montant annuel est facturé en une fois.',
       },
       {
         question: 'Les prix incluent-ils la TVA et puis-je obtenir une facture ?',
