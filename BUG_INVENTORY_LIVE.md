@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-389 entrées.
+390 entrées.
 
 ## Sans section
 
@@ -427,6 +427,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-08 — Paiement et préparation au lancement
 
 - [BUG-BILLING-ANNUAL-FALLBACK-001](docs/bugs/BUG-BILLING-ANNUAL-FALLBACK-001.md) — P1 — Une demande de paiement annuel utilisait le prix mensuel si le prix annuel manquait. Sans plan annuel disponible, le formulaire omettait aussi la période e — 📤 Dispatché : 📤 Pris en charge le 08/10/2026. · 💻 Codé : ☐ Branche de correctif, fusion sur main à confirmer. · ✅ Testé live : ☐ Production responsive en attente, aucun débit réel effectué.
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA1001-CONNECTE-REVOIT-LA-CONNEXION](docs/bugs/BUG-QA1001-CONNECTE-REVOIT-LA-CONNEXION.md) — Deuxième visite — un client déjà connecté qui clique « Se connecter » sur e-code.ai se voit redemander — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
