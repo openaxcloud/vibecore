@@ -12,13 +12,13 @@ P1 — un rollout atomique en échec ne conserve aucun état des pods et Jobs da
 
 ## 💻 Codé
 
-☐ Sur branche ; pas encore fusionné sur main.
+☑ Fusionné sur main le 08/10/2026 par #681, commit `88c172eaef828f1ec34be123607efec3f9980218`. Typage strict et bundles reproductibles contrôlés en CI.
 
 Le collecteur est en TypeScript strict, avec bundles reproductibles pour les étapes précédant l'installation npm. Le déploiement conserve des snapshots JSONL des états Kubernetes avant, pendant et après Helm, y compris avant son rollback atomique. Le code de sortie et les sorties standard de Helm sont conservés. L'artefact est envoyé même en échec. La collecte ne persiste ni specs, ni variables d'environnement, ni annotations, ni Secrets, ni journaux applicatifs, ni messages Kubernetes arbitraires. Les erreurs de collecte sont explicites. Si une écriture échoue après le lancement de Helm, le collecteur attend la fin de Helm et retourne son vrai résultat ; il ne laisse pas un déploiement orphelin et ne masque pas son succès à `UPGRADE_APPLIED`.
 
 ## ✅ Testé live
 
-☐ Non confirmé. Le prochain pipeline doit produire `rollout-status-<sha>` ; lire les snapshots précédant le rollback pour déterminer la cause réelle. Ce changement améliore les preuves ; il ne constitue pas un correctif attesté de la panne Helm.
+☐ Vérification live complète non attestée : contrôles à l'écran et greps sur les trois formats non réalisés pour cette fiche. La collecte a toutefois été exercée en production sur un échec et sur une réussite. Run `37786200279` : 55 événements, nouvelle réplique web en CrashLoopBackOff avant rollback, sortie 1 et collecte complète. Run `37845241136` : artefact `11583536449`, 26 événements, sortie 0 et collecte complète. Épinglé par `scripts/capture-rollout-diagnostics.checks.ts` et son bundle exécuté en CI. Preuve détaillée : `docs/deploy-evidence/2026-10-09-release-verification.md`. Ces preuves attestent l'instrumentation, pas une validation globale du produit. Les causes du démarrage et du scan ont été traitées séparément par #682 et #683.
 
 ## Validation locale
 
