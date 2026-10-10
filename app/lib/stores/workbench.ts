@@ -755,6 +755,17 @@ export class WorkbenchStore {
       return;
     }
 
+    /*
+     * RIEN À PERSISTER TANT QUE LA PROPOSITION S'ÉCRIT. Mesuré en production le
+     * 2026-10-01 (journaux nginx) : 2 304 et 2 027 `PUT` pendant deux premiers
+     * projets de cinq minutes — la proposition ENTIÈRE renvoyée à chaque morceau
+     * du flux. Une proposition `enFlux` n'est ni finie ni applicable (voir
+     * `AgentPatchProposal.enFlux`) ; seule sa version fermée est envoyée.
+     */
+    if (proposal.enFlux) {
+      return;
+    }
+
     void putAgentPatchProposal(projectId, proposal);
   }
 
