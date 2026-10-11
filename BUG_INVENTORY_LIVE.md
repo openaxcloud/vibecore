@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-389 entrées.
+395 entrées.
 
 ## Sans section
 
@@ -421,12 +421,24 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-SEC-ADMIN-TEST-RUNTIME-001](docs/bugs/BUG-SEC-ADMIN-TEST-RUNTIME-001.md) — P1 — le moteur de test est livré dans l’image admin. — 📤 Dispatché : 📤 Correction prise en charge le 07/10/2026. · 💻 Codé : 💻 Fusionné sur main par #679 le 07/10/2026, commit `b06899dc85fba91eb54146027f5b20a50d440a5a`. CI, E2E, sécur · ✅ Testé live : ☐ Rollout et vérifications de production non confirmés. Le pipeline `37683775662` du commit `74aab77b7f71e513b
 - [BUG-SEC-SCREENSHOTTER-EGRESS-001](docs/bugs/BUG-SEC-SCREENSHOTTER-EGRESS-001.md) — P1 — la politique réseau du screenshotter était neutralisée par trois autorisations générales. — 📤 Dispatché : 📤 Pris en charge le 07/10/2026. · 💻 Codé : ☑ Fusionné sur main par #680 le 07/10/2026 (merge `74aab77b7f71e513be61c19f5fe4b6223cff1200`). Les trois autor · ✅ Testé live : ☐ Non confirmé. Le rendu du graphe ne prouve pas l’application des politiques par le CNI. Il faut inspecter TO
-- [BUG-DEPLOY-ROLLOUT-EVIDENCE-001](docs/bugs/BUG-DEPLOY-ROLLOUT-EVIDENCE-001.md) — P1 — un rollout atomique en échec ne conserve aucun état des pods et Jobs dans les artefacts du pipeline. Le déploiement `37683775662` du commit `74aab77b7f71e5 — 📤 Dispatché : 📤 Pris en charge le 08/10/2026. · 💻 Codé : ☐ Sur branche ; pas encore fusionné sur main. · ✅ Testé live : ☐ Non confirmé. Le prochain pipeline doit produire `rollout-status-<sha>` ; lire les snapshots précédant le ro
+- [BUG-DEPLOY-ROLLOUT-EVIDENCE-001](docs/bugs/BUG-DEPLOY-ROLLOUT-EVIDENCE-001.md) — P1 — un rollout atomique en échec ne conserve aucun état des pods et Jobs dans les artefacts du pipeline. Le déploiement `37683775662` du commit `74aab77b7f71e5 — 📤 Dispatché : 📤 Pris en charge le 08/10/2026. · 💻 Codé : ☑ Fusionné sur main le 08/10/2026 par #681, commit `88c172eaef828f1ec34be123607efec3f9980218`. Typage strict e · ✅ Testé live : ☐ Vérification live complète non attestée : contrôles à l'écran et greps sur les trois formats non réalisés po
 - [BUG-CI-I18N-IDE-ALIAS-001](docs/bugs/BUG-CI-I18N-IDE-ALIAS-001.md) — P1 livraison — l'audit i18n exige la bascule globale sur l'alias preview qui redirige vers la coque IDE, où elle a été retirée par décision produit. Les logs du — 📤 Dispatché : ☑ Pris en charge le 08/10/2026 après lecture des journaux desktop-1024 et desktop-1440. · 💻 Codé : ☐ Sur branche de #681. Le test classe preview avec ide/git et conserve son invariant inverse (absence de bascu · ✅ Testé live : ☐ Non confirmé en production. 102 tests ciblés locaux passent ; la matrice complète de quatre formats doit pas
 
 ## 2026-10-08 — Paiement et préparation au lancement
 
-- [BUG-BILLING-ANNUAL-FALLBACK-001](docs/bugs/BUG-BILLING-ANNUAL-FALLBACK-001.md) — P1 — Une demande de paiement annuel utilisait le prix mensuel si le prix annuel manquait. Sans plan annuel disponible, le formulaire omettait aussi la période e — 📤 Dispatché : 📤 Pris en charge le 08/10/2026. · 💻 Codé : ☐ Branche de correctif, fusion sur main à confirmer. · ✅ Testé live : ☐ Production responsive en attente, aucun débit réel effectué.
+- [BUG-BILLING-ANNUAL-FALLBACK-001](docs/bugs/BUG-BILLING-ANNUAL-FALLBACK-001.md) — P1 — Une demande de paiement annuel utilisait le prix mensuel si le prix annuel manquait. Sans plan annuel disponible, le formulaire omettait aussi la période e — 📤 Dispatché : 📤 Pris en charge le 08/10/2026. · 💻 Codé : ☑ Fusionné sur main le 09/10/2026 par #684, commit `a11d0a1687d8edb5a3f4b38f74031d230f289383`. CI, E2E, sécuri · ✅ Testé live : ☐ Production responsive en attente, aucun débit réel effectué.
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA1001-RETOUR-PERD-LES-MODIFICATIONS](docs/bugs/BUG-QA1001-RETOUR-PERD-LES-MODIFICATIONS.md) — P0 — Retour sur un projet existant : chaque réouverture remplace la copie SERVEUR du projet par la version — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1001-ANNUEL-FACTURE-AU-MOIS](docs/bugs/BUG-QA1001-ANNUEL-FACTURE-AU-MOIS.md) — Paiement : un client qui choisit la facturation ANNUELLE est abonné au prix MENSUEL quand le prix annuel — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1001-PRO-UNE-SEULE-PLACE](docs/bugs/BUG-QA1001-PRO-UNE-SEULE-PLACE.md) — Le forfait Pro (29 €/mois) n'avait qu'UNE place d'équipe — celle du propriétaire : un client qui paie ne — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE](docs/bugs/BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE.md) — Un client gratuit qui publie un projet pendant qu'un autre de ses projets tient son unique espace actif — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Sans section
+
+- [BUG-KEYBOARD-BASCULE-001](docs/bugs/BUG-KEYBOARD-BASCULE-001.md) — P1 — iPhone : toucher la zone de saisie pendant le chargement de l'IDE → la zone de saisie reste SOUS le clavier. — 📤 Dispatché : ☑ 01/10 · 💻 Codé : ☐ #664 (`fix/clavier-repos-de-page`), pas encore sur `main` : hauteur de repos mémorisée pour la page (`memori · ✅ Testé live : ☐
+- [BUG-MODE-BASCULE-001](docs/bugs/BUG-MODE-BASCULE-001.md) — P1 — le mode choisi pendant le chargement de l'IDE est perdu : « Assistant » redevient « Agent » sans un mot, et le message suivant part en mode Agent (qui modi — 📤 Dispatché : ☑ 01/10 (trouvé et traité par la session mobile) · 💻 Codé : ☐ branche `fix/mode-garde-a-la-bascule` poussée, pas encore sur `main`. Correctif : la coquille déclare chaque · ✅ Testé live : ☐
 
 ## Résidus non tabulaires — reportés mot pour mot
 

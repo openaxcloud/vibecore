@@ -186,5 +186,5 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 
 | Point | 📤 Dispatché | 💻 Codé | ✅ Testé live | Preuve / reste |
 |---|:---:|:---:|:---:|---|
-| BILLING-ANNUAL — conserver la période et refuser un annuel sans prix annuel | ✅ 08/10 | ☐ branche | ☐ | `services/api/src/tests/api.spec.ts` + `app/routes/upgrade.i18n.spec.tsx` ; production responsive à vérifier. |
+| BILLING-ANNUAL — conserver la période et refuser un annuel sans prix annuel | ✅ 08/10 | ✅ #684 `a11d0a16` | ☐ | CI du SHA fusionné verte ; livraison bloquée au scan des images (run `37885667512`), avant Helm. Parcours connecté responsive à vérifier après livraison. `services/api/src/tests/api.spec.ts` + `app/routes/upgrade.i18n.spec.tsx`. |
 | BILLING-CATALOG — Core 25 / Pro 100, décision Avi | ✅ 08/10 | ☐ | ☐ | Réconcilier devise, prix Stripe et abonnements existants. |

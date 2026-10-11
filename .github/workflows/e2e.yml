@@ -176,7 +176,7 @@ jobs:
 
           PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-results.json \
             pnpm exec playwright test "$CIBLE" --project=chromium $DECOUPE \
-              --grep-invert @runtime --reporter=list,json
+              --grep-invert @runtime --reporter=list,json --output=test-results-tranche
           echo "playwright exit: $?"
 
       # La porte ne juge PLUS ici : une tranche seule ne voit qu'un quart des
@@ -196,7 +196,9 @@ jobs:
       # et se jouent une fois, sur la première tranche.
       - name: Playwright mobile viewport tests
         if: matrix.shard == 1
-        run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
+        # Playwright clears its output directory at startup. Never clear the
+        # preceding tranche's retry traces before Upload E2E traces runs.
+        run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime --output=test-results-responsive
 
       # LE MOTEUR D'AVI. `playwright.config.ts` définit un projet `webkit-iphone`
       # (iPhone 15 Pro) pour les quatre specs dont le sujet EST une interaction
@@ -232,6 +234,8 @@ jobs:
             playwright-report
             playwright-results.json
             test-results
+            test-results-tranche
+            test-results-responsive
             tmp/ide-panel-audit.json
             /tmp/vibecore-api.log
             /tmp/vibecore-web.log

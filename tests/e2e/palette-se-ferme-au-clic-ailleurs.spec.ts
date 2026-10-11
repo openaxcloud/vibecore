@@ -39,8 +39,42 @@ async function ouvrirUnProjet(request: APIRequestContext) {
   });
 
   const corps = (await projet.json()) as { id?: string; project?: { id: string } };
+  expect(projet.ok(), await projet.text()).toBe(true);
 
-  return { token: auth.token, projectId: corps.project?.id ?? corps.id! };
+  const projectId = corps.project?.id ?? corps.id;
+
+  if (!projectId) {
+    throw new Error('Project creation returned no id');
+  }
+
+  const headers = { authorization: `Bearer ${auth.token}` };
+
+  const conversation = await request.post(`${apiBaseUrl}/projects/${projectId}/ai/conversations`, {
+    headers,
+    data: { title: 'Palette' },
+  });
+  expect(conversation.ok(), await conversation.text()).toBe(true);
+
+  const { conversation: saved } = (await conversation.json()) as { conversation: { id: string } };
+
+  const transcript = await request.put(`${apiBaseUrl}/projects/${projectId}/ai/conversations/${saved.id}/transcript`, {
+    headers,
+    data: {
+      messages: [
+        { clientId: 'palette-user', role: 'user', content: 'Ouvre les outils du projet.' },
+        { clientId: 'palette-agent', role: 'assistant', content: 'Les outils du projet sont disponibles.' },
+      ],
+    },
+  });
+  expect(transcript.ok(), await transcript.text()).toBe(true);
+
+  const state = await request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
+    headers,
+    data: { state: { chat: { metadata: { aiConversationId: saved.id } } } },
+  });
+  expect(state.ok(), await state.text()).toBe(true);
+
+  return { token: auth.token, projectId };
 }
 
 test('la palette se ferme quand on ouvre un autre panneau ou qu’on clique ailleurs', async ({ page, request }) => {
@@ -53,17 +87,22 @@ test('la palette se ferme quand on ouvre un autre panneau ou qu’on clique aill
     .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
 
-  // Prêt quand la barre d'activité est là : c'est d'elle que part la palette.
-  await expect(page.getByRole('button', { name: /^Search/i }).first()).toBeVisible({ timeout: 120_000 });
+  /*
+   * A toolbar can precede the real Chat consumer (PendingComposerShell).
+   * A persisted transcript on screen proves the real conversation is mounted.
+   */
+  await expect(
+    page.locator('.bolt-user-message-bubble').filter({ hasText: 'Ouvre les outils du projet.' }).first(),
+  ).toBeVisible({ timeout: 120_000 });
+
+  const search = page.getByTestId('button-project-name-search');
+  await expect(search).toBeVisible();
   await page.waitForLoadState('load');
 
   const palette = page.getByTestId('project-command-palette');
 
   const ouvrir = async () => {
-    await page
-      .getByRole('button', { name: /^Search/i })
-      .first()
-      .click();
+    await search.click();
     await expect(palette, 'témoin : « Search » ouvre bien la palette').toBeVisible({ timeout: 10_000 });
   };
 

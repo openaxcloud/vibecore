@@ -58,7 +58,9 @@ describe('product marketing EN/FR catalogs', () => {
     expect(getProductMarketingRouteCopy('pricing', 'fr').title).toBe('Tarifs');
     expect(getProductMarketingRouteCopy('pricing', 'de').title).toBe('Pricing');
     expect(getAiAgentMarketingCopy('fr').heroAccent).toBe('Créez des applications en langage naturel');
-    expect(getPricingPlanCopy('fr').core.features).toContain('25 € de crédits par mois');
+
+    // Grille du 01/10 : les avantages Pro sont écrits à partir des limites appliquées (5 places).
+    expect(getPricingPlanCopy('fr').pro.features).toContain('5 places (vous et 4 collaborateurs)');
     expect(getPricingMarketingCopy('fr').recommended).toBe('RECOMMANDÉ');
   });
 
@@ -109,7 +111,11 @@ describe('product marketing EN/FR catalogs', () => {
 
     expect(markup).toContain('Des tarifs qui évoluent');
     expect(markup).toContain('RECOMMANDÉ');
-    expect(markup).toMatch(/25[\u00a0\u202f]€/u);
+
+    // Grille décidée par Avi le 01/10 : Pro 29 €, Team 99 €.
+    expect(markup).toMatch(/29[\u00a0\u202f]€/u);
+    expect(markup).toMatch(/99[\u00a0\u202f]€/u);
+    expect(markup).not.toMatch(/(^|[^0-9])25[\u00a0\u202f]€/u);
     expect(markup).toContain('Questions fréquentes');
     expect(markup).toContain('aria-label="Période de facturation"');
     expect(markup).toContain('aria-label="Afficher les tarifs annuels"');

@@ -1,14 +1,41 @@
 # Reste à faire pour lancer E-Code / Vibecore — 8 octobre 2026
 
+## Mise à jour vérifiée — 9 octobre
+
+Main `a11d0a1687d8edb5a3f4b38f74031d230f289383` contient #681, #682, #683 et #684.
+La livraison #683 a réussi, avec neuf images signées et traçables, sans Capacitor
+dans les SBOM serveur. Le collecteur a conservé les états d'un rollout échoué
+puis d'un rollout réussi. La protection du paiement annuel est fusionnée et la
+CI de son SHA de fusion est verte ; sa livraison a échoué au scan des images,
+après les deux constructions et avant Helm. La cause exacte n'est pas encore
+récupérable sur cet ancien run. #687, fusionnée après ses six workflows verts,
+conserve les verdicts JSON sans changer le seuil de sécurité. Main vérifié :
+`bc263f1bf4cbb63d9fb17bf0992d6856da9d4cb0`. Sa livraison automatique
+`37929994324` est enregistrée mais pas encore attestée en production.
+#688 attend sa CI pour les préconditions des deux parcours IDE intermittents ;
+#689 préserve les diagnostics que la seconde invocation Playwright effaçait.
+Leurs tests locaux ne certifient pas une résolution produit ni une livraison.
+La décision commerciale **Core 25 / Pro 100** est enregistrée ; devise, catalogue
+Stripe et migration des abonnements ne sont pas attestés. #685 corrige la
+validation CI ; tous ses contrôles requis ont réussi avant fusion sur main
+`01b72f6a5c5fe7a1b783dc27730f092922196c6e`.
+La contribution de Claude #651 est fusionnée après ses sept contrôles verts,
+sur main `243c315f98a541d9860efe2dd7e7bcbf776d0d4c` ; son déploiement et le
+parcours connecté en production restent à attester.
+
+Preuves et limites : [vérification du 09/10](deploy-evidence/2026-10-09-release-verification.md).
+Le lancement global n'est toujours pas attesté. Les décomptes, PR et mesures
+ci-dessous constituent le relevé historique du 08/10, pas une nouvelle mesure du 09/10.
+
 ## État et périmètre
 
-Base consultée : main `74aab77b7f71e513be61c19f5fe4b6223cff1200`.
-PR de livraison en cours : #681, collecteur de diagnostic Helm, supervision du processus et remise en cohérence de l'audit i18n.
+Base historique consultée le 08/10 : main `74aab77b7f71e513be61c19f5fe4b6223cff1200`.
+PR alors en cours : #681, collecteur de diagnostic Helm, supervision du processus et remise en cohérence de l'audit i18n.
 Autorisation d'Avi : fusion et déploiement après contrôles validés, donnée le 08/10/2026.
 
 **Le lancement complet n'est pas validé.** Un build ou un test local vert ne prouve ni le déploiement ni le parcours réel du client.
-Le déploiement main #37683775662 a échoué au Helm upgrade atomique. La cause précise reste inconnue.
-La nouvelle instrumentation conserve les états des pods et Jobs avant rollback ; elle ne répare pas une cause encore inconnue.
+Le déploiement main #37683775662 avait échoué au Helm upgrade atomique ; la cause n'était pas établie à la rédaction initiale.
+Les preuves suivantes ont distingué le crash de démarrage web du blocage par le scan Capacitor. #682 puis #683 ont corrigé ces deux causes ; la nouvelle instrumentation seule ne les réparait pas.
 
 Les quatre suivis ont été lus : DESIGN_PROGRAM_MASTER.md, BUG_INVENTORY_LIVE.md, PLAN_REMAINING_UNIFIED.md, REPLIT_PARITY.md.
 DESIGN_AUDIT_LIVE.md et les registres production/enterprise/audit externe complètent ce bilan.
@@ -44,7 +71,7 @@ Une nouvelle fiche documente l'audit i18n de cette passe, portant l'index à 388
 | Bases dev / prod | Deux environnements réellement distincts ; accès depuis runtime ; gestion des tables/requêtes ; métriques et quotas réels ; copie dev→prod seulement après implémentation contrôlée. | Écriture dev absente de prod, CRUD live, sauvegarde/restore, refus de privilèges, mesures visibles. |
 | Secrets / connecteurs | Secrets projet/compte et configurations ; révélation à la demande ; migration des jetons existants et appels via connector-proxy ; garde SSRF jusqu'à la socket. | Pas de secret dans clone/export/logs/client persistant ; révocation et refus réseau exercés. |
 | Import / remix / Gallery | 12 sources annoncées, dont connecteurs encore partiels ; fork physique DB et politiques stockage CLONE/SHARE ; crédits import ; PII/remix ; profils/publication/modération si promis. | Prompt, import et remix séparément → IDE/runtime/preview/publication ; recherche effective de fuite de secret/PII. |
-| Paiement / offres | **Décider la grille qui fait foi** : le constat du 30/09 oppose Core 25$/Pro 100$ sur pricing à Pro 29$/Team 99$ au checkout. Unifier catalogue, IDs Stripe, mensualité/annuel, quotas et appellations ; revalider la clé expirée observée le 22/09. | Même offre/prix/cycle affiché et débité ; checkout/portal/webhooks/idempotence/échec/upgrade/downgrade/trial/cancel exercés. |
+| Paiement / offres | **Grille décidée : Core 25 / Pro 100 ; devise à décider.** Le constat historique du 30/09 opposait Core 25$/Pro 100$ sur pricing à Pro 29$/Team 99$ au checkout. Vérifier puis unifier catalogue, IDs Stripe, mensualité/annuel, quotas et appellations ; définir la migration des abonnements et revalider la clé expirée observée le 22/09. | Même offre/prix/cycle affiché et débité ; checkout/portal/webhooks/idempotence/échec/upgrade/downgrade/trial/cancel exercés. |
 | Coûts / crédits / quotas | Crédit réservé/capturé/libéré ; compteur fournisseur serveur ; prix compute/requêtes/DB/stockage ; marge ; fail-open de quota à requalifier ; courses au provisioning. | Concurrence sans dépassement ni double facturation, génération échouée non surfacturée, rapprochement usage/coût/ledger. |
 | Isolation / sécurité infra | Prouver gVisor/admission et toutes NetworkPolicies live ; screenshotter exclu des règles générales ; politiques anciennes extérieures à Helm ; DNS/rebinding/IPv6 ; SAST/vulns/signatures. | Refus pod privilégié/non isolé ; tests cross-tenant/métadonnées/DB/Redis ; capture preview permise ; images admises conformes. |
 | Suppression / confidentialité | Purge physique du compte/projet et ressources orphelines ; exports RGPD ; rétention/legal hold ; cohérence GCS/PVC/DB/backups ; reprise #52 à revoir. | Avant/après réel, aucune donnée recréée pendant suppression, preuve par lecture des backends physiques. |
@@ -72,7 +99,7 @@ Une nouvelle fiche documente l'audit i18n de cette passe, portant l'index à 388
 
 ## Décisions et accès qui conditionnent la clôture
 
-- Grille commerciale unique (prix, plans, cycles, crédits/quotas) avant modification du débit.
+- Core 25 / Pro 100 est décidé ; devise, cycles annuels, crédits/quotas, catalogue Stripe et migration restent à confirmer avant modification du débit.
 - Périmètre du lancement : web, Enterprise, applications natives/desktop et fonctionnalités avancées promises.
 - Accès opérateur cluster/GCP et prestataires pour mesures/restauration/activation. Aucun accès cluster utilisable dans cette session.
 - Le dépôt signale le contrôle `Required reviewers` de l'environnement `pr-ai-secrets` ; son état courant doit être vérifié dans les réglages du dépôt.

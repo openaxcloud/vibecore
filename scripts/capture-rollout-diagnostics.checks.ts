@@ -168,7 +168,54 @@ test('workflow captures the atomic upgrade and uploads on failure', () => {
     .split('- name: Verify rollout')[0];
   assert.match(upgrade, /node scripts\/capture-rollout-diagnostics\.bundle\.mjs/);
   assert.match(upgrade, /--atomic/);
-  assert.match(upgrade, /--timeout 10m/);
+  /*
+   * CE QUI EST PROTÉGÉ ICI, C'EST L'ORDRE DES TROIS HORLOGES — PAS LA VALEUR 10.
+   *
+   * L'assertion valait `/--timeout 10m/`. Elle a été remplacée le 2026-10-11 parce
+   * qu'elle épinglait un nombre là où la propriété qui compte est une RELATION :
+   *
+   *     hook de migration  <  délai de progrès K8s  <  budget Helm
+   *
+   * Si deux de ces horloges expirent ensemble, celle qui rend l'erreur n'est pas
+   * celle qui connaît la cause ; et si le budget expire AVANT le délai de progrès,
+   * `--atomic` annule un rollout que Kubernetes considère encore comme en cours.
+   * C'est mesuré : le 2026-09-04 (run 1453), hook et Helm étaient tous deux à 600 s,
+   * et le rollback atomique a emporté le Job de migration avant que quiconque puisse
+   * lire pourquoi.
+   *
+   * Un littéral rougit donc à chaque ajustement LÉGITIME du budget — c'est arrivé le
+   * 2026-10-11 en portant la grâce des pods à 600 s pour qu'un tour d'agent en cours
+   * (2 à 4 min) finisse avant que son pod disparaisse. Les trois valeurs sont lues
+   * depuis leur source, de sorte que le garde suive les ajustements et n'accepte
+   * jamais un ordre incohérent.
+   */
+  const secondes = (v: string): number =>
+    v.endsWith('m') ? Number(v.slice(0, -1)) * 60 : Number(v.replace(/s$/u, ''));
+
+  const budgetBrut = /--timeout (\d+[ms])/u.exec(upgrade);
+  assert.ok(budgetBrut, 'le budget de l’upgrade atomique doit rester explicite');
+  const budget = secondes(budgetBrut[1]!);
+
+  const hookBrut = /activeDeadlineSeconds:\s*(\d+)/u.exec(
+    readFileSync('infra/helm/platform/templates/migrations-job.yaml', 'utf8'),
+  );
+  assert.ok(hookBrut, 'le hook de migration doit garder un activeDeadlineSeconds');
+  const hook = Number(hookBrut[1]);
+
+  const progresBrut = /progressDeadlineSeconds:[^\n]*?default (\d+)/u.exec(
+    readFileSync('infra/helm/platform/templates/deployments.yaml', 'utf8'),
+  );
+  assert.ok(progresBrut, 'les Deployments doivent garder un progressDeadlineSeconds explicite');
+  const progres = Number(progresBrut[1]);
+
+  assert.ok(
+    hook < progres,
+    `le hook (${hook}s) doit expirer AVANT le délai de progrès (${progres}s), sinon l’erreur rendue n’est pas celle qui connaît la cause`,
+  );
+  assert.ok(
+    progres < budget,
+    `le délai de progrès (${progres}s) doit expirer AVANT le budget Helm (${budget}s), sinon --atomic annule un rollout encore en cours`,
+  );
   const upload = workflow.split('- name: Upload rollout status evidence')[1].split('- name:')[0];
   assert.match(upload, /if: always\(\)/);
   assert.match(upload, /\$\{\{ runner.temp \}\}\/rollout-status.jsonl/);

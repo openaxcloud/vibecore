@@ -303,6 +303,22 @@ async function persistJsonEvidence(testInfo: TestInfo, name: string, value: unkn
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
+/** Attend que la longueur du texte visible ne bouge plus pendant 2 s (30 s au plus). */
+async function attendreTexteStable(page: Page): Promise<void> {
+  const limite = Date.now() + 30_000;
+
+  let precedent = -1;
+  let stables = 0;
+
+  while (Date.now() < limite && stables < 4) {
+    // Une navigation pendant la mesure (l'IDE se recharge) remet le compte à zéro.
+    const longueur = await page.evaluate(() => document.body?.innerText.length ?? 0).catch(() => -1);
+    stables = longueur >= 0 && longueur === precedent ? stables + 1 : 0;
+    precedent = longueur;
+    await page.waitForTimeout(500);
+  }
+}
+
 async function waitForApplicationReady(page: Page, path: string, language: 'en' | 'fr'): Promise<void> {
   const bootSplash = page.locator('[data-ecode-boot-splash], [data-ecode-ide-boot-splash]');
   const globalLanguageSwitch = page.locator('[data-testid="language-switch"]:visible').first();
@@ -310,7 +326,19 @@ async function waitForApplicationReady(page: Page, path: string, language: 'en' 
   await expect.soft(bootSplash, `${path} ${language} boot splash dismissed`).toHaveCount(0, { timeout: 15_000 });
 
   if (isIdeShellPath(path)) {
-    // La coque IDE n'a plus de bascule : attendre qu'elle apparaisse ne finirait jamais.
+    /*
+     * La coque IDE n'a plus de bascule : attendre qu'elle apparaisse ne finirait
+     * jamais. Mais rendre la main tout de suite fait auditer une page à moitié
+     * montée : mesuré le 06/10 sur `/projects/:id/preview` à 390 px, 55 entrées
+     * lues au lieu de 205 ; en CI le 09/10, 114. Les panneaux (historique Git
+     * compris) arrivent après. On attend donc la coque, puis que le texte de la
+     * page cesse de bouger.
+     */
+    await expect
+      .soft(page.locator('.bolt-responsive-ide').first(), `${path} ${language} coque de l'IDE montée`)
+      .toBeVisible({ timeout: 30_000 });
+    await attendreTexteStable(page);
+
     return;
   }
 
@@ -684,8 +712,11 @@ async function authenticateFrenchUser(page: Page): Promise<{ organizationId: str
       email: `audit-i18n-${suffix}@local.test`,
       password: 'Password123!',
       name: 'Utilisateur Audit',
-      // Un nom saisi par l'utilisateur n'est pas une traduction UI. Garder une
-      // fixture française, sans suffixe aléatoire qui peut former un mot anglais.
+
+      /*
+       * Un nom saisi par l'utilisateur n'est pas une traduction UI. Garder une
+       * fixture française, sans suffixe aléatoire qui peut former un mot anglais.
+       */
       organizationName: `Collectif de vérification ${Date.now()}`,
     },
   });

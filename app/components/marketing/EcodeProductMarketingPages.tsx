@@ -43,6 +43,7 @@ import { Link } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import { getReelDemoHref } from '~/components/marketing/ecode-marketing-reels';
 import { Button } from '~/components/ui/Button';
+import { annuelPublicCents, forfaitsPublics, lienDuForfait } from '~/lib/forfaits-publics';
 import { formatMarketingDocumentTitle } from '~/lib/i18n/catalogs/marketing';
 import {
   getAiAgentMarketingCopy,
@@ -114,9 +115,10 @@ export const ecodeCampaignMarketingPages = {
 } as const satisfies Record<CampaignPageKey, PageRouteDefinition>;
 
 /*
- * Monthly prices must stay aligned with packages/billing/src/index.ts.
- * The marketing page intentionally keeps Pro at $29 and Team at $99 because
- * those are the backend-enforced Stripe checkout amounts.
+ * Grille décidée par Avi le 2026-10-01 : les montants viennent de `forfaitsPublics`,
+ * tenu égal à la facturation par forfaits-publics.spec.ts. (Le commentaire qui
+ * était ici affirmait « Pro à 29 $ et Team à 99 $ » au-dessus d'une grille Core
+ * 25 € / Pro 100 € : un commentaire périmé ment en silence — règle 22.)
  */
 const pricingPlanConfig = {
   free: {
@@ -126,30 +128,24 @@ const pricingPlanConfig = {
     enterprise: false,
     icon: <Sparkles className="h-7 w-7" aria-hidden />,
     gradient: 'from-slate-500 to-slate-700',
-
-    /*
-     * The localized pricing catalog owns the five public Starter benefits.
-     * Storage, bandwidth and concurrent-app figures remain technical limits in
-     * the versioned rate card rather than unsupported marketing quotas.
-     */
   },
-  core: {
-    monthlyCents: 2500,
-    annualMonthlyCents: 2000,
+  pro: {
+    monthlyCents: forfaitsPublics.pro.mensuelCents,
+    annualMonthlyCents: annuelPublicCents(forfaitsPublics.pro.mensuelCents) / 12,
     popular: true,
     enterprise: false,
     icon: <Zap className="h-7 w-7" aria-hidden />,
     gradient: 'from-[var(--ecode-accent)] to-amber-500',
   },
-  pro: {
-    monthlyCents: 10000,
-    annualMonthlyCents: 9500,
+  team: {
+    monthlyCents: forfaitsPublics.team.mensuelCents,
+    annualMonthlyCents: annuelPublicCents(forfaitsPublics.team.mensuelCents) / 12,
     popular: false,
     enterprise: false,
     icon: <Rocket className="h-7 w-7" aria-hidden />,
     gradient: 'from-[var(--ecode-accent)] to-[#F99D25]',
   },
-  enterprise: {
+  core: {
     monthlyCents: 0,
     annualMonthlyCents: 0,
     popular: false,
@@ -941,7 +937,7 @@ export function EcodePricingPage() {
                 </div>
                 <div className="mt-6">
                   <ActionLink
-                    to={plan.enterprise ? '/contact-sales' : '/register'}
+                    to={lienDuForfait(plan.key, billingPeriod)}
                     fullWidth
                     variant={plan.popular ? 'default' : 'outline'}
                   >
@@ -977,12 +973,12 @@ export function EcodePricingPage() {
                    * le 20/08 à 390 ET 1440. `--ecode-accent-text` (#c74e00 en thème
                    * clair) est le jeton prévu pour l'orange porteur de texte.
                    */}
-                  {(['free', 'core', 'pro', 'enterprise'] as const).map((planKey) => (
+                  {(['free', 'pro', 'team', 'core'] as const).map((planKey) => (
                     <th
                       key={planKey}
                       className={classNames(
                         'p-5 text-center font-semibold',
-                        planKey === 'core' ? 'text-[var(--ecode-accent-text)]' : 'text-bolt-elements-textPrimary',
+                        planKey === 'pro' ? 'text-[var(--ecode-accent-text)]' : 'text-bolt-elements-textPrimary',
                       )}
                     >
                       {planCopy[planKey].name}
@@ -1785,20 +1781,19 @@ function DeploymentStatusCard() {
   );
 }
 
+/*
+ * Les centimes s'affichent quand il y en a : sans eux, 278,40 €/an devenait
+ * « 278 € » et 23,20 €/mois « 23 € » — un prix affiché qui n'est pas celui facturé.
+ */
 function formatMonthlyPrice(cents: number, language?: string | null) {
   return new Intl.NumberFormat(language?.toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-GB', {
     style: 'currency',
     currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: Math.round(cents) % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 
 function formatAnnualPrice(monthlyCents: number, language?: string | null) {
-  return new Intl.NumberFormat(language?.toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-GB', {
-    style: 'currency',
-    currency: 'EUR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format((monthlyCents * 12) / 100);
+  return formatMonthlyPrice(Math.round(monthlyCents * 12), language);
 }
