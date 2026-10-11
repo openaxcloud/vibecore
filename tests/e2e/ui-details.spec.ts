@@ -1591,7 +1591,32 @@ async function expectReducedMotionDetails(page: Page) {
   }
 }
 
-async function expectAnimationDetails(page: Page) {
+async /** Luminance relative WCAG d'une couleur `rgb(r, g, b)`. */
+function luminanceRelative(couleur: string): number {
+  const m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/u.exec(couleur);
+
+  if (!m) {
+    throw new Error(`couleur illisible : ${couleur}`);
+  }
+
+  const canal = (v: number) => {
+    const x = v / 255;
+    return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  };
+
+  return 0.2126 * canal(Number(m[1])) + 0.7152 * canal(Number(m[2])) + 0.0722 * canal(Number(m[3]));
+}
+
+/** Vrai si le couple fond/encre atteint le seuil WCAG AA de 4,5:1. */
+function contrasteSuffisant(fond: string, encre: string): boolean {
+  const a = luminanceRelative(fond);
+  const b = luminanceRelative(encre);
+  const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
+  return ratio >= 4.5;
+}
+
+function expectAnimationDetails(page: Page) {
   const details = await page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
     const root = window.getComputedStyle(document.documentElement);
     const tabOpen = window.getComputedStyle(document.querySelector('[data-testid="ui-tab-open"]')!);
@@ -1672,7 +1697,21 @@ async function expectAnimationDetails(page: Page) {
   expect(details.typingAnimationName).toBe('vc-typing-dot');
   expect(details.typingAnimationDuration).toBe('1.4s');
   expect(details.runButtonBackground).toBe('rgb(248, 81, 73)');
-  expect(details.runButtonColor).toBe('rgb(255, 255, 255)');
+
+  /*
+   * L'ENCRE DU BOUTON « EXÉCUTER » EST ÉPINGLÉE PAR SON CONTRASTE, PAS PAR SA VALEUR.
+   *
+   * Ce test exigeait `rgb(255, 255, 255)`. Mesuré le 2026-10-11 : du blanc sur
+   * `rgb(248, 81, 73)` rend **3,35:1**, donc SOUS le seuil de 4,5 — le test
+   * épinglait une valeur défectueuse, et il a fait rougir le correctif qui la
+   * réparait. L'encre foncée rend **5,29:1**.
+   *
+   * On n'écrit donc plus la couleur attendue : on écrit le CRITÈRE. Une
+   * assertion sur une chaîne passe au vert dès que quelqu'un a écrit la même
+   * des deux côtés ; une assertion sur le ratio ne passe que si l'encre est
+   * réellement lisible sur son fond.
+   */
+  expect(contrasteSuffisant(details.runButtonBackground, details.runButtonColor)).toBe(true);
   expect(details.runButtonBeforeContent).toBe('""');
   expect(details.runButtonBeforeWidth).toBe('14px');
   expect(details.runButtonBeforeAnimationName).toBe('vc-button-spinner');
