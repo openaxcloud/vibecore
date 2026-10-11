@@ -5,19 +5,21 @@ export type AgentRoutingLocale = 'en' | 'fr';
 const labels: Readonly<Record<AgentRoutingLocale, Readonly<Record<AgentRoutingLineKey, string>>>> = {
   en: {
     lite: 'Lite',
-    economy: 'Economy',
     power: 'Power',
+    max: 'Max',
     'high-effort': 'High effort (escalation)',
     turbo: 'Turbo',
     classifier: 'Harness classifier',
+    fallback: 'Redundancy (secondary provider)',
   },
   fr: {
-    lite: 'Léger',
-    economy: 'Économie',
-    power: 'Puissance',
+    lite: 'Lite',
+    power: 'Power',
+    max: 'Max',
     'high-effort': 'Effort élevé (escalade)',
     turbo: 'Turbo',
     classifier: 'Classificateur du moteur d’agents',
+    fallback: 'Redondance (fournisseur secondaire)',
   },
 };
 

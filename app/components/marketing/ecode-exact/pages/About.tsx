@@ -64,7 +64,7 @@ export default function About() {
         <section className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
           <div className="container-responsive py-16 sm:py-20 lg:py-28">
             <div className="text-center max-w-3xl mx-auto">
-              <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-[13px]" style={{ color: '#F26207' }}>
+              <Badge variant="secondary" className="mb-6 px-4 py-1.5 text-[13px]">
                 {copy.hero.badge}
               </Badge>
               <h1 className="mkt-h1 tracking-tight text-bolt-elements-textPrimary mb-6">{copy.hero.title}</h1>
@@ -196,8 +196,8 @@ export default function About() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a
                     href="/signup"
-                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: '#F26207' }}
+                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-[var(--ecode-accent-contrast)] min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: 'var(--ecode-accent)' }}
                     data-testid="button-about-cta"
                   >
                     {copy.cta.primary}

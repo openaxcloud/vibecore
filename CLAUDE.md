@@ -350,6 +350,73 @@ généraux : ce sont des pièges qui ont déjà coûté.
     Corollaire de la règle 26 : là où celle-ci vise la sortie amputée de sa
     conclusion, celle-ci vise la conclusion complète… portant sur autre chose.
 
+28. **UNE PROPOSITION EMPILÉE SE FERME TOUTE SEULE QUAND SA BASE FUSIONNE.**
+    GitHub ferme automatiquement une proposition dont la branche de base est
+    supprimée. Comme on supprime la branche APRÈS avoir fusionné, la fille se
+    ferme à l'instant même où le travail dont elle dépendait arrive. Rien
+    n'alerte, et le correctif reste sur une branche que plus aucune proposition
+    ne porte.
+
+    Mesuré le 2026-09-16, sur une perte de quinze jours :
+
+        #321 fusionnée   2026-09-02T03:12:52Z
+        #326 fermée      2026-09-02T03:12:54Z
+
+    **Deux secondes.** #326 portait « la frappe faite pendant le chargement du
+    panneau était jetée » — un défaut qu'Avi VIVAIT à chaque ouverture. Les
+    cinq autres commits du chantier sont bien arrivés ; celui-là non, et
+    personne ne s'en est aperçu pendant quinze jours. Sept fichiers, 382
+    lignes.
+
+    Ce n'est la faute de personne, et c'est là le problème : aucun geste fautif
+    ne précède la perte. On empile constamment sur ce dépôt — l'empilement est
+    la bonne pratique, pas le défaut.
+
+    **En pratique**, et en une commande — `scripts/propositions-empilees.mjs`
+    répond aux trois questions qu'on oublie de poser :
+    * `fillesDe(propositions, base)` — **avant** de fusionner : qui se fermerait
+      si cette branche disparaissait ? Une fille trouvée change de base ou se
+      rebase sur `main` AVANT la fusion du parent.
+    * `fermeturesSuspectes(propositions)` — **après** : quelle proposition s'est
+      fermée à quelques secondes d'une fusion ? Une fermeture à la seconde près
+      n'est pas une décision humaine.
+    * `empilementsSansPorteur(propositions)` — **à tout moment** : quelle
+      proposition ouverte est empilée sur une branche que plus rien ne porte
+      vers `main` ? C'est l'état terminal du piège. Passé sur les 56
+      propositions ouvertes le 2026-09-16, il rend `#335` et `#116` — les deux
+      que j'avais trouvées à la main, et aucun faux positif sur les chaînes
+      saines `#403 → #419` et `#414 → #403`.
+    * **Le statut d'une proposition ne dit rien du contenu de `main`.** Une
+      fille « fermée » n'a pas été refusée, et une fille « fusionnée » peut
+      l'avoir été dans une branche que rien ne porte. La vérification qui
+      tranche est un TÉMOIN LITTÉRAL cherché dans `main`, avec un contrôle
+      positif — un symbole du même chantier dont on sait qu'il est arrivé.
+
+    Cette règle a un cousin immédiat : une proposition peut aussi être fusionnée
+    dans une branche intermédiaire qui n'atteint jamais `main`. Même remède :
+    on greppe `main`, jamais l'état de la proposition.
+
+20. **Une erreur rendue par NOTRE PROPRE INSTRUMENT n'est pas une mesure de
+    l'objet.** Quand la sonde échoue, elle ne dit rien de ce qu'on sondait — et
+    sa sortie ressemble pourtant à un résultat. Trois occurrences sur ce projet,
+    toutes différentes, toutes coûteuses :
+
+    * un `tail -4` qui coupait la ligne de verdict : la sortie visible disait
+      « rien », la mesure n'avait simplement pas été lue jusqu'au bout ;
+    * un worktree dont `node_modules` résolvait `@vibecore/*` vers le checkout
+      PRINCIPAL : les tests jugeaient un autre code que celui qu'on modifiait ;
+    * le 2026-09-25, une sonde `fetch` tirée depuis la page de l'IDE vers l'hôte
+      d'aperçu : bloquée par la politique d'origine, elle a rendu
+      `Failed to fetch` pendant cent cinquante secondes. Ce n'était pas l'hôte
+      qui était muet, c'était la requête qui n'était jamais partie.
+
+    **Le contrôle** : avant de conclure d'un échec, se demander ce que l'échec
+    prouverait s'il venait de l'instrument — et trouver une seconde voie qui ne
+    partage pas la même faiblesse. Pour la politique d'origine : ouvrir un onglet
+    DIRECTEMENT sur l'hôte visé, où l'on est alors dans la même origine. Pour un
+    worktree : vérifier vers quoi le paquet résout. Pour une sortie tronquée :
+    filtrer sur la ligne de verdict, jamais sur les dernières lignes.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.

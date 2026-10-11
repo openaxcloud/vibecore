@@ -9,6 +9,7 @@ import type { TranslationBundle } from '~/lib/i18n/dictionary';
 
 export const fr: TranslationBundle = {
   // Locale et chrome global de l'application
+  'common.binaryUnavailable': 'Les fichiers binaires ne peuvent pas être prévisualisés dans l’éditeur.',
   'common.unavailable': 'Indisponible',
   'locale.switchLabel': "Choisir la langue d'affichage",
   'locale.current': 'Langue actuelle : {language}',

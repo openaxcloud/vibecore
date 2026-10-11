@@ -8,6 +8,7 @@
 
 export const en = {
   // Global locale and application chrome
+  'common.binaryUnavailable': 'Binary files cannot be previewed in the editor.',
   'common.unavailable': 'Unavailable',
   'locale.switchLabel': 'Choose display language',
   'locale.current': 'Current language: {language}',

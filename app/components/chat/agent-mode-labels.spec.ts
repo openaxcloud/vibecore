@@ -15,8 +15,8 @@ import { getChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 describe('AGENT-MSG-001 — noms des modes d’agent', () => {
   const paires = [
     ['lite', 'assistantMessage.mode.lite', 'chatControls.power.tier.lite'],
-    ['economy', 'assistantMessage.mode.economy', 'chatControls.power.tier.economy'],
     ['power', 'assistantMessage.mode.power', 'chatControls.power.tier.power'],
+    ['max', 'assistantMessage.mode.max', 'chatControls.power.tier.max'],
   ] as const;
 
   for (const langue of ['en', 'fr'] as const) {
@@ -30,13 +30,27 @@ describe('AGENT-MSG-001 — noms des modes d’agent', () => {
     });
   }
 
-  it('ne laisse aucun nom de mode en anglais dans le catalogue français', () => {
+  /*
+   * Le défaut d'origine était DEUX noms pour une même chose : le composer disait
+   * « Léger / Économique / Puissance » quand le badge disait « Lite / Economy /
+   * Power ». Depuis le renommage du 2026-09-16, les trois modes sont des NOMS DE
+   * PRODUIT — Lite, Power, Max — identiques dans les deux langues. Ce que ce test
+   * tient n'a pas changé : les deux surfaces doivent dire la MÊME chose.
+   */
+  it('nomme les modes pareil dans les deux catalogues français', () => {
     const message = getAssistantMessageCopy('fr') as Record<string, string>;
+    const composer = getChatControlsCopy('fr') as Record<string, string>;
 
     expect([
       message['assistantMessage.mode.lite'],
-      message['assistantMessage.mode.economy'],
       message['assistantMessage.mode.power'],
-    ]).toEqual(['Léger', 'Économique', 'Puissance']);
+      message['assistantMessage.mode.max'],
+    ]).toEqual(['Lite', 'Power', 'Max']);
+
+    expect([
+      composer['chatControls.power.tier.lite'],
+      composer['chatControls.power.tier.power'],
+      composer['chatControls.power.tier.max'],
+    ]).toEqual(['Lite', 'Power', 'Max']);
   });
 });

@@ -394,6 +394,7 @@ jobs:
           set -euo pipefail
           python3 scripts/validate-image-signing-wired.py --self-test
           python3 scripts/validate-image-signing-wired.py
+          node --test scripts/capture-rollout-diagnostics.checks.bundle.mjs
 
       # Same idea, applied to the gate itself: prove that THIS workflow still runs
       # the deploy behind the release gate, still withholds WIF from the gate job,
@@ -412,7 +413,14 @@ jobs:
     # detach the deploy from the gate.
     needs: [resolve-target, release-gate, preflight-gates]
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # 130 et non 90. Ce job fait DEUX `helm upgrade --atomic` (le rollout, puis la
+    # phase 2 d'armement) et éventuellement un `helm rollback`, chacun budgété à
+    # 25 min depuis qu'une période de grâce longue laisse les tours d'agent se
+    # terminer. 43 min de construction mesurées + 2 × 25 = 93 min : à 90, le
+    # coureur tuait le job AVANT ses propres horloges — et un job tué n'écrit
+    # aucun rapport, donc la production restait dans un état qu'on ne pouvait pas
+    # lire. Épinglé par tests/guards/budget-drain-deploiement.spec.ts.
+    timeout-minutes: 130
     permissions:
       contents: read
       id-token: write # the ONLY job that can exchange a WIF token
@@ -535,6 +543,10 @@ jobs:
             else
               RUNTIME=false; WEB=false; WSAGENT=false; ADMIN=false
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
+              # AUDX-173 — `apps/admin/` n'est PLUS dans ce motif : il a son propre
+              # etage, plus bas. Premiere version de ce correctif : le rattacher au
+              # tier web, faute de mieux. L'etage dedie le rend inutile, et le garder
+              # faisait reconstruire ET redeployer le web a chaque changement d'admin.
               printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
               # `apps/admin/` ne matchait AUCUN motif : un changement admin tombait dans
@@ -804,8 +816,21 @@ jobs:
           #                  must be resolvable on EVERY run (rebuilt or carried forward)
           #   rolled       — this workflow waits for its rollout and checks its imageIDs
           #
-          # admin: an enabled chart service this continuous path never builds or rolls.
-          # Its current digest is carried forward so the release stays fully pinned.
+          # admin — AUDX-173. Cette ligne portait `tier=none`, donc `rebuilt=false`
+          # a chaque run, donc le digest DEJA EN PRODUCTION etait repris tel quel.
+          # Le commentaire d'origine decrivait cela comme un choix (« an enabled
+          # chart service this continuous path never builds or rolls ») ; l'effet
+          # reel etait qu'un service vivant (`enabled: true`, `replicas: 2`, expose
+          # sur `/admin`) ne recevait AUCUN correctif de securite, jamais.
+          #
+          # Mesure : 32 commits touchant `apps/admin/` en six mois, aucun livre.
+          #
+          # Il rejoint le tier `web` — qui le construit desormais
+          # (infra/cloudbuild/single-web.yaml) — et devient `rolled=true` : sans
+          # attente de rollout, on deduirait a nouveau le succes de l'absence
+          # d'echec, ce qui est exactement ce qui a laisse le trou ouvert.
+          # ⚠️ Ce `rolled=true` est une porte NOUVELLE : un deploiement echouera
+          # desormais si le rollout de l'admin n'aboutit pas. C'est voulu.
           #
           # screenshotter is a chart service like any other. The chart AND values-prod
           # both say `enabled: false`, but the live production release has it TRUE — set
@@ -1156,13 +1181,37 @@ jobs:
             fi
             trivy image --quiet --scanners vuln --severity HIGH \
               --ignore-unfixed --ignorefile "${ignorefile}" "${ref}" || true
-            if ! trivy image --quiet --scanners vuln --severity CRITICAL \
+            critical_exit=0
+            trivy image --quiet --scanners vuln --severity CRITICAL \
                    --ignore-unfixed --ignorefile "${ignorefile}" \
-                   --exit-code 1 "${ref}"; then
-              echo "::error::CRITICAL fixable vulnerability in ${ref}"
+                   --format json --output "sbom/${service}.critical.json" \
+                   --exit-code 1 "${ref}" || critical_exit=$?
+            if [ "${critical_exit}" -ne 0 ]; then
+              echo "::error::Blocking vulnerability scan failed for ${service} (exit ${critical_exit})"
               rc=1
             fi
-            trivy image --quiet --format cyclonedx --output "sbom/${service}.cdx.json" "${ref}"
+            # A CycloneDX inventory alone contains no vulnerability verdict.
+            # Preserve the actual blocking result in the always-uploaded artifact,
+            # including when the job logs cannot be downloaded in their entirety.
+            report_valid=false
+            if [ -f "sbom/${service}.critical.json" ] && \
+               jq -e 'type == "object" and (.Results | type == "array")' "sbom/${service}.critical.json" >/dev/null; then
+              report_valid=true
+              jq -r '.Results[]? | .Target as $target | .Vulnerabilities[]? |
+              [$target, .VulnerabilityID, .PkgName, .InstalledVersion, .FixedVersion] | @tsv' \
+              "sbom/${service}.critical.json"
+            else
+              echo "::error::${service}: blocking scan report is missing or malformed"
+              rc=1
+            fi
+            sbom_exit=0
+            trivy image --quiet --format cyclonedx --output "sbom/${service}.cdx.json" "${ref}" || sbom_exit=$?
+            if [ "${sbom_exit}" -ne 0 ]; then rc=1; fi
+            jq -n --arg service "${service}" --arg ref "${ref}" \
+              --argjson scannerExit "${critical_exit}" --argjson reportValid "${report_valid}" \
+              --argjson sbomExit "${sbom_exit}" \
+              '{service: $service, ref: $ref, scannerExit: $scannerExit, reportValid: $reportValid, sbomExit: $sbomExit}' \
+              > "sbom/${service}.scan-status.json"
             echo "::endgroup::"
           done < <(jq -r '.[] | "\(.service) \(.image) \(.digest)"' /tmp/services.json)
 
@@ -1521,6 +1570,30 @@ jobs:
           # "1" + values.schema.json; the post-deploy step below verifies the
           # flag actually reached the running api pods.
           SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
+          # GRÂCE LONGUE (#647) — SANS CETTE LIGNE, LA GRÂCE N'ARRIVE JAMAIS.
+          #
+          # Mesuré en production le 2026-10-11 à 04:41 UTC, juste après que #647 ait
+          # été construit, déployé et servi avec succès : le pod web en cours portait
+          # `terminationGracePeriodSeconds: 30`, alors que values-prod.yaml:240 dit
+          # 600. #647 était donc fusionné, servi — et INOPÉRANT.
+          #
+          # La cause est écrite deux fois dans ce fichier même, vingt lignes plus
+          # haut : `--reuse-values` conserve les valeurs STOCKÉES dans la release et
+          # ignore values-prod.yaml. Seuls deux chemins atteignent la prod — un
+          # défaut de GABARIT, ou un `--set` explicite. Le reste de #647 (délai de
+          # progrès 1200 s) passait par le gabarit : il est bien arrivé. La grâce
+          # n'avait que le fichier de valeurs : elle est restée au vestiaire.
+          #
+          # Le second `helm upgrade` (armement phase 2) n'a pas besoin de la ligne :
+          # il tourne APRÈS celui-ci, et son `--reuse-values` conserve alors la
+          # valeur que celui-ci vient de stocker.
+          #
+          # ⚠️ Le nombre ci-dessous est un DOUBLON de values-prod.yaml:240, et c'est
+          # assumé : la garde tests/guards/la-grace-atteint-la-prod.spec.ts rougit si
+          # les deux divergent, OU si cette ligne disparaît alors que le fichier de
+          # valeurs déclare une grâce. Sans elle, ce correctif se déferait en silence
+          # — comme #647 s'est défait, sauf que #647 n'a jamais pris.
+          SETS+=( --set "services.web.terminationGracePeriodSeconds=600" )
           # P104 / SEC-8: phase-1 value of the activation interlock, decided by the
           # cutover step above ("0" on a cutover, "1" in steady state). Always
           # explicit — --reuse-values would otherwise freeze whatever the release
@@ -1605,11 +1678,40 @@ jobs:
             /tmp/valeurs-fichier.json /tmp/valeurs-release.json
 
           echo "helm --set args: ${SETS[*]}"
+          # BUDGET : 25 min, et pas 10.
+          #
+          # Ce n'est pas « on se donne de l'air ». C'est une contrainte d'ORDRE.
+          # Trois horloges courent pendant cet upgrade, et elles doivent expirer
+          # dans cet ordre, du plus petit au plus grand :
+          #
+          #   1. le hook de migration      activeDeadlineSeconds: 300  (5 min)
+          #   2. le délai de progrès K8s   progressDeadlineSeconds: 900 (15 min)
+          #   3. CE budget                 25 min
+          #
+          # Si deux d'entre elles expirent ENSEMBLE, celle qui rend l'erreur n'est
+          # pas celle qui connaît la cause. Mesuré le 2026-09-04 (run 1453) : le
+          # hook et Helm étaient tous deux à 600 s, Helm a rendu « context deadline
+          # exceeded » et son rollback atomique a emporté le Job de migration avant
+          # que quiconque puisse lire pourquoi — 10 minutes de silence.
+          #
+          # À 10 min, ce budget expirait AVANT le délai de progrès de Kubernetes :
+          # `--atomic` annulait donc un rollout que Kubernetes considérait encore
+          # comme en cours. Mesuré le 2026-09-30 : l'upgrade sain le plus récent a
+          # pris 7 min 22 s — 2 min 38 s de marge sur 10. Un seul pod qui met une
+          # minute de plus à se vider faisait revenir la production en arrière.
+          #
+          # Et c'est la condition pour allonger la période de grâce afin qu'un tour
+          # d'agent en cours (2 à 4 min) finisse avant que son pod disparaisse : un
+          # rollout plus lent PARCE QU'IL PROTÈGE DU TRAVAIL ne doit pas être lu
+          # comme un échec. Épinglé par tests/guards/budget-drain-deploiement.spec.ts.
+          node scripts/capture-rollout-diagnostics.bundle.mjs \
+            --namespace "${HELM_NAMESPACE}" --release "${HELM_RELEASE}" \
+            --output "$RUNNER_TEMP/rollout-status.jsonl" -- \
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
             --reuse-values \
             --atomic \
-            --timeout 10m \
+            --timeout 25m \
             "${SETS[@]}"
           # From here on, a failure means production has ALREADY been changed. The
           # rollback step below keys off this marker so it never reverts a healthy
@@ -1627,7 +1729,7 @@ jobs:
               dep="deploy/${HELM_RELEASE}-vibecore-platform-${svc}"
             fi
             echo "::group::rollout status ${dep}"
-            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
+            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=22m
             echo "::endgroup::"
           done
           # P11 screenshotter — only exists once a runtime-tier deploy has asserted
@@ -1635,7 +1737,7 @@ jobs:
           # for the Deployment instead of failing a web-only deploy that predates it.
           if kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-screenshotter" >/dev/null 2>&1; then
             echo "::group::rollout status deploy/${HELM_RELEASE}-vibecore-platform-screenshotter"
-            kubectl -n "${HELM_NAMESPACE}" rollout status "deploy/${HELM_RELEASE}-vibecore-platform-screenshotter" --timeout=5m
+            kubectl -n "${HELM_NAMESPACE}" rollout status "deploy/${HELM_RELEASE}-vibecore-platform-screenshotter" --timeout=22m
             echo "::endgroup::"
           else
             echo "screenshotter Deployment absent (not yet enabled by a runtime-tier deploy) — skipped"
@@ -1995,12 +2097,12 @@ jobs:
             --namespace "${HELM_NAMESPACE}" \
             --reuse-values \
             --atomic \
-            --timeout 10m \
+            --timeout 25m \
             --set "platformEnv.runtime.previewUrlTemplate=https://{workspaceId}-{port}.preview.e-code.ai/" \
             --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" \
             --set-string "platformEnv.runtime.deploymentAccessActivationEnabled=1"
           kubectl -n "${HELM_NAMESPACE}" rollout status \
-            "deploy/${HELM_RELEASE}-vibecore-platform-api" --timeout=5m
+            "deploy/${HELM_RELEASE}-vibecore-platform-api" --timeout=22m
 
       # D2 (approved 2026-07-17): POST-DEPLOY proof that the rollback flag
       # survived the upgrade — checked against the LIVE cluster (rendered
@@ -2057,7 +2159,12 @@ jobs:
         run: |
           set -uo pipefail
           echo "::error::post-rollout verification failed — rolling production back to revision ${PREV_REVISION}"
-          if helm rollback "${HELM_RELEASE}" "${PREV_REVISION}" -n "${HELM_NAMESPACE}" --wait --timeout 10m; then
+          # MÊME BUDGET QUE L'ALLER. Un rollback remplace les pods exactement comme
+          # un upgrade : il subit donc la même période de grâce. Laissé à 10 min, il
+          # aurait expiré sur un rollback SAIN et déclenché l'escalade « ROLLBACK
+          # FAILED — production is on an unverified release », qui est le message le
+          # plus alarmant du workflow. Un faux positif à cet endroit coûte une nuit.
+          if helm rollback "${HELM_RELEASE}" "${PREV_REVISION}" -n "${HELM_NAMESPACE}" --wait --timeout 25m; then
             echo "rolled back to revision ${PREV_REVISION}"
           else
             echo "::error::ROLLBACK FAILED — production is on an unverified release. Escalate now."
@@ -2066,13 +2173,21 @@ jobs:
           for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             [ -n "${dep}" ] || continue
-            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m || true
+            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=22m || true
           done
           {
             echo "## ⚠️ Rolled back"
             echo ""
             echo "Post-rollout verification failed; production was returned to revision \`${PREV_REVISION}\`."
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload rollout status evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: rollout-status-${{ needs.resolve-target.outputs.short_sha }}
+          path: ${{ runner.temp }}/rollout-status.jsonl
+          if-no-files-found: warn
 
       - name: Upload release manifest and SBOMs
         if: always()

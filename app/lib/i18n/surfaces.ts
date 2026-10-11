@@ -61,7 +61,6 @@ export const PREFIXES_PUBLICS: readonly string[] = [
   'dashboard',
   'enterpriseSso',
   'errors',
-  'idePanels',
   'impersonationBanner',
   'legacyMarketing',
   'loadingOverlay',

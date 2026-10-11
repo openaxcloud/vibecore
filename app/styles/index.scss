@@ -528,6 +528,8 @@ html:has(.vc-app-shell-grid) body {
   // la coque user area (.vc-user-area-shell) le remappe sur le ton renforcé
   // SCR-007, car blanc sur l'orange de marque #f97316 = 2,80:1 (< 4,5 AA).
   --vc-cta-accent: var(--vc-ide-accent-action);
+  /* Encre du CTA plein, jumelle de son fond : foncée sur l'orange vif du thème sombre, blanche sur l'orange profond du clair. */
+  --vc-cta-accent-foreground: var(--vc-ide-on-accent-action);
   --vc-action-primary-strong: #c2410c;
   // SCR-007 : survol du bouton primaire porteur de texte blanc. Il remplace
   // `hover:brightness-110`, qui ECLAIRCIT le fond (#c2410c x1.1 = 4,41:1) et
@@ -562,6 +564,7 @@ html:has(.vc-app-shell-grid) body {
    */
   --vc-ide-on-accent-action: #111827;
   --vc-ide-on-accent-error: #111827;
+  --vc-ide-on-accent-error-hover-mix: white;
 
   /*
    * En sombre les canoniques passent déjà AA sur leur propre teinte
@@ -608,7 +611,7 @@ html:has(.vc-app-shell-grid) body {
   --popover: 221.7 29.1% 15.5%;
   --popover-foreground: 205.7 53.8% 97.5%;
   --primary: 24 96% 49%;
-  --primary-foreground: 210 40% 98%;
+  --primary-foreground: 221 39% 11%;
   --secondary: 222.9 21.6% 19%;
   --secondary-foreground: 205.7 53.8% 97.5%;
   --muted: 222.9 21.6% 19%;
@@ -869,6 +872,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-animation-drop-zone: 100ms;
   --vc-animation-typing: 1.4s;
   --vc-run-stop-bg: #f85149;
+  --vc-run-stop-fg: #111827;
   --vc-accessibility-focus-width: 2px;
   --vc-accessibility-reduced-motion-duration: 50ms;
   --vc-accessibility-contrast-text: #f5f9fc;
@@ -1081,6 +1085,9 @@ html:has(.vc-app-shell-grid) body {
   /* Voir la note en tête de `:root` : l'encre sur aplat s'inverse avec le thème. */
   --vc-ide-on-accent-action: #ffffff;
   --vc-ide-on-accent-error: #ffffff;
+  /* Le fond d'arrêt (--vc-run-stop-bg, #f85149) est le même dans les deux thèmes : son encre aussi. */
+  --vc-run-stop-fg: #111827;
+  --vc-ide-on-accent-error-hover-mix: black;
 
   /*
    * Variantes « sur teinte » : même famille que les canoniques ci-dessus, mais
@@ -1130,7 +1137,7 @@ html:has(.vc-app-shell-grid) body {
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
   --primary: 24 96% 49%;
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 221 39% 11%;
   --secondary: 39 96% 56%;
   --secondary-foreground: 0 0% 0%;
   --muted: 210 17% 96%;
@@ -1389,6 +1396,7 @@ html:has(.vc-app-shell-grid) body {
    */
   --vc-ide-on-accent-action: #111827;
   --vc-ide-on-accent-error: #111827;
+  --vc-ide-on-accent-error-hover-mix: white;
   // AI gradient stops. Already hard-coded in the agent placeholder SVG served
   // by services/api; declaring them makes the pair part of the token layer
   // instead of a duplicated literal.
@@ -4057,7 +4065,7 @@ body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator)
 
 body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app']) {
   background: var(--vc-run-stop-bg);
-  color: #ffffff;
+  color: var(--vc-run-stop-fg);
 }
 
 body
@@ -4375,6 +4383,8 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   // SCR-007 : les CTA pleins à texte blanc du user area utilisent le ton
   // renforcé (5,16:1) — l'orange de marque reste pour bordures/icônes/anneaux.
   --vc-cta-accent: var(--vc-action-primary-strong);
+  /* Zone utilisateur : fond #c2410c dans les deux thèmes, le blanc y tient (≈ 5,2:1). */
+  --vc-cta-accent-foreground: #ffffff;
   --vc-ide-accent-primary: var(--vc-action-primary);
   --vc-ide-accent: var(--vc-action-primary);
   --vc-ide-text-on-accent: var(--vc-action-primary-foreground);
@@ -4407,6 +4417,7 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 
   /* Déjà assez sombre en clair : le ton fort s'aligne sur l'accent courant. */
   --vc-action-primary-strong: #c2410c;
+  --vc-cta-accent-foreground: #ffffff;
   --vc-action-primary-hover: #9a3412;
   --vc-action-primary-foreground: #ffffff;
   --bolt-elements-bg-depth-4: rgb(231 233 235 / 0.84);
@@ -6499,7 +6510,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-workbench-mobile-run-action[data-run-state='stopping'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 24%);
   background: var(--vc-ide-accent-error);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-error);
 }
 
 .bolt-workbench-mobile-run-action.is-error,
@@ -7241,6 +7252,55 @@ body :where(.lucide, svg[data-lucide]) {
   }
 }
 
+/*
+ * UIB-08 — fil d'Ariane de l'IDE sur grand bureau.
+ *
+ * Mesuré le 2026-09-30 à 1440 : le nom de l'espace de travail coupé à 53 px sur
+ * 194, alors que la barre du haut avait plusieurs centaines de pixels libres.
+ * Le segment était plafonné à `min(18vw, 190px)` et son sur-titre « ESPACE DE
+ * TRAVAIL » en prend plus de la moitié. Au-delà de 1360 px, le nom a la place
+ * qu'il lui faut ; il se coupe toujours (points de suspension) si la barre se
+ * remplit, puisque les segments restent rétractables.
+ */
+@media (min-width: 1361px) {
+  .bolt-project-breadcrumb-workspace {
+    max-width: min(26vw, 400px);
+  }
+}
+
+/*
+ * UIB-14 — cartes du panneau Paquets sur bureau : la description passe à la
+ * ligne au lieu d'être coupée. Mesuré le 2026-10-01 à 1440 : « Stockage du
+ * projet et fichiers de paquet… » coupé à 148 px sur 326, « Exécuteur de
+ * commandes de l'espace de tr… » à 148 sur 213, la carte ayant toute la
+ * hauteur nécessaire. Sous 1024 px : inchangé (mobile gelé).
+ */
+/*
+ * UIB-15 — panneau Collaborateurs sur bureau : la carte « Partage et
+ * programmation en binôme » range deux formulaires en grille
+ * `minmax(0, 1fr)`, mais chaque formulaire dimensionnait sa propre piste sur la
+ * largeur minimale de son sélecteur (197 px) : 28 px de débord mesurés à 1440.
+ */
+@media (min-width: 1024px) {
+  .bolt-responsive-ide-desktop .bolt-project-collaboration-form {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-responsive-ide-desktop .bolt-project-collaboration-form :is(select, input, button) {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bolt-responsive-ide-desktop .bolt-project-package-stat-grid small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+}
+
 @media (min-width: 1600px) and (min-height: 800px) {
   .bolt-responsive-ide-desktop {
     --project-ide-rail-width: 52px;
@@ -7336,7 +7396,7 @@ body :where(.lucide, svg[data-lucide]) {
   height: 28px;
   border-radius: 7px;
   background: var(--vc-ide-accent-action);
-  color: white !important;
+  color: var(--vc-ide-on-accent-action) !important;
   padding: 0 9px;
   font-size: 11px !important;
   font-weight: 750;
@@ -7447,10 +7507,16 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-run-button.is-running {
   background: var(--vc-ide-accent-error);
+  color: var(--vc-ide-on-accent-error) !important;
 }
 
 .bolt-project-run-button.is-running:hover {
-  background: color-mix(in srgb, var(--vc-ide-accent-error), black 12%) !important;
+  /*
+   * Le survol s'éloigne de l'ENCRE, pas toujours vers le noir : encre foncée en
+   * sombre → on éclaircit (assombrir donnait 4,19:1) ; encre blanche en clair →
+   * on assombrit.
+   */
+  background: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-error-hover-mix) 12%) !important;
 }
 
 /*
@@ -7746,6 +7812,18 @@ body :where(.lucide, svg[data-lucide]) {
   :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
 .bolt-project-ide-shell .bolt-chatbox-tools-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
 .bolt-project-ide-shell .bolt-chatbox-mode-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+/*
+ * Le panneau porté à `document.body` sur bureau. Il n'a plus d'ancêtre qui le
+ * rogne, donc plus rien ne le cache — mais il lui faut son propre plan : le
+ * composeur monte à z-index 2, le fil et ses artefacts aussi.
+ */
+.bolt-agent-power-popover-flottant {
+  z-index: 12022;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])) {
   font-size: var(--vc-composer-text-secondary) !important;
 }
@@ -7784,9 +7862,27 @@ body :where(.lucide, svg[data-lucide]) {
  * qui passe sous la barre de Safari est exactement ce qu'Avi photographie.
  */
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,
-.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,
-.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu {
   right: auto !important;
+
+  /*
+   * LA FEUILLE DESCEND JUSQU'AU BORD BAS, ET COUVRE LA BARRE D'ONGLETS.
+   *
+   * Avi, 2026-09-23, captures à l'appui : chez le concurrent la barre du bas
+   * disparaît entièrement quand une feuille s'ouvre ; chez nous la pilule
+   * flottante restait visible dessous. Le défaut n'était pas la hauteur — c'est
+   * que l'ancre basse RÉSERVAIT la hauteur de la barre.
+   *
+   * Mesuré à 390×844 : barre `fixed`, z-index 1000 ; feuille `fixed`, z-index
+   * 12022, largeur 390 — pleine largeur. La feuille passe donc AU-DESSUS dès
+   * qu'elle atteint le bord : rien à masquer, rien à coordonner entre deux
+   * composants, et donc aucun saut de mise en page à la fermeture, puisque la
+   * barre ne bouge jamais.
+   *
+   * La zone sûre quitte l'ancre pour devenir une réserve INTÉRIEURE : la feuille
+   * touche le bord de l'écran, son contenu s'arrête au-dessus de la barre
+   * d'accueil du téléphone.
+   */
   bottom: calc(
     var(--mobile-nav-height, 72px) + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px)
   ) !important;
@@ -7808,10 +7904,21 @@ body :where(.lucide, svg[data-lucide]) {
   width: min(100vw, var(--vc-mobile-sheet-max-width)) !important;
   max-width: var(--vc-mobile-sheet-max-width) !important;
   min-width: 0 !important;
-  max-height: min(
-    calc(0.56 * var(--vc-mobile-espace-utile)),
-    520px,
-    calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 24px)
+  /*
+   * La feuille descend jusqu'à la barre du bas et monte aussi haut que son
+   * contenu le demande. La SEULE borne est l'espace réellement disponible
+   * au-dessus de l'ancre basse — c'est elle qui empêche le panneau d'être
+   * tranché EN HAUT, pas une fraction.
+   *
+   * Mesuré le 2026-09-22 à 390×844 : `0.56 * espace-utile` rendait
+   * `max-height: 472.64px`, soit 56 % de l'écran. Le contenu n'était ni coupé
+   * ni figé — il DÉFILAIT dans une feuille deux fois trop courte
+   * (`scrollHeight` 558 pour `clientHeight` 471), ce qui se lit à l'écran
+   * comme une troncature. Les deux plafonds `0.56 *` et `520px` sont retirés :
+   * ils bornaient la feuille bien en deçà de la place libre.
+   */
+  max-height: calc(
+    var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 24px
   ) !important;
   border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
 
@@ -7835,6 +7942,59 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+
+/*
+ * LA FEUILLE DES MODES DESCEND JUSQU'AU BORD BAS, ET COUVRE LA BARRE D'ONGLETS.
+ *
+ * Avi, 2026-09-23, captures à l'appui : chez le concurrent la barre du bas
+ * disparaît entièrement quand la feuille s'ouvre ; chez nous la pilule flottante
+ * restait visible dessous. Le défaut n'était pas la hauteur — c'est que l'ancre
+ * basse RÉSERVAIT la hauteur de la barre.
+ *
+ * Mesuré à 390×844 : barre `fixed`, z-index 1000 ; feuille `fixed`, z-index
+ * 12022, largeur 390 — pleine largeur. La feuille passe donc AU-DESSUS dès
+ * qu'elle atteint le bord : rien à masquer, aucun état à coordonner entre deux
+ * composants, donc aucun saut de mise en page à la fermeture.
+ *
+ * ⚠️ CETTE RÈGLE NE VISE QUE LA FEUILLE DES MODES. Les menus d'outils et de
+ * modes gardent leur ancre au-dessus de la barre : étendus jusqu'au bord, ils
+ * recouvraient le déclencheur du menu voisin, et l'E2E s'y est arrêté net —
+ * `subtree intercepts pointer events`, 330 tentatives, 180 s de délai dépassé.
+ * Avi a signalé LA FEUILLE ; on corrige la feuille.
+ *
+ * La zone sûre quitte l'ancre pour devenir une réserve INTÉRIEURE : la feuille
+ * touche le bord de l'écran, son contenu s'arrête au-dessus de la barre
+ * d'accueil du téléphone.
+ */
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
+  right: auto !important;
+  bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+  left: max(0px, calc((100vw - var(--vc-mobile-sheet-max-width)) / 2)) !important;
+  width: min(100vw, var(--vc-mobile-sheet-max-width)) !important;
+  max-width: var(--vc-mobile-sheet-max-width) !important;
+  min-width: 0 !important;
+  max-height: calc(var(--vc-mobile-espace-utile) - env(safe-area-inset-bottom, 0px) - 24px) !important;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
+  background: var(--vc-ide-bg-panel);
+
+  /*
+   * ⚠️ NEUTRALISER LE RECENTRAGE PAR TRANSFORMATION.
+   *
+   * Une autre règle mobile pose `left: 50%` + `transform: translateX(-50%)`.
+   * Ce bloc gagne sur `left` (il vaut 0 sur téléphone) mais PAS sur la
+   * transformation, qui continuait de décaler la feuille d'une demi-largeur :
+   * mesuré à 390×844, la feuille partait à -195 px et la moitié gauche de son
+   * contenu sortait de l'écran — « …ns de facturation », les chevrons dans le
+   * vide, le coût collé au bord.
+   *
+   * Deux systèmes de centrage qui se recouvrent à moitié : on garde celui de ce
+   * bloc (`left` + `width`) et on annule l'autre explicitement.
+   */
+  transform: none !important;
+  overflow-y: auto;
+}
+
 
 /* Plus étroite que l'écran, la feuille flotte au-dessus du socle : ses quatre coins s'arrondissent. */
 @media (min-width: 761px) {
@@ -7960,6 +8120,22 @@ body :where(.lucide, svg[data-lucide]) {
  * un `:where()` — donc (0,1,0) — les entrées restaient carrées de 44px et
  * rognaient leur libellé : le menu s'ouvrait sur cinq pastilles muettes.
  */
+/*
+ * Le panneau reçoit le focus pour le garder DANS le menu (téléphone,
+ * MessageContextMenu) — ce n'est pas une commande : pas d'anneau. Vu le 01/10 sur
+ * Safari iOS : son contour par défaut entourait toute la barre après un appui
+ * long. Les actions gardent leur `:focus-visible` pour le clavier.
+ */
+.bolt-message-context-menu:focus {
+  /*
+   * `body :where([tabindex]):focus-visible` (anneau d'accessibilité) pose un
+   * contour ET une ombre de 4 px : l'ombre restait en halo bleu pâle autour de la
+   * barre et remplaçait son ombre portée. On rend les deux (spécificité 0,2,0).
+   */
+  outline: none;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.35);
+}
+
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-footer,
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-footer {
   display: flex;
@@ -9146,7 +9322,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 0;
   border-radius: 8px;
   background: var(--vc-ide-accent-action, #1488fc);
-  color: #fff;
+  color: var(--vc-ide-on-accent-action);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
   padding: 4px;
 }
@@ -9810,7 +9986,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 0;
   border-radius: 10px;
   background: var(--vc-ide-accent-action, #2563eb);
-  color: #fff;
+  color: var(--vc-ide-on-accent-action);
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
@@ -9947,7 +10123,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-secrets-add {
   background: var(--vc-ide-accent-action, #2563eb);
-  color: #fff;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-secrets-add:disabled {
@@ -10764,7 +10940,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid var(--vc-ide-bg-panel);
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-on-accent-action);
   font-size: 9px;
   font-weight: 700;
   line-height: 12px;
@@ -10958,7 +11134,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail-item[data-tone='danger'] .bolt-project-ide-rail-badge {
   background: var(--vc-ide-accent-error);
-  color: white;
+  color: var(--vc-ide-on-accent-error);
 }
 
 .bolt-project-ide-rail-more-trigger {
@@ -11170,7 +11346,7 @@ body :where(.lucide, svg[data-lucide]) {
     var(--vc-ide-accent-action),
     color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
   );
-  color: white;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-project-agent-title {
@@ -11275,7 +11451,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-mode--segmented button[aria-pressed='true'] {
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.06);
 }
 
@@ -11916,7 +12092,7 @@ body :where(.lucide, svg[data-lucide]) {
     var(--vc-ide-accent-action),
     color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
   );
-  color: white;
+  color: var(--vc-ide-on-accent-action);
   font-size: 32px;
   opacity: 0.75;
 }
@@ -13536,7 +13712,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid transparent;
   border-radius: 6px;
   background: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-action));
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   font-size: 12px;
   font-weight: 700;
   margin-top: 24px;
@@ -13600,7 +13776,27 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-shell {
   width: min(560px, 100%);
-  overflow: hidden;
+
+  /*
+   * BUG-PREVIEW-CUTOFF-002 — TROISIÈME occurrence du mécanisme de BUG-PREVIEW-CUTOFF-001, et celle-ci coupait par le
+   * HAUT. Mesuré le 2026-09-28 à 390 px, pendant un vrai démarrage : contenu de
+   * 715 px dans une boîte de 652 px, `overflow: hidden`, et le parent centré
+   * (`align-items: center`) répartissait les 63 px perdus de part et d'autre —
+   * la coque s'étendait de y=56 à y=818 dans une fenêtre qui s'arrête à 764.
+   * Les 55 px du haut, chrome de la carte compris, étaient INATTEIGNABLES :
+   * `.bolt-project-webview-viewport` a bien `overflow-y: auto`, mais son
+   * `scrollHeight` valait exactement son `clientHeight` (652) — un enfant clampé
+   * en `hidden` ne propage aucun débordement à faire défiler.
+   *
+   * Le remède est celui que `.bolt-preview-loading-card` porte déjà quelques
+   * centaines de lignes plus bas, pour le même mécanisme : on borne la hauteur
+   * et on rend l'excédent défilable. L'axe X reste masqué, c'est lui qui tient
+   * les coins arrondis.
+   */
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 14px;
   background: color-mix(in srgb, var(--vc-ide-bg-card) 94%, transparent);
@@ -16729,7 +16925,7 @@ body :where(.lucide, svg[data-lucide]) {
     var(--vc-ide-accent-action),
     color-mix(in srgb, var(--vc-ide-accent-action) 45%, #ffffff)
   );
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -18685,6 +18881,20 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--bolt-elements-background-depth-1);
 }
 
+/*
+ * Téléphone, panneau de service : le défileur passe SOUS la barre du bas et
+ * réserve en bas `--mobile-nav-height` + `--vc-mobile-panel-gutter`. Le collant
+ * se cale sur ce bas INTÉRIEUR : mesuré en prod le 30/09 à 390, la barre
+ * « Publier » s'arrêtait à 756 et la barre du bas commence à 772 — 16 px (la
+ * gouttière) où le contenu défilait à découvert (« Historique des publications »).
+ * On descend la barre de cette même gouttière, sur les mêmes variables : elle
+ * touche la barre du bas. Repli explicite pour ne jamais perdre le collant.
+ * Épinglé par tests/e2e/publier-pied-colle-barre.spec.ts.
+ */
+.bolt-responsive-ide-mobile .bolt-project-service-panel .bolt-publication-pied {
+  bottom: calc(-1 * (var(--vc-mobile-panel-gutter, 16px) + env(safe-area-inset-bottom, 0px)));
+}
+
 .bolt-publication-republier {
   display: flex;
   width: 100%;
@@ -19990,7 +20200,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-guided-tour-card footer div button:last-child {
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-project-guided-tour-card button:disabled {
@@ -20669,7 +20879,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       justify-content: center;
       border-radius: 999px;
       background: linear-gradient(135deg, var(--vc-ide-accent-action), var(--vc-ide-accent-action));
-      color: #ffffff;
+      color: var(--vc-ide-on-accent-action);
       font-weight: 800;
     }
 
@@ -22645,6 +22855,79 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   bottom: auto;
   width: min(380px, calc(100vw - 32px));
   max-height: calc(100dvh - 80px - env(safe-area-inset-top, 0px));
+}
+
+/*
+ * BUG-TOAST-ENTETE-001 — mesuré le 2026-09-28 à 390 px pendant une vraie
+ * génération : le bandeau « 1 fichier appliqué » s'ouvrait à y=60 et recouvrait
+ * la barre d'adresse de la Webview (y=60..88) et son bouton « ouvrir dans un
+ * onglet » (y=52..96). Ce n'est pas déduit : la sonde a demandé au navigateur
+ * ce qui se trouvait SOUS le rectangle du bandeau (`elementsFromPoint` sur une
+ * grille de neuf points), et ce sont ces deux éléments qu'il a nommés.
+ *
+ * Les 60 px viennent de la règle juste au-dessus, calibrée sur la barre
+ * supérieure du projet. Sur téléphone cette barre est COLLAPSÉE — hauteur
+ * mesurée : 0 — et c'est le chrome du panneau qui occupe la bande 0..96. La
+ * pile de notifications descend donc sous ce chrome.
+ *
+ * Pas par le bas : le composeur de l'agent et la barre de navigation mobile
+ * (mesurée y=772..844) y vivent déjà, et masquer le champ de saisie serait pire
+ * que masquer une barre d'adresse.
+ */
+@media (max-width: 767px) {
+  body:has(.bolt-project-statusbar) .Toastify__toast-container {
+    top: calc(var(--vc-ide-topbar-height, 48px) + 44px + 12px + env(safe-area-inset-top, 0px));
+    right: 8px;
+    left: 8px;
+    width: auto;
+    max-height: calc(
+      100dvh - var(--vc-ide-topbar-height, 48px) - 44px - 12px - 84px - env(safe-area-inset-top, 0px) -
+        env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+
+/*
+ * BUG-TOAST-ROGNE-001 — en mode `stacked` (root.tsx), react-toastify place
+ * chaque toast en `position: absolute` : le conteneur n'a plus rien dans le
+ * flux et mesure 0 px de haut. Le `overflow-y: auto` posé plus haut en fait un
+ * conteneur de défilement de 0 px, qui rogne TOUT ce qu'il positionne. Mesuré en
+ * production le 2026-09-28 (390 px Chromium et WebKit iPhone, 1440 px) : le
+ * bandeau « 1 fichier appliqué » était dans le DOM, opaque, et le moteur peignait
+ * l'aperçu à sa place — « Tout annuler » inatteignable. Une pile empilée ne
+ * défile pas : elle se replie. Le défilement n'y a jamais rien fait d'autre que
+ * rogner. Épinglé par tests/e2e/bandeau-toast-visible.spec.ts, qui mesure ce
+ * que le moteur peint.
+ */
+.Toastify__toast-container[data-stacked='true'] {
+  overflow: visible;
+}
+
+/*
+ * BUG-TOAST-GESTES-001 — complète BUG-TOAST-ENTETE-001 (#591), qui a descendu
+ * le bandeau sous le chrome du panneau : l'en-tête n'est plus masqué, mais sur
+ * téléphone le bandeau (pleine largeur, 174 px) se pose désormais sur le HAUT
+ * DU FIL et y captait tous les gestes. Mesuré le 2026-09-29 en boucle locale
+ * sur `ide-mobile-chrome.spec.ts` (« menu contextuel… ») : 11 échecs sur 20,
+ * et dans CHACUN le point touché (70, 120) désignait `#agent-auto-applied-files`
+ * — conteneur `position: fixed`, `z-index: 9999`, y = 104..278 — au lieu du
+ * message ; dans chacune des 9 réussites, le bandeau avait déjà disparu. Le fil,
+ * lui, ne bougeait d'aucun pixel.
+ *
+ * Une notification se lit et offre ses commandes ; elle ne confisque pas le
+ * contenu qu'elle recouvre. Son corps laisse donc passer les gestes, ses
+ * commandes (boutons, liens, « Afficher les détails », détails ouverts) les
+ * gardent. Épinglé par tests/e2e/bandeau-toast-visible.spec.ts.
+ */
+body:has(.bolt-project-statusbar) .Toastify__toast-container,
+body:has(.bolt-project-statusbar) .Toastify__toast {
+  pointer-events: none;
+}
+
+body:has(.bolt-project-statusbar)
+  .Toastify__toast
+  :is(button, a[href], summary, input, select, textarea, [role='button'], details[open]) {
+  pointer-events: auto;
 }
 
 .bolt-agent-applied-toast {
@@ -25548,13 +25831,27 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    * colle au clavier, la pastille « descendre » suit. Non mesurable sur
    * Chromium — la fenêtre visuelle n'y bouge pas ; preuve iPhone à prendre.
    */
-  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
+  /*
+   * ⚠️ CES RÈGLES NE DÉPENDENT PLUS DU PANNEAU AFFICHÉ.
+   *
+   * Elles étaient scopées `[data-mobile-panel='chat']`. Mesuré sous WebKit en
+   * émulation iPhone le 2026-09-24 sur l'IDE d'un vrai projet : l'attribut vaut
+   * `preview`, pas `chat` — il retient le dernier panneau ouvert. Aucune de ces
+   * règles ne s'appliquait donc, et c'est exactement ce qu'Avi photographie
+   * clavier levé : le socle d'onglets qui flotte au milieu de l'écran, une
+   * grande zone blanche, et la zone de saisie invisible.
+   *
+   * Le clavier ne se soucie pas du panneau affiché : dès qu'il est levé, le
+   * socle doit disparaître et le composeur se coller au bas de la zone VISIBLE,
+   * quel que soit l'onglet.
+   */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-project-agent-composer {
     bottom: 0 !important;
   }
 
-  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-agent-scroll-to-bottom,
   html[data-vc-clavier='ouvert']
-    .bolt-responsive-ide-mobile[data-mobile-panel='chat']
+    .bolt-responsive-ide-mobile
     .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {
     bottom: 12px;
   }
@@ -25564,8 +25861,49 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   /* Clavier ouvert : le composeur n'est plus soulevé (bottom: 0), la réserve tombe avec lui. */
-  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-scroll {
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-project-agent-scroll {
     padding-bottom: 0 !important;
+  }
+
+  /*
+   * Clavier ouvert sur l'ÉTAT DE DÉPART (carte « Agent prêt » + suggestions).
+   * Mesuré le 2026-09-30, Safari iOS 26 simulé, 390 pt : `main` suit la vue et
+   * tombe à 362 px ; l'état de départ, une grille dont la hauteur minimale est
+   * son contenu, garde ses 287 px ; la zone du composeur, seule à céder, tombe
+   * à 27 px — et le composeur (117 px) déborde de 90 px sous le bas visible,
+   * derrière la pastille d'adresse de Safari. L'état de départ cède donc et
+   * défile ; le composeur garde sa hauteur. Au repos, rien ne change.
+   */
+  /*
+   * Clavier levé : les surfaces FIXES (panneaux service, fichiers, éditeur…)
+   * s'arrêtent au bas VISIBLE. Mesuré le 2026-09-30 sur Safari iOS 26 : la
+   * fenêtre de mise en page reste à 699 px quand la vue tombe à 362 ; le
+   * conteneur des panneaux service (`bottom: 0`) gardait donc 48–699, et
+   * « Nom du projet » (Paramètres, y 446–484) restait sous la barre ∧ ∨ ✓ —
+   * pour le navigateur il était « visible » dans sa zone, rien ne le ramenait.
+   * `--vc-mobile-visual-viewport-bottom` vaut ce que le clavier recouvre (337).
+   */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-workbench-mobile.fixed {
+    bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+  }
+
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-mobile-agent-start-state {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  html[data-vc-clavier='ouvert']
+    .bolt-responsive-ide-mobile
+    .bolt-mobile-agent-start-state
+    ~ .bolt-project-agent-scroll {
+    /*
+     * `h-full` (100 %) quand la conversation a démarré : sans `height: auto`,
+     * la zone prenait TOUT le panneau et écrasait l'état de départ à 14 px
+     * (mesuré, passage 17). Elle prend la hauteur de son contenu — le composeur.
+     */
+    flex: 0 0 auto;
+    height: auto;
   }
 
   /*
@@ -26045,6 +26383,31 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding: 0 8px;
   }
 
+  /*
+   * L'ÉDITEUR DE CODE NE DESCEND PAS SOUS 16 px SUR TÉLÉPHONE.
+   *
+   * Safari iOS zoome automatiquement sur tout champ de saisie dont la police
+   * effective est inférieure à 16 px — et une fois zoomé, il le reste. Mesuré
+   * sous le moteur WEBKIT en émulation iPhone le 2026-09-24 : `cm-content`,
+   * le `contenteditable` de CodeMirror, rendait `14px`. C'est le seul champ du
+   * produit sous le seuil ; tous les autres, composeur de l'agent compris,
+   * rendent 16 px.
+   *
+   * Le thème de l'éditeur pose sa taille via `EditorView.theme` sur `&`,
+   * c'est-à-dire `.cm-editor` — d'où le `!important` : il ne s'agit pas de
+   * forcer la main à l'utilisateur, mais de poser un PLANCHER là où le système
+   * d'exploitation en impose un. Le réglage de taille reste libre sur bureau.
+   *
+   * ⚠️ Ceci n'est pas le défaut qu'Avi photographie : son symptôme part du
+   * composeur, qui est déjà à 16 px sous WebKit. C'en est un autre, réel et
+   * indépendant, qui frapperait dès qu'un utilisateur touche l'éditeur.
+   */
+  .bolt-responsive-ide-mobile .cm-editor,
+  .bolt-responsive-ide-mobile .cm-content,
+  .bolt-responsive-ide-mobile .cm-scroller {
+    font-size: max(16px, var(--vc-editor-font-size, 16px)) !important;
+  }
+
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu {
     position: fixed !important;
     top: auto !important;
@@ -26194,10 +26557,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    /* Même règle que la feuille du composeur : jusqu'au bord, la barre est couverte. */
+    bottom: var(--vc-mobile-visual-viewport-bottom, 0px) !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     left: 50% !important;
     z-index: 12022;
     width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
@@ -26214,11 +26576,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * sa taille pendant que la place rétrécissait, donc il débordait par le
      * haut. `dvh` ne décrit pas le chrome du navigateur ni le clavier.
      */
-    max-height: min(
-      calc(0.64 * var(--vc-mobile-espace-utile)),
-      520px,
-      calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 32px)
-    );
+    /* Même règle que la feuille du composeur : la place libre, pas une fraction. */
+    max-height: calc(var(--vc-mobile-espace-utile) - env(safe-area-inset-bottom, 0px) - 32px);
     margin: 0 !important;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -26862,6 +27221,73 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   border-color: var(--vc-auth-border);
   background: var(--vc-auth-field);
   color: var(--vc-auth-text);
+}
+
+/*
+ * AUTH-TYPO-001 — l'échelle typographique des pages d'authentification, BUREAU.
+ *
+ * Mesuré le 2026-09-30 sur la production (/signup, /login, 1440 et 1280, clair
+ * et sombre) : tout le texte rendu à 12 px. Titre « Créez votre compte » à 14 px
+ * au lieu de 32-44, titre du panneau de droite à 14 px, chiffres `text-3xl` à
+ * 12 px, bouton « Créer le compte » à 12 px.
+ *
+ * Même cause, même remède que l'accueil (`[data-ecode-public-chrome='homepage']`)
+ * et la zone utilisateur (`.vc-user-area-shell`) : les règles de densité de l'IDE
+ * (`body :where(h1…h6)` en `!important`, `body :where(div, span, p…)`) aplatissent
+ * toute classe de taille, et chaque coque restaure la sienne. Celle-ci manquait.
+ *
+ * En PIXELS : la base rem vaut 12 px ici, un `2rem` n'y fait que 24 px.
+ *
+ * À partir de 1024 px seulement : l'affichage mobile est gelé sur la référence
+ * d'Avi et ne doit pas bouger.
+ */
+@media (min-width: 1024px) {
+  .vc-auth-page :where([class~='text-[11px]']) {
+    font-size: 11px !important;
+    line-height: 16px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[12px]']) {
+    font-size: 12px !important;
+    line-height: 18px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[13px]'], [class~='sm:text-[13px]']) {
+    font-size: 13px !important;
+    line-height: 20px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[14px]'], [class~='sm:text-[14px]']) {
+    font-size: 14px !important;
+    line-height: 22px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[15px]']) {
+    font-size: 15px !important;
+    line-height: 26px !important;
+  }
+
+  .vc-auth-page :where([class~='text-[16px]']:not([class~='sm:text-[13px]'])) {
+    font-size: 16px !important;
+    line-height: 24px !important;
+  }
+
+  .vc-auth-page :where([class~='text-3xl']) {
+    font-size: 30px !important;
+    line-height: 36px !important;
+  }
+
+  .vc-auth-page :where(h1.vc-auth-title) {
+    font-size: clamp(32px, 3vw, 44px) !important;
+    font-weight: 700 !important;
+    line-height: 1.05 !important;
+  }
+
+  .vc-auth-page :where(h2) {
+    font-size: clamp(30px, 2.6vw, 40px) !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+  }
 }
 
 /*
@@ -29774,7 +30200,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   padding: 12px 24px;
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   font-size: 13px;
   font-weight: 600;
   border: 0;
@@ -31921,4 +32347,279 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
 .bolt-assistant-message,
 .bolt-user-message {
   position: relative;
+}
+
+/*
+ * La feuille des modes — deux écrans dans la même feuille du bas.
+ *
+ * Dimensions pensées pour 390 px : rangées de 44 px minimum (cible tactile),
+ * gouttière de 12 px, et aucune largeur fixe qui puisse être écrasée par une
+ * rangée flexible — la case à cocher de « High effort » avait déjà payé ça.
+ */
+.bolt-feuille {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bolt-feuille-titre {
+  padding: 4px 4px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-entete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-feuille-entete .bolt-feuille-titre {
+  padding-bottom: 4px;
+}
+
+.bolt-feuille-retour {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-feuille-rangee,
+.bolt-feuille-entree {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  text-align: left;
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-feuille-rangee[data-selected='true'] {
+  background: var(--bolt-elements-background-depth-3);
+}
+
+.bolt-feuille-rangee-nom,
+.bolt-feuille-entree-nom {
+  grid-column: 2;
+  font-size: 13px;
+  font-weight: 500;
+  min-width: 0;
+}
+
+.bolt-feuille-rangee-valeur {
+  grid-column: 3;
+  flex: 0 0 auto;
+  font-size: 12px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-rangee-hint,
+.bolt-feuille-entree-hint {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 11px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-description {
+  padding: 6px 8px 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-repli {
+  margin: 0 4px 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--vc-ide-accent-action, #f26207);
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--bolt-elements-textPrimary);
+}
+
+.bolt-feuille-entree[data-verrouillee='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bolt-feuille-chevron {
+  grid-column: 3;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-fournisseur {
+  grid-column: 1;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--bolt-elements-background-depth-3);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-pastille {
+  grid-column: 3;
+  flex: 0 0 auto;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-indispo {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-rangee-modele[data-etat='momentanement-indisponible'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bolt-feuille-effort {
+  margin-top: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--bolt-elements-borderColor);
+}
+
+.bolt-feuille-effort-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.bolt-feuille-effort-valeur {
+  flex: 0 0 auto;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-effort input[type='range'] {
+  width: 100%;
+  margin: 8px 0 2px;
+  accent-color: var(--vc-ide-accent-action, #f26207);
+}
+
+.bolt-feuille-effort-bornes {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-effort-phrase {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-effort-absent {
+  margin-top: 6px;
+  padding: 8px;
+  border-top: 1px solid var(--bolt-elements-borderColor);
+  font-size: 11px;
+  color: var(--bolt-elements-textSecondary);
+}
+
+/*
+ * L'écran « avancé » accueille les interrupteurs de l'appelant tels quels. On
+ * ne restyle pas leur intérieur : ce sont les mêmes noeuds que le panneau de
+ * bureau, et deux styles concurrents finiraient par divergeraient.
+ */
+/*
+ * Le second panneau de bureau. Il est posé en `fixed` par le composant, qui
+ * calcule sa position (placement-second-panneau.ts) ; ici, seulement son allure
+ * et son plan, au-dessus du premier.
+ */
+.bolt-feuille-second {
+  z-index: 12023;
+  width: min(20rem, calc(100vw - 24px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 12px;
+  background: var(--bolt-elements-background-depth-1);
+  padding: 12px;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.28);
+}
+
+/* Le curseur inerte : présent, lisible, visiblement hors service. */
+.bolt-feuille-effort.is-inerte {
+  opacity: 0.55;
+}
+
+.bolt-feuille-effort.is-inerte input[type='range'] {
+  cursor: not-allowed;
+}
+
+.bolt-feuille-effort-conseille {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: none;
+  color: var(--bolt-elements-textSecondary);
+}
+
+.bolt-feuille-avance {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--bolt-elements-borderColor);
+}
+
+/*
+ * BUG-QA0928-RUNTIME-ID-PROJET — avis « fichiers pas encore écrits » / « quota »
+ * au-dessus du composeur. Jetons du thème IDE uniquement ; bouton à 44 px pour
+ * le doigt (règle des cibles tactiles).
+ */
+.bolt-agent-avis-ecritures {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-accent-warning);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bolt-agent-avis-ecritures button {
+  justify-self: start;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
 }

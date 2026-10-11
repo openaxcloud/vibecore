@@ -132,7 +132,7 @@ describe('<ChatBox /> toolbar', () => {
     expect(modeTrigger.getAttribute('data-mode')).toBe('agent');
 
     const powerTrigger = within(primary).getByTestId('agent-mode-advanced');
-    expect(powerTrigger.getAttribute('aria-label')).toBe('Agent mode: Economy. Opens advanced settings.');
+    expect(powerTrigger.getAttribute('aria-label')).toBe('Agent mode: Power. Opens advanced settings.');
     expect(powerTrigger.getAttribute('aria-expanded')).toBe('false');
 
     // Les actions sont à DROITE, pas mélangées aux sélecteurs.
@@ -236,7 +236,7 @@ describe('<ChatBox /> agent power controls', () => {
     renderChatBox();
 
     /*
-     * AGM: the three MODES (Lite/Economy/Power) are a visible segmented
+     * AGM: the three MODES (Lite/Power/Power) are a visible segmented
      * control — never a model name — and the two switches (High effort, Turbo)
      * live behind the Advanced popover. The live cost estimate stays visible.
      */
@@ -245,16 +245,20 @@ describe('<ChatBox /> agent power controls', () => {
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
 
     const segmented = screen.getByRole('radiogroup', { name: /Agent mode/i });
-    expect(
-      within(segmented)
-        .getByRole('radio', { name: /Economy/i })
-        .getAttribute('aria-checked'),
-    ).toBe('true');
+    expect(within(segmented).getByRole('radio', { name: /Power/i }).getAttribute('aria-checked')).toBe('true');
     expect(within(segmented).getByRole('radio', { name: /^Lite/i })).toBeTruthy();
     expect(within(segmented).getByRole('radio', { name: /^Power/i })).toBeTruthy();
 
+    /*
+     * Les deux interrupteurs vivent désormais sur le SECOND écran de la feuille
+     * (décision d'Avi, structure à deux écrans) : le premier écran ne porte que
+     * les modes et leurs deux entrées. Ils ne sont pas dupliqués — la feuille
+     * rend le même JSX que le panneau de bureau.
+     */
+    fireEvent.click(screen.getByTestId('feuille-entree-avance'));
     expect(screen.getByRole('switch', { name: /High effort/i })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /Turbo/i })).toBeTruthy();
+    fireEvent.click(screen.getByTestId('feuille-retour'));
 
     // No model name anywhere in the composer — the product rule.
     expect(document.body.textContent).not.toMatch(/claude|gpt-|anthropic|openai|gemini/i);
@@ -279,8 +283,9 @@ describe('<ChatBox /> agent power controls', () => {
     renderChatBox({ onAgentPowerChange });
 
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+    fireEvent.click(screen.getByTestId('feuille-entree-avance'));
 
-    // Economy: Turbo is locked (Power only)…
+    // Power: Turbo is locked (Power only)…
     const turbo = screen.getByRole('switch', { name: /Turbo/i });
     expect(turbo.hasAttribute('disabled')).toBe(true);
 
@@ -298,12 +303,13 @@ describe('<ChatBox /> agent power controls', () => {
         highPowerModel: false,
         extendedThinking: false,
         turboMode: true,
-        buildTier: 'power',
+        buildTier: 'max',
       },
       onAgentPowerChange: vi.fn(),
     });
 
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+    fireEvent.click(screen.getByTestId('feuille-entree-avance'));
 
     expect(screen.getByRole('switch', { name: /Turbo/i }).getAttribute('aria-checked')).toBe('true');
   });

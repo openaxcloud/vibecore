@@ -321,7 +321,7 @@ export const EditorPanel = memo(
             />
           ) : (
             <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textSecondary">
-              {editorDocument?.isBinary ? t('idePanels.editor.binaryUnavailable') : t('idePanels.editor.noFile')}
+              {editorDocument?.isBinary ? t('common.binaryUnavailable') : t('idePanels.editor.noFile')}
             </div>
           )}
 

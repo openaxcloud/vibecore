@@ -761,16 +761,16 @@ describe('E-Code agent orchestration', () => {
 
   /*
    * Power controls must VISIBLY change the number of parallel agents (previously
-   * the Lite/Economy/Power selector was cosmetic and every request ran all 5).
+   * the Lite/Power/Power selector was cosmetic and every request ran all 5).
    */
-  it('maps the build tier to a parallel-agent cap (Lite=1, Economy=3, Power=5)', () => {
+  it('maps the build tier to a parallel-agent cap (Lite=1, Max=3, Max=5)', () => {
     expect(parallelAgentsForBuildTier('lite')).toBe(1);
-    expect(parallelAgentsForBuildTier('economy')).toBe(3);
-    expect(parallelAgentsForBuildTier('power')).toBe(5);
+    expect(parallelAgentsForBuildTier('power')).toBe(3);
+    expect(parallelAgentsForBuildTier('max')).toBe(5);
 
     // High-power boost adds one lane, capped at the roster size.
-    expect(parallelAgentsForBuildTier('economy', true)).toBe(4);
-    expect(parallelAgentsForBuildTier('power', true)).toBe(5);
+    expect(parallelAgentsForBuildTier('power', true)).toBe(4);
+    expect(parallelAgentsForBuildTier('max', true)).toBe(5);
 
     // Unknown/undefined tier falls back to the balanced default.
     expect(parallelAgentsForBuildTier(undefined)).toBe(3);

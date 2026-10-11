@@ -12,6 +12,8 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { annuelPublicCents, estUnPrixStripe } from '~/lib/forfaits-publics';
+import { billingDisplayName } from '~/lib/i18n/catalogs/billing';
 import {
   formatUpgradeAmount,
   formatUpgradeCopy,
@@ -109,7 +111,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       key: plan.key,
       name: plan.name,
       monthlyCents: plan.monthlyCents,
-      annualAvailable: Boolean(plan.stripePriceAnnualId),
+
+      // Un VRAI identifiant de prix (la production a porté une adresse e-mail à cette place).
+      annualAvailable: estUnPrixStripe(plan.stripePriceAnnualId),
       limits: plan.limits ?? {},
     }));
 
@@ -228,6 +232,23 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 }
 
+/**
+ * UIB-06 — la formule gratuite porte le MÊME nom que sur /billing.
+ *
+ * Mesuré le 2026-09-30 : /upgrade affichait « Free » (nom brut de la table
+ * Plan) quand /billing disait « Gratuite » pour la même formule.
+ *
+ * Les noms de formule sont des noms de PRODUIT et restent tels quels (« Core »,
+ * « Pro », « Enterprise » — épinglé par upgrade.i18n.spec.tsx). Seul le mot
+ * générique « Free » de la formule `free` n'en est pas un : il reçoit le
+ * libellé de /billing.
+ */
+export function upgradePlanName(plan: { key: string; name: string }, language: 'en' | 'fr'): string {
+  return plan.key === 'free' && plan.name.trim().toLowerCase() === 'free'
+    ? billingDisplayName('free', language)
+    : plan.name;
+}
+
 /*
  * Real, quota-enforced plan limits (the same records the api enforces) rendered
  * as the card's feature summary — no marketing copy invented here.
@@ -305,7 +326,7 @@ export default function UpgradePage() {
         ) : (
           <p className="break-words text-sm text-bolt-elements-textSecondary">{copy['upgrade.subscription.new']}</p>
         )}
-        {!hasActiveSubscription && annualAvailable ? (
+        {!hasActiveSubscription && (annualAvailable || billingInterval === 'annual') ? (
           <fieldset className="space-y-1">
             <legend className="text-sm font-medium text-bolt-elements-textPrimary">
               {copy['upgrade.interval.legend']}
@@ -333,12 +354,17 @@ export default function UpgradePage() {
               </label>
             </div>
           </fieldset>
-        ) : null}
+        ) : (
+          <input type="hidden" name="interval" value={billingInterval} />
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           {data.plans.map((plan) => {
             const isCurrent = plan.key === data.currentPlanKey;
             const isEnterprise = plan.key === 'enterprise';
             const isCheckoutable = CHECKOUTABLE_PLAN_KEYS.has(plan.key);
+
+            // Sans prix annuel, ce choix serait refusé au paiement : en annuel, on ne le propose pas.
+            const annuelIndisponible = billingInterval === 'annual' && !plan.annualAvailable;
             const isSuggested = !isCurrent && !hasActiveSubscription && plan.key === data.suggestedPlan;
 
             return (
@@ -353,7 +379,9 @@ export default function UpgradePage() {
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">{plan.name}</h2>
+                  <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+                    {upgradePlanName(plan, language)}
+                  </h2>
                   {isCurrent ? (
                     <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary">
                       {copy['upgrade.badge.current']}
@@ -369,9 +397,14 @@ export default function UpgradePage() {
                     copy['upgrade.price.custom']
                   ) : (
                     <>
-                      {formatUpgradeAmount(plan.monthlyCents, language)}
+                      {/* Annuel −20 % (décision d'Avi du 01/10) : le montant affiché est celui facturé. */}
+                      {billingInterval === 'annual' && plan.annualAvailable
+                        ? formatUpgradeAmount(annuelPublicCents(plan.monthlyCents), language)
+                        : formatUpgradeAmount(plan.monthlyCents, language)}
                       <span className="text-sm font-normal text-bolt-elements-textSecondary">
-                        {copy['upgrade.price.month']}
+                        {billingInterval === 'annual' && plan.annualAvailable
+                          ? copy['upgrade.price.year']
+                          : copy['upgrade.price.month']}
                       </span>
                     </>
                   )}
@@ -403,8 +436,14 @@ export default function UpgradePage() {
                       : copy['upgrade.actions.changePortal']}
                   </button>
                 ) : isCheckoutable ? (
-                  <button type="submit" name="planKey" value={plan.key} className={ACTION_CTA_CLASS}>
-                    {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: plan.name })}
+                  <button
+                    type="submit"
+                    name="planKey"
+                    value={plan.key}
+                    className={ACTION_CTA_CLASS}
+                    disabled={annuelIndisponible}
+                  >
+                    {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: upgradePlanName(plan, language) })}
                   </button>
                 ) : (
                   <button type="button" disabled className={OUTLINE_CTA_CLASS}>

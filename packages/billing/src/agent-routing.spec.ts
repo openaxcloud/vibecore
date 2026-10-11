@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AGENT_MODES,
   AGENT_ROUTING_LINE_KEYS,
   BUILTIN_AGENT_ROUTING_CARD,
   DEFAULT_AGENT_MODE,
@@ -16,19 +17,50 @@ import {
 } from './agent-routing.js';
 
 describe('BUILTIN_AGENT_ROUTING_CARD', () => {
-  it('is version 3, sourced 2026-08-20, with all six lines', () => {
-    expect(BUILTIN_AGENT_ROUTING_CARD.version).toBe(3);
-    expect(BUILTIN_AGENT_ROUTING_CARD.sourceDate).toBe('2026-08-20');
+  it('is version 4, sourced 2026-09-15, with all seven lines', () => {
+    expect(BUILTIN_AGENT_ROUTING_CARD.version).toBe(4);
+    expect(BUILTIN_AGENT_ROUTING_CARD.sourceDate).toBe('2026-09-15');
     expect(BUILTIN_AGENT_ROUTING_CARD.lines.map((l) => l.key).sort()).toEqual([...AGENT_ROUTING_LINE_KEYS].sort());
   });
 
+  it('carries a SECOND PROVIDER — la redondance cesse d’être invisible', () => {
+    /*
+     * Avant la v4, Google n'était atteignable que par `PROVIDER_FALLBACK_CHAIN`,
+     * une constante de l'app que la carte ne connaît pas : un repli réussi vers
+     * Gemini ne correspondait à aucune ligne, donc ni prix, ni journal, ni
+     * télémétrie. La redondance existait sans pouvoir être constatée.
+     */
+    const repli = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'fallback')!;
+
+    expect(repli.provider).toBe('google');
+    expect(repli.model).toBe('gemini-2.5-pro');
+    expect(repli.active).toBe(true);
+
+    // Un repli ne se facture pas plus cher : l'utilisateur subit la panne, il ne la paie pas.
+    expect(repli.multiplier).toBe(1);
+
+    // Et la carte porte bien DEUX fournisseurs distincts, pas un seul décliné.
+    const fournisseurs = new Set(BUILTIN_AGENT_ROUTING_CARD.lines.map((l) => l.provider));
+    expect(fournisseurs.size).toBeGreaterThanOrEqual(3);
+    expect([...fournisseurs].sort()).toContain('google');
+  });
+
+  it('la redondance n’est PAS un mode offert à l’utilisateur', () => {
+    /*
+     * `AgentPowerControls` n'expose que lite/power/power ; une 7e ligne
+     * n'a pas à apparaître dans le sélecteur.
+     */
+    expect(AGENT_MODES).toEqual(['lite', 'power', 'max']);
+    expect(AGENT_MODES).not.toContain('fallback');
+  });
+
   it("matches Avi's target config: Opus 5 is the principal generation model, turbo=gpt-5.6 ×2", () => {
-    const economy = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'economy')!;
-    expect(economy.model).toBe('claude-opus-5');
-    expect(economy.multiplier).toBe(1);
+    const power = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'power')!;
+    expect(power.model).toBe('claude-opus-5');
+    expect(power.multiplier).toBe(1);
 
     // Opus 5 is the principal model: the DEFAULT mode and both escalation lines.
-    expect(routingLine(BUILTIN_AGENT_ROUTING_CARD, 'power')!.model).toBe('claude-opus-5');
+    expect(routingLine(BUILTIN_AGENT_ROUTING_CARD, 'max')!.model).toBe('claude-opus-5');
 
     const highEffort = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'high-effort')!;
     expect(highEffort.model).toBe('claude-opus-5');
@@ -40,8 +72,8 @@ describe('BUILTIN_AGENT_ROUTING_CARD', () => {
     expect(turbo.multiplier).toBe(2);
   });
 
-  it('defaults to economy and validates clean with no negative margin anywhere', () => {
-    expect(DEFAULT_AGENT_MODE).toBe('economy');
+  it('defaults to power and validates clean with no negative margin anywhere', () => {
+    expect(DEFAULT_AGENT_MODE).toBe('power');
     expect(validateAgentRoutingCard(BUILTIN_AGENT_ROUTING_CARD)).toEqual([]);
     expect(negativeMarginLineKeys(BUILTIN_AGENT_ROUTING_CARD)).toEqual([]);
   });
@@ -55,9 +87,9 @@ describe('BUILTIN_AGENT_ROUTING_CARD', () => {
 });
 
 describe('lineMargins', () => {
-  it('computes economy margin as (650-500)/650 ≈ 23% on input', () => {
-    const economy = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'economy')!;
-    const margins = lineMargins(BUILTIN_AGENT_ROUTING_CARD, economy);
+  it('computes power margin as (650-500)/650 ≈ 23% on input', () => {
+    const power = routingLine(BUILTIN_AGENT_ROUTING_CARD, 'power')!;
+    const margins = lineMargins(BUILTIN_AGENT_ROUTING_CARD, power);
     expect(margins.inputMargin).toBeCloseTo((650 - 500) / 650, 5);
     expect(margins.outputMargin).toBeCloseTo((3250 - 2500) / 3250, 5);
     expect(margins.negative).toBe(false);
@@ -65,11 +97,11 @@ describe('lineMargins', () => {
 
   it('flags a negative margin when the price no longer covers the cost', () => {
     const card = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
-    const economy = card.lines.find((l) => l.key === 'economy')!;
-    economy.costInCentsPerM = 10_000;
+    const power = card.lines.find((l) => l.key === 'power')!;
+    power.costInCentsPerM = 10_000;
 
-    expect(lineMargins(card, economy).negative).toBe(true);
-    expect(negativeMarginLineKeys(card)).toEqual(['economy']);
+    expect(lineMargins(card, power).negative).toBe(true);
+    expect(negativeMarginLineKeys(card)).toEqual(['power']);
   });
 
   it('never flags the unbilled classifier as negative margin', () => {
@@ -83,21 +115,21 @@ describe('lineMargins', () => {
 });
 
 describe('computeAgentCallBilling', () => {
-  it('bills economy at base price and keeps cost fractional', () => {
-    const billing = computeAgentCallBilling(BUILTIN_AGENT_ROUTING_CARD, 'economy', 100_000, 10_000)!;
+  it('bills power at base price and keeps cost fractional', () => {
+    const billing = computeAgentCallBilling(BUILTIN_AGENT_ROUTING_CARD, 'power', 100_000, 10_000)!;
 
     // cost = (100k*500 + 10k*2500)/1M = 75 cents; credit = ceil((100k*650 + 10k*3250)/1M) = ceil(97.5) = 98
     expect(billing.costCents).toBeCloseTo(75, 5);
     expect(billing.creditCents).toBe(98);
     expect(billing.marginCents).toBeCloseTo(23, 5);
     expect(billing.billedToUser).toBe(true);
-    expect(billing.routingCardVersion).toBe(3);
+    expect(billing.routingCardVersion).toBe(4);
   });
 
-  it('bills power/high-effort at 2x economy for the same tokens', () => {
-    const economy = computeAgentCallBilling(BUILTIN_AGENT_ROUTING_CARD, 'economy', 50_000, 50_000)!;
-    const power = computeAgentCallBilling(BUILTIN_AGENT_ROUTING_CARD, 'power', 50_000, 50_000)!;
-    expect(power.creditCents).toBe(economy.creditCents * 2);
+  it('bills power/high-effort at 2x power for the same tokens', () => {
+    const milieu = computeAgentCallBilling(BUILTIN_AGENT_ROUTING_CARD, 'power', 50_000, 50_000)!;
+    const sommet = computeAgentCallBilling(BUILTIN_AGENT_ROUTING_CARD, 'max', 50_000, 50_000)!;
+    expect(sommet.creditCents).toBe(milieu.creditCents * 2);
   });
 
   it('floors any billed token-consuming call at 1 cent, and bills 0 for 0 tokens', () => {
@@ -127,10 +159,10 @@ describe('availability by plan', () => {
 
   it('refuses a mode removed from a plan with reason "plan"', () => {
     const card = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
-    card.lines.find((l) => l.key === 'power')!.availablePlans = ['enterprise'];
+    card.lines.find((l) => l.key === 'max')!.availablePlans = ['enterprise'];
 
     const modes = availableAgentModes(card, 'free');
-    const power = modes.find((m) => m.mode === 'power')!;
+    const power = modes.find((m) => m.mode === 'max')!;
     expect(power.available).toBe(false);
     expect(power.reason).toBe('plan');
   });
@@ -149,20 +181,20 @@ describe('validateAgentRoutingCard', () => {
     expect(validateAgentRoutingCard(card).some((e) => e.line === 'turbo')).toBe(true);
   });
 
-  it('rejects economy deactivated or re-multiplied (it is the default mode)', () => {
+  it('rejects power deactivated or re-multiplied (it is the default mode)', () => {
     const card = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
-    card.lines.find((l) => l.key === 'economy')!.multiplier = 2;
-    expect(validateAgentRoutingCard(card).some((e) => e.line === 'economy')).toBe(true);
+    card.lines.find((l) => l.key === 'power')!.multiplier = 2;
+    expect(validateAgentRoutingCard(card).some((e) => e.line === 'power')).toBe(true);
   });
 
   it('rejects negative prices and empty models', () => {
     const card = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
     card.lines.find((l) => l.key === 'lite')!.model = ' ';
-    card.lines.find((l) => l.key === 'power')!.costInCentsPerM = -1;
+    card.lines.find((l) => l.key === 'max')!.costInCentsPerM = -1;
 
     const errors = validateAgentRoutingCard(card);
     expect(errors.some((e) => e.line === 'lite')).toBe(true);
-    expect(errors.some((e) => e.line === 'power')).toBe(true);
+    expect(errors.some((e) => e.line === 'max')).toBe(true);
   });
 
   it('localizes French validation copy without translating schema identifiers', () => {
@@ -179,13 +211,13 @@ describe('validateAgentRoutingCard', () => {
 describe('localizeAgentRoutingCardLabels', () => {
   it('translates visible labels and preserves routing identifiers and prices', () => {
     const localized = localizeAgentRoutingCardLabels(BUILTIN_AGENT_ROUTING_CARD, 'fr');
-    const economy = routingLine(localized, 'economy')!;
+    const power = routingLine(localized, 'power')!;
 
-    expect(economy.label).toBe('Économie');
-    expect(economy.key).toBe('economy');
-    expect(economy.provider).toBe('anthropic');
-    expect(economy.model).toBe('claude-opus-5');
-    expect(economy.costInCentsPerM).toBe(500);
-    expect(BUILTIN_AGENT_ROUTING_CARD.lines.find((line) => line.key === 'economy')?.label).toBe('Economy');
+    expect(power.label).toBe('Power');
+    expect(power.key).toBe('power');
+    expect(power.provider).toBe('anthropic');
+    expect(power.model).toBe('claude-opus-5');
+    expect(power.costInCentsPerM).toBe(500);
+    expect(BUILTIN_AGENT_ROUTING_CARD.lines.find((line) => line.key === 'power')?.label).toBe('Power');
   });
 });

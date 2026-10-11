@@ -87,6 +87,86 @@ describe('AssistantMessage i18n', () => {
     expect(getAssistantMessageCopy('de')['assistantMessage.context.summary']).toBe('Summary');
   });
 
+  it('DIT la bascule de fournisseur — plus de substitution silencieuse (2026-09-28)', () => {
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content="Réponse"
+          messageId="message-bascule"
+          parts={undefined}
+          annotations={[
+            {
+              type: 'basculeFournisseur',
+              depuis: { provider: 'Anthropic', model: 'claude-opus-5' },
+              vers: { provider: 'Google', model: 'gemini-2.5-pro' },
+              motif: 'credit',
+            },
+          ]}
+          addToolResult={() => undefined}
+        />
+      </I18nextProvider>,
+    );
+
+    const avis = screen.getByTestId('agent-bascule-fournisseur');
+    expect(avis.getAttribute('role')).toBe('status');
+    expect(avis.textContent).toContain('claude-opus-5 était indisponible (crédit du fournisseur épuisé)');
+    expect(avis.textContent).toContain('produite par gemini-2.5-pro, le repli déclaré par la carte de routage');
+  });
+
+  it('les cartes des sous-agents RÉSERVENT trois lignes, quel que soit leur texte (2026-09-28)', () => {
+    /*
+     * Mesuré en production à 390 px : l'aperçu passait d'une à trois lignes pendant
+     * le flux, et le fil sautait (~750 px en 0,9 s, retours de 40 px). La hauteur
+     * doit être FIXE — la même classe pour un texte court et un texte long.
+     */
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content="Réponse"
+          messageId="message-lanes"
+          parts={undefined}
+          annotations={[
+            {
+              type: 'agentOrchestration',
+              mode: 'parallel-subagents',
+              reason: 'test',
+              roles: [
+                { id: 'architect', title: 'Architecte', responsibility: 'Court.' },
+                { id: 'qa', title: 'QA', responsibility: 'Un texte bien plus long. '.repeat(20) },
+              ],
+            },
+          ]}
+          addToolResult={() => undefined}
+        />
+      </I18nextProvider>,
+    );
+
+    const apercus = screen.getAllByTestId('agent-lane-apercu');
+    expect(apercus, 'une carte par rôle').toHaveLength(2);
+
+    for (const apercu of apercus) {
+      const classes = apercu.className.split(/\s+/);
+      expect(classes).toContain('h-12');
+      expect(classes).toContain('leading-4');
+      expect(classes).toContain('line-clamp-3');
+
+      // Une hauteur MINIMALE laisserait encore grandir la carte.
+      expect(classes.some((c) => c.startsWith('min-h-') || c.startsWith('max-h-'))).toBe(false);
+    }
+
+    expect(apercus[0].className).toBe(apercus[1].className);
+  });
+
+  it('TÉMOIN — sans bascule, aucun avis', () => {
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage content="Réponse" messageId="m-sans" parts={undefined} addToolResult={() => undefined} />
+      </I18nextProvider>,
+    );
+
+    expect(screen.queryByTestId('agent-bascule-fournisseur')).toBeNull();
+  });
+
   it('renders the assistant chrome and message actions in French without translating user content', () => {
     render(
       <I18nextProvider i18n={createI18nInstance('fr')}>

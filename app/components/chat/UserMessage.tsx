@@ -151,6 +151,15 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
       {...menuContextuel.gestes}
     >
       <div className="bolt-user-message-bubble flex w-auto flex-col rounded-lg bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] px-3 py-2 backdrop-blur-sm [margin-inline-start:auto]">
+        {/*
+          La rangée d'images n'est montée QUE s'il y a des images.
+
+          Rendue systématiquement, elle réservait sa marge basse — mesuré 7px
+          sous CHAQUE message de l'utilisateur, pour un conteneur vide. Sur un
+          fil de douze messages c'est une ligne de texte entière perdue en
+          blanc, et c'est exactement la plainte d'Avi : « pourquoi perdre tant
+          de place dans les bubbles ».
+        */}
         {images.length > 0 ? (
           <div className="bolt-user-message-images flex gap-3 mb-2">
             {images.map((item, index) => (

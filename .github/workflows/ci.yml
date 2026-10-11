@@ -94,6 +94,12 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      - name: Rollout evidence regression tests
+        run: node --test scripts/capture-rollout-diagnostics.checks.bundle.mjs
+
+      - name: Blocking vulnerability evidence regression tests
+        run: node --test scripts/security-scan-evidence.checks.bundle.mjs
+
       # Standalone bundle (TypeScript source + YAML parser) runs before any
       # setup action or package lifecycle. Its byte-for-byte reproducibility is
       # checked from the strictly typed source after the frozen install below.
@@ -113,6 +119,16 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Strict rollout diagnostics typecheck and bundle reproducibility
+        run: |
+          pnpm exec tsc --project tsconfig.rollout-diagnostics.json --noEmit --pretty false
+          node --import tsx scripts/build-rollout-diagnostics.ts --check
+
+      - name: Strict security scan evidence typecheck and bundle reproducibility
+        run: |
+          pnpm exec tsc --project tsconfig.security-scan-evidence.json --noEmit --pretty false
+          node --import tsx scripts/build-security-scan-evidence.ts --check
 
       # The validator parses the YAML AST instead of grepping text. Keep its
       # strict compilation explicit here so this security gate cannot silently
@@ -169,6 +185,20 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+      # L'alerte d'échéance des exceptions de sécurité, VISIBLE SUR LA PROPOSITION.
+      #
+      # Elle existait déjà, mais seulement dans le journal du déploiement, que
+      # personne n'ouvre tant que rien ne casse. Le 2026-09-17, dix-huit
+      # exceptions sont tombées le même matin et la livraison est restée fermée
+      # cinq jours, alors que l'avertissement tournait depuis des jours.
+      #
+      # Elle n'échoue PAS sur une échéance proche : un avertissement qui bloque
+      # devient un obstacle qu'on contourne. Elle échoue seulement sur une
+      # exception DÉJÀ échue, parce qu'à ce moment la porte de livraison
+      # refusera de toute façon — autant le dire ici.
+      - name: Exceptions de securite — echeances (annotations sur la PR)
+        run: node scripts/exceptions-securite-echeance.mjs --bloquant
 
       - name: Unit tests
         run: pnpm run test

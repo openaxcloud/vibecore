@@ -12,11 +12,16 @@ import {
  * backend credit plan catalog (packages/billing creditPlanCatalog) and the
  * marketing cards. Keep in sync if the catalog changes.
  */
-const REPLIT_PARITY_PRICING: Record<string, { monthlyCents: number; annualMonthlyCents: number }> = {
+/*
+ * Grille décidée par Avi le 2026-10-01 (remplace la grille « parité Replit » Core
+ * 25 € / Pro 100 €) : Pro 29 €, Team 99 €, Core sur devis, annuel −20 %. Les montants
+ * sont écrits EN CLAIR ici : si la page ou la source bougent, ce test rougit.
+ */
+const GRILLE_DECIDEE: Record<string, { monthlyCents: number; annualMonthlyCents: number }> = {
   free: { monthlyCents: 0, annualMonthlyCents: 0 },
-  core: { monthlyCents: 2500, annualMonthlyCents: 2000 },
-  pro: { monthlyCents: 10000, annualMonthlyCents: 9500 },
-  enterprise: { monthlyCents: 0, annualMonthlyCents: 0 },
+  pro: { monthlyCents: 2900, annualMonthlyCents: 2320 },
+  team: { monthlyCents: 9900, annualMonthlyCents: 7920 },
+  core: { monthlyCents: 0, annualMonthlyCents: 0 },
 };
 
 describe('E-Code product marketing pages', () => {
@@ -43,9 +48,9 @@ describe('E-Code product marketing pages', () => {
     expect(ecodeCampaignMarketingPages.teams.route).toBe('/marketing/teams');
   });
 
-  it('keeps marketing pricing aligned with the Replit-parity model', () => {
+  it('affiche la grille décidée par Avi le 01/10 (Pro 29 €, Team 99 €, annuel −20 %, Core sur devis)', () => {
     for (const plan of ecodePricingPlans) {
-      const expected = REPLIT_PARITY_PRICING[plan.key];
+      const expected = GRILLE_DECIDEE[plan.key];
       expect(expected, `unexpected plan key ${plan.key}`).toBeDefined();
       expect(plan.monthlyCents).toBe(expected.monthlyCents);
       expect(plan.annualMonthlyCents).toBe(expected.annualMonthlyCents);
