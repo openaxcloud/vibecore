@@ -84,3 +84,50 @@ describe('CHARTE-IDE-001 — la console d’administration suit la charte', () =
     expect(rule).not.toMatch(/color:\s*#fff/i);
   });
 });
+
+describe('le bouton d’arrêt reste lisible dans la console', () => {
+  it('mesure le contraste de la règle réelle et de ses jetons', () => {
+    const declarations = new Map([...ADMIN.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+    const resolveColor = (value: string, depth = 0): string => {
+      expect(depth).toBeLessThan(12);
+
+      const reference = /^var\((--[\w-]+)\)$/.exec(value);
+
+      if (!reference) {
+        return value;
+      }
+
+      const next = declarations.get(reference[1]);
+
+      expect(next, reference[1]).toBeDefined();
+
+      return resolveColor(next!, depth + 1);
+    };
+    const selector = "body :where(.vc-run-button[data-run-state='running']";
+    const section = ADMIN.slice(ADMIN.indexOf(selector));
+    const rule = section.slice(0, section.indexOf('}'));
+    const color = /(?:^|;)\s*color:\s*([^;]+);/.exec(rule.slice(rule.indexOf('{') + 1));
+    const background = /background:\s*([^;]+);/.exec(rule);
+
+    expect(color).not.toBeNull();
+    expect(background).not.toBeNull();
+
+    const luminance = (value: string) => {
+      const hex = /^#([0-9a-f]{6})$/i.exec(resolveColor(value));
+
+      expect(hex).not.toBeNull();
+
+      const channels = [0, 2, 4].map((i) => {
+        const x = parseInt(hex![1].slice(i, i + 2), 16) / 255;
+
+        return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+      });
+
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    const a = luminance(background![1].trim());
+    const b = luminance(color![1].trim());
+
+    expect((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toBeGreaterThanOrEqual(4.5);
+  });
+});

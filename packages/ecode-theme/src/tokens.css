@@ -52,7 +52,7 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
   --primary: 24 96 49; /* E-Code Orange #F26207 */
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 221 39% 11%;
   --secondary: 39 96 56; /* E-Code Yellow-Orange #F99D25 */
   --secondary-foreground: 0 0% 0%;
   --muted: 210 17% 96%;
@@ -192,7 +192,7 @@
   --popover: 221.7 29.1% 15.5%;
   --popover-foreground: 205.7 53.8% 97.5%;
   --primary: 24 96 49;
-  --primary-foreground: 210 40% 98%;
+  --primary-foreground: 221 39% 11%;
   --secondary: 222.9 21.6% 19%;
   --secondary-foreground: 205.7 53.8% 97.5%;
   --muted: 222.9 21.6% 19%;

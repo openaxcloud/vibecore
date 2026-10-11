@@ -205,7 +205,10 @@ export default function AI() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
             >
-              <Badge variant="default" className="mb-6 text-[13px] px-4 py-1.5 bg-[#F26207] text-white">
+              <Badge
+                variant="default"
+                className="mb-6 text-[13px] px-4 py-1.5 bg-[var(--ecode-accent)] text-[var(--ecode-accent-contrast)]"
+              >
                 <Sparkles className="h-4 w-4 mr-1" />
                 {copy.badge}
               </Badge>
@@ -501,7 +504,9 @@ export default function AI() {
                       <div className="flex items-start gap-3">
                         <div
                           className={`p-2 rounded-lg transition-colors ${
-                            isActive ? 'bg-[#F26207] text-white' : 'bg-[#F26207]/10 text-[#F26207]'
+                            isActive
+                              ? 'bg-[var(--ecode-accent)] text-[var(--ecode-accent-contrast)]'
+                              : 'bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[#F26207]'
                           }`}
                         >
                           <Icon className="h-5 w-5" />
@@ -574,7 +579,10 @@ export default function AI() {
         <div className="container-responsive">
           <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center max-w-6xl mx-auto">
             <div>
-              <Badge variant="default" className="mb-4 text-[13px] px-3 py-1 bg-[#F26207] text-white">
+              <Badge
+                variant="default"
+                className="mb-4 text-[13px] px-3 py-1 bg-[var(--ecode-accent)] text-[var(--ecode-accent-contrast)]"
+              >
                 <GitBranch className="h-4 w-4 mr-1" />
                 {copy.workspace.badge}
               </Badge>

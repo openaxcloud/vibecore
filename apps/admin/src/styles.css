@@ -97,6 +97,7 @@
   --vc-animation-drop-zone: 100ms;
   --vc-animation-typing: 1.4s;
   --vc-run-stop-bg: #f85149;
+  --vc-run-stop-fg: var(--vc-ide-text-on-accent);
   --vc-accessibility-focus-width: 2px;
   --vc-accessibility-reduced-motion-duration: 50ms;
   --vc-accessibility-contrast-text: #f5f9fc;
@@ -485,7 +486,7 @@ body :where(.vc-typing-indicator, .typing-indicator) > span:nth-child(3) {
 
 body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app']) {
   background: var(--vc-run-stop-bg);
-  color: #ffffff;
+  color: var(--vc-run-stop-fg);
 }
 
 body

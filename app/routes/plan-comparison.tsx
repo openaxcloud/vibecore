@@ -11,6 +11,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { getPricingPlanCopy, type PricingPlanCopyKey } from '~/lib/i18n/catalogs/marketing-product';
 import { formatPlanQuotaCopy, getPlanQuotaCopy, type PlanQuotaKey } from '~/lib/i18n/catalogs/plan-quota';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
@@ -58,32 +59,19 @@ export function loader({ request }: EnterpriseLoaderArgs) {
   return json({ language: localeResolution.language }, { headers: localeResponseHeaders(request, localeResolution) });
 }
 
+/*
+ * Les noms et descriptions viennent de la grille publique (`pricingPlanCopy`,
+ * la même source que /pricing depuis #691). La page en tenait une copie à part :
+ * le 11/10 en production, elle affichait l'ancienne grille ET décalée — le bouton
+ * « Pro » commandait l'offre `team` (99 €). Ici, seule la correspondance entre la
+ * clé de facturation et la carte de la grille est écrite.
+ */
 const PLANS = [
-  {
-    backendKey: 'free',
-    nameKey: 'planComparison.plan.starter.name',
-    summaryKey: 'planComparison.plan.starter.summary',
-    action: 'downgrade',
-  },
-  {
-    backendKey: 'pro',
-    nameKey: 'planComparison.plan.core.name',
-    summaryKey: 'planComparison.plan.core.summary',
-    action: 'checkout',
-  },
-  {
-    backendKey: 'team',
-    nameKey: 'planComparison.plan.pro.name',
-    summaryKey: 'planComparison.plan.pro.summary',
-    action: 'checkout',
-  },
-  {
-    backendKey: 'enterprise',
-    nameKey: 'planComparison.plan.enterprise.name',
-    summaryKey: 'planComparison.plan.enterprise.summary',
-    action: 'sales',
-  },
-] as const;
+  { backendKey: 'free', grille: 'free', action: 'downgrade' },
+  { backendKey: 'pro', grille: 'pro', action: 'checkout' },
+  { backendKey: 'team', grille: 'team', action: 'checkout' },
+  { backendKey: 'enterprise', grille: 'core', action: 'sales' },
+] as const satisfies readonly { backendKey: string; grille: PricingPlanCopyKey; action: string }[];
 
 const CHECKOUTABLE_PLAN_KEYS = new Set(['pro', 'team']);
 
@@ -156,6 +144,12 @@ export default function PlanComparisonPage() {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getPlanQuotaCopy(language);
+  const grille = getPricingPlanCopy(language);
+
+  const nomsDesOffres = new Intl.ListFormat(language === 'fr' ? 'fr' : 'en', { type: 'conjunction' }).format(
+    PLANS.map((plan) => grille[plan.grille].name),
+  );
+
   const actionData = useActionData<typeof action>() as PlanComparisonActionData | undefined;
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
@@ -166,12 +160,12 @@ export default function PlanComparisonPage() {
   return (
     <EnterpriseFormPage
       title={copy['planComparison.page.title']}
-      description={copy['planComparison.page.description']}
+      description={formatPlanQuotaCopy(copy['planComparison.page.description'], { plans: nomsDesOffres })}
       error={error}
     >
       <div className="grid min-w-0 gap-3 text-sm">
         {PLANS.map((plan) => {
-          const planName = copy[plan.nameKey];
+          const planName = grille[plan.grille].name;
           const isCurrentSubmission = submittingPlanKey === plan.backendKey;
 
           return (
@@ -187,7 +181,7 @@ export default function PlanComparisonPage() {
                 >
                   {planName}
                 </h2>
-                <p className="break-words text-bolt-elements-textSecondary">{copy[plan.summaryKey]}</p>
+                <p className="break-words text-bolt-elements-textSecondary">{grille[plan.grille].description}</p>
               </div>
               {plan.action === 'downgrade' ? (
                 <Link to="/downgrade" className={PLAN_ACTION_CLASS}>
@@ -219,7 +213,7 @@ export default function PlanComparisonPage() {
       {submittingPlan ? (
         <p role="status" className="sr-only">
           {formatPlanQuotaCopy(copy['planComparison.action.checkoutProgress'], {
-            plan: copy[submittingPlan.nameKey],
+            plan: grille[submittingPlan.grille].name,
           })}
         </p>
       ) : null}

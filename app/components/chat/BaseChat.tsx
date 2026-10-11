@@ -103,6 +103,7 @@ import {
   composerHandoffScope,
   peekPendingComposerInput,
   takePendingComposerInput,
+  takePendingComposerMode,
   useComposerHandoffLayoutEffect,
 } from './composer-handoff';
 import { devServerStatusText } from './dev-server-status';
@@ -161,8 +162,8 @@ import {
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
   revelerLeChampActif,
-  suivreHauteurDeRepos,
-  type HauteurDeRepos,
+  memoriserHauteurDeRepos,
+  retenirHauteurDeRepos,
 } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { PhraseAvecCode } from '~/components/ui/PhraseAvecCode';
@@ -2453,6 +2454,9 @@ interface BaseChatProps {
   data?: JSONValue[] | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
+
+  /** La coquille d'avant-chargement déclare chaque choix de mode au passe-plat (voir `composer-handoff.ts`). */
+  onProjectAgentExecutionModeChange?: (mode: string) => void;
   append?: (message: Message) => void;
   onRewindToMessage?: (messageId: string) => void;
   resetChat?: () => void;
@@ -2511,6 +2515,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       data,
       chatMode,
       setChatMode,
+      onProjectAgentExecutionModeChange,
       append,
       onRewindToMessage,
       resetChat,
@@ -3187,17 +3192,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
-      /*
-       * Référence du rétrécissement : la hauteur de mise en page AU REPOS.
-       * Safari iOS 26 rétrécit `innerHeight` avec le clavier (699 → 362, mesuré
-       * le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
-       */
-      let repos: HauteurDeRepos | undefined;
+      const libererHauteurDeRepos = retenirHauteurDeRepos();
 
       const updateVisualViewportHeight = () => {
         const vue = window.visualViewport;
 
-        repos = suivreHauteurDeRepos(repos, window.innerWidth, window.innerHeight);
+        /*
+         * Référence du rétrécissement : la hauteur de mise en page AU REPOS, mémorisée
+         * pour la PAGE (un rejeu de cet effet, clavier levé, ne la fait pas repartir de
+         * la hauteur rétrécie). Safari iOS 26 rétrécit `innerHeight` avec le clavier
+         * (699 → 362, mesuré le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
+         */
+        const repos = memoriserHauteurDeRepos(window.innerWidth, window.innerHeight);
 
         const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
@@ -3262,6 +3268,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.visualViewport?.addEventListener('scroll', updateVisualViewportHeight);
 
       return () => {
+        libererHauteurDeRepos();
         window.removeEventListener('resize', updateVisualViewportHeight);
         window.visualViewport?.removeEventListener('resize', updateVisualViewportHeight);
         window.visualViewport?.removeEventListener('scroll', updateVisualViewportHeight);
@@ -3837,6 +3844,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
+
+    /*
+     * Le mode choisi DANS LA COQUILLE d'avant-chargement survit à la bascule vers
+     * le vrai chat, comme la frappe. Mesuré le 01/10 à 390 (mémoire du projet
+     * retenue) : « Assistant » choisi dans la coquille redevenait « Agent » à la
+     * bascule, 3 fois sur 3, sans un mot — et le message suivant partait en mode
+     * Agent, qui modifie le projet, au lieu de répondre à une question. On rend
+     * l'affichage ET le `chatMode` envoyé avec la requête, sinon l'écran mentirait.
+     */
+    const modeHandoffDoneRef = useRef(false);
+
+    useComposerHandoffLayoutEffect(() => {
+      if (modeHandoffDoneRef.current) {
+        return;
+      }
+
+      modeHandoffDoneRef.current = true;
+
+      const handedOver = takePendingComposerMode(
+        composerHandoffScope(projectId, typeof window === 'undefined' ? undefined : window.location.pathname),
+      );
+
+      const entry = PROJECT_AGENT_EXECUTION_MODES.find((item) => item.id === handedOver);
+
+      if (!entry) {
+        return;
+      }
+
+      setProjectAgentExecutionMode(entry.id);
+      setChatMode?.(entry.chatMode);
+      onProjectAgentExecutionModeChange?.(entry.id);
+    }, [onProjectAgentExecutionModeChange, projectId, setChatMode]);
+
     const isAgentRunning = projectIdeMode && isStreaming;
     const stopAgentLabel = projectAgentStopLabel(provider?.name, model, language);
     const [projectAgentPanelOpen, setProjectAgentPanelOpen] = useState(true);
@@ -4019,12 +4059,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (
-          !shouldAutoApplyPatch({
-            autoApplyEnabled: projectAutoApply,
-            status: proposal.status,
-            enFlux: proposal.enFlux,
-            tronquee: proposal.tronquee,
-          })
+          /*
+           * La proposition ENTIÈRE : chaque marque qui interdit l'application
+           * automatique (`enFlux`, `tronquee`, `conflit`, `relueDeLaBase`…)
+           * arrive ainsi à la règle sans qu'on ait à penser à la recopier ici.
+           */
+          !shouldAutoApplyPatch({ ...proposal, autoApplyEnabled: projectAutoApply })
         ) {
           continue;
         }
@@ -8057,6 +8097,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   const executionEntry = PROJECT_AGENT_EXECUTION_MODES.find((entry) => entry.id === execution);
                   setProjectAgentExecutionMode(execution);
                   setChatMode?.(executionEntry?.chatMode ?? 'build');
+                  onProjectAgentExecutionModeChange?.(execution);
                 }}
                 placeholder={
                   projectIdeMode
@@ -13308,6 +13349,56 @@ function IdeTabBar({
    */
   const [dropSlot, setDropSlot] = useState<number | null>(null);
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const tabStripRef = useRef<HTMLDivElement | null>(null);
+
+  /*
+   * UIB-12 — l'onglet actif reste visible dans la bande, sur bureau.
+   *
+   * Mesuré le 2026-10-01 à 1440 : à partir du cinquième onglet ouvert depuis la
+   * barre d'outils, l'onglet ACTIF sortait de la bande (bord droit à 1205 px pour
+   * une bande finissant à 1076) et la bande restait défilée à 0 — on ouvrait un
+   * panneau sans voir son onglet. On défile juste assez pour le montrer. On règle
+   * `scrollLeft` de la bande, jamais `scrollIntoView` (qui ferait aussi défiler
+   * la page). À partir de 1024 px seulement : l'affichage mobile est gelé.
+   */
+  useEffect(() => {
+    const strip = tabStripRef.current;
+
+    if (!strip || !activeTabId || typeof window === 'undefined' || !window.matchMedia('(min-width: 1024px)').matches) {
+      return;
+    }
+
+    const tab = strip.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(activeTabId)}"]`);
+
+    if (!tab) {
+      return;
+    }
+
+    const stripBox = strip.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+    const style = window.getComputedStyle(strip);
+
+    // La bande a une marge intérieure (et un ajustement magnétique) : on la compte, sinon l'onglet reste rogné de 4 px.
+    const visibleRight = stripBox.right - (Number.parseFloat(style.paddingRight) || 0);
+    const visibleLeft = stripBox.left + (Number.parseFloat(style.paddingLeft) || 0);
+
+    const max = strip.scrollWidth - strip.clientWidth;
+
+    /*
+     * La bande a un ajustement magnétique (`scroll-snap-type: x`) : une position
+     * entre deux débuts d'onglet est ramenée au plus proche (mesuré : 295 au
+     * lieu de 303, onglet encore rogné). Les bords de la bande sont toujours des
+     * positions d'arrêt valides : près de la fin, on vise le bout.
+     */
+    if (tabBox.right > visibleRight) {
+      const target = strip.scrollLeft + Math.ceil(tabBox.right - visibleRight);
+      strip.scrollLeft = target >= max - 24 ? max : target;
+    } else if (tabBox.left < visibleLeft) {
+      const target = strip.scrollLeft - Math.ceil(visibleLeft - tabBox.left);
+      strip.scrollLeft = target <= 24 ? 0 : target;
+    }
+  }, [activeTabId, tabs.length]);
+
   const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
@@ -13700,6 +13791,7 @@ function IdeTabBar({
     <>
       <div className="bolt-project-tabbar" data-tools-panel-open={open ? 'true' : undefined}>
         <div
+          ref={tabStripRef}
           className="bolt-project-tabs"
           role="tablist"
           data-pane-strip={paneId}
