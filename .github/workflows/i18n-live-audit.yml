@@ -1,31 +1,16 @@
 name: French i18n live audit
 
 on:
-  # Cette porte fait tourner QUATRE crawls responsifs complets (~13 min chacun,
-  # 282 audits JSON et 564 captures par ecran). Sur une journee a 20 PR ouvertes
-  # elle sature les runners et devient le facteur limitant de toute livraison.
+  # Cette porte fait tourner QUATRE crawls responsifs complets. Elle ne mesure
+  # QUE du rendu : une PR qui ne touche ni le code applicatif, ni les styles, ni
+  # les catalogues n'a rien a lui apprendre.
   #
-  # Elle ne mesure QUE du rendu : traductions, contraste, debordement, cibles
-  # tactiles. Une PR qui ne touche ni le code applicatif, ni les styles, ni les
-  # catalogues n'a rien a lui apprendre.
-  #
-  # `paths-ignore` est SUR ici, contrairement au cas general : aucun des quatre
-  # shards n'est un controle REQUIS sur `main` (les trois requis sont
-  # « Install, test, build, scan », « Playwright local stack » et
-  # « Quality Gates »). Une porte non declenchee ne laissera donc jamais une PR
-  # bloquee en attente d'un statut qui ne viendra pas.
+  # Elle devient un controle REQUIS via le job « Audit français — verdict ».
+  # Un `paths-ignore` au niveau du declencheur laisserait alors une PR de
+  # documentation BLOQUEE pour toujours (statut attendu, jamais envoye). Le tri
+  # se fait donc dans le job `pertinence`, et le verdict repond TOUJOURS :
+  # « rien a auditer » vaut succes, un crawl rouge ou annule vaut echec.
   pull_request:
-    paths-ignore:
-      - '**/*.md'
-      - 'docs/**'
-      - 'infra/**'
-      - 'scripts/**'
-      - 'services/**'
-      - '.github/**'
-      - '**/*.spec.ts'
-      - '**/*.spec.tsx'
-      - '**/*.spec.mjs'
-      - '**/*.spec.js'
   workflow_dispatch:
 
 concurrency:
@@ -36,8 +21,34 @@ permissions:
   contents: read
 
 jobs:
+  pertinence:
+    name: Audit français — pertinence
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      auditer: ${{ steps.tri.outputs.auditer }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+      # Même liste que l'ancien `paths-ignore` : si TOUT ce que la PR touche
+      # y est, il n'y a rien à auditer. Lancement manuel : on audite toujours.
+      - id: tri
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then echo "auditer=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          git diff --name-only "$BASE" "$HEAD" > changes.txt
+          echo "fichiers touchés : $(wc -l < changes.txt)"
+          pertinents=$(grep -cvE '(\.md$|^docs/|^infra/|^scripts/|^services/|^\.github/|\.spec\.(ts|tsx|mjs|js)$)' changes.txt || true)
+          echo "fichiers qui comptent pour l'audit : $pertinents"
+          if [ "$pertinents" -gt 0 ]; then echo "auditer=true" >> "$GITHUB_OUTPUT"; else echo "auditer=false" >> "$GITHUB_OUTPUT"; fi
+
   live-audit:
     name: Playwright ${{ matrix.project }}
+    needs: pertinence
+    if: needs.pertinence.outputs.auditer == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     strategy:
@@ -314,3 +325,25 @@ jobs:
             /tmp/vibecore-i18n-dependencies-${{ matrix.project }}.log
           if-no-files-found: error
           retention-days: 14
+
+  verdict:
+    name: Audit français — verdict
+    needs: [pertinence, live-audit]
+    # `always()` : le verdict tombe même si un crawl échoue, est annulé, ou n'a
+    # pas lieu. C'est LUI le contrôle requis ; les quatre crawls restent des
+    # preuves détaillées.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verdict
+        env:
+          PERTINENCE: ${{ needs.pertinence.result }}
+          AUDITER: ${{ needs.pertinence.outputs.auditer }}
+          CRAWLS: ${{ needs.live-audit.result }}
+        run: |
+          echo "pertinence=$PERTINENCE auditer=$AUDITER crawls=$CRAWLS"
+          if [ "$PERTINENCE" != "success" ]; then echo "::error::le tri n'a pas abouti"; exit 1; fi
+          if [ "$AUDITER" != "true" ]; then echo "rien à auditer dans cette proposition"; exit 0; fi
+          if [ "$CRAWLS" != "success" ]; then echo "::error::audit des textes français : $CRAWLS"; exit 1; fi
+          echo "audit des textes français vert aux quatre largeurs"
