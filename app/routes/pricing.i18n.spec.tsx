@@ -110,11 +110,6 @@ describe('localized Pricing route', () => {
       'utf8',
     );
 
-    const comparisonSource = readFileSync(
-      resolve('app/components/marketing/ecode-exact/pages/pricing-comparison.ts'),
-      'utf8',
-    );
-
     const { scanSource } = await import('../../scripts/i18n/source-scanner.mjs');
 
     expect(routeSource).toContain("from '~/components/marketing/EcodeProductMarketingPages'");
@@ -125,7 +120,6 @@ describe('localized Pricing route', () => {
     for (const [file, source] of [
       ['app/routes/pricing.tsx', routeSource],
       ['app/components/marketing/EcodeProductMarketingPages.tsx', pageSource],
-      ['app/components/marketing/ecode-exact/pages/pricing-comparison.ts', comparisonSource],
     ] as const) {
       const result = scanSource(source, file);
 

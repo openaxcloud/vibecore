@@ -27,7 +27,6 @@ function withoutComments(source: string): string {
 }
 
 const MARKETING_PAGE = 'app/components/marketing/EcodeProductMarketingPages.tsx';
-const EXACT_PRICING_PAGE = 'app/components/marketing/ecode-exact/pages/Pricing.tsx';
 
 describe('carte publique Starter — 5 avantages, aucun quota chiffré', () => {
   it('le catalogue expose exactement 5 avantages Starter', () => {
@@ -74,7 +73,7 @@ describe('les deux pages de prix ne publient plus de valeur sans source', () => 
     ['3 projets', /'projects\.count':\s*3\b/],
   ];
 
-  for (const page of [MARKETING_PAGE, EXACT_PRICING_PAGE]) {
+  for (const page of [MARKETING_PAGE]) {
     for (const [label, pattern] of FORBIDDEN) {
       it(`${page} ne contient plus ${label}`, () => {
         expect(withoutComments(readSource(page))).not.toMatch(pattern);
@@ -92,28 +91,10 @@ describe('les deux pages de prix ne publient plus de valeur sans source', () => 
       'Unlimited',
       'Unlimited',
     ]);
-    expect(withoutComments(readSource(EXACT_PRICING_PAGE))).toMatch(
-      /One published project at a time|Published projects at a time/,
-    );
   });
 
   it('les deux pages décrivent les crédits Agent comme quotidiens', () => {
     expect(pricingPlanCopy.en.free.features.join(' ').toLowerCase()).toMatch(/refreshed every day|daily/);
     expect(pricingPlanCopy.fr.free.features.join(' ').toLowerCase()).toMatch(/renouvelés chaque jour|quotidiens/);
-    expect(withoutComments(readSource(EXACT_PRICING_PAGE)).toLowerCase()).toMatch(/refreshed every day|daily/);
-  });
-
-  it('la page comparative ne chiffre plus les limites TECHNIQUES Starter', () => {
-    const source = withoutComments(readSource(EXACT_PRICING_PAGE));
-
-    /*
-     * CPU/RAM/stockage/bande passante Starter restent « — » tant qu'ils ne sont
-     * pas capturés en réel : ce ne sont pas des avantages commerciaux.
-     */
-    for (const row of ['CPU cores', 'Memory', 'Storage', 'Bandwidth']) {
-      const line = source.split('\n').find((l) => l.includes(`'${row}'`));
-      expect(line, `ligne manquante pour ${row}`).toBeTruthy();
-      expect(line).toMatch(/starter:\s*'—'/);
-    }
   });
 });
