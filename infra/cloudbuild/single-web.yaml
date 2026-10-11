@@ -88,6 +88,34 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
       - .
 
+  # LE BUNDLE PRODUIT EST VÉRIFIÉ AVANT LA MOINDRE POUSSÉE.
+  #
+  # `--build-arg=VITE_RUNTIME_MODE` est passé juste au-dessus, mais rien ne
+  # prouvait jusqu'ici qu'il avait ATTEINT le bundle : un `ARG` non déclaré dans
+  # le Dockerfile, un cache de couche réutilisé, une faute de frappe dans la
+  # substitution — chacun rend une image d'apparence normale qui livre
+  # WebContainer. Le garde ouvre l'image et lit ce que le navigateur exécutera.
+  #
+  # Placé AVANT `push-image` : une image refusée ne doit jamais exister dans le
+  # registre, et surtout jamais porter `:latest`.
+  - id: verify-runtime-mode
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-web']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        # L'image se vérifie elle-même : son propre node lit son propre bundle.
+        # `cloud-builders/docker` n'embarque pas node, et tirer une image tierce
+        # ajouterait une dépendance réseau à une étape qui doit rester simple.
+        # `--entrypoint node` court-circuite le point d'entrée applicatif.
+        docker run --rm \
+          --entrypoint node \
+          -v /workspace/scripts:/garde:ro \
+          '${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}' \
+          /garde/verifier-mode-runtime-bundle.mjs /app/build/client
+
   # ---- sign image (B7) — see infra/cloudbuild/runtime-tier.yaml for rationale ----
   - id: fetch-cosign
     name: gcr.io/cloud-builders/docker
@@ -123,7 +151,7 @@ steps:
 
   - id: push-image
     name: gcr.io/cloud-builders/docker
-    waitFor: ['build-web']
+    waitFor: ['verify-runtime-mode']
     entrypoint: bash
     args:
       - -c

@@ -129,7 +129,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
 
                     setRevealedRowKey((current) => (current === rowKey ? undefined : rowKey));
                   }}
-                  tabIndex={-1}
+                  tabIndex={0}
                   className={classNames('bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg', {
                     'bolt-chat-message-row-user': isUserMessage,
                     'bolt-chat-message-row-assistant': !isUserMessage,

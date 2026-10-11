@@ -81,6 +81,62 @@ export function shouldReplayPendingPrompt(files: FileMap | undefined): boolean {
   return countWorkspaceFiles(files) <= 1;
 }
 
+/** Le prompt tel qu'il voyage dans `ProjectIdeState.chat`. */
+export interface PromptDeGeneration {
+  id: string;
+  prompt: string;
+  model?: string;
+  provider?: string;
+  createdAt: string;
+  aiFallback?: boolean;
+  aiFallbackReason?: string;
+}
+
+export interface PromptConsomme extends PromptDeGeneration {
+  clearedAt: string;
+  reason: 'generated' | 'skipped-existing-app';
+}
+
+/**
+ * Transforme un prompt en attente en prompt CONSOMMÉ, au lieu de le détruire.
+ *
+ * Deux effaceurs écrivaient `pendingPrompt: null` sans laisser de trace. Sur les
+ * 22 projets échoués mesurés en production le 2026-09-06, il était impossible de
+ * dire lequel était passé — ni même si un prompt avait jamais existé. `reason`
+ * répond au premier, `clearedAt` au second.
+ */
+export function consommerPrompt(
+  prompt: PromptDeGeneration,
+  reason: PromptConsomme['reason'],
+  maintenant: () => string = () => new Date().toISOString(),
+): PromptConsomme {
+  return { ...prompt, clearedAt: maintenant(), reason };
+}
+
+/**
+ * Le prompt d'origine, où qu'il se trouve.
+ *
+ * ORDRE VOULU : `pendingPrompt` d'abord — s'il est encore là, la génération n'a
+ * pas eu lieu et c'est lui qu'il faut rejouer. `consumedPrompt` ensuite : la
+ * génération a été tentée ou écartée, mais l'utilisateur peut vouloir relancer.
+ *
+ * Mesuré en production : sur 22 projets échoués, 12 portaient encore un
+ * `pendingPrompt`. Les brancher ici les débloque sans rien redemander.
+ */
+export function promptRecuperable(
+  chat:
+    | {
+        pendingPrompt?: PromptDeGeneration | null;
+        consumedPrompt?: PromptConsomme | null;
+      }
+    | undefined,
+): string | undefined {
+  const brut = chat?.pendingPrompt?.prompt ?? chat?.consumedPrompt?.prompt;
+  const prompt = brut?.trim();
+
+  return prompt ? prompt : undefined;
+}
+
 export type PendingPromptReplayDecision = 'defer' | 'replay' | 'skip';
 
 /**
@@ -129,9 +185,22 @@ export function extractGenerationPrompt(files: FileMap | undefined): string | un
     return undefined;
   }
 
+  /*
+   * ANCRAGE INDÉPENDANT DE LA LANGUE.
+   *
+   * Ce test cherchait `/This project was created from an AI prompt/i` — une
+   * phrase d'INTERFACE, donc traduite. Le README d'un utilisateur francophone dit
+   * « Ce projet a été créé à partir d'un prompt d'IA » : aucune correspondance,
+   * `undefined`, et le bouton de secours ne s'affichait jamais. Mesuré le
+   * 2026-09-06 sur la production d'un utilisateur francophone.
+   *
+   * Un mécanisme qui reconnaît du texte d'interface est cassé par la traduction,
+   * et la traduction ne prévient personne. On s'ancre donc sur la STRUCTURE — le
+   * délimiteur de section, qui n'est pas traduit — et sur le nom du fichier.
+   */
   const readme = Object.values(files).find(
     (entry): entry is Extract<NonNullable<FileMap[string]>, { type: 'file' }> =>
-      entry?.type === 'file' && /This project was created from an AI prompt/i.test(entry.content),
+      entry?.type === 'file' && entry.content.includes(PROMPT_SECTION_DELIMITER),
   );
 
   if (!readme) {

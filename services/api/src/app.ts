@@ -369,6 +369,7 @@ import {
   type ProjectFile,
   type ProjectStorage,
   type StoredArchive,
+  sonderEcritureStockage,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
@@ -9748,6 +9749,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       checks.redis = { status: 'unconfigured' };
     }
 
+    /*
+     * LE STOCKAGE PARTAGÉ, parce qu'une sonde qui ne l'écrit pas ne dit rien de
+     * la capacité à écrire.
+     *
+     * Mesuré le 2026-09-07 sur le banc : `mkdir` sur `_locks` en **errno -116
+     * (ESTALE)**, poignée NFS périmée sur UNE des deux répliques. Une création de
+     * projet sur deux rendait 500 — et `readyReplicas` disait 2/2, le compteur de
+     * redémarrages 0, `/health` `ok`, et ce `/ready` ne regardait que la base et
+     * Redis. La réplique est restée dans la rotation, en bonne santé apparente.
+     *
+     * La production a le MÊME montage : PVC `vibecore-shared-csi`, pilote
+     * `filestore.csi.storage.gke.io` (donc NFS), RWX, et
+     * `PROJECT_STORAGE_DIR=/data/vibecore/projects`. Rien n'aurait vu la même
+     * panne ici.
+     *
+     * SEUL un montage mort sort la réplique de la rotation (voir
+     * `CODES_MONTAGE_MORT`). Un délai dépassé ou un `ENOSPC` est signalé dans le
+     * corps mais ne dégrade pas : ces causes-là sont globales, et sortir TOUTES
+     * les répliques transformerait une dégradation en panne totale — y compris
+     * pour les routes qui ne touchent pas le stockage.
+     *
+     * Ce que cette sonde ne fait PAS : elle ne répare rien. Un redémarrage de
+     * conteneur réutilise le même montage ; seule la recréation du POD le
+     * rétablit. Elle arrête l'hémorragie et rend la panne visible — la remise en
+     * état reste un geste d'exploitation.
+     */
+    {
+      const verdict = await sonderEcritureStockage();
+
+      if (verdict.ok) {
+        checks.storage = { status: 'ok', latencyMs: verdict.latencyMs };
+      } else {
+        request.log.error(
+          { code: verdict.code, fatal: verdict.fatal, latencyMs: verdict.latencyMs },
+          'readiness storage probe failed',
+        );
+
+        checks.storage = {
+          status: 'down',
+          latencyMs: verdict.latencyMs,
+          detail: verdict.fatal ? `mount-dead:${verdict.code}` : `transient:${verdict.code}`,
+        };
+
+        if (verdict.fatal) {
+          degraded = true;
+        }
+      }
+    }
+
     if (degraded) {
       return reply.code(503).send({ status: 'degraded', checks, checkedAt: new Date().toISOString() });
     }
@@ -14234,7 +14284,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const agentSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
   const agentRetryDelay = (attempt: number) => 120 * attempt + Math.floor(Math.random() * 80);
 
-  const agentRequest = async <T = unknown>(workspaceId: string, path: string, init: RequestInit = {}) => {
+  /*
+   * `contexteRequete` sert UNIQUEMENT au démarrage déclenché par une lecture
+   * (voir `declencherDemarrageDepuisLecture`) : il porte l'utilisateur courant,
+   * dont dépend le jeton de stockage objet, et le journal de la requête. Il reste
+   * optionnel pour que les appelants internes (crons, réconciliation) continuent
+   * de fonctionner sans contexte — le démarrage part quand même, simplement sans
+   * identifiant d'utilisateur.
+   */
+  const agentRequest = async <T = unknown>(
+    workspaceId: string,
+    path: string,
+    init: RequestInit = {},
+    contexteRequete?: any,
+  ) => {
     const token = await agentToken(workspaceId);
     const headers = new Headers(init.headers);
     headers.set('authorization', `Bearer ${token}`);
@@ -14302,6 +14365,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * "starting" instead of a server error.
          */
         if (isWorkspaceDnsNotResolvedYet(error)) {
+          /*
+           * L'agent est injoignable sur une LECTURE : on demande le démarrage au
+           * lieu de rendre `425` en boucle sans que personne n'agisse. Réservé aux
+           * méthodes idempotentes — les écritures passent déjà par
+           * `agentMutateEnsuring`, qui ATTEND le démarrage au lieu de le
+           * déclencher en arrière-plan.
+           */
+          if (method === 'GET' || method === 'HEAD') {
+            declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
+          }
+
           throw Object.assign(new Error(appPublicEnglish('WORKSPACE_STARTING')), {
             statusCode: 425,
             code: 'WORKSPACE_NOT_STARTED',
@@ -14316,6 +14390,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * agent response so callers (and the local-runtime fallback) treat it as
          * agent-unavailable.
          */
+        /*
+         * Même raison : une connexion refusée sur une lecture veut dire « pod
+         * absent ou éteint », pas « fichier illisible ». Le pod ne se rallumera
+         * jamais tout seul si personne ne le demande.
+         */
+        if (method === 'GET' || method === 'HEAD') {
+          declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
+        }
+
         throw Object.assign(new Error(appPublicEnglish('WORKSPACE_AGENT_UNAVAILABLE')), {
           statusCode: 502,
           code: 'WORKSPACE_AGENT_REQUEST_FAILED',
@@ -14447,7 +14530,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
 
-    void managerRequest('/workspaces/start', {
+    /*
+     * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
+     *
+     * C'était `void managerRequest(...).catch(() => undefined)` : un manager
+     * injoignable, un secret désaccordé, un corps refusé — tout disparaissait
+     * sans une ligne de journal. L'utilisateur voyait un `425` éternel et les
+     * journaux ne disaient rien. C'est précisément ce qui a coûté une soirée de
+     * diagnostic le 2026-09-05.
+     *
+     * On garde le caractère NON BLOQUANT — la promesse n'est pas attendue ici,
+     * le sondage de `/health` observe l'arrivée du pod — mais on l'expose au
+     * retour pour que l'appelant qui veut connaître l'issue puisse l'attendre.
+     */
+    const demarrageDemande = managerRequest('/workspaces/start', {
       method: 'POST',
       body: JSON.stringify({
         namespace: runtimeNamespace(),
@@ -14467,13 +14563,118 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceId: authorized.workspaceId,
         }),
       }),
-    }).catch(() => undefined);
+    });
+
+    demarrageDemande.catch((error) => {
+      (request?.log ?? app.log)?.error(
+        { err: error, workspaceId: authorized.workspaceId, event: 'workspace.provision_request_failed' },
+        'la demande de demarrage au workspace-manager a echoue',
+      );
+    });
 
     await store
       .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' })
       .catch(() => undefined);
 
     emitLifecycle(authorized.workspaceId, 'STARTING', 'provision');
+
+    /*
+     * Rendu dans un OBJET, jamais comme promesse nue : les appelants existants
+     * font `await provisionWorkspaceOnDemand(...)` et doivent continuer à ne PAS
+     * bloquer sur le manager (`ensureWorkspaceReachable` sonde `/health` ensuite).
+     * Attendre `demarrageDemande` est un choix explicite de l'appelant.
+     */
+    return { demarrageDemande };
+  };
+
+  /*
+   * UNE LECTURE DÉCLENCHE LE PROVISIONNEMENT (BUG-RUNTIME-425-001).
+   *
+   * Jusqu'ici, seule l'ÉCRITURE (`ensureWorkspaceReachable`) démarrait un espace
+   * de travail. Une lecture sur un espace éteint constatait l'agent injoignable
+   * et rendait `425` — indéfiniment, parce que rien dans ce chemin ne demandait
+   * jamais de démarrage. Mesuré le 2026-09-05 sur le banc d'audit : 23 lectures,
+   * 24 réponses `425`, ZÉRO appel de démarrage en six heures. L'utilisateur
+   * voyait une plateforme figée sans que rien, côté serveur, ne le débloque.
+   *
+   * La lecture N'ATTEND PAS : elle rend toujours `425` immédiatement, avec le
+   * code que l'interface sait afficher (`PROJECT_FILE_WORKSPACE_STARTING`) et
+   * que le client réessaie (`#isRetryableProvisioningError`). Ce qui change,
+   * c'est qu'un démarrage part enfin en arrière-plan, donc le réessai suivant a
+   * une chance d'aboutir.
+   */
+  const demarragesDeclenchesParLecture = new Map<string, number>();
+
+  /*
+   * MISE EN COMMUN DES APPELS EN VOL.
+   *
+   * Une ouverture d'IDE émet des dizaines de lectures en rafale (mesuré : 95
+   * requêtes par ouverture, dont un pic à 47 en une seconde). Sans cette garde,
+   * chacune déclencherait son propre démarrage.
+   *
+   * Deux protections, parce qu'une seule ne suffit pas :
+   *  - la carte ci-dessus dédoublonne DANS UN POD ;
+   *  - le délai de garde couvre le cas où plusieurs répliques reçoivent la même
+   *    rafale — chacune ne déclenche qu'une fois par fenêtre.
+   * Et `/workspaces/start` est lui-même idempotent : rouvrir avec le même
+   * identifiant déterministe rend le pod existant au lieu d'en créer un second
+   * (vérifié en réel le 2026-09-05 — un espace au statut DELETED redémarre sur
+   * le même identifiant, pod prêt en 20 s, sans doublon).
+   */
+  const DELAI_ENTRE_DEUX_DECLENCHEMENTS_MS = 15_000;
+
+  const declencherDemarrageDepuisLecture = (request: any, workspaceId: string): void => {
+    const journal = request?.log ?? app.log;
+    const dernier = demarragesDeclenchesParLecture.get(workspaceId);
+
+    if (dernier !== undefined && Date.now() - dernier < DELAI_ENTRE_DEUX_DECLENCHEMENTS_MS) {
+      return;
+    }
+
+    demarragesDeclenchesParLecture.set(workspaceId, Date.now());
+
+    void (async () => {
+      const record = await store.getWorkspace(workspaceId);
+
+      if (!record) {
+        /*
+         * Code, pas de prose : cette erreur n'est jamais rendue à un utilisateur
+         * — elle est journalisée avec `workspaceId` en champ structuré, ce qui
+         * porte déjà toute l'information de diagnostic. Une phrase ici ferait
+         * régresser le scan de chaînes en dur sans rien apporter.
+         */
+        throw Object.assign(new Error(), { code: 'WORKSPACE_RECORD_MISSING', workspaceId });
+      }
+
+      const project = await store.getProject(record.projectId);
+
+      const { demarrageDemande } = await provisionWorkspaceOnDemand(request ?? {}, {
+        workspaceId,
+        projectId: record.projectId,
+        organizationId: project?.organizationId,
+      });
+
+      /*
+       * Ici on ATTEND : c'est ce qui distingue « le démarrage est parti » de
+       * « le démarrage a abouti ». Sans cette attente, la fenêtre de garde
+       * protégerait un échec pendant quinze secondes.
+       */
+      await demarrageDemande;
+    })().catch((error) => {
+      /*
+       * JAMAIS AVALÉ (BUG-RUNTIME-SILENCE-002). Ajouter un déclenchement dont
+       * l'échec disparaît dans un `catch` vide remplacerait un blocage
+       * silencieux par un autre : l'utilisateur verrait le même `425` éternel,
+       * et rien dans les journaux ne dirait pourquoi.
+       */
+      journal?.error(
+        { err: error, workspaceId, event: 'workspace.read_triggered_start_failed' },
+        'le demarrage declenche par une lecture a echoue',
+      );
+
+      // Réarmer : la fenêtre de garde ne doit jamais protéger un échec.
+      demarragesDeclenchesParLecture.delete(workspaceId);
+    });
   };
 
   // Ensure the workspace agent is reachable, provisioning + waiting if needed.
@@ -15931,7 +16132,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'snapshots.count') {
-      return store.countSnapshots(organizationId);
+      /*
+       * PER-PERIOD, comme `deployments.count` juste en dessous. Le comptage à vie
+       * transformait une allocation renouvelable en plafond définitif : 125
+       * organisations sur 303 étaient au plafond de 5 ou au-dessus, dont une à
+       * 3 451 instantanés — bloquées pour toujours, sans qu'aucune période ne
+       * rouvre quoi que ce soit.
+       */
+      const periodStart = await resolveUsagePeriodStart(organizationId);
+
+      return store.countSnapshots(organizationId, periodStart);
     }
 
     if (key === 'deployments.count') {
@@ -16320,7 +16530,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (toolName === 'list_files') {
-      const nodes = await agentRequest<AgentNode[]>(workspaceId, `/files/tree?path=${encodeURIComponent(path ?? '.')}`);
+      const nodes = await agentRequest<AgentNode[]>(
+        workspaceId,
+        `/files/tree?path=${encodeURIComponent(path ?? '.')}`,
+        {},
+        request,
+      );
       output = mapRuntimeNodes(nodes);
     } else if (toolName === 'read_file') {
       output = { path, content: await agentFileContent(workspaceId, path ?? '.') };
@@ -16346,7 +16561,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       output = { path, newPath, renamed: true, snapshotId };
     } else if (toolName === 'search_code') {
-      const nodes = await agentRequest<AgentNode[]>(workspaceId, '/files/tree');
+      const nodes = await agentRequest<AgentNode[]>(workspaceId, '/files/tree', {}, request);
       const query = input.query ?? '';
       const matches = [];
 
@@ -17199,7 +17414,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeSearchSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree', {}, request);
 
     const options = body.options ?? {};
     const resultLimit = options.resultLimit ?? 500;
@@ -17955,7 +18170,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/export', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree', {}, request);
     const zip = new JSZip();
 
     /*
@@ -21776,7 +21991,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+      const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree', {}, request);
 
       const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
         const basename = file.path.split('/').pop() ?? '';
@@ -28893,6 +29108,98 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/admin/projects', async (request) => {
     await requirePlatformAdmin(request);
     return { projects: await store.listAdminProjects() };
+  });
+
+  /*
+   * SUPPRESSION DÉFINITIVE D'UN PROJET PAR UN ADMINISTRATEUR DE PLATEFORME.
+   *
+   * POURQUOI ELLE EXISTE. `DELETE /projects/:projectId/permanent` fait déjà le
+   * bon travail — démontage des ressources externes, puis suppression de la
+   * ligne — mais elle exige une APPARTENANCE RÉELLE à l'organisation du projet
+   * (`requireOrg`). C'est juste pour un utilisateur, et impraticable pour le
+   * propriétaire de la plateforme : au 2026-09-07 la production porte 399
+   * projets répartis sur 277 organisations, dont 347 hors de la sienne.
+   *
+   * Sans cette route, la seule façon d'y arriver serait de FORGER une session
+   * par organisation. C'est exactement ce qu'on refuse : une opération
+   * destructive ne doit pas passer par la fabrication d'identifiants d'autrui,
+   * et la trace d'audit désignerait alors des utilisateurs qui n'ont rien fait.
+   * Ici l'administrateur agit sous SA propre identité, et l'audit le dit.
+   *
+   * CE QU'ELLE NE CHANGE PAS. Elle appelle le MÊME démontage et la MÊME
+   * suppression que la route utilisateur, dans le même ordre, avec la même trace
+   * d'audit portant le résultat du démontage — y compris ses échecs. Une seule
+   * chose diffère : le contrôle d'accès. Dupliquer la logique de destruction
+   * aurait créé deux chemins à maintenir, et c'est ainsi qu'on obtient un
+   * chemin qui oublie de démonter (AUDX-171).
+   *
+   * PAS DE SUPPRESSION EN LOT, volontairement. Un lot est une seule faute de
+   * frappe entre l'intention et 399 destructions irréversibles. L'appelant
+   * boucle ; chaque projet a sa requête, sa réponse et sa ligne d'audit.
+   */
+  app.delete('/admin/projects/:projectId', async (request, reply) => {
+    await requirePlatformAdmin(request);
+
+    const { projectId } = parse(projectParams, request.params);
+
+    /*
+     * `getProject` rend AUSSI les projets déjà supprimés en douceur — c'est
+     * `requireProject` qui filtre ensuite. On veut précisément les deux : un
+     * projet dans la corbeille garde ses ressources externes, et c'est celles-là
+     * qu'on vient démonter.
+     */
+    const project = await store.getProject(projectId);
+
+    if (!project) {
+      return reply.code(404).send({ error: appPublicEnglish('PROJECT_NOT_FOUND'), code: 'PROJECT_NOT_FOUND' });
+    }
+
+    /*
+     * Même garde de confirmation par le nom que la route utilisateur : quand le
+     * client en envoie une, elle doit correspondre. Une suppression d'admin porte
+     * plus loin, pas moins — la garde reste.
+     */
+    const confirmation = parse(projectDeleteConfirmSchema, request.body ?? {});
+
+    if (confirmation.confirmName !== undefined && confirmation.confirmName !== project.name) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
+        statusCode: 400,
+        code: 'PROJECT_NAME_MISMATCH',
+      });
+    }
+
+    const teardown = await teardownProjectExternalResources(
+      {
+        databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+      },
+      {
+        id: project.id,
+        organizationId: project.organizationId,
+        persistentVolumeClaim: project.persistentVolumeClaim,
+      },
+    );
+
+    await store.hardDeleteProject(project.id);
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.hard_delete',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: {
+        name: project.name,
+        byPlatformAdmin: true,
+        externalTeardown: { complete: teardown.complete, outcomes: teardown.outcomes },
+      },
+    });
+
+    /*
+     * Le démontage partiel est rendu à l'appelant, pas avalé : c'est ce qui
+     * permet de savoir QUELLE ressource est restée en place, au lieu de la
+     * découvrir des mois plus tard sur une facture.
+     */
+    return { deleted: true, teardown: { complete: teardown.complete, failed: teardown.failed } };
   });
 
   app.get('/admin/workspaces', async (request) => {

@@ -10,7 +10,30 @@ on:
 # required check for the production deploy gate and a cancelled run reads as "not
 # green" (see ci.yml for the full reasoning).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # GROUPE PAR COMMIT SUR `main`, par branche ailleurs.
+  #
+  # `cancel-in-progress: false` protège le run EN COURS, mais GitHub annule les
+  # runs EN ATTENTE d'un même groupe dès qu'un plus récent arrive. Avec un groupe
+  # commun à toutes les poussées sur `main`, une cadence soutenue évinçait les
+  # contrôles avant qu'ils ne démarrent : mesuré le 2026-09-06, le CI de
+  # b987b79e98 a été créé à 11:27 et annulé à 11:38 SANS AVOIR LANCÉ UN SEUL JOB.
+  #
+  # La porte de livraison lit un run annulé comme « non vert » et refuse le
+  # déploiement — trois déploiements refusés dans la journée sur des contrôles
+  # qui n'avaient pas échoué, seulement été évincés.
+  #
+  # Un groupe par SHA sur `main` supprime la file, donc l'éviction : chaque commit
+  # va au bout de ses contrôles et la porte peut trouver un SHA vert.
+  #
+  # CE QUE ÇA NE CHANGE PAS : sur les branches, le groupe reste par `ref` et
+  # `cancel-in-progress` reste vrai — une nouvelle poussée annule toujours la
+  # précédente, comme avant.
+  #
+  # PAS DE RISQUE DE CONTENTION : `runs-on: ubuntu-latest` donne une VM DÉDIÉE par
+  # job. Deux runs parallèles ne partagent aucun CPU. La seule contrainte commune
+  # est le plafond de jobs simultanés du compte, qui met en file sans évincer —
+  # les groupes étant distincts.
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:

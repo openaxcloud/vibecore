@@ -1,0 +1,36 @@
+[
+  {
+    "engine": "chromium-desktop",
+    "windowMs": 60000,
+    "archiveRequests": 2,
+    "archiveResponses": 2,
+    "decodedMiB": 10.14,
+    "requestOffsetsMs": [
+      6479,
+      6479
+    ],
+    "responseOffsetsMs": [
+      14439,
+      15759
+    ],
+    "dataCloneErrors": 0,
+    "consoleErrors": 0
+  },
+  {
+    "engine": "webkit-iphone",
+    "windowMs": 60000,
+    "archiveRequests": 2,
+    "archiveResponses": 2,
+    "decodedMiB": 10.14,
+    "requestOffsetsMs": [
+      5518,
+      5530
+    ],
+    "responseOffsetsMs": [
+      11873,
+      12560
+    ],
+    "dataCloneErrors": 0,
+    "consoleErrors": 0
+  }
+]

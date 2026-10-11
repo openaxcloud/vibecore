@@ -310,20 +310,27 @@ test.describe('panneau Agent en mobile — liste d’actions, pastille « descen
         await expect(pastille).toHaveCount(1, { timeout: 3_000 });
       }).toPass({ timeout: 30_000, intervals: [1_000] });
 
+      /*
+       * Mesuré jusqu'au CADRE VISIBLE de la zone de saisie, pas jusqu'au
+       * conteneur du composeur : le conteneur porte un rembourrage transparent
+       * (et payait un `gap` de flex pour une pile d'avis vide). Une première
+       * version mesurait 12 px « au conteneur » pendant que l'iPhone d'Avi en
+       * montrait 28 — la mesure ne visait pas ce que l'œil voit.
+       */
       const ecart = await pastille.evaluate((element) => {
-        const composer = document.querySelector('.bolt-project-agent-composer');
+        const chatbox = document.querySelector('.bolt-project-chatbox');
 
-        if (!composer) {
+        if (!chatbox) {
           return null;
         }
 
-        return composer.getBoundingClientRect().top - element.getBoundingClientRect().bottom;
+        return chatbox.getBoundingClientRect().top - element.getBoundingClientRect().bottom;
       });
 
-      // 63px mesurés avant : la pastille flottait au milieu du fil.
-      expect(ecart, 'composeur introuvable').not.toBeNull();
-      expect(ecart!, 'la pastille recouvre la zone de saisie').toBeGreaterThanOrEqual(0);
-      expect(ecart!, 'la pastille n’est pas juste au-dessus de la zone de saisie').toBeLessThanOrEqual(24);
+      // 63px mesurés avant le premier correctif, 28px visibles après : la pastille flottait au-dessus.
+      expect(ecart, 'zone de saisie introuvable').not.toBeNull();
+      expect(ecart!, 'la pastille recouvre la zone de saisie').toBeGreaterThanOrEqual(4);
+      expect(ecart!, 'la pastille n’est pas juste au-dessus de la zone de saisie').toBeLessThanOrEqual(14);
     });
   }
 });

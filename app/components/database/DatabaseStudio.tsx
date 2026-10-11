@@ -384,7 +384,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
     queryError && language.toLowerCase().startsWith('fr') ? copy['databaseStudio.safeQueryError'] : queryError;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="bolt-database-studio flex h-full min-h-0 flex-col gap-3">
       {/* Connection (Dev/Prod/external) selector */}
       <div className="flex items-center gap-2">
         <label className="text-[12px] text-bolt-elements-textSecondary">{copy['databaseStudio.connection']}</label>
@@ -410,9 +410,9 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
         </button>
       </div>
 
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+      <div className="bolt-database-studio-grid grid min-h-0 flex-1 gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
         {/* Table browser */}
-        <aside className="min-h-0 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2">
+        <aside className="bolt-database-studio-tables min-h-0 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2">
           <div className="mb-2 flex items-center gap-1.5 px-1 text-[12px] font-medium text-bolt-elements-textSecondary">
             <Table2 className="h-3.5 w-3.5" aria-hidden /> {copy['databaseStudio.tables']}
           </div>
@@ -460,7 +460,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
         </aside>
 
         {/* SQL runner + results */}
-        <section className="flex min-h-0 flex-col gap-2">
+        <section className="bolt-database-studio-main flex min-h-0 flex-col gap-2">
           <div className="flex flex-col gap-2">
             <textarea
               value={sql}
@@ -550,7 +550,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+          <div className="bolt-database-studio-results min-h-0 flex-1 overflow-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
             {visibleQueryError ? (
               <div className="p-3" role="alert">
                 <p className="text-[12px] font-medium text-[var(--status-error-text)]">

@@ -399,7 +399,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="bolt-database-workbench flex h-full min-h-0 flex-col">
       <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-bolt-elements-borderColor px-3 py-2 text-[13px] sm:px-4">
         <button
           type="button"
@@ -446,7 +446,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
         ))}
       </nav>
 
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="bolt-database-workbench-body min-h-0 flex-1 overflow-auto">
         {tab === 'overview' ? (
           <OverviewTab
             base={base}

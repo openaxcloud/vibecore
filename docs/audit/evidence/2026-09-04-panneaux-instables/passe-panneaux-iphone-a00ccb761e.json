@@ -1,0 +1,41 @@
+[
+  {
+    "panneau": "env",
+    "ok": true,
+    "ms": 5180,
+    "tFranchi": 4660,
+    "raison": "marqueur",
+    "len": 275,
+    "plancher": 148,
+    "api": 40,
+    "erreurs": 0,
+    "debordement": false,
+    "exemple": null
+  },
+  {
+    "panneau": "secrets",
+    "ok": true,
+    "ms": 5268,
+    "tFranchi": 4753,
+    "raison": "marqueur",
+    "len": 54,
+    "plancher": 130,
+    "api": 40,
+    "erreurs": 0,
+    "debordement": false,
+    "exemple": null
+  },
+  {
+    "panneau": "logs",
+    "ok": true,
+    "ms": 8408,
+    "tFranchi": 7888,
+    "raison": "marqueur",
+    "len": 352,
+    "plancher": 131,
+    "api": 42,
+    "erreurs": 0,
+    "debordement": false,
+    "exemple": null
+  }
+]

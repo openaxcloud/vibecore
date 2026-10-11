@@ -39,6 +39,7 @@ import {
 } from '~/lib/ide-panel-workflows';
 import { defaultProjectKeybindings, serializeKeybindingOverrides } from '~/lib/keybindings';
 import { buildProjectOverviewInsights } from '~/lib/project-overview';
+import { causeDu429 } from '~/lib/runtime/refus-429';
 import { generateSshKeyPair } from '~/lib/ssh-keygen.server';
 
 export type IdePanelStatus = 'ok' | 'empty' | 'error';
@@ -101,7 +102,8 @@ function panelEnvelope<T>(panel: string, project: unknown, data: T): IdePanelEnv
   };
 }
 
-function panelEnvelopeError(
+/** Exportée pour que le SITE D'APPEL soit tenu par un test, pas seulement la règle. */
+export function panelEnvelopeError(
   panel: string,
   project: unknown,
   error: unknown,
@@ -116,6 +118,19 @@ function panelEnvelopeError(
    * pas pu être chargées » — alors que la cause réelle est un QUOTA atteint, que
    * l'utilisateur peut corriger. La ligne `retryable` juste en dessous
    * reconnaissait pourtant déjà 429.
+   *
+   * MAIS L'ÉTIQUETTE NOMMAIT UNE CAUSE QU'ELLE N'AVAIT PAS VÉRIFIÉE. Donner une
+   * branche au 429 était juste ; l'appeler « quota » ne l'était pas. Derrière un
+   * 429 il y a deux causes, et elles ne demandent PAS la même chose :
+   *
+   *   - un refus de DÉBIT : trop de requêtes trop vite. Il faut ATTENDRE, et
+   *     l'action se rouvre d'elle-même en moins d'une minute.
+   *   - un refus de QUOTA : la limite du plan est atteinte. Il faut LIBÉRER de
+   *     la place, ou attendre la période suivante.
+   *
+   * Dire « libérez des ressources » à quelqu'un qui doit simplement patienter
+   * l'envoie chercher un problème qui n'existe pas. `causeDu429` tranche sur le
+   * reste du limiteur ; voir `app/lib/runtime/refus-429.ts`.
    */
   const code =
     status === 401
@@ -125,7 +140,9 @@ function panelEnvelopeError(
         : status === 404
           ? 'PANEL_NOT_FOUND'
           : status === 429
-            ? 'PANEL_QUOTA_EXCEEDED'
+            ? causeDu429((error as { headers?: Headers } | undefined)?.headers) === 'debit'
+              ? 'PANEL_RATE_LIMITED'
+              : 'PANEL_QUOTA_EXCEEDED'
             : status && status >= 500
               ? 'PANEL_BACKEND_UNAVAILABLE'
               : 'PANEL_REQUEST_FAILED';
@@ -139,11 +156,13 @@ function panelEnvelopeError(
         ? copy['apiRuntime.panel.forbidden']
         : code === 'PANEL_NOT_FOUND'
           ? copy['apiRuntime.panel.notFound']
-          : code === 'PANEL_QUOTA_EXCEEDED'
-            ? copy['apiRuntime.panel.quotaExceeded']
-            : code === 'PANEL_BACKEND_UNAVAILABLE'
-              ? copy['apiRuntime.panel.backendUnavailable']
-              : copy['apiRuntime.panel.loadFailed'];
+          : code === 'PANEL_RATE_LIMITED'
+            ? copy['apiRuntime.panel.rateLimited']
+            : code === 'PANEL_QUOTA_EXCEEDED'
+              ? copy['apiRuntime.panel.quotaExceeded']
+              : code === 'PANEL_BACKEND_UNAVAILABLE'
+                ? copy['apiRuntime.panel.backendUnavailable']
+                : copy['apiRuntime.panel.loadFailed'];
 
   console.error('IDE panel request failed:', { panel, status, error });
 
@@ -3410,13 +3429,23 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
           : status === 404
             ? copy['apiRuntime.panel.notFound']
             : status === 429
-              ? copy['apiRuntime.panel.quotaExceeded']
+              ? causeDu429((error as { headers?: Headers } | undefined)?.headers) === 'debit'
+                ? copy['apiRuntime.panel.rateLimited']
+                : copy['apiRuntime.panel.quotaExceeded']
               : status >= 500
                 ? copy['apiRuntime.panel.backendUnavailable']
                 : copy['apiRuntime.panel.loadFailed'];
 
     throw json(
-      { error: message, code: status === 429 ? 'PANEL_QUOTA_EXCEEDED' : 'PANEL_REQUEST_FAILED' },
+      {
+        error: message,
+        code:
+          status === 429
+            ? causeDu429((error as { headers?: Headers } | undefined)?.headers) === 'debit'
+              ? 'PANEL_RATE_LIMITED'
+              : 'PANEL_QUOTA_EXCEEDED'
+            : 'PANEL_REQUEST_FAILED',
+      },
       { status, headers: mergeLocaleHeaders(request) },
     );
   }

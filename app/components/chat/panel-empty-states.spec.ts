@@ -37,7 +37,7 @@ describe('UNIF-07 — états vides canoniques (lot D)', () => {
     expect(scss).not.toContain('bolt-project-tool-empty');
   });
 
-  it('la note bolt-project-empty-panel est réservée aux statuts/chargements (compte scellé à 11)', () => {
+  it('la note bolt-project-empty-panel est réservée aux statuts/chargements (compte scellé à 10)', () => {
     /*
      * Avant le lot D : 35 occurrences (chaque panneau vide avait sa note grise
      * alignée à gauche). Après : seules restent les notes de statut/erreur,
@@ -55,9 +55,14 @@ describe('UNIF-07 — états vides canoniques (lot D)', () => {
      * Le cliquet se resserre donc : deux notes ad hoc en moins, zéro ajoutée.
      * Le compte reste EXACT et non « au plus 11 » — c'est ce qui empêche une
      * nouvelle note de reprendre la place libérée.
+     *
+     * Resserré à 10 le 07/09 : le panneau Secrets a quitté BaseChat pour
+     * ProjectSecretsPanel.tsx (RP-SEC-01…08) et emporte sa note de statut
+     * (`{message && <div className="bolt-project-empty-panel">}`), remplacée
+     * là-bas par un paragraphe `bolt-secrets-message` sous `role="status"`.
      */
     const occurrences = baseChatCode.match(/bolt-project-empty-panel/g) ?? [];
-    expect(occurrences).toHaveLength(11);
+    expect(occurrences).toHaveLength(10);
   });
 
   it('BaseChat rend au moins 25 PanelEmptyState (listes vides canoniques)', () => {

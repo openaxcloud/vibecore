@@ -1,11 +1,111 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
 import { detectUserLanguage } from '~/lib/i18n/language';
+import { ArbitreDesLanes } from '~/lib/runtime/agent-lane-arbiter';
+import { decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('useMessageParser');
+
+/*
+ * L'ARBITRE DES ECRITURES ENTRE ROLES.
+ *
+ * Les sous-agents ecrivent maintenant leurs fichiers eux-memes, en parallele.
+ * Deux d'entre eux peuvent viser le meme chemin — la passerelle sait DETECTER
+ * ce cas (`detectFileOverlapConflicts`, contre-epreuve du 2026-09-07) mais pas
+ * l'arbitrer, et sa description ne porte que la cle minusculisee : on ne peut
+ * donc pas en deduire ou ecrire. L'arbitrage se fait ici, au site d'ecriture,
+ * sur les chemins d'origine.
+ */
+const ARBITRES_CONSERVES = 32;
+
+const arbitres = new Map<string, ArbitreDesLanes>();
+
+/*
+ * UN ARBITRE PAR MESSAGE, pas un pour la session.
+ *
+ * La preemption a besoin de l'etat des AUTRES lanes du meme message — c'est ce
+ * qui rend l'etat final independant de l'ordre d'arrivee. Mais un arbitre unique
+ * pour toute la session garderait les attributions de la generation precedente :
+ * le second prompt d'un utilisateur verrait ses ecritures refusees par des roles
+ * qui ont fini il y a dix minutes.
+ */
+function arbitreDe(messageId: string): ArbitreDesLanes {
+  const existant = arbitres.get(messageId);
+
+  if (existant) {
+    return existant;
+  }
+
+  const neuf = new ArbitreDesLanes();
+  arbitres.set(messageId, neuf);
+
+  /*
+   * Borne. Un fil de discussion long accumulerait un arbitre par message pour
+   * la duree de vie de la page. On garde les plus recents ; les plus anciens
+   * retombent a `undefined`, ce qui est exactement l'etat « aucune trace » que
+   * la lecture ci-dessus distingue de « rien ecrit ».
+   */
+  while (arbitres.size > ARBITRES_CONSERVES) {
+    const plusAncien = arbitres.keys().next();
+
+    if (plusAncien.done) {
+      break;
+    }
+
+    arbitres.delete(plusAncien.value);
+  }
+
+  return neuf;
+}
+
+/**
+ * Les chemins que les sous-agents ont reellement ecrits pour ce message.
+ *
+ * Ce sont les attributions de l'arbitre, donc des actions APPLIQUEES — pas une
+ * seconde declaration des roles, qui ne prouverait rien.
+ *
+ * `undefined` et `[]` ne veulent PAS dire la meme chose, et les confondre
+ * produit une fausse alerte :
+ *
+ *  - `[]` — on a arbitre ce message et rien n'a ete ecrit. C'est un ecart reel.
+ *  - `undefined` — on n'a AUCUNE trace de ce message. Au rechargement de la
+ *    page, l'historique se reaffiche alors que la carte des arbitres est vide :
+ *    sans cette distinction, chaque ancien message annoncerait « Livraison
+ *    incomplete » pour la totalite de ses fichiers, y compris ceux qui sont
+ *    bel et bien sur le disque. Un avertissement qui crie a tort sur
+ *    l'historique est pire que pas d'avertissement du tout.
+ */
+export function cheminsEcritsParLesLanes(messageId: string): string[] | undefined {
+  const arbitre = arbitres.get(messageId);
+
+  return arbitre ? [...arbitre.attributions().keys()] : undefined;
+}
+
+/**
+ * Une action de fichier venant d'une lane peut-elle s'appliquer ?
+ *
+ * Le flux du coordinateur n'est JAMAIS arbitre : `decoderLane` rend `undefined`
+ * pour un identifiant de message ordinaire, et on laisse passer. C'est ce qui
+ * garantit qu'un projet sans sous-agents se comporte exactement comme avant.
+ */
+function ecritureAutorisee(data: { messageId: string; action: { type: string; filePath?: string } }): boolean {
+  const lane = decoderLane(data.messageId);
+
+  if (!lane || data.action.type !== 'file' || !data.action.filePath) {
+    return true;
+  }
+
+  const decision = arbitreDe(lane.messageId).peutEcrire(data.action.filePath, lane.rang);
+
+  if (!decision.autorisee) {
+    logger.trace('ecriture refusee par arbitrage', data.action.filePath, lane.roleId);
+  }
+
+  return decision.autorisee;
+}
 
 const messageParser = new EnhancedStreamingMessageParser({
   language: detectUserLanguage,
@@ -17,12 +117,27 @@ const messageParser = new EnhancedStreamingMessageParser({
       workbenchStore.addArtifact(data);
     },
     onArtifactClose: (data) => {
-      logger.trace('onArtifactClose');
+      /*
+       * Deux fermetures possibles, et on les DISTINGUE dans le journal : une
+       * balise `</boltArtifact>` reçue, ou le filet de fin de flux. Sans cette
+       * distinction, la fréquence réelle des flux tronqués reste introuvable —
+       * et c'est le chiffre qui décide si le filet est un garde-fou ou une
+       * réparation majeure.
+       */
+      if (data.fermetureDeSecours) {
+        logger.warn('Artefact fermé par le filet de fin de flux (balise </boltArtifact> absente)', data.artifactId);
+      } else {
+        logger.trace('onArtifactClose');
+      }
 
       workbenchStore.updateArtifact(data, { closed: true });
     },
     onActionOpen: (data) => {
       logger.trace('onActionOpen', data.action);
+
+      if (!ecritureAutorisee(data)) {
+        return;
+      }
 
       /*
        * File actions are streamed, so we add them immediately to show progress
@@ -34,6 +149,10 @@ const messageParser = new EnhancedStreamingMessageParser({
     },
     onActionClose: (data) => {
       logger.trace('onActionClose', data.action);
+
+      if (!ecritureAutorisee(data)) {
+        return;
+      }
 
       /*
        * Add non-file actions (shell, build, start, etc.) when they close
@@ -47,6 +166,11 @@ const messageParser = new EnhancedStreamingMessageParser({
     },
     onActionStream: (data) => {
       logger.trace('onActionStream', data.action);
+
+      if (!ecritureAutorisee(data)) {
+        return;
+      }
+
       workbenchStore.runAction(data, true);
     },
   },
@@ -101,6 +225,68 @@ export function useMessageParser() {
            * code was using the global reset).
            */
           messageParser.resetMessage(message.id);
+        }
+
+        /*
+         * FILET DE FIN DE FLUX. `onArtifactClose` n'est émis que sur une balise
+         * `</boltArtifact>` trouvée — c'est l'UNIQUE site du dépôt qui pose
+         * `closed: true`, et il n'a aucun repli. Un flux tronqué par une limite
+         * de jetons, une erreur de fournisseur ou un abandon laisse donc
+         * l'artefact ouvert pour toujours, et TOUT ce qui pend à sa fermeture
+         * ne s'exécute jamais — à commencer par la persistance des fichiers
+         * vers le stockage durable : du code produit, affiché, et perdu.
+         *
+         * On ferme dès que ce message ne coule plus. `isLoading` retombe à faux
+         * aussi bien sur une fin normale que sur une erreur ou un abandon —
+         * c'est précisément le cas tronqué qu'on veut couvrir, et il ne passe
+         * pas par une fin propre.
+         *
+         * Idempotent : `fermerArtefactsOuverts` ne rend `true` que s'il restait
+         * réellement un artefact ouvert. Un message déjà clos par sa balise ne
+         * déclenche rien.
+         */
+        if (message.role === 'assistant' && !isLoading) {
+          messageParser.fermerArtefactsOuverts(message.id);
+        }
+
+        /*
+         * LES FICHIERS ECRITS PAR LES SOUS-AGENTS.
+         *
+         * Le contenu des lanes arrive par les annotations `agentLaneStream`, pas
+         * dans `message.content` — deux tuyaux voisins qui ne se touchent pas. Le
+         * parseur ne voyait donc JAMAIS ce que les roles produisaient.
+         *
+         * On lui donne le texte de chaque lane sous son PROPRE identifiant :
+         * `StreamingMessageParser` indexe son etat par message, donc quatre roles
+         * se parsent en parallele sans melanger leurs artefacts. Les ecritures
+         * passent ensuite par l'arbitre, qui tranche les chemins revendiques par
+         * plusieurs roles.
+         *
+         * Inerte pour un message sans annotation de lane : `textesDesLanes` rend
+         * une carte vide et rien ne s'execute.
+         */
+        if (message.role === 'assistant') {
+          for (const [roleId, texte] of textesDesLanes(message.annotations)) {
+            const idDeLane = identifiantDeLane(message.id, roleId);
+
+            try {
+              messageParser.parse(idDeLane, texte);
+            } catch (error) {
+              logger.error('Failed to parse sub-agent lane; skipping', roleId, error);
+              messageParser.resetMessage(idDeLane);
+              continue;
+            }
+
+            /*
+             * Meme filet de fin de flux que pour le coordinateur : une lane
+             * tronquee laisserait son artefact ouvert pour toujours, et tout ce
+             * qui pend a la fermeture — a commencer par la persistance vers le
+             * stockage durable — ne s'executerait jamais.
+             */
+            if (!isLoading) {
+              messageParser.fermerArtefactsOuverts(idDeLane);
+            }
+          }
         }
 
         setParsedMessages((prevParsed) => ({

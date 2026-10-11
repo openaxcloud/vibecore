@@ -101,6 +101,20 @@ describe('AssistantMessage i18n', () => {
 
     expect(screen.getByText('Agent')).toBeTruthy();
     expect(screen.getByText('User-owned content')).toBeTruthy();
+
+    /*
+     * Les actions ne sont plus posées en permanence sous le message : elles
+     * vivent dans le menu contextuel, ouvert par un appui long au doigt ou un
+     * clic droit à la souris. C'est la demande d'Avi, captures à l'appui —
+     * « pourquoi perdre tant de place dans les bubbles ».
+     *
+     * Ce test n'est PAS allégé : il vérifie toujours les mêmes libellés
+     * français, à la même exigence. Seul le chemin pour les atteindre change.
+     */
+    expect(screen.queryByRole('group', { name: 'Actions du message' }), 'aucune rangée permanente').toBeNull();
+
+    fireEvent.contextMenu(document.querySelector('[data-menu-contextuel="true"]')!, { clientX: 20, clientY: 20 });
+
     expect(screen.getByRole('group', { name: 'Actions du message' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Copier le message' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Marquer la réponse comme utile' })).toBeTruthy();
@@ -140,6 +154,8 @@ describe('AssistantMessage i18n', () => {
       </I18nextProvider>,
     );
 
+    /* Les actions vivent désormais dans le menu contextuel : on l'ouvre d'abord. */
+    fireEvent.contextMenu(document.querySelector('[data-menu-contextuel="true"]')!, { clientX: 20, clientY: 20 });
     fireEvent.click(screen.getByRole('button', { name: 'Copier le message' }));
 
     await waitFor(() => expect(toastMocks.error).toHaveBeenCalledWith('Impossible de copier le message.'));

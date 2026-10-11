@@ -5,6 +5,7 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import { horodatageMessageMonotone } from './horodatage-message.js';
 import {
   CLEARED_LOCKOUT,
   nextStateOnFailure,
@@ -2674,7 +2675,6 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
-
   async listActiveWorkspaces(organizationId: string) {
     return (
       await this.prisma.workspace.findMany({
@@ -2687,7 +2687,7 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapWorkspace);
   }
 
-  async countSnapshots(organizationId: string) {
+  async countSnapshots(organizationId: string, since?: Date) {
     /*
      * Exclude system-generated 'before-ai-change' snapshots from the user's
      * snapshots.count quota. They are created automatically on every AI
@@ -2696,8 +2696,17 @@ export class PrismaApiStore implements ApiStore {
      * manual snapshot endpoint even though they took no manual snapshots
      * (self-lockout). The quota governs user-initiated snapshots only.
      */
+    /*
+     * `since` borne le compte à la période d'usage courante. Sans lui, le total
+     * était monotone et finissait par fermer définitivement le retour arrière —
+     * exactement le piège décrit sur `countDeployments` juste en dessous.
+     */
     return this.prisma.projectSnapshot.count({
-      where: { project: { organizationId, deletedAt: null }, kind: { not: 'before-ai-change' } },
+      where: {
+        project: { organizationId, deletedAt: null },
+        kind: { not: 'before-ai-change' },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
     });
   }
 
@@ -4767,11 +4776,19 @@ export class PrismaApiStore implements ApiStore {
     role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
   }) {
+    /*
+     * Instant STRICTEMENT croissant d'un message au suivant : voir
+     * horodatage-message.ts. Sans lui, question et réponse d'un même tour (ou
+     * une transcription synchronisée en rafale) partagent la milliseconde et
+     * reviennent dans un ordre indéfini au rechargement.
+     */
+    const createdAt = horodatageMessageMonotone();
+
     if (input.id) {
       return mapAiMessage(
         await this.prisma.aiMessage.upsert({
           where: { id: input.id },
-          create: input,
+          create: { ...input, createdAt },
           update: {
             role: input.role,
             content: input.content,
@@ -4780,7 +4797,7 @@ export class PrismaApiStore implements ApiStore {
       );
     }
 
-    return mapAiMessage(await this.prisma.aiMessage.create({ data: input }));
+    return mapAiMessage(await this.prisma.aiMessage.create({ data: { ...input, createdAt } }));
   }
 
   async listAiMessages(conversationId: string) {
@@ -4793,7 +4810,12 @@ export class PrismaApiStore implements ApiStore {
 
     const rows = await this.prisma.aiMessage.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'desc' },
+
+      /*
+       * `id` départage deux instants égaux : l'ordre reste alors DÉTERMINISTE
+       * d'une lecture à l'autre, quel que soit le plan choisi par Postgres.
+       */
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: MAX_AI_MESSAGES,
     });
 

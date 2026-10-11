@@ -1,0 +1,43 @@
+{
+ "ok": true,
+ "info": {
+  "cls": "w-full h-auto",
+  "sh": 1432,
+  "ch": 469
+ },
+ "position": "sticky",
+ "bottom": "94px",
+ "mis": "163px",
+ "mie": "163px",
+ "z": "20",
+ "rect": {
+  "x": 173,
+  "y": 393,
+  "w": 44,
+  "h": 44
+ },
+ "vw": 390,
+ "vh": 664,
+ "vars": {
+  "composer": "133px",
+  "nav": "72px"
+ },
+ "underPill": {
+  "t": 100,
+  "n": 100,
+  "pct": 100,
+  "s": [
+   "Réponse 4. Le composant lit la valeur puis l",
+   "Réponse 4. Le composant lit la valeur puis l"
+  ]
+ },
+ "counterWitness": {
+  "t": 132,
+  "n": 18,
+  "pct": 14,
+  "s": [
+   "Agent",
+   "Agent"
+  ]
+ }
+}

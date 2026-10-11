@@ -241,3 +241,38 @@ elle ne conclut pas. Ouvrir le fichier reste obligatoire.
 l'IDE jamais restauré, panneaux incomplets par intermittence. Il appartient à la
 session Agent, qui instruit une piste voisine sur `useChatHistory` /
 `chatMetadata`. Non traité ici.
+
+---
+
+## 2026-09-05 — CLÔTURE : il n'y avait pas de panneau cassé, il y avait un observateur trop pressé
+
+Le sujet ouvert le 2026-09-01 — « quatre panneaux perdent 94 à 97 % de leur
+contenu entre deux chargements identiques » — est **clos comme NON-DÉFAUT**.
+Cette formulation a été relayée plusieurs fois ; elle était fausse.
+
+**Ce qui se passait.** L'instrument attendait l'apparition de la COQUE
+(`[data-testid="ide-service-panel"]`) puis lisait le texte. Or la coque paraît
+plusieurs secondes avant le contenu. Sur le MÊME chargement du MÊME panneau :
+`integrations` passe de 91 à 3 055 caractères entre 1,5 s et 3 s, `overview` de
+83 à 1 063 entre 3 s et 6 s. Lire tôt donne **97 %** et **92 %** de « perte » —
+exactement la magnitude rapportée. Le plancher de 83-91 caractères était
+PARTAGÉ par des panneaux au contenu sans rapport : un état commun de
+chargement, pas trois pannes distinctes. La capture à 900 ms montre un rouet et
+« Loading overview… ».
+
+**Passe complète du 2026-09-05**, production `a00ccb761e`, iPhone 13, 12 s entre
+chargements, page neuve par panneau, attente de la STABILISATION DU CONTENU :
+
+> **9 panneaux sur 9 rendent leur contenu. 0 erreur console. 0 débordement.**
+
+`logs` 3,7 s · `env` 4,4 s · `extensions` 4,6 s · `secrets` 4,8 s ·
+`collaborators` 4,8 s · `settings` 5,3 s · `integrations` 8,7 s ·
+`overview` 9,2 s · `packages` 9,2 s.
+
+Chiffres et méthode : `docs/audit/evidence/2026-09-05-reference/`.
+
+**La leçon, plus large que ce tableau** : attendre la coque n'est pas attendre
+le contenu, et un panneau lent est indiscernable d'un panneau vide pour qui
+mesure trop tôt. Trois faux échecs supplémentaires ont été produits par le
+détecteur AVANT qu'il fonctionne — voir les entrées 22 à 25 du registre des
+faux négatifs.

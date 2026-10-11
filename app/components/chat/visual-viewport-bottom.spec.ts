@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { recouvrementBasDuNavigateur } from './visual-viewport-bottom';
+import { clavierProbablementOuvert, recouvrementBasDuNavigateur, SEUIL_CLAVIER_PX } from './visual-viewport-bottom';
 
 /*
  * La fonction est IMPORTÉE du module que le composant utilise. Une première
@@ -28,5 +28,19 @@ describe('recouvrement bas du navigateur', () => {
 
   it('vaut zéro sans `visualViewport` — on ne réserve pas ce qu’on ne sait pas mesurer', () => {
     expect(recouvrementBasDuNavigateur(852, undefined)).toBe(0);
+  });
+});
+
+describe('clavier probablement ouvert', () => {
+  it('la barre Safari seule (44 à 84 px) n’est pas un clavier', () => {
+    expect(clavierProbablementOuvert(0)).toBe(false);
+    expect(clavierProbablementOuvert(44)).toBe(false);
+    expect(clavierProbablementOuvert(84)).toBe(false);
+  });
+
+  it('un clavier iPhone (260 à 340 px) l’est, dès le seuil', () => {
+    expect(clavierProbablementOuvert(SEUIL_CLAVIER_PX)).toBe(true);
+    expect(clavierProbablementOuvert(260)).toBe(true);
+    expect(clavierProbablementOuvert(340)).toBe(true);
   });
 });

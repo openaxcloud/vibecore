@@ -23,13 +23,19 @@ import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { chatMetadata, description, useChatHistory } from '~/lib/persistence';
-import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import { getProjectIdeMemory, saveProjectIdeMemory, type ProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { countWorkspaceFiles, decidePendingPromptReplay, resolvePendingPrompt } from '~/lib/runtime/pending-generation';
+import {
+  consommerPrompt,
+  countWorkspaceFiles,
+  decidePendingPromptReplay,
+  promptRecuperable,
+  resolvePendingPrompt,
+} from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
 import {
   DEFAULT_MODEL,
@@ -441,6 +447,19 @@ export const ChatImpl = memo(
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
 
+    /*
+     * GÉNÉRATION DU FIL — incrémentée à chaque « Effacer l'historique ».
+     *
+     * La synchronisation de la transcription attend `ensureProjectAiConversation`.
+     * Si le fil est effacé PENDANT cette attente, l'identifiant rendu est celui
+     * de la conversation NEUVE — et l'ancien fil s'y écrivait. Mesuré le 06/09
+     * (sonde probe-clear.mjs, effacement juste après l'affichage) : quatre
+     * messages `PUT` dans la conversation neuve, puis quatre messages à l'écran
+     * au rechargement. Un instantané pris sous une génération antérieure ne se
+     * synchronise plus.
+     */
+    const generationDuFilRef = useRef(0);
+
     const backendAiConversationIdRef = useRef<string | undefined>(
       projectIdeMode ? chatMetadata.get()?.aiConversationId : undefined,
     );
@@ -452,7 +471,20 @@ export const ChatImpl = memo(
      * file; a failed/empty/errored attempt keeps it so generation retries on the
      * next open instead of leaving the project stuck with just its seeded README.
      */
-    const pendingGenerationRef = useRef<{ promptId: string; baselineFileCount: number } | null>(null);
+    /*
+     * LE PROMPT RÉCUPÉRABLE, tel qu'il vit vraiment dans `ProjectIdeState.chat`.
+     *
+     * Alimente le bouton « Générer l'application ». Sans lui, ce bouton cherchait
+     * le prompt dans le README — d'où BUG-QA-PROMPT-IN-README l'a retiré — et ne
+     * pouvait donc plus s'afficher pour aucun projet récent.
+     */
+    const [promptDeSecours, setPromptDeSecours] = useState<string | undefined>(undefined);
+
+    const pendingGenerationRef = useRef<{
+      promptId: string;
+      pendingPrompt: NonNullable<NonNullable<ProjectIdeMemory['chat']>['pendingPrompt']>;
+      baselineFileCount: number;
+    } | null>(null);
 
     const ensureProjectAiConversation = useCallback(async () => {
       if (!projectIdeMode || !projectId) {
@@ -501,7 +533,7 @@ export const ChatImpl = memo(
     }, [astCopy, copy, description, projectId, projectIdeMode]);
 
     const syncProjectAiTranscript = useCallback(
-      async (nextMessages: Message[]) => {
+      async (nextMessages: Message[], generation = generationDuFilRef.current) => {
         if (!projectIdeMode || !projectId || nextMessages.length === 0) {
           return;
         }
@@ -515,7 +547,7 @@ export const ChatImpl = memo(
         try {
           const conversationId = await ensureProjectAiConversation();
 
-          if (!conversationId) {
+          if (!conversationId || generation !== generationDuFilRef.current) {
             return;
           }
 
@@ -555,9 +587,10 @@ export const ChatImpl = memo(
         const drainPendingSaves = async () => {
           while (pendingPersistRef.current) {
             const snapshot = pendingPersistRef.current;
+            const generation = generationDuFilRef.current;
             pendingPersistRef.current = null;
             await storeMessageHistory(snapshot);
-            void syncProjectAiTranscript(snapshot);
+            void syncProjectAiTranscript(snapshot, generation);
           }
         };
 
@@ -795,7 +828,16 @@ export const ChatImpl = memo(
             });
 
             if (resolution === 'clear') {
-              void saveProjectIdeMemory(projectId, { chat: { pendingPrompt: null } });
+              /*
+               * DÉPLACÉ, PAS DÉTRUIT. Le prompt reste récupérable et l'effacement
+               * devient traçable — voir `consumedPrompt` dans projectIdeMemory.
+               */
+              void saveProjectIdeMemory(projectId, {
+                chat: {
+                  pendingPrompt: null,
+                  consumedPrompt: consommerPrompt(generation.pendingPrompt, 'generated'),
+                },
+              });
             }
           }, 1500);
         }
@@ -1008,17 +1050,21 @@ export const ChatImpl = memo(
      * la transcription n'est pas encore là. C'est le défaut que ce correctif
      * répare, reproduit dans le correctif lui-même.
      */
+    const transcriptionAdoptee = useRef<Message[] | null>(null);
+
     useEffect(() => {
       if (
         !fautIlAdopterLaTranscriptionRestauree({
           modeProjet: projectIdeMode,
           messagesRestaures: initialMessages.length,
           messagesAffiches: messages.length,
+          dejaAdoptee: transcriptionAdoptee.current === initialMessages,
         })
       ) {
         return;
       }
 
+      transcriptionAdoptee.current = initialMessages;
       setMessages(initialMessages);
       latestMessagesRef.current = initialMessages;
       setChatStarted(true);
@@ -1363,6 +1409,8 @@ export const ChatImpl = memo(
             return;
           }
 
+          setPromptDeSecours(promptRecuperable(memory.chat));
+
           const pendingPrompt = memory.chat?.pendingPrompt;
           const prompt = pendingPrompt?.prompt?.trim();
 
@@ -1396,7 +1444,22 @@ export const ChatImpl = memo(
 
           if (replayDecision === 'skip') {
             submittedProjectPromptRef.current = promptKey;
-            void saveProjectIdeMemory(projectId, { chat: { pendingPrompt: null } }).catch((error) => {
+
+            /*
+             * DÉPLACÉ, PAS DÉTRUIT — et journalisé. C'est cette branche qu'on
+             * soupçonnait sur le projet d'Avi sans pouvoir le prouver : elle
+             * écrivait `null` en silence, indiscernable d'un prompt jamais écrit.
+             */
+            logger.info('pending prompt consumed without replay (app already present)', {
+              projectId,
+              promptId: pendingPrompt.id,
+            });
+            void saveProjectIdeMemory(projectId, {
+              chat: {
+                pendingPrompt: null,
+                consumedPrompt: consommerPrompt(pendingPrompt, 'skipped-existing-app'),
+              },
+            }).catch((error) => {
               logger.warn('failed to clear stale pending prompt', { projectId, error });
             });
 
@@ -1430,6 +1493,14 @@ export const ChatImpl = memo(
            */
           pendingGenerationRef.current = {
             promptId: pendingPrompt.id,
+
+            /*
+             * On garde le prompt LUI-MÊME, pas seulement son identifiant : au
+             * moment de la consommation (1,5 s plus tard) la mémoire a pu être
+             * rechargée, et relire `pendingPrompt` depuis le serveur ferait
+             * perdre exactement ce qu'on cherche à conserver.
+             */
+            pendingPrompt,
             baselineFileCount: countWorkspaceFiles(workbenchStore.files.get()),
           };
 
@@ -2046,6 +2117,7 @@ export const ChatImpl = memo(
         showChat={showChat}
         chatStarted={forceWorkbench || chatStarted}
         projectIdeMode={projectIdeMode}
+        promptDeSecours={promptDeSecours}
         projectId={projectId}
         projectUrl={projectUrl}
         initialIdePanels={initialIdePanels}
@@ -2151,7 +2223,14 @@ export const ChatImpl = memo(
               .catch((error) => console.error('Failed to archive project conversation', error));
           }
 
+          /*
+           * La transcription restaurée ne doit pas revenir : l'effet d'adoption
+           * la réinjectait dans le fil vidé (voir `fautIlAdopterLaTranscriptionRestauree`).
+           */
+          transcriptionAdoptee.current = initialMessages;
+          generationDuFilRef.current += 1;
           setMessages([]);
+          latestMessagesRef.current = [];
           backendAiConversationIdRef.current = undefined;
 
           if (projectIdeMode && projectId) {
@@ -2167,13 +2246,42 @@ export const ChatImpl = memo(
                 },
               });
             }
+
+            /*
+             * OUVRIR UNE CONVERSATION NEUVE, tout de suite.
+             *
+             * Créée à la demande au premier envoi, la conversation « suivante »
+             * n'existe pas encore au rechargement : le repli serveur
+             * (`completerFilSiVide`, `?limit=1`) retrouve alors la DERNIÈRE
+             * conversation — celle qu'on vient d'effacer — et le fil revient.
+             * Avi, 06/09 : « quand j'efface l'historique ça ouvre pas une
+             * nouvelle conversation ». La créer ici fait d'elle la plus
+             * récente ; l'ancienne reste dans l'historique des branches.
+             */
+            pendingPersistRef.current = null;
+
+            /*
+             * Le fil vide est écrit APRÈS la conversation neuve : il porte
+             * l'identifiant courant, et c'est celui-là qui doit être le neuf
+             * — dans la mémoire de projet comme dans IndexedDB.
+             */
+            ensureProjectAiConversation()
+              .catch((error) => {
+                logStore.logError('Failed to open a fresh project AI conversation', error);
+              })
+              .then(() => persistMessageHistory([]))
+              .catch((error) => {
+                logger.error('Failed to reset chat history', error);
+                toast.error(copy['chatClient.history.resetFailed']);
+              });
+          } else {
+            pendingPersistRef.current = null;
+            persistMessageHistory([]).catch((error) => {
+              logger.error('Failed to reset chat history', error);
+              toast.error(copy['chatClient.history.resetFailed']);
+            });
           }
 
-          pendingPersistRef.current = null;
-          persistMessageHistory([]).catch((error) => {
-            logger.error('Failed to reset chat history', error);
-            toast.error(copy['chatClient.history.resetFailed']);
-          });
           setInput('');
           setData(undefined);
         }}

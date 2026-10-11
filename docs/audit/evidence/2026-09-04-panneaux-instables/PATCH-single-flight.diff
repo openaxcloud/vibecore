@@ -1,0 +1,374 @@
+diff --git a/app/lib/ide/single-flight.spec.ts b/app/lib/ide/single-flight.spec.ts
+new file mode 100644
+index 000000000..e278e658a
+--- /dev/null
++++ b/app/lib/ide/single-flight.spec.ts
+@@ -0,0 +1,144 @@
++import { describe, expect, it, vi } from 'vitest';
++import { createSingleFlight } from './single-flight';
++
++const deferred = <T>() => {
++  let resolve!: (v: T) => void;
++  let reject!: (e: unknown) => void;
++  const promise = new Promise<T>((res, rej) => {
++    resolve = res;
++    reject = rej;
++  });
++
++  return { promise, resolve, reject };
++};
++
++describe('createSingleFlight', () => {
++  it('runs the work ONCE for callers that arrive while it is in flight', async () => {
++    const flight = createSingleFlight<string>();
++    const d = deferred<string>();
++    const fn = vi.fn(() => d.promise);
++
++    const a = flight.run('k', fn);
++    const b = flight.run('k', fn);
++    const c = flight.run('k', fn);
++
++    expect(fn).toHaveBeenCalledTimes(1);
++
++    d.resolve('value');
++    await expect(Promise.all([a, b, c])).resolves.toEqual(['value', 'value', 'value']);
++  });
++
++  it('is the exact race that downloaded the project archive twice', async () => {
++    /*
++     * The measured shape: the intended hydration starts, and 14 ms later the
++     * fallback starts because it sees no files yet — while the first is still
++     * in flight. Both fetched 5.07 MiB. One call must survive, not two.
++     */
++    const flight = createSingleFlight<boolean>();
++    const d = deferred<boolean>();
++    const downloadArchive = vi.fn(() => d.promise);
++
++    const hydration = flight.run('project-1', downloadArchive);
++    const fallback = flight.run('project-1', downloadArchive);
++
++    expect(downloadArchive).toHaveBeenCalledTimes(1);
++
++    d.resolve(true);
++    await expect(hydration).resolves.toBe(true);
++    await expect(fallback).resolves.toBe(true);
++  });
++
++  it('keeps different keys independent', async () => {
++    const flight = createSingleFlight<string>();
++    const fn = vi.fn(async (v: string) => v);
++
++    await Promise.all([flight.run('a', () => fn('a')), flight.run('b', () => fn('b'))]);
++    expect(fn).toHaveBeenCalledTimes(2);
++  });
++
++  it('runs again once the previous call has SETTLED (it is not a cache)', async () => {
++    const flight = createSingleFlight<string>();
++    const fn = vi.fn(async () => 'v');
++
++    await flight.run('k', fn);
++    await flight.run('k', fn);
++
++    expect(fn).toHaveBeenCalledTimes(2);
++    expect(flight.size).toBe(0);
++  });
++
++  it('gives every waiter the same rejection, and does not wedge the key', async () => {
++    const flight = createSingleFlight<string>();
++    const d = deferred<string>();
++    const boom = new Error('nope');
++    const fn = vi.fn(() => d.promise);
++
++    const a = flight.run('k', fn);
++    const b = flight.run('k', fn);
++    d.reject(boom);
++
++    await expect(a).rejects.toBe(boom);
++    await expect(b).rejects.toBe(boom);
++
++    // A wedged key would make the resource permanently unfetchable — worse than
++    // the duplication this fixes.
++    expect(flight.size).toBe(0);
++    await expect(flight.run('k', async () => 'recovered')).resolves.toBe('recovered');
++  });
++
++  it('surfaces a SYNCHRONOUS throw as a rejection and leaves nothing in flight', async () => {
++    const flight = createSingleFlight<string>();
++    await expect(
++      flight.run('k', () => {
++        throw new Error('sync');
++      }),
++    ).rejects.toThrow('sync');
++    expect(flight.size).toBe(0);
++  });
++});
++
++describe('createSingleFlight cooldown (secondary guard)', () => {
++  it('returns the previous SUCCESS without redoing the work, inside the window', async () => {
++    let clock = 1000;
++    const flight = createSingleFlight<string>({ cooldownMs: 5000, now: () => clock });
++    const fn = vi.fn(async () => 'v');
++
++    expect(await flight.run('k', fn)).toBe('v');
++    clock += 4999;
++    expect(await flight.run('k', fn)).toBe('v');
++    expect(fn).toHaveBeenCalledTimes(1);
++  });
++
++  it('works again once the window has passed', async () => {
++    let clock = 1000;
++    const flight = createSingleFlight<string>({ cooldownMs: 5000, now: () => clock });
++    const fn = vi.fn(async () => 'v');
++
++    await flight.run('k', fn);
++    clock += 5001;
++    await flight.run('k', fn);
++    expect(fn).toHaveBeenCalledTimes(2);
++  });
++
++  it('never remembers a FAILURE (that was BUG-PANEL-CACHE-003)', async () => {
++    let clock = 1000;
++    const flight = createSingleFlight<string>({ cooldownMs: 5000, now: () => clock });
++    const fn = vi
++      .fn()
++      .mockRejectedValueOnce(new Error('boom'))
++      .mockResolvedValueOnce('recovered');
++
++    await expect(flight.run('k', fn as () => Promise<string>)).rejects.toThrow('boom');
++    clock += 10;
++    await expect(flight.run('k', fn as () => Promise<string>)).resolves.toBe('recovered');
++    expect(fn).toHaveBeenCalledTimes(2);
++  });
++
++  it('is inert when no cooldown is configured (default behaviour unchanged)', async () => {
++    const flight = createSingleFlight<string>();
++    const fn = vi.fn(async () => 'v');
++    await flight.run('k', fn);
++    await flight.run('k', fn);
++    expect(fn).toHaveBeenCalledTimes(2);
++  });
++});
+diff --git a/app/lib/ide/single-flight.ts b/app/lib/ide/single-flight.ts
+new file mode 100644
+index 000000000..01847aafd
+--- /dev/null
++++ b/app/lib/ide/single-flight.ts
+@@ -0,0 +1,119 @@
++/*
++ * Déduplication des appels EN VOL, par clé.
++ *
++ * BUG-PANEL-PERF-004 / BUG-PANEL-ZIP-005 — le même défaut, mesuré à deux
++ * endroits : un chargeur asynchrone dont le cache n'est rempli qu'à l'ARRIVÉE
++ * de la réponse. Tout appelant qui arrive avant cette arrivée manque le cache
++ * et lance sa propre requête. Rien n'échoue, rien ne se voit : le travail est
++ * simplement fait N fois.
++ *
++ * Mesuré en production le 2026-09-04, projet de 401 fichiers :
++ *
++ *  - `getProjectIdeMemory` — 9 sites d'appel, 9 GET `ide-state` pour UNE
++ *    ouverture à froid ;
++ *  - `loadProjectStorageFiles` — l'hydratation prévue et le repli de
++ *    `loadRuntimeFiles` partent à **14 ms d'écart**, le second voyant
++ *    `filesCount === 0` uniquement parce que le premier est encore en vol.
++ *    Chacun télécharge l'archive ENTIÈRE du projet : 5,07 Mio décodés.
++ *    Ce n'est pas une reprise après échec, c'est une course.
++ *
++ * La clé doit désigner la ressource (`${projectId}:${panneau}`, `workspace:<id>`…),
++ * jamais l'appelant : c'est précisément entre appelants différents qu'il faut
++ * mutualiser.
++ */
++export interface SingleFlight<T> {
++  /** Exécute `fn` — ou rend la promesse déjà en vol pour la même clé. */
++  run(key: string, fn: () => Promise<T>): Promise<T>;
++  /** Nombre d'appels actuellement en vol (tests et diagnostic). */
++  readonly size: number;
++}
++
++export interface SingleFlightOptions {
++  /**
++   * Garde SECONDAIRE. Pendant ce délai après un succès, un nouvel appel pour la
++   * même clé rend le résultat précédent au lieu de refaire le travail.
++   *
++   * Mesure à l'appui : la tempête d'archives observée était ENTIÈREMENT
++   * concurrente — les 7 requêtes sont parties entre 7,3 s et 12,6 s, la
++   * première réponse est arrivée à 24,7 s. La déduplication en vol suffit donc
++   * à la ramener à 1. Ce délai ne couvre PAS un cas mesuré : il borne les
++   * répétitions SÉQUENTIELLES, que je n'ai pas observées. C'est pourquoi c'est
++   * un délai et non un plafond dur — un plafond aurait pu désactiver
++   * définitivement l'hydratation, ce qui est pire que le défaut corrigé.
++   *
++   * Seuls les SUCCÈS sont mémorisés : mémoriser un échec reproduirait
++   * BUG-PANEL-CACHE-003, où une enveloppe d'erreur était mise en cache comme
++   * si elle était une charge utile valide.
++   */
++  cooldownMs?: number;
++  /** Injectable pour les tests ; `Date.now` par défaut. */
++  now?: () => number;
++}
++
++export function createSingleFlight<T>(options: SingleFlightOptions = {}): SingleFlight<T> {
++  const cooldownMs = options.cooldownMs ?? 0;
++  const now = options.now ?? (() => Date.now());
++  const inFlight = new Map<string, Promise<T>>();
++  const recent = new Map<string, { at: number; value: T }>();
++
++  return {
++    run(key: string, fn: () => Promise<T>): Promise<T> {
++      const existing = inFlight.get(key);
++
++      if (existing) {
++        return existing;
++      }
++
++      if (cooldownMs > 0) {
++        const last = recent.get(key);
++
++        if (last && now() - last.at < cooldownMs) {
++          return Promise.resolve(last.value);
++        }
++
++        if (last) {
++          recent.delete(key);
++        }
++      }
++
++      let promise: Promise<T>;
++
++      try {
++        promise = fn();
++      } catch (error) {
++        /*
++         * `fn` peut lancer de façon SYNCHRONE (garde d'argument, accès à une
++         * ressource absente). Sans ce rattrapage, rien n'est enregistré et
++         * l'erreur remonte sous une forme différente de celle du chemin
++         * asynchrone — deux comportements pour un seul défaut.
++         */
++        return Promise.reject(error);
++      }
++
++      /*
++       * On enregistre la promesse D'ORIGINE, pas celle rendue par `finally` :
++       * les appelants doivent recevoir exactement la même valeur et le même
++       * rejet. Le nettoyage est branché à part.
++       *
++       * `void` sur la chaîne de nettoyage : elle ne doit jamais devenir une
++       * seconde source de rejet non traité.
++       */
++      inFlight.set(key, promise);
++      void promise.then(
++        (value) => {
++          inFlight.delete(key);
++
++          if (cooldownMs > 0) {
++            recent.set(key, { at: now(), value });
++          }
++        },
++        () => inFlight.delete(key),
++      );
++
++      return promise;
++    },
++    get size() {
++      return inFlight.size;
++    },
++  };
++}
+diff --git a/app/lib/persistence/projectIdeMemory.ts b/app/lib/persistence/projectIdeMemory.ts
+index ea06348b5..e203b5885 100644
+--- a/app/lib/persistence/projectIdeMemory.ts
++++ b/app/lib/persistence/projectIdeMemory.ts
+@@ -1,4 +1,5 @@
+ import type { Message } from 'ai';
++import { createSingleFlight } from '~/lib/ide/single-flight';
+ import type { IChatMetadata } from './db';
+ import { pruneToBudget, writeWithinBudget } from './ide-memory-budget';
+ import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
+@@ -219,6 +220,9 @@ const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void
+  */
+ const versionByProject = new Map<string, number>();
+ 
++/** Chargements `ide-state` en vol, par clé de portée (projet ou workspace). */
++const ideMemoryInFlight = createSingleFlight<ProjectIdeMemory>();
++
+ /*
+  * Workspace isolation — when a `workspaceId` is supplied the IDE state is
+  * scoped to that workspace and routed through `/api/workspaces/:id/ide-state`
+@@ -831,6 +835,21 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
+     return cached;
+   }
+ 
++  /*
++   * BUG-PANEL-PERF-004 — `memoryCache` n'est rempli qu'à l'ARRIVÉE de la
++   * réponse. Les neuf sites d'appel de cette fonction montent ensemble à
++   * l'ouverture de l'IDE : tous manquaient le cache avant que le premier ait
++   * répondu, et chacun émettait sa propre requête. Mesuré en production :
++   * 9 GET `ide-state` pour UNE ouverture à froid.
++   *
++   * La déduplication est posée APRÈS la lecture du cache : une entrée déjà
++   * faisant autorité continue de répondre sans réseau, c'est seulement le
++   * chargement qui est mutualisé.
++   */
++  return ideMemoryInFlight.run(id, () => chargerMemoireProjet(id, endpoint));
++}
++
++async function chargerMemoireProjet(id: string, endpoint: string): Promise<ProjectIdeMemory> {
+   const localMemory = readLocalProjectIdeMemory(id);
+ 
+   try {
+diff --git a/app/lib/stores/workbench.ts b/app/lib/stores/workbench.ts
+index 76618c3a0..5b0f84838 100644
+--- a/app/lib/stores/workbench.ts
++++ b/app/lib/stores/workbench.ts
+@@ -1,5 +1,6 @@
+ /* eslint-disable import/order */
+ import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
++import { createSingleFlight } from '~/lib/ide/single-flight';
+ import type { CommandEvent, CommandRequest, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
+ import fileSaver from 'file-saver';
+ import Cookies from 'js-cookie';
+@@ -218,6 +219,15 @@ function workspaceLogLines(event: CommandEvent | string) {
+     });
+ }
+ 
++/*
++ * Portée MODULE et non instance : le magasin est un singleton, mais la clé est
++ * l'identifiant de projet — ce qu'on mutualise, c'est un téléchargement pour un
++ * projet donné, pas pour un objet donné.
++ */
++const PROJECT_ARCHIVE_COOLDOWN_MS = 30_000;
++
++const projectStorageFilesInFlight = createSingleFlight<boolean>({ cooldownMs: PROJECT_ARCHIVE_COOLDOWN_MS });
++
+ export class WorkbenchStore {
+   #runtime: RuntimeAdapter = getRuntimeAdapter();
+   #previewsStore = new PreviewsStore(this.#runtime);
+@@ -683,6 +693,18 @@ export class WorkbenchStore {
+     this.#dropResolvedMissingImportFailures();
+   }
+ 
++  /*
++   * BUG-PANEL-ZIP-005 — cette méthode télécharge l'archive ENTIÈRE du projet
++   * (5,07 Mio décodés sur un projet de 401 fichiers, mesuré en production).
++   * Elle est appelée depuis deux chemins qui partent en même temps à froid :
++   * l'hydratation prévue par `ProjectWorkspaceProvider`, et le repli de
++   * `loadRuntimeFiles` — lequel ne voit aucun fichier PRÉCISÉMENT parce que la
++   * première est encore en vol. Mesuré : 14 ms d'écart, deux téléchargements
++   * complets. Ce n'est pas une reprise après échec, c'est une course.
++   *
++   * La déduplication par clé de projet fait qu'un seul téléchargement part et
++   * que tous les appelants reçoivent son résultat.
++   */
+   async loadProjectStorageFiles() {
+     const projectId = this.#projectId;
+ 
+@@ -690,6 +712,10 @@ export class WorkbenchStore {
+       return false;
+     }
+ 
++    return projectStorageFilesInFlight.run(projectId, () => this.#loadProjectStorageFilesUncoalesced(projectId));
++  }
++
++  async #loadProjectStorageFilesUncoalesced(projectId: string) {
+     const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/export/zip`, {
+       credentials: 'include',
+       headers: { accept: 'application/json' },

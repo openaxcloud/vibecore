@@ -16,7 +16,6 @@ const t = ((key: string, params?: Record<string, unknown>) =>
 
 const base = {
   workspaceLoading: false,
-  logs: [] as string[],
 };
 
 describe('devServerStatusText', () => {
@@ -80,5 +79,39 @@ describe('devServerStatusText', () => {
     });
 
     expect(label).toBe('baseChatAst.dev.starting');
+  });
+});
+
+describe('le repli par les journaux, supprimé', () => {
+  /*
+   * L'ancien `previewCommandFromLogs` cherchait `/Starting preview with (.+)/i`.
+   * Ni l'anglais actuel — « Starting THE preview with … » — ni le français —
+   * « Démarrage de l'aperçu avec … » — ne produisent cette forme : il rendait
+   * toujours `undefined`, et son spec ne l'exerçait jamais (tous les cas
+   * passaient `logs: []`).
+   *
+   * Ces cas verrouillent l'argument de la suppression : la SOURCE STRUCTURÉE
+   * décide, et elle est insensible à la langue. Sans eux, la suppression serait
+   * une affirmation ; avec eux, c'est une propriété tenue.
+   */
+  it('la commande vient de previewServerState, pas d’un texte reconnu', () => {
+    const label = devServerStatusText(t, {
+      previews: [],
+      workspaceLoading: false,
+      previewServerState: { status: 'starting', command: 'npm run dev' },
+    });
+
+    expect(label).toContain('npm run dev');
+  });
+
+  it('sans source structurée, l’étiquette reste générique — jamais devinée', () => {
+    const label = devServerStatusText(t, {
+      previews: [],
+      workspaceLoading: true,
+      previewServerState: { status: 'starting' },
+    });
+
+    expect(label).not.toContain('npm run dev');
+    expect(label.length).toBeGreaterThan(0);
   });
 });

@@ -10,7 +10,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { evaluateRequiredChecks, selfTestCases, validateWaiver } from './verify-required-checks.mjs';
+import {
+  GH_FETCH_ATTEMPTS,
+  evaluateRequiredChecks,
+  ghFetchWithRetry,
+  selfTestCases,
+  validateWaiver,
+} from './verify-required-checks.mjs';
 import policy from './required-checks.json';
 
 const SHA = '113c17e877d50f40a0a8ba5c2e68aaa027337985';
@@ -329,5 +335,84 @@ describe('release gate — built-in self-test', () => {
   // runner with no node_modules. Run the same cases here so the two never drift.
   it.each(selfTestCases().map((c) => [c.name, c]))('%s', (_name, testCase) => {
     expect(testCase.run().verdict).toBe(testCase.expect);
+  });
+});
+
+describe('transport GitHub — reprise sur les pannes passagères (run 1479)', () => {
+  const reponse = (status, body = {}) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    statusText: String(status),
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  });
+
+  it('retente une requête dont le transport tombe (« fetch failed »), puis rend la réponse', async () => {
+    const attentes = [];
+
+    let appels = 0;
+
+    const fetchImpl = async () => {
+      appels += 1;
+
+      if (appels < 3) {
+        throw new TypeError('fetch failed');
+      }
+
+      return reponse(200, { ok: true });
+    };
+
+    const resultat = await ghFetchWithRetry('https://api.example/x', 'jeton', {
+      fetchImpl,
+      sleep: async (ms) => attentes.push(ms),
+      log: () => {},
+    });
+
+    expect(resultat).toEqual({ ok: true });
+    expect(appels).toBe(3);
+    expect(attentes).toEqual([2_000, 4_000]);
+  });
+
+  it('retente un 5xx et un 429, jamais un 404 — une réponse n’est pas une panne', async () => {
+    const codes = [503, 429, 200];
+
+    let appels = 0;
+
+    const fetchImpl = async () => reponse(codes[appels++], { n: appels });
+
+    await expect(
+      ghFetchWithRetry('https://api.example/y', undefined, { fetchImpl, sleep: async () => {}, log: () => {} }),
+    ).resolves.toEqual({ n: 3 });
+
+    let appels404 = 0;
+
+    const fetch404 = async () => {
+      appels404 += 1;
+
+      return reponse(404, { message: 'Not Found' });
+    };
+
+    await expect(
+      ghFetchWithRetry('https://api.example/z', undefined, {
+        fetchImpl: fetch404,
+        sleep: async () => {},
+        log: () => {},
+      }),
+    ).rejects.toThrow(/GitHub API 404/);
+    expect(appels404).toBe(1);
+  });
+
+  it('abandonne après le nombre d’essais borné, en le disant', async () => {
+    let appels = 0;
+
+    const fetchImpl = async () => {
+      appels += 1;
+      throw new TypeError('fetch failed');
+    };
+
+    await expect(
+      ghFetchWithRetry('https://api.example/w', undefined, { fetchImpl, sleep: async () => {}, log: () => {} }),
+    ).rejects.toThrow(new RegExp(`gave up after ${GH_FETCH_ATTEMPTS} attempts`));
+    expect(appels).toBe(GH_FETCH_ATTEMPTS);
   });
 });

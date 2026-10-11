@@ -28,7 +28,7 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches, params }) => 
   });
 };
 
-export async function loader({ request, params }: LoaderFunctionArgs) {
+export async function loader({ request, params, context }: LoaderFunctionArgs) {
   const accountSlug = canonicalAccountSlugFromParam(params.accountSlug);
   const projectSlug = slugifyProjectUrlSegment(params.projectSlug ?? '');
 
@@ -68,7 +68,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw redirect(canonicalPath);
   }
 
-  return loadProjectIdeData(request, resolved.project.id);
+  return loadProjectIdeData(request, resolved.project.id, context);
 }
 
 export default ProjectIdeRoute;

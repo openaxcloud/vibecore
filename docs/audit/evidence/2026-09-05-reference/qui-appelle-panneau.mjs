@@ -1,0 +1,20 @@
+import { webkit, devices } from '@playwright/test';
+const APP=process.env.APP_BASE, TOKEN=process.env.QA_TOKEN, PROJECT=process.env.QA_PROJECT, P=process.env.PANEL||'overview';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+(async()=>{
+  const b=await webkit.launch();
+  const ctx=await b.newContext({ignoreHTTPSErrors:true,...devices['iPhone 13']});
+  await ctx.addCookies([{name:'vc_session',value:TOKEN,url:APP,httpOnly:true,sameSite:'Lax'}]);
+  const page=await ctx.newPage();
+  await page.addInitScript((panel)=>{ window.__c=[]; const o=window.fetch;
+    window.fetch=function(...a){ const u=typeof a[0]==='string'?a[0]:(a[0]&&a[0].url)||'';
+      if(String(u).includes('/ide-panel/'+panel)) window.__c.push({t:Date.now(),url:String(u).slice(-60),stack:(new Error().stack||'').split('\n').slice(1,5).join(' <- ')});
+      return o.apply(this,a); }; }, P);
+  const T0=Date.now();
+  await page.goto(`${APP}/projects/${PROJECT}/ide?panel=${P}`,{waitUntil:'domcontentloaded',timeout:90000});
+  await sleep(30000);
+  const c=await page.evaluate(()=>window.__c||[]).catch(()=>[]);
+  await b.close();
+  console.log(`  appels fetch vers /ide-panel/${P} : ${c.length}`);
+  c.forEach((x,i)=>console.log(`   ${i+1} @${x.t-T0}ms  ${x.url}\n      ${x.stack.replace(/https:\/\/app\.e-code\.ai\/assets\//g,'').slice(0,200)}`));
+})();

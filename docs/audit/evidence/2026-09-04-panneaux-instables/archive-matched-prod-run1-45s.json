@@ -1,0 +1,45 @@
+[
+  {
+    "engine": "chromium-desktop",
+    "windowMs": 45000,
+    "archiveRequests": 7,
+    "archiveResponses": 6,
+    "decodedMiB": 5.07,
+    "requestOffsetsMs": [
+      7293,
+      7293,
+      8036,
+      9066,
+      11010,
+      12228,
+      12557
+    ],
+    "responseOffsetsMs": [
+      24666,
+      45256,
+      45256,
+      45256,
+      45256,
+      45256
+    ],
+    "dataCloneErrors": 0,
+    "consoleErrors": 35
+  },
+  {
+    "engine": "webkit-iphone",
+    "windowMs": 45000,
+    "archiveRequests": 2,
+    "archiveResponses": 2,
+    "decodedMiB": 10.14,
+    "requestOffsetsMs": [
+      5594,
+      5606
+    ],
+    "responseOffsetsMs": [
+      12844,
+      13460
+    ],
+    "dataCloneErrors": 0,
+    "consoleErrors": 0
+  }
+]

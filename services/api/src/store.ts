@@ -1840,7 +1840,8 @@ export interface ApiStore {
    * api record) so they stop consuming the workspaces.active quota slot.
    */
   listActiveWorkspaces(organizationId: string): Promise<WorkspaceRecord[]>;
-  countSnapshots(organizationId: string): Promise<number>;
+  /** `since` borne le compte à la période d'usage courante — voir `countDeployments`. */
+  countSnapshots(organizationId: string, since?: Date): Promise<number>;
   countDeployments(organizationId: string, since?: Date): Promise<number>;
   /**
    * Count an organization's concurrently-published apps — distinct projects with
@@ -2034,9 +2035,7 @@ export interface ApiStore {
     canceledAt?: string;
   }): Promise<DeploymentRecord>;
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
-  getDeploymentOwnerStatus(
-    deploymentId: string,
-  ): Promise<
+  getDeploymentOwnerStatus(deploymentId: string): Promise<
     | {
         projectId: string;
         status: string;

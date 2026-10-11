@@ -66,8 +66,37 @@ export function shouldUsePortfolioTemplate(input: {
     return false;
   }
 
-  const asksToCreate = /\b(build|create|make|generate|develop|scaffold)\b/.test(prompt);
-  const portfolioIntent = /\b(portfolio|personal site|personal website|resume site|cv site)\b/.test(prompt);
+  /*
+   * Les deux motifs ne reconnaissaient QUE de l'anglais, sur une plateforme dont
+   * les utilisateurs écrivent en français. « Créez un portfolio personnel » ne
+   * déclenchait rien : `créez` n'est pas `create`, `site perso` n'est pas
+   * `personal site`. Le modèle de démarrage était donc réservé aux anglophones,
+   * en silence — et rien dans l'interface ne l'indiquait.
+   *
+   * Même classe que le repli d'état de serveur corrigé par #467 : la traduction
+   * s'arrête à ce qui se VOIT et oublie ce qui DÉCIDE.
+   *
+   * Les accents sont tolérés dans les deux sens (`crée`/`cree`) parce qu'un
+   * utilisateur mobile en tape rarement, et `\b` ne borne pas correctement un
+   * mot accentué en JavaScript : on encadre donc par des classes explicites.
+   *
+   * ⚠️ Chaque position accentuée doit accepter TOUTES ses variantes. Un premier
+   * jet écrivait `g[ée]n[èe]r[ee]r?` : `générer` et `générez` — l'infinitif et
+   * l'impératif pluriel, les deux formes les plus courantes — ne déclenchaient
+   * pas, parce que la quatrième position acceptait `è` ou `e`, jamais `é`. Le
+   * test couvrait `génère-le`, qui passe, et manquait l'infinitif : un trou de
+   * couverture, pas un test creux.
+   */
+  const bord = '(?:^|[^\\p{L}])';
+  const finMot = '(?:[^\\p{L}]|$)';
+
+  const creer =
+    '(?:build|create|make|generate|develop|scaffold|cr[ée]e[rz]?|fabriqu[ee]r?|g[ée]n[èée]r[ee]r?[z]?|construis|construire|fais|faire)';
+  const portfolio =
+    '(?:portfolio|personal site|personal website|resume site|cv site|site perso(?:nnel)?|page perso(?:nnelle)?|site vitrine|cv en ligne)';
+
+  const asksToCreate = new RegExp(`${bord}${creer}${finMot}`, 'iu').test(prompt);
+  const portfolioIntent = new RegExp(`${bord}${portfolio}${finMot}`, 'iu').test(prompt);
 
   return asksToCreate && portfolioIntent;
 }

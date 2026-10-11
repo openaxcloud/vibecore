@@ -495,6 +495,9 @@ export const chatEn = {
   'chat.copy.memoryContent_66fe7c72': 'Memory content',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'Microphone access is blocked. Allow the microphone permission for this site in your browser settings to use speech-to-text.',
+  'chat.copy.dictationNoSpeech': 'No speech detected. Tap the microphone and speak.',
+  'chat.copy.dictationNoMicrophone': 'No microphone was found.',
+  'chat.copy.dictationNetwork': 'Dictation needs a network connection.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': 'Minimum 8 characters',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Missing project id. Reload the IDE and try again.',
@@ -1602,7 +1605,7 @@ export const chatFr = {
   'chat.copy.addTabWithCommandPalette_49e6c454': 'Ajouter un onglet avec la palette de commandes',
   'chat.copy.addTask_24700e60': 'Ajouter une tâche',
   'chat.copy.addVariable_4c2707bc': 'Ajouter une variable',
-  'chat.copy.addWatch_11f0adc5': 'Ajouter une montre',
+  'chat.copy.addWatch_11f0adc5': 'Surveiller cette expression',
   'chat.copy.addYourFirstDatabase_b10872bd': 'Ajoutez votre première base de données',
   'chat.copy.admin_4e7afebc': 'Administrateur',
   'chat.copy.against_2d19e3d7': 'Contre',
@@ -1753,7 +1756,7 @@ export const chatFr = {
     'Configurez SAML ou OIDC pour les organisations qui nécessitent SSO.',
   'chat.copy.configureWorkflows_20afd690': 'Configurer les flux de travail',
   'chat.copy.conflicts_19401428': 'Conflits ·',
-  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter une télécommande GitHub',
+  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter un dépôt distant GitHub',
   'chat.copy.connectARealProviderBySaving_bb256530':
     'Connectez un vrai fournisseur en enregistrant sa chaîne de connexion en tant que secret de projet crypté. E-Code détecte les URL Postgres, MySQL, MongoDB et Redis à partir des secrets et les utilise pour la navigation dans les schémas, les sauvegardes et les requêtes en lecture seule.',
   'chat.copy.connectAServiceToSyncData_643c4e95':
@@ -1878,7 +1881,7 @@ export const chatFr = {
   'chat.copy.enabled_df174a3f': 'Activé',
   'chat.copy.enableDisableOrRemoveExtensionsWithout_fd2603b1':
     "Activez, désactivez ou supprimez des extensions sans quitter l'EDI.",
-  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsque la télécommande GitHub existe',
+  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsqu’un dépôt distant GitHub existe',
   'chat.copy.enableObjectStorageForThisProject_6caf063b': "Activer le stockage d'objets pour ce projet",
   'chat.copy.encryptedSecret_0cdff4dc': 'Secret crypté',
   'chat.copy.ensureBucket_59b7cad5': 'Vérifier le bucket',
@@ -2068,6 +2071,9 @@ export const chatFr = {
   'chat.copy.memoryContent_66fe7c72': 'Contenu de la mémoire',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'L’accès au microphone est bloqué. Autorisez ce site à utiliser le microphone dans les paramètres de votre navigateur pour activer la reconnaissance vocale.',
+  'chat.copy.dictationNoSpeech': 'Aucune parole détectée. Appuyez sur le micro et parlez.',
+  'chat.copy.dictationNoMicrophone': 'Aucun micro détecté.',
+  'chat.copy.dictationNetwork': 'La dictée a besoin d’une connexion réseau.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': '8 caractères minimum',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Identifiant du projet manquant. Rechargez l’IDE et réessayez.',
@@ -2168,7 +2174,7 @@ export const chatFr = {
   'chat.copy.noProjectSecrets_f3f1ca38': 'Aucun secret de projet.',
   'chat.copy.noProtocolPathOrPortExample_d3c7f2f8': 'Aucun protocole, chemin ou port. Exemple : app.example.com.',
   'chat.copy.noRemoteConfiguredConnectOneIn_c5d82469':
-    "Aucune télécommande configurée : connectez-en d'abord une dans les paramètres du panneau Git.",
+    "Aucun dépôt distant configuré : connectez-en d'abord un dans les paramètres du panneau Git.",
   'chat.copy.noRunsYetTheFirstOne_ba1ed340':
     "Aucune course pour l'instant. Le premier apparaîtra ici après le déclenchement du planning.",
   'chat.copy.noRuntimeProcessesReported_f02fbd04': 'Aucun processus en cours pour l’instant.',
@@ -2609,8 +2615,8 @@ export const chatFr = {
   'chat.copy.vote_f3f11c36': 'Voter ·',
   'chat.copy.vsPrevious_2eb3ee87': 'par rapport au précédent',
   'chat.copy.warningsInTheCurrentWorkspace_e8b37cee': "avertissements dans l'espace de travail actuel",
-  'chat.copy.watchExpressions_5a230a1a': 'Regarder les expressions',
-  'chat.copy.watchList_daa6ded7': 'Liste de surveillance',
+  'chat.copy.watchExpressions_5a230a1a': 'Expressions à surveiller',
+  'chat.copy.watchList_daa6ded7': 'Expressions surveillées',
   'chat.copy.webhooks_fdfe2da7': 'Webhooks',
   'chat.copy.webhookSigningSecret_4d07255a': 'Secret de signature du webhook',
   'chat.copy.weeklyAt0300Utc_ce446487': 'Hebdomadaire à 03h00 UTC',

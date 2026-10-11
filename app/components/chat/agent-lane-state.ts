@@ -78,12 +78,31 @@ export function resolveLaneState({
  *
  * Pure + exported for unit testing across the partial-JSON states.
  */
+/*
+ * LES BLOCS D'ACTION NE SONT PAS DE LA PROSE.
+ *
+ * Depuis que les roles ECRIVENT leurs fichiers, le flux d'une lane commence par
+ * le contenu complet des fichiers et se termine par le rapport JSON. Sans cette
+ * decoupe, la tuile afficherait du code source a la place du resume — et pire,
+ * l'extraction partielle ci-dessous irait chercher une `"summary"` a l'interieur
+ * d'un fichier qui en contiendrait le mot.
+ *
+ * Meme decoupe que `retirerLesBlocsDAction` cote passerelle. La forme tronquee
+ * (`|$`) compte : en cours de flux, l'artefact n'est pas encore ferme.
+ */
+const BLOC_ARTEFACT = /<boltArtifact\b[\s\S]*?(?:<\/boltArtifact>|$)/gi;
+const BLOC_ACTION = /<boltAction\b[\s\S]*?(?:<\/boltAction>|$)/gi;
+
+export function retirerLesActionsDuFlux(texte: string): string {
+  return texte.replace(BLOC_ARTEFACT, ' ').replace(BLOC_ACTION, ' ').trim();
+}
+
 export function extractLaneStreamSummary(text: string | undefined): string | undefined {
   if (!text) {
     return undefined;
   }
 
-  const trimmed = text.trim();
+  const trimmed = retirerLesActionsDuFlux(text);
 
   if (!trimmed) {
     return undefined;

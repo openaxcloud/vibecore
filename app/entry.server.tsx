@@ -8,7 +8,6 @@
 import { renderToReadableStream } from 'react-dom/server.browser';
 import type { AppLoadContext, EntryContext } from 'react-router';
 import { ServerRouter } from 'react-router';
-import { isPublicMarketingPath } from '~/lib/stores/theme';
 
 export const SERVER_RENDER_READY_TIMEOUT_MS = 4_000;
 
@@ -51,12 +50,42 @@ export function applyDocumentIsolationHeaders(responseHeaders: Headers) {
   }
 }
 
-export function applyDocumentCacheHeaders(request: Request, responseHeaders: Headers) {
-  const pathname = new URL(request.url).pathname;
-
-  if (isPublicMarketingPath(pathname)) {
-    responseHeaders.set('Cache-Control', 'no-store');
-  }
+/*
+ * `no-store` on EVERY document, not just the marketing ones.
+ *
+ * This used to read `if (isPublicMarketingPath(pathname))`, added by
+ * 339b86c9d to stop a stale service worker from preserving old community
+ * pages. That intent was narrow and correct, but the resulting condition was
+ * backwards from a security standpoint: it protected the pages that carry NO
+ * session and left every authenticated document bare.
+ *
+ * Measured on production 2026-09-05:
+ *
+ *   GET https://app.e-code.ai/login
+ *   HTTP/2 200
+ *   content-type: text/html; charset=utf-8
+ *   set-cookie: vc_upstream=...; Max-Age=3600; Path=/; Secure; HttpOnly
+ *   (no cache-control at all)
+ *
+ * A document that answers 200, renders HTML and hands out a session cookie,
+ * while saying nothing about its own cacheability. `vary: Cookie` is present
+ * but it is not a substitute: it makes a compliant shared cache key on the
+ * cookie, it does not forbid storage, and it does nothing about a request that
+ * arrives WITHOUT a cookie -- which is exactly what a first visitor sends. Any
+ * intermediary that stored that response could hand the first visitor's
+ * `set-cookie` to the next one.
+ *
+ * Every document this app serves is SSR'd per request and can carry
+ * per-user state, so there is no document for which storage is safe. The
+ * marketing pages already received `no-store`, so making it unconditional
+ * removes a hole without changing any existing behaviour.
+ *
+ * Deliberately NOT keyed on "does this response set a cookie" or on a list of
+ * authenticated paths: both are conditions someone can get wrong later, and
+ * getting them wrong is silent. An unconditional header cannot be misapplied.
+ */
+export function applyDocumentCacheHeaders(_request: Request, responseHeaders: Headers) {
+  responseHeaders.set('Cache-Control', 'no-store');
 }
 
 export async function waitForServerRenderReady(allReady: Promise<unknown>, timeoutMs = SERVER_RENDER_READY_TIMEOUT_MS) {

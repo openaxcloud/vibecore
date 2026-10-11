@@ -60,6 +60,13 @@ function withoutTrailingCloseTagPrefix(content: string): string {
 }
 
 export interface ArtifactCallbackData extends BoltArtifactData {
+  /**
+   * `true` quand l'artefact a été fermé par le FILET DE FIN DE FLUX et non par
+   * une balise `</boltArtifact>` reçue. Sert à mesurer la fréquence réelle des
+   * flux tronqués : sans cette distinction, une fermeture de secours est
+   * indiscernable d'une fermeture normale et le chiffre reste introuvable.
+   */
+  fermetureDeSecours?: boolean;
   messageId: string;
   artifactId?: string;
 }
@@ -553,6 +560,53 @@ export class StreamingMessageParser {
     state.position = i;
 
     return output;
+  }
+
+  /**
+   * FILET DE FIN DE FLUX — ferme un artefact resté ouvert.
+   *
+   * `onArtifactClose` n'est émis QUE sur une balise `</boltArtifact>` trouvée
+   * dans le flux (voir la boucle de `parse`). C'est l'unique site du dépôt qui
+   * pose `closed: true`, et il n'a aucun repli. Si le modèle termine sans
+   * fermer — flux tronqué par une limite de jetons, erreur de fournisseur,
+   * abandon de l'utilisateur — l'artefact reste ouvert POUR TOUJOURS.
+   *
+   * Ce qui pend à cette fermeture, et ne s'exécute alors jamais :
+   *
+   *   - **la persistance des fichiers vers le stockage durable** — le travail
+   *     de l'agent n'est jamais enregistré. C'est la conséquence grave : du
+   *     code produit, affiché, et perdu ;
+   *   - la réparation du manifeste d'aperçu, d'où l'épinglage de port perdu
+   *     (mesuré : 193 projets sur 289 en production) ;
+   *   - la validation des imports et le redémarrage de l'aperçu.
+   *
+   * Même mécanisme que le défaut de juillet sur `</boltAction>` (« Agent edit
+   * truncation », perte de données) — une balise plus haut, jamais vérifiée
+   * quand celle du dessous a été corrigée.
+   *
+   * Rend `true` si un artefact a effectivement été fermé, pour que l'appelant
+   * puisse le journaliser et compter.
+   */
+  fermerArtefactsOuverts(messageId: string): boolean {
+    const state = this.#messages.get(messageId);
+
+    if (!state?.insideArtifact || !state.currentArtifact) {
+      return false;
+    }
+
+    const artefact = state.currentArtifact;
+
+    state.insideArtifact = false;
+    state.currentArtifact = undefined;
+
+    this._options.callbacks?.onArtifactClose?.({
+      messageId,
+      artifactId: artefact.id,
+      ...artefact,
+      fermetureDeSecours: true,
+    });
+
+    return true;
   }
 
   reset() {

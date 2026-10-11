@@ -1,0 +1,305 @@
+[
+  {
+    "panel": "overview",
+    "t_shell": 3561,
+    "t_content": 8001,
+    "floorLen": 83,
+    "finalLen": 1063,
+    "ownRequests": [
+      {
+        "start": 3427,
+        "end": null,
+        "ms": null
+      },
+      {
+        "start": 3435,
+        "end": 7614,
+        "ms": 4179,
+        "status": 200
+      },
+      {
+        "start": 3505,
+        "end": 3964,
+        "ms": 459,
+        "status": 200
+      },
+      {
+        "start": 3509,
+        "end": 6514,
+        "ms": 3005,
+        "status": 200
+      },
+      {
+        "start": 4157,
+        "end": 4550,
+        "ms": 393,
+        "status": 200
+      },
+      {
+        "start": 4204,
+        "end": 5498,
+        "ms": 1294,
+        "status": 200
+      }
+    ],
+    "t_xhr_start": 3427,
+    "t_xhr_end": null,
+    "slowest": [
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview",
+        "start": 3435,
+        "ms": 4179
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview",
+        "start": 3509,
+        "ms": 3005
+      },
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3408,
+        "ms": 2955
+      },
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3408,
+        "ms": 2716
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings",
+        "start": 3408,
+        "ms": 2716
+      },
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3408,
+        "ms": 2385
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings",
+        "start": 3498,
+        "ms": 1999
+      },
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3498,
+        "ms": 1992
+      }
+    ],
+    "apiRequestCount": 47
+  },
+  {
+    "panel": "integrations",
+    "t_shell": 3898,
+    "t_content": 7334,
+    "floorLen": 91,
+    "finalLen": 3055,
+    "ownRequests": [
+      {
+        "start": 3361,
+        "end": 6994,
+        "ms": 3633,
+        "status": 200
+      },
+      {
+        "start": 3465,
+        "end": 6245,
+        "ms": 2780,
+        "status": 200
+      },
+      {
+        "start": 4035,
+        "end": 5414,
+        "ms": 1379,
+        "status": 200
+      }
+    ],
+    "t_xhr_start": 3361,
+    "t_xhr_end": 6994,
+    "slowest": [
+      {
+        "u": "/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/integrations",
+        "start": 3361,
+        "ms": 3633
+      },
+      {
+        "u": "/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/integrations",
+        "start": 3465,
+        "ms": 2780
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview",
+        "start": 4013,
+        "ms": 2384
+      },
+      {
+        "u": "/api/models",
+        "start": 3330,
+        "ms": 2330
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings",
+        "start": 3330,
+        "ms": 2253
+      },
+      {
+        "u": "api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/snapshots",
+        "start": 3329,
+        "ms": 1990
+      },
+      {
+        "u": "/api/models",
+        "start": 3451,
+        "ms": 1850
+      },
+      {
+        "u": "api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-repair-events",
+        "start": 3329,
+        "ms": 1692
+      }
+    ],
+    "apiRequestCount": 47
+  },
+  {
+    "panel": "packages",
+    "t_shell": 4506,
+    "t_content": 8268,
+    "floorLen": 83,
+    "finalLen": 1207,
+    "ownRequests": [
+      {
+        "start": 3986,
+        "end": 7770,
+        "ms": 3784,
+        "status": 200
+      },
+      {
+        "start": 4069,
+        "end": 6861,
+        "ms": 2792,
+        "status": 200
+      },
+      {
+        "start": 4695,
+        "end": 5941,
+        "ms": 1246,
+        "status": 200
+      }
+    ],
+    "t_xhr_start": 3986,
+    "t_xhr_end": 7770,
+    "slowest": [
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/packages",
+        "start": 3986,
+        "ms": 3784
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/packages",
+        "start": 4069,
+        "ms": 2792
+      },
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3960,
+        "ms": 2096
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings",
+        "start": 3960,
+        "ms": 1981
+      },
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3960,
+        "ms": 1972
+      },
+      {
+        "u": "/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/integrations",
+        "start": 4663,
+        "ms": 1327
+      },
+      {
+        "u": "/api/models",
+        "start": 4649,
+        "ms": 1284
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/packages",
+        "start": 4695,
+        "ms": 1246
+      }
+    ],
+    "apiRequestCount": 49
+  },
+  {
+    "panel": "collaborators",
+    "t_shell": 3906,
+    "t_content": 4751,
+    "floorLen": 93,
+    "finalLen": 1573,
+    "ownRequests": [
+      {
+        "start": 3658,
+        "end": null,
+        "ms": null
+      },
+      {
+        "start": 3741,
+        "end": 3991,
+        "ms": 250,
+        "status": 200
+      },
+      {
+        "start": 4354,
+        "end": null,
+        "ms": null
+      }
+    ],
+    "t_xhr_start": 3658,
+    "t_xhr_end": null,
+    "slowest": [
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3627,
+        "ms": 788
+      },
+      {
+        "u": "/api/configured-providers",
+        "start": 2668,
+        "ms": 732
+      },
+      {
+        "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-state",
+        "start": 3627,
+        "ms": 653
+      },
+      {
+        "u": "api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/snapshots",
+        "start": 3627,
+        "ms": 594
+      },
+      {
+        "u": "/api/models",
+        "start": 3627,
+        "ms": 537
+      },
+      {
+        "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+        "start": 3722,
+        "ms": 495
+      },
+      {
+        "u": "api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-repair-events",
+        "start": 3627,
+        "ms": 432
+      },
+      {
+        "u": "/api/agent-routing",
+        "start": 3627,
+        "ms": 392
+      }
+    ],
+    "apiRequestCount": 43
+  }
+]

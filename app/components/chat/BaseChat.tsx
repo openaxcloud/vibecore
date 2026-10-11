@@ -20,6 +20,16 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
+import {
+  composerLaSaisie,
+  langueDeDictee,
+  messageDErreurDeDictee,
+  reduireLaDictee,
+  transcriptionDepuisResultats,
+  type EvenementDictee,
+  type PhaseDictee,
+} from '~/components/chat/dictee-vocale';
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -78,7 +88,7 @@ import {
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
 import { devServerStatusText } from './dev-server-status';
-import { describeSkipReason, parseDotEnv } from './parse-dot-env';
+
 import {
   TAB_DRAG_PANE_MIME,
   TAB_DRAG_TAB_MIME,
@@ -126,7 +136,7 @@ import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
-import { recouvrementBasDuNavigateur } from './visual-viewport-bottom';
+import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
@@ -204,6 +214,7 @@ import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/ho
 import { useTextDirection } from '~/lib/i18n/direction';
 import { ChatBox } from './ChatBox';
 import { HeaderOverflowMenu } from './HeaderOverflowMenu';
+import { platformStateLabel } from './platform-state-label';
 import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -270,6 +281,7 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
   formatBaseChatAstDateTime,
@@ -993,89 +1005,6 @@ function runtimeStateLabel(t: TFunction, status?: string | null): string {
   return status || t('baseChatAst.status.unknown');
 }
 
-function platformStateLabel(t: TFunction, status: unknown): string {
-  const raw = String(status ?? '').trim();
-  const normalized = raw.toLowerCase().replace(/[\s-]+/g, '_');
-
-  switch (normalized) {
-    case 'active':
-      return t('baseChatAst.status.active');
-    case 'cancelled':
-    case 'canceled':
-      return t('baseChatAst.status.cancelled');
-    case 'critical':
-      return t('baseChatAst.status.critical');
-    case 'completed':
-      return t('baseChatAst.status.completed');
-    case 'connected':
-      return t('baseChatAst.status.connected');
-    case 'disabled':
-      return t('baseChatAst.status.disabled');
-    case 'enabled':
-      return t('baseChatAst.status.enabled');
-    case 'error':
-      return t('baseChatAst.status.error');
-    case 'failed':
-      return t('baseChatAst.status.failed');
-    case 'high':
-      return t('baseChatAst.status.high');
-    case 'info':
-      return t('baseChatAst.status.info');
-    case 'idle':
-      return t('baseChatAst.presence.idle');
-    case 'offline':
-      return t('baseChatAst.status.offline');
-    case 'low':
-      return t('baseChatAst.status.low');
-    case 'medium':
-      return t('baseChatAst.status.medium');
-    case 'moderate':
-      return t('baseChatAst.status.moderate');
-    case 'paused':
-      return t('baseChatAst.status.paused');
-    case 'pending':
-      return t('baseChatAst.status.pending');
-    case 'preview':
-      return t('baseChatAst.status.preview');
-    case 'production':
-      return t('baseChatAst.status.production');
-    case 'ready':
-      return t('baseChatAst.status.ready');
-    case 'reconnecting':
-      return t('baseChatAst.status.reconnecting');
-    case 'running':
-      return t('baseChatAst.status.running');
-    case 'starting':
-      return t('baseChatAst.status.starting');
-    case 'stopped':
-      return t('baseChatAst.status.stopped');
-    case 'staging':
-      return t('baseChatAst.status.staging');
-    case 'succeeded':
-    case 'success':
-      return t('baseChatAst.status.succeeded');
-    case 'trialing':
-      return t('baseChatAst.status.trialing');
-    case 'approved':
-      return t('baseChatAst.status.approved');
-    case 'quarantined':
-      return t('baseChatAst.status.quarantined');
-    case 'rejected':
-      return t('baseChatAst.status.rejected');
-    case 'revoked':
-      return t('baseChatAst.status.revoked');
-    case 'daily':
-      return t('baseChatAst.status.daily');
-    case 'weekly':
-      return t('baseChatAst.status.weekly');
-    case 'warn':
-    case 'warning':
-      return t('baseChatAst.status.warning');
-    default:
-      return raw || t('baseChatAst.status.unknown');
-  }
-}
-
 function runtimePortsFromPayload(payload: any): Array<{ port?: number; ready?: boolean; url?: string }> {
   if (Array.isArray(payload)) {
     return payload;
@@ -1153,9 +1082,11 @@ function previewPortCompactText(
 }
 
 /*
- * previewCommandFromLogs / devServerStatusText live in ./dev-server-status so
- * the BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing
- * this whole file (see dev-server-status.spec.ts).
+ * devServerStatusText lives in ./dev-server-status so the
+ * BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing this
+ * whole file (see dev-server-status.spec.ts). Its former `previewCommandFromLogs`
+ * fallback was removed: it recognised an English UI sentence that neither the
+ * current English copy nor the French one produces.
  */
 
 const PRESENCE_STATUS_WEIGHT: Record<string, number> = {
@@ -2554,6 +2485,9 @@ interface BaseChatProps {
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
+
+  /** Prompt d'origine récupéré depuis `ProjectIdeState.chat` (voir GenerateAppCta). */
+  promptDeSecours?: string;
   projectId?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, any>;
@@ -2611,6 +2545,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       onWebSearchResult,
       projectIdeMode = false,
+      promptDeSecours,
       projectId,
       projectUrl,
       initialIdePanels,
@@ -3090,6 +3025,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           '--vc-mobile-visual-viewport-bottom',
           `${Math.round(recouvrementBas)}px`,
         );
+
+        /*
+         * Clavier levé : le socle est passé sous lui, le composeur ne doit plus
+         * lui réserver sa place (captures iPhone 06/09 11:04). Le CSS lit cet
+         * attribut — voir « CLAVIER LEVÉ » dans index.scss.
+         */
+        if (clavierProbablementOuvert(recouvrementBas)) {
+          document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
+        } else {
+          document.documentElement.removeAttribute('data-vc-clavier');
+        }
       };
 
       updateVisualViewportHeight();
@@ -3103,6 +3049,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.visualViewport?.removeEventListener('scroll', updateVisualViewportHeight);
         document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-height');
         document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-bottom');
+        document.documentElement.removeAttribute('data-vc-clavier');
       };
     }, [useMobileIde]);
 
@@ -3467,8 +3414,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
-    const [isListening, setIsListening] = useState(false);
+
+    /*
+     * BUG-VOICE-INPUT-001 — la dictée est une machine à trois phases (repos,
+     * demande, écoute) pilotée par `reduireLaDictee` : le bouton, le champ et
+     * le moteur lisent la même phase, et le moteur qui s'arrête seul (silence,
+     * Safari iOS) ramène l'interface au repos.
+     */
+    const [phaseDictee, setPhaseDictee] = useState<PhaseDictee>('repos');
+    const isListening = phaseDictee !== 'repos';
+    const phaseDicteeRef = useRef<PhaseDictee>('repos');
+    phaseDicteeRef.current = phaseDictee;
+
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+
+    // Le texte tapé avant la dictée : la dictée s'y ajoute, elle ne l'efface pas.
+    const prefixeDicteeRef = useRef('');
+    const inputCourantRef = useRef(input);
+    inputCourantRef.current = input;
+
+    const handleInputChangeRef = useRef(handleInputChange);
+    handleInputChangeRef.current = handleInputChange;
+
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
@@ -4236,10 +4204,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           previews: runtimePreviews,
           workspaceLoading,
           workspaceError,
-          logs: workspaceLogs,
           previewServerState,
         }),
-      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading, workspaceLogs],
+      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading],
     );
     const workspaceStatusLabel = useMemo(() => {
       // A live serving port means Running — beats a stale error or a lagging status.
@@ -6528,25 +6495,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map((result) => result[0])
-            .map((result) => result.transcript)
-            .join('');
+        const transiter = (evenement: EvenementDictee) => {
+          const { phase } = reduireLaDictee(phaseDicteeRef.current, evenement);
+          phaseDicteeRef.current = phase;
+          setPhaseDictee(phase);
+        };
 
-          if (handleInputChange) {
-            const syntheticEvent = {
-              target: { value: transcript },
-            } as React.ChangeEvent<HTMLTextAreaElement>;
-            handleInputChange(syntheticEvent);
-          }
+        // Le moteur confirme qu'il capte : c'est là que l'on passe « en écoute », pas à l'appui.
+        recognition.onstart = () => transiter({ type: 'start' });
+
+        /*
+         * Le moteur s'arrête seul : silence, limite de durée (Safari iOS coupe
+         * après quelques secondes sans parole), perte du micro. Mesuré avant
+         * correction : sans ce gestionnaire, l'interface restait « en écoute »
+         * et il fallait deux appuis pour relancer.
+         */
+        recognition.onend = () => transiter({ type: 'end' });
+
+        recognition.onresult = (event) => {
+          const transcription = transcriptionDepuisResultats(event.results);
+
+          handleInputChangeRef.current?.({
+            target: { value: composerLaSaisie(prefixeDicteeRef.current, transcription) },
+          } as React.ChangeEvent<HTMLTextAreaElement>);
         };
 
         recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
+          transiter({ type: 'erreur' });
 
-          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          const message = messageDErreurDeDictee(event.error);
+
+          if (message === 'permission') {
             /*
              * Mic permission is blocked at the browser level — explain it once
              * per session (sessionStorage guard), not on every click.
@@ -6568,9 +6547,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 toastId: 'mic-permission-blocked',
               });
             }
+          } else if (message === 'micro-absent') {
+            toast.error(t('chat.copy.dictationNoMicrophone'), { toastId: 'dictation-no-microphone' });
+          } else if (message === 'reseau') {
+            toast.error(t('chat.copy.dictationNetwork'), { toastId: 'dictation-network' });
+          } else if (message === 'silence') {
+            toast.info(t('chat.copy.dictationNoSpeech'), { toastId: 'dictation-no-speech' });
+          } else {
+            console.error('Speech recognition error:', event.error);
           }
         };
 
+        recognitionRef.current = recognition;
         setRecognition(recognition);
 
         return () => {
@@ -6578,8 +6566,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * Tear down the recognizer on unmount so it stops capturing the mic
            * and releases the underlying SpeechRecognition resource.
            */
+          recognition.onstart = null;
+          recognition.onend = null;
           recognition.onresult = null;
           recognition.onerror = null;
+          recognitionRef.current = null;
 
           try {
             recognition.abort();
@@ -6668,33 +6659,50 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const startListening = () => {
-      if (!recognition) {
+      const moteur = recognitionRef.current;
+
+      if (!moteur) {
         // The mic button hides itself when the API is absent, but never let a click be inert.
         toast.error(t('chat.copy.speechRecognitionIsNotAvailableIn_af2b2f6a'), { toastId: 'speech-unavailable' });
         return;
       }
 
+      const transition = reduireLaDictee(phaseDicteeRef.current, { type: 'appui' });
+
+      if (transition.action !== 'start') {
+        stopListening();
+        return;
+      }
+
+      // La langue de l'interface, et le texte déjà tapé que la dictée prolongera.
+      moteur.lang = langueDeDictee(i18n.resolvedLanguage ?? i18n.language);
+      prefixeDicteeRef.current = inputCourantRef.current;
+
       try {
-        recognition.start();
+        moteur.start();
+        phaseDicteeRef.current = transition.phase;
+        setPhaseDictee(transition.phase);
       } catch (error) {
         /*
          * start() throws InvalidStateError when recognition is already
-         * running — swallow it and let the state below resync the UI so the
-         * click still has a visible effect.
+         * running — the engine is live, so show « écoute » and let the user stop it.
          */
         console.error('Speech recognition start failed:', error);
+        phaseDicteeRef.current = 'ecoute';
+        setPhaseDictee('ecoute');
       }
-
-      setIsListening(true);
     };
 
     const stopListening = () => {
-      if (recognition) {
-        recognition.stop();
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // stop() on a recognizer that never started: nothing to stop.
       }
 
       // Always resync the UI, even if the recognizer is gone.
-      setIsListening(false);
+      phaseDicteeRef.current = 'repos';
+      setPhaseDictee('repos');
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
@@ -6708,7 +6716,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setIsListening(false);
+          phaseDicteeRef.current = 'repos';
+          setPhaseDictee('repos');
 
           // Clear the input by triggering handleInputChange with empty value
           if (handleInputChange) {
@@ -7520,6 +7529,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {projectIdeMode && (
                 <GenerateAppCta
                   files={projectFiles}
+                  promptDeSecours={promptDeSecours}
                   hasMessages={(messages?.length ?? 0) > 0}
                   isGenerating={isAgentRunning}
                   onGenerate={(prompt) => handleProjectAgentSendMessage({} as React.UIEvent, prompt)}
@@ -7554,6 +7564,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 enhancingPrompt={enhancingPrompt}
                 enhancePrompt={enhancePrompt}
                 isListening={isListening}
+                dictationPhase={phaseDictee}
                 startListening={startListening}
                 stopListening={stopListening}
                 chatStarted={chatStarted}
@@ -10055,7 +10066,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           data-testid={`button-close-tab-${tab.id}`}
                           onClick={() => closeMobileOpenTab(tab.id)}
                         >
-                          <span className="i-ph:x" aria-hidden />
+                          {/*
+                           * La pastille et la glyphe sont deux éléments : l'icône est un
+                           * MASQUE, dont la couleur de trait est sa `background-color`.
+                           * Peindre la pastille sur l'icône elle-même peignait la croix
+                           * en couleur de fond — blanche en thème clair (BUG-TAB-CLOSE-CONTRAST-001).
+                           */}
+                          <span className="bolt-mobile-tab-switcher-close-chip">
+                            <span className="i-ph:x" aria-hidden />
+                          </span>
                         </button>
                       ) : null}
                     </div>
@@ -11754,7 +11773,8 @@ function ProjectProblemsPanel() {
                       </button>
                     ) : null}
                   </div>
-                  <p>{diagnostic.message}</p>
+                  {/* Une erreur d'exécution arrive en JSON brut (capture iPhone 06/09 10:36) : la même lecture que le Débogueur. */}
+                  <p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>
                   {diagnostic.detail ? <pre>{diagnostic.detail}</pre> : null}
                 </div>
               </li>
@@ -13814,7 +13834,16 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'secrets') {
-    return <ProjectSecretsPanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
+    return (
+      <ProjectSecretsPanel
+        projectId={projectId}
+        data={data}
+        onSubmit={onSubmit}
+        busy={busy}
+        reload={reload}
+        language={resolvedBaseChatLanguage(i18n)}
+      />
+    );
   }
 
   if (panel === 'collaborators') {
@@ -22263,9 +22292,19 @@ function ProjectDebuggerPanel({
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
               <PanelSectionTitle>{t('chat.copy.runtimeOutput_fb71b522')}</PanelSectionTitle>
               <div className="mt-3 max-h-44 overflow-auto font-mono text-xs text-bolt-elements-textSecondary">
-                {logs.slice(-12).map((log: any, index: number) => (
-                  <div key={`${log.timestamp}-${index}`}>{log.message}</div>
-                ))}
+                {logs.slice(-12).map((log: any, index: number) => {
+                  // L'agent journalise en JSON, parfois tronqué : on montre ce qu'un humain lit.
+                  const lisible = ligneRuntimeLisible(String(log.message ?? ''));
+
+                  return (
+                    <div key={`${log.timestamp}-${index}`} data-level={lisible.niveau ?? undefined}>
+                      {lisible.niveau ? (
+                        <span className="mr-1 uppercase text-bolt-elements-textTertiary">[{lisible.niveau}]</span>
+                      ) : null}
+                      {lisible.texte}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : null}
@@ -22388,28 +22427,37 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
 
   return (
     <div className={classNames('bolt-project-console-tool', split && 'bolt-project-console-tool-split')}>
+      {/*
+       * Deux groupes sans effet sur le bureau (`display: contents` — la barre y
+       * reste une seule rangée, comme avant) ; sur téléphone ils deviennent
+       * les rangées de la barre : flux + statut, puis niveaux, puis recherche
+       * et actions en icônes. Voir « PANNEAU JOURNAUX SUR TÉLÉPHONE » dans
+       * index.scss.
+       */}
       <div className="bolt-project-console-header">
-        {[
-          ['console', streamLabels.console],
-          ['workflow', streamLabels.workflow],
-          ['system', streamLabels.system],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={activeStream === id}
-            aria-label={t('chat.copy.showValue0_60e2ce8e', { value0: label })}
-            onClick={() => setActiveStream(id as any)}
+        <div className="bolt-project-console-streams">
+          {[
+            ['console', streamLabels.console],
+            ['workflow', streamLabels.workflow],
+            ['system', streamLabels.system],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={activeStream === id}
+              aria-label={t('chat.copy.showValue0_60e2ce8e', { value0: label })}
+              onClick={() => setActiveStream(id as any)}
+            >
+              {label}
+            </button>
+          ))}
+          <span
+            className="bolt-project-console-status"
+            title={t('chat.copy.workspaceValue0_2f7c1a1b', { value0: workspaceStatus })}
           >
-            {label}
-          </button>
-        ))}
-        <span
-          className="bolt-project-console-status"
-          title={t('chat.copy.workspaceValue0_2f7c1a1b', { value0: workspaceStatus })}
-        >
-          {workspaceStatus}
-        </span>
+            {workspaceStatus}
+          </span>
+        </div>
         <div
           className="bolt-project-console-level-chips"
           role="group"
@@ -22439,53 +22487,67 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
             </button>
           ))}
         </div>
-        <input
-          aria-label={t('chat.copy.searchLogs_48225af1')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={regexEnabled ? t('chat.copy.regexSearch_012ab8b4') : t('chat.copy.searchLogs_48225af1')}
-        />
-        <button
-          type="button"
-          aria-pressed={regexEnabled}
-          aria-label={t('chat.copy.toggleRegexSearch_4ed228f4')}
-          onClick={() => setRegexEnabled((value) => !value)}
-        >
-          {t('chat.copy.regex_6e681935')}
-        </button>
-        <button type="button" aria-label={t('chat.copy.clearVisibleLogs_eb78a0d1')} onClick={() => setCleared(true)}>
-          {t('chat.copy.clearLogs_532ffc7a')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.toggleSplitLogView_4cbcd801')}
-          onClick={() => setSplit((value) => !value)}
-        >
-          {split ? t('chat.copy.closeSplit_1024a76a') : t('chat.copy.splitView_329af640')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.exportCurrentlyFilteredLogsAsA_487e7db6')}
-          onClick={downloadLogs}
-        >
-          {t('chat.copy.exportTxt_469c1c08')}
-        </button>
-        <button
-          type="button"
-          aria-pressed={liveTail}
-          aria-label={t('chat.copy.toggleLiveTail_e5a60fa5')}
-          onClick={() => setLiveTail((value) => !value)}
-        >
-          {liveTail ? t('chat.copy.liveTailOn_b3b68f8a') : t('chat.copy.liveTailOff_160816b4')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
-          onClick={() => void reload?.()}
-          disabled={busy}
-        >
-          {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.reload_cce71553')}
-        </button>
+        <div className="bolt-project-console-search">
+          <input
+            aria-label={t('chat.copy.searchLogs_48225af1')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={regexEnabled ? t('chat.copy.regexSearch_012ab8b4') : t('chat.copy.searchLogs_48225af1')}
+          />
+          <button
+            type="button"
+            aria-pressed={regexEnabled}
+            aria-label={t('chat.copy.toggleRegexSearch_4ed228f4')}
+            onClick={() => setRegexEnabled((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:brackets-curly" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.regex_6e681935')}</span>
+          </button>
+          <button type="button" aria-label={t('chat.copy.clearVisibleLogs_eb78a0d1')} onClick={() => setCleared(true)}>
+            <span className="bolt-project-console-action-icon i-ph:eraser" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.clearLogs_532ffc7a')}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.toggleSplitLogView_4cbcd801')}
+            onClick={() => setSplit((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:columns" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {split ? t('chat.copy.closeSplit_1024a76a') : t('chat.copy.splitView_329af640')}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.exportCurrentlyFilteredLogsAsA_487e7db6')}
+            onClick={downloadLogs}
+          >
+            <span className="bolt-project-console-action-icon i-ph:download-simple" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.exportTxt_469c1c08')}</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={liveTail}
+            aria-label={t('chat.copy.toggleLiveTail_e5a60fa5')}
+            onClick={() => setLiveTail((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:arrow-line-down" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {liveTail ? t('chat.copy.liveTailOn_b3b68f8a') : t('chat.copy.liveTailOff_160816b4')}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
+            onClick={() => void reload?.()}
+            disabled={busy}
+          >
+            <span className="bolt-project-console-action-icon i-ph:arrow-clockwise" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.reload_cce71553')}
+            </span>
+          </button>
+        </div>
       </div>
       <LogStreamView logs={filteredLogs} empty={activeStreamEmptyMessage} />
       {split && (
@@ -22725,408 +22787,6 @@ function formatLogTime(language: string, value?: string) {
     minute: '2-digit',
     second: '2-digit',
   });
-}
-
-function ProjectSecretsPanel({
-  projectId,
-  data,
-  onSubmit,
-  busy,
-  reload,
-}: {
-  projectId?: string;
-  data: any;
-  onSubmit: any;
-  busy: boolean;
-  reload?: () => void | Promise<void>;
-}) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
-  const [revealed, setRevealed] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState('');
-  const [editingKey, setEditingKey] = useState('');
-  const [importOpen, setImportOpen] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
-  const [importFailures, setImportFailures] = useState<Array<{ key: string; error: string }>>([]);
-  const secrets = data.secrets ?? [];
-
-  // Live preview of the pasted .env block: parsed entries + honestly-reported skipped lines.
-  const importPreview = useMemo(() => parseDotEnv(importText), [importText]);
-  const existingSecretKeys = useMemo(() => new Set<string>(secrets.map((secret: any) => secret.key)), [secrets]);
-  const overwriteCount = importPreview.entries.filter((entry) => existingSecretKeys.has(entry.key)).length;
-
-  // Fetch a secret's real value (reveal endpoint); shared by copy-value + reveal.
-  async function fetchSecretValue(key: string): Promise<string | undefined> {
-    if (!projectId) {
-      return undefined;
-    }
-
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
-        key,
-      )}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-
-    return response.ok && typeof result?.data?.secret?.value === 'string' ? result.data.secret.value : undefined;
-  }
-
-  /*
-   * Replit-style bulk .env import: the pasted block is parsed live into the
-   * preview table; confirming upserts each entry sequentially via the existing
-   * secrets intent (real per-project secrets API), surfacing per-key failures
-   * and progress, then refreshes the list.
-   */
-  async function handleImport() {
-    if (!projectId) {
-      return;
-    }
-
-    const { entries } = importPreview;
-
-    if (!entries.length) {
-      setMessage(t('baseChatAst.secrets.noEntries'));
-      return;
-    }
-
-    setImporting(true);
-    setImportProgress({ done: 0, total: entries.length });
-    setImportFailures([]);
-
-    const failures: Array<{ key: string; error: string }> = [];
-
-    try {
-      for (const [index, { key, value }] of entries.entries()) {
-        const form = new FormData();
-        form.append('intent', 'upsert');
-        form.append('key', key);
-        form.append('value', value);
-
-        try {
-          const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets`, {
-            method: 'POST',
-            body: form,
-          });
-
-          if (!response.ok) {
-            const result = (await response.json().catch(() => null)) as any;
-            failures.push({ key, error: String(result?.error ?? `HTTP ${response.status}`) });
-          }
-        } catch (error) {
-          console.error('Secret import request failed', { key, error });
-          failures.push({ key, error: t('baseChatAst.secrets.networkError') });
-        }
-
-        setImportProgress({ done: index + 1, total: entries.length });
-      }
-
-      const ok = entries.length - failures.length;
-
-      if (failures.length) {
-        // Keep the section open so the user can see and retry what failed.
-        setImportFailures(failures);
-        setMessage(
-          t('baseChatAst.secrets.importPartial', {
-            count: entries.length,
-            imported: ok,
-            failed: failures.length,
-          }),
-        );
-      } else {
-        setMessage(t('baseChatAst.secrets.importComplete', { count: entries.length, imported: ok }));
-        setImportText('');
-        setImportOpen(false);
-      }
-
-      await reload?.();
-    } finally {
-      setImporting(false);
-      setImportProgress(null);
-    }
-  }
-
-  async function copySecretValue(key: string) {
-    const value = revealed[key] ?? (await fetchSecretValue(key));
-
-    if (typeof value !== 'string') {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
-      return;
-    }
-
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(t('baseChatAst.secrets.valueCopied', { key }));
-    } catch (error) {
-      console.error('Secret value copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
-    }
-  }
-
-  function revealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    if (revealed[key]) {
-      setRevealed((current) => {
-        const next = { ...current };
-        delete next[key];
-
-        return next;
-      });
-      return;
-    }
-
-    /*
-     * Reveal in place immediately, like a password field's eye toggle — no
-     * blocking confirmation dialog. The value is still fetched only on reveal
-     * (never listed by default) and only kept for this browser session; the
-     * "revealed for this session" notice is surfaced non-blockingly as a toast.
-     */
-    void performRevealSecret(key);
-  }
-
-  async function performRevealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
-        key,
-      )}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-    const value = response.ok ? result?.data?.secret?.value : undefined;
-
-    if (typeof value === 'string') {
-      setRevealed((current) => ({ ...current, [key]: value }));
-      setMessage(t('baseChatAst.secrets.revealed', { key }));
-    } else {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
-    }
-  }
-
-  async function copySecret(key: string) {
-    const value = revealed[key] ?? key;
-
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(
-        t('baseChatAst.secrets.copied', {
-          label: t(revealed[key] ? 'baseChatAst.secrets.secretValue' : 'baseChatAst.secrets.secretKey'),
-        }),
-      );
-    } catch (error) {
-      console.error('Secret copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
-    }
-  }
-
-  return (
-    <div className="bolt-project-secrets-tool">
-      <form onSubmit={onSubmit} className="bolt-project-inline-form">
-        <input name="intent" value="upsert" type="hidden" />
-        {/*
-         * `key` forces the uncontrolled inputs to remount whenever the user
-         * clicks "Edit" (which sets editingKey). Without it, defaultValue is only
-         * read on first mount, so clicking Edit changed the button label to
-         * "Update secret" but never populated the key field — forcing the user to
-         * retype the key from scratch.
-         */}
-        <PanelInput
-          key={`secret-key-${editingKey}`}
-          name="key"
-          placeholder={t('chat.copy.stripeSecretKey_b147aa52')}
-          required
-          defaultValue={editingKey}
-        />
-        <PanelInput
-          key={`secret-value-${editingKey}`}
-          name="value"
-          placeholder={t('chat.copy.secretValue_50fbacc0')}
-          type="password"
-          required
-        />
-        <PanelButton disabled={busy}>
-          {editingKey ? t('chat.copy.updateSecret_77d1a1a5') : t('chat.copy.newSecret_57764d66')}
-        </PanelButton>
-        <PanelButton
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setImportOpen((open) => !open);
-            setImportFailures([]);
-          }}
-        >
-          {t('chat.copy.importEnv_f0940267')}
-        </PanelButton>
-      </form>
-
-      {importOpen ? (
-        <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.pasteAEnvFileOne_7111ba2a')}
-            <span className="font-mono">{t('chat.copy.keyValue_a4409af0')}</span>
-            {t('chat.copy.perLineCommentsAndBlankLines_9af5356e')}
-            <textarea
-              value={importText}
-              onChange={(event) => {
-                setImportText(event.target.value);
-                setImportFailures([]);
-              }}
-              placeholder={t('chat.copy.databaseUrlPostgresStripeSecretKey_1e39ac87')}
-              spellCheck={false}
-              style={{ fontFamily: 'var(--vc-font-code)' }}
-              className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-            />
-          </label>
-
-          {importPreview.entries.length ? (
-            <div className="grid gap-1">
-              <span className="text-xs text-bolt-elements-textSecondary">
-                {t('baseChatAst.counts.secretsToImport', { count: importPreview.entries.length })}
-                {overwriteCount ? ` ${t('baseChatAst.secrets.overwrite', { count: overwriteCount })}` : ''}
-              </span>
-              <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2">
-                {importPreview.entries.map((entry) => (
-                  <div key={entry.key} className="flex items-center gap-2 text-xs">
-                    <span
-                      className="font-medium text-bolt-elements-textPrimary"
-                      style={{ fontFamily: 'var(--vc-font-code)' }}
-                    >
-                      {entry.key}
-                    </span>
-                    <span className="text-bolt-elements-textTertiary" aria-label={t('chat.copy.valueHidden_4dff2356')}>
-                      •••
-                    </span>
-                    {existingSecretKeys.has(entry.key) ? (
-                      <span
-                        className="rounded-sm px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-                        style={{
-                          background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
-                          borderLeft: '3px solid var(--vc-ide-accent-warning)',
-                          color: 'var(--vc-ide-accent-warning)',
-                        }}
-                      >
-                        {t('chat.copy.overwritesExisting_b450bd78')}
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {importPreview.skipped.length ? (
-            <div
-              className="grid gap-1 rounded-md p-2 text-xs"
-              style={{
-                background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
-                borderLeft: '3px solid var(--vc-ide-accent-warning)',
-              }}
-            >
-              <span className="font-medium" style={{ color: 'var(--vc-ide-accent-warning)' }}>
-                {t('baseChatAst.counts.linesSkipped', { count: importPreview.skipped.length })}
-              </span>
-              {importPreview.skipped.map((skippedLine) => (
-                <span key={skippedLine.line} className="text-bolt-elements-textSecondary">
-                  {t('chat.copy.line_ea967600')}
-                  {skippedLine.line} ({describeSkipReason(skippedLine.reason, language)}):{' '}
-                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{skippedLine.text}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          {importFailures.length ? (
-            <div className="grid gap-1 text-xs text-bolt-elements-icon-error">
-              {importFailures.map((failure) => (
-                <span key={failure.key}>
-                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{failure.key}</span>: {failure.error}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex items-center gap-2">
-            <PanelButton
-              type="button"
-              onClick={() => void handleImport()}
-              disabled={importing || !importPreview.entries.length}
-            >
-              {importing && importProgress
-                ? t('chat.copy.importingValue0Value1_df968922', {
-                    value0: importProgress.done,
-                    value1: importProgress.total,
-                  })
-                : importPreview.entries.length
-                  ? t('baseChatAst.secrets.importAction', { count: importPreview.entries.length })
-                  : t('chat.copy.importSecrets_9deaeb2d')}
-            </PanelButton>
-            <PanelButton type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
-              {t('chat.copy.cancel_77dfd213')}
-            </PanelButton>
-          </div>
-        </div>
-      ) : null}
-
-      {message && <div className="bolt-project-empty-panel">{message}</div>}
-      <div className="bolt-project-secret-list">
-        {secrets.length ? (
-          secrets.map((secret: any) => (
-            <div key={secret.key} className="bolt-project-secret-row">
-              <strong>{secret.key}</strong>
-              <span>{revealed[secret.key] ?? '••••••'}</span>
-              <button
-                type="button"
-                aria-label={t('chat.copy.revealValue0_e5d8efb3', { value0: secret.key })}
-                onClick={() => revealSecret(secret.key)}
-              >
-                {revealed[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.copyValue0Name_64ac36a4', { value0: secret.key })}
-                onClick={() => void copySecret(secret.key)}
-              >
-                {t('chat.copy.copy_af74f7c5')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.copyValue0Value_8ab75412', { value0: secret.key })}
-                onClick={() => void copySecretValue(secret.key)}
-              >
-                {t('chat.copy.copyValue_4c924dcb')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.editValue0_fad75899', { value0: secret.key })}
-                onClick={() => setEditingKey(secret.key)}
-              >
-                {t('chat.copy.edit_5301648d')}
-              </button>
-              <form onSubmit={onSubmit}>
-                <input name="intent" value="delete" type="hidden" />
-                <input name="key" value={secret.key} type="hidden" />
-                <PanelButton disabled={busy} variant="outline">
-                  {t('chat.copy.delete_f6fdbe48')}
-                </PanelButton>
-              </form>
-            </div>
-          ))
-        ) : (
-          <PanelEmptyState icon="i-ph:lock" title={t('chat.copy.noProjectSecrets_f3f1ca38')} />
-        )}
-      </div>
-    </div>
-  );
 }
 
 /*
@@ -23566,11 +23226,14 @@ function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+    <div className="bolt-panel-rows overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
       {normalized.map(([title, detail], index) => (
-        <div key={`${title}-${index}`} className="border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0">
-          <div className="text-sm font-medium text-bolt-elements-textPrimary">{title}</div>
-          <div className="mt-1 text-xs text-bolt-elements-textSecondary">{detail}</div>
+        <div
+          key={`${title}-${index}`}
+          className="bolt-panel-row border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0"
+        >
+          <div className="bolt-panel-row-title text-sm font-medium text-bolt-elements-textPrimary">{title}</div>
+          <div className="bolt-panel-row-detail mt-1 text-xs text-bolt-elements-textSecondary">{detail}</div>
         </div>
       ))}
     </div>

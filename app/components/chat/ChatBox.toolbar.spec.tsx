@@ -137,7 +137,7 @@ describe('<ChatBox /> toolbar', () => {
 
     // Les actions sont à DROITE, pas mélangées aux sélecteurs.
     expect(within(secondary).getByRole('button', { name: 'Attach images' })).toBeTruthy();
-    expect(within(secondary).getByRole('button', { name: 'Start speech recognition' })).toBeTruthy();
+    expect(within(secondary).getByRole('button', { name: 'Dictate a message' })).toBeTruthy();
     expect(within(secondary).getByRole('button', { name: 'More composer & tools' }).getAttribute('aria-haspopup')).toBe(
       'menu',
     );
@@ -185,8 +185,8 @@ describe('<ChatBox /> toolbar', () => {
      * (Replit parity), so Speech is intentionally omitted from this menu to
      * avoid a duplicate — it lives on the primary bar instead.
      */
-    expect(within(menu).queryByText('Speech')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Start speech recognition' })).toBeTruthy();
+    expect(within(menu).queryByText('Dictate')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Dictate a message' })).toBeTruthy();
   });
 
   it('toggles Plan first from inside the Advanced popover (Replit parity)', () => {

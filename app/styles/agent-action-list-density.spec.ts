@@ -122,7 +122,8 @@ describe('2. pastille « descendre » — juste au-dessus de la zone de saisie',
     const composeur = regle(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
     const remontee = (composeur.match(/bottom:\s*calc\((.+?)\)\s*!important;/)?.[1] ?? '').trim();
 
-    expect(remontee).toMatch(/var\(--mobile-nav-height\)\s*\+\s*10px/);
+    // 8 px depuis le 07/09 (BUG-COMPOSER-DEAD-SPACE-001) : la bordure du cadre à 8 px du socle, plus de rembourrage bas.
+    expect(remontee).toMatch(/var\(--mobile-nav-height\)\s*\+\s*8px/);
 
     const pastille = regle(
       ".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,\n  .bolt-responsive-ide-mobile[data-mobile-panel='chat']\n    .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true'])",
@@ -130,10 +131,26 @@ describe('2. pastille « descendre » — juste au-dessus de la zone de saisie',
 
     const bas = (pastille.match(/bottom:\s*calc\((.+?)\);/)?.[1] ?? '').trim();
 
-    // Le même terme que la remontée du composeur, plus la marge de 12px.
+    /*
+     * Le même terme que la remontée du composeur, plus 2 px : le conteneur
+     * porte 8 px de rembourrage transparent, donc 10 px visibles. Capture
+     * iPhone d'Avi (04/09 21:30, prod 914facc) mesurée au pixel : 28 px
+     * visibles avec 12 px de marge — trop pour « juste au-dessus ».
+     */
     expect(bas).toContain(remontee);
-    expect(bas).toMatch(/\+\s*12px/);
+
+    // 2 px au-dessus du conteneur, dont 8 px de rembourrage haut transparent : 10 px visibles jusqu'au cadre.
+    expect(bas).toMatch(/\+\s*8px\s*\+\s*2px$/);
     expect(bas).not.toMatch(/measured-height/);
+  });
+
+  it('la pile d’avis VIDE ne paie plus le gap de flex qui écartait la pastille', () => {
+    // 8 px mesurés (Chromium 390 et 768, iPhone) entre le rembourrage du composeur et la zone de saisie.
+    const pile = regle(
+      '.bolt-responsive-ide-mobile\n    .bolt-project-agent-composer\n    .bolt-project-agent-notice-stack:not(:has(> :not(.vc-sr-only)))',
+    );
+
+    expect(pile).toMatch(/display:\s*none/);
   });
 });
 

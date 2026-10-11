@@ -1,0 +1,43 @@
+[
+  {
+    "panel": "integrations",
+    "samples": {
+      "300": 91,
+      "800": 91,
+      "1500": 91,
+      "3000": 3055,
+      "6000": 3055,
+      "10000": 3055
+    },
+    "firstText": "Integrations | Add Authentication |  | Scaffold real email/password auth into this app — auserstable migration, an Express ses"
+  },
+  {
+    "panel": "collaborators",
+    "samples": {
+      "300": 1591,
+      "800": 1591,
+      "1500": 1623,
+      "3000": 1623,
+      "6000": 1623,
+      "10000": 1623
+    },
+    "firstText": "Collaborators | Presence |  | 1 online user with live cursor and selection sync. |  | Connecting | CM | cmtn3mrpg00980nhhzym4na1v | edit"
+  },
+  {
+    "panel": "packages",
+    "samples": {},
+    "error": "page.waitForSelector: Timeout 45000ms exceeded.\nCall log:\n  - waiting for locator('[data-testid=\"ide"
+  },
+  {
+    "panel": "overview",
+    "samples": {
+      "300": 83,
+      "800": 83,
+      "1500": 83,
+      "3000": 83,
+      "6000": 1063,
+      "10000": 1063
+    },
+    "firstText": "Overview | PROJECT OVERVIEW | QA Sweep App | Template | FILES | 7 | Tracked project files | BRANCH | main | Current Git branch | WORKSPACE | S"
+  }
+]

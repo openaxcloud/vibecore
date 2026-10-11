@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { infobulleAutoriseeAuFocus, pointeurSansSurvol } from './infobulle-tactile';
 
 /**
  * App-wide renderer for `data-vc-tooltip` attributes.
@@ -92,7 +93,21 @@ export function GlobalTooltip() {
       return el instanceof HTMLElement ? el : null;
     };
 
+    let dernierToucher: number | null = null;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (pointeurSansSurvol(event.pointerType)) {
+        dernierToucher = Date.now();
+        hide();
+      }
+    };
+
     const handlePointerOver = (event: PointerEvent) => {
+      // Le survol n'existe pas au doigt : ni au toucher, ni au stylet.
+      if (pointeurSansSurvol(event.pointerType)) {
+        return;
+      }
+
       const el = resolveTarget(event.target);
 
       if (!el) {
@@ -131,6 +146,17 @@ export function GlobalTooltip() {
     };
 
     const handleFocusIn = (event: FocusEvent) => {
+      const sansSurvol = typeof window.matchMedia === 'function' ? window.matchMedia('(hover: none)').matches : false;
+
+      if (
+        !infobulleAutoriseeAuFocus({
+          sansSurvol,
+          dernierToucherIlYA: dernierToucher === null ? null : Date.now() - dernierToucher,
+        })
+      ) {
+        return;
+      }
+
       const el = resolveTarget(event.target);
       const text = el?.getAttribute(ATTR)?.trim();
 
@@ -142,6 +168,7 @@ export function GlobalTooltip() {
       }
     };
 
+    document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('pointerover', handlePointerOver, true);
     document.addEventListener('pointerout', handlePointerOut, true);
     document.addEventListener('focusin', handleFocusIn, true);
@@ -154,6 +181,7 @@ export function GlobalTooltip() {
 
     return () => {
       clearShowTimer();
+      document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('pointerover', handlePointerOver, true);
       document.removeEventListener('pointerout', handlePointerOut, true);
       document.removeEventListener('focusin', handleFocusIn, true);

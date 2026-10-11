@@ -71,3 +71,98 @@ describe('portfolio template cache', () => {
     expect(chunks.at(-1)).toContain('<boltAction type="start">');
   });
 });
+
+/*
+ * Les deux motifs du sélecteur ne reconnaissaient QUE de l'anglais, sur une
+ * plateforme dont les utilisateurs écrivent en français. Le modèle de démarrage
+ * était réservé aux anglophones, en silence.
+ *
+ * Même classe que le repli d'état de serveur corrigé par #467 : la traduction
+ * s'arrête à ce qui se VOIT et oublie ce qui DÉCIDE.
+ */
+describe('le sélecteur reconnaît le français', () => {
+  const entree = (prompt: string) => ({
+    chatMode: 'build' as const,
+    messages: [{ role: 'user' as const, content: prompt }],
+    files: { 'index.html': '', 'src/main.tsx': '' },
+  });
+
+  it.each([
+    ['créez un portfolio pour moi', true],
+    ['crée un site perso', true],
+    ['cree un site personnel sans accent', true],
+    ['fais-moi une page perso', true],
+    ['je veux un CV en ligne, génère-le', true],
+    ['générer un portfolio', true],
+    ['générez un portfolio', true],
+    ['generer un portfolio sans accent', true],
+    ['construire un site vitrine', true],
+  ])('%s → %s', (prompt, attendu) => {
+    expect(shouldUsePortfolioTemplate(entree(prompt))).toBe(attendu);
+  });
+
+  /*
+   * La contre-épreuve qui compte : élargir les motifs ne doit pas transformer
+   * le sélecteur en aimant. Une demande de création SANS intention de portfolio
+   * doit rester refusée — sinon on remplacerait un défaut par un pire.
+   */
+  it.each([
+    ['créez un pitch deck de présentation', false],
+    ['crée une application de gestion de stock', false],
+    ['fais une boutique en ligne', false],
+    ['mon portfolio est déjà en ligne, corrige le pied de page', false],
+  ])('%s → %s (pas d’aimant)', (prompt, attendu) => {
+    expect(shouldUsePortfolioTemplate(entree(prompt))).toBe(attendu);
+  });
+
+  it('l’anglais continue de fonctionner à l’identique', () => {
+    expect(shouldUsePortfolioTemplate(entree('build me a portfolio'))).toBe(true);
+    expect(shouldUsePortfolioTemplate(entree('create a personal website'))).toBe(true);
+  });
+});
+
+/*
+ * LE CONTRÔLE SYSTÉMATIQUE, et c'est lui le vrai correctif du trou.
+ *
+ * Un premier jet écrivait `g[ée]n[èe]r[ee]r?` : `générer` et `générez` —
+ * l'infinitif et l'impératif pluriel — ne déclenchaient pas, parce que la
+ * quatrième position acceptait `è` ou `e` mais jamais `é`. Le test couvrait
+ * `génère-le`, qui passe, et manquait l'infinitif : un trou de couverture, pas
+ * un test creux.
+ *
+ * Vérifier une forme par verbe ne suffit donc pas. Ce cas balaie les formes
+ * qu'un francophone écrit réellement — infinitif, impératif singulier et
+ * pluriel — pour chaque verbe accepté.
+ */
+describe('toutes les formes conjuguées déclenchent, pas seulement celle qu’on a testée', () => {
+  const entree = (prompt: string) => ({
+    chatMode: 'build' as const,
+    messages: [{ role: 'user' as const, content: prompt }],
+    files: { 'index.html': '', 'src/main.tsx': '' },
+  });
+
+  const formes = [
+    'créer',
+    'crée',
+    'créez',
+    'creer',
+    'cree',
+    'creez',
+    'générer',
+    'génère',
+    'générez',
+    'generer',
+    'genere',
+    'generez',
+    'fabriquer',
+    'fabrique',
+    'construire',
+    'construis',
+    'faire',
+    'fais',
+  ];
+
+  it.each(formes)('« %s un portfolio » déclenche', (verbe) => {
+    expect(shouldUsePortfolioTemplate(entree(`${verbe} un portfolio`))).toBe(true);
+  });
+});

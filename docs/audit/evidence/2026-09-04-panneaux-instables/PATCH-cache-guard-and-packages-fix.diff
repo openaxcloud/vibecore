@@ -1,0 +1,77 @@
+diff --git a/app/components/chat/BaseChat.tsx b/app/components/chat/BaseChat.tsx
+index b73aa8df8..5f7bde270 100644
+--- a/app/components/chat/BaseChat.tsx
++++ b/app/components/chat/BaseChat.tsx
+@@ -239,6 +239,7 @@ import {
+   type IdeRightPanel,
+   type IdeWorkspacePanel,
+ } from '~/lib/ide/panel-registry';
++import { readProjectPanelCache, writeProjectPanelCache } from '~/lib/ide/panel-payload-cache';
+ import {
+   type CompactPreviewRunState,
+   compactPreviewRunAriaLabel,
+@@ -10773,41 +10774,6 @@ const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
+  */
+ const PROJECT_PANEL_SLOW_LOAD_MS = 7000;
+ 
+-/*
+- * In-memory cache of the last successful payload per `${projectId}:${panel}`.
+- * Panels are keyed by panel name in the workbench, so switching tabs unmounts
+- * and remounts ProjectIdeServicePanel — without this, returning to a tab would
+- * re-flash the loading skeleton every time. Seeding from this cache lets a
+- * revisited tab render its previous content immediately while it refreshes
+- * silently in the background. Bounded so it can't grow without limit.
+- */
+-const PROJECT_PANEL_CACHE_MAX = 60;
+-const projectPanelPayloadCache = new Map<string, { payload: any; lastLoadedAt: string }>();
+-
+-function readProjectPanelCache(key: string | undefined) {
+-  return key ? projectPanelPayloadCache.get(key) : undefined;
+-}
+-
+-function writeProjectPanelCache(key: string | undefined, entry: { payload: any; lastLoadedAt: string }) {
+-  if (!key) {
+-    return;
+-  }
+-
+-  // Refresh insertion order (Map preserves it) so the oldest key evicts first.
+-  projectPanelPayloadCache.delete(key);
+-  projectPanelPayloadCache.set(key, entry);
+-
+-  while (projectPanelPayloadCache.size > PROJECT_PANEL_CACHE_MAX) {
+-    const oldest = projectPanelPayloadCache.keys().next().value;
+-
+-    if (oldest === undefined) {
+-      break;
+-    }
+-
+-    projectPanelPayloadCache.delete(oldest);
+-  }
+-}
+-
+ function projectPanelFetchMethod(init?: RequestInit) {
+   return (init?.method ?? 'GET').toUpperCase();
+ }
+diff --git a/app/routes/api.projects.$projectId.ide-panel.$panel.ts b/app/routes/api.projects.$projectId.ide-panel.$panel.ts
+index e93558394..fbb05019f 100644
+--- a/app/routes/api.projects.$projectId.ide-panel.$panel.ts
++++ b/app/routes/api.projects.$projectId.ide-panel.$panel.ts
+@@ -821,9 +821,16 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
+   if (panel === 'packages') {
+     try {
+       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+-      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
+ 
+-      const [packages, envVars] = await Promise.all([
++      /*
++       * BUG-PANEL-PERF-004 — `resolvePanelWorkspace` used to be awaited BEFORE
++       * this fan-out, which cost a serial hop for nothing: neither `/packages`
++       * nor `/env-vars` takes anything from `workspaceCtx` (it is read only
++       * when the envelope below is built). Joining the fan-out removes one of
++       * the three sequential hops this panel paid on every open.
++       */
++      const [workspaceCtx, packages, envVars] = await Promise.all([
++        resolvePanelWorkspace(request, projectId, requestedWorkspaceId),
+         apiRequest(request, `/projects/${projectId}/packages`),
+         apiRequest(request, `/projects/${projectId}/env-vars`),
+       ]);

@@ -1802,8 +1802,10 @@ test(
     await openIdeTool(/Secrets/);
 
     const secretsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="secrets"]').first();
-    await expect(secretsPanel.locator('.bolt-project-secrets-tool')).toBeVisible({ timeout: 15000 });
-    await expect(secretsPanel.getByRole('button', { name: /New secret/ })).toBeVisible();
+    // RP-SEC-01 : le panneau Replit — en-tête « Secrets », ⋮, « + New Secret », filtre.
+    await expect(secretsPanel.getByTestId('secrets-panel')).toBeVisible({ timeout: 15000 });
+    await expect(secretsPanel.getByTestId('secrets-new')).toBeVisible();
+    await expect(secretsPanel.getByTestId('secrets-filter')).toBeVisible();
 
     await openIdeTool(/Git/);
 
