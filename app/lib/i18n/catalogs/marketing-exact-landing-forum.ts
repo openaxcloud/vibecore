@@ -19,6 +19,8 @@ interface MarketingExactLandingForumCopy {
       setupFullDescription: string;
       storageWarningTitle: string;
       storageWarningDescription: string;
+      tooLongTitle: string;
+      tooLongDescription: string;
     };
     hero: {
       badge: string;
@@ -74,6 +76,9 @@ export const marketingExactLandingForumEn = {
       storageWarningTitle: 'Project handoff is unavailable',
       storageWarningDescription:
         'The builder will still open, but your browser requires you to enter the app description again.',
+      tooLongTitle: 'Your description is too long',
+      tooLongDescription:
+        'It has {characters} characters; the limit is {maximum}. Shorten it so nothing gets cut off, then try again.',
     },
     hero: {
       badge: 'AI-powered enterprise development platform',
@@ -235,6 +240,9 @@ export const marketingExactLandingForumFr = {
       storageWarningTitle: 'Le transfert du projet est indisponible',
       storageWarningDescription:
         'L’outil de création va tout de même s’ouvrir, mais votre navigateur vous demandera de saisir à nouveau la description de l’application.',
+      tooLongTitle: 'Votre description est trop longue',
+      tooLongDescription:
+        'Elle fait {characters} caractères, pour une limite de {maximum}. Raccourcissez-la pour que rien ne soit coupé, puis réessayez.',
     },
     hero: {
       badge: 'Plateforme de développement d’entreprise propulsée par l’IA',

@@ -46,6 +46,11 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.patch.locked': '{file} is locked; the AI patch was not applied. Unlock it first.',
   'workbenchRuntime.patch.lockedLog': 'AI patch blocked because the file is locked: {file}',
   'workbenchRuntime.patch.reconciled': 'AI patch for {file} reconciled with a concurrent change.',
+  'workbenchRuntime.patch.fusionneAvecUtilisateur':
+    'You saved {file} while the agent was writing it: your change was kept, and the agent’s change was applied on top.',
+  'workbenchRuntime.patch.conflitUtilisateurTitre': 'Your change was kept',
+  'workbenchRuntime.patch.conflitUtilisateur':
+    'You saved {file} while the agent was changing the same lines: your version was kept. The agent’s change is waiting for your review.',
   'workbenchRuntime.patch.refreshSkipped': 'File refresh was skipped after accepting the AI patch.',
   'workbenchRuntime.patch.accepted': 'AI patch accepted: {file}',
   'workbenchRuntime.patch.checkpointSkipped': 'AI checkpoint was skipped after accepting the patch.',
@@ -172,6 +177,11 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
     'Le fichier {file} est verrouillé ; le patch de l’IA n’a pas été appliqué. Déverrouillez-le d’abord.',
   'workbenchRuntime.patch.lockedLog': 'Patch de l’IA bloqué, car le fichier est verrouillé : {file}',
   'workbenchRuntime.patch.reconciled': 'Le patch de l’IA pour {file} a été concilié avec une modification simultanée.',
+  'workbenchRuntime.patch.fusionneAvecUtilisateur':
+    'Vous avez enregistré {file} pendant que l’agent l’écrivait : votre modification est conservée, celle de l’agent a été appliquée par-dessus.',
+  'workbenchRuntime.patch.conflitUtilisateurTitre': 'Votre modification est conservée',
+  'workbenchRuntime.patch.conflitUtilisateur':
+    'Vous avez enregistré {file} pendant que l’agent modifiait les mêmes lignes : votre version est conservée. La modification de l’agent attend votre revue.',
   'workbenchRuntime.patch.refreshSkipped':
     'L’actualisation des fichiers a été ignorée après l’acceptation du patch de l’IA.',
   'workbenchRuntime.patch.accepted': 'Patch de l’IA accepté : {file}',

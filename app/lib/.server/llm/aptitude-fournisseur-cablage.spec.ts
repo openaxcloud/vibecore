@@ -73,23 +73,37 @@ describe('la route de chat applique réellement le critère', () => {
     expect(bloc.length).toBeGreaterThan(50);
 
     const corps = bloc.slice(0, 1500);
-    expect(corps.includes("modeConstruction: chatMode === 'build',")).toBe(true);
+
+    // Un refus explicite de fichiers n'est pas une construction : il n'établit rien.
+    expect(corps.includes("modeConstruction: chatMode === 'build' && !fichiersRefuses,")).toBe(true);
     expect(corps.includes('fichiersEcrits: fichiersEmis,')).toBe(true);
     expect(corps.includes("termine: finishReason === 'stop',")).toBe(true);
   });
 
-  it('un tour inapte ÉCARTE le maillon pour le tour suivant', () => {
+  it('un tour inapte N’ÉCARTE JAMAIS le fournisseur pour tout le pod — portée : la requête', () => {
     /*
-     * Sans cette conséquence, le critère ne serait qu'un journal de plus : le
-     * tour suivant repartirait sur le même fournisseur et répéterait le vide.
+     * Décision du 2026-09-28, qui REMPLACE celle du 10/09 que ce test épinglait :
+     * mesuré en production, une demande de plan « n'écris aucun fichier » avait
+     * écarté Anthropic 300 s pour tous les utilisateurs du pod. Le constat reste
+     * journalisé, mais il ne touche plus la table partagée.
      */
     const bloc = SOURCE_ROUTE.split('if (fournisseurInapte(constatDuTour)')[1] ?? '';
     expect(bloc.length).toBeGreaterThan(50);
 
-    const corps = bloc.slice(0, 900);
-    expect(corps.includes('markProviderUnhealthy(')).toBe(true);
-    expect(corps.includes("'sterile',")).toBe(true);
+    const corps = bloc.slice(0, bloc.indexOf('\n            }\n'));
     expect(corps.includes('chat.fournisseur.sterile')).toBe(true);
+    expect(corps.includes("portee: 'requete'")).toBe(true);
+    expect(corps.includes('markProviderUnhealthy(')).toBe(false);
+    expect(compter("'sterile'")).toBe(0);
+  });
+
+  it('un échec de flux n’écarte le fournisseur pour le pod QUE s’il porte sur la clé', () => {
+    const bloc = SOURCE_ROUTE.split('const kind = classifyProviderFailure(error);')[1] ?? '';
+    expect(bloc.length).toBeGreaterThan(50);
+
+    const corps = bloc.slice(0, 1400);
+    expect(corps.includes('if (echecDeCle(kind)) {')).toBe(true);
+    expect(compter('markProviderUnhealthy(')).toBe(1);
   });
 
   it('le compte remplace le drapeau PARTOUT : une seule vérité pour un seul fait', () => {

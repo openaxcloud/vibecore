@@ -59,18 +59,22 @@ describe('<PanelButton />', () => {
     const className = screen.getByRole('button', { name: 'Create' }).className;
 
     /*
-     * Style tranché : fond plein + encre APPARIÉE au fond (= CTA EmptyState).
-     * Le fond passe par `--vc-cta-accent`, qui vaut `--vc-ide-accent-action`
-     * partout et bascule sur le ton renforcé dans la coque user area.
-     *
-     * ON-ACCENT-003 : l'encre suit désormais la MÊME structure de repli. Le
-     * blanc en dur ne tenait que dans la coque user area (#c2410c, 5,18) ; dans
-     * l'IDE en thème sombre il rendait 2,79:1 sur l'orange de marque — mesuré
-     * en production sur sept boutons de panneau le 2026-09-08.
+     * Style tranché : fond plein + texte blanc (= CTA EmptyState). Depuis
+     * l'audit user area, le fond passe par `--vc-cta-accent`, qui VAUT
+     * `--vc-ide-accent-action` partout (défaut global) et bascule sur le ton
+     * renforcé AA dans la seule coque user area — la couleur rendue dans l'IDE
+     * est donc inchangée, c'est l'indirection qui est nouvelle.
      */
     expect(className).toContain('bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))]');
-    expect(className).toContain('text-[var(--vc-cta-accent-ink,var(--vc-ide-on-accent-action))]');
-    expect(className, 'plus de blanc en dur : il ne tient pas sur l’orange de marque').not.toContain('text-white');
+
+    /*
+     * Décision d'Avi du 01/10 : texte FONCÉ sur l'orange vif. L'encre suit son
+     * fond par le jeton jumeau `--vc-cta-accent-foreground` (blanc sur l'orange
+     * profond, foncé sur l'orange vif du thème sombre, où le blanc tombait à
+     * 2,80:1). Garde chiffrée : app/styles/texte-sur-accent.spec.ts.
+     */
+    expect(className).toContain('text-[var(--vc-cta-accent-foreground,var(--vc-ide-on-accent-action))]');
+    expect(className).not.toContain('text-white');
 
     // L'ancien style teinté n'est plus émis par les primitives de panneau.
     expect(className).not.toContain('button-primary-background');

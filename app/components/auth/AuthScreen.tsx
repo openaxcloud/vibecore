@@ -346,6 +346,17 @@ interface AuthOauthButtonProps {
 
   /* Extra disable condition, e.g. the email/password form is submitting. */
   disabled?: boolean;
+
+  /* Where the visitor was going (already filtered server-side): carried through the provider round-trip. */
+  returnTo?: string | null;
+}
+
+/**
+ * BUG-QA0930-OAUTH-OUBLIE-LA-DESTINATION — le lien d'un fournisseur porte la
+ * destination du visiteur ; `/auth/oauth/<fournisseur>` la garde jusqu'au retour.
+ */
+export function lienOAuth(provider: string, returnTo?: string | null): string {
+  return returnTo ? `/auth/oauth/${provider}?returnTo=${encodeURIComponent(returnTo)}` : `/auth/oauth/${provider}`;
 }
 
 /*
@@ -354,13 +365,21 @@ interface AuthOauthButtonProps {
  * "disabled" is expressed with aria-disabled + preventDefault rather than a
  * `disabled` attribute.
  */
-export function AuthOauthButton({ provider, label, icon, pendingProvider, onStart, disabled }: AuthOauthButtonProps) {
+export function AuthOauthButton({
+  provider,
+  label,
+  icon,
+  pendingProvider,
+  onStart,
+  disabled,
+  returnTo,
+}: AuthOauthButtonProps) {
   const isPending = pendingProvider === provider;
   const isDisabled = disabled || (pendingProvider !== null && !isPending);
 
   return (
     <Link
-      to={`/auth/oauth/${provider}`}
+      to={lienOAuth(provider, returnTo)}
       aria-disabled={isDisabled || isPending || undefined}
       aria-busy={isPending || undefined}
       onClick={(event) => {

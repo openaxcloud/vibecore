@@ -396,6 +396,27 @@ généraux : ce sont des pièges qui ont déjà coûté.
     dans une branche intermédiaire qui n'atteint jamais `main`. Même remède :
     on greppe `main`, jamais l'état de la proposition.
 
+20. **Une erreur rendue par NOTRE PROPRE INSTRUMENT n'est pas une mesure de
+    l'objet.** Quand la sonde échoue, elle ne dit rien de ce qu'on sondait — et
+    sa sortie ressemble pourtant à un résultat. Trois occurrences sur ce projet,
+    toutes différentes, toutes coûteuses :
+
+    * un `tail -4` qui coupait la ligne de verdict : la sortie visible disait
+      « rien », la mesure n'avait simplement pas été lue jusqu'au bout ;
+    * un worktree dont `node_modules` résolvait `@vibecore/*` vers le checkout
+      PRINCIPAL : les tests jugeaient un autre code que celui qu'on modifiait ;
+    * le 2026-09-25, une sonde `fetch` tirée depuis la page de l'IDE vers l'hôte
+      d'aperçu : bloquée par la politique d'origine, elle a rendu
+      `Failed to fetch` pendant cent cinquante secondes. Ce n'était pas l'hôte
+      qui était muet, c'était la requête qui n'était jamais partie.
+
+    **Le contrôle** : avant de conclure d'un échec, se demander ce que l'échec
+    prouverait s'il venait de l'instrument — et trouver une seconde voie qui ne
+    partage pas la même faiblesse. Pour la politique d'origine : ouvrir un onglet
+    DIRECTEMENT sur l'hôte visé, où l'on est alors dans la même origine. Pour un
+    worktree : vérifier vers quoi le paquet résout. Pour une sortie tronquée :
+    filtrer sur la ligne de verdict, jamais sur les dernières lignes.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.

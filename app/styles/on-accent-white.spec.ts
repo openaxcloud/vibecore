@@ -292,15 +292,15 @@ describe('ON-ACCENT-003 — aplat en position de repli', () => {
 
   it('l’encre appariée du CTA tient AA dans les DEUX thèmes ET dans les DEUX coques', () => {
     for (const theme of ['light', 'dark'] as const) {
-      // Coque IDE : pas de `--vc-cta-accent-ink`, donc le repli `--vc-ide-on-accent-action` s'applique.
+      // Coque IDE : pas de `--vc-cta-accent-foreground`, donc le repli `--vc-ide-on-accent-action` s'applique.
       expect(
         contraste(jeton(theme, '--vc-ide-on-accent-action')!, jeton(theme, '--vc-cta-accent')!),
         `encre de repli sur le CTA de l’IDE en ${theme}`,
       ).toBeGreaterThanOrEqual(AA_BODY_TEXT);
 
       // Coque user area : l'aplat est le ton renforcé, l'encre DOIT y rester blanche.
-      const encreShell = jetonShell(theme, '--vc-cta-accent-ink');
-      expect(encreShell, `--vc-cta-accent-ink défini pour la coque user area (${theme})`).toBeDefined();
+      const encreShell = jetonShell(theme, '--vc-cta-accent-foreground');
+      expect(encreShell, `--vc-cta-accent-foreground défini pour la coque user area (${theme})`).toBeDefined();
       expect(
         contraste(encreShell!, jetonShell(theme, '--vc-cta-accent')!),
         `encre de coque sur le CTA user area en ${theme}`,
@@ -315,8 +315,8 @@ describe('ON-ACCENT-003 — aplat en position de repli', () => {
     expect(sombre, '--vc-run-stop-bg ne bascule pas').toBe(clair);
     expect(contraste('#ffffff', sombre), 'le blanc n’y tient pas').toBeLessThan(AA_BODY_TEXT);
 
-    const encre = jeton('dark', '--vc-run-stop-ink');
-    expect(encre, '--vc-run-stop-ink défini').toBeDefined();
+    const encre = jeton('dark', '--vc-run-stop-fg');
+    expect(encre, '--vc-run-stop-fg défini').toBeDefined();
     expect(contraste(encre!, sombre), 'l’encre d’arrêt tient AA').toBeGreaterThanOrEqual(AA_BODY_TEXT);
     expect(CSS, 'la règle d’arrêt ne code plus le blanc en dur').not.toMatch(
       /background:\s*var\(--vc-run-stop-bg\);\s*color:\s*#ffffff/,

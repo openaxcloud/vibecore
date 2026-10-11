@@ -19,9 +19,11 @@ import {
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
 import type { TranslationKey } from '~/lib/i18n/dictionary';
+import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
 import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
+import { origineDeLApplication } from '~/utils/origine-application';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const language = data?.language ?? 'en';
@@ -130,13 +132,26 @@ export function loginFeedbackFromFailure(
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const host = request.headers.get('host')?.toLowerCase() ?? '';
 
-  if (host === 'e-code.ai' || host === 'www.e-code.ai') {
-    const requestUrl = new URL(request.url);
-    const loginUrl = new URL('https://app.e-code.ai/login');
+  const requestUrl = new URL(request.url);
+  const origineApplication = origineDeLApplication(host, requestUrl.protocol);
+
+  if (origineApplication) {
+    const loginUrl = new URL(`${origineApplication}/login`);
     const returnTo = safeReturnTo(requestUrl.searchParams.get('returnTo'));
 
     if (returnTo) {
       loginUrl.searchParams.set('returnTo', returnTo);
+    }
+
+    /*
+     * La langue demandée suit le saut d'hôte (comme sur `/signup`) : sans elle,
+     * un lien `e-code.ai/login?lang=fr` ouvert sans cookie de langue retombait
+     * sur la langue du navigateur. Seule une langue prise en charge passe.
+     */
+    const langue = normalizeSupportedLanguage(requestUrl.searchParams.get('lang'));
+
+    if (langue) {
+      loginUrl.searchParams.set('lang', langue);
     }
 
     return redirect(loginUrl.toString(), { status: 301 });
@@ -169,6 +184,14 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     language: resolveRequestLocale(request).language,
     oauth: oauth && oauthError ? { provider: oauth, error: oauthError, detail: oauthDetail } : null,
     providers,
+
+    /*
+     * BUG-QA0928-IDEE-PERDUE-INSCRIPTION — la destination, validée ICI (côté
+     * serveur), pour que le lien « Inscrivez-vous » la garde. Sans elle, l'inconnu
+     * venu de l'accueil (`returnTo=/projects/new`) s'inscrivait et atterrissait
+     * sur un tableau de bord vide, son idée oubliée.
+     */
+    returnTo: safeReturnTo(url.searchParams.get('returnTo')) ?? null,
   });
 }
 
@@ -277,6 +300,7 @@ export default function LoginPage() {
         oauth?: { provider: string; error: string; detail?: string | null } | null;
         providers?: Array<{ provider: string; ready: boolean }>;
         language?: string;
+        returnTo?: string | null;
       }
     | undefined;
 
@@ -383,7 +407,10 @@ export default function LoginPage() {
       footer={
         <>
           {t('auth.login.footerPrompt')}{' '}
-          <Link to="/register" className="vc-auth-link font-semibold hover:underline">
+          <Link
+            to={loaderData?.returnTo ? `/register?returnTo=${encodeURIComponent(loaderData.returnTo)}` : '/register'}
+            className="vc-auth-link font-semibold hover:underline"
+          >
             {t('auth.login.registerFree')}
           </Link>
         </>
@@ -552,6 +579,7 @@ export default function LoginPage() {
               pendingProvider={pendingProvider}
               onStart={startOAuth}
               disabled={isSubmitting}
+              returnTo={loaderData?.returnTo}
             />
           ) : null}
           {providerReady('google') ? (
@@ -562,6 +590,7 @@ export default function LoginPage() {
               pendingProvider={pendingProvider}
               onStart={startOAuth}
               disabled={isSubmitting}
+              returnTo={loaderData?.returnTo}
             />
           ) : null}
         </div>

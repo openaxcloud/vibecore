@@ -44,16 +44,12 @@ describe('UNIF lot 4 — point 1 : boutons restants → PanelButton', () => {
 
     /*
      * Audit user area : le fond passe par `--vc-cta-accent`, qui vaut l'accent
-     * action dans l'IDE et le ton renforcé AA dans la coque user area.
-     *
-     * ON-ACCENT-003 : ce commentaire portait déjà le chiffre fautif — « blanc
-     * sur l'orange de marque = 2,80:1 » — tout en épinglant `text-white`. Le
-     * remappage de la coque protégeait le user area ; l'IDE, lui, gardait
-     * l'orange de marque ET le blanc. L'encre suit désormais le même repli que
-     * le fond, de sorte que chaque coque fournisse la sienne.
+     * action dans l'IDE (inchangé) et le ton renforcé AA dans la coque user
+     * area (blanc sur l'orange de marque = 2,80:1).
      */
+    // Décision du 01/10 : l'encre suit le fond (jeton jumeau), plus de blanc en dur.
     expect(emptyStateSource).toContain(
-      "'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-[var(--vc-cta-accent-ink,var(--vc-ide-on-accent-action))]",
+      "'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-[var(--vc-cta-accent-foreground,var(--vc-ide-on-accent-action))]",
     );
     expect(panelPrimitivesSource).toContain('IDE_PRIMARY_ACCENT_CLASSES');
 
