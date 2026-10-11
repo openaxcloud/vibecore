@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowJs": false,
+    "strict": true,
+    "noEmit": true
+  },
+  "include": ["scripts/tiers-a-jour.regressions.ts"]
+}
