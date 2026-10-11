@@ -21,8 +21,9 @@
  * This is NOT a running-pod verification. Default exit is 2 (runtime unverified).
  * --configured-only explicitly requests comparison exit codes 0/1.
  * Digest pins use a matching GitHub release artifact (gh authentication required).
- * By default use the latest successful deploy-main run; an older successful run
- * may supply retained provenance for an unchanged image. No matching proof means
+ * Search at most ten successful deploy-main runs; --release-run may be repeated
+ * to select at most ten exact runs. Conflicting source claims fail closed.
+ * Older artifacts may prove unchanged images. No matching proof means
  * exit 2, never an inferred source SHA. main is fetched before every verdict.
  */
 import { execFileSync } from 'node:child_process';
@@ -197,17 +198,44 @@ export function sourceAgentDuManifeste(image, manifest, run) {
   return sourceDuManifeste('workspaceAgent', image, manifest, run);
 }
 
+export const MAX_RELEASE_RUNS = 10;
+
+/** Scan the entire bounded evidence set, never silently choose the first claim. */
+export function sourceDesPreuves(service, image, preuves) {
+  const evidence = Array.isArray(preuves) ? preuves : preuves ? [preuves] : [];
+  if (!evidence.length || evidence.length > MAX_RELEASE_RUNS)
+    throw new Error('Historique de livraison absent ou trop grand : aucun verdict possible.');
+  const sources = new Set();
+  const seen = new Set();
+  for (const { manifest, run } of evidence) {
+    const runUrl = verifierRunRelease(run);
+    if (
+      seen.has(run.id) ||
+      manifest?.schemaVersion !== 1 ||
+      manifest?.repository !== REPOSITORY ||
+      manifest?.workflowRunUrl !== runUrl ||
+      !Array.isArray(manifest?.services)
+    )
+      throw new Error('Historique de livraison incohérent : aucun verdict possible.');
+    seen.add(run.id);
+    const entries = manifest.services.filter((entry) => entry.service === service);
+    if (entries.length > 1) throw new Error(`Preuve ${service} ambiguë : aucun verdict possible.`);
+    const entry = entries[0];
+    if (!entry || image !== `${manifest.registry}/${entry.image}@${entry.digest}`) continue;
+    // A carried-forward provenance gap makes no source claim. Another trusted run
+    // may establish it, but malformed or contradictory claims must not be hidden.
+    if (entry.provenanceKnown === false && entry.sourceSha === null && entry.signature?.verified === true) continue;
+    sources.add(sourceDuManifeste(service, image, manifest, run));
+  }
+  if (sources.size !== 1) throw new Error(`Source ${service} absente ou contradictoire : aucun verdict possible.`);
+  return [...sources][0];
+}
+
 function preuveRelease(runId) {
   const api = (endpoint) => JSON.parse(execFileSync('gh', ['api', endpoint], { encoding: 'utf8' }));
-  if (!runId) {
-    const result = api(
-      `repos/${REPOSITORY}/actions/workflows/deploy-main.yml/runs?branch=main&status=success&per_page=1`,
-    );
-    runId = String(result.workflow_runs?.[0]?.id ?? '');
-  }
-  if (!/^[1-9][0-9]*$/.test(runId)) throw new Error('Run de livraison absent : aucun verdict possible.');
   const run = api(`repos/${REPOSITORY}/actions/runs/${runId}`);
   verifierRunRelease(run);
+  if (String(run.id) !== runId) throw new Error('Identité du run incohérente : aucun verdict possible.');
   const dir = mkdtempSync(join(tmpdir(), 'vibecore-release-proof-'));
   try {
     execFileSync(
@@ -225,6 +253,33 @@ function preuveRelease(runId) {
   }
 }
 
+function preuvesRelease(runIds) {
+  if (runIds.length === 0) {
+    const result = JSON.parse(
+      execFileSync(
+        'gh',
+        [
+          'api',
+          `repos/${REPOSITORY}/actions/workflows/deploy-main.yml/runs?branch=main&status=success&per_page=${MAX_RELEASE_RUNS}`,
+        ],
+        { encoding: 'utf8' },
+      ),
+    );
+    if (!Array.isArray(result.workflow_runs)) throw new Error('Historique de livraison illisible.');
+    runIds = result.workflow_runs.map((run) => String(run.id));
+  }
+  if (
+    !runIds.length ||
+    runIds.length > MAX_RELEASE_RUNS ||
+    new Set(runIds).size !== runIds.length ||
+    runIds.some((id) => !/^[1-9][0-9]*$/.test(id))
+  )
+    throw new Error('Historique de livraison absent, ambigu ou trop grand : aucun verdict possible.');
+  // Deliberately read the full bounded set even once every image has a source:
+  // a later artifact may contradict an earlier claim for the exact same digest.
+  return runIds.map((id) => preuveRelease(id));
+}
+
 export function sondesRelease(release, preuve) {
   const sondes = [];
   for (const [tier, services] of Object.entries(SERVICES_PAR_TIER)) {
@@ -236,7 +291,7 @@ export function sondesRelease(release, preuve) {
         if (!release?.global?.imageRegistry || !config?.image)
           throw new Error(`Image configurée incomplète pour ${service} : aucun verdict possible.`);
         const image = `${release?.global?.imageRegistry}/${config?.image}@${digest}`;
-        const servi = sourceDuManifeste(service, image, preuve?.manifest, preuve?.run);
+        const servi = sourceDesPreuves(service, image, preuve);
         sondes.push({ tier, service, servi });
         continue;
       }
@@ -248,7 +303,7 @@ export function sondesRelease(release, preuve) {
   }
   const image = release?.platformEnv?.runtime?.workspaceAgentImage ?? '';
   if (/@sha256:[a-f0-9]{64}$/.test(image)) {
-    const servi = sourceAgentDuManifeste(image, preuve?.manifest, preuve?.run);
+    const servi = sourceDesPreuves('workspaceAgent', image, preuve);
     sondes.push({ tier: 'wsagent', service: 'workspace-agent', servi });
     return sondes;
   }
@@ -262,16 +317,19 @@ export function sondesRelease(release, preuve) {
 function principal() {
   const main = actualiserMain();
   const release = tagsServis();
-  const indexRun = process.argv.indexOf('--release-run');
-  const runId = indexRun === -1 ? undefined : process.argv[indexRun + 1];
-  if (indexRun !== -1 && !/^[1-9][0-9]*$/.test(runId ?? ''))
-    throw new Error('--release-run exige un identifiant numérique.');
+  const runIds = [];
+  for (let i = 2; i < process.argv.length; i += 1) {
+    if (process.argv[i] !== '--release-run') continue;
+    const id = process.argv[++i];
+    if (!/^[1-9][0-9]*$/.test(id ?? '')) throw new Error('--release-run exige un identifiant numérique.');
+    runIds.push(id);
+  }
   const hasDigest =
     /@sha256:/.test(release?.platformEnv?.runtime?.workspaceAgentImage ?? '') ||
     Object.values(SERVICES_PAR_TIER)
       .flat()
       .some((service) => release?.services?.[service]?.imageDigest || release?.global?.imageDigest);
-  const preuve = hasDigest ? preuveRelease(runId) : undefined;
+  const preuve = hasDigest ? preuvesRelease(runIds) : undefined;
   const sondes = sondesRelease(release, preuve);
   const lignes = [];
   let enRetard = 0;

@@ -34,13 +34,32 @@ unique du manifeste : service, registre, image, digest et SHA source complet.
 La provenance doit être connue et la signature marquée vérifiée par le workflow.
 Aucun digest n'est tronqué en SHA source ; aucun tag mutable n'est deviné.
 
-Le script utilise `gh` authentifié pour télécharger l'artefact du dernier run
-réussi de `deploy-main.yml`, sur `main`, dans `openaxcloud/vibecore`, issu de
-`push` ou `workflow_dispatch`. Il vérifie aussi l'identité du run, du dépôt et
-l'URL du run inscrite dans le manifeste. `--release-run <id>` permet de choisir
-un ancien run réussi conservant la provenance d'une image inchangée ; la même
-correspondance exacte reste obligatoire. Artefact expiré ou absent, provenance
-inconnue, image différente, commit local inconnu ou fetch impossible : code 2.
+Le script utilise `gh` authentifié pour télécharger les artefacts des **dix
+plus récents runs réussis au maximum** de `deploy-main.yml`, sur `main`, dans
+`openaxcloud/vibecore`, issus de `push` ou `workflow_dispatch`. La recherche est
+bornée à une page de dix runs, sans pagination ni recherche supplémentaire.
+Il vérifie l'identité de chaque run, du dépôt et l'URL inscrite dans le manifeste.
+Les preuves sont résolues par image/digest : le web peut provenir d'une livraison
+récente, et les images inchangées de manifestes antérieurs. Une entrée explicitement
+sans provenance ne remplace pas une attribution connue pour les mêmes octets.
+
+Tous les artefacts sélectionnés sont examinés, même après avoir trouvé une source
+pour chaque image. Deux SHA sources différents pour la même image/digest sont
+contradictoires et entraînent un refus. Une seule attribution cohérente est requise
+par image configurée. Une preuve malformée ou non fiable n'est pas ignorée.
+
+On peut choisir explicitement un ensemble de runs (dix maximum, sans doublons) :
+
+```sh
+node scripts/tiers-a-jour.mjs --configured-only --json \
+  --release-run 38165474193 --release-run 38156140310
+```
+
+Cette sélection remplace la recherche automatique ; elle ne contourne aucune
+vérification. Artefact sélectionné expiré ou absent, échec de lecture, provenance
+encore inconnue, contradiction, image différente sans preuve correspondante,
+commit local inconnu ou fetch impossible : code 2. L'absence de contradiction est
+établie uniquement dans cet ensemble borné, pas sur tout l'historique du dépôt.
 
 Cette preuve repose sur l'artefact du workflow de livraison de confiance. Le
 script ne revérifie pas lui-même les signatures et n'atteste pas l'état du cluster.

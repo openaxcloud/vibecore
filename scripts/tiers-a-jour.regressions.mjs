@@ -1,7 +1,7 @@
 /** Shared by Vitest and the dependency-free runner: node scripts/tiers-a-jour.regressions.mjs. */
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL, fileURLToPath } from 'node:url';
@@ -110,7 +110,135 @@ if (args[0] === 'api') {
   );
 }
 
+const realHistory = JSON.parse(
+  readFileSync(new URL('./fixtures/tiers-a-jour-release-history.json', import.meta.url), 'utf8'),
+);
+function configuredFromManifest(m) {
+  const agent = m.services.find((s) => s.service === 'workspaceAgent');
+  return {
+    global: { imageRegistry: m.registry },
+    services: Object.fromEntries(
+      m.services
+        .filter((s) => s.service !== 'workspaceAgent')
+        .map((s) => [s.service, { image: s.image, imageDigest: s.digest }]),
+    ),
+    platformEnv: { runtime: { workspaceAgentImage: `${m.registry}/${agent.image}@${agent.digest}` } },
+  };
+}
+
+function installReleaseHistory(bin, r, history) {
+  writeFileSync(join(bin, 'helm'), `#!/usr/bin/env node\nconsole.log(${JSON.stringify(JSON.stringify(r))});\n`, {
+    mode: 0o755,
+  });
+  writeFileSync(
+    join(bin, 'gh'),
+    `#!/usr/bin/env node
+const fs = require('node:fs'), path = require('node:path'), args = process.argv.slice(2);
+const history = ${JSON.stringify(history)};
+if (args[0] === 'api') {
+  if (args[1].includes('/workflows/')) {
+    if (!args[1].endsWith('per_page=10')) process.exit(3);
+    console.log(JSON.stringify({ workflow_runs: history.map((proof) => proof.run) }));
+  } else console.log(JSON.stringify(history.find((proof) => String(proof.run.id) === args[1].split('/').pop()).run));
+} else {
+  const proof = history.find((proof) => String(proof.run.id) === args[2]);
+  const dir = args[args.indexOf('--dir') + 1];
+  fs.mkdirSync(path.join(dir, 'release-manifest-test'));
+  fs.writeFileSync(path.join(dir, 'release-manifest-test', 'release-manifest.json'), JSON.stringify(proof.manifest));
+}
+`,
+    { mode: 0o755 },
+  );
+}
+
 export const regressionCases = [
+  [
+    'actual two deployment artifacts resolve mixed-tier provenance while neither alone suffices',
+    () => {
+      const configured = configuredFromManifest(realHistory[0].manifest);
+      assert.throws(() => tiers.sondesRelease(configured, [realHistory[0]]));
+      assert.throws(() => tiers.sondesRelease(configured, [realHistory[1]]));
+      const probes = tiers.sondesRelease(configured, realHistory);
+      assert.equal(probes.length, 9);
+      for (const probe of probes) {
+        assert.equal(
+          probe.servi,
+          probe.service === 'web'
+            ? '80f1de14794b134a7073d20b708254d690ff6626'
+            : '4f7c07f7a38e47f6e08c4a2a64de46382622af21',
+        );
+      }
+      assert.deepEqual(tiers.sondesRelease(configured, [...realHistory].reverse()), probes);
+    },
+  ],
+  [
+    'actual history rejects untrusted, conflicting, duplicate or still-missing source evidence',
+    () => {
+      const configured = configuredFromManifest(realHistory[0].manifest);
+      const untrusted = structuredClone(realHistory);
+      untrusted[1].run.head_branch = 'attacker';
+      assert.throws(() => tiers.sondesRelease(configured, untrusted));
+      const conflict = structuredClone(realHistory);
+      const extra = structuredClone(conflict[1]);
+      extra.run.id = 456;
+      extra.manifest.workflowRunUrl = 'https://github.com/openaxcloud/vibecore/actions/runs/456';
+      extra.manifest.services.find((s) => s.service === 'admin').sourceSha = 'a'.repeat(40);
+      assert.throws(() => tiers.sondesRelease(configured, [...conflict, extra]), /contradictoire/);
+      const missing = structuredClone(realHistory);
+      Object.assign(
+        missing[1].manifest.services.find((s) => s.service === 'admin'),
+        { provenanceKnown: false, sourceSha: null },
+      );
+      assert.throws(() => tiers.sondesRelease(configured, missing), /absente/);
+      assert.throws(() => tiers.sondesRelease(configured, [...realHistory, realHistory[1]]), /incohérent/);
+      assert.throws(() => tiers.sondesRelease(configured, Array(11).fill(realHistory[0])), /trop grand/);
+    },
+  ],
+  [
+    'CLI combines bounded history and scans later claims even after all sources are known',
+    () =>
+      repositoryFixture(({ bin, old, current, invoke }) => {
+        const r = release();
+        r.global = { imageTag: old.slice(0, 10), imageRegistry: 'registry/repo' };
+        r.services = { web: { image: 'web', imageDigest: digest } };
+        const first = { manifest: manifest(), run: { ...run } };
+        first.manifest.services[0].sourceSha = current;
+        first.manifest.services.push({
+          ...first.manifest.services[0],
+          service: 'web',
+          image: 'web',
+          sourceSha: null,
+          provenanceKnown: false,
+        });
+        const second = structuredClone(first);
+        second.run.id = 124;
+        second.manifest.workflowRunUrl = 'https://github.com/openaxcloud/vibecore/actions/runs/124';
+        second.manifest.services[0].sourceSha = null;
+        second.manifest.services[0].provenanceKnown = false;
+        second.manifest.services[1].sourceSha = old;
+        second.manifest.services[1].provenanceKnown = true;
+        installReleaseHistory(bin, r, [first, second]);
+        for (const args of [[], ['--release-run', '123', '--release-run', '124']]) {
+          const result = invoke('--configured-only', ...args);
+          assert.equal(result.status, 0, result.stderr);
+          assert.equal(JSON.parse(result.stdout).runtimeVerification, 'not-performed');
+        }
+        assert.equal(invoke().status, 2);
+        const missing = invoke('--configured-only', '--release-run', '123');
+        assert.equal(missing.status, 2);
+        const tooMany = invoke(...Array.from({ length: 11 }, (_, i) => ['--release-run', String(i + 1)]).flat());
+        assert.equal(tooMany.status, 2);
+        const duplicate = invoke('--release-run', '123', '--release-run', '123');
+        assert.equal(duplicate.status, 2);
+        first.manifest.services[1] = structuredClone(second.manifest.services[1]);
+        second.manifest.services[0] = { ...first.manifest.services[0], sourceSha: old };
+        installReleaseHistory(bin, r, [first, second]);
+        const conflict = invoke('--configured-only');
+        assert.equal(conflict.status, 2);
+        assert.equal(conflict.stdout, '');
+      }),
+  ],
+
   [
     'digest pin resolves to the full source SHA from matching trusted release evidence',
     () => {
