@@ -1,0 +1,38 @@
+[
+  {
+    "engine": "chromium-desktop-1440",
+    "panel": "overview",
+    "t_shell": 5949,
+    "t_content": 8642,
+    "floorLen": 83,
+    "finalLen": 996,
+    "apiReqs": 51
+  },
+  {
+    "engine": "webkit-iphone15pro",
+    "panel": "overview",
+    "t_shell": 5652,
+    "t_content": 13066,
+    "floorLen": 137,
+    "finalLen": 1070,
+    "apiReqs": 51
+  },
+  {
+    "engine": "chromium-desktop-1440",
+    "panel": "integrations",
+    "t_shell": 5811,
+    "t_content": 9260,
+    "floorLen": 91,
+    "finalLen": 3055,
+    "apiReqs": 50
+  },
+  {
+    "engine": "webkit-iphone15pro",
+    "panel": "integrations",
+    "t_shell": 7691,
+    "t_content": 11132,
+    "floorLen": 135,
+    "finalLen": 3815,
+    "apiReqs": 48
+  }
+]

@@ -1,0 +1,68 @@
+[
+  {
+    "moteur": "chromium-1440",
+    "ok": true,
+    "ms": 11564,
+    "tFranchi": 11049,
+    "raison": "marqueur",
+    "len": 920,
+    "plancher": 83,
+    "apiReqs": 43,
+    "total": 14087
+  },
+  {
+    "moteur": "webkit-iphone",
+    "ok": true,
+    "ms": 9322,
+    "tFranchi": 8808,
+    "raison": "seuil",
+    "len": 1026,
+    "plancher": 137,
+    "apiReqs": 43,
+    "total": 12377
+  },
+  {
+    "moteur": "chromium-1440",
+    "ok": true,
+    "ms": 9586,
+    "tFranchi": 9069,
+    "raison": "marqueur",
+    "len": 924,
+    "plancher": 83,
+    "apiReqs": 43,
+    "total": 14086
+  },
+  {
+    "moteur": "webkit-iphone",
+    "ok": true,
+    "ms": 11007,
+    "tFranchi": 10492,
+    "raison": "seuil",
+    "len": 1020,
+    "plancher": 137,
+    "apiReqs": 43,
+    "total": 13008
+  },
+  {
+    "moteur": "chromium-1440",
+    "ok": true,
+    "ms": 10153,
+    "tFranchi": 9634,
+    "raison": "marqueur",
+    "len": 924,
+    "plancher": 83,
+    "apiReqs": 42,
+    "total": 13562
+  },
+  {
+    "moteur": "webkit-iphone",
+    "ok": true,
+    "ms": 7968,
+    "tFranchi": 7457,
+    "raison": "seuil",
+    "len": 1020,
+    "plancher": 137,
+    "apiReqs": 42,
+    "total": 10672
+  }
+]

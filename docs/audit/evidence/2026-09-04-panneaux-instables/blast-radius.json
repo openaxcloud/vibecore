@@ -1,0 +1,38 @@
+[
+  {
+    "panel": "collaborators",
+    "hits": {
+      "pass": 3,
+      "fail": 1
+    },
+    "healthy": 1623,
+    "failed": 1297,
+    "lossPct": 20,
+    "failedHead": "Collaborators | [PANEL_BACKEND_UNAVAILABLE] The IDE panel could not be loaded. Try again. | Retry | Presence |  | 0 online users with live cursor and selection sync. |  | Con",
+    "errs": []
+  },
+  {
+    "panel": "packages",
+    "hits": {
+      "pass": 3,
+      "fail": 1
+    },
+    "healthy": 1207,
+    "failed": 1035,
+    "lossPct": 14,
+    "failedHead": "Packages | [PANEL_BACKEND_UNAVAILABLE] The IDE panel could not be loaded. Try again. | Retry | PACKAGE INTELLIGENCE | No package manifest detected |  | E-Code reads package",
+    "errs": []
+  },
+  {
+    "panel": "overview",
+    "hits": {
+      "pass": 6,
+      "fail": 1
+    },
+    "healthy": 1063,
+    "failed": 745,
+    "lossPct": 30,
+    "failedHead": "Overview | [PANEL_BACKEND_UNAVAILABLE] The IDE panel could not be loaded. Try again. | Retry | PROJECT OVERVIEW | Untitled project | Unknown | FILES | 0 | Tracked project files",
+    "errs": []
+  }
+]

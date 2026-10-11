@@ -1,0 +1,418 @@
+{
+  "rows": [
+    {
+      "t": 5174,
+      "m": "GET",
+      "u": "/api/configured-providers",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-repair-events?limit=100",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/agent-routing?projectId=cmtn3mx8z00co0ngy7drdk4rj",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/user/preferences",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/snapshots",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/models",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-patch-proposals",
+      "rt": "fetch"
+    },
+    {
+      "t": 5653,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/export/zip",
+      "rt": "fetch"
+    },
+    {
+      "t": 5672,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview?stream=1",
+      "rt": "eventsource"
+    },
+    {
+      "t": 5680,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview",
+      "rt": "fetch"
+    },
+    {
+      "t": 5680,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/collaboration-ws?sessionId=collab%3Aa1a12fe1-6202-40e7-aec0-42762f9d0857",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-repair-events?limit=100",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/agent-routing?projectId=cmtn3mx8z00co0ngy7drdk4rj",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/snapshots",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/models",
+      "rt": "fetch"
+    },
+    {
+      "t": 5740,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 5741,
+      "m": "GET",
+      "u": "/api/impersonation.data?_routes=routes%2Fapi.impersonation",
+      "rt": "fetch"
+    },
+    {
+      "t": 5747,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview?stream=1",
+      "rt": "eventsource"
+    },
+    {
+      "t": 5752,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview",
+      "rt": "fetch"
+    },
+    {
+      "t": 6069,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations?limit=20",
+      "rt": "fetch"
+    },
+    {
+      "t": 6282,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations/cmtn3my3s00cq0ngyxpqon5xq/messages",
+      "rt": "fetch"
+    },
+    {
+      "t": 6327,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-repair-events?limit=100",
+      "rt": "fetch"
+    },
+    {
+      "t": 6327,
+      "m": "GET",
+      "u": "/api/agent-routing?projectId=cmtn3mx8z00co0ngy7drdk4rj",
+      "rt": "fetch"
+    },
+    {
+      "t": 6327,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/snapshots",
+      "rt": "fetch"
+    },
+    {
+      "t": 6327,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings",
+      "rt": "fetch"
+    },
+    {
+      "t": 6327,
+      "m": "GET",
+      "u": "/api/models",
+      "rt": "fetch"
+    },
+    {
+      "t": 6327,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations?limit=20",
+      "rt": "fetch"
+    },
+    {
+      "t": 6335,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview?stream=1",
+      "rt": "eventsource"
+    },
+    {
+      "t": 6345,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/packages",
+      "rt": "fetch"
+    },
+    {
+      "t": 6345,
+      "m": "GET",
+      "u": "/api/models/Anthropic",
+      "rt": "fetch"
+    },
+    {
+      "t": 6345,
+      "m": "GET",
+      "u": "/api/check-env-key?provider=Anthropic",
+      "rt": "fetch"
+    },
+    {
+      "t": 6345,
+      "m": "GET",
+      "u": "/api/models",
+      "rt": "fetch"
+    },
+    {
+      "t": 6366,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview",
+      "rt": "fetch"
+    },
+    {
+      "t": 7595,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations/cmtn3my3s00cq0ngyxpqon5xq/messages",
+      "rt": "fetch"
+    },
+    {
+      "t": 7609,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations?limit=20",
+      "rt": "fetch"
+    },
+    {
+      "t": 7952,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations/cmtn3my3s00cq0ngyxpqon5xq/messages",
+      "rt": "fetch"
+    },
+    {
+      "t": 8871,
+      "m": "PUT",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    },
+    {
+      "t": 10278,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/files-revision",
+      "rt": "fetch"
+    },
+    {
+      "t": 10399,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/ports",
+      "rt": "fetch"
+    },
+    {
+      "t": 11047,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/project-action?intent=export",
+      "rt": "fetch"
+    },
+    {
+      "t": 11519,
+      "m": "GET",
+      "u": "/api/projects/cmtn3mx8z00co0ngy7drdk4rj/files-revision",
+      "rt": "fetch"
+    },
+    {
+      "t": 14299,
+      "m": "PUT",
+      "u": "/api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state",
+      "rt": "fetch"
+    }
+  ],
+  "byUrl": {
+    "GET /api/configured-providers": [
+      5174
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-state": [
+      5653,
+      5740,
+      5740
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-repair-events?limit=100": [
+      5653,
+      5740,
+      6327
+    ],
+    "GET /api/agent-routing?projectId=cmtn3mx8z00co0ngy7drdk4rj": [
+      5653,
+      5740,
+      6327
+    ],
+    "GET /api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state": [
+      5653,
+      5653,
+      5653,
+      5740,
+      5740,
+      5740
+    ],
+    "GET /api/user/preferences": [
+      5653
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/snapshots": [
+      5653,
+      5740,
+      6327
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/settings": [
+      5653,
+      5740,
+      6327
+    ],
+    "GET /api/models": [
+      5653,
+      5740,
+      6327,
+      6345
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/agent-patch-proposals": [
+      5653
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/export/zip": [
+      5653
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview?stream=1": [
+      5672,
+      5747,
+      6335
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/overview": [
+      5680,
+      5752,
+      6366
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/collaboration-ws?sessionId=collab%3Aa1a12fe1-6202-40e7-aec0-42762f9d0857": [
+      5680
+    ],
+    "GET /api/impersonation.data?_routes=routes%2Fapi.impersonation": [
+      5741
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations?limit=20": [
+      6069,
+      6327,
+      7609
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ai/conversations/cmtn3my3s00cq0ngyxpqon5xq/messages": [
+      6282,
+      7595,
+      7952
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/packages": [
+      6345
+    ],
+    "GET /api/models/Anthropic": [
+      6345
+    ],
+    "GET /api/check-env-key?provider=Anthropic": [
+      6345
+    ],
+    "PUT /api/workspaces/cmtn3qc7g00cu0ngylzsponx3/ide-state": [
+      8871,
+      14299
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/files-revision": [
+      10278,
+      11519
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/ide-panel/ports": [
+      10399
+    ],
+    "GET /api/projects/cmtn3mx8z00co0ngy7drdk4rj/project-action?intent=export": [
+      11047
+    ]
+  }
+}

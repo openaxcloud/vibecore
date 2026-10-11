@@ -1,0 +1,220 @@
+[
+  {
+    "i": 1,
+    "c": {
+      "ok": true,
+      "ms": 10379,
+      "tFranchi": 9783,
+      "raison": "seuil",
+      "len": 1009,
+      "plancher": 137
+    },
+    "reps": [
+      {
+        "timing": {
+          "startTime": 1788583304725.7122,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.091,
+          "responseStart": 5695.423,
+          "responseEnd": 5720.256
+        },
+        "bytes": 100242,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583304788.1802,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.195,
+          "responseStart": 5638.825,
+          "responseEnd": 5657.806
+        },
+        "bytes": 100242,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583305797.167,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.254,
+          "responseStart": 4771.437,
+          "responseEnd": 4810.934
+        },
+        "bytes": 99969,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583305785.9832,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.259,
+          "responseStart": 434.975,
+          "responseEnd": -1
+        },
+        "bytes": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "i": 2,
+    "c": {
+      "ok": true,
+      "ms": 13891,
+      "tFranchi": 13374,
+      "raison": "seuil",
+      "len": 1019,
+      "plancher": 137
+    },
+    "reps": [
+      {
+        "timing": {
+          "startTime": 1788583331222.269,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.344,
+          "responseStart": 6039.432,
+          "responseEnd": 6108.713
+        },
+        "bytes": 99791,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583331283.8171,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.277,
+          "responseStart": 6903.457,
+          "responseEnd": 6967.223
+        },
+        "bytes": 100530,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583333052.513,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 1.087,
+          "responseStart": 7540.77,
+          "responseEnd": 7542.183
+        },
+        "bytes": 100836,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583333032.718,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.207,
+          "responseStart": 296.725,
+          "responseEnd": -1
+        },
+        "bytes": null,
+        "status": 200
+      }
+    ]
+  },
+  {
+    "i": 3,
+    "c": {
+      "ok": false,
+      "raison": "timeout",
+      "plancher": 834,
+      "derniere": -1,
+      "tFranchi": null
+    },
+    "reps": [
+      {
+        "timing": {
+          "startTime": 1788583360544.207,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.413,
+          "responseStart": 5347.159,
+          "responseEnd": 5357.964
+        },
+        "bytes": 100700,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583360604.2148,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.205,
+          "responseStart": 5297.237,
+          "responseEnd": 5312.922
+        },
+        "bytes": 101151,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583362382.48,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.659,
+          "responseStart": 4714.373,
+          "responseEnd": 4730.999
+        },
+        "bytes": 101424,
+        "status": 200
+      },
+      {
+        "timing": {
+          "startTime": 1788583362368.105,
+          "domainLookupStart": -1,
+          "domainLookupEnd": -1,
+          "connectStart": -1,
+          "secureConnectionStart": -1,
+          "connectEnd": -1,
+          "requestStart": 0.212,
+          "responseStart": 328.168,
+          "responseEnd": -1
+        },
+        "bytes": null,
+        "status": 200
+      }
+    ]
+  }
+]
