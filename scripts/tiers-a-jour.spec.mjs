@@ -3,8 +3,6 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { regressionCases } from './tiers-a-jour.regressions.ts';
-
 import {
   CHEMINS_PAR_TIER,
   CHEMINS_PARTAGES,
@@ -13,6 +11,7 @@ import {
   estAncetre,
   sondesRelease,
 } from './tiers-a-jour.mjs';
+import { regressionCases } from './tiers-a-jour.regressions.ts';
 
 /**
  * LA CARTE RECOPIÉE NE DOIT PAS DÉRIVER DE L'ORIGINALE.
@@ -222,5 +221,7 @@ describe('un commit servi inconnu localement est refusé, pas interprété', () 
 // The exact same regressions also run without installing dependencies.
 
 describe('preuves de livraison et fraîcheur de main', () => {
-  for (const [name, test] of regressionCases) it(name, test);
+  for (const [name, test] of regressionCases) {
+    it(name, test);
+  }
 });

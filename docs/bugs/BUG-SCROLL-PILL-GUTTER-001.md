@@ -16,7 +16,7 @@ id: BUG-SCROLL-PILL-GUTTER-001
 
 ## ✅ Testé live
 
-☐
+☑ 30/09 — preuve live en prod à 390 px (Chromium), compte QA jetable : fil à 370 px avec comme sans pastille + épinglé par `app/styles/agent-scroll-to-latest.spec.ts`.
 
 ## Preuve
 

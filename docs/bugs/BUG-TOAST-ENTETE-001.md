@@ -16,7 +16,7 @@ id: BUG-TOAST-ENTETE-001
 
 ## ✅ Testé live
 
-☐ — correctif posé et épinglé ; la vérification à l'écran attend le déploiement.
+☑ 30/09 — preuve live en prod à 390 px (Chromium), compte QA jetable : bannière sous l'en-tête (y=104, en-tête 101), peinte, « Tout fermer » cliquable ; vue aussi sous WebKit profil iPhone le 28/09 + épinglé par `tests/e2e/bandeau-toast-visible.spec.ts`.
 
 ## Preuve
 

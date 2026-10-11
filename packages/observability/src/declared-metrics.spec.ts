@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
+import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
 
 import { platformMetricDefinitions } from './index.js';
@@ -21,7 +22,40 @@ import { platformMetricDefinitions } from './index.js';
 
 const RACINE = new URL('../../..', import.meta.url).pathname;
 const DOSSIERS = ['services/api/src', 'services/workspace-manager/src', 'services/preview-proxy/src'];
-const APPEL = /\bmetrics\.(?:increment|observe|set)\(\s*'([a-z0-9_]+)'/g;
+
+function nomsDeMetriques(source: string): string[] {
+  const noms: string[] = [];
+  const arbre = ts.createSourceFile('service.ts', source, ts.ScriptTarget.Latest, true);
+
+  const visiter = (noeud: ts.Node) => {
+    if (ts.isCallExpression(noeud) && ts.isPropertyAccessExpression(noeud.expression)) {
+      const appel = noeud.expression;
+      const receveur = appel.expression;
+
+      const nomReceveur = ts.isIdentifier(receveur)
+        ? receveur.text
+        : ts.isPropertyAccessExpression(receveur)
+          ? receveur.name.text
+          : undefined;
+
+      const argument = noeud.arguments[0];
+
+      if (
+        ['metrics', 'observabilityMetrics'].includes(nomReceveur ?? '') &&
+        ['increment', 'observe', 'set'].includes(appel.name.text) &&
+        argument &&
+        (ts.isStringLiteral(argument) || ts.isNoSubstitutionTemplateLiteral(argument))
+      ) {
+        noms.push(argument.text);
+      }
+    }
+
+    ts.forEachChild(noeud, visiter);
+  };
+  visiter(arbre);
+
+  return noms;
+}
 
 function fichiersTypeScript(racine: string): string[] {
   const trouves: string[] = [];
@@ -50,24 +84,34 @@ function fichiersTypeScript(racine: string): string[] {
 }
 
 describe('métriques déclarées', () => {
+  it('lit les appels réels, y compris optionnels, sans lire les commentaires et chaînes ordinaires', () => {
+    expect(
+      nomsDeMetriques(`
+      metrics.increment('plain', {});
+      this.metrics?.observe?.("optional", 1);
+      request.observabilityMetrics?.increment?.('tenant', {});
+      metrics.set(\`literal\`, 1);
+      // metrics.increment('comment', {});
+      const example = "metrics.increment('example', {})";
+      unrelated.increment('other', {});
+    `),
+    ).toEqual(['plain', 'optional', 'tenant', 'literal']);
+  });
   it('déclare toute métrique référencée par un littéral dans les services', () => {
     const declarees = new Set(platformMetricDefinitions.map((d) => d.name));
     const manquantes = new Map<string, string>();
+    const vues = new Set<string>();
 
     for (const dossier of DOSSIERS) {
-      let fichiers: string[];
-
-      try {
-        fichiers = fichiersTypeScript(join(RACINE, dossier));
-      } catch {
-        /* un service absent du checkout n'est pas un échec de ce test */
-        continue;
-      }
+      const fichiers = fichiersTypeScript(join(RACINE, dossier));
+      expect(fichiers.length, `sources examinées dans ${dossier}`).toBeGreaterThan(0);
 
       for (const fichier of fichiers) {
         const source = readFileSync(fichier, 'utf8');
 
-        for (const [, nom] of source.matchAll(APPEL)) {
+        for (const nom of nomsDeMetriques(source)) {
+          vues.add(nom);
+
           if (!declarees.has(nom)) {
             manquantes.set(nom, fichier.slice(RACINE.length));
           }
@@ -75,6 +119,8 @@ describe('métriques déclarées', () => {
       }
     }
 
+    expect(vues.size, 'appels de métriques effectivement examinés').toBeGreaterThan(0);
+    expect(vues.has('workspace_runtime_reseed_total'), 'témoin de la métrique historiquement omise').toBe(true);
     expect(Object.fromEntries(manquantes)).toEqual({});
   });
 

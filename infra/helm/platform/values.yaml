@@ -232,6 +232,8 @@ platformEnv:
 ingress:
   className: nginx
   issuerName: letsencrypt-dns01
+  # Wildcard preview certificates require a DNS-01 issuer.
+  previewIssuerName: ''
   tlsSecretName: vibecore-platform-tls
   previewTlsSecretName: vibecore-preview-wildcard-tls
   proxyReadTimeoutSeconds: 180
@@ -405,6 +407,9 @@ podSecurity:
   enforce: restricted
 
 networkPolicy:
+  # Optional kube-dns ClusterIP; permits DNS only to this IPv4 address.
+  dnsServiceIp: ''
+  acmeHttp01Solver: true
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
