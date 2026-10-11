@@ -16,7 +16,7 @@ id: BUG-NAV-TABS-CENTER-001
 
 ## ✅ Testé live
 
-☐
+☑ 30/09 — preuve live en prod à 390 px (Chromium), compte QA jetable : onglets fixes répartis, sans vide avant « + » (capture) + épinglé par `app/styles/ide-mobile-panels.spec.ts`.
 
 ## Preuve
 
