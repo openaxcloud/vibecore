@@ -121,6 +121,13 @@ export interface WorkspaceRecord {
   /** P2d dev/prod split: 'development' (default) or 'production' (publish checkout). */
   environment?: string;
   createdAt: string;
+
+  /*
+   * Dernier changement de la ligne (Prisma `@updatedAt`). C'est ce qui permet de
+   * dire qu'un démarrage STARTING est encore EN COURS plutôt que figé — voir
+   * `declencherDemarrageDepuisLecture`.
+   */
+  updatedAt?: string;
 }
 
 export interface SnapshotRecord {

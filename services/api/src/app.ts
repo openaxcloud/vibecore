@@ -15530,6 +15530,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await reserverUnCreneauActif(request, organisation, authorized.workspaceId);
 
     /*
+     * Le forfait RÉEL de l'organisation, par la même source que le démarrage et
+     * les redémarrages — jamais un forfait par défaut qui l'ignore (voir
+     * `gabaritDeLEspace`). Une lecture de facturation impossible ne doit pas
+     * bloquer le démarrage : on retombe alors sur le défaut, comme les autres
+     * chemins quand l'organisation est inconnue.
+     */
+    const etatDeFacturation = organisation ? await billingState(organisation).catch(() => undefined) : undefined;
+
+    /*
      * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
      *
      * C'était `void managerRequest(...).catch(() => undefined)` : un manager
@@ -15551,7 +15560,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         workspaceId: authorized.workspaceId,
         userId: request.currentUser?.id,
         image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-        plan: process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+        ...gabaritDeLEspace(etatDeFacturation),
         env,
         allowedSecretKeys,
         allowedSecrets,
@@ -15645,6 +15654,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         throw Object.assign(new Error(), { code: 'WORKSPACE_RECORD_MISSING', workspaceId });
       }
 
+      /*
+       * UN DÉMARRAGE DÉJÀ EN COURS N'EST PAS RELANCÉ PAR UNE LECTURE.
+       *
+       * Mesuré le 2026-10-11 : AUCUNE recréation de pod hors d'une fenêtre de
+       * démarrage. La collision naissait ici — l'IDE démarre l'espace (statut
+       * STARTING) pendant que ses lectures, faute d'agent encore prêt, en
+       * demandaient un second. Un démarrage récent est laissé aboutir ; au-delà
+       * du délai de provisionnement, il est tenu pour échoué et la lecture le
+       * relance, comme avant.
+       */
+      if (['PENDING', 'STARTING'].includes(record.status as string)) {
+        const depuis = Date.now() - new Date(record.updatedAt ?? 0).getTime();
+
+        if (depuis < WORKSPACE_PROVISION_DEADLINE_MS) {
+          journal?.info(
+            { workspaceId, event: 'workspace.read_triggered_start_skipped_in_flight', depuisMs: depuis },
+            'demarrage deja en cours : la lecture ne le relance pas',
+          );
+
+          return;
+        }
+      }
+
       const project = await store.getProject(record.projectId);
 
       const { demarrageDemande } = await provisionWorkspaceOnDemand(request ?? {}, {
@@ -15687,8 +15719,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         'le demarrage declenche par une lecture a echoue',
       );
 
-      // Réarmer : la fenêtre de garde ne doit jamais protéger un échec.
-      demarragesDeclenchesParLecture.delete(workspaceId);
+      /*
+       * L'ÉCHEC NE DOIT PAS SE FAIRE PASSER POUR UN DÉMARRAGE EN COURS.
+       * `provisionWorkspaceOnDemand` a posé STARTING ; s'il reste là, la lecture
+       * suivante croirait un démarrage en vol et s'abstiendrait — l'espace ne
+       * repartirait plus. On ne touche QUE un STARTING : un RUNNING posé entre-
+       * temps par un autre chemin n'est jamais écrasé.
+       */
+      void store
+        .getWorkspace(workspaceId)
+        .then((actuel) =>
+          actuel?.status === 'STARTING' ? store.updateWorkspaceStatus({ workspaceId, status: 'FAILED' }) : undefined,
+        )
+        .catch(() => undefined)
+        .finally(() => {
+          // Réarmer : la fenêtre de garde ne doit jamais protéger un échec.
+          demarragesDeclenchesParLecture.delete(workspaceId);
+        });
     });
   };
 
@@ -17347,6 +17394,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   /*
+   * LE GABARIT D'UN ESPACE DE TRAVAIL — UNE SEULE SOURCE POUR TOUS LES CHEMINS.
+   *
+   * Mesuré en production le 2026-10-11 : la lecture qui démarre un espace éteint
+   * (`provisionWorkspaceOnDemand`) envoyait `WORKSPACE_DEFAULT_PLAN ?? 'free'`
+   * SANS droits, quand le démarrage et les redémarrages envoyaient le forfait
+   * réel et ses droits. Deux gabarits pour un même espace : les ressources d'un
+   * conteneur étant immuables, chacun faisait supprimer et recréer le pod de
+   * l'autre — un pod neuf toutes les 5 à 15 s, 1 démarrage sur 5 touché en
+   * 7 jours, et un client Enterprise servi sur des ressources de forfait gratuit.
+   * Tout chemin qui démarre un espace passe par ici.
+   * Épinglé par services/api/src/tests/un-seul-gabarit-par-espace.spec.ts.
+   */
+  /*
+   * Le manager n'accepte que ces quatre noms (`z.enum`, workspace-manager/src/app.ts) ;
+   * la facturation en connaît davantage (`starter`, `core`). Le NOM envoyé est
+   * ramené à un nom accepté — sinon le démarrage d'un client `starter` serait
+   * refusé — et les DROITS réels voyagent dans `resourceLimits`, qui fixent
+   * seuls les ressources du pod.
+   */
+  const PLANS_D_ESPACE = new Set(['free', 'pro', 'team', 'enterprise']);
+
+  const gabaritDeLEspace = (state: Awaited<ReturnType<typeof billingState>> | undefined) => ({
+    plan: state && PLANS_D_ESPACE.has(state.plan.key) ? state.plan.key : (process.env.WORKSPACE_DEFAULT_PLAN ?? 'free'),
+    resourceLimits: state
+      ? {
+          cpuMillicores: state.limits['workspace.cpuMillicores'],
+          ramMb: state.limits['workspace.ramMb'],
+          storageGb: state.limits['storage.gb'],
+        }
+      : undefined,
+  });
+
+  /*
    * Rolling window for the terminals.concurrent gauge (see computeUsageForQuota).
    * Long enough that a genuinely-open terminal stays counted through a normal
    * working session, short enough that a leaked +1 (lost socket-close) self-heals
@@ -18141,14 +18221,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceId: authorized.workspaceId,
           userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
-            ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
-              }
-            : undefined,
+          ...gabaritDeLEspace(state),
           env,
           allowedSecretKeys,
           allowedSecrets,
@@ -18371,14 +18444,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceId: authorized.workspaceId,
           userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
-            ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
-              }
-            : undefined,
+          ...gabaritDeLEspace(state),
           env,
           allowedSecretKeys,
           allowedSecrets,
@@ -33894,14 +33960,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectId: record.projectId,
           workspaceId,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
-            ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
-              }
-            : undefined,
+          ...gabaritDeLEspace(state),
           env,
           allowedSecretKeys,
           allowedSecrets,
