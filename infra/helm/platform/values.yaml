@@ -112,6 +112,7 @@ secrets:
 # OAuth client IDs/secrets live in the existing Secret; only the public,
 # well-known URLs and the platform admin allowlist go here.
 platformEnv:
+  adminMfaRequired: true
   # In-cluster DNS for the api Service. Released chart name is
   # `<release>-<chart>-api`, so with `helm install vibecore ...` this is
   # `vibecore-vibecore-platform-api.<ns>.svc.cluster.local:<port>`.

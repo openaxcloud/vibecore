@@ -82,6 +82,8 @@ export const chatResidualsEn = {
   'chatResiduals.progress.done': 'Done',
   'chatResiduals.progress.doneWithIssues': 'Done, with errors',
   'chatResiduals.progress.interrupted': 'Interrupted',
+  'chatResiduals.progress.notStarted': 'Not started',
+  'chatResiduals.progress.ariaNotStarted': 'Agent, not started — the request was refused before any work',
   'chatResiduals.progress.ariaInterrupted': 'Agent, interrupted at {percent}% — the run did not finish',
   'chatResiduals.progress.ariaDoneWithIssues':
     'Agent, finished at {percent}% but the project still has errors — check the Problems panel',
@@ -185,6 +187,8 @@ export const chatResidualsFr: ChatResidualsCopy = {
   'chatResiduals.progress.done': 'Terminé',
   'chatResiduals.progress.doneWithIssues': 'Terminé avec des erreurs',
   'chatResiduals.progress.interrupted': 'Interrompu',
+  'chatResiduals.progress.notStarted': 'Non démarré',
+  'chatResiduals.progress.ariaNotStarted': 'Agent, non démarré — la demande a été refusée avant tout travail',
   'chatResiduals.progress.ariaInterrupted': 'Agent, interrompu à {percent} % — l’exécution ne s’est pas terminée',
   'chatResiduals.progress.ariaDoneWithIssues':
     'Agent, terminé à {percent} % mais le projet contient encore des erreurs — consultez le panneau Problèmes',

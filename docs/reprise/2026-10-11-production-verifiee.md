@@ -31,3 +31,27 @@ Réserve nouvelle : le manifeste ne renseigne pas le sourceSha des huit images r
 ## Offre annuelle conservée jusqu’à la connexion (A-3)
 
 La lecture HTTP de production conserve `plan=pro&interval=annual` de `/subscribe` à `/upgrade`, puis dans le `returnTo` de `/login`, y compris après passage de `e-code.ai` à `app.e-code.ai`. La page de connexion finale répond 200. Mesure : `mesures/2026-10-11-tarif-jusqua-connexion.json`. La suite après authentification et le paiement Stripe restent non mesurés.
+
+
+## Correctifs de livraison #709 — release 408e9f84
+
+Le workflow [38169434734](https://github.com/openaxcloud/vibecore/actions/runs/38169434734)
+est terminé avec succès. Les contrôles de vulnérabilités, protections Helm
+vivantes, rollout et imageIDs exécutés ont passé. Le manifeste indique neuf
+références reconstruites depuis `408e9f847afadf2cc75ba764b3211c36d0bc2c35`,
+`fullyTraceable: true` et aucun trou de provenance déclaré. Sept services sont
+marqués rollés. Les références du captureur et de l’agent d’espace sont
+reconstruites mais marquées non rollées : le manifeste ne prouve pas que ces
+deux nouvelles images tournent.
+
+À 21:02:48 UTC, le web compte trois réplicas prêts, deux mis à jour et deux
+disponibles ; les deux nouveaux pods et l’ancien sont encore présents. La
+commande de capture termine à zéro avec preuve complète. Le digest web déclaré
+est `sha256:2e2ba42b6b0798bb23d362b7a465e2b3d5bdc485b4ddb009c41b6ab6e45c24a1`.
+Mesure et empreintes : `mesures/2026-10-11-livraison-408.json`.
+
+La provenance des neuf références est désormais explicite, contrairement au
+manifeste 80f1de14. Limite conservée : la capture ne contient pas les imageIDs
+bruts ; le résultat vert de leur comparaison vient du workflow, et uniquement
+des services qu’il compare. Aucun effacement client ni achat Stripe n’a été
+exécuté pour ces mesures.
