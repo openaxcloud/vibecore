@@ -212,26 +212,44 @@ function markMessageCacheBreakpoint(message: Record<string, unknown>): boolean {
   return false;
 }
 
+/** La seule forme qui renvoie du texte de raisonnement sur claude-opus-5 (mesuré le 2026-09-28). */
+export const REFLEXION_AFFICHEE = Object.freeze({ type: 'adaptive', display: 'summarized' });
+
+/** Refus qui décrivent le MODÈLE (et non un conflit de paramètres dans une requête). */
+const MODELE_SANS_THINKING = /not supported|unsupported|does not support|unexpected parameter|extra inputs/i;
+
+const modelesSansParametreThinking = new Set<string>();
+
+/** Testable : oublie les modèles appris comme ne connaissant pas `thinking`. */
+export function oublierModelesSansThinking(): void {
+  modelesSansParametreThinking.clear();
+}
+
 export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fetch {
   return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
     /*
-     * BUG-AGENT-008 — la désactivation de la réflexion étendue est posée ICI,
-     * dans le corps de la requête, et non via `providerOptions`.
+     * LA RÉFLEXION EST AFFICHÉE, REPLIÉE. Décision d'Avi : « affiché mais replié ».
+     * Jusqu'au 2026-09-28 cet intercepteur posait `thinking: disabled` sur CHAQUE
+     * requête (héritage de BUG-AGENT-008, quand `@ai-sdk/anthropic@0.0.39` tuait
+     * le flux au premier bloc) : mesuré sur 5 vrais tours opus en production,
+     * ZÉRO part de raisonnement — le bandeau n'avait jamais rien à montrer.
      *
-     * `@ai-sdk/anthropic@0.0.39` ne lit JAMAIS `providerOptions` (`grep -c` rend
-     * 0 sur le paquet installé) : le contournement de BUG-CHAT-THINKING-001
-     * écrivait donc une option que rien ne consommait, et sept tests verts ne le
-     * disaient pas — ils vérifiaient la forme de l'objet, pas qu'il atteignait le
-     * fournisseur.
+     * Ce qu'exige l'API, mesuré le 2026-09-28 depuis un pod `web` avec la clé et
+     * le SDK servis (1.2.12) :
+     *   - sans paramètre, ou `adaptive` seul : un bloc `thinking` VIDE
+     *     (0 caractère, seule la signature) — rien à afficher ;
+     *   - `enabled` + budget : REFUSÉ par claude-opus-5 (« use thinking.type.adaptive ») ;
+     *   - `adaptive` + `display: "summarized"` : 245 caractères de raisonnement,
+     *     21 parts `reasoning` transmises par le SDK, sans erreur ;
+     *   - avec appel d'outil sur plusieurs étapes : le SDK renvoie le bloc signé
+     *     à l'étape suivante et l'API l'accepte (3 outils, 0 erreur).
      *
-     * Conséquence mesurée en production le 31/08 : `claude-opus-5` émet des blocs
-     * `thinking` par défaut — omettre le paramètre ne veut plus dire « off »,
-     * `output-budget.ts` le documente déjà — le SDK ne sait pas les valider, le
-     * flux meurt, l'utilisateur voit « Service unavailable ». 4 générations,
-     * 10 erreurs, 0 succès.
+     * Portée : les générations EN FLUX seulement. La sonde d'un jeton et le
+     * classifieur (`generateText`, sans `stream`) gardent `disabled` : ils ne
+     * s'affichent nulle part et n'ont pas à payer une réflexion.
      *
-     * À retirer quand le SDK sera monté : `anthropic-thinking-effectivity.spec.ts`
-     * passera au rouge ce jour-là.
+     * Épinglé par `anthropic.spec.ts` (le corps réellement envoyé) et
+     * `anthropic-thinking-effectivity.spec.ts` (le SDK sait lire le bloc).
      */
     try {
       if (
@@ -243,8 +261,28 @@ export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fet
 
         let mutated = false;
 
-        if (parsed && typeof parsed === 'object' && parsed.thinking === undefined) {
-          parsed.thinking = { type: 'disabled' };
+        if (
+          parsed &&
+          typeof parsed === 'object' &&
+          parsed.thinking === undefined &&
+          !modelesSansParametreThinking.has(String(parsed.model))
+        ) {
+          if (parsed.stream === true) {
+            parsed.thinking = { ...REFLEXION_AFFICHEE };
+
+            /*
+             * La réflexion interdit un échantillonnage imposé : un `temperature`
+             * laissé ici rendrait un 400 qui nomme « thinking » — et la
+             * correction ci-dessous retirerait alors la réflexion au lieu du
+             * paramètre fautif.
+             */
+            delete parsed.temperature;
+            delete parsed.top_k;
+            delete parsed.top_p;
+          } else {
+            parsed.thinking = { type: 'disabled' };
+          }
+
           mutated = true;
         }
 
@@ -332,6 +370,16 @@ export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fet
       if (detail.includes('thinking')) {
         try {
           const parsed = JSON.parse(init.body);
+
+          /*
+           * Le modèle ne connaît pas le paramètre : on s'en souvient, pour ne pas
+           * payer cet aller-retour à chaque tour. C'est une CAPACITÉ DU MODÈLE,
+           * identique pour tout le monde — pas une mise à l'écart d'un utilisateur.
+           */
+          if (MODELE_SANS_THINKING.test(detail) && typeof parsed.model === 'string') {
+            modelesSansParametreThinking.add(parsed.model);
+          }
+
           delete parsed.thinking;
           response = await baseFetch(input as any, { ...init, body: JSON.stringify(parsed) });
         } catch {
@@ -366,8 +414,8 @@ export default class AnthropicProvider extends BaseProvider {
        * 128k output. Opus 5 runs ADAPTIVE THINKING BY DEFAULT — unlike Opus 4.8,
        * omitting the `thinking` param no longer means "no thinking" — and those
        * thinking tokens share the same `max_tokens` ceiling as the visible answer.
-       * `@ai-sdk/anthropic@0.0.39` exposes no `thinking` knob, so we cannot pin it
-       * off; the declared 128k completion ceiling plus the existing
+       * The wire sets `adaptive` + `display: summarized` on streamed turns (see
+       * createAnthropicCachingFetch); the declared 128k completion ceiling plus the existing
        * finishReason:'length' auto-continue is what keeps a long build from
        * stopping mid-file.
        */

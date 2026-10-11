@@ -45,12 +45,12 @@ export default function PublicDeploymentsPage() {
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
         <div className="pointer-events-none absolute inset-0 opacity-60" aria-hidden>
-          <div className="absolute -top-40 right-10 h-96 w-96 rounded-full bg-[var(--ecode-accent)]/25 blur-3xl" />
+          <div className="absolute -top-40 right-10 h-96 w-96 rounded-full bg-[color-mix(in_srgb,var(--ecode-accent)_25%,transparent)] blur-3xl" />
           <div className="absolute -bottom-32 left-10 h-80 w-80 rounded-full bg-[var(--ecode-secondary-accent)]/20 blur-3xl" />
         </div>
         <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-24 lg:grid-cols-[1.2fr_1fr] lg:px-10">
           <div>
-            <Badge className="mb-6 border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+            <Badge className="mb-6 border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
               {copy.page.heroBadge}
             </Badge>
             <h1 className="mkt-h1 font-semibold tracking-tight text-foreground">{copy.page.heroTitle}</h1>
@@ -88,7 +88,7 @@ export default function PublicDeploymentsPage() {
                 return (
                   <Card key={highlight.title} className="border-[var(--ecode-border)] bg-background/60 backdrop-blur">
                     <CardHeader className="pb-2">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
                         <Icon className="h-5 w-5" />
                       </span>
                       <CardTitle className="mkt-h3 font-semibold">{highlight.title}</CardTitle>
@@ -100,7 +100,7 @@ export default function PublicDeploymentsPage() {
             </div>
           </div>
           <div className="relative">
-            <div className="rounded-3xl border border-[var(--ecode-border)] bg-gradient-to-br from-[var(--ecode-accent)]/10 to-transparent p-4 shadow-2xl backdrop-blur">
+            <div className="rounded-3xl border border-[var(--ecode-border)] bg-gradient-to-br from-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] to-transparent p-4 shadow-2xl backdrop-blur">
               <div className="space-y-4 rounded-2xl border border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] p-6">
                 <div className="flex items-start justify-between">
                   <div>
@@ -109,7 +109,7 @@ export default function PublicDeploymentsPage() {
                     </p>
                     <p className="text-[15px] font-semibold">{DEMO_DEPLOYMENT_ID}</p>
                   </div>
-                  <Badge className="border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/15 text-[var(--ecode-accent)]">
+                  <Badge className="border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_15%,transparent)] text-[var(--ecode-accent)]">
                     {copy.page.demo.live}
                   </Badge>
                 </div>
@@ -118,7 +118,7 @@ export default function PublicDeploymentsPage() {
                     <span>{copy.page.demo.requestsPerMinute}</span>
                     <span className="font-medium text-foreground">{DEMO_REQUEST_RATE}</span>
                   </div>
-                  <div className="h-16 rounded-lg bg-gradient-to-r from-[var(--ecode-accent)]/60 via-[var(--ecode-secondary-accent)]/40 to-transparent" />
+                  <div className="h-16 rounded-lg bg-gradient-to-r from-[color-mix(in_srgb,var(--ecode-accent)_60%,transparent)] via-[var(--ecode-secondary-accent)]/40 to-transparent" />
                   <div className="flex items-center justify-between text-[13px] text-muted-foreground">
                     <span>{copy.page.demo.latencyP95}</span>
                     <span className="font-medium text-foreground">{DEMO_LATENCY}</span>
@@ -174,7 +174,7 @@ export default function PublicDeploymentsPage() {
             return (
               <Card key={mode.label} className="h-full border-[var(--ecode-border)]">
                 <CardHeader>
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
                     <Icon className="h-6 w-6" />
                   </div>
                   <CardTitle className="mkt-h3 font-semibold">{mode.label}</CardTitle>
