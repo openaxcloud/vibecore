@@ -89,7 +89,9 @@ describe('un seul identifiant de message pour tout le tour', () => {
 
 describe('la borne de la chaîne couvre TOUS les segments', () => {
   it('elle est dérivée du nombre de segments, pas écrite en dur', () => {
-    expect(SOURCE_ROUTE.includes('creerSuiviDeChaine((MAX_RESPONSE_SEGMENTS + 1) * BUDGET_PAR_SEGMENT_MS)')).toBe(true);
+    expect(
+      SOURCE_ROUTE.includes('creerSuiviDeChaine((MAX_RESPONSE_SEGMENTS + 1) * BUDGET_PAR_SEGMENT_MS, request.signal)'),
+    ).toBe(true);
     expect(compter(SOURCE_ROUTE, 'creerSuiviDeChaine(')).toBe(1);
   });
 

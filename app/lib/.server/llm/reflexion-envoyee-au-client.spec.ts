@@ -73,6 +73,12 @@ describe('le raisonnement atteint le client', () => {
       .replace(/\/\/.*$/gm, '');
 
     expect(route.split('mergeIntoDataStream(').length - 1, 'témoin : deux fusions dans la route').toBe(2);
-    expect(route.split('mergeIntoDataStream(dataStream, { sendReasoning: true })').length - 1).toBe(2);
+    const fusions = route.split('mergeIntoDataStream(').slice(1);
+    for (const fusion of fusions) {
+      expect(fusion.slice(0, 250)).toMatch(
+        /merge: \(source\) => dataStream\.merge\(suiviDeChaine\.bornerFlux\(source\)\)/,
+      );
+      expect(fusion.slice(0, 250)).toContain('{ sendReasoning: true }');
+    }
   });
 });
