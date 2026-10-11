@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-401 entrées.
+402 entrées.
 
 ## Sans section
 
@@ -457,6 +457,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-IDE-014](docs/bugs/BUG-IDE-014.md) — P2 — « Domaines » est offert deux fois dans l'IDE : comme carte autonome de la grille des outils ET comme onglet du panneau Déploiements. — 📤 Dispatché : ✅ 02/09 · 💻 Codé : ☑ PR #379 (branche `fix/ide-domains-duplicate-entry`, NON mergée) · ✅ Testé live : ☐ à prouver en prod
 - [BUG-QUOTA-001](docs/bugs/BUG-QUOTA-001.md) — limite 1 — 📤 Dispatché : ☐ · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté live 16/08
+
+## 2026-10-11 — Reprise vérifiée
+
+- [BUG-QA1011-MESSAGE-ACTIONS-CIBLE28](docs/bugs/BUG-QA1011-MESSAGE-ACTIONS-CIBLE28.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

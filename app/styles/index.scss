@@ -32563,6 +32563,16 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
   outline-offset: 1px;
 }
 
+@media (max-width: 1024px), (pointer: coarse) {
+  .bolt-chat-message-row .bolt-message-menu-trigger[data-vc-tooltip],
+  .bolt-message-menu-trigger {
+    width: var(--vc-touch-min, 44px);
+    height: var(--vc-touch-min, 44px);
+    min-width: var(--vc-touch-min, 44px);
+    min-height: var(--vc-touch-min, 44px);
+  }
+}
+
 /*
  * Le chevron est en `position: absolute` : sans contexte de positionnement, il
  * se placerait par rapport à la page entière et voyagerait au défilement.
