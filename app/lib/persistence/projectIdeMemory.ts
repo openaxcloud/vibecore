@@ -245,6 +245,46 @@ const memoryCache = new Map<string, ProjectIdeMemory>();
 const entreesFaisantAutorite = new Set<string>();
 const pendingSaves = new Map<string, Promise<void>>();
 const pendingDirty = new Map<string, ProjectIdeMemory>();
+
+/*
+ * A-11 — UN CLIC D'ONGLET RENVOYAIT TOUTE LA CONVERSATION (mesuré le 2026-10-11 :
+ * ~490 Ko par clic, 32 `PUT /ide-state` sur un projet neuf, aucune écriture).
+ *
+ * Chaque sauvegarde envoyait la mémoire ENTIÈRE — fil compris — même quand seul
+ * l'onglet actif avait changé. Or le serveur FUSIONNE (`mergeProjectIdeState`) :
+ * un `chat` absent garde le fil enregistré, un `files` absent garde le
+ * manifeste, une clé d'`ui` absente garde sa valeur. On n'envoie donc que les
+ * clés de premier niveau modifiées depuis le dernier envoi accepté, avec leur
+ * valeur COMPLÈTE (un `chat` touché part entier, comme avant).
+ *
+ * Et un envoi identique au dernier accepté n'est pas refait : le serveur l'a déjà.
+ */
+const dernierEnvoiAccepte = new Map<string, string>();
+
+function restreindreAuxClesModifiees(memory: ProjectIdeMemory, cles: Iterable<string>): ProjectIdeMemory {
+  const source = memory as Record<string, unknown>;
+  const envoi: Record<string, unknown> = {};
+
+  for (const cle of cles) {
+    if (cle !== 'updatedAt' && source[cle] !== undefined) {
+      envoi[cle] = source[cle];
+    }
+  }
+
+  if (memory.updatedAt) {
+    envoi.updatedAt = memory.updatedAt;
+  }
+
+  return envoi as ProjectIdeMemory;
+}
+
+/** Empreinte d'un envoi, horodatage exclu : deux envois qui ne diffèrent que par lui sont le même. */
+function empreinteDEnvoi(envoi: ProjectIdeMemory): string {
+  const { updatedAt: _horodatage, ...reste } = envoi;
+
+  return JSON.stringify(reste);
+}
+
 const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>();
 
 /*
@@ -638,6 +678,7 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string, workspaceI
     memoryCache.delete(id);
     pendingSaves.delete(id);
     pendingDirty.delete(id);
+    dernierEnvoiAccepte.delete(id);
     crossTabListeners.delete(id);
     versionByProject.delete(id);
     scopeEndpoints.delete(id);
@@ -655,6 +696,7 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string, workspaceI
   memoryCache.clear();
   pendingSaves.clear();
   pendingDirty.clear();
+  dernierEnvoiAccepte.clear();
   crossTabListeners.clear();
   versionByProject.clear();
   scopeEndpoints.clear();
@@ -981,8 +1023,12 @@ export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory,
    * the new dirty payload so a follow-up ordinary chat save can't downgrade the
    * pending PUT from a replace to a union-merge (data-loss on rewind/delete).
    */
-  const pendingClearMessages = pendingDirty.get(id)?.chat?.clearMessages;
-  const dirty = memoryForServerSave(next, patch, pendingClearMessages);
+  const enAttente = pendingDirty.get(id);
+  const pendingClearMessages = enAttente?.chat?.clearMessages;
+
+  // Les clés d'un envoi encore en attente (ou échoué) restent dues : on les ajoute, on ne les remplace pas.
+  const clesModifiees = new Set([...Object.keys(enAttente ?? {}), ...Object.keys(patch)]);
+  const dirty = restreindreAuxClesModifiees(memoryForServerSave(next, patch, pendingClearMessages), clesModifiees);
   memoryCache.set(id, next);
   writeLocalProjectIdeMemory(id, next);
   pendingDirty.set(id, dirty);
@@ -1125,6 +1171,16 @@ async function persistWithRetry(scope: string): Promise<void> {
       headers['if-match'] = `"${knownVersion}"`;
     }
 
+    const empreinte = empreinteDEnvoi(dirty);
+
+    if (dernierEnvoiAccepte.get(scope) === empreinte) {
+      if (pendingDirty.get(scope) === dirty) {
+        pendingDirty.delete(scope);
+      }
+
+      return;
+    }
+
     const body = JSON.stringify({ state: dirty });
 
     /*
@@ -1204,7 +1260,7 @@ async function persistWithRetry(scope: string): Promise<void> {
            * version race to another tab resurrects the removed messages. The cache
            * keeps the flag-free `merged` so local reads aren't polluted.
            */
-          pendingDirty.set(scope, memoryForServerSave(merged, dirty));
+          pendingDirty.set(scope, restreindreAuxClesModifiees(memoryForServerSave(merged, dirty), Object.keys(dirty)));
         }
 
         const conflictError = new Error(getPersistenceRuntimeCopy()['persistence.ide.concurrentChange']);
@@ -1258,6 +1314,8 @@ async function persistWithRetry(scope: string): Promise<void> {
             // ignore — version stays as-is; next GET will reseed it.
           }
         }
+
+        dernierEnvoiAccepte.set(scope, empreinte);
 
         if (pendingDirty.get(scope) === dirty) {
           pendingDirty.delete(scope);
