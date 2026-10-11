@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { RELANCE_ARTEFACT_MANQUANT, suiteDuTour } from './annonce-sans-artefact';
+import { RELANCE_ARTEFACT_MANQUANT, refusExpliciteDeFichiers, suiteDuTour } from './annonce-sans-artefact';
 
 const CONTINUE = 'Continue your prior response.';
-const base = { modeConstruction: true, fichierEmis: false, segmentsConsommes: 0, segmentsMax: 3 };
+
+const base = {
+  modeConstruction: true,
+  fichierEmis: false,
+  fichiersRefuses: false,
+  segmentsConsommes: 0,
+  segmentsMax: 3,
+};
 
 describe('une annonce n’est pas une livraison', () => {
   it('LE DÉFAUT — `stop` en construction sans un seul fichier REDONNE la main', () => {
@@ -98,5 +105,74 @@ describe('une annonce n’est pas une livraison', () => {
     );
 
     expect(issues.size).toBe(4);
+  });
+});
+
+describe('l’utilisateur a dit non — la relance ne passe JAMAIS par-dessus', () => {
+  /*
+   * La consigne EXACTE du tour de production du 2026-09-28 (projet
+   * `cmukvgycf00cp0nf94j2l71js`) : le modèle a obéi, la relance l'a contredit et a
+   * écrit onze fichiers refusés.
+   */
+  const CONSIGNE_DU_28 =
+    "Je veux une application de prise de notes en Markdown avec recherche et étiquettes. Pour ce message, n'écris AUCUN fichier et ne produis aucun artefact : présente uniquement ton plan d'architecture en cinq points, puis arrête-toi et attends ma validation.";
+
+  it('LE DÉFAUT — un tour sans fichier sur un refus explicite se TERMINE', () => {
+    expect(suiteDuTour({ ...base, finishReason: 'stop', fichiersRefuses: true }, CONTINUE)).toEqual({
+      action: 'terminer',
+    });
+  });
+
+  it('le refus ne devient pas un échec au plafond : ce n’est pas un défaut du modèle', () => {
+    expect(
+      suiteDuTour({ ...base, finishReason: 'stop', fichiersRefuses: true, segmentsConsommes: 3 }, CONTINUE),
+    ).toEqual({ action: 'terminer' });
+  });
+
+  it('sans refus, la relance d’annonce est INCHANGÉE — le filet reste en place', () => {
+    expect(suiteDuTour({ ...base, finishReason: 'stop', fichiersRefuses: false }, CONTINUE)).toMatchObject({
+      action: 'continuer',
+      cause: 'annonce-sans-artefact',
+    });
+  });
+
+  it('la consigne réelle du 28/09 est reconnue comme un refus', () => {
+    expect(refusExpliciteDeFichiers(CONSIGNE_DU_28)).toBe(true);
+  });
+
+  it.each([
+    "N'écris aucun fichier pour l'instant.",
+    'ne crée pas de fichiers, explique seulement',
+    "Ne génère pas encore le code, on en discute d'abord.",
+    'Donne-moi juste le plan.',
+    'Plan seulement, merci.',
+    'Présente uniquement ton plan.',
+    'Attends ma validation avant de coder.',
+    'Aucun fichier dans cette réponse.',
+    'Réponds sans écrire de fichier.',
+    "Don't write any files yet, just explain.",
+    'Do not create code for now.',
+    'Plan only please.',
+    'Wait for my approval before touching anything.',
+    'No files yet — describe the architecture.',
+  ])('refus reconnu : %s', (texte) => {
+    expect(refusExpliciteDeFichiers(texte)).toBe(true);
+  });
+
+  it.each([
+    "Crée une petite application React + Vite de liste de tâches : ajout, suppression, case à cocher, filtre et persistance dans localStorage. Explique brièvement ta démarche avant d'écrire les fichiers.",
+    'Ajoute un fichier README avec les instructions.',
+    'Corrige le bug dans App.tsx, le bouton ne répond pas.',
+    'Refais la page sans toucher au header.',
+    'Build a todo app with React and write the files.',
+    'Planifie puis implémente la fonctionnalité de recherche.',
+    '',
+  ])('pas un refus : %s', (texte) => {
+    expect(refusExpliciteDeFichiers(texte)).toBe(false);
+  });
+
+  it('TÉMOIN — absent, nul ou vide ne lève pas', () => {
+    expect(refusExpliciteDeFichiers(undefined)).toBe(false);
+    expect(refusExpliciteDeFichiers(null)).toBe(false);
   });
 });

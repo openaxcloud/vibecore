@@ -6,6 +6,12 @@ import {
   decalageAAnnulerClavierOuvert,
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
+  revelerLeChampActif,
+  champSaisissable,
+  suivreHauteurDeRepos,
+  memoriserHauteurDeRepos,
+  retenirHauteurDeRepos,
+  oublierHauteurDeRepos,
   SEUIL_CLAVIER_PX,
 } from './visual-viewport-bottom';
 
@@ -83,11 +89,195 @@ describe('BUG-KEYBOARD-ZOOM-001 — clavier iOS : détection par le rétrécisse
   it('BaseChat détecte par le rétrécissement et remonte le document quand le clavier est ouvert', () => {
     const baseChat = readFileSync(new URL('./BaseChat.tsx', import.meta.url).pathname, 'utf8');
 
-    expect(baseChat).toContain(
-      'clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))',
-    );
-    expect(baseChat).toContain('decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined)');
+    /*
+     * Depuis le 30/09 (iOS 26) : la référence est la hauteur AU REPOS, jamais
+     * `window.innerHeight` du moment — Safari la rétrécit avec le clavier.
+     */
+    expect(baseChat).toContain('clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))');
+    expect(baseChat).toContain('decalageAAnnulerClavierOuvert(repos.hauteur, vue ?? undefined)');
+
+    // Mémorisée pour la PAGE : un rejeu de l'effet, clavier levé, ne repart pas de la hauteur rétrécie (01/10).
+    expect(baseChat).toContain('const repos = memoriserHauteurDeRepos(window.innerWidth, window.innerHeight);');
+    expect(baseChat).not.toMatch(/let repos: HauteurDeRepos/u);
+    expect(baseChat).not.toMatch(/retrecissementDeLaVue\(window\.innerHeight/u);
+    expect(baseChat).not.toMatch(/decalageAAnnulerClavierOuvert\(window\.innerHeight/u);
     expect(baseChat).toContain('window.scrollTo(0, 0);');
+  });
+});
+
+describe('Safari iOS 26 — la fenêtre de mise en page rétrécit AVEC le clavier', () => {
+  /*
+   * Valeurs relevées le 2026-09-30 dans l'IDE, Safari iOS 26 simulé (390 pt) :
+   * au repos innerHeight 699, vue 699 ; clavier levé innerHeight 362, vue 362,
+   * offsetTop 337, scrollY 337.
+   */
+  const repos = { height: 699, offsetTop: 0 };
+  const clavier = { height: 362, offsetTop: 337 };
+
+  it('l’ancienne référence (`innerHeight` du moment) ne voit PAS ce clavier — c’est le défaut', () => {
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(362, clavier))).toBe(false);
+    expect(decalageAAnnulerClavierOuvert(362, clavier)).toBe(0);
+  });
+
+  it('la hauteur au repos le voit, et rend le défilement de 337 à annuler', () => {
+    let r = suivreHauteurDeRepos(undefined, 390, 699);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(r.hauteur, repos))).toBe(false);
+
+    r = suivreHauteurDeRepos(r, 390, 362);
+    expect(r.hauteur).toBe(699);
+    expect(retrecissementDeLaVue(r.hauteur, clavier)).toBe(337);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(r.hauteur, clavier))).toBe(true);
+    expect(decalageAAnnulerClavierOuvert(r.hauteur, clavier)).toBe(337);
+  });
+
+  it('clavier refermé : plus de clavier', () => {
+    const r = suivreHauteurDeRepos(suivreHauteurDeRepos(undefined, 390, 699), 390, 362);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(suivreHauteurDeRepos(r, 390, 699).hauteur, repos))).toBe(
+      false,
+    );
+  });
+
+  it('la barre Safari qui se replie puis revient n’est pas un clavier', () => {
+    let r = suivreHauteurDeRepos(undefined, 390, 699);
+    r = suivreHauteurDeRepos(r, 390, 786);
+    r = suivreHauteurDeRepos(r, 390, 699);
+    expect(r.hauteur).toBe(786);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(r.hauteur, { height: 699, offsetTop: 0 }))).toBe(false);
+  });
+
+  it('une rotation repart de la hauteur du moment — sinon le paysage passerait pour un clavier', () => {
+    let r = suivreHauteurDeRepos(undefined, 390, 699);
+    r = suivreHauteurDeRepos(r, 844, 340);
+    expect(r).toEqual({ largeur: 844, hauteur: 340 });
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(r.hauteur, { height: 340, offsetTop: 0 }))).toBe(false);
+  });
+});
+
+describe('la hauteur au repos survit à un rejeu de la mesure, clavier levé (CI, 01/10)', () => {
+  it('garde la référence lors du remplacement de la coquille par le chat', async () => {
+    oublierHauteurDeRepos();
+
+    const quitterCoquille = retenirHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 699);
+    quitterCoquille();
+
+    const quitterChat = retenirHauteurDeRepos();
+    await Promise.resolve();
+    expect(memoriserHauteurDeRepos(390, 362).hauteur).toBe(699);
+    quitterChat();
+    await Promise.resolve();
+  });
+
+  it('oublie la hauteur après une navigation, puis mesure la nouvelle fenêtre au repos', async () => {
+    oublierHauteurDeRepos();
+
+    const quitter = retenirHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 844);
+    quitter();
+    await Promise.resolve();
+
+    const revenir = retenirHauteurDeRepos();
+    const repos = memoriserHauteurDeRepos(390, 600);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, { height: 600, offsetTop: 0 }))).toBe(false);
+    revenir();
+    await Promise.resolve();
+  });
+
+  it('une libération répétée ne détruit pas la référence d’une autre mesure', async () => {
+    oublierHauteurDeRepos();
+
+    const premiere = retenirHauteurDeRepos();
+    const seconde = retenirHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 844);
+    premiere();
+    premiere();
+    await Promise.resolve();
+    expect(memoriserHauteurDeRepos(390, 362).hauteur).toBe(844);
+    seconde();
+    await Promise.resolve();
+  });
+
+  /*
+   * Premier essai à froid de `clavier-ios-hauteur-de-repos` : les règles « clavier
+   * levé » cessaient de s'appliquer. Un effet rejoué (ou BaseChat remonté) pendant
+   * que le clavier est levé faisait repartir une référence LOCALE de 362.
+   */
+  it('un rejeu pendant le clavier garde 699 — le clavier reste vu', () => {
+    oublierHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 699);
+
+    // Premier effet : clavier levé.
+    expect(memoriserHauteurDeRepos(390, 362).hauteur).toBe(699);
+
+    // Effet REJOUÉ (remontage) pendant que le clavier est toujours levé.
+    const apresRejeu = memoriserHauteurDeRepos(390, 362);
+    expect(apresRejeu.hauteur).toBe(699);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(apresRejeu.hauteur, { height: 362, offsetTop: 0 }))).toBe(
+      true,
+    );
+  });
+
+  it('contre-épreuve : une référence locale, recréée au rejeu, perdait le clavier', () => {
+    const locale = suivreHauteurDeRepos(undefined, 390, 362);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(locale.hauteur, { height: 362, offsetTop: 0 }))).toBe(false);
+  });
+
+  it('une rotation repart de zéro, même mémorisée', () => {
+    oublierHauteurDeRepos();
+    memoriserHauteurDeRepos(390, 699);
+    expect(memoriserHauteurDeRepos(844, 340)).toEqual({ largeur: 844, hauteur: 340 });
+  });
+});
+
+describe('clavier levé : le champ actif reste visible (Paramètres, 30/09)', () => {
+  // Éléments minimaux : la fonction ne lit que tagName, type, isContentEditable et scrollIntoView.
+  const element = (tagName: string, type = '', isContentEditable = false) => {
+    const appels: unknown[] = [];
+    const el = { tagName, type, isContentEditable, scrollIntoView: (o?: unknown) => appels.push(o) };
+
+    return { el: el as unknown as Element, appels };
+  };
+
+  const doc = (actif: Element | null) => ({ activeElement: actif }) as unknown as Document;
+
+  it('ramène le champ actif dans sa zone de défilement, au plus près', () => {
+    const { el, appels } = element('INPUT', 'text');
+
+    expect(revelerLeChampActif(doc(el))).toBe(true);
+    expect(appels).toEqual([{ block: 'nearest', inline: 'nearest' }]);
+
+    for (const [balise, type, editable] of [
+      ['TEXTAREA', '', false],
+      ['SELECT', '', false],
+      ['DIV', '', true],
+    ] as const) {
+      expect(champSaisissable(element(balise, type, editable).el), balise).toBe(true);
+    }
+  });
+
+  it('ne fait rien sans champ de saisie actif (bouton, case à cocher, rien)', () => {
+    const bouton = element('BUTTON');
+
+    expect(revelerLeChampActif(doc(bouton.el))).toBe(false);
+    expect(bouton.appels).toEqual([]);
+    expect(champSaisissable(element('INPUT', 'checkbox').el)).toBe(false);
+    expect(revelerLeChampActif(doc(null))).toBe(false);
+  });
+
+  it('BaseChat le fait dès que le clavier est vu — pas seulement quand Safari a décalé la page', () => {
+    const baseChat = readFileSync(new URL('./BaseChat.tsx', import.meta.url).pathname, 'utf8');
+
+    const branche = baseChat.slice(
+      baseChat.indexOf('if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur'),
+      baseChat.indexOf("document.documentElement.removeAttribute('data-vc-clavier');"),
+    );
+
+    expect(branche).toContain('revelerLeChampActif(document);');
+
+    // Hors du bloc `scrollTo` : au passage 14 le décalage valait 0, ce bloc ne s'exécutait pas.
+    expect(branche.indexOf('revelerLeChampActif(document);')).toBeGreaterThan(
+      branche.indexOf('window.scrollTo(0, 0);\n          }'),
+    );
   });
 });
 

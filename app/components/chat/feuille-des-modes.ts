@@ -15,19 +15,25 @@
  * Les libellés sont rendus sous forme de CLÉS, jamais de phrases : la rédaction
  * vit dans le catalogue i18n, en français et en anglais.
  */
+/*
+ * ⚠️ Les VALEURS viennent du module précis, jamais du tonneau `@vibecore/billing` :
+ * son `index.ts` importe `node:crypto` en première ligne, et rollup refuse de
+ * construire le navigateur là-dessus (« createHmac is not exported by
+ * __vite-browser-external »). Mesuré le 2026-09-22 : le seul fait de monter la
+ * feuille faisait entrer ce fichier dans le graphe et cassait tout le build web.
+ * Les `import type` sont effacés à la compilation et ne comptent pas.
+ */
+import type { AgentMode } from '@vibecore/billing/src/agent-routing';
+import { coutMelange } from '@vibecore/billing/src/catalogue-de-modeles';
+import type { CatalogueDuMode } from '@vibecore/billing/src/catalogue-de-modeles';
+import { cransPour } from '@vibecore/billing/src/crans-effort';
+import type { CranEffort } from '@vibecore/billing/src/crans-effort';
 import {
-  coutMelange,
-  cransPour,
   modeleAutomatiqueJoignable,
   catalogueAvecEtats,
   resoudreAvecRepli,
-  type AgentMode,
-  type CatalogueDuMode,
-  type CranEffort,
-  type ModeleAvecEtat,
-  type Resolution,
-  type SondeFournisseur,
-} from '@vibecore/billing';
+} from '@vibecore/billing/src/disponibilite-des-modeles';
+import type { ModeleAvecEtat, Resolution, SondeFournisseur } from '@vibecore/billing/src/disponibilite-des-modeles';
 
 /** Ce que l'utilisateur a choisi, pour un mode donné. */
 export interface ChoixDuMode {

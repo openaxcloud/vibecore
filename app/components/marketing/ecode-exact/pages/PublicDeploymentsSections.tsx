@@ -81,13 +81,13 @@ function PublicDeploymentsSectionsImpl() {
                       className="flex flex-col gap-6 rounded-2xl border border-[var(--ecode-border)] bg-background p-6 shadow-sm lg:flex-row"
                     >
                       <div className="flex-1">
-                        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+                        <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
                           <Icon className="h-6 w-6" />
                         </div>
                         <h3 className="text-xl font-semibold">{highlight.title}</h3>
                         <p className="mt-2 text-muted-foreground">{highlight.description}</p>
                       </div>
-                      <div className="flex flex-1 flex-col justify-between rounded-xl border border-[var(--ecode-border)] bg-gradient-to-br from-[var(--ecode-accent)]/15 via-[var(--ecode-accent)]/5 to-transparent p-5 text-[13px] text-muted-foreground">
+                      <div className="flex flex-1 flex-col justify-between rounded-xl border border-[var(--ecode-border)] bg-gradient-to-br from-[color-mix(in_srgb,var(--ecode-accent)_15%,transparent)] via-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)] to-transparent p-5 text-[13px] text-muted-foreground">
                         <p className="text-foreground/80">{copy.liveMetricsDescription}</p>
                         <div className="mt-6 grid gap-3 text-[11px] uppercase tracking-wide text-foreground/60">
                           <div className="flex items-center justify-between">
@@ -113,7 +113,7 @@ function PublicDeploymentsSectionsImpl() {
               </div>
             </div>
             <div className="flex flex-col gap-6">
-              <Card className="border-[var(--ecode-accent)]/40 bg-[var(--ecode-accent)]/5">
+              <Card className="border-[color-mix(in_srgb,var(--ecode-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-[var(--ecode-accent)]">
                     <LineChart className="h-5 w-5" /> {copy.performanceTitle}
@@ -172,7 +172,7 @@ function PublicDeploymentsSectionsImpl() {
               return (
                 <Card key={step.title} className="h-full border-[var(--ecode-border)]">
                   <CardHeader>
-                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+                    <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
                       <Icon className="h-6 w-6" />
                     </div>
                     <CardTitle className="text-xl">{step.title}</CardTitle>
@@ -189,7 +189,10 @@ function PublicDeploymentsSectionsImpl() {
                   <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{copy.deploymentTargets}</p>
                   <p className="text-[15px] font-semibold">{DEPLOYMENT_TARGET_ID}</p>
                 </div>
-                <Badge variant="outline" className="border-[var(--ecode-accent)]/40 text-[var(--ecode-accent)]">
+                <Badge
+                  variant="outline"
+                  className="border-[color-mix(in_srgb,var(--ecode-accent)_40%,transparent)] text-[var(--ecode-accent)]"
+                >
                   {copy.autoscale}
                 </Badge>
               </div>
@@ -248,7 +251,7 @@ function PublicDeploymentsSectionsImpl() {
                   return (
                     <Card key={highlight.title} className="h-full border-[var(--ecode-border)]">
                       <CardHeader>
-                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+                        <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
                           <Icon className="h-5 w-5" />
                         </div>
                         <CardTitle className="text-[15px]">{highlight.title}</CardTitle>
@@ -263,7 +266,9 @@ function PublicDeploymentsSectionsImpl() {
               <div className="space-y-4 overflow-hidden rounded-3xl border border-[var(--ecode-border)] bg-background p-8 shadow-lg">
                 <div className="flex items-center justify-between">
                   <p className="text-[13px] font-semibold">{copy.releaseTimeline}</p>
-                  <Badge className="bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">{copy.protected}</Badge>
+                  <Badge className="bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent)]">
+                    {copy.protected}
+                  </Badge>
                 </div>
                 <div className="space-y-4 text-[13px] text-muted-foreground">
                   <div className="flex items-center justify-between rounded-2xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)]/60 p-4">

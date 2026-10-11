@@ -20,6 +20,7 @@ import {
   type ExactBuildOptionId,
   type ExactStaticModelId,
 } from '~/lib/i18n/catalogs/marketing-exact-product-controls';
+import { useFocusTrap } from '~/lib/use-focus-trap';
 
 export type BuildMode = 'design-first' | 'full-app' | 'continue-planning';
 
@@ -625,6 +626,14 @@ export function BuildModeSelector({
   const [hoveredOption, setHoveredOption] = useState<BuildMode | null>(null);
   const [activeAnimations, setActiveAnimations] = useState<Record<string, boolean>>({});
 
+  /*
+   * BUG-QA0928-MODALE-SANS-FOCUS — le focus restait dans la page masquée
+   * (mesuré en production : WebKit sur un élément de la page, Chromium sur
+   * « Build now »). Le piège partagé fait entrer le focus, le garde au fil des
+   * tabulations et le rend à la fermeture.
+   */
+  const modaleRef = useFocusTrap<HTMLDivElement>(open);
+
   useEffect(() => {
     if (!open) {
       setActiveAnimations({});
@@ -672,6 +681,7 @@ export function BuildModeSelector({
       aria-modal="true"
       aria-labelledby="build-mode-selector-title"
       data-testid="build-mode-selector-dialog"
+      ref={modaleRef}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           onOpenChange(false);

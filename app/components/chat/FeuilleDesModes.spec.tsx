@@ -113,13 +113,13 @@ describe('le repli est visible', () => {
 });
 
 describe('écran 2', () => {
-  it('« Choisir pour moi » vient en tête, avec sa pastille', () => {
+  it('« Choisir automatiquement » vient en tête, avec sa pastille', () => {
     poser();
     fireEvent.click(screen.getByTestId('feuille-entree-modele'));
 
     const auto = screen.getByTestId('feuille-modele-auto');
 
-    expect(auto.textContent).toContain('Choisir pour moi');
+    expect(auto.textContent).toContain('Choisir automatiquement');
     expect(auto.textContent).toContain('conseillé');
   });
 
@@ -177,5 +177,58 @@ describe('le bloc Effort', () => {
     fireEvent.change(screen.getByTestId('feuille-effort-rail'), { target: { value: '4' } });
 
     expect(onChoisirModele).toHaveBeenCalledWith('max', expect.objectContaining({ effort: 'max' }));
+  });
+});
+
+describe('« jamais sondé » n’est pas « indisponible »', () => {
+  /*
+   * La garde qui compte ici. Avec `sondes={[]}` — l'état réel de la plateforme
+   * tant que la sonde n'existe pas — l'ancienne condition `etat !== 'disponible'`
+   * désactivait CHAQUE ligne du catalogue. Le panneau s'affichait, et rien
+   * n'était choisissable : un défaut qu'aucun test de rendu n'attrapait, parce
+   * que les fixtures passaient toujours des sondes vertes.
+   */
+  it('sans aucune sonde, les modèles restent choisissables', () => {
+    const { onChoisirModele } = poser({ sondes: [] });
+
+    fireEvent.click(screen.getByTestId('feuille-entree-modele'));
+
+    const lignes = screen.getAllByRole('radio');
+    const modeles = lignes.filter((l) => l.getAttribute('data-etat') === 'inconnu');
+
+    expect(modeles.length).toBeGreaterThan(0);
+
+    for (const ligne of modeles) {
+      expect((ligne as HTMLButtonElement).disabled).toBe(false);
+    }
+
+    fireEvent.click(modeles[0]);
+    expect(onChoisirModele).toHaveBeenCalled();
+  });
+
+  it('un fournisseur sans crédit, lui, ferme bien sa ligne', () => {
+    poser({ modeActif: 'power', sondes: EN_PANNE });
+
+    fireEvent.click(screen.getByTestId('feuille-entree-modele'));
+
+    const fermees = screen
+      .getAllByRole('radio')
+      .filter((l) => l.getAttribute('data-etat') === 'momentanement-indisponible');
+
+    expect(fermees.length).toBeGreaterThan(0);
+
+    for (const ligne of fermees) {
+      expect((ligne as HTMLButtonElement).disabled).toBe(true);
+    }
+  });
+});
+
+describe('écran avancé', () => {
+  it('rend le nœud que l’appelant lui confie', () => {
+    poser({ modeActif: 'max', avance: <p data-testid="temoin-avance">interrupteurs de l’appelant</p> });
+
+    fireEvent.click(screen.getByTestId('feuille-entree-avance'));
+
+    expect(screen.getByTestId('temoin-avance')).toBeTruthy();
   });
 });
