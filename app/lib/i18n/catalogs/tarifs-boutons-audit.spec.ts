@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findFrenchAuditResidue } from './live-audit-heuristics';
 import { pricingPlanCopy } from './marketing-product';
+import { formatPlanQuotaCopy, planQuotaEn, planQuotaFr } from './plan-quota';
 
 /*
  * L'audit des traductions françaises (`tests/e2e/i18n-french-live.spec.ts`)
@@ -33,4 +34,23 @@ describe('boutons de la page de prix, vus par le détecteur de l’audit frança
     expect(pricingPlanCopy.fr.pro.cta).toBe('Choisir la formule Pro');
     expect(pricingPlanCopy.fr.team.cta).toBe('Choisir la formule Team');
   });
+
+  /*
+   * Même famille, autre page : `/plan-comparison` (publique) compose
+   * « Choisir {plan} ». Elle n'est pas dans la liste de l'audit ; avec l'offre
+   * Team, elle afficherait le même « Choisir Team ».
+   */
+  for (const offre of ['Pro', 'Team', 'Core']) {
+    it(`/plan-comparison : le bouton de l'offre ${offre} n'est pas signalé`, () => {
+      const texte = formatPlanQuotaCopy(planQuotaFr['planComparison.action.choose'], { plan: offre });
+      const anglais = formatPlanQuotaCopy(planQuotaEn['planComparison.action.choose'], { plan: offre });
+
+      expect(
+        findFrenchAuditResidue(
+          [{ kind: 'text', text: anglais, locator: 'choisir' }],
+          [{ kind: 'text', text: texte, locator: 'choisir' }],
+        ),
+      ).toEqual([]);
+    });
+  }
 });

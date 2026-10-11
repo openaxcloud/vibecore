@@ -142,14 +142,14 @@ describe('localized plan comparison surface', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Comparer les offres' })).toBeTruthy();
     expect(screen.getByText('Modèles publics et petits espaces de travail.')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Choisir Starter' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Choisir Core' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Choisir Pro' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Choisir la formule Starter' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choisir la formule Core' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choisir la formule Pro' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Contacter l’équipe commerciale' })).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toBe(
       'Le paiement est indisponible pour le moment. Réessayez ultérieurement.',
     );
-    expect(screen.getByRole('link', { name: 'Choisir Starter' }).className).toContain('min-h-11');
+    expect(screen.getByRole('link', { name: 'Choisir la formule Starter' }).className).toContain('min-h-11');
     expect(document.body.textContent).not.toMatch(/Compare plans|Choose |Talk to sales|Checkout is unavailable/u);
 
     await act(async () => {

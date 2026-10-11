@@ -51,7 +51,7 @@ export const planQuotaFr: PlanQuotaCopy = {
   'planComparison.plan.enterprise.name': 'Enterprise',
   'planComparison.plan.enterprise.summary':
     'SSO, SCIM, quotas personnalisés, export des journaux d’audit et options de déploiement privé.',
-  'planComparison.action.choose': 'Choisir {plan}',
+  'planComparison.action.choose': 'Choisir la formule {plan}',
   'planComparison.action.sales': 'Contacter l’équipe commerciale',
   'planComparison.action.startingCheckout': 'Ouverture du paiement…',
   'planComparison.action.checkoutProgress': 'Ouverture du paiement sécurisé pour l’offre {plan}',
