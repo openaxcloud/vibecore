@@ -18,13 +18,28 @@ import { toResponse } from '~/lib/test/rr7-data';
  * `/projects/new`: this family lands in the `/projects/*` space, and the editor
  * is the IDE.
  */
-function redirectOf(id: string) {
-  const response = toResponse(loader({ params: { id } } as never)) as Response;
+function redirectOf(id: string, search = '') {
+  const response = toResponse(
+    loader({
+      params: { id },
+      request: new Request(`https://e-code.ai/editor/${encodeURIComponent(id)}${search}`),
+    } as never),
+  ) as Response;
 
   return { status: response.status, location: response.headers.get('location') };
 }
 
 describe('/editor/:id compatibility route', () => {
+  it('preserves language and repeated query parameters from the incoming request', () => {
+    const original = new URLSearchParams('lang=fr&ref=alpha&tag=one&tag=two');
+    const { location } = redirectOf('project-1', `?${original}`);
+    const destination = new URL(location!, 'https://app.e-code.ai');
+
+    for (const key of new Set(original.keys())) {
+      expect(destination.searchParams.getAll(key)).toEqual(original.getAll(key));
+    }
+  });
+
   it('permanently redirects to the canonical IDE page', () => {
     expect(redirectOf('cmsusbw8q00040nbf7dddmsq1')).toEqual({
       status: 301,

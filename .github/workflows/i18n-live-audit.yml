@@ -70,8 +70,18 @@ jobs:
       PLAYWRIGHT_SKIP_WEB_SERVER: '1'
       I18N_FULL_LIVE_AUDIT: '1'
       I18N_CAPTURE_ALL: '1'
-      I18N_EXPECTED_AUDIT_JSON: '282'
-      I18N_EXPECTED_SCREENSHOTS: '564'
+      # 282 -> 280 et 564 -> 560 : `/projects/{projectId}/preview` a quitte
+      # `PROJECT_PATHS`. Elle y figurait parce qu'elle rendait une page marketing
+      # LOCALISEE ; elle redirige desormais (301) vers l'apercu reel
+      # `/projects/:id/ide?panel=preview`, deja audite par la liste. Sa copie
+      # localisee n'existe plus, donc il n'y a plus rien a auditer la.
+      #
+      # Arithmetique mesuree, pas devinee : `auditRoutePair` produit 2 captures
+      # (en + fr) et 1 JSON par (chemin, theme), et la boucle passe 2 themes,
+      # soit 4 captures et 2 JSON par chemin. Un chemin en moins = -2 JSON et
+      # -4 captures. Le rapport 564 = 282 x 2 confirme la lecture.
+      I18N_EXPECTED_AUDIT_JSON: '280'
+      I18N_EXPECTED_SCREENSHOTS: '560'
       I18N_EXPECTED_NEGOTIATION_JSON: '2'
 
     steps:
