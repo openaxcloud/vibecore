@@ -417,6 +417,21 @@ généraux : ce sont des pièges qui ont déjà coûté.
     worktree : vérifier vers quoi le paquet résout. Pour une sortie tronquée :
     filtrer sur la ligne de verdict, jamais sur les dernières lignes.
 
+29. **DU TRAVAIL QUI N'EXISTE QUE SUR LE DISQUE D'UN CONTENEUR N'EXISTE PAS.**
+    Mesuré le 2026-10-11 : trois commits de suite (reliquats du canari mobile,
+    réécriture d'un test au composant mort, correctif `inert` + garde + deux
+    entrées d'inventaire — une demi-journée) posés le 16/09 sur une branche
+    locale `suite-locale-559`, volontairement non poussés « pour ne pas
+    relancer la CI de la PR en cours », ont disparu avec le conteneur recréé
+    vingt-cinq jours plus tard. Rien ne l'a signalé : `git status` était propre.
+
+    La consigne « ne pas pousser sur la PR » ne dit pas « ne pas pousser ».
+    Le geste : tout commit vaut une branche distante, immédiatement, sous un
+    nom jetable (`claude/<sujet>-suite`), sans PR si on ne veut pas de CI. Un
+    conteneur est éphémère par contrat ; un scratchpad aussi (la note de suite
+    a disparu avec). Ce qui doit survivre à la session vit dans le dépôt
+    distant ou dans `docs/`, jamais ailleurs.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-397 entrées.
+398 entrées.
 
 ## Sans section
 
@@ -447,6 +447,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Balayage QA du 2026-09-04 — panneaux instables, lenteur, archive, état de l'IDE
 
 - [BUG-QA-MOBILE-CLIP-004](docs/bugs/BUG-QA-MOBILE-CLIP-004.md) — P1 — en FRANÇAIS, à 1024 px, `/projects/:id/collaborators` ampute son contenu : `body.scrollWidth` 1034 pour 1024 (clair et sombre), sans défilement possible. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Découvertes du canari mobile — 2026-09-16
+
+- [BUG-A11Y-PANNEAU-GARE-001](docs/bugs/BUG-A11Y-PANNEAU-GARE-001.md) — P2 — sur l'IDE mobile, le panneau quitté reste atteignable au clavier alors qu'il est garé hors écran. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
