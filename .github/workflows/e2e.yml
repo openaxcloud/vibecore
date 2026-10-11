@@ -51,7 +51,69 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  perimetre:
+    name: Perimetre des changements
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.detecte.outputs.code }}
+    steps:
+      # Epingle par SHA : la validation du depot refuse une action mobile.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - id: detecte
+        # CONSERVATEUR PAR DEFAUT : on ne saute QUE si l'on est certain que tout
+        # est documentaire. Le moindre doute — pas de base comparable, aucun
+        # fichier detecte, evenement autre qu'une pull request — execute la
+        # suite. Un filtre qui se trompe dans l'autre sens laisserait passer du
+        # code non teste, ce qui serait bien pire que le gaspillage qu'il evite.
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" != 'pull_request' ]; then
+            echo "evenement ${{ github.event_name }} : on execute (pas de filtrage hors PR)"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE="${{ github.event.pull_request.base.sha }}"
+          TETE="${{ github.event.pull_request.head.sha }}"
+
+          if ! git cat-file -e "${BASE}^{commit}" 2>/dev/null || ! git cat-file -e "${TETE}^{commit}" 2>/dev/null; then
+            echo "::warning::base ou tete illisible — on execute la suite complete"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          FICHIERS="$(git diff --name-only "${BASE}" "${TETE}")"
+
+          if [ -z "${FICHIERS}" ]; then
+            echo "::warning::aucun fichier detecte — on execute la suite complete"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "fichiers changes :"
+          printf '%s\n' "${FICHIERS}" | sed 's/^/  /'
+
+          # Tout ce qui n'est pas .md / .txt / LICENSE / docs/ compte comme du code.
+          RESTE="$(printf '%s\n' "${FICHIERS}" \
+            | grep -vE '\.(md|txt)$' \
+            | grep -vE '^docs/' \
+            | grep -vE '^LICENSE$' || true)"
+
+          if [ -z "${RESTE}" ]; then
+            echo "changement purement documentaire — la suite navigateur est sautee"
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "fichiers non documentaires :"
+            printf '%s\n' "${RESTE}" | sed 's/^/  /'
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
+
   e2e:
+    needs: perimetre
     # ⚠️ CE JOB NE PORTE PLUS LE NOM REQUIS. La protection de branche exige
     # « Playwright local stack » ; c'est le job `verdict` en fin de fichier qui
     # le porte désormais. Renommer celui-ci sans renommer celui-là ferait
@@ -83,7 +145,7 @@ jobs:
     # arbitrary code with the real prod keys injected. Restrict to non-fork
     # events so external contributors aren't blocked by an unsatisfiable gate
     # and prod keys aren't exposed to untrusted fork code.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.perimetre.outputs.code == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
 
     env:
       CI: true
@@ -258,9 +320,10 @@ jobs:
   # Il est ici un job à lui, qui n'est dans le `needs` de PERSONNE. Son échec ne
   # comptait pas ; sa durée ne compte plus non plus.
   canari-ios:
+    needs: perimetre
     name: Canari iOS WebKit (non bloquant)
     # Même garde que le job bloquant : pas de fork, pour les mêmes raisons.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: needs.perimetre.outputs.code == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     # Son propre plafond : il ne peut plus manger le budget de personne, mais un
     # job pendu reste un coureur immobilisé.
@@ -327,7 +390,7 @@ jobs:
 
   verdict:
     name: Playwright local stack
-    needs: e2e
+    needs: [perimetre, e2e]
     # `always()` pour que le verdict tombe MÊME si une tranche échoue ou se fait
     # annuler. C'est le cas qui compte : sans lui, une tranche perdue laisserait
     # le contrôle requis sans conclusion, et on retomberait dans le silence que
@@ -336,19 +399,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Valider le périmètre avant le verdict
+        env:
+          RESULTAT: ${{ needs.perimetre.result }}
+          CODE: ${{ needs.perimetre.outputs.code }}
+        run: |
+          if [ "$RESULTAT" != 'success' ]; then echo "::error::périmètre non mesuré"; exit 1; fi
+          case "$CODE" in
+            true) echo "suite navigateur requise" ;;
+            false) echo "changement documentaire : aucun navigateur nécessaire" ;;
+            *) echo "::error::périmètre illisible"; exit 1 ;;
+          esac
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        if: needs.perimetre.outputs.code == 'true'
 
       - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4
+        if: needs.perimetre.outputs.code == 'true'
         with:
           node-version: 22
 
       - name: Rassembler les rapports des tranches
+        if: needs.perimetre.outputs.code == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: resultats-tranche-*
           path: tranches
 
       - name: Ce qui est réellement arrivé
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           echo "rapports reçus :"
           find tranches -name 'playwright-results.json' | sort | sed 's/^/  /'
@@ -357,6 +436,7 @@ jobs:
       # La porte EXIGE ses quatre rapports. Une tranche manquante la fait
       # rougir : un vert sur trois quarts des specs serait un vert menteur.
       - name: E2E gate (bounded waiver)
+        if: needs.perimetre.outputs.code == 'true'
         env:
           E2E_EXPECTED_REPORTS: '4'
         run: node scripts/e2e-gate.mjs $(find tranches -name 'playwright-results.json' | sort | tr '\n' ' ')

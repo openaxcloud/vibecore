@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-396 entrées.
+399 entrées.
 
 ## Sans section
 
@@ -443,6 +443,15 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
 - [CONSTAT-PAGES-GABARIT-PUBLIQUES](docs/bugs/CONSTAT-PAGES-GABARIT-PUBLIQUES.md) — `e-code.ai/plans` et 56 autres pages publiques montrent au visiteur du texte de DÉVELOPPEMENT, et `/plans` n'affiche — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## 2026-10-11 — Dette d'infrastructure : la production sait des choses que le dépôt ignore
+
+- [BUG-HELM-REGLAGES-SECURITE-HORS-DEPOT](docs/bugs/BUG-HELM-REGLAGES-SECURITE-HORS-DEPOT.md) — Quatre réglages de sécurité de la production n'existent QUE dans la release Helm vivante, pas dans — 📤 Dispatché : ☑ 11/10 fiche écrite — réparation NON entreprise, Avi arbitre l'ordre · 💻 Codé : ☐ · ✅ Testé live : ☐
+- [BUG-LIVRAISON-CORRECTIF-DE-CHAINE-JAMAIS-DEPLOYE](docs/bugs/BUG-LIVRAISON-CORRECTIF-DE-CHAINE-JAMAIS-DEPLOYE.md) — Un correctif qui ne touche QUE la chaîne de livraison ne déclenche AUCUN déploiement. Il reste — 📤 Dispatché : ☑ 11/10 fiche écrite — réparation NON entreprise, Avi arbitre l'ordre · 💻 Codé : ☐ · ✅ Testé live : ☐
+
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
+
+- [BUG-DEPLOY-BASE-DES-TIERS-PERIMEE-001](docs/bugs/BUG-DEPLOY-BASE-DES-TIERS-PERIMEE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

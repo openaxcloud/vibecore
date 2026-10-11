@@ -19,6 +19,13 @@ on:
     tags:
       - 'v*'
 
+# Ne garder que la dernière exécution en attente pour chaque proposition.
+# Un build déjà commencé garde son verdict ; les releases de tags ont leur
+# propre groupe et ne se remplacent pas entre elles.
+concurrency:
+  group: electron-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 

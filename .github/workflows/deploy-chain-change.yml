@@ -1,0 +1,26 @@
+name: Deploy delivery-chain corrections
+
+# GITHUB_TOKEN peut déclencher workflow_dispatch : exception documentée par GitHub.
+# https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-main.yml'
+      - '.github/workflows/deploy-chain-change.yml'
+      - 'scripts/release-gate/declencher-correctif-livraison.mjs'
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Request the gated production deployment for this SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release-gate/declencher-correctif-livraison.mjs
