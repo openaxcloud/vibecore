@@ -27,16 +27,20 @@ collant du toucher sous le point de l'appui précédent.
 
 ## 📤
 
-☐
+☑ 30/09 #616
 
 ## 💻
 
-☐
+☑ 30/09 fusionnée `aa828bec8` (lot #616 + #621 + #628)
 
 ## ✅
 
-☐
+☐ pas encore servi en prod au 30/09 13:45
 
 ## Preuve
 
 Mesure prod. Aucun test — point OUVERT.
+
+**30/09 — CORRIGÉ, pas encore prouvé en CI.** Local : rouge sur `main` sur les deux moteurs, vert ×2 sur Chromium et webkit-iphone ; contre-épreuves : sans le piège → rouge partout, avec l'ancien piège → vert Chromium / rouge WebKit. En CI, tentative 1 : mon test ✓, mais `user-area-navigation.spec.ts:323` ✘ 3/3 (expiration de 3 min sur `goto('/dashboard')`, run de 1 h contre 31–40 min ailleurs). `useFocusTrap` n'est pas utilisé sur ce chemin et le test n'appuie jamais sur Tab ; relance du même commit en cours pour trancher. Épinglé par `tests/e2e/modale-accueil-prend-le-focus.spec.ts` (projet webkit-iphone) et `app/lib/use-focus-trap.spec.tsx`.
+
+**30/09 21:15 — PROUVÉ en CI** (1re tentative sur la tête fusionnée : mon test vert sur chromium ET webkit-iphone) et fusionné. Le 1er échec CI (`user-area-navigation` 3/3) venait d'une machine lente : 99 tests communs sur 107 plus lents (médiane ×1,38) ; vert à la relance du même commit.

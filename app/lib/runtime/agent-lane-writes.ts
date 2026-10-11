@@ -65,6 +65,38 @@ export function decoderLane(identifiant: string): LaneDecodee | undefined {
   };
 }
 
+/*
+ * LA CHAÎNE DE DÉMARRAGE APPARTIENT AU COORDINATEUR.
+ *
+ * Mesuré en production le 2026-09-30, parcours du premier projet, « un compteur
+ * avec deux boutons » : trois auteurs — le coordinateur et deux sous-agents —
+ * écrivent chacun `package.json`, `vite.config.ts`, `src/main.tsx`,
+ * `src/App.tsx`. L'espace de travail finit avec la `package.json` d'un rôle
+ * (Vite 4, sans vitest) et le `vite.config.ts` d'un autre (qui importe
+ * `vitest/config`) : Vite lui-même refuse de démarrer — « Cannot find module
+ * 'vitest/config' » — et l'aperçu reste à 503.
+ *
+ * Aucun mélange de ces fichiers écrits par des auteurs différents n'est sûr de
+ * démarrer. Un seul auteur les écrit : celui qui intègre, le coordinateur. Les
+ * rôles gardent leurs composants, leurs tests, leurs fichiers de domaine.
+ */
+const CHAINE_DE_DEMARRAGE = [
+  /^package\.json$/,
+  /^package-lock\.json$/,
+  /^vite\.config\.[cm]?[jt]s$/,
+  /^tsconfig(\.[\w-]+)?\.json$/,
+  /^index\.html$/,
+  /^src\/main\.[jt]sx?$/,
+  /^src\/App\.[jt]sx?$/,
+];
+
+/** Le chemin appartient-il à la chaîne qui fait démarrer l'application ? */
+export function estFichierDeDemarrage(chemin: string): boolean {
+  const relatif = chemin.replace(/^\/?(?:home\/project|workspace)\//, '').replace(/^\.?\//, '');
+
+  return CHAINE_DE_DEMARRAGE.some((motif) => motif.test(relatif));
+}
+
 interface AnnotationDeLane {
   type?: unknown;
   kind?: unknown;

@@ -197,11 +197,45 @@ describe('la couverture iOS est réellement exécutée, pas seulement déclarée
     expect(executants, 'aucun workflow n’exécute le projet webkit-iphone').not.toHaveLength(0);
   });
 
-  it('le navigateur qu’il exige est bien installé par le workflow qui l’exécute', () => {
-    /* Un projet lancé sans son moteur échoue pour la mauvaise raison. */
-    const etapes = etapesRun('.github/workflows/e2e.yml');
+  it('le navigateur qu’il exige est installé par LE JOB QUI L’EXÉCUTE, pas ailleurs', () => {
+    /*
+     * Un projet lancé sans son moteur échoue pour la mauvaise raison.
+     *
+     * ⚠️ RENFORCÉ LE 2026-10-01. Ce cas cherchait `playwright install webkit`
+     * n'importe où dans `e2e.yml`. Depuis que le canari a son propre job et que
+     * la préparation est une action composite où WebKit est CONDITIONNEL, cette
+     * formulation ne suffisait plus : elle serait restée verte si WebKit était
+     * installé dans le job de la suite bloquante et pas dans celui du canari —
+     * c'est-à-dire précisément dans le cas cassé, et en remettant au passage du
+     * temps sur le chemin critique.
+     *
+     * On vérifie donc l'appariement : le job qui lance `webkit-iphone` est bien
+     * celui dont la préparation demande WebKit.
+     */
+    const document = parseDocument(readFileSync(join(RACINE, '.github/workflows/e2e.yml'), 'utf8')).toJS() as {
+      jobs: Record<string, { steps?: Array<Record<string, unknown>> }>;
+    };
 
-    expect(etapes.some((run) => run.includes('playwright install webkit'))).toBe(true);
+    const jobsQuiLancentWebkit = Object.entries(document.jobs).filter(([, job]) =>
+      (job.steps ?? []).some((e) => typeof e.run === 'string' && e.run.includes('--project=webkit-iphone')),
+    );
+
+    expect(jobsQuiLancentWebkit, 'aucun job ne lance le projet webkit-iphone').not.toHaveLength(0);
+
+    for (const [nom, job] of jobsQuiLancentWebkit) {
+      const demandeWebkit = (job.steps ?? []).some((e) => {
+        const avec = e.with as Record<string, unknown> | undefined;
+        const navigateurs = String(avec?.navigateurs ?? '');
+
+        return navigateurs.includes('webkit') || (typeof e.run === 'string' && e.run.includes('playwright install webkit'));
+      });
+
+      expect(
+        demandeWebkit,
+        `le job « ${nom} » lance webkit-iphone mais sa préparation ne demande pas WebKit : ` +
+          'la suite échouerait pour la mauvaise raison (moteur absent, et non défaut produit).',
+      ).toBe(true);
+    }
   });
 
   it.each([

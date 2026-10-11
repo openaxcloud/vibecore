@@ -413,6 +413,7 @@ export default function SignupPage() {
           pendingProvider={pendingProvider}
           onStart={startOAuth}
           disabled={isSubmitting}
+          returnTo={returnTo}
         />
         <AuthOauthButton
           provider="google"
@@ -421,6 +422,7 @@ export default function SignupPage() {
           pendingProvider={pendingProvider}
           onStart={startOAuth}
           disabled={isSubmitting}
+          returnTo={returnTo}
         />
       </div>
     </AuthScreen>

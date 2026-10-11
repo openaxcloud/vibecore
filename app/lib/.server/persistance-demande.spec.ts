@@ -131,3 +131,25 @@ describe('le gel de l’onglet — le scénario mesuré le 2026-09-23', () => {
     expect(base.lignes.size, 'une seule ligne, sinon le fil se dédouble').toBe(1);
   });
 });
+
+describe('une seule ligne par question (mesuré le 2026-09-30 : deux lignes, même texte)', () => {
+  it('sans clientMessageId — le cas RÉEL, le navigateur ne l’envoie jamais —, prend l’identifiant du dernier message utilisateur', () => {
+    const demande = demandeAPersister({
+      conversationId: 'conv-1',
+      messages: [
+        { id: 'u-ancien', role: 'user', content: 'avant' },
+        { id: 'a-1', role: 'assistant', content: 'réponse' },
+        { id: 'u-42', role: 'user', content: 'Une page unique avec un compteur' },
+      ],
+    });
+
+    /* C'est l'identifiant sous lequel le navigateur écrit ce même message (projectAiTranscriptMessages : clientId = message.id). */
+    expect(demande?.clientId).toBe('u-42');
+  });
+
+  it('contre-épreuve : sans identifiant de message non plus, repli sur l’empreinte du contenu — jamais de demande perdue', () => {
+    const demande = demandeAPersister({ conversationId: 'conv-1', messages: [{ role: 'user', content: 'x' }] });
+
+    expect(demande?.clientId).toMatch(/^srv-/);
+  });
+});
