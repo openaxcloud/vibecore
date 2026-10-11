@@ -18,6 +18,8 @@ id: BUG-USER-BUBBLE-HEIGHT-001
 
 ☐ live iPhone
 
+30/09 — non reproduit en prod à 390 px sous **Chromium** : 8 px de vide en haut comme en bas ; épinglé par `app/components/chat/UserMessage.bulle.spec.tsx`. **Reste ☐** : l'entrée exige l'iPhone, et un vert Chromium ne prouve rien pour Safari iOS.
+
 ## Preuve
 
 preuve live 09/09 (42,9 → 35,9 px) + épinglé par `app/components/chat/UserMessage.bulle.spec.tsx`
