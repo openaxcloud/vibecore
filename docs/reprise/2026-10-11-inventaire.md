@@ -2,11 +2,11 @@
 
 Source : inventaire fourni par Avi, daté de 14:45 UTC. Relevé initial GitHub : main `c7a6fa5025c18419988173179f8f30044d0253b3`.
 
-Aucune ligne ci-dessous ne constitue une preuve de production. Les preuves antérieures sont celles de l’inventaire transmis ; la reprise distingue préparation, fusion et vérification live.
+La reprise distingue préparation, fusion et vérification live. La preuve de livraison A-1 figure plus bas ; les autres validations locales ne constituent pas une preuve de production.
 
 ## Urgence et ordre
 
-Déploiement du partage `38145240168` en cours ; déploiement du tarif Pro `38147529814` en attente. Ne pas fusionner de documentaire ou lancer un rollout supplémentaire pendant cette attente. Clé Stripe à renouveler uniquement après preuve du bon forfait servi, puis créer le prix annuel Pro à 278,40 € et renseigner son ID.
+Déploiements du partage `38145240168` et du tarif Pro `38147529814` réussis. Pour A-1, le manifeste et le contrôle des imageIDs prouvent la livraison de l’image web c7a6fa5025 ; aucune transaction client n’a été déclenchée. Clé Stripe à renouveler uniquement après preuve du bon forfait servi, puis créer le prix annuel Pro à 278,40 € et renseigner son ID.
 
 Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-version-utilisateur` ou `fix/agent-interrompu-tour-jamais-parti`. Conserver le menu mobile, l’IDE existant et la remise annuelle de 20 %.
 
@@ -14,17 +14,17 @@ Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-ver
 
 | Point | Objet | Proposition / branche | État de reprise |
 |---|---|---|---|
-| A-1 | Pro facture Team | [#705](https://github.com/openaxcloud/vibecore/pull/705) | Fusionné ; déploiement 38147529814 en attente |
+| A-1 | Pro facture Team | [#705](https://github.com/openaxcloud/vibecore/pull/705) | Livré : manifeste exact c7a6fa5025 et imageIDs vérifiés, rollout réussi à 16:12:56 UTC |
 | A-2 | Tarif annuel Pro Stripe | Voir état | Clé Stripe et tarif annuel à provisionner ; aucun accès Stripe ici |
 | A-3 | Offre conservée au paiement | Voir état | Déjà codé selon inventaire ; à vérifier après livraison web |
-| A-4 | Partage en lecture seulement | [#700](https://github.com/openaxcloud/vibecore/pull/700) | Fusionné ; déploiement 38145240168 en cours |
+| A-4 | Partage en lecture seulement | [#700](https://github.com/openaxcloud/vibecore/pull/700) | Fusionné ; workflow de déploiement 38145240168 réussi ; parcours réel de partage à vérifier |
 | A-5 | Octets stockage et URL signée | [#414](https://github.com/openaxcloud/vibecore/pull/414) | GitHub : mise en brouillon pendant la reprise, tête `130c29f58c` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-6 | Purge physique de compte | [#52](https://github.com/openaxcloud/vibecore/pull/52) | Réserves expertes et conflits à lever ; preuve réelle à reprendre |
 | A-7 | Reprise du tour interrompu | Voir état | Deux branches complémentaires intégrées dans des arbres main séparés : 4 et 24 tests verts ; types complets verts pour la reprise après fermeture ; pas encore livrées |
 | A-8 | Préserver le travail au retour | Voir état | Partiellement servi selon inventaire ; branches de rattrapage à comparer |
 | A-9 | Relecture impossible / conflit | [#555](https://github.com/openaxcloud/vibecore/pull/555) | GitHub : mise en brouillon pendant la reprise, tête `cf33e718b1` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-10 | Frappe au chargement | Voir état | Déjà corrigé ; ancienne branche interdite |
-| A-11 | Envois répétés de conversation | [#666](https://github.com/openaxcloud/vibecore/pull/666) | GitHub : mise en brouillon pendant la reprise, tête `337e907d4a` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
+| A-11 | Envois répétés de conversation | [#666](https://github.com/openaxcloud/vibecore/pull/666) | Correctif distinct de #666 préparé : 128 tests voisins, types complets et build web verts ; séparation UI/conversation, dédoublonnage des requêtes ; pas fusionné |
 | A-12 | Historique en échec | [#556](https://github.com/openaxcloud/vibecore/pull/556) | GitHub : mise en brouillon pendant la reprise, tête `39dd254481` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-13 | Session depuis accueil | [#662](https://github.com/openaxcloud/vibecore/pull/662) | GitHub : mise en brouillon pendant la reprise, tête `0edd050b4b` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-14 | Lecture IDE avortée | [#376](https://github.com/openaxcloud/vibecore/pull/376) | GitHub : mise en brouillon pendant la reprise, tête `dbda036371` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
@@ -37,11 +37,11 @@ Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-ver
 | A-21 | Texte de suppression du compte | [#703](https://github.com/openaxcloud/vibecore/pull/703) | GitHub : brouillon, tête `3497e83d01` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-22 | E-mail suppression inactive | [#704](https://github.com/openaxcloud/vibecore/pull/704) | GitHub : brouillon, tête `b854116236` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-23 | Vocabulaire economy retiré | [#595](https://github.com/openaxcloud/vibecore/pull/595) | GitHub : mise en brouillon pendant la reprise, tête `b450a113b3` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
-| A-24 | Messages sans jargon | Voir état | Branche fix/messages-sans-jargon à éprouver |
+| A-24 | Messages sans jargon | Voir état | Fusion locale réelle : 60 tests API, types complets et build API verts ; pas encore livré |
 | A-25 | État unknown | [#658](https://github.com/openaxcloud/vibecore/pull/658) | GitHub : mise en brouillon pendant la reprise, tête `11002c88c1` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-26 | Consigne de périmètre | Voir état | Branche fix/consigne-portee-n-est-pas-un-refus à éprouver |
 | A-27 | Brochures sur identifiants arbitraires | [#423](https://github.com/openaxcloud/vibecore/pull/423) | GitHub : mise en brouillon pendant la reprise, tête `75769fc271` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
-| A-28 | Contraste de quinze boutons | [#701](https://github.com/openaxcloud/vibecore/pull/701) | Essai de fusion réel sans conflit ; Syntaxe E2E corrigée sur la branche au commit 94da33ad32 ; 28 tests voisins verts et 434 tests Chromium collectés ; nouveaux contrôles en cours |
+| A-28 | Contraste de quinze boutons | [#701](https://github.com/openaxcloud/vibecore/pull/701) | Deux corrections ajoutées à #701 : syntaxe E2E et contraste du bouton Stop administrateur. Sept workflows verts sur f9d0348bd7 ; PR fusionnée à 16:35:59 UTC en 4f7c07f7a3 ; nouveau rollout non encore prouvé |
 | A-29 | Texte orange | [#283](https://github.com/openaxcloud/vibecore/pull/283) | GitHub : mise en brouillon pendant la reprise, tête `fa9e0c62f0` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-30 | Encre du CTA | [#512](https://github.com/openaxcloud/vibecore/pull/512) | GitHub : mise en brouillon pendant la reprise, tête `fd1de91fef` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-31 | Libellés mobiles 9 px | [#434](https://github.com/openaxcloud/vibecore/pull/434) | GitHub : mise en brouillon pendant la reprise, tête `e864220fc9` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
@@ -50,8 +50,8 @@ Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-ver
 | A-34 | Onglet mobile coupé | [#620](https://github.com/openaxcloud/vibecore/pull/620) | GitHub : brouillon, tête `a385056ac3` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | A-35 | SSRF et DNS rebinding | [#362](https://github.com/openaxcloud/vibecore/pull/362) | Contrôle des adresses résolues et refus par défaut à vérifier |
 | B-1 | Déclencher correctif de livraison | Voir état | Correction préparée, comportement testé ; pas fusionnée |
-| B-2 | Base des tiers | [#669](https://github.com/openaxcloud/vibecore/pull/669) | GitHub : mise en brouillon pendant la reprise, tête `inconnue` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
-| B-3 | Audit français bloquant | Voir état | Branche ci/audit-francais-requis ; livrer après tarif Pro et audit vert |
+| B-2 | Base des tiers | [#669](https://github.com/openaxcloud/vibecore/pull/669) | Repris dans le lot de livraison : pagination et plus proche ancêtre, gardes locales vertes ; pas fusionné |
+| B-3 | Audit français bloquant | Voir état | Verdict toujours émis et refus par défaut préparés après livraison A-1 ; sept gardes vertes ; protection GitHub encore à régler |
 | B-4 | Audit français aveugle | [#668](https://github.com/openaxcloud/vibecore/pull/668) | GitHub : mise en brouillon pendant la reprise, tête `4f1ca15424` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | B-5 | Cache navigateurs | [#648](https://github.com/openaxcloud/vibecore/pull/648) | GitHub : mise en brouillon pendant la reprise, tête `d35d38e3b9` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
 | B-6 | E2E documentaire | [#448](https://github.com/openaxcloud/vibecore/pull/448) | GitHub : mise en brouillon pendant la reprise, tête `af567e8bd2` ; lire l’écart puis essayer une fusion réelle et jouer les tests |
@@ -112,3 +112,27 @@ Validation élargie : 59 fichiers, 532 tests verts et 1 explicitement ignoré. L
 Le déploiement d7993cc69f a réussi dans Actions. Le déploiement urgent c7a6fa5025 a commencé son étage web après attente d’exécuteur ; au dernier contrôle, aucun rollout de ce SHA n’est encore prouvé. Les propositions non urgentes ont été placées en brouillon. Une proposition #708 créée par une autre session est apparue ; elle n’a pas été modifiée.
 
 Stripe existe dans le catalogue des connexions mais n’est pas connecté à cette session. A-2 reste bloqué sur la connexion Stripe et l’accès sécurisé au secret de production. La clé ne doit être renouvelée qu’après preuve de livraison A-1, puis le prix annuel doit être créé et enregistré. Aucune valeur de secret n’a été imprimée.
+
+## B-11 — exemple d’environnement remis à jour
+
+La garde de #606 rougit sur deux variables ajoutées depuis cette branche : DEPLOY_AUTO_SLEEP_WAIT_MS et IDEA_RELAY_RATE_LIMIT_MAX. Les deux clés sont désormais documentées avec les valeurs par défaut lues dans app.ts (240000 ms et 10/minute). Les quatre tests passent. Aucune valeur de secret n’est ajoutée.
+
+## Preuve de livraison A-1
+
+Le workflow [38147529814](https://github.com/openaxcloud/vibecore/actions/runs/38147529814) a réussi. Le manifeste 11708480483 lie l’image web reconstruite au SHA complet c7a6fa5025c18419988173179f8f30044d0253b3, au build Cloud Build f70de3dc-1c57-4685-9f56-4070294624bf et au digest sha256:02e5fb604320a38ea987cf615be04e3a311ba4e6f5934309236526a55e3a2029. Les étapes rollout et correspondance des imageIDs passent ; le fichier 11708240897 termine à 16:12:56 UTC avec commandExitCode=0 et evidenceComplete=true. Le correctif A-1 est donc livré dans l’image web. Aucun paiement client n’a été déclenché.
+
+Le manifeste n’établit pas la provenance des huit images réutilisées (fullyTraceable=false). Ce n’est pas une preuve que tous les services viennent de c7a6fa5025. Ce manque reste à suivre en B-8.
+
+## Validation des propositions prêtes
+
+Les essais locaux de 17 propositions sont consignés dans 2026-10-11-validations-branches.md. Ils ne valent pas validation pixel ni verdict CI. A-11 possède un correctif distinct de #666 : séparation des domaines envoyés, suppression des envois identiques et maintien du remplacement de messages ; 128 tests voisins et types complets verts.
+
+B-5 : cache navigateur intégré avec installation toujours exécutée ; 8 gardes vertes. B-6 : le filtre documentaire est adapté aux quatre tranches actuelles, au canari et à l’agrégateur ; cinq décisions sont exécutées dans de vrais dépôts de test, le verdict reste toujours émis. B-3 : workflow préparé après livraison A-1, sept gardes vertes incluant rouge, annulé et pertinence illisible ; la protection GitHub n’a pas encore été modifiée.
+
+## État à 16:40 UTC
+
+Le dernier lot de gardes locales compte 64 fichiers et 562 tests verts, avec un test explicitement ignoré. La vérification des types des scripts passe. B-7 conserve les travaux Electron déjà en cours et remplace uniquement les travaux en attente d’une même référence. B-10 conserve la carte des noms de secrets ; aucun secret n’est porté dans le dépôt.
+
+Les sept workflows de #701 passent sur f9d0348bd785bcf201c00b448f0d772f666e6f70, dont Production E2E et l’audit français live. La proposition est fusionnée à 16:35:59 UTC ; ce constat ne prouve pas encore la livraison de son nouveau SHA. L’audit français n’est donc plus systématiquement rouge sur cette proposition ; il reste à vérifier son verdict sur main après fusion.
+
+Branches publiées : fix/reprise-livraison-securite-20261011, fix/reprise-tour-refuse-20261011, fix/reprise-agent-20261011 et fix/reprise-lecteur-instantane-20261011. Ces branches ne sont pas encore fusionnées. Le correctif A-11 et le lot de textes A-24/A-26 sont également préparés localement.
