@@ -333,7 +333,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * (freshly provisioned / STARTING) pod, not a warm reuse. Mark reused:false
      * so the IDE cold-seeds it rather than reattaching to a possibly-empty tree.
      */
-    return { ...(await this.#waitForWorkspaceRunning(pollId)), reused: false };
+    const pret = await this.#waitForWorkspaceRunning(pollId);
+
+    /*
+     * La réponse au démarrage peut dire quel autre projet a été mis en veille pour
+     * ouvrir celui-ci (client gratuit) ; la sonde de statut ne le sait pas. Sans ce
+     * report, l'ouverture à froid — le cas courant — perdait la mention.
+     */
+    const misEnVeille = (payload?.metadata as { misEnVeille?: unknown } | undefined)?.misEnVeille;
+
+    return {
+      ...pret,
+      ...(misEnVeille === undefined ? {} : { metadata: { ...pret.metadata, misEnVeille } }),
+      reused: false,
+    };
   }
 
   /**

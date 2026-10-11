@@ -142,11 +142,26 @@ export function ProjectWorkspaceProvider({
          */
         const sessionId = workspaceId ?? projectId;
 
+        /*
+         * `ouverture` : seule l'ouverture du projet peut mettre l'autre espace
+         * d'un client gratuit en veille — jamais l'auto-réparation d'un onglet
+         * resté ouvert, qui rappelle `startWorkspace` sans elle (ping-pong).
+         */
         const session = await runtime.startWorkspace({
           id: sessionId,
-          metadata: { projectId, workspaceId },
+          metadata: { projectId, workspaceId, ouverture: true },
         });
         activeWorkspaceId = session.id;
+
+        const projetsMisEnVeille = (session.metadata as { misEnVeille?: unknown } | undefined)?.misEnVeille;
+
+        if (Array.isArray(projetsMisEnVeille)) {
+          for (const project of projetsMisEnVeille) {
+            workbenchStore.appendWorkspaceLog(
+              clientStoresServicesText('clientRuntime.workspace.otherProjectSlept', { project: String(project) }),
+            );
+          }
+        }
 
         if (cancelled) {
           await stopRemoteWorkspace(runtime, session.id);

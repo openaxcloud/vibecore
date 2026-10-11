@@ -55,6 +55,8 @@ export const clientStoresServicesEn = {
   'clientRuntime.workspace.projectApiFailed': 'The project service is temporarily unavailable. Reload the IDE.',
   'clientRuntime.workspace.persistedHydrationSkipped': 'Stored project files could not be loaded.',
   'clientRuntime.workspace.reattached': 'Reconnected to the running workspace.',
+  'clientRuntime.workspace.otherProjectSlept':
+    'Your project “{project}” was put to sleep so this one could open. Its files are kept — it wakes up when you go back to it.',
   'clientRuntime.workspace.previewCleanupSkipped': 'The previous preview could not be stopped cleanly.',
   'clientRuntime.workspace.cleanupSkipped': 'Workspace cleanup could not be completed.',
   'clientRuntime.workspace.filesAuth':
@@ -178,6 +180,8 @@ export const clientStoresServicesFr: ClientStoresServicesCopy = {
   'clientRuntime.workspace.projectApiFailed': 'Le service de projet est temporairement indisponible. Rechargez l’IDE.',
   'clientRuntime.workspace.persistedHydrationSkipped': 'Impossible de charger les fichiers de projet enregistrés.',
   'clientRuntime.workspace.reattached': 'Reconnexion à l’espace de travail en cours d’exécution.',
+  'clientRuntime.workspace.otherProjectSlept':
+    'Votre projet « {project} » a été mis en veille pour ouvrir celui-ci. Ses fichiers sont conservés ; il se réveille dès que vous y retournez.',
   'clientRuntime.workspace.previewCleanupSkipped': 'Impossible d’arrêter proprement l’aperçu précédent.',
   'clientRuntime.workspace.cleanupSkipped': 'Impossible de terminer le nettoyage de l’espace de travail.',
   'clientRuntime.workspace.filesAuth':

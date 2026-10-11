@@ -15822,19 +15822,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const DEPLOY_AUTO_SLEEP_WAIT_MS = Math.max(0, Number(process.env.DEPLOY_AUTO_SLEEP_WAIT_MS ?? 4 * 60_000) || 0);
 
-  const libererUnCreneauPourPublierCeProjet = async (
+  /*
+   * Partagé par la publication (#665) et par l'OUVERTURE d'un projet : dans les
+   * deux cas, l'autre espace n'est mis en veille que s'il est inactif — jamais
+   * pendant un tour d'agent, jamais quand l'état des tours est illisible.
+   */
+  const libererUnCreneauPour = async (
     request: any,
     cible: { workspaceId: string; projectId: string; organizationId: string },
-    progress?: { onLog?: (log: StaticBuildLog) => void },
+    declencheur: {
+      type: 'deploy' | 'open';
+      attenteMaxMs: number;
+      annoncer: Parameters<typeof libererUnCreneauPourPublier>[0]['annoncer'];
+    },
   ) => {
     const redis = options.toursPartages === undefined ? runtimeTicketStore() : (options.toursPartages ?? undefined);
     const lireLesTours = (projectId: string) => toursEnCoursDuProjet(redis, projectId);
 
-    const ligne = (message: string) =>
-      progress?.onLog?.({ timestamp: new Date().toISOString(), level: 'warn', message });
-
     const issue = await libererUnCreneauPourPublier({
-      attenteMaxMs: DEPLOY_AUTO_SLEEP_WAIT_MS,
+      attenteMaxMs: declencheur.attenteMaxMs,
       autresEspacesActifs: async () => {
         const actifs = (await store.listActiveWorkspaces(cible.organizationId).catch(() => [])).filter(
           (espace) => espace.id !== cible.workspaceId,
@@ -15902,7 +15908,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               action: 'runtime.workspace.auto_sleep',
               resourceType: 'workspace',
               resourceId: espace.workspaceId,
-              metadata: { trigger: 'deploy', forProjectId: cible.projectId },
+              metadata: { trigger: declencheur.type, forProjectId: cible.projectId },
             });
           }
 
@@ -15921,6 +15927,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           return 'fait' as const;
         }),
+      annoncer: declencheur.annoncer,
+    });
+
+    request.log?.info?.(
+      { event: `${declencheur.type}.liberation-creneau`, etat: issue.etat, projectId: cible.projectId },
+      'quota: liberation of another workspace',
+    );
+
+    return issue;
+  };
+
+  const libererUnCreneauPourPublierCeProjet = (
+    request: any,
+    cible: { workspaceId: string; projectId: string; organizationId: string },
+    progress?: { onLog?: (log: StaticBuildLog) => void },
+  ) => {
+    const ligne = (message: string) =>
+      progress?.onLog?.({ timestamp: new Date().toISOString(), level: 'warn', message });
+
+    return libererUnCreneauPour(request, cible, {
+      type: 'deploy',
+      attenteMaxMs: DEPLOY_AUTO_SLEEP_WAIT_MS,
       annoncer: (evenement) => {
         if (evenement.type === 'veille') {
           ligne(appPublicEnglish('DEPLOY_WORKSPACE_AUTO_SLEPT', { project: evenement.espace.nomDuProjet }));
@@ -15934,13 +15962,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       },
     });
-
-    request.log?.info?.(
-      { event: 'deploy.liberation-creneau', etat: issue.etat, projectId: cible.projectId },
-      'quota: liberation of another workspace for a deploy',
-    );
-
-    return issue;
   };
 
   const realBuildStaticInWorkspacePod: WorkspacePodStaticBuild = async (
@@ -18078,33 +18099,91 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const orgIdForQuota = authorized.organizationId;
 
+    const reserverLeCreneau = (organizationId: string) =>
+      store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+        /*
+         * Relu SOUS le verrou : après une mise en veille, le créneau a déjà été
+         * réservé pour CET espace (STARTING) — le recompter le ferait se refuser
+         * lui-même (1 utilisé, limite 1).
+         */
+        const actuel = await store.getWorkspace(workspaceId);
+
+        if (!actuel || !['PENDING', 'STARTING', 'RUNNING'].includes(actuel.status as string)) {
+          /*
+           * Free any slot held by a record whose pod the GC already reaped
+           * (see reconcileOrphanedActiveWorkspaces) so the quota reflects what
+           * is actually running, not stale RUNNING rows. Runs inside the lock
+           * so the freed slot is visible to this same ensureQuota.
+           */
+          await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
+          await ensureQuota(request, organizationId, 'workspaces.active');
+        }
+
+        const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
+
+        /*
+         * Claim the active slot INSIDE the lock. A brand-new record is created
+         * as PENDING (a counted state), but reopening an existing STOPPED/FAILED
+         * workspace returns it unchanged — without flipping it to a counted
+         * state here, concurrent reopens all pass the same ensureQuota and
+         * exceed workspaces.active (the reconcile below moves it to RUNNING/FAILED).
+         */
+        if (!['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
+          await store.updateWorkspaceStatus({ workspaceId: record.id, status: 'STARTING' });
+        }
+
+        return record;
+      });
+
+    /*
+     * OUVRIR UN SECOND PROJET MET L'AUTRE EN VEILLE (décision d'Avi, 2026-10-11).
+     *
+     * Un client gratuit (un seul espace actif) qui ouvrait un deuxième projet
+     * voyait son espace refusé, et l'agent y « terminait » sans qu'aucun fichier
+     * n'arrive. Comme à la publication (#665), on met l'autre espace en veille —
+     * réversible, ses fichiers restent — pourvu qu'il soit inactif.
+     *
+     * Seulement à l'OUVERTURE (`metadata.ouverture`, posé par l'IDE au montage),
+     * jamais sur le redémarrage automatique d'un onglet resté ouvert : deux onglets
+     * sur deux projets s'endormiraient l'un l'autre en boucle. Et sans attente : un
+     * tour en cours dans l'autre projet n'est jamais coupé, le refus reste alors.
+     */
+    const ouvertureExplicite = body.metadata?.ouverture === true;
+    const misEnVeille: string[] = [];
+
+    const reserverEnLiberantAuBesoin = async (organizationId: string) => {
+      try {
+        return await reserverLeCreneau(organizationId);
+      } catch (error) {
+        if (!ouvertureExplicite || (error as { code?: unknown })?.code !== 'QUOTA_EXCEEDED') {
+          throw error;
+        }
+
+        const issue = await libererUnCreneauPour(
+          request,
+          { workspaceId, projectId: project.id, organizationId },
+          {
+            type: 'open',
+            attenteMaxMs: 0,
+            annoncer: (evenement) => {
+              if (evenement.type === 'veille') {
+                misEnVeille.push(evenement.espace.nomDuProjet);
+              }
+            },
+          },
+        );
+
+        if (issue.etat !== 'libere') {
+          throw error;
+        }
+
+        return reserverLeCreneau(organizationId);
+      }
+    };
+
     const workspaceRecord =
       orgIdForQuota && !countsAsActive
-        ? await store.withSerializedMutation(`workspaces:${orgIdForQuota}`, async () => {
-            /*
-             * Free any slot held by a record whose pod the GC already reaped
-             * (see reconcileOrphanedActiveWorkspaces) so the quota reflects what
-             * is actually running, not stale RUNNING rows. Runs inside the lock
-             * so the freed slot is visible to this same ensureQuota.
-             */
-            await reconcileOrphanedActiveWorkspaces(orgIdForQuota, workspaceId);
-            await ensureQuota(request, orgIdForQuota, 'workspaces.active');
-
-            const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
-
-            /*
-             * Claim the active slot INSIDE the lock. A brand-new record is created
-             * as PENDING (a counted state), but reopening an existing STOPPED/FAILED
-             * workspace returns it unchanged — without flipping it to a counted
-             * state here, concurrent reopens all pass the same ensureQuota and
-             * exceed workspaces.active (the reconcile below moves it to RUNNING/FAILED).
-             */
-            if (!['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
-              await store.updateWorkspaceStatus({ workspaceId: record.id, status: 'STARTING' });
-            }
-
-            return record;
-          })
+        ? await reserverEnLiberantAuBesoin(orgIdForQuota)
         : await ensureRuntimeWorkspaceRecord(workspaceId, project);
     authorized.workspaceId = workspaceRecord.id;
 
@@ -18203,7 +18282,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
       });
 
-      return runtimeSession(authorized.workspaceId, 'starting', { provisioning: true });
+      return runtimeSession(authorized.workspaceId, 'starting', {
+        provisioning: true,
+        ...(misEnVeille.length > 0 ? { misEnVeille } : {}),
+      });
     }
     metrics.increment('workspace_starts_total', {
       plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
@@ -18270,7 +18352,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return runtimeSession(
       authorized.workspaceId,
       managerWorkspace?.status === 'FAILED' ? 'failed' : managerWorkspace?.status === 'STOPPED' ? 'stopped' : 'running',
-      { managerWorkspace },
+
+      // Ce que l'IDE mentionne, discrètement : le projet mis en veille pour ouvrir celui-ci.
+      { managerWorkspace, ...(misEnVeille.length > 0 ? { misEnVeille } : {}) },
     );
   });
   app.post('/api/runtime/workspaces/:workspaceId/stop', async (request, reply) => {
