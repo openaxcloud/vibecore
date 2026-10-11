@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { regressionCases } from './tiers-a-jour.regressions.mjs';
+import { regressionCases } from './tiers-a-jour.regressions.ts';
 
 import {
   CHEMINS_PAR_TIER,

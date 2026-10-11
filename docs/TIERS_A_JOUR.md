@@ -65,3 +65,25 @@ Cette preuve repose sur l'artefact du workflow de livraison de confiance. Le
 script ne revérifie pas lui-même les signatures et n'atteste pas l'état du cluster.
 Les anciens tags SHA restent des références de code configurées, sans preuve des
 octets servis. Prérequis : Git, Helm et, pour les digests, `gh` authentifié.
+
+## Régressions typées
+
+Le harnais `scripts/tiers-a-jour.regressions.ts` est inclus par le glob TypeScript
+racine `**/*.ts` et par `scripts/**/*.ts`. La suite Vitest existante
+`tiers-a-jour.spec.mjs` importe ces mêmes cas, sans copie parallèle.
+
+```sh
+pnpm exec tsc --project tsconfig.tiers-a-jour.json
+node scripts/tiers-a-jour.regressions.ts
+```
+
+L'exécution directe exige Node 22.18+ ou 24+ (effacement natif des types) ; Vitest
+transforme le fichier TypeScript dans sa suite native. Le projet ciblé étend les
+options strictes du projet racine, utilise les déclarations Node réelles et ne
+remplace pas la vérification complète du dépôt.
+
+Le vérificateur opérationnel reste un point d'entrée `.mjs`. Son import dynamique,
+les fixtures JSON et les réponses JSON du CLI passent par des frontières `unknown`
+et des validations de forme exécutées avant tout usage typé. Cela ne prétend pas
+convertir son implémentation en TypeScript. `TIERS_MODULE` reste disponible pour
+exécuter les contre-épreuves sur une version historique du vérificateur.
