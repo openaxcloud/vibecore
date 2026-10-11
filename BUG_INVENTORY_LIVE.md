@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-398 entrées.
+405 entrées.
 
 ## Sans section
 
@@ -448,6 +448,19 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-AGENT-BANDEAU-ARRET-FAUX-001](docs/bugs/BUG-AGENT-BANDEAU-ARRET-FAUX-001.md) — P2 — le bandeau « la génération s'est arrêtée en route » s'affiche après un tour qui a RÉUSSI. — 📤 Dispatché : ☑ 2026-09-30 — consigné par la session livraisons, à reprendre. · 💻 Codé : ☐ · ✅ Testé live : ☐
 - [BUG-AGENT-IGNORE-CONSIGNE-001](docs/bugs/BUG-AGENT-IGNORE-CONSIGNE-001.md) — P0 — l'agent a écrit des fichiers alors que la consigne lui demandait explicitement de n'en écrire aucun. — 📤 Dispatché : ☑ 2026-09-30 — consigné par la session livraisons, à reprendre. · 💻 Codé : ☐ · ✅ Testé live : ☐
+- [BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001](docs/bugs/BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001.md) — NON-DÉFAUT — retiré après mesure. — 📤 Dispatché : ☑ 2026-09-30 · 💻 Codé : — sans objet. · ✅ Testé live : ☑ 2026-09-30 — établi comme NON-DÉFAUT (exception de la règle 16 : rien à épingler).
+- [BUG-DEPLOY-SURVEILLANCE-TIERS-001](docs/bugs/BUG-DEPLOY-SURVEILLANCE-TIERS-001.md) — P2 — rien ne vérifie qu'un service tourne bien sur le dernier commit ayant touché SON code. — 📤 Dispatché : ☑ 2026-09-30 · 💻 Codé : ☐ · ✅ Testé live : ☐
+- [BUG-REDIS-CHUTE-AU-BANC-001](docs/bugs/BUG-REDIS-CHUTE-AU-BANC-001.md) — À ÉTABLIR — Redis est tombé pendant un passage de banc en local, sous une charge qui n'était pas décrite comme extraordinaire. — 📤 Dispatché : ☑ 2026-09-30 — consigné par la session livraisons. · 💻 Codé : ☐ · ✅ Testé live : ☐
+
+## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
+
+- [DETTE-CI-ACTION-COMPOSITE-001](docs/bugs/DETTE-CI-ACTION-COMPOSITE-001.md) — Dette assumée — la préparation du job E2E n'est pas factorisée, ce qui empêche de sortir le canari iOS dans son propre job. — 📤 Dispatché : ☑ 2026-09-30 — consigné pour ne pas s'évaporer. · 💻 Codé : ☑ 2026-10-01 — FERMÉE par #661. L'action composite · ✅ Testé live : ☐ — le prochain passage E2E de `main` le dira. Ce qui est déjà tenu par un test : un cas de
+
+## 2026-10-11 — Dette d'infrastructure : la production sait des choses que le dépôt ignore
+
+- [BUG-AUTH-CONNEXION-PERD-LA-LANGUE](docs/bugs/BUG-AUTH-CONNEXION-PERD-LA-LANGUE.md) — `e-code.ai/login?lang=fr` ouvert sans cookie de langue arrivait sur `app.e-code.ai/login` EN ANGLAIS. — 📤 Dispatché : ☑ 11/10 correctif ouvert en #698 · 💻 Codé : ☑ 11/10 `app/routes/login.tsx` (+12), `app/routes/login.spec.ts` (+60) · ✅ Testé live : ☐ en attente du déploiement
+- [BUG-HELM-REGLAGES-SECURITE-HORS-DEPOT](docs/bugs/BUG-HELM-REGLAGES-SECURITE-HORS-DEPOT.md) — Quatre réglages de sécurité de la production n'existent QUE dans la release Helm vivante, pas dans — 📤 Dispatché : ☑ 11/10 fiche écrite — réparation NON entreprise, Avi arbitre l'ordre · 💻 Codé : ☐ · ✅ Testé live : ☐
+- [BUG-LIVRAISON-CORRECTIF-DE-CHAINE-JAMAIS-DEPLOYE](docs/bugs/BUG-LIVRAISON-CORRECTIF-DE-CHAINE-JAMAIS-DEPLOYE.md) — Un correctif qui ne touche QUE la chaîne de livraison ne déclenche AUCUN déploiement. Il reste — 📤 Dispatché : ☑ 11/10 fiche écrite — réparation NON entreprise, Avi arbitre l'ordre · 💻 Codé : ☐ · ✅ Testé live : ☐
 
 ## Résidus non tabulaires — reportés mot pour mot
 
