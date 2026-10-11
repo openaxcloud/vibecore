@@ -11,3 +11,5 @@ La reprise a trouvé un défaut supplémentaire : le composant Vercel journalisa
 Les contre-épreuves propres à chaque mécanisme sont conservées dans les documents de préparation : session, fournisseurs configurés, verrou Vercel, demande de purge, envoi conditionnel de l’avertissement, vocabulaire, détecteur de contraste et défilement. Les valeurs d’encre ne sont pas épinglées indépendamment du ratio.
 
 État : préparation intégrée, pas sur main et pas servie. Les contrôles GitHub et les scénarios navigateur restent requis avant fusion ; les parcours authentifiés et mesures dans les trois formats/thèmes restent à établir en production. Ce lot n’active pas la purge physique A-6 et ne crée aucun prix Stripe A-2.
+
+Après fusion réelle de main 83d1c63e (#714), aucun contenu source du lot n’a changé. La correction de cible tactile à 44 px est conservée ; 51 tests dans cinq suites (détecteur tactile, libellés, contrastes, thèmes et index) passent. Construction web finale réussie et lint web complet : zéro erreur, 48 avertissements préexistants.
