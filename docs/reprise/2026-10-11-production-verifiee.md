@@ -55,3 +55,9 @@ manifeste 80f1de14. Limite conservée : la capture ne contient pas les imageIDs
 bruts ; le résultat vert de leur comparaison vient du workflow, et uniquement
 des services qu’il compare. Aucun effacement client ni achat Stripe n’a été
 exécuté pour ces mesures.
+
+## Livraisons 27273f19 et b0ddb2c9
+
+Les workflows 38171920340 et 38175136988 sont réussis. Captures finales : 21:48:36 UTC et 22:09:08 UTC, sorties à zéro et evidenceComplete=true. #712 est donc livré dans le web reconstruit b0ddb2c9 ; sa reprise après fermeture reste à mesurer dans un parcours authentifié.
+
+Les deux manifestes déclarent fullyTraceable=false. Les sources manquantes des références réutilisées sont retrouvées par correspondance exacte des digests avec les manifestes antérieurs de livraisons réussies et signées, sans transformer cette reconstruction en preuve de conteneur exécuté. Sept services sont rollés ; screenshotter et workspaceAgent ne le sont pas. Les deux mesures JSON conservent séparément le manifeste natif, la preuve historique et cette limite. Aucun paiement ni effacement client exécuté.

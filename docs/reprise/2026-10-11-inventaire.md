@@ -2,7 +2,7 @@
 
 Source : inventaire fourni par Avi, daté de 14:45 UTC. Relevé initial GitHub : main `c7a6fa5025c18419988173179f8f30044d0253b3`.
 
-Mise à jour de reprise : préparation, fusion et preuve live sont distinctes. Les branches préparées ci-dessous ne sont pas livrées. Livraison réussie : `408e9f847afadf2cc75ba764b3211c36d0bc2c35` / `38169434734` à 21:02 UTC. Main a ensuite avancé à `27273f19029058e5e5da9e39bf46ada8d430c066` (#711 d’une autre session), puis `b0ddb2c9506dfb89a57b7758d0be39647e053997` (#712). La livraison #711 (38171920340) est en cours ; celle de #712 (38175136988) attend.
+Mise à jour de reprise : préparation, fusion et preuve live sont distinctes. Les branches préparées ci-dessous ne sont pas livrées. Livraison réussie : `408e9f847afadf2cc75ba764b3211c36d0bc2c35` / `38169434734` à 21:02 UTC. Main a ensuite avancé à `27273f19029058e5e5da9e39bf46ada8d430c066` (#711 d’une autre session), puis `b0ddb2c9506dfb89a57b7758d0be39647e053997` (#712). Les livraisons #711 (38171920340) et #712 (38175136988) sont réussies, captures finales à 21:48:36 et 22:09:08 UTC. Le lot IDE #714 est fusionné à 83d1c63e après tous les contrôles verts ; sa livraison reste à suivre.
 
 ## Urgence et ordre
 
@@ -20,35 +20,35 @@ Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-ver
 | A-4 | Partage en lecture seulement | [#700](https://github.com/openaxcloud/vibecore/pull/700) | Servi : déploiement du correctif #700 réussi ; parcours authentifié de rachat à remesurer | Oui | Livraison prouvée ; rachat authentifié à remesurer |
 | A-5 | Octets stockage et URL signée | [#414](https://github.com/openaxcloud/vibecore/pull/414) | Préparé : fix/reprise-stockage-20261011 (ee26ca2e), 92 tests ; quota non configuré, réservation atomique et preuve GCS ouvertes | Non | Non remesuré |
 | A-6 | Purge physique de compte | [#52](https://github.com/openaxcloud/vibecore/pull/52) | En reprise : fix/reprise-purge-20261011 ; 29 tests PostgreSQL API et 19 de verrous réels verts, 173 tests hors base ; types/build réussis, branche ef555d6d poussée ; preuve GCS/PVC récente absente | Non | Non remesuré |
-| A-7 | Reprise du tour interrompu | Voir état | Premier correctif #710 servi (80f1de1479) ; reprise après fermeture fusionnée #712 (b0ddb2c9), déploiement 38175136988 en attente | Partiel | Premier correctif servi ; suite non livrée |
-| A-8 | Préserver le travail au retour | Voir état | Préparé : fix/reprise-panneaux-chargement-20261011 (1b502e0e), parent persistance 92105167 ; conserve les gardes déjà servies | Partiel | Gardes antérieures servies ; suite non livrée |
-| A-9 | Relecture impossible / conflit | [#555](https://github.com/openaxcloud/vibecore/pull/555) | Préparé : fix/reprise-relecture-20261011 (689c8905), 37 tests et contre-épreuve ; pas sur main | Non | Non remesuré |
+| A-7 | Reprise du tour interrompu | Voir état | Premier correctif #710 servi (80f1de1479) ; reprise après fermeture fusionnée #712 (b0ddb2c9), livraison 38175136988 réussie | Partiel | Deux correctifs livrés ; parcours après fermeture non remesuré |
+| A-8 | Préserver le travail au retour | Voir état | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
+| A-9 | Relecture impossible / conflit | [#555](https://github.com/openaxcloud/vibecore/pull/555) | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
 | A-10 | Frappe au chargement | Voir état | Déjà sur main : handoff du composeur et sept gardes ; ancienne branche conservée hors fusion | Oui | Non remesuré |
-| A-11 | Envois répétés de conversation | [#666](https://github.com/openaxcloud/vibecore/pull/666) | Préparé dans persistance 92105167, repris par 1b502e0e : dédoublonnage par domaine et état vide explicite ; pas servi | Non | Non remesuré |
-| A-12 | Historique en échec | [#556](https://github.com/openaxcloud/vibecore/pull/556) | Préparé dans persistance 92105167 / 1b502e0e : échec visible et reprise ; pas servi | Non | Non remesuré |
-| A-13 | Session depuis accueil | [#662](https://github.com/openaxcloud/vibecore/pull/662) | Préparé : fix/reprise-oauth-inscription-20261011 (b226ce61), 31 tests avec A-19 ; pas servi | Non | Non remesuré |
-| A-14 | Lecture IDE avortée | [#376](https://github.com/openaxcloud/vibecore/pull/376) | Préparé dans persistance 92105167 / 1b502e0e : nouvelle tentative après abort/réseau/5xx, sans retry des 4xx ; pas servi | Non | Non remesuré |
-| A-15 | Nouvelle tentative Vercel | [#370](https://github.com/openaxcloud/vibecore/pull/370) | Préparé : fix/reprise-vercel-20261011 (5fe5867b), types/build et contre-épreuve ; pas servi | Non | Non remesuré |
-| A-16 | Actualisation fichiers et partage | [#559](https://github.com/openaxcloud/vibecore/pull/559) | Préparé : fix/reprise-panneaux-chargement-20261011 (1b502e0e), 46 tests ; rafraîchissement réel et partage pendant chargement, lecteurs protégés | Non | Non remesuré |
-| A-17 | Domaines en doublon | [#379](https://github.com/openaxcloud/vibecore/pull/379) | Préparé : fix/reprise-panneaux-20261011 (c1bb8557), 32 tests ; un seul panneau Déploiements/Domaines | Non | Non remesuré |
-| A-18 | Commande interrompue et installation | Voir état | Fusionné #712 (b0ddb2c9), livraison en attente | Oui | Non remesuré |
-| A-19 | OAuth inscription | [#394](https://github.com/openaxcloud/vibecore/pull/394) | Préparé : fix/reprise-oauth-inscription-20261011 (b226ce61), 31 tests avec A-13 ; fournisseurs réellement disponibles seulement | Non | Non remesuré |
-| A-20 | Lecteur sans instantané | Voir état | Instruit et préparé : fix/reprise-lecteur-validation-20261011 (6ef38e27), le lecteur ne peut plus créer un instantané ; deux tests HTTP | Non | Non remesuré |
-| A-21 | Texte de suppression du compte | [#703](https://github.com/openaxcloud/vibecore/pull/703) | Préparé : fix/reprise-suppression-honnete-20261011 (98c67343), texte honnête ; automatisation de purge encore ouverte | Non | Non remesuré |
-| A-22 | E-mail suppression inactive | [#704](https://github.com/openaxcloud/vibecore/pull/704) | Préparé avec A-21 : avertissement conditionné au drapeau réel de purge, contre-épreuve du mode actif ; pas servi | Non | Non remesuré |
-| A-23 | Vocabulaire economy retiré | [#595](https://github.com/openaxcloud/vibecore/pull/595) | Préparé : fix/reprise-messages-client-20261011 (927daefa), 89 tests avec A-24 ; pas servi | Non | Non remesuré |
-| A-24 | Messages sans jargon | Voir état | Préparé avec A-23 : erreurs publiques sans jargon ; détail interne conservé dans le journal | Non | Non remesuré |
-| A-25 | État unknown | [#658](https://github.com/openaxcloud/vibecore/pull/658) | Fusionné #712 (b0ddb2c9), livraison en attente | Oui | Non remesuré |
-| A-26 | Consigne de périmètre | Voir état | Fusionné #712 (b0ddb2c9), livraison en attente | Oui | Non remesuré |
-| A-27 | Brochures sur identifiants arbitraires | [#423](https://github.com/openaxcloud/vibecore/pull/423) | Préparé : fix/reprise-routes-publiques-20261011 (3fa0ac36), 22 tests ; routes canoniques et authentification conservées | Non | Non remesuré |
+| A-11 | Envois répétés de conversation | [#666](https://github.com/openaxcloud/vibecore/pull/666) | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
+| A-12 | Historique en échec | [#556](https://github.com/openaxcloud/vibecore/pull/556) | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
+| A-13 | Session depuis accueil | [#662](https://github.com/openaxcloud/vibecore/pull/662) | Préparé : fix/reprise-oauth-inscription-20261011 (b226ce61), 31 tests avec A-19 ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-14 | Lecture IDE avortée | [#376](https://github.com/openaxcloud/vibecore/pull/376) | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
+| A-15 | Nouvelle tentative Vercel | [#370](https://github.com/openaxcloud/vibecore/pull/370) | Préparé : fix/reprise-vercel-20261011 (5fe5867b), types/build et contre-épreuve ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-16 | Actualisation fichiers et partage | [#559](https://github.com/openaxcloud/vibecore/pull/559) | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
+| A-17 | Domaines en doublon | [#379](https://github.com/openaxcloud/vibecore/pull/379) | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
+| A-18 | Commande interrompue et installation | Voir état | Fusionné #712 (b0ddb2c9), livraison 38175136988 réussie | Oui | Livraison prouvée ; parcours utilisateur non remesuré |
+| A-19 | OAuth inscription | [#394](https://github.com/openaxcloud/vibecore/pull/394) | Préparé : fix/reprise-oauth-inscription-20261011 (b226ce61), 31 tests avec A-13 ; fournisseurs réellement disponibles seulement ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-20 | Lecteur sans instantané | Voir état | Instruit et préparé : fix/reprise-lecteur-validation-20261011 (6ef38e27), le lecteur ne peut plus créer un instantané ; deux tests HTTP ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-21 | Texte de suppression du compte | [#703](https://github.com/openaxcloud/vibecore/pull/703) | Préparé : fix/reprise-suppression-honnete-20261011 (98c67343), texte honnête ; automatisation de purge encore ouverte ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-22 | E-mail suppression inactive | [#704](https://github.com/openaxcloud/vibecore/pull/704) | Préparé avec A-21 : avertissement conditionné au drapeau réel de purge, contre-épreuve du mode actif ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-23 | Vocabulaire economy retiré | [#595](https://github.com/openaxcloud/vibecore/pull/595) | Préparé : fix/reprise-messages-client-20261011 (927daefa), 89 tests avec A-24 ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-24 | Messages sans jargon | Voir état | Préparé avec A-23 : erreurs publiques sans jargon ; détail interne conservé dans le journal ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-25 | État unknown | [#658](https://github.com/openaxcloud/vibecore/pull/658) | Fusionné #712 (b0ddb2c9), livraison 38175136988 réussie | Oui | Livraison prouvée ; parcours utilisateur non remesuré |
+| A-26 | Consigne de périmètre | Voir état | Fusionné #712 (b0ddb2c9), livraison 38175136988 réussie | Oui | Livraison prouvée ; parcours utilisateur non remesuré |
+| A-27 | Brochures sur identifiants arbitraires | [#423](https://github.com/openaxcloud/vibecore/pull/423) | Préparé : fix/reprise-routes-publiques-20261011 (3fa0ac36), 22 tests ; routes canoniques et authentification conservées ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
 | A-28 | Contraste de quinze boutons | [#701](https://github.com/openaxcloud/vibecore/pull/701) | Servi : #701 / 4f7c07f7 ; 72 combinaisons page-format-thème, 420 boutons orange opaques, zéro sous 4,5:1 | Oui | 72 combinaisons mesurées, 420 boutons conformes |
-| A-29 | Texte orange | [#283](https://github.com/openaxcloud/vibecore/pull/283) | Préparé : fix/reprise-interfaces-lisibles-20261011 (f3caf8d7), 66 tests avec A-30/A-31/A-33/A-34 ; pas servi | Non | Non remesuré |
-| A-30 | Encre du CTA | [#512](https://github.com/openaxcloud/vibecore/pull/512) | Préparé dans interfaces f3caf8d7 ; jetons et assertion sur ratio de contraste ; pas servi | Non | Non remesuré |
-| A-31 | Libellés mobiles 9 px | [#434](https://github.com/openaxcloud/vibecore/pull/434) | Préparé dans interfaces f3caf8d7 ; Sass et Chromium réels : 12 px mobile contre 11 px ancien ; pas servi | Non | Non remesuré |
+| A-29 | Texte orange | [#283](https://github.com/openaxcloud/vibecore/pull/283) | Préparé : fix/reprise-interfaces-lisibles-20261011 (f3caf8d7), 66 tests avec A-30/A-31/A-33/A-34 ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-30 | Encre du CTA | [#512](https://github.com/openaxcloud/vibecore/pull/512) | Préparé dans interfaces f3caf8d7 ; jetons et assertion sur ratio de contraste ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-31 | Libellés mobiles 9 px | [#434](https://github.com/openaxcloud/vibecore/pull/434) | Préparé dans interfaces f3caf8d7 ; Sass et Chromium réels : 12 px mobile contre 11 px ancien ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
 | A-32 | Case à cocher | [#560](https://github.com/openaxcloud/vibecore/pull/560) | Ancienne branche obsolète : mécanisme actuel et sept gardes déjà identiques sur main ; taille réelle au toucher en production non remesurée | Oui | Non remesuré |
-| A-33 | Exemples de champs bureau | [#652](https://github.com/openaxcloud/vibecore/pull/652) | Préparé dans interfaces f3caf8d7 ; exemples de champ distincts des valeurs ; pas servi | Non | Non remesuré |
-| A-34 | Onglet mobile coupé | [#620](https://github.com/openaxcloud/vibecore/pull/620) | Préparé dans interfaces f3caf8d7 ; mécanisme mobile conservé et gardé ; pas servi | Non | Non remesuré |
-| A-35 | SSRF et DNS rebinding | [#362](https://github.com/openaxcloud/vibecore/pull/362) | Partiel : fix/reprise-ssrf-20261011 (8b116065), 58 tests ; validation DNS préalable renforcée, pinning des connexions et sous-ressources ouverts | Non | Non remesuré |
+| A-33 | Exemples de champs bureau | [#652](https://github.com/openaxcloud/vibecore/pull/652) | Préparé dans interfaces f3caf8d7 ; exemples de champ distincts des valeurs ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-34 | Onglet mobile coupé | [#620](https://github.com/openaxcloud/vibecore/pull/620) | Préparé dans interfaces f3caf8d7 ; mécanisme mobile conservé et gardé ; pas servi ; intégré dans fix/reprise-parcours-client-20261011, non livré | Non | Non remesuré |
+| A-35 | SSRF et DNS rebinding | [#362](https://github.com/openaxcloud/vibecore/pull/362) | Partiel : fix/reprise-ssrf-20261011 (e69e6c15) ; 20 cas captureur dont Chromium et serveurs réels, trois contre-épreuves TCP rouges ; pinning des connexions, redirections externes et autres protocoles encore ouverts | Non | Non remesuré |
 | B-1 | Déclencher correctif de livraison | Voir état | Fusionné #709 / 408e9f84 ; wrapper exécuté, déploiement existant réutilisé ; dispatch après changement exclusivement workflow à remesurer | Oui, #709 | Non remesuré |
 | B-2 | Base des tiers | [#669](https://github.com/openaxcloud/vibecore/pull/669) | Fusionné #709 : pagination et ancêtre par étage ; manifeste de la nouvelle livraison à contrôler | Oui, #709 | Non remesuré |
 | B-3 | Audit français bloquant | Voir état | Fusionné #709 : audit et refus par défaut ; réglage de protection GitHub bloqué (HTTP 403) | Oui, #709 | Non remesuré |
@@ -70,9 +70,9 @@ Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-ver
 | B-19 | Nettoyage complémentaire 2 | Voir état | Doublons gardés hors fusion ; nettoyage des anciennes surfaces recouvre A-27, à intégrer une seule fois | Non | Non remesuré |
 | B-20 | Contrats anti-abus | [#79](https://github.com/openaxcloud/vibecore/pull/79) | Préparé et poussé : fix/reprise-gardes-locataires-20261011 (67255fb0), 88 tests API, trois gardes métriques et deux preuves PostgreSQL ; chart désactivé et isolation GCP non provisionnée | Non | Non remesuré |
 | B-21 | Métrique non déclarée | Voir état | Déclaration historique déjà sur main ; garde AST renforcée pour appels optionnels dans B-20, contre-épreuve rouge puis verte | Oui | Non remesuré |
-| B-22 | Agent écrit | [#409](https://github.com/openaxcloud/vibecore/pull/409) | Préparé : fix/reprise-revue-20261011 (d036721b), 63 tests avec B-24 ; message en cours réellement annoncé | Non | Non remesuré |
+| B-22 | Agent écrit | [#409](https://github.com/openaxcloud/vibecore/pull/409) | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
 | B-23 | Curseur effort | [#424](https://github.com/openaxcloud/vibecore/pull/424) | Ancienne branche obsolète : curseur actuel par modèle et 19 gardes déjà sur main ; deux-crans ancien non livré | Oui | Non remesuré |
-| B-24 | Revue visible | Voir état | Préparé avec B-22 : revue visible, erreur humaine honnête et styles réparés ; pas servi | Non | Non remesuré |
+| B-24 | Revue visible | Voir état | Intégré dans #714 (83d1c63e), contrôles CI complets verts ; livraison à suivre | Oui, #714 | Suite #714 non servie à ce relevé |
 | B-25 | Audit externe 158 points | [#352](https://github.com/openaxcloud/vibecore/pull/352) | Registre de 158 points déjà identique sur main ; pas de doublon de workflows importé | Oui | Non remesuré |
 | B-26 | Manques pour lancement | [#574](https://github.com/openaxcloud/vibecore/pull/574) | Préservé dans docs/reprise-registres-20261011 (331bbc60) ; pas encore sur main | Non | Non remesuré |
 | B-27 | Verdict des propositions | [#590](https://github.com/openaxcloud/vibecore/pull/590) | Préservé dans registres 331bbc60 ; pas encore sur main | Non | Non remesuré |
@@ -88,7 +88,7 @@ Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-ver
 
 ## États et limites
 
-📤 Dispatché : reprise engagée. 💻 Codé : aucun nouveau correctif de cette reprise encore sur main. ✅ Testé live : aucun nouveau point clos.
+📤 Dispatché : reprise engagée. 💻 Codé : #709, #710, #712 et #714 fusionnés. Les preuves de livraison ne remplacent pas les scénarios utilisateurs authentifiés ; les réserves figurent dans chaque ligne.
 
 La machine de cette reprise dispose d’environ 9 Go disponibles et aucun swap ; ce relevé ne remplace pas celui de l’ancienne machine. Installation avec pnpm 9.14.4 et verrouillage conservé. Accès GitHub via le plugin ; aucun credential GCP, Kubernetes ou Stripe disponible dans cet environnement. Aucune valeur de secret copiée.
 
@@ -149,3 +149,9 @@ Aucune annulation de livraison n’a été effectuée.
 Les branches de préparation nécessitent leur intégration finale et les contrôles
 GitHub avant fusion. Les réserves externes portent sur Stripe, la politique de
 quota stockage, la protection GitHub et les preuves GCS/Kubernetes de purge.
+
+## Relevé à 22:45 UTC
+
+#714 est fusionné après succès du verdict E2E, des quatre audits français, de CodeQL, des builds bureau et de Production CI. Une cible de menu de message de 28 px a réellement échoué à 390 et 768 px ; le correctif rend 44 px et garde 28 px au bureau. Le détecteur navigateur existant est repris dans une fixture Sass/Chromium ; retirer le correctif rend la garde rouge. #713 reste ouverte ; le lot parcours est le prochain lot client. Les scripts de preuve de #713 ont été relus et corrigés au lint dans une branche distincte, sans modifier le travail de son auteur.
+
+Les manifestes 27273f19 et b0ddb2c9 déclarent une provenance incomplète des références réutilisées. Une correspondance exacte de digest avec les manifestes antérieurs signés retrouve leur source : cela ne prouve les conteneurs exécutés que pour les sept services rollés. Captureur et agent d’espace restent hors preuve de rollout. Voir mesures/2026-10-11-livraison-272.json et mesures/2026-10-11-livraison-b0.json.
