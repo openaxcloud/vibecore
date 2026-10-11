@@ -190,16 +190,34 @@ describe('project collaborator role enforcement', () => {
     await app.close();
   });
 
-  it('end-to-end: a non-member redeems a share link and gains project access', async () => {
+  it('end-to-end: a non-member redeems a share link and gains READ access, never write', async () => {
     const { app, owner, projectId } = await setup();
     const outsider = await register(app, 'redeemer@example.com', 'Redeemer Org');
 
-    // Owner mints a write-capable (member) share link.
-    const created = await app.inject({
+    /*
+     * DÉCISION DU 2026-10-11 — un lien de partage donne la LECTURE, jamais
+     * l'écriture : l'écriture exige une invitation, qui consomme une place.
+     * Ce test gardait l'ancien contrat (un lien `member` valait 201 puis
+     * laissait ÉCRIRE). On ne retire aucune de ses assertions : le parcours
+     * reste entier — invisible avant, rachat, lecture — et la dernière devient
+     * PLUS stricte, puisqu'elle épingle désormais le refus d'écriture.
+     * Voir services/api/src/tests/lien-de-partage-lecture-seule.spec.ts.
+     */
+    const refuse = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/collaboration/share-links`,
       headers: { authorization: `Bearer ${owner.token}` },
       payload: { roleKey: 'member', expiresInMinutes: 60 },
+    });
+    expect(refuse.statusCode, 'un lien d’écriture est de nouveau créable').toBe(409);
+    expect((refuse.json() as { error: { code: string } }).error.code).toBe('SHARE_LINK_WRITE_NOT_ALLOWED');
+
+    // Owner mints a read-only share link — le seul rôle qu'un lien peut conférer.
+    const created = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/collaboration/share-links`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { roleKey: 'viewer', expiresInMinutes: 60 },
     });
     expect(created.statusCode).toBe(201);
     const token = (created.json() as { token: string }).token;
@@ -222,21 +240,22 @@ describe('project collaborator role enforcement', () => {
     expect(redeem.statusCode).toBe(200);
     expect((redeem.json() as { redeemed: boolean }).redeemed).toBe(true);
 
-    // Now the outsider can read and write the project.
+    // Now the outsider can READ the project — le partage reste utile.
     const after = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/files`,
       headers: { authorization: `Bearer ${outsider.token}` },
     });
-    expect(after.statusCode).toBe(200);
+    expect(after.statusCode, 'un invité ne peut plus LIRE : la garde a cassé le partage').toBe(200);
 
+    // Et il ne peut PAS écrire : c'est la place que le lien ne consomme pas.
     const write = await app.inject({
       method: 'PATCH',
       url: `/projects/${projectId}/settings`,
       headers: { authorization: `Bearer ${outsider.token}` },
       payload: { name: 'Renamed after redeem' },
     });
-    expect(write.statusCode).toBe(200);
+    expect(write.statusCode, 'un invité ÉCRIT encore sans consommer de place').toBe(403);
 
     await app.close();
   });
