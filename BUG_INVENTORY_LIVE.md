@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-395 entrées.
+396 entrées.
 
 ## Sans section
 
@@ -439,6 +439,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-KEYBOARD-BASCULE-001](docs/bugs/BUG-KEYBOARD-BASCULE-001.md) — P1 — iPhone : toucher la zone de saisie pendant le chargement de l'IDE → la zone de saisie reste SOUS le clavier. — 📤 Dispatché : ☑ 01/10 · 💻 Codé : ☐ #664 (`fix/clavier-repos-de-page`), pas encore sur `main` : hauteur de repos mémorisée pour la page (`memori · ✅ Testé live : ☐
 - [BUG-MODE-BASCULE-001](docs/bugs/BUG-MODE-BASCULE-001.md) — P1 — le mode choisi pendant le chargement de l'IDE est perdu : « Assistant » redevient « Agent » sans un mot, et le message suivant part en mode Agent (qui modi — 📤 Dispatché : ☑ 01/10 (trouvé et traité par la session mobile) · 💻 Codé : ☐ branche `fix/mode-garde-a-la-bascule` poussée, pas encore sur `main`. Correctif : la coquille déclare chaque · ✅ Testé live : ☐
+
+## 2026-10-11 — Dette d'infrastructure : la production sait des choses que le dépôt ignore
+
+- [BUG-AUTH-CONNEXION-PERD-LA-LANGUE](docs/bugs/BUG-AUTH-CONNEXION-PERD-LA-LANGUE.md) — `e-code.ai/login?lang=fr` ouvert sans cookie de langue arrivait sur `app.e-code.ai/login` EN ANGLAIS. — 📤 Dispatché : ☑ 11/10 correctif ouvert en #698 · 💻 Codé : ☑ 11/10 `app/routes/login.tsx` (+12), `app/routes/login.spec.ts` (+60) · ✅ Testé live : ☐ en attente du déploiement
 
 ## Résidus non tabulaires — reportés mot pour mot
 
