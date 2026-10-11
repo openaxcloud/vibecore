@@ -109,7 +109,6 @@ describe('E-Code marketing page registry', () => {
         'shell',
         'authentication',
         'integrations',
-        'solartech-ai-chat',
       ]),
     );
   });

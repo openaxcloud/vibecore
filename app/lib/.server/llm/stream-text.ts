@@ -406,6 +406,24 @@ export async function streamText(props: {
    * still applies afterwards.
    */
   forcedRoute?: { provider: string; model: string };
+
+  /*
+   * Repli déclaré par la carte de routage pour ce tour : `null` = la carte n'en
+   * déclare aucun ; absent = pas de carte (chaîne historique). Voir
+   * `resolveRuntimeProvider`.
+   */
+  repliDeCarte?: { provider: string; model: string } | null;
+
+  /*
+   * Appelé quand le fournisseur demandé est indisponible et que le tour part
+   * sur le repli. La route le DIT à l'utilisateur : une substitution en silence
+   * est le défaut mesuré le 2026-09-28.
+   */
+  onBasculeFournisseur?: (bascule: {
+    depuis: { provider: string; model: string };
+    vers: { provider: string; model: string };
+    motif: string;
+  }) => void;
 }) {
   const {
     messages,
@@ -533,6 +551,7 @@ export async function streamText(props: {
     model: resolved.model,
     apiKeys,
     serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+    ...(props.repliDeCarte === undefined ? {} : { chaine: props.repliDeCarte ? [props.repliDeCarte] : [] }),
   });
 
   const provider = runtimeChoice.provider;
@@ -546,8 +565,15 @@ export async function streamText(props: {
         reason: runtimeChoice.switchedFrom.reason,
         to: provider.name,
         model: currentModel,
+        source: props.repliDeCarte === undefined ? 'chaine-historique' : 'carte',
       }),
     );
+
+    props.onBasculeFournisseur?.({
+      depuis: { provider: runtimeChoice.switchedFrom.provider, model: runtimeChoice.switchedFrom.model },
+      vers: { provider: provider.name, model: currentModel },
+      motif: runtimeChoice.switchedFrom.reason,
+    });
   }
 
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ECODE_AGENT_REQUIREMENTS, ECODE_PROJECT_REQUIREMENT_LINES } from './ecode-requirements';
+import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
 import { getFineTunedPrompt } from './new-prompt';
 import optimizedPrompt from './optimized';
 import { getSystemPrompt } from './prompts';
@@ -82,27 +82,9 @@ describe('E-Code prompt requirements', () => {
     }
   });
 
-  it('keeps project creation prompts aligned with the same production rules', () => {
-    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('ZERO placeholder code');
-    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('preview would be blank');
-    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('phones, tablets, and desktop');
-    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('exponential backoff');
-    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('Never report successful external-service behavior');
-    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('Right-size the architecture');
-    expect(ECODE_PROJECT_REQUIREMENT_LINES.join('\n')).toContain('src/api/<route>.ts');
-  });
-
   it('requires the agent to explain what, why and with what result — in the shared block', () => {
     for (const phrase of explanationPhrases) {
       expect(unwrap(ECODE_AGENT_REQUIREMENTS), `exigence absente du bloc partagé : ${phrase}`).toContain(phrase);
     }
-  });
-
-  it('carries the same explanation rules into the project-creation prompt lines', () => {
-    const lines = ECODE_PROJECT_REQUIREMENT_LINES.join('\n');
-
-    expect(lines).toContain('WHY this way rather than the obvious alternative');
-    expect(lines).toContain('what you verified and how');
-    expect(lines).toContain('answer in the language the user writes in');
   });
 });

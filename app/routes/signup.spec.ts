@@ -5,6 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { action, loader, meta } from './signup';
+import { postRegisterDestination } from '~/lib/post-register-destination.server';
 import { toResponse } from '~/lib/test/rr7-data';
 
 const ORIGINAL_ENV = {
@@ -79,13 +80,13 @@ describe('signup route loader', () => {
   it('returns null on app.e-code.ai so the form renders', async () => {
     const response = toResponse(await loader(buildLoaderArgs('app.e-code.ai')));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ language: 'en' });
+    expect(await response.json()).toEqual({ language: 'en', returnTo: null });
   });
 
   it('returns null on localhost so dev mode keeps working', async () => {
     const response = toResponse(await loader(buildLoaderArgs('localhost:5173')));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ language: 'en' });
+    expect(await response.json()).toEqual({ language: 'en', returnTo: null });
   });
 
   it('publishes localized French route metadata', () => {
@@ -232,5 +233,49 @@ describe('signup route action', () => {
     const payload = (await response.json()) as { errorCode: string; fields?: { email?: string } };
     expect(payload.errorCode).toBe('AUTH_EMAIL_EXISTS');
     expect(payload.fields?.email).toBe('ada@example.com');
+  });
+});
+
+/*
+ * BUG-QA0928-IDEE-PERDUE-INSCRIPTION — l'inconnu venu de l'accueil passe par
+ * `/login?returnTo=/projects/new`, puis s'inscrit. Sans destination, il
+ * atterrissait sur `/dashboard` et son idée, relayée vers `/projects/new`, était
+ * oubliée.
+ */
+describe('destination après inscription', () => {
+  const inscription = (recherche: string) =>
+    new Request(`https://app.e-code.ai/register${recherche}`, { method: 'POST' });
+
+  it('suit returnTo quand il désigne un chemin interne', () => {
+    expect(postRegisterDestination(inscription('?returnTo=%2Fprojects%2Fnew'))).toBe('/projects/new');
+  });
+
+  it('refuse une destination externe, retombe sur le tableau de bord', () => {
+    expect(postRegisterDestination(inscription('?returnTo=https%3A%2F%2Fevil.example'))).toBe('/dashboard');
+    expect(postRegisterDestination(inscription('?returnTo=%2F%2Fevil.example'))).toBe('/dashboard');
+  });
+
+  it('?prompt= garde la priorité (relais de l’hôte marketing)', () => {
+    expect(postRegisterDestination(inscription('?prompt=Un+carnet&returnTo=%2Fprojects%2Fnew'))).toBe(
+      '/projects/new?prompt=Un%20carnet',
+    );
+  });
+
+  it('sans rien, le tableau de bord', () => {
+    expect(postRegisterDestination(inscription(''))).toBe('/dashboard');
+  });
+
+  it('le loader transmet la destination validée à la page (pour le lien « Se connecter »)', async () => {
+    const reponse = toResponse(
+      await loader({
+        request: new Request('https://app.e-code.ai/register?returnTo=%2Fprojects%2Fnew', {
+          headers: { host: 'app.e-code.ai' },
+        }),
+        params: {},
+        context: {},
+      } as Parameters<typeof loader>[0]),
+    );
+
+    expect(((await reponse.json()) as { returnTo: string | null }).returnTo).toBe('/projects/new');
   });
 });

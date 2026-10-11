@@ -1,0 +1,88 @@
+11:56  200  ticket  ×3
+11:59  200  ticket  ×1
+12:00  401  runtime sur ID DE PROJET GET /files  ×4
+12:00  401  runtime sur ID DE PROJET GET /files/read  ×2
+12:00  401  runtime sur ID DE PROJET GET /files/watch  ×6
+12:00  401  runtime sur ID DE PROJET GET /ports/watch  ×6
+12:00  200  ticket  ×13
+12:01  200  démarrage workspace  ×1
+12:01  401  runtime sur ID DE PROJET GET /files/watch  ×6
+12:01  401  runtime sur ID DE PROJET GET /ports/watch  ×6
+12:01  200  ticket  ×14
+12:02  200  ticket  ×1
+12:04  429  démarrage workspace  ×1
+12:04  401  runtime sur ID DE PROJET GET /files  ×4
+12:04  401  runtime sur ID DE PROJET GET /files/read  ×2
+12:04  401  runtime sur ID DE PROJET GET /files/watch  ×3
+12:04  401  runtime sur ID DE PROJET GET /ports/watch  ×3
+12:04  200  ticket  ×8
+12:05  401  runtime sur ID DE PROJET GET /commands/stream  ×4
+12:05  401  runtime sur ID DE PROJET GET /files  ×28
+12:05  401  runtime sur ID DE PROJET GET /files/read  ×108
+12:05  401  runtime sur ID DE PROJET GET /files/watch  ×11
+12:05  401  runtime sur ID DE PROJET GET /ports  ×36
+12:05  401  runtime sur ID DE PROJET GET /ports/watch  ×11
+12:05  401  runtime sur ID DE PROJET GET /processes  ×8
+12:05  401  runtime sur ID DE PROJET POST /directories  ×98
+12:05  401  runtime sur ID DE PROJET PUT /files/write  ×78
+12:05  200  ticket  ×122
+12:05  429  ticket  ×35
+12:06  401  runtime sur ID DE PROJET GET /files  ×10
+12:06  401  runtime sur ID DE PROJET GET /files/watch  ×2
+12:06  401  runtime sur ID DE PROJET GET /ports  ×6
+12:06  401  runtime sur ID DE PROJET GET /ports/watch  ×2
+12:06  401  runtime sur ID DE PROJET GET /processes  ×4
+12:06  401  runtime sur ID DE PROJET POST /directories  ×104
+12:06  200  ticket  ×64
+12:07  200  ticket  ×1
+12:10  200  ticket  ×1
+12:13  200  ticket  ×1
+12:16  200  ticket  ×1
+12:18  200  ticket  ×1
+12:21  200  ticket  ×1
+12:24  200  ticket  ×1
+12:26  200  ticket  ×3
+12:28  200  ticket  ×1
+12:30  200  ticket  ×1
+12:33  200  ticket  ×1
+12:36  200  ticket  ×1
+12:38  200  ticket  ×1
+12:41  200  ticket  ×1
+12:43  200  ticket  ×1
+12:46  200  ticket  ×1
+12:48  200  ticket  ×1
+12:51  200  ticket  ×1
+12:53  200  ticket  ×1
+12:55  200  ticket  ×1
+12:57  200  ticket  ×1
+13:00  200  ticket  ×1
+13:03  200  ticket  ×1
+13:06  200  ticket  ×1
+13:08  200  ticket  ×1
+13:11  200  ticket  ×1
+13:13  200  ticket  ×1
+13:16  200  ticket  ×1
+13:18  200  ticket  ×1
+13:21  200  ticket  ×1
+13:24  200  ticket  ×1
+13:26  200  ticket  ×1
+13:29  200  ticket  ×1
+13:31  200  ticket  ×1
+13:34  200  ticket  ×1
+13:36  200  ticket  ×1
+13:39  200  ticket  ×1
+
+== TOTAUX
+848 ('runtime sur ws-… GET', 200)
+552 ('runtime sur ID DE', 401)
+265 ('ticket ', 200)
+110 ('runtime sur ws-… POST', 204)
+35 ('ticket ', 429)
+30 ('runtime sur ws-… POST', 401)
+29 ('runtime sur ws-… GET', 401)
+7 ('runtime sur ws-… GET', 404)
+1 ('démarrage workspace', 200)
+1 ('runtime sur ws-… GET', 503)
+1 ('runtime sur ws-… PUT', 204)
+1 ('démarrage workspace', 429)
+VERDICT appels runtime sur ID DE PROJET : 552 — dont refusés 401 : 552 — écritures de fichiers refusées : 78

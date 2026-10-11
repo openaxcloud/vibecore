@@ -66,7 +66,15 @@ describe('<PanelButton />', () => {
      * est donc inchangée, c'est l'indirection qui est nouvelle.
      */
     expect(className).toContain('bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))]');
-    expect(className).toContain('text-white');
+
+    /*
+     * Décision d'Avi du 01/10 : texte FONCÉ sur l'orange vif. L'encre suit son
+     * fond par le jeton jumeau `--vc-cta-accent-foreground` (blanc sur l'orange
+     * profond, foncé sur l'orange vif du thème sombre, où le blanc tombait à
+     * 2,80:1). Garde chiffrée : app/styles/texte-sur-accent.spec.ts.
+     */
+    expect(className).toContain('text-[var(--vc-cta-accent-foreground,var(--vc-ide-on-accent-action))]');
+    expect(className).not.toContain('text-white');
 
     // L'ancien style teinté n'est plus émis par les primitives de panneau.
     expect(className).not.toContain('button-primary-background');

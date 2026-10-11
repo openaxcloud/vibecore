@@ -343,7 +343,10 @@ describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèm
   it('les journaux du serveur de la Webview et le message d’un problème passent par la lecture humaine', () => {
     const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
 
-    expect(preview).toContain("import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';");
+    expect(preview).toMatch(/import \{[^}]*\btexteRuntimeLisible\b[^}]*\} from '~\/lib\/ide\/runtime-log-line';/);
+
+    // BUG-LOGS-JSON-001 (30/09) : AUCUN journal de l'Aperçu n'est plus rendu brut — les trois cartes comprises.
+    expect(preview).not.toMatch(/\{logs\.join\('\\n'\)\}/);
     expect(preview).toMatch(/workspaceLogs\.slice\(-120\)\.map\(\(ligne\) => texteRuntimeLisible\(String\(ligne\)\)\)/);
     expect(BASE_CHAT).toContain("<p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>");
   });
@@ -389,14 +392,18 @@ describe('8. captures iPhone 06/09 11:01–11:03 : Stockage d’objets, Paramèt
 
 describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’action de l’agent', () => {
   it('clavier levé : le composeur se colle au clavier, le socle disparaît, la pastille suit', () => {
-    expect(
-      bloc(
-        "html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer",
-      ),
-    ).toMatch(/bottom:\s*0\s*!important/);
+    /*
+     * Plus de scopage par panneau depuis le 2026-09-24 : mesuré sous WebKit,
+     * `data-mobile-panel` vaut `preview` sur l'IDE d'un vrai projet, donc
+     * aucune règle « clavier levé » ne s'appliquait — socle flottant, zone de
+     * saisie invisible, exactement la capture d'Avi.
+     */
+    expect(bloc("html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-project-agent-composer")).toMatch(
+      /bottom:\s*0\s*!important/,
+    );
     expect(bloc("html[data-vc-clavier='ouvert'] .bolt-mobile-replit-nav")).toMatch(/display:\s*none/);
     expect(INDEX).toMatch(
-      /html\[data-vc-clavier='ouvert'\] \.bolt-responsive-ide-mobile\[data-mobile-panel='chat'\] \.bolt-agent-scroll-to-bottom,[\s\S]{0,300}bottom:\s*12px/,
+      /html\[data-vc-clavier='ouvert'\] \.bolt-responsive-ide-mobile \.bolt-agent-scroll-to-bottom,[\s\S]{0,300}bottom:\s*12px/,
     );
   });
 
@@ -406,7 +413,7 @@ describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’acti
       /import \{[^}]*clavierProbablementOuvert,[^}]*retrecissementDeLaVue,[^}]*\} from '\.\/visual-viewport-bottom';/u,
     );
     expect(BASE_CHAT).toContain(
-      'if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {',
+      'if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))) {',
     );
     expect(BASE_CHAT).toContain("document.documentElement.setAttribute('data-vc-clavier', 'ouvert');");
     expect(BASE_CHAT.match(/document\.documentElement\.removeAttribute\('data-vc-clavier'\)/g)?.length).toBe(2);
@@ -736,6 +743,24 @@ describe('18. audit WebKitGTK du 06/09 : chemins coupés dans le Studio et dans 
 });
 
 describe('19. capture iPhone 07/09 07:58 : « ça me paraît bien large » — les feuilles du composeur sur tablette', () => {
+  /*
+   * DEUX règles depuis le 2026-09-23, pas une.
+   *
+   * La feuille des modes a quitté cette liste pour descendre jusqu'au bord bas
+   * et couvrir la barre d'onglets (demande d'Avi). Les menus d'outils et de
+   * modes gardent leur ancre au-dessus de la barre : étendus jusqu'au bord, ils
+   * recouvraient le déclencheur du menu voisin et l'E2E s'y arrêtait net.
+   *
+   * L'invariant de CETTE garde — largeur plafonnée et centrée au-delà du
+   * téléphone — n'a pas changé ; il vit désormais à deux endroits, et les deux
+   * sont vérifiés. Rien n'est relâché.
+   */
+  const SELECTEUR_MENUS =
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,\n' +
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu';
+
+  const SELECTEUR_FEUILLE = '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover';
+
   const SELECTEUR =
     '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,\n' +
     '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,\n' +
@@ -747,14 +772,16 @@ describe('19. capture iPhone 07/09 07:58 : « ça me paraît bien large » — l
      * portrait, 844 px sur un Pixel en paysage, pour un menu de deux lignes.
      * Le gabarit mobile sert aussi ces formats ; `width: 100%` y étirait tout.
      */
-    const regle = bloc(SELECTEUR);
+    for (const selecteur of [SELECTEUR_MENUS, SELECTEUR_FEUILLE]) {
+      const regle = bloc(selecteur);
 
-    expect(regle).toMatch(/width:\s*min\(100vw,\s*var\(--vc-mobile-sheet-max-width\)\)\s*!important/);
-    expect(regle).toMatch(
-      /left:\s*max\(0px,\s*calc\(\(100vw - var\(--vc-mobile-sheet-max-width\)\) \/ 2\)\)\s*!important/,
-    );
-    expect(regle).toMatch(/right:\s*auto\s*!important/);
-    expect(regle).not.toMatch(/max-width:\s*none/);
+      expect(regle, selecteur).toMatch(/width:\s*min\(100vw,\s*var\(--vc-mobile-sheet-max-width\)\)\s*!important/);
+      expect(regle, selecteur).toMatch(
+        /left:\s*max\(0px,\s*calc\(\(100vw - var\(--vc-mobile-sheet-max-width\)\) \/ 2\)\)\s*!important/,
+      );
+      expect(regle, selecteur).toMatch(/right:\s*auto\s*!important/);
+      expect(regle, selecteur).not.toMatch(/max-width:\s*none/);
+    }
 
     // Le plafond est partagé avec les feuilles « + » et menus, jamais une valeur locale.
     expect(INDEX).toMatch(/--vc-mobile-sheet-max-width:\s*760px/);
@@ -997,7 +1024,12 @@ describe('§26 — l’état de départ du panneau Agent se pose sous l’en-tê
    * depuis. La marge est une gouttière, plus la barre de contexte si elle est
    * affichée — jamais un nombre en dur.
    */
-  const bloc = INDEX.match(/\.bolt-mobile-agent-start-state \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
+  /*
+   * La règle de BASE, seule sur sa ligne : d'autres règles portent la même
+   * classe en fin de sélecteur (clavier levé, 30/09) — la première occurrence
+   * du fichier n'est plus forcément celle-ci.
+   */
+  const bloc = INDEX.match(/\n {2}\.bolt-mobile-agent-start-state \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
 
   it('la marge haute est la gouttière plus la barre de contexte', () => {
     expect(bloc).toContain(

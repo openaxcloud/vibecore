@@ -70,6 +70,18 @@ export interface BillingPlan {
  */
 const NO_PUBLISHED_CAP = 1_000_000;
 
+/*
+ * Décision d'Avi du 2026-10-01 : tout forfait mensuel a 20 % de réduction en paiement
+ * annuel (Pro 29 €/mois → 278,40 €/an ; Team 99 €/mois → 950,40 €/an). Source
+ * UNIQUE : la page de prix et la vérification des prix Stripe en dérivent.
+ */
+export const REMISE_ANNUELLE = 0.2;
+
+/** Montant annuel, en centimes, d'un forfait facturé `mensuelCents` par mois. */
+export function montantAnnuelCents(mensuelCents: number): number {
+  return Math.round(mensuelCents * 12 * (1 - REMISE_ANNUELLE));
+}
+
 export const billingPlans: BillingPlan[] = [
   {
     key: 'free',
@@ -146,7 +158,8 @@ export const billingPlans: BillingPlan[] = [
       'ai.toolCalls': 3_000,
       'deployments.count': 50,
       'previews.public': 10,
-      'team.members': 1,
+      // Décision d'Avi du 2026-10-01 : 5 places (valait 1 — un client Pro ne pouvait inviter personne).
+      'team.members': 5,
       'terminals.concurrent': 4,
       'api.rateLimitPerMinute': 600,
     },

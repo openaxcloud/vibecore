@@ -27,6 +27,9 @@ import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
+import { reponseAPersister } from '~/lib/.server/persistance-reponse';
+import { demandeAPersister } from '~/lib/.server/persistance-demande';
+import { avecSuiviDuTourPartage } from '~/lib/.server/tours-partages.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
 import { BUDGET_PAR_SEGMENT_MS, MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
@@ -46,7 +49,7 @@ import {
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { fournisseurInapte, type ConstatDeTour } from '~/lib/.server/llm/aptitude-fournisseur';
-import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
+import { classifyProviderFailure, echecDeCle, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { arbitrerCacheAnthropic } from '~/lib/.server/llm/arbitrage-cache-anthropic';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
@@ -55,7 +58,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
 import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
-import { suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
+import { refusExpliciteDeFichiers, suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
@@ -234,6 +237,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     files: any;
     promptId?: string;
     projectId?: string;
+
+    /*
+     * Le fil auquel appartient ce tour, et l'identifiant que le navigateur a
+     * donné à la demande. Les deux servent à écrire la demande EN BASE dès la
+     * réception, avant le moindre appel au modèle.
+     */
+    conversationId?: string;
+    clientMessageId?: string;
     contextOptimization: boolean;
     chatMode: 'discuss' | 'build';
     designScheme?: DesignScheme;
@@ -297,6 +308,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     files,
     promptId,
     projectId,
+    conversationId,
+    clientMessageId,
     contextOptimization,
     supabase,
     chatMode,
@@ -308,6 +321,44 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     approvedPlanTasks,
     enabledMcpServers,
   } = parsedBody;
+
+  /*
+   * LA DEMANDE EST ÉCRITE AVANT LE PREMIER APPEL AU MODÈLE.
+   *
+   * Mesuré en production le 2026-09-23 : une commande envoyée à 18:09:03, l'onglet
+   * mis en arrière-plan, et rien dans `AiMessage` — ni la réponse, NI LA QUESTION.
+   * Le fil est poussé par le navigateur pendant le flux ; Safari suspend l'onglet,
+   * les envois cessent, et le tour ne laisse aucune trace.
+   *
+   * Cette écriture ne sauve pas le tour — c'est l'étape 2 — mais elle supprime la
+   * perte de données. L'API dérive l'identifiant d'un message de
+   * `sha256(conversationId:clientId)` et fait un `upsert` : le serveur et le
+   * navigateur écrivent donc la MÊME ligne, jamais deux.
+   *
+   * `await` volontaire : « avant tout appel au modèle » n'a de sens que si on
+   * l'attend. Le coût est d'un aller-retour, et l'échec ne bloque JAMAIS le tour.
+   */
+  const demande = demandeAPersister({ conversationId, clientMessageId, messages });
+
+  if (demande && projectId) {
+    try {
+      await apiRequest(request, `/projects/${projectId}/ai/conversations/${demande.conversationId}/transcript`, {
+        method: 'PUT',
+        redirectOn401: false,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ clientId: demande.clientId, role: 'user', content: demande.content }] }),
+      });
+    } catch (error) {
+      logger.warn(
+        JSON.stringify({
+          event: 'chat.demande.non-persistee',
+          projectId,
+          conversationId: demande.conversationId,
+          raison: String((error as Error)?.message ?? error).slice(0, 200),
+        }),
+      );
+    }
+  }
 
   /*
    * Normalise the per-request MCP allow-list: a real array (possibly empty) of
@@ -401,6 +452,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let agentTargetLine: AgentRouteLine | undefined = agentRoute?.base;
   let agentEscalated = false;
+
+  /*
+   * LE REPLI EST CELUI DE LA CARTE, ET IL EST DIT. Mesuré le 2026-09-28 en
+   * production : Anthropic écarté, le tour partait sur `gpt-4.1` — pris dans une
+   * chaîne codée en dur, pas dans la carte — sans un mot pour l'utilisateur.
+   * `null` : la carte ne déclare pas de repli, on garde le modèle demandé et son
+   * erreur réelle. `undefined` : pas de carte (API injoignable), chaîne
+   * historique, et la bascule reste déclarée.
+   */
+  const repliDeCarte = agentRoute
+    ? agentRoute.fallback
+      ? { provider: boltProviderName(agentRoute.fallback.provider), model: agentRoute.fallback.model }
+      : null
+    : undefined;
+
+  let basculeVersRepli = false;
   let agentHardnessDecidedBy: 'heuristic' | 'llm' | undefined;
 
   let agentClassifierUsage: { provider: string; model: string; inputTokens: number; outputTokens: number } | undefined;
@@ -594,6 +661,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let fichiersEmis = 0;
 
+  /*
+   * Le texte de TOUS les segments du tour, tel que le serveur l'a produit : il
+   * est écrit en base à la fin du tour, que le navigateur soit encore là ou non
+   * (`persistance-reponse.ts`).
+   */
+  let contenuDuTour = '';
+
   const encoder: TextEncoder = new TextEncoder();
 
   let progressCounter: number = 1;
@@ -670,7 +744,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     let lastChunk: string | undefined = undefined;
 
     const dataStream = createDataStream({
-      async execute(dataStream) {
+      /*
+       * Le tour reste OUVERT dans le registre des tours tant qu'`execute` court —
+       * et `execute` attend la fin de toute la chaîne du tour (`enVol`). C'est ce
+       * que le serveur attend avant de s'arrêter (`server.mjs`, tours-en-cours).
+       */
+      execute: avecSuiviDuTourPartage(projectId, async (dataStream) => {
         /*
          * Scope a per-request Anthropic cache tally to this execute's async
          * context. The provider's wire reader (spawned during streamText below)
@@ -903,6 +982,68 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const processedMessages = await mcpService.processToolInvocations(messages, dataStream);
 
         /*
+         * Écrit la réponse complète du serveur sur la ligne du navigateur (même
+         * `clientId`, `upsert` côté API). N'interrompt JAMAIS le tour : un échec
+         * est journalisé, la fin du tour continue.
+         */
+        const persisterLaReponseDuServeur = async () => {
+          const reponse = reponseAPersister({
+            conversationId: demande?.conversationId,
+            clientId: identifiantDuMessageDeReponse,
+            contenu: contenuDuTour,
+          });
+
+          if (!reponse || !projectId) {
+            return;
+          }
+
+          try {
+            await apiRequest(request, `/projects/${projectId}/ai/conversations/${reponse.conversationId}/transcript`, {
+              method: 'PUT',
+              redirectOn401: false,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                messages: [{ clientId: reponse.clientId, role: 'assistant', content: reponse.content }],
+              }),
+            });
+            logger.info(
+              JSON.stringify({ event: 'chat.reponse.persistee', projectId, caracteres: reponse.content.length }),
+            );
+          } catch (error) {
+            logger.warn(
+              JSON.stringify({
+                event: 'chat.reponse.non-persistee',
+                projectId,
+                erreur: error instanceof Error ? error.message : String(error),
+              }),
+            );
+          }
+        };
+
+        /*
+         * Une bascule de fournisseur est DITE : annotation sur le message (rendue
+         * dans la bulle) et journal. Une seule fois par tour, même si la
+         * continuation rebascule.
+         */
+        const declarerBascule = (bascule: {
+          depuis: { provider: string; model: string };
+          vers: { provider: string; model: string };
+          motif: string;
+        }) => {
+          const premiere = !basculeVersRepli;
+          basculeVersRepli = true;
+
+          logger.warn(JSON.stringify({ event: 'chat.fournisseur.bascule', projectId, ...bascule }));
+
+          if (premiere) {
+            dataStream.writeMessageAnnotation({
+              type: 'basculeFournisseur',
+              ...bascule,
+            } satisfies ContextAnnotation);
+          }
+        };
+
+        /*
          * Stable per-conversation id: the project id when present, else the first
          * message id (unchanged across a conversation). Drives A1's context-selection
          * memo and A7's provider cache-affinity key. Falls back to undefined when
@@ -974,6 +1115,28 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           : undefined;
 
         const projectSkills = await retrieveSkillsForAgentContext(request, { projectId, userPrompt: skillUserPrompt });
+
+        /*
+         * L'UTILISATEUR A-T-IL DIT NON AUX FICHIERS ? Calculé UNE fois, sur la
+         * demande d'origine — jamais sur une relance ajoutée ensuite à
+         * `processedMessages`. Mesuré le 2026-09-28 en production : « n'écris
+         * AUCUN fichier […] attends ma validation », le modèle obéit, et la
+         * relance d'annonce écrivait quand même onze fichiers refusés.
+         */
+        const fichiersRefuses = refusExpliciteDeFichiers(skillUserPrompt);
+
+        /*
+         * LA BARRIÈRE À L'EXÉCUTION. Le refus change le prompt et la relance ; il
+         * doit aussi changer ce qui S'EXÉCUTE. Un modèle ne garantit rien — mesuré
+         * le 2026-09-30, des sous-agents ont écrit malgré « N'écris aucun
+         * fichier ». Le navigateur, qui exécute les actions, reçoit donc la
+         * consigne sous forme de donnée, et refuse toute action de ce tour
+         * (`useMessageParser`, `ecritureAutorisee`). Émise AVANT toute génération :
+         * elle doit précéder la première action.
+         */
+        if (fichiersRefuses) {
+          dataStream.writeMessageAnnotation({ type: 'consigneSansFichier' });
+        }
 
         /*
          * RPL-SK-001.2 — surface the progressive-disclosure trace as an annotation
@@ -1687,6 +1850,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             // Accumulates across continuation segments: chaque segment ajoute ses fichiers.
             fichiersEmis += compterActionsDeFichier(content);
+            contenuDuTour += content ?? '';
 
             /*
              * A build that ends without EVER emitting a `<boltAction type="file">`
@@ -1697,7 +1861,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * throws out of onFinish.
              */
             const warnIfNoFilesGenerated = () => {
-              if (chatMode !== 'build' || fichiersEmis > 0) {
+              // Un refus explicite de l'utilisateur n'est pas une génération ratée.
+              if (chatMode !== 'build' || fichiersEmis > 0 || fichiersRefuses) {
                 return;
               }
 
@@ -1742,6 +1907,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               }
 
               tourDejaFacture = true;
+
+              /*
+               * La réponse complète est écrite ICI, au point de sortie commun à
+               * toutes les fins de tour, avant la facturation. Mesuré le
+               * 2026-09-30 : client coupé en plein flux, le serveur finissait le
+               * tour (19 932 caractères) et la base n'en gardait que 1 080.
+               */
+              await persisterLaReponseDuServeur();
 
               const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
 
@@ -1834,7 +2007,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                             highEffort: agentSelection.highEffort,
                             escalated: agentEscalated,
                             turbo: agentSelection.turbo,
-                            lineKey: agentTargetLine.lineKey,
+
+                            // Un tour servi par le repli est facturé sur la ligne de repli de la carte.
+                            lineKey:
+                              basculeVersRepli && agentRoute.fallback
+                                ? agentRoute.fallback.lineKey
+                                : agentTargetLine.lineKey,
                             source: 'chat',
                           },
                         }
@@ -1907,6 +2085,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 finishReason,
                 modeConstruction: chatMode === 'build',
                 fichierEmis: fichiersEmis > 0,
+                fichiersRefuses,
                 segmentsConsommes: continuationSegments,
                 segmentsMax: MAX_RESPONSE_SEGMENTS,
               },
@@ -1939,7 +2118,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * maillon capable au lieu de répéter le vide.
              */
             const constatDuTour: ConstatDeTour = {
-              modeConstruction: chatMode === 'build',
+              /*
+               * Un tour sans fichier sur un REFUS explicite est la bonne réponse,
+               * comme en mode discussion : il n'établit rien sur le fournisseur.
+               */
+              modeConstruction: chatMode === 'build' && !fichiersRefuses,
               fichiersEcrits: fichiersEmis,
 
               /*
@@ -1951,16 +2134,19 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               termine: finishReason === 'stop',
             };
 
+            /*
+             * PORTÉE : CETTE REQUÊTE, JAMAIS LE POD. Décision du 2026-09-28 : un
+             * tour sans fichier ne dit rien du fournisseur pour les autres
+             * utilisateurs — mesuré ce jour-là, une simple demande de plan avait
+             * écarté Anthropic 300 s pour tout le pod. Le constat reste JOURNALISÉ ;
+             * sa seule conséquence est dans le tour lui-même (la relance, puis
+             * l'échec franc au plafond), et sur le MÊME modèle.
+             */
             if (fournisseurInapte(constatDuTour) && routedTurnProvider) {
-              markProviderUnhealthy(
-                routedTurnProvider,
-                'sterile',
-                `zéro fichier sur un tour de construction terminé (segments=${continuationSegments})`,
-              );
-
               logger.error(
                 JSON.stringify({
                   event: 'chat.fournisseur.sterile',
+                  portee: 'requete',
                   projectId,
                   provider: routedTurnProvider,
                   model: routedTurnModel,
@@ -2110,6 +2296,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   forcedRoute: agentTargetLine
                     ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
                     : undefined,
+                  repliDeCarte,
+                  onBasculeFournisseur: declarerBascule,
                   env: context.cloudflare?.env,
                   options,
                   apiKeys,
@@ -2137,7 +2325,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   },
                 });
 
-                result.mergeIntoDataStream(dataStream);
+                // Le raisonnement part au client : `ai@4.3.16` ne l'envoie pas par défaut.
+                result.mergeIntoDataStream(dataStream, { sendReasoning: true });
               } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                   // Client went away mid-continuation — expected, just clean up.
@@ -2296,6 +2485,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           forcedRoute: agentTargetLine
             ? { provider: boltProviderName(agentTargetLine.provider), model: agentTargetLine.model }
             : undefined,
+          repliDeCarte,
+          onBasculeFournisseur: declarerBascule,
           env: context.cloudflare?.env,
           options,
           apiKeys,
@@ -2346,7 +2537,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           },
         });
 
-        result.mergeIntoDataStream(dataStream);
+        /*
+         * `sendReasoning: true` — `ai@4.3.16` déclare `sendReasoning = false` par
+         * défaut : mesuré le 2026-09-28, un tour opus avec la réflexion active sur
+         * le fil rendait encore ZÉRO ligne `g:` au navigateur. Épinglé par
+         * `reflexion-envoyee-au-client.spec.ts`.
+         */
+        result.mergeIntoDataStream(dataStream, { sendReasoning: true });
 
         /*
          * `mergeIntoDataStream` n'est pas attendu — c'est le contrat du SDK, qui
@@ -2446,7 +2643,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             message: copy.responseInterrupted,
           } satisfies ProgressAnnotation);
         }
-      },
+      }),
       onError: (error: any) => {
         /*
          * SUR ABANDON, `onFinish` NE S'EXÉCUTE PAS — `onError` OUI.
@@ -2556,8 +2753,25 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         if (!clientDisconnected && routedTurnProvider) {
           const kind = classifyProviderFailure(error);
 
-          if (kind) {
+          /*
+           * Seuls les échecs de CLÉ (crédit, clé refusée, quota de la clé) sont
+           * les mêmes pour tout le monde et peuvent écarter le fournisseur pour le
+           * pod. Un 5xx ou un délai sur UN tour reste dans sa portée : décision du
+           * 2026-09-28, « un seul échec d'un seul utilisateur ne pénalise pas les
+           * autres ». Une vraie panne du fournisseur est vue par la sonde d'un
+           * jeton de `stream-text`, qui mesure le fournisseur et non un tour.
+           */
+          if (echecDeCle(kind)) {
             markProviderUnhealthy(routedTurnProvider, kind, String(error?.message ?? code).slice(0, 300));
+          } else if (kind) {
+            logger.warn(
+              JSON.stringify({
+                event: 'chat.fournisseur.echec-requete',
+                portee: 'requete',
+                provider: routedTurnProvider,
+                kind,
+              }),
+            );
           }
         }
 

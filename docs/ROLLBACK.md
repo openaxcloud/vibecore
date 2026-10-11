@@ -40,3 +40,18 @@ gcloud container clusters get-credentials PROD_WORKSPACES_CLUSTER --region REGIO
 helm history workspaces -n workspaces
 helm rollback workspaces LAST_GOOD_REVISION -n workspaces
 ```
+
+## Preuves d'un rollout atomique
+
+Le pipeline de production publie `rollout-status-<sha>` même en échec. Son fichier
+`rollout-status.jsonl` conserve les états des Deployments, Jobs et pods de la release
+avant, pendant et après `helm upgrade --atomic`. Lire les premiers états dégradés,
+car les derniers peuvent déjà montrer les anciens pods rétablis par le rollback.
+`commandExitCode` reste le code de sortie de Helm ; une `captureError` indique une
+preuve manquante, pas une disponibilité confirmée. Les échantillons ne contiennent
+pas de Secrets, specs, variables d'environnement ou journaux applicatifs.
+
+Une erreur d'écriture après le lancement de Helm produit un avertissement et un
+artefact incomplet. Le collecteur attend la fin de Helm et conserve son code de
+sortie pour que le workflow continue à connaître le résultat réel de l'upgrade.
+Une impossibilité d'écrire le premier échantillon bloque avant de lancer Helm.

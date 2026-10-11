@@ -479,6 +479,31 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     [setEscapedFromLock, setIsAtBottom, state],
   );
 
+  /*
+   * ANCRAGE DANS LA MÊME IMAGE. Mesuré le 2026-09-28 sur de vrais tours en
+   * production à 390 px (Chromium et WebKit) : quand la notice « Erreur
+   * d'aperçu » réduisait le fil de 75 à 102 px, ou qu'un bloc s'ajoutait en bas,
+   * le recollage arrivait 20 à 80 ms plus tard — `scrollToBottom` attend
+   * toujours un `requestAnimationFrame` avant d'écrire. L'image intermédiaire
+   * était peinte avec le bas du fil masqué, puis le contenu sautait.
+   *
+   * Un rappel de ResizeObserver s'exécute après la mise en page et AVANT la
+   * peinture : écrire la position ici fait peindre directement l'état recollé.
+   * Mêmes conditions que le collage lui-même — jamais si l'utilisateur s'en est
+   * échappé, jamais pendant une sélection.
+   */
+  const recollerAvantLaPeinture = () => {
+    if (!state.isAtBottom || state.escapedFromLock || isSelecting()) {
+      return;
+    }
+
+    const cible = state.calculatedTargetScrollTop;
+
+    if (state.scrollTop < cible) {
+      state.scrollTop = cible;
+    }
+  };
+
   const scrollRef = useRefCallback((scroll) => {
     scrollRef.current?.removeEventListener('scroll', handleScroll);
     scrollRef.current?.removeEventListener('wheel', handleWheel);
@@ -520,6 +545,7 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
         return;
       }
 
+      recollerAvantLaPeinture();
       scrollToBottom({ animation: 'instant', wait: true, preserveScrollPosition: true });
     });
 
@@ -560,6 +586,10 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
           optionsRef.current,
           previousHeight ? optionsRef.current.resize : optionsRef.current.initial,
         );
+
+        if (animation === 'instant') {
+          recollerAvantLaPeinture();
+        }
 
         scrollToBottom({
           animation,

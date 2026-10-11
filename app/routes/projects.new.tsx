@@ -29,7 +29,7 @@ import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError,
 import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
 import { readPersistedModelId } from '~/components/marketing/ecode-exact/resolve-preferred-model';
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui';
-import { ECODE_PROJECT_REQUIREMENT_LINES } from '~/lib/common/prompts/ecode-requirements';
+import { consignePremierProjet } from '~/lib/common/prompts/premier-projet';
 import {
   apiErrorMessage,
   apiRequest,
@@ -60,9 +60,11 @@ import { LLMManager } from '~/lib/modules/llm/manager';
 import { fetchAdminEnabledProviders } from '~/lib/modules/llm/provider-visibility.server';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { detectApplePlatform, submitShortcutLabel as resolveSubmitShortcutLabel } from '~/lib/platform-shortcut';
+import { effacerLeJetonDuRelais, lireLeJetonDuRelais } from '~/lib/relais-idee.server';
 import { providersStore } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDER_LIST } from '~/utils/constants';
+import { lireIdeeRelayee, oublierLeRelais } from '~/utils/idee-relayee';
 import { clearModelHandoff, readModelHandoff, resolveHandoffModelSelection } from '~/utils/model-handoff';
 import { projectIdePath } from '~/utils/project-url';
 import { categorizeProjectsNewError, type ProjectsNewErrorDescriptor } from '~/utils/projects-new-error';
@@ -118,7 +120,7 @@ const artifactCategoryDefinitions: readonly ArtifactCategoryDefinition[] = [
     icon: Globe2,
     framework: 'React + Vite + TypeScript',
     generationHint:
-      'Build this as a production React/Vite web application with TypeScript, modular components, realistic data, routing-ready structure, and a live preview that starts with npm run dev.',
+      'Build this as a React/Vite web application with TypeScript, sized to the idea, with a live preview that starts with npm run dev.',
   },
   {
     id: 'mobile',
@@ -322,36 +324,6 @@ function localizedModerationCategories(
   );
 }
 
-function projectPromptForArtifact(prompt: string, category: ArtifactCategory) {
-  return [
-    `Artifact type: ${category.label}`,
-    `Preferred framework: ${category.framework}`,
-    category.generationHint,
-    '',
-    'Production quality bar:',
-    ...ECODE_PROJECT_REQUIREMENT_LINES,
-    '- Build a complete, previewable app, not a landing placeholder or static mockup.',
-    '- Target Fortune 500 / enterprise polish: credible information architecture, restrained premium visual design, precise spacing, professional typography, and real workflow density.',
-    '- Include realistic domain data, meaningful copy, charts/tables/cards where relevant, and visible states for loading, empty, error, success, and disabled controls.',
-    '- Every visible button, tab, filter, menu, toggle, form control, and navigation item must have real client-side behavior using React state; no decorative dead controls.',
-    '- Include at least one complete primary workflow with input, validation, optimistic/success feedback, error handling, empty state recovery, and disabled/submitting states.',
-    '- For dashboards and SaaS products, build an operational product UI with dense but readable information architecture, not a marketing landing page.',
-    '- Make the first screen immediately useful inside the Preview tab with no blank splash, no external setup, and no hidden critical interaction.',
-    '- Use React + Vite + TypeScript for web-style artifacts unless the selected artifact explicitly requires another framework.',
-    '- Split React code into purposeful components, typed local fixtures, derived metrics, and handlers; avoid a single static JSX mockup.',
-    '- Always create a runnable package.json with dev, build, and preview scripts; include index.html, src/main.tsx, and Vite config when using React/Vite.',
-    '- Keep runtime dependencies lean and browser-compatible; avoid native binaries, heavy assets, unnecessary frameworks, and API calls that can fail in preview.',
-    '- Optimize for performance: memoize expensive derived data, avoid layout thrash, use CSS transforms for motion, lazy-load heavy views when useful, and respect prefers-reduced-motion.',
-    '- Build responsive layouts for desktop, tablet, and mobile with stable dimensions so content does not jump or overlap.',
-    '- Meet WCAG AA basics: semantic HTML, labels, keyboard focus states, ARIA where needed, contrast, and touch targets.',
-    '- Before finishing, self-audit the generated files: there must be no visible dead buttons, no inert tabs, no nonfunctional forms, and no placeholder-only panels.',
-    '- Finish with a start action so the live preview can attach automatically.',
-    '',
-    'User prompt:',
-    prompt,
-  ].join('\n');
-}
-
 function createPendingPromptId() {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -448,6 +420,8 @@ async function requireFirstOrganization(request: Request) {
   }
 }
 
+type IdeeRelayeeParLeServeur = { idea: string; mode?: string; model?: string; provider?: string };
+
 export async function loader({ request, context }: EnterpriseLoaderArgs) {
   await requireFirstOrganization(request);
 
@@ -494,21 +468,53 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
       ? fullModelList.filter((model) => !model.provider || adminEnabled.has(model.provider))
       : fullModelList;
 
-  return json<ModelsPayload & { initialPrompt: string }>({
-    modelList: visibleModelList,
-    providers: visibleProviders,
-    defaultProvider: localizeProviderInfo(
-      {
-        name: defaultProvider.name,
-        staticModels: defaultProvider.staticModels,
-        getApiKeyLink: defaultProvider.getApiKeyLink,
-        labelForGetApiKey: defaultProvider.labelForGetApiKey,
-        icon: defaultProvider.icon,
-      },
-      language,
-    ),
-    initialPrompt,
-  });
+  /*
+   * BUG-QA0928-IDEE-PERDUE-INSCRIPTION, seconde moitié — l'idée tapée sur
+   * l'accueil de `e-code.ai` arrive ici par un JETON (cookie de domaine), l'idée
+   * elle-même étant gardée par l'API. Rendue une seule fois ; le cookie est
+   * effacé dans la même réponse. Jamais soumise toute seule : ce cookie se pose
+   * sur tout `.e-code.ai`, un tiers pourrait donc en glisser un — le composeur
+   * est pré-rempli, l'utilisateur décide.
+   */
+  const jetonDuRelais = lireLeJetonDuRelais(request);
+  const entetes = new Headers();
+
+  let ideeRelayee: IdeeRelayeeParLeServeur | null = null;
+
+  if (jetonDuRelais) {
+    entetes.append('set-cookie', effacerLeJetonDuRelais(request));
+
+    try {
+      ideeRelayee = await apiRequest<IdeeRelayeeParLeServeur>(request, '/idea-relays/consume', {
+        method: 'POST',
+        redirectOn401: false,
+        body: JSON.stringify({ id: jetonDuRelais }),
+      });
+    } catch {
+      // Expirée ou déjà rendue : rien à pré-remplir, le visiteur n'est pas bloqué pour autant.
+      ideeRelayee = null;
+    }
+  }
+
+  return json<ModelsPayload & { initialPrompt: string; ideeRelayee: IdeeRelayeeParLeServeur | null }>(
+    {
+      modelList: visibleModelList,
+      providers: visibleProviders,
+      defaultProvider: localizeProviderInfo(
+        {
+          name: defaultProvider.name,
+          staticModels: defaultProvider.staticModels,
+          getApiKeyLink: defaultProvider.getApiKeyLink,
+          labelForGetApiKey: defaultProvider.labelForGetApiKey,
+          icon: defaultProvider.icon,
+        },
+        language,
+      ),
+      initialPrompt,
+      ideeRelayee,
+    },
+    { headers: entetes },
+  );
 }
 
 export async function action({ request, context }: EnterpriseActionArgs) {
@@ -587,7 +593,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       ? `[Language: ${detectedLanguage.name}]\n\n`
       : '';
 
-  const generationPrompt = prompt ? `${languagePrefix}${projectPromptForArtifact(prompt, artifactCategory)}` : '';
+  const generationPrompt = prompt ? `${languagePrefix}${consignePremierProjet(prompt, artifactCategory)}` : '';
   const name = body.name?.trim() || (prompt ? projectNameFromPrompt(prompt, copy.defaultProjectName) : '');
 
   if (!name) {
@@ -734,7 +740,12 @@ export default function NewProjectPage() {
   const navigation = useNavigation();
   const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
-  const [prompt, setPrompt] = useState(initialModelsPayload.initialPrompt ?? '');
+
+  // L'idée arrivée d'un autre domaine est posée dans le composeur dès le rendu serveur, sans envoi automatique.
+  const [prompt, setPrompt] = useState(
+    initialModelsPayload.initialPrompt || initialModelsPayload.ideeRelayee?.idea || '',
+  );
+
   const [selectedCategory, setSelectedCategory] = useState<ArtifactCategoryId>(artifactCategoryDefinitions[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -762,21 +773,24 @@ export default function NewProjectPage() {
    * to this form doesn't re-fire an infinite create loop.
    */
   useEffect(() => {
-    if (composerAutoSubmittedRef.current || initialModelsPayload.initialPrompt) {
+    if (composerAutoSubmittedRef.current || initialModelsPayload.initialPrompt || initialModelsPayload.ideeRelayee) {
       return;
     }
 
     let stashedPrompt: string | null = null;
-    let intent: string | null = null;
 
     try {
-      stashedPrompt = sessionStorage.getItem('pendingAppDescription');
-      intent = sessionStorage.getItem('composerBuildIntent');
+      /*
+       * BUG-QA0928-IDEE-PERDUE-INSCRIPTION — une idée sans date ou périmée est
+       * oubliée ici au lieu d'être soumise : restée dans l'onglet, elle créait
+       * des heures plus tard un projet que l'utilisateur n'avait pas redemandé.
+       */
+      stashedPrompt = lireIdeeRelayee(sessionStorage);
     } catch {
       return;
     }
 
-    if (intent !== '1' || !stashedPrompt || !stashedPrompt.trim()) {
+    if (!stashedPrompt) {
       return;
     }
 
@@ -803,17 +817,27 @@ export default function NewProjectPage() {
       : null;
 
     try {
-      sessionStorage.removeItem('composerBuildIntent');
-      sessionStorage.removeItem('pendingAppDescription');
-      sessionStorage.removeItem('pendingBuildMode');
-      sessionStorage.removeItem('triggerBuildOnLanding');
+      oublierLeRelais(sessionStorage);
     } catch {
       // best-effort cleanup; the ref above already prevents a re-submit
     }
 
     clearModelHandoff();
 
-    const handoffPrompt = stashedPrompt.trim().slice(0, PROMPT_MAX_CHARS);
+    const handoffPrompt = stashedPrompt.trim();
+
+    /*
+     * BUG-QA0928-PROMPT-TRONQUE — plus de `slice(0, PROMPT_MAX_CHARS)` suivi d'un
+     * envoi : la fin de l'idée (souvent les exigences les plus précises) était
+     * coupée en silence. Trop longue, l'idée est posée ENTIÈRE dans le composeur,
+     * dont le compteur passe en erreur et bloque l'envoi : l'utilisateur voit le
+     * dépassement et raccourcit lui-même.
+     */
+    if (handoffPrompt.length > PROMPT_MAX_CHARS) {
+      setPrompt(handoffPrompt);
+      return;
+    }
+
     setPrompt(handoffPrompt);
 
     const submitBody: Record<string, string> = { prompt: handoffPrompt };
