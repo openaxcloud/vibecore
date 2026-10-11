@@ -1,6 +1,11 @@
 import { useRef, useState } from 'react';
 import { BaseChat } from './BaseChat';
-import { composerHandoffScope, setPendingComposerInput, useComposerHandoffLayoutEffect } from './composer-handoff';
+import {
+  composerHandoffScope,
+  setPendingComposerInput,
+  setPendingComposerMode,
+  useComposerHandoffLayoutEffect,
+} from './composer-handoff';
 
 /**
  * Coquille affichée AVANT que la conversation existe.
@@ -18,7 +23,9 @@ import { composerHandoffScope, setPendingComposerInput, useComposerHandoffLayout
  * et tout ce qui a été tapé entre les deux disparaît sans un mot.
  *
  * La coquille tient donc elle-même la frappe et la dépose dans le passe-plat,
- * que le vrai composeur reprend en arrivant.
+ * que le vrai composeur reprend en arrivant. Le mode choisi (Agent, Assistant…)
+ * prend le même chemin : sans lui, « Assistant » redevenait « Agent » à la
+ * bascule (mesuré le 01/10).
  */
 export function PendingComposerShell({
   chatStarted,
@@ -62,6 +69,7 @@ export function PendingComposerShell({
       projectUrl={projectUrl}
       initialIdePanels={initialIdePanels}
       input={pendingInput}
+      onProjectAgentExecutionModeChange={(mode) => setPendingComposerMode(scope, mode)}
       handleInputChange={(event) => {
         const { value } = event.target;
         setPendingInput(value);

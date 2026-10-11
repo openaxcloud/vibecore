@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-393 entrées.
+395 entrées.
 
 ## Sans section
 
@@ -434,6 +434,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA1001-ANNUEL-FACTURE-AU-MOIS](docs/bugs/BUG-QA1001-ANNUEL-FACTURE-AU-MOIS.md) — Paiement : un client qui choisit la facturation ANNUELLE est abonné au prix MENSUEL quand le prix annuel — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1001-PRO-UNE-SEULE-PLACE](docs/bugs/BUG-QA1001-PRO-UNE-SEULE-PLACE.md) — Le forfait Pro (29 €/mois) n'avait qu'UNE place d'équipe — celle du propriétaire : un client qui paie ne — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE](docs/bugs/BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE.md) — Un client gratuit qui publie un projet pendant qu'un autre de ses projets tient son unique espace actif — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Sans section
+
+- [BUG-KEYBOARD-BASCULE-001](docs/bugs/BUG-KEYBOARD-BASCULE-001.md) — P1 — iPhone : toucher la zone de saisie pendant le chargement de l'IDE → la zone de saisie reste SOUS le clavier. — 📤 Dispatché : ☑ 01/10 · 💻 Codé : ☐ #664 (`fix/clavier-repos-de-page`), pas encore sur `main` : hauteur de repos mémorisée pour la page (`memori · ✅ Testé live : ☐
+- [BUG-MODE-BASCULE-001](docs/bugs/BUG-MODE-BASCULE-001.md) — P1 — le mode choisi pendant le chargement de l'IDE est perdu : « Assistant » redevient « Agent » sans un mot, et le message suivant part en mode Agent (qui modi — 📤 Dispatché : ☑ 01/10 (trouvé et traité par la session mobile) · 💻 Codé : ☐ branche `fix/mode-garde-a-la-bascule` poussée, pas encore sur `main`. Correctif : la coquille déclare chaque · ✅ Testé live : ☐
 
 ## Résidus non tabulaires — reportés mot pour mot
 
