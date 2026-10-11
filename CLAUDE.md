@@ -455,6 +455,25 @@ généraux : ce sont des pièges qui ont déjà coûté.
     fabrique exactement les faux échecs de la règle 20, sur les propositions
     qu'on veut fusionner. **Le seul levier est de ne pas en ouvrir une de plus.**
 
+    **ET QUAND IL Y A UNE URGENCE : UNE SEULE EN VOL.** Il existe un levier que
+    j'avais écarté à tort — **passer en brouillon tout ce qui n'est pas
+    l'urgence, et annuler les runs EN ATTENTE** (jamais ceux en cours). Un
+    brouillon ne réalimente pas la file, et **un contrôle en attente n'a rien
+    mesuré : l'annuler ne détruit aucun signal.** Détruire du signal, ce serait
+    annuler un run EN COURS.
+
+    Mesuré le 2026-10-11 à 14:15 : trois propositions passées en brouillon, 21
+    runs en attente annulés, **file de 42 à 21** — sans toucher aux 10 runs de
+    `main`, qui portaient le déploiement en cours et la porte de release. Trois
+    de ces runs appartenaient même à une proposition déjà FERMÉE : de la
+    capacité consommée pour rien.
+
+    **Cette règle tient même contre une demande contraire.** Elle vient de deux
+    famines en vingt-quatre heures, toutes deux produites en ouvrant en
+    parallèle « pour aller vite », et toutes deux ayant retardé précisément la
+    branche la plus urgente. La vitesse apparente de l'ouverture se paie en
+    retard réel sur ce qui compte.
+
 22. **Un test s'ancre sur le DÉTECTEUR, pas sur une chaîne choisie par son
     auteur.** C'est la forme la plus solide rencontrée sur ce projet, et elle
     vient de #705 : au lieu d'affirmer que le libellé vaut telle chaîne, son test
