@@ -28,8 +28,8 @@ export interface ScreenshotterOptions {
 
   /**
    * SSRF guard: only render URLs whose hostname equals or is a subdomain of one
-   * of these suffixes (e.g. `preview.e-code.ai`). Empty = allow any host — only
-   * safe for local/dev; production MUST set an allowlist.
+   * of these suffixes (e.g. `preview.e-code.ai`). Empty fails closed in every
+   * environment; production also enforces the requirement at startup.
    */
   allowedHostSuffixes?: string[];
 

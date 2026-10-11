@@ -1,4 +1,5 @@
-import { type Browser, chromium } from 'playwright-core';
+import { checkOutboundUrl } from '@vibecore/security';
+import { type Browser, type Route, chromium } from 'playwright-core';
 import type { PageRenderer } from './app.js';
 
 /*
@@ -9,6 +10,9 @@ import type { PageRenderer } from './app.js';
  */
 export interface PlaywrightRendererOptions {
   navTimeoutMs?: number;
+
+  /** Optional installed Chromium path for local and managed runtimes. */
+  chromiumExecutablePath?: string;
 
   /** Extra settle time after network idle for late paints/animations. */
   settleMs?: number;
@@ -24,6 +28,9 @@ export interface PlaywrightRendererOptions {
 
   /** Host suffixes that identify a preview to route through previewProxyUrl. */
   previewHostSuffixes?: string[];
+
+  /** Same DNS policy for each external document, redirect and subresource. */
+  resolveHost?: (hostname: string) => Promise<string[]>;
 }
 
 /**
@@ -42,11 +49,72 @@ export class PageRenderError extends Error {
   }
 }
 
+export async function guardScreenshotRoute(route: Route, options: PlaywrightRendererOptions): Promise<void> {
+  const suffixes = options.previewHostSuffixes ?? [];
+  const isPreviewHost = (host: string) => suffixes.some((suffix) => host === suffix || host.endsWith(`.${suffix}`));
+
+  try {
+    const proxy = options.previewProxyUrl && suffixes.length ? new URL(options.previewProxyUrl) : undefined;
+    const requestUrl = new URL(route.request().url());
+
+    if (proxy && isPreviewHost(requestUrl.hostname.toLowerCase())) {
+      const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
+
+      const response = await route.fetch({
+        url: target,
+        headers: { ...route.request().headers(), host: requestUrl.host },
+        maxRedirects: 0,
+      });
+
+      try {
+        const location = response.headers().location;
+
+        if (response.status() >= 300 && response.status() < 400 && location) {
+          const redirectRejection = await checkOutboundUrl(new URL(location, requestUrl).toString(), {
+            allowedHostSuffixes: [],
+            allowAnyPublicHost: true,
+            resolveHost: options.resolveHost,
+          });
+
+          if (redirectRejection) {
+            await route.abort('blockedbyclient');
+
+            return;
+          }
+        }
+
+        await route.fulfill({ response });
+      } finally {
+        await response.dispose();
+      }
+
+      return;
+    }
+
+    const rejection = await checkOutboundUrl(requestUrl.toString(), {
+      allowedHostSuffixes: [],
+      allowAnyPublicHost: true,
+      resolveHost: options.resolveHost,
+    });
+
+    if (rejection) {
+      await route.abort('blockedbyclient');
+
+      return;
+    }
+
+    await route.continue();
+  } catch {
+    /* A failed routing or DNS decision never restores unrestricted access. */
+    await route.abort('blockedbyclient').catch(() => undefined);
+  }
+}
+
 export class PlaywrightPageRenderer implements PageRenderer {
   #browser: Browser | undefined;
   #launching: Promise<Browser> | undefined;
 
-  constructor(private readonly options: PlaywrightRendererOptions = {}) {}
+  constructor(private readonly _options: PlaywrightRendererOptions = {}) {}
 
   async #browserInstance(): Promise<Browser> {
     if (this.#browser?.isConnected()) {
@@ -56,7 +124,11 @@ export class PlaywrightPageRenderer implements PageRenderer {
     // Coalesce concurrent first-hits onto a single launch.
     if (!this.#launching) {
       this.#launching = chromium
-        .launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] })
+        .launch({
+          headless: true,
+          executablePath: this._options.chromiumExecutablePath,
+          args: ['--no-sandbox', '--disable-dev-shm-usage'],
+        })
         .then((browser: Browser) => {
           this.#browser = browser;
           this.#launching = undefined;
@@ -78,6 +150,7 @@ export class PlaywrightPageRenderer implements PageRenderer {
     const context = await browser.newContext({
       viewport: { width: input.width, height: input.height },
       deviceScaleFactor: 1,
+      serviceWorkers: 'block',
 
       /*
        * The preview may not have a valid cert in some environments; a thumbnail
@@ -96,58 +169,9 @@ export class PlaywrightPageRenderer implements PageRenderer {
        * assets are loaded from the same preview host). The SSRF allowlist has
        * already vetted the input URL in app.ts, so this only redirects vetted hosts.
        */
-      const suffixes = this.options.previewHostSuffixes ?? [];
-      const isPreviewHost = (h: string) => suffixes.some((suffix) => h === suffix || h.endsWith(`.${suffix}`));
-      const proxying = Boolean(this.options.previewProxyUrl) && suffixes.length > 0;
-
-      if (proxying) {
-        const proxy = new URL(this.options.previewProxyUrl!);
-
-        await context.route('**/*', async (route) => {
-          try {
-            const requestUrl = new URL(route.request().url());
-
-            if (!isPreviewHost(requestUrl.hostname.toLowerCase())) {
-              await route.continue();
-              return;
-            }
-
-            /*
-             * route.continue requires the SAME protocol; the proxy is http, so the
-             * request must already be http (we force http on the nav below, and an
-             * http page's subresources are http/relative). Preserve the original
-             * preview Host so the proxy routes to the right workspace.
-             */
-            const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
-            await route.continue({ url: target, headers: { ...route.request().headers(), host: requestUrl.host } });
-          } catch {
-            /*
-             * Never let a routing hiccup crash the process (an unhandled throw in a
-             * route handler would take down the pod). Fall back to the original.
-             */
-            await route.continue().catch(() => route.abort().catch(() => {}));
-          }
-        });
-      }
+      await context.route('**/*', (route) => guardScreenshotRoute(route, this._options));
 
       const page = await context.newPage();
-
-      /*
-       * Force http on the top-level nav for a preview host: the proxy is http and
-       * route.continue can't cross protocols (https→http throws). An http page then
-       * requests http/relative subresources, which the route above rewrites cleanly.
-       */
-      let navUrl = input.url;
-
-      if (proxying) {
-        const parsed = new URL(input.url);
-
-        if (isPreviewHost(parsed.hostname.toLowerCase())) {
-          parsed.protocol = 'http:';
-          parsed.port = '';
-          navUrl = parsed.toString();
-        }
-      }
 
       /*
        * Use 'load', NOT 'networkidle': a preview is a Vite/HMR app that holds a
@@ -157,9 +181,9 @@ export class PlaywrightPageRenderer implements PageRenderer {
        * document + subresources are in; a short settle then covers SPA mount and
        * late paints/animations.
        */
-      const response = await page.goto(navUrl, {
+      const response = await page.goto(input.url, {
         waitUntil: 'load',
-        timeout: this.options.navTimeoutMs ?? 15_000,
+        timeout: this._options.navTimeoutMs ?? 15_000,
       });
 
       /*
@@ -181,7 +205,7 @@ export class PlaywrightPageRenderer implements PageRenderer {
         throw new PageRenderError(`refusing to capture an error page (HTTP ${status})`, status);
       }
 
-      await page.waitForTimeout(this.options.settleMs ?? 1_500);
+      await page.waitForTimeout(this._options.settleMs ?? 1_500);
 
       return await page.screenshot({ type: 'png', fullPage: false });
     } finally {

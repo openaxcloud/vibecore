@@ -680,10 +680,10 @@ export function detectUsageAbuse(input: {
  * ⚠️ HONEST LIMIT: this closes the check-time hole, not the full
  * time-of-check/time-of-use race. A true DNS-rebinding attacker can answer our
  * lookup with a public address and the CLIENT's subsequent lookup with a private
- * one. Eliminating that requires pinning the resolved address through to the
- * socket, which the HTTP clients in use here do not expose. Callers that need
- * that guarantee must route through an in-cluster proxy instead (which is what
- * the screenshotter already does for preview hosts).
+ * one. Eliminating that requires passing the validated address through to each
+ * socket. Native HTTP clients expose lookup hooks; the callers here have not
+ * wired them yet. Preview hosts use a configured in-cluster proxy, but that
+ * does not establish the same guarantee for arbitrary external resources.
  */
 const BLOCKED_IPV4_RANGES: ReadonlyArray<readonly [string, number]> = [
   ['0.0.0.0', 8], // "this network"

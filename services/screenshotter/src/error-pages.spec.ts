@@ -18,7 +18,11 @@ import { PageRenderError } from './browser.js';
  * chaque aperçu qui n'existe pas encore.
  */
 
-const ALLOWED = { allowedHostSuffixes: ['preview.e-code.ai'] };
+const ALLOWED = {
+  allowedHostSuffixes: ['preview.e-code.ai'],
+  resolveHost: async () => ['93.184.216.34'],
+};
+
 const URL_OK = 'https://ws-1.preview.e-code.ai/';
 
 function rendererThrowing(error: Error): PageRenderer {
