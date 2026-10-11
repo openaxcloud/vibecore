@@ -112,6 +112,9 @@ export default defineConfig({
         // Un rognage par conteneur de défilement : mesuré identique sur les deux moteurs, épinglé sur les deux.
         /bandeau-toast-visible\.spec\.ts/,
 
+        // Sans cookie : l'inscription par un fournisseur garde la destination, sur le moteur d'Avi aussi.
+        /oauth-garde-la-destination\.spec\.ts/,
+
         // BUG-QA0928-MODALE-SANS-FOCUS : mesuré sur WebKit (focus resté dans la page), épinglé sur ce moteur aussi.
         /modale-accueil-prend-le-focus\.spec\.ts/,
 

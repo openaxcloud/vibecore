@@ -174,6 +174,43 @@ describe('<MenuContextuel /> sur une bulle', () => {
     expect(bulle.parentElement?.contains(menu)).toBe(false);
   });
 
+  it('sur téléphone, le focus va au MENU et non à sa première action — ailleurs, à la première action', async () => {
+    /*
+     * 01/10, Safari iOS : après un appui long, l'anneau de `:focus-visible` se
+     * peignait sur « Copier », comme si le doigt l'avait choisie.
+     */
+    const { unmount } = render(
+      <div className="bolt-responsive-ide-mobile">
+        <Bulle />
+      </div>,
+    );
+    envoyerPointeur(screen.getByTestId('bulle'), 'pointerdown');
+
+    await act(async () => {
+      await new Promise((resoudre) => setTimeout(resoudre, DELAI_APPUI_LONG_MS + 50));
+    });
+
+    expect(document.activeElement).toBe(screen.getByRole('menu'));
+    unmount();
+
+    // Contre-épreuve : hors du gabarit mobile (souris, clavier), la première action est désignée.
+    render(<Bulle />);
+    fireEvent.contextMenu(screen.getByTestId('bulle'), { clientX: 40, clientY: 60 });
+
+    const menu = screen.getByRole('menu');
+
+    expect(document.activeElement).not.toBe(menu);
+    expect(menu.contains(document.activeElement)).toBe(true);
+  });
+
+  it('le panneau, porteur du focus, ne dessine pas d’anneau (le contour par défaut de Safari entourait la barre)', () => {
+    const feuille = readFileSync('app/styles/index.scss', 'utf8');
+
+    expect(feuille).toMatch(
+      /\.bolt-message-context-menu:focus \{[^}]*outline: none;\s*box-shadow: 0 18px 48px rgb\(0 0 0 \/ 0\.35\);\s*\}/,
+    );
+  });
+
   it('Échap referme le menu', () => {
     render(<Bulle />);
     fireEvent.contextMenu(screen.getByTestId('bulle'), { clientX: 40, clientY: 60 });

@@ -181,3 +181,10 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 
 ⚠️ Capacité : demande de quota `SSD_TOTAL_GB` REPORTÉE par Google (« resubmit après 48 h ou avec plus d'historique billing » — pas un refus définitif). État 15/07 soir : 432/500, dont **400 = boot disks pd-balanced des 4 nœuds gvisor** (aucun pd-ssd n'existe ; pd-balanced compte DANS ce quota). Seule sortie structurelle : recréer le pool gvisor avec boot disks **pd-standard 200 Go** (throughput ≈ équivalent, coût identique, `DISKS_TOTAL_GB` 4,2/20 To) → SSD ~32/500 et autoscale débloqué. GO d'Avi requis (drain = redémarrage des pods workspaces). Ménage fait : spike-workspace-pvc (2 Go SSD) + 19 PVC d'orgs de test E2E supprimées.
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
+
+## Paiement — lancement (08/10/2026)
+
+| Point | 📤 Dispatché | 💻 Codé | ✅ Testé live | Preuve / reste |
+|---|:---:|:---:|:---:|---|
+| BILLING-ANNUAL — conserver la période et refuser un annuel sans prix annuel | ✅ 08/10 | ☐ branche | ☐ | `services/api/src/tests/api.spec.ts` + `app/routes/upgrade.i18n.spec.tsx` ; production responsive à vérifier. |
+| BILLING-CATALOG — Core 25 / Pro 100, décision Avi | ✅ 08/10 | ☐ | ☐ | Réconcilier devise, prix Stripe et abonnements existants. |
