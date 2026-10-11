@@ -55,29 +55,35 @@ const ALLOWED = [
   /\bhelm repo\b/,
   /\bcommand (helm|kubectl|terraform)\b/,
   /\bcommand -v (helm|kubectl|terraform)\b/,
-  // Enveloppe dediee au CONTROLE D'INTEGRITE de la prod : lecture seule, cible
-  // figee, sous-commandes mutantes refusees (voir lib.sh).
+
+  /*
+   * Enveloppe dediee au CONTROLE D'INTEGRITE de la prod : lecture seule, cible
+   * figee, sous-commandes mutantes refusees (voir lib.sh).
+   */
   /\baudit_helm_prod_readonly\b/,
   /\bkubectl config\b/,
 ];
 
 const CALL = /(?:^|[\s;&|(`$])(helm|kubectl|terraform)\s/;
+
 /**
  * Retire les chaînes littérales SANS substitution de commande : le mot
  * « terraform » dans un `echo` n'exécute rien. Une chaîne contenant `$(` ou une
  * backquote est conservée telle quelle — c'est justement là que se cache un appel
  * réel (`"$(terraform output …)"`).
  */
-const stripLiterals = (code) =>
-  code.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (m) => (/\$\(|`/.test(m) ? m : ''));
+const stripLiterals = (code) => code.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (m) => (/\$\(|`/.test(m) ? m : ''));
 
 /** Ouverture de heredoc : `<<EOF`, `<<-'EOF'`, `<< "EOF"`. */
 const HEREDOC_OPEN = /<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1/;
 
 const offenders = [];
 
-for (const file of readdirSync(DIR).filter((f) => f.endsWith('.sh')).sort()) {
+for (const file of readdirSync(DIR)
+  .filter((f) => f.endsWith('.sh'))
+  .sort()) {
   const lines = readFileSync(join(DIR, file), 'utf8').split('\n');
+
   /** Délimiteur du heredoc en cours, sinon null. */
   let heredoc = null;
 
@@ -107,6 +113,7 @@ if (offenders.length > 0) {
   console.error(
     'Appel helm/kubectl/terraform SANS cible epinglee (utiliser audit_helm / audit_kubectl / audit_terraform) :',
   );
+
   for (const o of offenders) {
     console.error(`  ${o}`);
   }

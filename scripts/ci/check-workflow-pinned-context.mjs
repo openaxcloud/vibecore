@@ -33,18 +33,12 @@ const DIR = join(import.meta.dirname, '..', '..', '.github', 'workflows');
  * contourne le kubeconfig entièrement. Seule l'enveloppe vérifie l'identité auprès
  * de GCP — donc seule l'enveloppe est acceptée.
  */
-const ALLOWED = [
-  /scripts\/ci\/cluster\.sh/,
-  /\bkubectl config\b/,
-  /\bhelm repo\b/,
-  /\bhelm (lint|template|show)\b/,
-];
+const ALLOWED = [/scripts\/ci\/cluster\.sh/, /\bkubectl config\b/, /\bhelm repo\b/, /\bhelm (lint|template|show)\b/];
 
 const CALL = /(?:^|[\s;&|(`$])(helm|kubectl)\s/;
 
 /** Chaînes littérales sans substitution de commande : elles n'exécutent rien. */
-const stripLiterals = (code) =>
-  code.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (m) => (/\$\(|`/.test(m) ? m : ''));
+const stripLiterals = (code) => code.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, (m) => (/\$\(|`/.test(m) ? m : ''));
 
 const offenders = [];
 
@@ -54,8 +48,11 @@ const offenders = [];
  * comme du code produisait un faux positif, et un faux positif dans une garde
  * bloquante finit par être désactivé.
  */
-for (const file of readdirSync(DIR).filter((f) => /\.ya?ml$/.test(f)).sort()) {
+for (const file of readdirSync(DIR)
+  .filter((f) => /\.ya?ml$/.test(f))
+  .sort()) {
   const lines = readFileSync(join(DIR, file), 'utf8').split('\n');
+
   /** Indentation du `run:` en cours, sinon null. */
   let runIndent = null;
 
@@ -101,6 +98,7 @@ for (const file of readdirSync(DIR).filter((f) => /\.ya?ml$/.test(f)).sort()) {
 
 if (offenders.length > 0) {
   console.error('Appel helm/kubectl SANS cible epinglee dans un workflow (utiliser scripts/ci/cluster.sh) :');
+
   for (const o of offenders) {
     console.error(`  ${o}`);
   }

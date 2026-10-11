@@ -1,5 +1,6 @@
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+// eslint-disable-next-line no-restricted-imports -- Exercise the repository detector outside the application alias.
 import { inventorierComposants, modulesReferences } from '../../scripts/composants-sans-import.mjs';
 
 const racine = resolve(process.cwd(), 'app');
