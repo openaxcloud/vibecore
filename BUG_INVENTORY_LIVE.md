@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-397 entrées.
+398 entrées.
 
 ## Sans section
 
@@ -444,6 +444,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-QA1011-APP-GRATUITE-ETEINTE-A-30-JOURS-SANS-PREVENIR](docs/bugs/BUG-QA1011-APP-GRATUITE-ETEINTE-A-30-JOURS-SANS-PREVENIR.md) — Une application publiée au forfait gratuit est ÉTEINTE automatiquement au bout de 30 jours, et rien ne le dit au — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1011-PUBLICATION-ECHOUE-AU-BUILD](docs/bugs/BUG-QA1011-PUBLICATION-ECHOUE-AU-BUILD.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1011-DESABONNEMENT-NEWSLETTER-SANS-EFFET](docs/bugs/BUG-QA1011-DESABONNEMENT-NEWSLETTER-SANS-EFFET.md) — Les pages `/newsletter/unsubscribe` et `/newsletter/confirm` promettent une action qu'aucun code n'exécute. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
