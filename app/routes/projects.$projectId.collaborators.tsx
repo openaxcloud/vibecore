@@ -171,12 +171,20 @@ export default function ProjectCollaboratorsPage() {
       title={copy['projectCollaborators.title']}
       description={copy['projectCollaborators.description']}
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-        <div className="grid gap-6">
+      {/*
+       * Mesuré le 16/09 (audit i18n, shard desktop-1024, 3/3, clair ET sombre) :
+       * `body.scrollWidth` 1034 pour 1024 en FRANÇAIS. Un `<select>` a pour
+       * largeur minimale son option la plus longue (« Éditeur — modification… »,
+       * 401 px) et un élément de grille ne descend jamais sous son min-content :
+       * la colonne de 380 px débordait à 445 px. Les contrôles prennent la
+       * largeur de la colonne au lieu de la dicter, et les pistes sont clampées.
+       */}
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
           <CollaboratorList collaborators={data.collaborators ?? []} removing={removingUserId} />
           <InviteLinkList links={shareLinks} />
         </div>
-        <div className="grid gap-6">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
           <Form
             method="post"
             className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6"
@@ -188,7 +196,7 @@ export default function ProjectCollaboratorsPage() {
             <label className="grid gap-2 text-sm font-medium">
               {copy['projectCollaborators.role']}
               <select
-                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+                className="h-10 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
                 name="roleKey"
                 defaultValue="editor"
               >
@@ -228,7 +236,7 @@ export default function ProjectCollaboratorsPage() {
             <label className="grid gap-2 text-sm font-medium">
               {copy['projectCollaborators.role']}
               <select
-                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+                className="h-10 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
                 name="roleKey"
                 defaultValue="viewer"
               >
@@ -242,7 +250,7 @@ export default function ProjectCollaboratorsPage() {
             <label className="grid gap-2 text-sm font-medium">
               {copy['projectCollaborators.invite.expiresAfter']}
               <select
-                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+                className="h-10 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
                 name="expiresInMinutes"
                 defaultValue={String(60 * 24)}
               >
@@ -525,7 +533,7 @@ function Field(props: { label: string; name: string; type?: string; required?: b
     <label className="grid gap-2 text-sm font-medium">
       {props.label}
       <input
-        className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+        className="h-10 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
         name={props.name}
         type={props.type ?? 'text'}
         required={props.required}

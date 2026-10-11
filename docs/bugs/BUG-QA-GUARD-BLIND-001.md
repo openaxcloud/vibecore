@@ -9,11 +9,11 @@ section: "Balayage QA du 2026-09-04 — panneaux instables, lenteur, archive, é
 
 ## 📤
 
-☐
+☑ 16/09 — instruit par cette session, sans dispatch.
 
 ## 💻
 
-☐
+☑ 16/09 — **la migration complète, laissée « à une décision explicite » le 01/09, est faite** : les **39 sites dans 15 specs** qui lisaient `document.documentElement.scrollWidth` (bornée à `clientWidth` par le `overflow-x: clip` du produit) lisent désormais `document.body.scrollWidth`, la métrique de `mobile-content-clipping.spec.ts` (#336), la seule que le clip ne borne pas. Une même substitution partout, pas 39 correctifs (règle 7). **Épinglé par `scripts/garde-debordement-metrique-honnete.spec.mjs`** (3 verts) : aucun spec e2e ne relit la métrique aveugle — seul `mobile-content-clipping.spec.ts`, qui documente le piège, a le droit de la nommer — et le spec de référence garde sa contre-épreuve (bloc de 3 000 px injecté). **Contrôle avant push** : 6 specs migrés (`public-homepage`, `ecode-marketing-content`, `auth-theme`, `user-area-navigation`, `dashboard`, `mobile-content-clipping`) sur pile locale (build `d094df01`, Chromium) → **32 verts, 4 rouges tous `@runtime`** (pod d'exécution absent de la pile locale, exclus par la CI elle-même via `--grep-invert @runtime`) ; aucun garde de débordement n'a rougi — la migration ne révèle pas de page amputée sur ces parcours.
 
 ## ✅
 

@@ -8,15 +8,15 @@ id: BUG-BUILD-003
 
 ## 📤 Dispatché
 
-☐
+☑
 
 ## 💻 Codé
 
-☐
+☑ 07/09 — **corrigé par #483** (`2badaced`, AUDX-173) : `deploy-main.yml` détecte `apps/admin/` et `infra/cloudbuild/admin-tier.yaml` (`ADMIN=true`), publie la sortie `admin`, et porte une étape « Build 4/4 : admin tier » bloquante (`set -euo pipefail`, `--config=infra/cloudbuild/admin-tier.yaml`), conditionnée à cette sortie. Le repli « rien de détecté → web+runtime » est délibérément SANS admin : il ne couvre que des fichiers hors de tout motif (CI, scripts, tests), et `apps/admin/package.json` n'a aucune dépendance `workspace:` — les entrées partagées (`packages/`, lockfile, Dockerfile…) reconstruisent, elles, les quatre étages. Constaté le 16/09 sur les runs 1608 → 1611 : l'étape existe et est `skipped` faute de changement sous `apps/admin/` — c'est le comportement voulu. **Épinglé le 16/09 par `scripts/garde-deploy-admin-tier.spec.mjs`** (détection, sortie, étape bloquante, entrées partagées → tout, et « l'admin n'a pas de dépendance workspace » — le jour où il en prend une, le motif devra s'élargir et ce test le dira).
 
 ## ✅ Testé live
 
-☐ **Constaté 18/08**
+☐ — **à constater sur le premier run où `apps/admin/` change** : « Build admin tier (Cloud Build) » doit passer de `skipped` à `success`, et l'image admin en prod doit porter le SHA du run (`kubectl -n vibecore get deploy admin -o jsonpath='{.spec.template.spec.containers[0].image}'`). Écart mesuré le 18/08 : `admin` = `ef05fea502` contre `web` à jour.
 
 ## Preuve
 

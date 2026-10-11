@@ -392,7 +392,7 @@ async function assertCompactShellForProfile(
           statusElement.offsetParent !== null;
 
         return {
-          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          overflowX: document.body.scrollWidth > window.innerWidth + 1,
           navVisible:
             navElement instanceof HTMLElement &&
             getComputedStyle(navElement).display !== 'none' &&
@@ -912,7 +912,7 @@ async function assertCompactPanelLayout(page: Page, profileName: string, panel: 
     return {
       innerWidth: window.innerWidth,
       innerHeight: window.innerHeight,
-      overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      overflowX: document.body.scrollWidth > window.innerWidth + 1,
       shell: rect(shell),
       header: rect(header),
       nav: navRect,

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-396 entrées.
+398 entrées.
 
 ## Sans section
 
@@ -66,7 +66,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-HISTORY-CLEAR-002](docs/bugs/BUG-HISTORY-CLEAR-002.md) — 3 fois sur 3 — 📤 Dispatché : ☑ 14/09 · 💻 Codé : ☑ 14/09 · ✅ Testé live : ☐
 - [BUG-DEPLOY-ACTIONS-MOBILE-001](docs/bugs/BUG-DEPLOY-ACTIONS-MOBILE-001.md) — P2 — Déploiements « Gérer » sur iPhone : « Redéployer / Restauration / Annuler » empilés sur trois lignes, chacun étroit — 📤 Dispatché : ☑ 06/09 · 💻 Codé : ☑ 06/09 (`main`), déployé run 1498 (abaa279), 12:35 UTC — sur téléphone : ligne qui se replie (`display: flex · ✅ Testé live : ☐
 - [BUG-PROBLEMS-STALE-START-001](docs/bugs/BUG-PROBLEMS-STALE-START-001.md) — P2 — Problèmes garde les erreurs d'un démarrage raté pendant que la Webview sert l'application — 📤 Dispatché : ☑ 06/09 · 💻 Codé : ☑ 06/09 (`main`), déployé run 1498 (abaa279), 12:35 UTC — `buildRuntimeDiagnostics` : une ligne « prêt » du se · ✅ Testé live : ☐
-- [BUG-IDE-SPLIT-EFFACE-001](docs/bugs/BUG-IDE-SPLIT-EFFACE-001.md) — P2 — un partage de panneau (« Split active right ») DISPARAÎT tout seul ~2,5 s après avoir été fait, quand la machine est chargée. — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☐ — cause racine NON établie, et je ne livre pas un correctif sur une route déduite (règle 1) · ✅ Testé live : ☐
+- [BUG-IDE-SPLIT-EFFACE-001](docs/bugs/BUG-IDE-SPLIT-EFFACE-001.md) — P2 — un partage de panneau (« Split active right ») DISPARAÎT tout seul ~2,5 s après avoir été fait, quand la machine est chargée. — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 16/09 — cause racine MESURÉE, pas déduite (build instrumenté, CPU ×20 + 4 boucles CPU, puis reproduction dét · ✅ Testé live : ☐ — à constater sur `app.e-code.ai` après déploiement : ouvrir un projet sur une connexion lente (ou juste apr
 - [BUG-DEPLOY-PROVIDERS-UI-001](docs/bugs/BUG-DEPLOY-PROVIDERS-UI-001.md) — P1 — l'assistant proposait SEPT hébergeurs dont SIX ne pouvaient pas aboutir — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
 - [BUG-PUBLISH-NOOP-001](docs/bugs/BUG-PUBLISH-NOOP-001.md) — P1 — « Republier » ne lance AUCUN déploiement : le bouton renvoie vers l'onglet « Gérer » — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
 - [BUG-PUBLISH-SIZES-001](docs/bugs/BUG-PUBLISH-SIZES-001.md) — P2 — panneau Déploiements : tout le contenu est TROP GROS, loin de Replit — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
@@ -239,24 +239,24 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-CI-006](docs/bugs/BUG-CI-006.md) — P2 — le job « windows desktop build » échoue sur `main` pour une syntaxe d'environnement POSIX — 📤 Dispatché : ✅ 15/08 · 💻 Codé : ✅ corrigé `dd3503bb` · ✅ Testé live : ☐
 - [BUG-STORAGE-001](docs/bugs/BUG-STORAGE-001.md) — `true` — 📤 Dispatché : \ · 💻 Codé : payload.code === undefined`) — un fourre-tout qui masque les vraies pannes amont derrière un message « demande · ✅ Testé live : ☑ 09/09
 - [BUG-GIT-001](docs/bugs/BUG-GIT-001.md) — P1 — « Committer les modifications » répond `200` et NE COMMITTE RIEN. — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
-- [BUG-CI-007](docs/bugs/BUG-CI-007.md) — P2 — le job « macos desktop build » échoue à l'empaquetage sur une incompatibilité d'outillage `electron-builder`. — 📤 Dispatché : ☐ · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté live 15/08
+- [BUG-CI-007](docs/bugs/BUG-CI-007.md) — P2 — le job « macos desktop build » échoue à l'empaquetage sur une incompatibilité d'outillage `electron-builder`. — 📤 Dispatché : ☑ 16/09 — instruit par cette session, sans dispatch : le défaut ne se reproduit plus. · 💻 Codé : ☑ 16/09 — plus reproduit, sous l'outillage épinglé par le lockfile : `electron-builder` 26.8.1 / `app-builder- · ✅ Testé live : ☑ 16/09 — testé en réel là où le défaut vit, la CI macOS (constaté rouge le 15/08) : job `104680997149` (run `
 - [BUG-I18N-004](docs/bugs/BUG-I18N-004.md) — P3 — l'état d'un port s'affiche « commencer » en français : le VERBE à l'infinitif là où l'anglais met un ÉTAT. — 📤 Dispatché : ✅ 15/08 · 💻 Codé : ✅ corrigé `74f00c73` · ✅ Testé live : ☐
 - [BUG-CI-008](docs/bugs/BUG-CI-008.md) — P2 — les jobs Playwright échouent avant tout test parce que leurs services d'infra ne démarrent pas. — 📤 Dispatché : ☐ · 💻 Codé : ☑ 10/09 · ✅ Testé live : ☐ Constaté live 15/08
 - [BUG-CI-IOS-JAMAIS-EXECUTE-001](docs/bugs/BUG-CI-IOS-JAMAIS-EXECUTE-001.md) — P1 — LE MOTEUR DE SAFARI iOS N'ÉTAIT TESTÉ NULLE PART, alors que la garde écrite pour lui existait. — 📤 Dispatché : ☑ 10/09 · 💻 Codé : ☑ 10/09 · ✅ Testé live : ☐
-- [BUG-CI-009](docs/bugs/BUG-CI-009.md) — P2 — deuxième défaut du build desktop Windows, révélé par la correction de BUG-CI-006 : `EBUSY` sur la copie des assets. — 📤 Dispatché : ☐ · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté live 16/08
+- [BUG-CI-009](docs/bugs/BUG-CI-009.md) — P2 — deuxième défaut du build desktop Windows, révélé par la correction de BUG-CI-006 : `EBUSY` sur la copie des assets. — 📤 Dispatché : ☑ 16/09 — instruit par cette session, sans dispatch : le correctif était déjà sur `main`. · 💻 Codé : ☑ 16/09 — corrigé par `publicDir: false` + `emptyOutDir: false` dans `electron/main/vite.config.ts` ET `electr · ✅ Testé live : ☑ 16/09 — testé en réel là où le défaut vit, la CI Windows (constaté rouge le 16/08) : job `104680997262` (run
 - [BUG-STORAGE-002](docs/bugs/BUG-STORAGE-002-b.md) — Le client Google prend son jeton auprès de `169.254.169.254` ; sans egress vers lui, `deny-all-default` le bloque, l'obtention du jeton part en timeout et — 📤 Dispatché : 📤 Dispatché · 💻 Codé : 💻 Codé (branche `fix/np-metadata-workload-identity`, SHA `6a8e6a8a00`) — NON APPLIQUÉ · ✅ Testé live : ☐
 - [BUG-INFRA-001](docs/bugs/BUG-INFRA-001.md) — P2 — le pool `system-std` de la prod n'a qu'un disque de boot de 50 Go, et chaque déploiement le pousse en `DiskPressure`, ce qui évince des pods. — 📤 Dispatché : 📤 Dispatché · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté live 17/08 — atténué, PAS résolu
 - [BUG-WEB-001](docs/bugs/BUG-WEB-001.md) — P1 (lancement) — `www.e-code.ai` n'est déclaré dans aucun ingress : erreur de certificat puis 404. — 📤 Dispatché : 📤 Dispatché · 💻 Codé : 💻 Codé (PR #141, branche `fix/ingress-www-apex-redirect`, SHA `1e9765d7a9`) — inerte par défaut, NON activé e · ✅ Testé live : ☐
 - [BUG-WORKER-001](docs/bugs/BUG-WORKER-001.md) — P1 — quatre jobs internes du worker échouaient à CHAQUE déclenchement en production : plus aucun métrage, ni maintenance base. — 📤 Dispatché : 📤 Dispatché · 💻 Codé : 💻 Codé (branche `fix/worker-api-url-resolution`, SHA `0b643836c4`) · ✅ Testé live : ☐ À vérifier après déploiement
 - [BUG-WORKER-002](docs/bugs/BUG-WORKER-002.md) — P3 — `enqueue()` ne valide pas le nom de la file : une CronJob mal configurée empile silencieusement dans une file inexistante au lieu d'échouer. — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
 - [BUG-BUILD-002](docs/bugs/BUG-BUILD-002.md) — P1 — le tier `admin` était INCONSTRUCTIBLE : `app/` manquait au contexte Docker. — 📤 Dispatché : 📤 Dispatché · 💻 Codé : 💻 Codé — mergé sur `main` (SHA `d839c4f65b`, merge `ac1ed19d81`) · ✅ Testé live : ✅ PROUVÉ par un build Docker RÉEL 18/08
-- [BUG-BUILD-003](docs/bugs/BUG-BUILD-003.md) — P1 — le déploiement automatique NE RECONSTRUIT JAMAIS le tier `admin`, donc son image de production reste figée même une fois le code réparé. — 📤 Dispatché : ☐ · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté 18/08
+- [BUG-BUILD-003](docs/bugs/BUG-BUILD-003.md) — P1 — le déploiement automatique NE RECONSTRUIT JAMAIS le tier `admin`, donc son image de production reste figée même une fois le code réparé. — 📤 Dispatché : ☑ · 💻 Codé : ☑ 07/09 — corrigé par #483 (`2badaced`, AUDX-173) : `deploy-main.yml` détecte `apps/admin/` et `infra/cloudbui · ✅ Testé live : ☐ — à constater sur le premier run où `apps/admin/` change : « Build admin tier (Cloud Build) » doit passer de
 - [BUG-TERM-003](docs/bugs/BUG-TERM-003.md) — P1 — l'identifiant de session du panneau Terminal DÉRIVAIT à chaque montage, donc un panneau ne rattachait jamais son propre shell. — 📤 Dispatché : 📤 Dispatché · 💻 Codé : 💻 Codé — mergé sur `main` (PR #140, merge `35222455`) · ✅ Testé live : ✅ TESTÉ LIVE 17/08 — rattachement après rechargement prouvé à l'écran
 - [BUG-CI-010](docs/bugs/BUG-CI-010.md) — P2 — la porte CI « French i18n live audit » n'a JAMAIS été verte, et masque un vrai défaut SEO sur 61 pages. — 📤 Dispatché : ☐ · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐ Constaté 17/08
 - [BUG-TERM-002](docs/bugs/BUG-TERM-002.md) — P1 — le client forge un `sessionId` NEUF à chaque tentative de connexion, donc le terminal du navigateur ne peut jamais se rattacher. — 📤 Dispatché : ☐ · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐ Constaté live 16/08
 - [BUG-AGENT-002](docs/bugs/BUG-AGENT-002.md) — P1 — les 429 ne sont pas gérés sur le chemin d'écriture de l'agent, et sont rejoués. — 📤 Dispatché : ☐ · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐ Constaté live 15/08
 - [BUG-AGENT-003](docs/bugs/BUG-AGENT-003.md) — P1 — les 5 sous-agents parallèles échouent tous, le consensus est rejeté à 0 %, et le run est quand même affiché « Terminé 100 % ». — 📤 Dispatché : ☐ · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐ Constaté live 15/08
-- [BUG-IDE-007](docs/bugs/BUG-IDE-007.md) — P1 — l'arbre de fichiers reste désynchronisé et « Actualiser les fichiers » ne le répare pas. — 📤 Dispatché : ☐ · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté live 15/08
+- [BUG-IDE-007](docs/bugs/BUG-IDE-007.md) — P1 — l'arbre de fichiers reste désynchronisé et « Actualiser les fichiers » ne le répare pas. — 📤 Dispatché : ☑ 16/09 · 💻 Codé : ☑ 16/09 — MÉCANISME, lu dans le code : « Actualiser les fichiers » appelle `workbenchStore.loadRuntimeFiles('. · ✅ Testé live : ☐ Constaté live 15/08 — à revérifier sur `app.e-code.ai` après déploiement : après une génération, si la Bibli
 - [BUG-UX-014](docs/bugs/BUG-UX-014.md) — P2 — l'écran de démarrage de la Webview affiche « Prêt » et coche ses 4 étapes alors qu'il indique juste en dessous « Le serveur d'aperçu démarre encore ; nouve — 📤 Dispatché : ☐ · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐ Constaté live 15/08
 - [BUG-API-004](docs/bugs/BUG-API-004.md) — `GET /api/runtime/workspaces/:id/files?path=.` → — 📤 Dispatché : ☐ · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐ Constaté live 15/08
 - [BUG-IDE-008](docs/bugs/BUG-IDE-008.md) — P3 — `lost+found` du PVC ext4 est exposé dans l'arbre de fichiers du projet, et sa lecture rend `400`. — 📤 Dispatché : ☐ · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐ Constaté live 15/08
@@ -443,6 +443,14 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
 - [CONSTAT-PAGES-GABARIT-PUBLIQUES](docs/bugs/CONSTAT-PAGES-GABARIT-PUBLIQUES.md) — `e-code.ai/plans` et 56 autres pages publiques montrent au visiteur du texte de DÉVELOPPEMENT, et `/plans` n'affiche — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Balayage QA du 2026-09-04 — panneaux instables, lenteur, archive, état de l'IDE
+
+- [BUG-QA-MOBILE-CLIP-004](docs/bugs/BUG-QA-MOBILE-CLIP-004.md) — P1 — en FRANÇAIS, à 1024 px, `/projects/:id/collaborators` ampute son contenu : `body.scrollWidth` 1034 pour 1024 (clair et sombre), sans défilement possible. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Découvertes du canari mobile — 2026-09-16
+
+- [BUG-A11Y-PANNEAU-GARE-001](docs/bugs/BUG-A11Y-PANNEAU-GARE-001.md) — P2 — sur l'IDE mobile, le panneau quitté reste atteignable au clavier alors qu'il est garé hors écran. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

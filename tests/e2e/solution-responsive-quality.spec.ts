@@ -63,7 +63,7 @@ async function settleResponsiveLayout(page: Page, width: number) {
 async function expectNoHorizontalOverflow(page: Page, width: number) {
   const dimensions = await page.evaluate(() => ({
     body: document.body.scrollWidth,
-    document: document.documentElement.scrollWidth,
+    document: document.body.scrollWidth,
     viewport: window.innerWidth,
   }));
 

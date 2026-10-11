@@ -9,15 +9,15 @@ section: "Balayage QA du 2026-09-04 — panneaux instables, lenteur, archive, é
 
 ## 📤
 
-☐
+☑ — porté par #336 (10/09)
 
 ## 💻
 
-☐
+☑ 10/09 — **corrigé par #336** (`bcec1885`) : piste clampée `grid-cols-[minmax(0,1fr)]` déclarée au breakpoint de base sur la grille fautive (règle 7 : les trois pages du même mécanisme corrigées ensemble). **Épinglé par `tests/e2e/mobile-content-clipping.spec.ts`**, qui mesure `document.body.scrollWidth` — la seule métrique que `overflow-x: clip` ne borne pas — et embarque sa contre-épreuve (bloc de 3 000 px injecté). Re-mesuré le 16/09 sur build local (`d094df01`, Chromium 390×844, dpr 3) : `/community` → `body.scrollWidth = 390` pour `clientWidth = 390`, **0 px amputé** (était +150).
 
 ## ✅
 
-✅ **01/09** mesuré live + captures avant/après
+☐ — défaut constaté live le 01/09 ; le correctif reste **à constater sur iPhone** (Safari, `app.e-code.ai`, /community en portrait) : rien d'amputé à droite, la page ne défile pas horizontalement.
 
 ## Preuve
 

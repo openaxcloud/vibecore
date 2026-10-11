@@ -73,7 +73,7 @@ for (const theme of ['dark', 'light'] as const) {
         return {
           htmlTheme: document.documentElement.getAttribute('data-theme'),
           colorScheme: document.documentElement.style.colorScheme,
-          documentWidth: document.documentElement.scrollWidth,
+          documentWidth: document.body.scrollWidth,
           viewportWidth: window.innerWidth,
           pageBackground: pageStyle.backgroundColor,
           titleColor: title.color,

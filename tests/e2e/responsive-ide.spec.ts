@@ -84,7 +84,7 @@ async function expectCompactIdeSurfaceFitsViewport(page: import('@playwright/tes
     );
 
     return {
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       surfaces: surfaces.filter(
         (surface) =>
           surface.display !== 'none' && surface.visibility !== 'hidden' && surface.width > 0 && surface.height > 0,
@@ -247,7 +247,7 @@ async function expectMobileBottomNavigationIsTouchSafe(page: import('@playwright
 
     return {
       buttons,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       navBottom: navRect.bottom,
       navLeft: navRect.left,
       navRight: navRect.right,
@@ -291,8 +291,11 @@ async function expectSettingsTabRailFitsViewport(page: import('@playwright/test'
       .map((button) => {
         const rect = button.getBoundingClientRect();
 
+        const label = button.querySelector('span');
+
         return {
           height: rect.height,
+          labelClipped: label ? label.scrollWidth > label.clientWidth + 1 : false,
           left: rect.left,
           right: rect.right,
           text: button.textContent?.trim() ?? '',
@@ -312,7 +315,7 @@ async function expectSettingsTabRailFitsViewport(page: import('@playwright/test'
     }, 0);
 
     return {
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       railLeft: railRect.left,
       railRight: railRect.right,
       viewportWidth: window.innerWidth,
@@ -330,8 +333,19 @@ async function expectSettingsTabRailFitsViewport(page: import('@playwright/test'
   expect(metrics.visibleButtonCount).toBeGreaterThanOrEqual(2);
   expect(metrics.visibleOverlapCount).toBe(0);
 
+  /*
+   * BUG-QA-CI-NO-MOBILE-COVERAGE-001 — mesuré le 16/09 au projet `mobile`
+   * (Pixel 7, 412 px), la première fois que cette assertion tournait à une
+   * largeur de téléphone : le rail y est une rangée de puces dont la largeur
+   * suit le libellé (« AI » 40 px, « Preferences » 119 px), 44 px de haut,
+   * libellés entiers. Le plancher de 120 px décrivait la colonne de la
+   * tablette, pas la lisibilité. Ce qui rend un rail lisible : un libellé
+   * qui n'est pas coupé, et une cible tactile d'au moins 44 px dans les DEUX
+   * sens.
+   */
   for (const button of metrics.visibleButtons) {
-    expect(button.width, button.text).toBeGreaterThanOrEqual(120);
+    expect(button.labelClipped, `${button.text} : libellé coupé`).toBe(false);
+    expect(button.width, button.text).toBeGreaterThanOrEqual(44);
     expect(button.height, button.text).toBeGreaterThanOrEqual(44);
   }
 }
@@ -382,7 +396,7 @@ async function expectFloatingSurfaceFitsViewport(
 
       return {
         bottom: surfaceRect.bottom,
-        documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
         interactiveElements,
         left: surfaceRect.left,
         right: surfaceRect.right,
@@ -437,7 +451,7 @@ async function openAgentModelSettings(page: import('@playwright/test').Page) {
   const toolsMenu = page.getByTestId('composer-tools-menu');
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    await composer.getByRole('button', { name: 'More composer tools' }).click({ force: true });
+    await composer.getByRole('button', { name: 'More composer & tools' }).click({ force: true });
 
     if (await toolsMenu.isVisible().catch(() => false)) {
       break;
@@ -476,7 +490,7 @@ async function expectAgentModelSelectorFitsViewport(page: import('@playwright/te
 
     return {
       bottom: selectorRect.bottom,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       fields,
       left: selectorRect.left,
       right: selectorRect.right,
@@ -583,7 +597,7 @@ async function expectSettingsAiControlsFitViewport(page: import('@playwright/tes
 
     return {
       controls,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       viewportWidth: window.innerWidth,
     };
   });
@@ -795,7 +809,7 @@ async function expectMobileWebviewStartupFitsViewport(
     return {
       cardBottom: cardRect.bottom,
       cardTop: cardRect.top,
-      documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+      documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
       frameBottom: frameRect.bottom,
       frameLeft: frameRect.left,
       frameRight: frameRect.right,
@@ -874,7 +888,7 @@ test.describe('responsive IDE shell', () => {
     const viewport = page.viewportSize();
     expect(agentBox?.width).toBeGreaterThan(260);
     expect(agentBox?.width).toBeLessThan((viewport?.width ?? 1200) * 0.46);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+    expect(await page.evaluate(() => document.body.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
 
     await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').hover();
     await expect(page.locator('.bolt-project-tooltip-content').filter({ hasText: /Files/ }).last()).toBeVisible({
@@ -914,7 +928,7 @@ test.describe('responsive IDE shell', () => {
 
         return {
           viewport: { width: window.innerWidth, height: window.innerHeight },
-          documentWidth: document.documentElement.scrollWidth,
+          documentWidth: document.body.scrollWidth,
           panelGroup: readRect('.bolt-project-panel-group'),
           rail: readRect('.bolt-project-ide-rail'),
           statusbar: readRect('.bolt-project-statusbar'),
@@ -1079,7 +1093,7 @@ test.describe('responsive IDE shell', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
-    const overflowX = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    const overflowX = await page.evaluate(() => document.body.scrollWidth > window.innerWidth + 1);
     expect(overflowX).toBe(false);
   });
 
@@ -1111,7 +1125,7 @@ test.describe('responsive IDE shell', () => {
           getComputedStyle(navElement).visibility !== 'hidden' &&
           Boolean(nav && nav.width > 0 && nav.height > 0),
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 
@@ -1203,7 +1217,7 @@ test.describe('responsive IDE shell', () => {
         const input = manager.querySelector('input[type="password"]')?.getBoundingClientRect();
 
         return {
-          documentOverflowsX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          documentOverflowsX: document.body.scrollWidth > window.innerWidth + 1,
           inputHeight: input?.height ?? 0,
           inputLeft: input?.left ?? 0,
           inputRight: input?.right ?? 0,
@@ -1259,8 +1273,8 @@ test.describe('responsive IDE shell', () => {
       minInteractiveHeight: 44,
       requireSearchFontSize: true,
     });
-    await commandPalette.getByRole('textbox', { name: 'Search commands' }).fill('settings');
-    await expect(commandPalette.getByRole('button', { name: /Settings/ })).toBeVisible({ timeout: 10_000 });
+    await commandPalette.getByRole('combobox', { name: 'Search commands' }).fill('settings');
+    await expect(commandPalette.getByRole('option', { name: /Settings/ })).toBeVisible({ timeout: 10_000 });
     await expectFloatingSurfaceFitsViewport(commandPalette, 'filtered command palette', {
       minInteractiveHeight: 44,
       requireSearchFontSize: true,
@@ -1299,21 +1313,24 @@ test.describe('responsive IDE shell', () => {
     await expectSettingsAiControlsFitViewport(page);
   });
 
-  test('mobile and tablet run button controls the real preview runtime', async ({ page }, testInfo) => {
-    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
-    test.setTimeout(240_000);
+  test(
+    'mobile and tablet run button controls the real preview runtime',
+    { tag: '@runtime' },
+    async ({ page }, testInfo) => {
+      test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+      test.setTimeout(240_000);
 
-    const projectId = await createTestProject(page, 'Responsive mobile run button project', {
-      'package.json': JSON.stringify(
-        {
-          private: true,
-          type: 'module',
-          scripts: { dev: 'node server.mjs' },
-        },
-        null,
-        2,
-      ),
-      'server.mjs': `import { createServer } from 'node:http';
+      const projectId = await createTestProject(page, 'Responsive mobile run button project', {
+        'package.json': JSON.stringify(
+          {
+            private: true,
+            type: 'module',
+            scripts: { dev: 'node server.mjs' },
+          },
+          null,
+          2,
+        ),
+        'server.mjs': `import { createServer } from 'node:http';
 
 const port = Number(process.env.PORT || 5173);
 
@@ -1324,76 +1341,77 @@ createServer((_request, response) => {
   console.log('mobile run button preview listening on ' + port);
 });
 `,
-      'src/App.tsx': 'export function App() { return <main>Run button editor fixture</main>; }\n',
-    });
+        'src/App.tsx': 'export function App() { return <main>Run button editor fixture</main>; }\n',
+      });
 
-    await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
-    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45_000 });
-    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor');
-    await expectCompactIdeSurfaceFitsViewport(page, 'editor run panel');
+      await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
+      await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45_000 });
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor');
+      await expectCompactIdeSurfaceFitsViewport(page, 'editor run panel');
 
-    const runButton = mobileBottomNavigation(page).getByTestId('button-play-stop');
-    await expect(runButton).toBeVisible({ timeout: 15_000 });
+      const runButton = mobileBottomNavigation(page).getByTestId('button-play-stop');
+      await expect(runButton).toBeVisible({ timeout: 15_000 });
 
-    const initialRunLabel = await runButton.getAttribute('aria-label');
-    const initialRunVisualState = await readButtonVisualState(runButton);
-    const editorRunButton = page.getByTestId('mobile-editor-run-toggle');
-    await expect(editorRunButton).toBeVisible({ timeout: 15_000 });
+      const initialRunLabel = await runButton.getAttribute('aria-label');
+      const initialRunVisualState = await readButtonVisualState(runButton);
+      const editorRunButton = page.getByTestId('mobile-editor-run-toggle');
+      await expect(editorRunButton).toBeVisible({ timeout: 15_000 });
 
-    const initialEditorRunVisualState = await readButtonVisualState(editorRunButton);
+      const initialEditorRunVisualState = await readButtonVisualState(editorRunButton);
 
-    if (initialRunLabel === 'Run project') {
-      await runButton.click();
-      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+      if (initialRunLabel === 'Run project') {
+        await runButton.click();
+        await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+          timeout: 15_000,
+        });
+      } else {
+        await mobileBottomNavigation(page).getByTestId('tab-preview').click();
+        await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+          timeout: 15_000,
+        });
+      }
+
+      await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 45_000 });
+      await expect(runButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
+      await expect(runButton).toHaveClass(/bolt-mobile-replit-run--active/);
+      await expect(runButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
+
+      const activeRunVisualState = await readButtonVisualState(runButton);
+
+      if (initialRunLabel === 'Run project') {
+        expect(activeRunVisualState).not.toEqual(initialRunVisualState);
+      }
+
+      await expect(
+        page.getByTestId('preview-splash-sequence').or(page.getByTestId('preview-loading-overlay')).first(),
+      ).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByTestId('preview-iframe')).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByTestId('preview-loading-overlay')).toContainText(/Starting npm run dev|Building|Ready/, {
+        timeout: 45_000,
+      });
+      await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 15_000 });
+      await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
+
+      await mobileBottomNavigation(page).getByTestId('tab-editor').click();
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor', {
         timeout: 15_000,
       });
-    } else {
-      await mobileBottomNavigation(page).getByTestId('tab-preview').click();
-      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+      await expect(editorRunButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, {
         timeout: 15_000,
       });
-    }
+      await expect(editorRunButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(editorRunButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
+      await expect(editorRunButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
 
-    await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 45_000 });
-    await expect(runButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
-    await expect(runButton).toHaveClass(/bolt-mobile-replit-run--active/);
-    await expect(runButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
+      const activeEditorRunVisualState = await readButtonVisualState(editorRunButton);
 
-    const activeRunVisualState = await readButtonVisualState(runButton);
-
-    if (initialRunLabel === 'Run project') {
-      expect(activeRunVisualState).not.toEqual(initialRunVisualState);
-    }
-
-    await expect(
-      page.getByTestId('preview-splash-sequence').or(page.getByTestId('preview-loading-overlay')).first(),
-    ).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByTestId('preview-iframe')).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByTestId('preview-loading-overlay')).toContainText(/Starting npm run dev|Building|Ready/, {
-      timeout: 45_000,
-    });
-    await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 15_000 });
-    await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
-
-    await mobileBottomNavigation(page).getByTestId('tab-editor').click();
-    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor', {
-      timeout: 15_000,
-    });
-    await expect(editorRunButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, {
-      timeout: 15_000,
-    });
-    await expect(editorRunButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(editorRunButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
-    await expect(editorRunButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
-
-    const activeEditorRunVisualState = await readButtonVisualState(editorRunButton);
-
-    if (initialRunLabel === 'Run project') {
-      expect(activeEditorRunVisualState).not.toEqual(initialEditorRunVisualState);
-    }
-  });
+      if (initialRunLabel === 'Run project') {
+        expect(activeEditorRunVisualState).not.toEqual(initialEditorRunVisualState);
+      }
+    },
+  );
 
   test('mobile and tablet keep a visible webview startup state until the iframe renders', async ({
     page,
@@ -1494,7 +1512,7 @@ createServer((request, response) => {
           rootTheme: root.getAttribute('data-theme'),
           background: styles.backgroundColor,
           color: styles.color,
-          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          overflowX: document.body.scrollWidth > window.innerWidth + 1,
         };
       });
 
@@ -1517,7 +1535,7 @@ createServer((request, response) => {
           rootTheme: document.documentElement.getAttribute('data-theme'),
           background: styles.backgroundColor,
           color: styles.color,
-          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          overflowX: document.body.scrollWidth > window.innerWidth + 1,
         };
       });
 
@@ -1591,7 +1609,9 @@ createServer((request, response) => {
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'files', {
       timeout: 45000,
     });
-    await expect(page.getByTestId('mobile-ide-header')).toContainText('Files');
+
+    // Le panneau des fichiers s'appelle « Library » (Bibliothèque) depuis la parité Replit.
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Library');
     await expect(
       page.getByTestId('mobile-files-panel').locator('.bolt-file-tree-name', { hasText: /^src$/ }).first(),
     ).toBeVisible({
@@ -1682,7 +1702,7 @@ createServer((request, response) => {
 
       return {
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 
@@ -1726,7 +1746,7 @@ createServer((request, response) => {
 
       return {
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 
@@ -1793,7 +1813,7 @@ createServer((request, response) => {
 
       return {
         overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflowX: document.body.scrollWidth > window.innerWidth + 1,
       };
     });
 
@@ -1832,7 +1852,9 @@ createServer((request, response) => {
     for (const [itemId, label] of [
       ['overview', 'Overview'],
       ['preview', 'Webview'],
-      ['deployments', 'Deployments'],
+
+      // L'outil s'appelle « Publish » (parité Replit), l'identifiant reste `deployments`.
+      ['deployments', 'Publish'],
       ['object-storage', 'Object Storage'],
       ['locks', 'Locks'],
       ['env', 'Environment variables'],
@@ -1865,10 +1887,10 @@ createServer((request, response) => {
     const deploymentsToolItem = reopenedToolsSheet.getByTestId('tool-item-deployments');
 
     await expect(deploymentsToolItem).toBeVisible({ timeout: 15_000 });
-    await expect(deploymentsToolItem).toContainText('Deployments');
+    await expect(deploymentsToolItem).toContainText('Publish');
     await deploymentsToolItem.click();
     await expectMobileServicePanel(page, 'deployments');
-    await expect(page.getByTestId('mobile-ide-header')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-ide-header')).toContainText('Publish');
 
     const finalToolsSheet = await openMobileToolsSheet(page);
 

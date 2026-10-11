@@ -194,11 +194,53 @@ jobs:
 
       # Ces deux suites ne se découpent pas — elles tiennent en quelques minutes
       # et se jouent une fois, sur la première tranche.
+      # BUG-QA-CI-NO-MOBILE-COVERAGE-001 — cette étape s'appelait « mobile » et
+      # lançait `--project=chromium` (Desktop Chrome, 1280×720, isMobile:false) :
+      # les assertions gardées par `test.skip(!isMobile)` et
+      # `isCompactIdeProject` (project.name === 'mobile' | 'tablet') étaient
+      # TOUTES ignorées — 2 tests exécutés sur 21, aucun à une largeur de
+      # téléphone. Le projet `mobile` (Pixel 7) de playwright.config.ts donne
+      # un signal à cette largeur ; le passage Chromium desktop du même spec
+      # est déjà couvert par l'étape principale.
+      #
+      # ⚠️ CANARI NON BLOQUANT ET BORNÉ, même règle que le canari iOS : ces
+      # assertions n'avaient jamais tourné, et un canari ne doit jamais
+      # consommer le budget d'une tranche. Mesuré le 16/09 (run 35108180557) :
+      # sans plafond, cette étape a duré 20,5 min (les tests rouges attendent
+      # 180 s avant d'échouer) et le job de l'époque a été tué à 75 min. Une
+      # étape tuée par son plafond est « failure », `continue-on-error` laisse
+      # la tranche continuer, et le bilan ci-dessous imprime son sort. À
+      # basculer en bloquant (retirer `continue-on-error` et le `set +e`) quand
+      # le résumé est vert sur quelques runs.
       - name: Playwright mobile viewport tests
+        id: mobile_viewport
         if: matrix.shard == 1
+        continue-on-error: true
+        timeout-minutes: 15
         # Playwright clears its output directory at startup. Never clear the
         # preceding tranche's retry traces before Upload E2E traces runs.
-        run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime --output=test-results-responsive
+        run: |
+          set +e
+          pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=mobile --grep-invert @runtime --reporter=list --output=test-results-responsive
+          code=$?
+          echo "mobile viewport exit: $code"
+          if [ "$code" = "0" ]; then
+            echo "✅ Mobile (Pixel 7, projet \`mobile\`) : vert." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ Mobile (Pixel 7, projet \`mobile\`) : ROUGE (sortie $code) — non bloquant, mais à regarder." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+
+      # Un canari tué par son plafond n'écrit pas son propre résumé (le shell
+      # est interrompu avant). Ce bilan lit le SORT de l'étape et l'imprime
+      # toujours, pour qu'un « timed out » se voie comme un rouge.
+      - name: Bilan du canari mobile (toujours imprimé)
+        if: always() && matrix.shard == 1
+        run: |
+          echo "Sort du canari mobile : ${{ steps.mobile_viewport.outcome }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.mobile_viewport.outcome }}" != "success" ]; then
+            echo "⚠️ Le canari mobile n'a pas rendu « success » (plafond atteint ou rouge) : lire son journal — non bloquant." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       # LE MOTEUR D'AVI. `playwright.config.ts` définit un projet `webkit-iphone`
       # (iPhone 15 Pro) pour les quatre specs dont le sujet EST une interaction

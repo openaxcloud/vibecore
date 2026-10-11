@@ -2934,7 +2934,7 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
             segment: taille('.bolt-publication-segment'),
             bouton: taille('.bolt-publication-republier'),
             deborde,
-            scrollWidth: document.documentElement.scrollWidth,
+            scrollWidth: document.body.scrollWidth,
             innerWidth: window.innerWidth,
           };
         });

@@ -8,15 +8,15 @@ id: BUG-QA-AUDIT-LOGS-NO-PAGINATION-001
 
 ## 📤
 
-☐
+☑ — porté par #346 (01/09).
 
 ## 💻
 
-☐
+☑ 01/09 — **paginé côté client** (`app/routes/audit-logs.tsx`, `AUDIT_LOGS_PAGE_SIZE = 50`, arrivé sur cet historique avec #346 `73073359`) : le chargeur garde son unique aller-retour API, le filtre par action s'applique AVANT la pagination, changer de filtre revient à la première page, et la barre de pagination n'apparaît qu'au-delà d'une page — 50 lignes rendues au lieu de 1 818, soit ~1 200 nœuds DOM au lieu de 44 945 sur l'échantillon mesuré. **Épinglé par `app/routes/audit-logs.pagination.spec.tsx`** (5 verts le 16/09). La virtualisation n'est plus nécessaire à ce volume.
 
 ## ✅
 
-✅ **27/08** gel reproduit sur la prod ; volumétrie mesurée sur l'env de test
+☐ — défaut constaté live le 27/08 (gel de l'onglet en prod) ; le correctif reste **à constater en prod** : `https://app.e-code.ai/audit-logs` doit se charger et répondre (capture possible, `Runtime.evaluate` sans timeout), avec la barre de pagination visible sous la liste.
 
 ## Preuve
 
