@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-396 entrées.
+398 entrées.
 
 ## Sans section
 
@@ -443,6 +443,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
 - [CONSTAT-PAGES-GABARIT-PUBLIQUES](docs/bugs/CONSTAT-PAGES-GABARIT-PUBLIQUES.md) — `e-code.ai/plans` et 56 autres pages publiques montrent au visiteur du texte de DÉVELOPPEMENT, et `/plans` n'affiche — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Sans section
+
+- [BUG-IDE-014](docs/bugs/BUG-IDE-014.md) — P2 — « Domaines » est offert deux fois dans l'IDE : comme carte autonome de la grille des outils ET comme onglet du panneau Déploiements. — 📤 Dispatché : ✅ 02/09 · 💻 Codé : ☑ PR #379 (branche `fix/ide-domains-duplicate-entry`, NON mergée) · ✅ Testé live : ☐ à prouver en prod
+- [BUG-QUOTA-001](docs/bugs/BUG-QUOTA-001.md) — limite 1 — 📤 Dispatché : ☐ · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté live 16/08
 
 ## Résidus non tabulaires — reportés mot pour mot
 
