@@ -114,3 +114,27 @@ export function countHiddenMobileBottomTabs<Tab extends MobileBottomTab>(tabs: T
 
   return tabs.filter((tab) => !visibleTabIds.has(tab.id)).length;
 }
+
+/*
+ * Défilement de la bande d'onglets du bas pour que l'onglet ACTIF y soit
+ * entièrement visible. Rend le nouveau `scrollLeft`, ou le même s'il n'y a rien
+ * à faire.
+ *
+ * Mesuré en prod le 30/09 à 390 : 4 places fixes, une bande de 146 px pour
+ * 182 px d'onglets, et l'onglet actif (4e) coupé à moitié contre « + » parce
+ * que la bande restait à `scrollLeft: 0`.
+ */
+export function defilementPourMontrer(
+  bande: { left: number; right: number; scrollLeft: number },
+  onglet: { left: number; right: number },
+): number {
+  if (onglet.right > bande.right) {
+    return bande.scrollLeft + (onglet.right - bande.right);
+  }
+
+  if (onglet.left < bande.left) {
+    return Math.max(0, bande.scrollLeft - (bande.left - onglet.left));
+  }
+
+  return bande.scrollLeft;
+}

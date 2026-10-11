@@ -1,0 +1,110 @@
+[
+  {
+    "corrected": false,
+    "width": 390,
+    "sizes": [
+      {
+        "tag": "LABEL",
+        "size": 11
+      },
+      {
+        "tag": "LEGEND",
+        "size": 11
+      },
+      {
+        "tag": "TH",
+        "size": 11
+      }
+    ]
+  },
+  {
+    "corrected": false,
+    "width": 768,
+    "sizes": [
+      {
+        "tag": "LABEL",
+        "size": 11
+      },
+      {
+        "tag": "LEGEND",
+        "size": 11
+      },
+      {
+        "tag": "TH",
+        "size": 11
+      }
+    ]
+  },
+  {
+    "corrected": false,
+    "width": 1440,
+    "sizes": [
+      {
+        "tag": "LABEL",
+        "size": 10
+      },
+      {
+        "tag": "LEGEND",
+        "size": 10
+      },
+      {
+        "tag": "TH",
+        "size": 10
+      }
+    ]
+  },
+  {
+    "corrected": true,
+    "width": 390,
+    "sizes": [
+      {
+        "tag": "LABEL",
+        "size": 12
+      },
+      {
+        "tag": "LEGEND",
+        "size": 12
+      },
+      {
+        "tag": "TH",
+        "size": 12
+      }
+    ]
+  },
+  {
+    "corrected": true,
+    "width": 768,
+    "sizes": [
+      {
+        "tag": "LABEL",
+        "size": 12
+      },
+      {
+        "tag": "LEGEND",
+        "size": 12
+      },
+      {
+        "tag": "TH",
+        "size": 12
+      }
+    ]
+  },
+  {
+    "corrected": true,
+    "width": 1440,
+    "sizes": [
+      {
+        "tag": "LABEL",
+        "size": 10
+      },
+      {
+        "tag": "LEGEND",
+        "size": 10
+      },
+      {
+        "tag": "TH",
+        "size": 10
+      }
+    ]
+  }
+]

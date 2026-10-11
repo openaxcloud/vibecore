@@ -1174,9 +1174,19 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-overlay: rgba(0, 0, 0, 0.1);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
-  // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
-  --ecode-accent-text: #c74e00;
-  --ecode-accent-text-hover: #a33c00;
+  /*
+   * Orange AA pour le TEXTE et les liens sur fond clair ; les aplats gardent
+   * --ecode-accent.
+   *
+   * Assombri de #c74e00 à #a94100. #c74e00 ne passait AA que sur du BLANC PUR
+   * (4,65:1) : sur une surface un peu teintée il repassait sous le seuil —
+   * 4,11:1 sur --ecode-surface-secondary, 4,14:1 sur une pastille d'accent à
+   * 10 %, 3,70:1 sur cette pastille posée sur la surface secondaire.
+   * #a94100 : 6,10:1 sur blanc, au-dessus de 4,5 dans les trois cas
+   * (theme-token-parity.spec.ts).
+   */
+  --ecode-accent-text: #a94100;
+  --ecode-accent-text-hover: #8f3600;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
   /*
@@ -1522,6 +1532,41 @@ body
   font-weight: 500 !important;
   letter-spacing: var(--vc-type-label-letter-spacing) !important;
   line-height: var(--vc-type-line-height) !important;
+}
+
+/*
+ * LIBELLE-9PX-001 — `label`, `legend` et `th` rendaient 9px sur mobile.
+ *
+ * La regle juste au-dessus vise des etiquettes DECORATIVES en capitales, mais
+ * elle liste aussi les elements SEMANTIQUES. Mesure a 390px, base rem 14px :
+ *
+ *   - 96 `<th>` portent du texte DIRECT (en-tetes de tableaux : Heure, Acteur,
+ *     Action, Cible, IP du journal d'acces, colonnes des tickets). Tous a 9px.
+ *   - `!important` BAT la taille ecrite par l'auteur : un
+ *     `<label className="text-[12px]">` rend 9px, pas 12.
+ *   - Sur 105 `<label>` porteurs d'une classe, 2 SEULEMENT demandent
+ *     `uppercase`. Les 103 autres subissent un traitement non choisi.
+ *
+ * Certains endroits y echappent par accident en imbriquant un `<span>` qui pose
+ * sa propre taille (les champs d'authentification font ca) — ce qui masquait le
+ * defaut la ou on regardait le plus.
+ *
+ * PLANCHER, PAS SUPPRESSION : le micro-libelle en capitales est un parti pris de
+ * densite, le casser changerait le bureau. Plancher lisible sous 1024px pour les
+ * seuls elements SEMANTIQUES, en PIXELS — seule unite que la base rem (12/14px)
+ * ne peut pas deformer. Une etiquette qui demande `uppercase` garde son
+ * traitement.
+ *
+ * ⚠️ PLACE ICI VOLONTAIREMENT, JUSTE APRES la regle decorative. Les deux ont la
+ * meme specificite (`body` + `:where(...)` qui ne compte pas) et portent toutes
+ * deux `!important` : c'est donc l'ORDRE SOURCE qui tranche. Place plus haut
+ * dans la feuille, ce plancher etait ecrase et ne servait a RIEN — verifie en
+ * lisant la feuille compilee, pas en le supposant.
+ */
+@media (max-width: 1024px) {
+  body :where(label, legend, th) {
+    font-size: var(--vc-type-heading-compact-size, 12px) !important;
+  }
 }
 
 body :where(button, [role='button'], .btn, .button, summary) {
@@ -4481,6 +4526,38 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 .vc-user-area-shell :where([class~='text-3xl']) {
   font-size: 30px !important;
   line-height: 36px !important;
+}
+
+/*
+ * UIB-07 — exemples de champ (placeholder) de la zone utilisateur, BUREAU.
+ *
+ * Mesuré le 2026-09-30 sur la page Déploiements, 1440 : « app.example.com » et
+ * « PUBLIC_API_URL=… » en #475569 contre #111827 pour une vraie valeur (clair),
+ * #a3adba contre #f5f9fc (sombre) — on croyait le champ déjà rempli. Les
+ * champs passent par `placeholder:text-bolt-elements-textTertiary`, et ce
+ * jeton vaut le gris le plus doux de l'échelle claire : il n'existe rien de
+ * plus clair. D'où un jeton dédié, encore conforme AA (≥ 4,5:1).
+ *
+ * À partir de 1024 px seulement : l'affichage mobile est gelé sur la référence
+ * d'Avi. Hors zone utilisateur (IDE, authentification) : non concerné.
+ */
+.vc-user-area-shell {
+  --vc-user-area-placeholder: #7d8796;
+}
+
+:root[data-theme='light'] .vc-user-area-shell {
+  --vc-user-area-placeholder: #6b7280;
+}
+
+/*
+ * Le jeton est défini HORS de tout `@media` (TINT-SWEEP-002 : aucune couleur ne
+ * dépend du format) ; seule son APPLICATION est réservée au bureau.
+ */
+@media (min-width: 1024px) {
+  .vc-user-area-shell :is(input, textarea)::placeholder {
+    color: var(--vc-user-area-placeholder) !important;
+    opacity: 1;
+  }
 }
 
 .vc-user-area-shell .vc-app-shell-title {
