@@ -17,3 +17,15 @@ Après fusion réelle de main 83d1c63e (#714), aucun contenu source du lot n’a
 CI complète du premier passage : 9 522 cas verts, deux ignorés, un rouge sur l’empreinte du bloc mobile. La procédure du test autorise un re-scellement après comparaison nommée : seules deux insertions de A-34 diffèrent de main, le hook de défilement et son ref DOM. Zéro ligne supprimée ; libellés, classes, en-tête et Terminal inchangés. L’empreinte est mise à jour après cette lecture ; le détecteur E2E de visibilité reste inchangé. Mesure : mesures/2026-10-11-a34-bloc-mobile.json. Ce re-scellement ne vaut pas mesure du parcours mobile en production.
 
 Après re-scellement : 29 cas dans quatre suites passent. Ajouter seulement une classe imprévue à la bande mobile rend la garde d’empreinte rouge ; balisage restauré, les 29 cas repassent. Lint du test vert. Aucun assouplissement du détecteur de visibilité ni du scanner français.
+
+### Contrat OAuth navigateur après A-19 (23:50 UTC)
+
+Le passage E2E du SHA d12d556f échoue sur deux anciennes assertions qui
+exigeaient des boutons non configurés. Le test lit maintenant la disponibilité
+des deux fournisseurs dans la même API que le loader, exige une réponse valide
+et vérifie le nombre et les destinations des seuls boutons disponibles.
+Le vrai loader et le vrai écran sont aussi exercés pour trois configurations,
+avec et sans destination : 6 cas verts, dont des fournisseurs disponibles.
+Retirer uniquement la destination du composant partagé rend 2 cas rouges ;
+restauration : les 16 cas des trois suites OAuth sont verts. Aucun fournisseur
+de production ni secret OAuth n’a été ajouté pour satisfaire un test.

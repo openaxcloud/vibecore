@@ -16,11 +16,13 @@ afterEach(() => {
 });
 
 describe('inscription : disponibilité réelle des boutons sociaux', () => {
-  it.each([
-    { github: true, google: true },
-    { github: false, google: true },
-    { github: false, google: false },
-  ])('rend uniquement les boutons disponibles : $github / $google', async ({ github, google }) => {
+  it.each(
+    [
+      { github: true, google: true },
+      { github: false, google: true },
+      { github: false, google: false },
+    ].flatMap((providers) => [null, '/projects/new'].map((returnTo) => ({ ...providers, returnTo }))),
+  )('rend uniquement les boutons disponibles : $github / $google', async ({ github, google, returnTo }) => {
     vi.stubEnv('SAAS_API_URL', 'http://api.test.local');
 
     const fetchSpy = vi.fn(async (input: RequestInfo | URL) => {
@@ -38,7 +40,7 @@ describe('inscription : disponibilité réelle des boutons sociaux', () => {
     vi.stubGlobal('fetch', fetchSpy);
 
     const result = await loader({
-      request: new Request('http://localhost/register'),
+      request: new Request(`http://localhost/register${returnTo ? '?returnTo=%2Fprojects%2Fnew' : ''}`),
       params: {},
       context: {},
     } as Parameters<typeof loader>[0]);
@@ -56,6 +58,17 @@ describe('inscription : disponibilité réelle des boutons sociaux', () => {
     expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/auth/oauth/providers');
     expect(Boolean(screen.queryByRole('link', { name: 'auth.signup.github' }))).toBe(github);
     expect(Boolean(screen.queryByRole('link', { name: 'auth.signup.google' }))).toBe(google);
+
+    for (const [provider, ready] of [
+      ['github', github],
+      ['google', google],
+    ] as const) {
+      if (ready) {
+        expect(screen.getByRole('link', { name: `auth.signup.${provider}` }).getAttribute('href')).toBe(
+          `/auth/oauth/${provider}${returnTo ? '?returnTo=%2Fprojects%2Fnew' : ''}`,
+        );
+      }
+    }
     router.dispose();
   });
 });

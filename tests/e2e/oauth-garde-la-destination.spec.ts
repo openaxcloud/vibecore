@@ -12,30 +12,62 @@ import { expect, test } from '@playwright/test';
  */
 
 /*
- * `/register` seulement : `/login` n'affiche un fournisseur que s'il est configuré côté API, ce qui n'est le
- * cas ni en local ni en CI (mesuré : `ready:false` pour les deux) — un test sur `/login` ne mesurerait rien.
- * `/login` passe la même destination au même composant (`AuthOauthButton`).
+ * La disponibilité vient de la même API que le loader. Une liste vide n'est
+ * pas une preuve : les deux fournisseurs doivent être explicitement mesurés.
+ * Le rendu des fournisseurs prêts, y compris leur destination, est aussi tenu
+ * par signup.oauth-availability.spec.tsx avec le vrai loader et le vrai écran.
  */
+const apiBaseUrl =
+  process.env.PLAYWRIGHT_API_URL ?? process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
+async function availableProviders(request: import('@playwright/test').APIRequestContext) {
+  const response = await request.get(`${apiBaseUrl}/auth/oauth/providers`);
+  expect(response.ok()).toBe(true);
+
+  const { providers } = (await response.json()) as { providers: Array<{ provider: string; ready: boolean }> };
+  expect(providers.map(({ provider }) => provider).sort()).toEqual(['github', 'google']);
+
+  for (const provider of providers) {
+    expect(typeof provider.ready).toBe('boolean');
+  }
+
+  return providers.filter(({ ready }) => ready).map(({ provider }) => provider);
+}
+
 for (const page of ['/register']) {
-  test(`${page} : les boutons des fournisseurs gardent la destination du visiteur`, async ({ page: onglet }) => {
+  test(`${page} : les boutons des fournisseurs gardent la destination du visiteur`, async ({
+    page: onglet,
+    request,
+  }) => {
+    const providers = await availableProviders(request);
     await onglet.goto(`${page}?returnTo=%2Fprojects%2Fnew`);
 
     const liens = onglet.locator('a[href^="/auth/oauth/"]');
 
-    // Témoin : la page affiche bien au moins un fournisseur (sinon ce test ne mesurerait rien).
-    await expect(liens.first()).toBeVisible({ timeout: 30_000 });
+    await expect(onglet.locator('button[type="submit"]')).toBeVisible();
+    await expect(liens).toHaveCount(providers.length);
+
+    for (const provider of providers) {
+      await expect(onglet.locator(`a[href^="/auth/oauth/${provider}"]`)).toBeVisible();
+    }
 
     for (const href of await liens.evaluateAll((elements) => elements.map((element) => element.getAttribute('href')))) {
       expect(href, 'chaque bouton porte la destination').toMatch(/^\/auth\/oauth\/[a-z]+\?returnTo=%2Fprojects%2Fnew$/);
     }
   });
 
-  test(`${page} sans destination : les boutons restent nus`, async ({ page: onglet }) => {
+  test(`${page} sans destination : les boutons restent nus`, async ({ page: onglet, request }) => {
+    const providers = await availableProviders(request);
     await onglet.goto(page);
 
     const liens = onglet.locator('a[href^="/auth/oauth/"]');
 
-    await expect(liens.first()).toBeVisible({ timeout: 30_000 });
+    await expect(onglet.locator('button[type="submit"]')).toBeVisible();
+    await expect(liens).toHaveCount(providers.length);
+
+    for (const provider of providers) {
+      await expect(onglet.locator(`a[href^="/auth/oauth/${provider}"]`)).toBeVisible();
+    }
 
     for (const href of await liens.evaluateAll((elements) => elements.map((element) => element.getAttribute('href')))) {
       expect(href).toMatch(/^\/auth\/oauth\/[a-z]+$/);
