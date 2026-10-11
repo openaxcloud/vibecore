@@ -25,6 +25,7 @@ import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
 import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote';
 import { ReconnectionRequiredBanner } from './connector-cards/ReconnectionRequiredBanner';
 import { SecretRequestCard } from './connector-cards/SecretRequestCard';
+import { corpsDuMessage as lireCorpsDuMessage } from './corps-du-message';
 import Popover from '~/components/ui/Popover';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
 import {
@@ -360,12 +361,7 @@ export const AssistantMessage = memo(
      * `content` reste prioritaire : c'est la version passée par l'analyseur de
      * messages (artefacts convertis). Les `parts` sont le filet.
      */
-    const texteDesParts = (parts ?? [])
-      .filter((part): part is TextUIPart => part.type === 'text')
-      .map((part) => part.text)
-      .join('');
-
-    const corpsDuMessage = content && content.trim().length > 0 ? content : texteDesParts;
+    const corpsDuMessage = lireCorpsDuMessage(content, parts);
 
     const connectorAnnotations = filteredAnnotations.filter(
       (annotation) =>

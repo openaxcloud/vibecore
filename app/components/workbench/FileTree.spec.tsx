@@ -176,7 +176,9 @@ describe('<FileTree /> empty state', () => {
     expect(screen.queryByText('Project files will appear here once the workspace is loaded.')).toBeNull();
 
     fireEvent.click(screen.getByText('Reconnect'));
-    expect(loadRuntimeFiles).toHaveBeenCalledWith('.');
+
+    // BUG-IDE-007 — un geste de l'utilisateur demande la RÉPARATION, pas une simple relecture.
+    expect(loadRuntimeFiles).toHaveBeenCalledWith('.', { reparer: true });
   });
 
   it('shows a loading state while the workspace provisions', () => {

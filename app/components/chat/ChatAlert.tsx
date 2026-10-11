@@ -17,9 +17,28 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
   const { description, content, source } = alert;
 
   const isPreview = source === 'preview';
-  const title = isPreview ? copy['chatAlert.preview.title'] : copy['chatAlert.terminal.title'];
 
-  const message = isPreview ? copy['chatAlert.preview.message'] : copy['chatAlert.terminal.message'];
+  /*
+   * UN AVERTISSEMENT DU MOTEUR N'EST PAS UNE ERREUR. Fichier verrouillé,
+   * écriture bloquée, conflit avec ce que l'utilisateur a enregistré… : ces
+   * alertes portent un titre et un message déjà traduits par le moteur. Les
+   * habiller en « erreur d'aperçu » avec « Demander à l'agent » envoyait vers un
+   * faux problème (mesuré le 2026-10-01, conflit #667). Une ERREUR garde
+   * l'habillage traduit : son titre brut est technique.
+   */
+  const avertissement = alert.type === 'warning' && Boolean(alert.title?.trim());
+
+  const title = avertissement
+    ? alert.title
+    : isPreview
+      ? copy['chatAlert.preview.title']
+      : copy['chatAlert.terminal.title'];
+
+  const message = avertissement
+    ? description
+    : isPreview
+      ? copy['chatAlert.preview.message']
+      : copy['chatAlert.terminal.message'];
 
   return (
     <AnimatePresence>
@@ -59,7 +78,7 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
               className="mt-2 text-sm text-bolt-elements-textSecondary"
             >
               <p className="break-words">{message}</p>
-              {description && (
+              {description && !avertissement && (
                 <details className="mt-4 mb-4 text-xs text-bolt-elements-textSecondary">
                   <summary className="inline-flex min-h-11 max-w-full cursor-pointer items-center break-words font-medium text-bolt-elements-textPrimary">
                     {copy['chatAlert.details']}
@@ -79,27 +98,29 @@ export default function ChatAlert({ alert, clearAlert, postMessage }: Props) {
               transition={{ delay: 0.3 }}
             >
               <div className={classNames('flex flex-wrap gap-2')}>
-                <button
-                  onClick={() =>
-                    postMessage(
-                      formatErrorSurfacesCopy(
-                        isPreview ? copy['chatAlert.prompt.preview'] : copy['chatAlert.prompt.terminal'],
-                        { content },
-                      ),
-                    )
-                  }
-                  className={classNames(
-                    'min-h-11 min-w-11 whitespace-normal rounded-md px-3 py-2 text-sm font-medium',
-                    'bg-bolt-elements-button-primary-background',
-                    'hover:bg-bolt-elements-button-primary-backgroundHover',
-                    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-danger-background',
-                    'text-bolt-elements-button-primary-text',
-                    'flex items-center gap-1.5',
-                  )}
-                >
-                  <div className="i-ph:chat-circle-duotone"></div>
-                  {copy['chatAlert.askAgent']}
-                </button>
+                {!avertissement && (
+                  <button
+                    onClick={() =>
+                      postMessage(
+                        formatErrorSurfacesCopy(
+                          isPreview ? copy['chatAlert.prompt.preview'] : copy['chatAlert.prompt.terminal'],
+                          { content },
+                        ),
+                      )
+                    }
+                    className={classNames(
+                      'min-h-11 min-w-11 whitespace-normal rounded-md px-3 py-2 text-sm font-medium',
+                      'bg-bolt-elements-button-primary-background',
+                      'hover:bg-bolt-elements-button-primary-backgroundHover',
+                      'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-danger-background',
+                      'text-bolt-elements-button-primary-text',
+                      'flex items-center gap-1.5',
+                    )}
+                  >
+                    <div className="i-ph:chat-circle-duotone"></div>
+                    {copy['chatAlert.askAgent']}
+                  </button>
+                )}
                 <button
                   onClick={clearAlert}
                   className={classNames(
