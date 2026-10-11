@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-396 entrées.
+397 entrées.
 
 ## Sans section
 
@@ -442,6 +442,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
+- [CONSTAT-PAGES-GABARIT-PUBLIQUES](docs/bugs/CONSTAT-PAGES-GABARIT-PUBLIQUES.md) — `e-code.ai/plans` et 56 autres pages publiques montrent au visiteur du texte de DÉVELOPPEMENT, et `/plans` n'affiche — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE](docs/bugs/BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE.md) — BLOQUANT LANCEMENT (droit à l'effacement) — DÉCISION REQUISE — une demande de suppression de compte n'est — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
