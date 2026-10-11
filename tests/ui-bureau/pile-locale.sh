@@ -27,7 +27,14 @@ COMPOSE="docker compose -p vc-ui-bureau --env-file /dev/null -f docker-compose.d
 descendre() {
   echo "== extinction"
   for port in 5191 3011; do lsof -nP -iTCP:$port -sTCP:LISTEN -t 2>/dev/null | xargs kill 2>/dev/null; done
-  [ -f "$ETAT" ] && for p in $(grep '^pid=' "$ETAT" | cut -d= -f2); do pkill -P "$p" 2>/dev/null; kill "$p" 2>/dev/null; done
+  # Ne JAMAIS tuer son propre parent : quand c'est le filet d'extinction automatique
+  # qui appelle « descendre », il figure dans la liste des processus — le tuer
+  # interrompait l'extinction avant `rendre` (mesuré le 01/10 : verrou OrbStack
+  # resté pris à 1, fichier d'état laissé).
+  [ -f "$ETAT" ] && for p in $(grep '^pid=' "$ETAT" | cut -d= -f2); do
+    [ "$p" = "$PPID" ] && continue
+    pkill -P "$p" 2>/dev/null; kill "$p" 2>/dev/null
+  done
   (cd "$APP" && $COMPOSE down -v >/dev/null 2>&1)
   if grep -q '^orb=oui' "$ETAT" 2>/dev/null; then "$VERROU_ORB" rendre; fi
   rm -f "$ETAT"
