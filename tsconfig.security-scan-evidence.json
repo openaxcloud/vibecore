@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.package.node.json",
+  "include": ["scripts/security-scan-evidence.checks.ts", "scripts/build-security-scan-evidence.ts"]
+}

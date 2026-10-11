@@ -72,3 +72,33 @@ export function peekPendingComposerInput(): PendingInput | null {
 export function clearPendingComposerInput(): void {
   pending = null;
 }
+
+/*
+ * Le MODE choisi dans la coquille (Agent, Assistant…) a le même sort que la
+ * frappe : il vit dans l'état du `BaseChat` démonté. Même casier hors de React,
+ * même portée, consommé au montage du composeur suivant. Seule la coquille le
+ * remplit (`PendingComposerShell`) : une session ordinaire ne change pas.
+ */
+type PendingMode = { scope: string; mode: string };
+
+let pendingMode: PendingMode | null = null;
+
+export function setPendingComposerMode(scope: string, mode: string): void {
+  pendingMode = { scope, mode };
+}
+
+/** Rend le mode en attente de CETTE portée et le consomme ; une autre portée est laissée en place. */
+export function takePendingComposerMode(scope: string): string | null {
+  if (!pendingMode || pendingMode.scope !== scope) {
+    return null;
+  }
+
+  const { mode } = pendingMode;
+  pendingMode = null;
+
+  return mode;
+}
+
+export function clearPendingComposerMode(): void {
+  pendingMode = null;
+}

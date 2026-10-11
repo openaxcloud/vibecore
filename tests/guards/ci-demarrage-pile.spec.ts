@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parseDocument } from 'yaml';
@@ -33,10 +33,25 @@ const WORKFLOWS = [
   '.github/workflows/i18n-live-audit.yml',
 ] as const;
 
-/** Toutes les valeurs `run:` d'un workflow, commentaires retirés. */
+/*
+ * Toutes les valeurs `run:` d'un workflow, commentaires retirés — ET CELLES DES
+ * ACTIONS LOCALES QU'IL APPELLE.
+ *
+ * ⚠️ POURQUOI CE SUIVI DES `uses: ./…`. Le 2026-10-01, la préparation de la pile
+ * E2E (93 lignes : navigateurs, postgres/redis, base, API, web, admin) a été
+ * sortie de `e2e.yml` vers une action composite, pour que le canari iOS puisse
+ * la partager sans la dupliquer. Trois cas de ce garde sont alors devenus
+ * VERTS-MUETS : ils ne trouvaient plus « aucune étape n'installe les
+ * navigateurs » et auraient pu être « corrigés » en les supprimant.
+ *
+ * Un garde qui cesse de trouver sa cible ne doit pas être recalibré sur la
+ * nouvelle adresse : il doit suivre ce que le workflow EXÉCUTE réellement.
+ * Sinon la prochaine extraction le rendra muet à son tour.
+ */
 function etapesRun(chemin: string): string[] {
   const document = parseDocument(readFileSync(join(RACINE, chemin), 'utf8'));
   const runs: string[] = [];
+  const actionsLocales = new Set<string>();
 
   const parcourir = (valeur: unknown) => {
     if (Array.isArray(valeur)) {
@@ -59,10 +74,29 @@ function etapesRun(chemin: string): string[] {
       );
     }
 
+    if (typeof objet.uses === 'string' && objet.uses.startsWith('./')) {
+      actionsLocales.add(objet.uses.replace(/^\.\//u, ''));
+    }
+
     Object.values(objet).forEach(parcourir);
   };
 
   parcourir(document.toJS());
+
+  /* Les actions locales appelées sont parcourues à leur tour : c'est ce que le
+   * workflow exécute, même si le code n'habite plus dans son fichier. */
+  for (const action of actionsLocales) {
+    const candidats = [join(RACINE, action, 'action.yml'), join(RACINE, action, 'action.yaml')];
+    const trouve = candidats.find((c) => existsSync(c));
+
+    expect(
+      trouve,
+      `le workflow ${chemin} appelle l'action locale « ${action} » qui n'existe pas : ` +
+        'la garde ne peut pas lire ce qui est réellement exécuté',
+    ).toBeDefined();
+
+    parcourir(parseDocument(readFileSync(trouve!, 'utf8')).toJS());
+  }
 
   return runs;
 }
