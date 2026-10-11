@@ -707,7 +707,7 @@ export const pricingPlanCopy = {
     pro: {
       name: 'Pro',
       description: 'Pour publier de vraies applications, avec quelques collaborateurs',
-      cta: 'Choisir Pro',
+      cta: 'Choisir la formule Pro',
       features: [
         '5 places (vous et 4 collaborateurs)',
         '25 projets',
@@ -720,7 +720,7 @@ export const pricingPlanCopy = {
     team: {
       name: 'Team',
       description: 'Pour les équipes qui créent ensemble, avec facturation partagée et journaux d’audit',
-      cta: 'Choisir Team',
+      cta: 'Choisir la formule Team',
       features: [
         '25 places (vous et 24 collaborateurs)',
         '100 projets',
