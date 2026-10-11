@@ -2,7 +2,7 @@
 
 ## Déploiement et contraste public (A-28)
 
-Le workflow [38156140310](https://github.com/openaxcloud/vibecore/actions/runs/38156140310) est terminé avec conclusion `success`, pour le commit `4f7c07f7a38e47f6e08c4a2a64de46382622af21` (fusion #701). Les artefacts rollout et manifest sont listés par l'API mais leur téléchargement retourne 403 dans cet environnement ; les identifiants d'images des pods n'ont donc pas été relus directement ici.
+Le workflow [38156140310](https://github.com/openaxcloud/vibecore/actions/runs/38156140310) est terminé avec conclusion `success`, pour le commit `4f7c07f7a38e47f6e08c4a2a64de46382622af21` (fusion #701). Les artefacts rollout et manifest ont été téléchargés via le connecteur GitHub. Le manifest déclare le web reconstruit et déployé depuis ce commit, digest `sha256:6272f54550f6315cc4a29053646af2890459e56af7b576f9ff27d6b59823e600`. La dernière capture à 17:52:55 UTC montre deux réplicas web mis à jour, prêts et disponibles, et deux pods web Running/ready ; commande terminée à zéro et preuve complète. Extrait et empreintes des fichiers sources dans `mesures/2026-10-11-web-deploye.json`. Limite : ce format de capture ne conserve pas les imageID des conteneurs ; aucune comparaison directe du digest exécuté n'a été possible.
 
 Mesures Chromium en production sur `e-code.ai`, de 17:59 UTC à la reprise des cinq lectures incomplètes vers 18:05 UTC : `/pricing`, `/partners`, `/deployments`, `/status`, `/about`, `/careers`, `/contact`, `/mobile`, `/desktop`, `/ai`, `/ai-agent`, `/bounties`. Largeurs 390, 768 et 1440 px ; thèmes clair et sombre vérifiés dans le DOM.
 
