@@ -243,11 +243,13 @@ describe('réouverture — un artefact rejoué ne remplace pas la copie serveur 
     await store.loadRuntimeFiles('.');
     store.updateArtifact(artefact, { closed: true });
 
-    // La file d'exécution est vide quand le journal annonce la fin de la fermeture.
-    await vi.waitFor(() => {
-      expect(runtimeAdapterMock.listFiles).toHaveBeenCalled();
+    /*
+     * Le témoin entre après la fermeture dans la même file réelle : attendre
+     * son exécution couvre aussi la compression et l'enregistrement asynchrones.
+     */
+    await new Promise<void>((resolve) => {
+      store.addToExecutionQueue(async () => resolve());
     });
-    await new Promise((resolve) => setTimeout(resolve, 50));
   }
 
   it('message relu depuis le serveur à la réouverture : AUCUN import destructif vers la copie serveur', async () => {

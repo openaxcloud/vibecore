@@ -121,8 +121,15 @@ import {
   PROJECT_EDITOR_TOOL_SHORTCUTS,
   projectEditorToolList,
   projectEditorToolsByCategory,
+  resolveProjectEditorToolOpen,
 } from './project-editor-tool-catalog';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
+import {
+  consumeDeployPanelView,
+  requestDeployPanelView,
+  requestedDeployPanelView,
+  type DeployPanelView,
+} from '~/lib/stores/deploy-panel-view';
 import {
   describeAutoApplyFailure,
   describeSnapshotRestoreFailure,
@@ -148,13 +155,23 @@ import {
   type CheckpointSnapshotPairing,
 } from '~/lib/chat/checkpoint-snapshots';
 import { useAutoApplyEnabled } from '~/lib/hooks/useAutoApplyEnabled';
-import { autoApplyAttemptKey, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
+import { autoApplyAttemptKey, propositionsAMontrer, shouldAutoApplyPatch } from '~/utils/agent-auto-apply';
 import GitCloneButton from './GitCloneButton';
 import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
+import {
+  deposerDisposition,
+  lireDispositionTransmise,
+  porteeDisposition,
+  useLayoutHandoffEffect,
+} from './ide-layout-handoff';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
+import {
+  chargementMemoireProjetEnEchec,
+  demanderUnNouvelEssaiMemoireProjet,
+} from '~/lib/persistence/projectMemoryLoadFailure';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import {
   clavierProbablementOuvert,
@@ -2206,13 +2223,15 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   const { t } = useTranslation();
   const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
 
-  const visibleProposals = useMemo(() => {
-    if (autoApplyEnabled) {
-      return [];
-    }
-
-    return proposals;
-  }, [proposals, autoApplyEnabled]);
+  /*
+   * Avec l'application automatique, la file ne montre que ce qu'elle ne
+   * prendra JAMAIS (conflit, proposition relue, tronquée, échec) — elle était
+   * vide, et ces propositions attendaient une revue que personne ne voyait.
+   */
+  const visibleProposals = useMemo(
+    () => propositionsAMontrer(proposals, Boolean(autoApplyEnabled)),
+    [proposals, autoApplyEnabled],
+  );
 
   useEffect(() => {
     setSelectedHunksByProposal((current) => {
@@ -2421,6 +2440,15 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
+
+  /**
+   * Le chargement du fil a échoué et les reprises automatiques sont épuisées.
+   * Sans cela le panneau retombait sur son état de DÉPART — « Agent prêt », des
+   * suggestions de démarrage, « 0 message » — c'est-à-dire qu'il présentait une
+   * conversation existante comme une conversation neuve, pendant que le seul
+   * signal d'échec, un toast, avait déjà disparu.
+   */
+  transcriptError?: { retry: () => void } | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
   showChat?: boolean;
@@ -2483,6 +2511,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   (
     {
       textareaRef,
+      transcriptError,
       showChat = true,
       chatStarted = false,
       isStreaming = false,
@@ -3674,6 +3703,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     // BUG-UX-AGENT-DONE-FALSE : run allé au bout mais pas proprement (partiel / accord faible / rôles incomplets).
     const [agentRunDegraded, setAgentRunDegraded] = useState(false);
     const expoUrl = useStore(expoUrlAtom);
+    const memoireProjetEnEchec = useStore(chargementMemoireProjetEnEchec);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
 
@@ -3718,7 +3748,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [rightPanelWidth, setRightPanelWidth] = useState(DEFAULT_RIGHT_PANEL_WIDTH);
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
-    const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
+
+    /*
+     * BUG-IDE-SPLIT-EFFACE-001 — la disposition transmise par la coquille qui
+     * vient d'être démontée (voir `ide-layout-handoff.ts`). Lue SANS consommation
+     * ici, parce qu'un rendu peut être rejoué ; elle se périme d'elle-même.
+     */
+    const porteeDeLaDisposition = porteeDisposition(
+      projectId,
+      searchParams.get(PROJECT_EDITOR_WINDOW_PARAM) || DEFAULT_PROJECT_EDITOR_WINDOW,
+    );
+
+    const [dispositionTransmise] = useState(() =>
+      lireDispositionTransmise<IdePaneNode, IdeFloatingPane>(porteeDeLaDisposition),
+    );
+
+    const [paneTree, setPaneTree] = useState<IdePaneNode>(
+      () => dispositionTransmise?.paneTree ?? cloneDefaultPaneTree(),
+    );
 
     /*
      * Miroir de la disposition COURANTE, lisible depuis une réponse asynchrone.
@@ -3729,11 +3776,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     paneTreeRef.current = paneTree;
 
-    const [activePaneId, setActivePaneId] = useState('pane-main');
+    const [activePaneId, setActivePaneId] = useState(dispositionTransmise?.activePaneId ?? 'pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
     /** RPL-IDE-001.3 — panes popped out of the docked tree in this window. */
-    const [floatingPanes, setFloatingPanes] = useState<IdeFloatingPane[]>([]);
+    const [floatingPanes, setFloatingPanes] = useState<IdeFloatingPane[]>(
+      () => dispositionTransmise?.floatingPanes ?? [],
+    );
 
     /** RPL-IDE-001.1 — last layout signature applied, to skip redundant cross-tab echoes. */
     const projectEditorWindowSyncRef = useRef<string>('');
@@ -3749,6 +3798,35 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const isSecondaryProjectEditorWindow = projectEditorWindowId !== DEFAULT_PROJECT_EDITOR_WINDOW;
+
+    /*
+     * BUG-IDE-SPLIT-EFFACE-001 — dépôt de la disposition courante pour la
+     * coquille suivante (ou le vrai composant), en phase layout. Le dépôt au
+     * démontage lit la disposition COURANTE via un miroir, pas celle capturée
+     * au lancement de l'effet.
+     */
+    const dispositionCouranteRef = useRef({ paneTree, activePaneId, floatingPanes });
+
+    dispositionCouranteRef.current = { paneTree, activePaneId, floatingPanes };
+
+    /*
+     * Le dépôt se fait À CHAQUE changement, pas seulement au démontage : le vrai
+     * composant lit la disposition pendant son RENDU, qui précède le commit où
+     * la coquille est démontée — un dépôt fait au démontage seul arriverait
+     * après la lecture (mesuré : rouge sur le premier essai). Le dépôt au
+     * démontage reste pour la dernière valeur, celle que le rendu a pu manquer.
+     */
+    useLayoutHandoffEffect(() => {
+      if (!projectIdeMode) {
+        return undefined;
+      }
+
+      deposerDisposition(porteeDeLaDisposition, { paneTree, activePaneId, floatingPanes });
+
+      return () => {
+        deposerDisposition(porteeDeLaDisposition, dispositionCouranteRef.current);
+      };
+    }, [activePaneId, floatingPanes, paneTree, porteeDeLaDisposition, projectIdeMode]);
 
     const [agentWidth, setAgentWidth] = useState(() =>
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
@@ -4964,13 +5042,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       return selectedFile.replace(`${WORK_DIR}/`, '').replace(/^\/+/, '');
     }, [selectedFile]);
 
+    const projectHistoryLoadFailed = Boolean(transcriptError || memoireProjetEnEchec);
+
     const mobileAgentStatusLabel = isAgentRunning
       ? t('baseChatAst.mobile.working')
-      : chatStarted || visibleProjectMessageCount > 0
-        ? t('baseChatAst.mobile.messageCount', { count: visibleProjectMessageCount })
-        : t('baseChatAst.mobile.ready');
+      : projectHistoryLoadFailed
+        ? /* Annoncer « 0 message » alors qu'on n'a pas pu les lire serait faux. */
+          t('baseChatAst.transcript.errorTitle')
+        : chatStarted || visibleProjectMessageCount > 0
+          ? t('baseChatAst.mobile.messageCount', { count: visibleProjectMessageCount })
+          : t('baseChatAst.mobile.ready');
 
-    const shouldShowMobileAgentStartState = projectIdeMode && useMobileIde && visibleProjectMessageCount === 0;
+    const shouldShowMobileAgentStartState =
+      projectIdeMode && useMobileIde && visibleProjectMessageCount === 0 && !projectHistoryLoadFailed;
 
     const mobileAgentContextLabel = mobileAgentSelectedFileLabel
       ? mobileAgentSelectedFileLabel
@@ -5992,9 +6076,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const openWorkspacePanel = useCallback(
       (
-        panel: IdeWorkspacePanel,
+        requestedPanel: IdeWorkspacePanel,
         options: { replaceUrl?: boolean; paneId?: string; filePath?: string; preview?: boolean } = {},
       ) => {
+        /*
+         * An aliased tool names a screen that lives as a tab inside another
+         * tool (`domains` → Deploy → Domains). It stays a valid id everywhere —
+         * `?panel=domains` deep links, layouts persisted before the alias
+         * existed, the mobile Tools sheet — and is redirected HERE, the single
+         * function every desktop door goes through, so no caller has to know.
+         */
+        const opening = resolveProjectEditorToolOpen(requestedPanel as never);
+        const panel = opening.panel as IdeWorkspacePanel;
+
+        if (opening.deployView) {
+          requestDeployPanelView(opening.deployView as DeployPanelView);
+        }
+
         setWorkspaceTabs((currentTabs) => (currentTabs.includes(panel) ? currentTabs : [...currentTabs, panel]));
         setActiveWorkspacePanel(panel);
 
@@ -6189,10 +6287,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileIdePanel('editor');
           setProjectPanelSearchParam('editor');
         } else {
-          const managementPanel = MOBILE_TOOL_TO_MANAGEMENT_PANEL[normalizedToolId] as IdeManagementPanel | undefined;
+          const requestedPanel = MOBILE_TOOL_TO_MANAGEMENT_PANEL[normalizedToolId] as IdeManagementPanel | undefined;
+
+          /*
+           * Avi's bottom menu and its Tools sheet keep every entry they have —
+           * "Domaines" included. What changes is where it LANDS: an aliased
+           * tool opens its owner on the right tab (Deploy → Domains) instead of
+           * a second copy of the same screen. Resolved here as well as inside
+           * `openWorkspacePanel` so the URL param and the mobile tab id name
+           * the panel that actually opened, not the alias.
+           */
+          const opening = requestedPanel ? resolveProjectEditorToolOpen(requestedPanel as never) : undefined;
+          const managementPanel = opening?.panel as IdeManagementPanel | undefined;
 
           if (managementPanel) {
             openWorkspacePanel(managementPanel, { replaceUrl: false });
+
+            if (opening?.deployView) {
+              requestDeployPanelView(opening.deployView as DeployPanelView);
+            }
+
             setProjectPanelSearchParam(managementPanel);
             setMobileIdePanel('deploy', { activeTabId: managementPanel });
           }
@@ -7650,7 +7764,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [activateMobileTool]);
 
     const shouldRenderAgentPatchReviewQueue =
-      projectIdeMode && !projectAutoApply && pendingAgentPatchProposals.length > 0;
+      projectIdeMode && propositionsAMontrer(pendingAgentPatchProposals, projectAutoApply).length > 0;
 
     const shouldRenderAgentComposer = !projectIdeMode || !useMobileIde || mobilePanel === 'chat';
 
@@ -7770,6 +7884,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
           </div>
         )}
+        {transcriptError ? (
+          <div className="bolt-agent-transcript-error" role="alert" data-testid="agent-transcript-error">
+            <span className="i-ph:warning-circle bolt-agent-transcript-error-icon" aria-hidden />
+            <div className="bolt-agent-transcript-error-copy">
+              <strong>{t('baseChatAst.transcript.errorTitle')}</strong>
+              <p>{t('baseChatAst.transcript.errorBody')}</p>
+            </div>
+            <button type="button" className="bolt-agent-transcript-error-retry" onClick={transcriptError.retry}>
+              {t('baseChatAst.transcript.errorRetry')}
+            </button>
+          </div>
+        ) : null}
         {shouldShowMobileAgentStartState ? (
           <MobileAgentStartState
             fileCount={mobileAgentFileCount}
@@ -7878,6 +8004,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               </div>
             )}
+            {/*
+             * Un échec de chargement doit se VOIR et se rattraper : il ne se
+             * traduisait que par un toast éphémère, puis un panneau vide,
+             * impossible à distinguer d'une conversation qui n'aurait jamais
+             * existé, et sans autre moyen de relancer que recharger la page.
+             */}
+            {projectIdeMode && memoireProjetEnEchec ? (
+              <div className="bolt-agent-memory-load-error" role="status">
+                <span className="i-ph:warning-circle" aria-hidden />
+                <p>{t('chat.copy.projectMemoryLoadFailed')}</p>
+                <button
+                  type="button"
+                  className="bolt-agent-memory-load-error__retry"
+                  onClick={demanderUnNouvelEssaiMemoireProjet}
+                >
+                  {t('chat.copy.retry_9f5cd8a2')}
+                </button>
+              </div>
+            ) : null}
             <ClientOnly>
               {() => {
                 return chatStarted ? (
@@ -9657,8 +9802,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * 20 of 29: `studio`, `domains`, `locks`, `overview`, `logs`,
            * `activity`, `collaborators`, `debugger` and `editor` were rendered
            * as panels but could not be reached from here at all.
+           *
+           * Aliased tools (`domains`) stay listed HERE on purpose: this surface
+           * is a search box, and someone typing "domains" must find something.
+           * The row is now a shortcut — `openIdeTool` sends it to Deploy →
+           * Domains rather than to a second copy of that screen. The BROWSE
+           * grid, where the duplicate card was actually visible, drops them.
            */
-          ...projectEditorToolList().map((tool) => {
+          ...projectEditorToolList('search').map((tool) => {
             const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[tool.id];
 
             return {
@@ -13218,7 +13369,7 @@ function ProjectFilesTool({
             type="button"
             aria-label={t('chat.copy.refreshFiles_75bfab07')}
             title={t('chat.copy.refreshFiles_75bfab07')}
-            onClick={() => void workbenchStore.loadRuntimeFiles('.')}
+            onClick={() => void workbenchStore.loadRuntimeFiles('.', { reparer: true })}
           >
             <span className="i-ph:arrow-clockwise" aria-hidden />
           </button>
@@ -13633,23 +13784,37 @@ function IdeTabBar({
    * hand-maintained tuples here that had drifted: `studio` (Agent Studio) and
    * `domains` were rendered as real panels but appeared in no tool list, so they
    * could not be opened from this popup at all.
+   *
+   * `domains` has since gone the other way: its screen is the SAME
+   * `ProjectDomainsPanel` that Deploy → Domains renders, so a card here was a
+   * second door to one screen — and a dead end before the first deployment,
+   * since the CNAME/A instructions only unlock once a deploy is READY. The grid
+   * variant drops aliased tools; `openWorkspacePanel` routes them to their
+   * owner's tab instead.
    */
-  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> =
-    projectEditorToolsByCategory().flatMap(([category, categoryTools]) =>
-      categoryTools.map(
-        (tool) =>
-          [
-            tool.id as IdeWorkspacePanel | IdeRightPanel,
-            toolDisplayTitle(tool.id, t),
-            t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
-            tool.icon,
-            tool.accent,
-            t(PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS[category] as never),
-          ] as [IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string],
-      ),
-    );
-
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
+
+  /*
+   * Browsing shows the GRID (aliased tools hidden — that is the duplicate card
+   * Avi hit); searching shows everything, because a query for "domains" that
+   * returns nothing is a worse answer than a shortcut row. Either way the row
+   * opens Deploy → Domains, never a second copy of the screen.
+   */
+  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = (
+    normalizedToolQuery ? projectEditorToolsByCategory('search') : projectEditorToolsByCategory()
+  ).flatMap(([category, categoryTools]) =>
+    categoryTools.map(
+      (tool) =>
+        [
+          tool.id as IdeWorkspacePanel | IdeRightPanel,
+          toolDisplayTitle(tool.id, t),
+          t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+          tool.icon,
+          tool.accent,
+          t(PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS[category] as never),
+        ] as [IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string],
+    ),
+  );
 
   const filteredRecentFiles = recentFiles
     .filter((filePath) => !normalizedToolQuery || filePath.toLowerCase().includes(normalizedToolQuery))
@@ -14763,6 +14928,14 @@ function ProjectIdePanelContent({
     );
   }
 
+  /*
+   * `domains` is an aliased tool: every door now opens Deploy → Domains
+   * instead (see `PROJECT_EDITOR_TOOL_ALIASES`). This branch stays for the one
+   * case the alias cannot intercept — a pane layout persisted BEFORE the alias
+   * existed, restored straight into the pane tree without going through
+   * `openWorkspacePanel`. It renders the very same `ProjectDomainsPanel` the
+   * Deploy tab does, so such a tab is stale, never divergent.
+   */
   if (panel === 'domains') {
     return <ProjectDomainsPanel data={data} onSubmit={onSubmit} busy={busy} />;
   }
@@ -23474,7 +23647,28 @@ function ProjectDeploymentsPanel({
     outputDirectory: latestDeployment?.outputDirectory,
   });
 
-  const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
+  const [tab, setTab] = useState<DeployPanelView>(() => consumeDeployPanelView() ?? 'overview');
+
+  /*
+   * A door that opened the aliased `domains` tool asks for the Domains tab
+   * (see `~/lib/stores/deploy-panel-view`). The initial state above covers the
+   * mount case; this covers the panel already being open when the request comes
+   * in. The request is consumed once, so the user's own tab clicks afterwards
+   * are never overridden.
+   */
+  const pendingDeployView = useStore(requestedDeployPanelView);
+
+  useEffect(() => {
+    if (!pendingDeployView) {
+      return;
+    }
+
+    const requested = consumeDeployPanelView();
+
+    if (requested) {
+      setTab(requested);
+    }
+  }, [pendingDeployView]);
 
   /*
    * RP-PUBLISH-05 — « Réparer avec l'agent ». On réutilise l'événement
@@ -23671,8 +23865,16 @@ function ProjectDeploymentsPanel({
       {/*
        * Real domains management, consolidated under Deploy (Replit parity): the
        * full ProjectDomainsPanel self-fetches + submits against /orgs/:id/domains
-       * (list / add custom domain / DNS verify / delete). The standalone Domains
-       * panel is removed from the Add-tab selector so this is the single place.
+       * (list / add custom domain / DNS verify / delete).
+       *
+       * This is the single IMPLEMENTATION of the screen. The comment that used
+       * to stand here claimed the standalone entry had been removed, and
+       * RPL-IDE-001.5 put a `domains` card back into the All-tools grid without
+       * a single red test. `domains` is now an alias (see
+       * `PROJECT_EDITOR_TOOL_ALIASES`): it keeps a row in the SEARCH surfaces,
+       * where it acts as a shortcut into this tab, and has no card of its own
+       * in the browse grid. Held by `project-editor-tool-catalog.spec.ts`, not
+       * by this comment.
        */}
       {tab === 'domains' ? <ProjectDomainsPanel projectId={projectId} /> : null}
 
