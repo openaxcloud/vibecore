@@ -1,0 +1,46 @@
+{
+  "after": {
+    "bucketExists": false,
+    "objectsRemaining": 0
+  },
+  "before": {
+    "count": 3,
+    "objects": [
+      "assets/logo.png",
+      "data/export.json",
+      "nested/dir/notes.txt"
+    ]
+  },
+  "bucket": "vc-purgee2emrxwjafc",
+  "classes": [
+    {
+      "action": "deleted",
+      "dataClass": "object_storage",
+      "models": {
+        "Buckets": 1,
+        "BucketsDeleted": 1,
+        "ObjectsErased": 3,
+        "RealBackend": 1
+      },
+      "remainingAfterPurge": 0
+    },
+    {
+      "action": "deleted",
+      "dataClass": "workspace_volumes",
+      "models": {
+        "PvcsDeleted": 0,
+        "Workspaces": 0,
+        "WriteBarrier": 1
+      },
+      "remainingAfterPurge": 0
+    }
+  ],
+  "kind": "physical-purge-gcs-e2e",
+  "location": "EU",
+  "negative": {
+    "inertBackendRefusedAndBucketSurvived": true
+  },
+  "project": "ecode-wif-proof-834022",
+  "verified": true,
+  "version": 2
+}
