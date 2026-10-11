@@ -371,6 +371,15 @@
       "expiresOn": "2027-08-04"
     },
     {
+      "id": "screenshotter-startup-ssrf-allowlist-required",
+      "path": "services/screenshotter/src/server.ts",
+      "rule": "error-message",
+      "textPattern": "^SCREENSHOTTER_ALLOWED_HOSTS is required in production \\(SSRF allowlist; empty = open renderer\\)\\.$",
+      "justification": "Boot-time configuration invariant for AUDX-006. It is thrown while the process starts, before any route is registered, so it can never reach a response body; the audience is whoever reads the pod's crash log. Naming the environment variable is the point — localizing it would hide which variable is missing. The service refuses to start rather than 403-ing every capture, so a misconfigured deploy is loud instead of silently broken.",
+      "owner": "platform-security",
+      "expiresOn": "2027-08-05"
+    },
+    {
       "id": "llm-connector-catalog-invariant",
       "path": "app/lib/.server/llm/connector-prompt.ts",
       "rule": "error-message",
