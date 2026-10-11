@@ -8,6 +8,7 @@ import {
   type LoginLockoutState,
   type LoginThrottleConfig,
 } from '../login-throttle.js';
+import { appPublicEnglish } from '../app-public-copy.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
 import { DEFAULT_ENV_VAR_SCOPE, projectSnapshotManifest } from '../store.js';
 import type {
@@ -748,7 +749,7 @@ export class TestApiStore implements ApiStore {
     );
 
     if (clash) {
-      throw Object.assign(new Error('A project with this URL slug already exists in this organization.'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_TAKEN')), {
         statusCode: 409,
         code: 'PROJECT_SLUG_TAKEN',
       });
