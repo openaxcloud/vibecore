@@ -1,0 +1,3386 @@
+[
+  {
+    "path": "/pricing",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:05:09.763Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Choisir la formule Pro",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/pricing",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T17:59:42.265Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Choisir la formule Pro",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/pricing",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T17:59:46.090Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Choisir la formule Pro",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/pricing",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T17:59:47.215Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Choisir la formule Pro",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/pricing",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T17:59:50.687Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Choisir la formule Pro",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/pricing",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T17:59:51.045Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Mensuel",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Choisir la formule Pro",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/partners",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T17:59:53.759Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/partners",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T17:59:54.735Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/partners",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T17:59:56.242Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/partners",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T17:59:58.987Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/partners",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T17:59:59.121Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/partners",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:04.211Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Devenir partenaire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/deployments",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:04.383Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Parler à un expert",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/deployments",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:06.628Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Parler à un expert",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/deployments",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:09.126Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Parler à un expert",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/deployments",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:10.826Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Parler à un expert",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/deployments",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:13.893Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Parler à un expert",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/deployments",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:05:09.760Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Parler à un expert",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/status",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:18.421Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/status",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:19.925Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/status",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:05:15.841Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/status",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:23.449Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/status",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:27.098Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/status",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:27.192Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/about",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:29.585Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/about",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:31.203Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/about",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:32.881Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/about",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:35.588Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/about",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:36.214Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/about",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:38.198Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer gratuitement",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/careers",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:38.496Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Nous contacter",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/careers",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:40.846Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Nous contacter",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/careers",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:41.394Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Nous contacter",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/careers",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:43.289Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Nous contacter",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/careers",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:43.323Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Nous contacter",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/contact",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:46.882Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Envoyer le message",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/careers",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:46.851Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Postuler",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Nous contacter",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/contact",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:49.325Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Envoyer le message",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/contact",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:50.138Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Envoyer le message",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/contact",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:52.080Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Envoyer le message",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/contact",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:52.639Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Envoyer le message",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/contact",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:54.253Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Envoyer le message",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/mobile",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:55.741Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Ouvrir l’espace mobile",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/mobile",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:00:58.451Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Ouvrir l’espace mobile",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/mobile",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:00:59.046Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir l’espace mobile",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/mobile",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:05:15.987Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir l’espace mobile",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/mobile",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:01.534Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir l’espace mobile",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/desktop",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:05.298Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Télécharger pour macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Windows",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Linux",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger l’application de bureau",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/mobile",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:04.477Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir l’espace mobile",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/desktop",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:07.531Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Télécharger pour macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Windows",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Linux",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger l’application de bureau",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/desktop",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:05:21.971Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger pour macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Windows",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Linux",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger l’application de bureau",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/desktop",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:07.737Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger pour macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Windows",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Linux",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger l’application de bureau",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/desktop",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:15.384Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger pour macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Windows",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Linux",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger l’application de bureau",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/desktop",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:16.880Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger pour macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "macOS",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Windows",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Linux",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Télécharger l’application de bureau",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:18.675Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer à créer",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:19.675Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer à créer",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:22.041Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer à créer",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:23.647Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer à créer",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:26.021Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer à créer",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:26.692Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Commencer à créer",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai-agent",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:29.180Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Créer votre première application",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai-agent",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:29.800Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Créer votre première application",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai-agent",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:31.694Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Créer votre première application",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai-agent",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:33.178Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Créer votre première application",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai-agent",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:33.779Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Créer votre première application",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/ai-agent",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:35.510Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Ouvrir le studio de l’agent",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Créer votre première application",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/bounties",
+    "width": 390,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:37.751Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Publier votre première mission",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/bounties",
+    "width": 390,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:38.690Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Publier votre première mission",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/bounties",
+    "width": 768,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:40.231Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Publier votre première mission",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/bounties",
+    "width": 768,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:41.723Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Publier votre première mission",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/bounties",
+    "width": 1440,
+    "theme": "light",
+    "timestamp": "2026-10-11T18:01:43.636Z",
+    "status": 200,
+    "actualTheme": "light",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Publier votre première mission",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  },
+  {
+    "path": "/bounties",
+    "width": 1440,
+    "theme": "dark",
+    "timestamp": "2026-10-11T18:01:44.147Z",
+    "status": 200,
+    "actualTheme": "dark",
+    "horizontalOverflow": false,
+    "controls": [
+      {
+        "text": "FR",
+        "color": "rgb(255, 255, 255)",
+        "background": "rgb(194, 65, 12)",
+        "ratio": 5.178415705888697
+      },
+      {
+        "text": "Commencer",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      },
+      {
+        "text": "Publier votre première mission",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "Contacter l’équipe commerciale",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(245, 101, 5)",
+        "ratio": 5.698807295555733
+      },
+      {
+        "text": "S’inscrire",
+        "color": "rgb(17, 24, 39)",
+        "background": "rgb(242, 98, 7)",
+        "ratio": 5.512482022563565
+      }
+    ],
+    "failures": []
+  }
+]

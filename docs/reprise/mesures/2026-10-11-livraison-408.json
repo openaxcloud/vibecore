@@ -1,0 +1,122 @@
+{
+  "workflowRun": 38169434734,
+  "conclusion": "success",
+  "targetSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+  "generatedAt": "2026-10-11T20:57:00.215Z",
+  "fullyTraceableReferences": true,
+  "provenanceGaps": [],
+  "services": [
+    {
+      "service": "web",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:2e2ba42b6b0798bb23d362b7a465e2b3d5bdc485b4ddb009c41b6ab6e45c24a1",
+      "rebuilt": true,
+      "rolled": true
+    },
+    {
+      "service": "admin",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:ff5a63ce42026d5c65629a0070cafcbca1eb4374215cc736c5c96a2606fd7b9d",
+      "rebuilt": true,
+      "rolled": true
+    },
+    {
+      "service": "api",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:8ee21e34e78c6a5be47e67e72b905d9064e44ce01e569efb71c49f0125a8fa21",
+      "rebuilt": true,
+      "rolled": true
+    },
+    {
+      "service": "worker",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:c12fd92a207848100caabfd63540ee4a2d38ddfd307dae8a087c92cbc32b5dac",
+      "rebuilt": true,
+      "rolled": true
+    },
+    {
+      "service": "aiGateway",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:f06205ab2ab4d6dd489497e2f7b628db4440129a361b79100b9ae122bb28a0f6",
+      "rebuilt": true,
+      "rolled": true
+    },
+    {
+      "service": "workspaceManager",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:279ca4fb86f10797650d22112a65ac21025921c7f87e5a77edd17fdc008aade6",
+      "rebuilt": true,
+      "rolled": true
+    },
+    {
+      "service": "previewProxy",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:250ff9adab38fb21a6ae520c38b0a3da87c7b1af8fd5198c283bda55a757b053",
+      "rebuilt": true,
+      "rolled": true
+    },
+    {
+      "service": "screenshotter",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:92008385f56055f9876ddb4c117e019ef589fba91cf0e8d8e4b57927c36af8cf",
+      "rebuilt": true,
+      "rolled": false
+    },
+    {
+      "service": "workspaceAgent",
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "digest": "sha256:c8cd060e91770a75e189161544aea13eb7c46b9b1f9eec7ec758198af9d5bd7c",
+      "rebuilt": true,
+      "rolled": false
+    }
+  ],
+  "captureTime": "2026-10-11T21:02:48.582Z",
+  "command": {
+    "time": "2026-10-11T21:02:48.583Z",
+    "commandExitCode": 0,
+    "evidenceComplete": true
+  },
+  "webDeployment": {
+    "name": "vibecore-vibecore-platform-web",
+    "status": {
+      "replicas": 3,
+      "readyReplicas": 3,
+      "availableReplicas": 2,
+      "updatedReplicas": 2
+    }
+  },
+  "webPods": [
+    {
+      "name": "vibecore-vibecore-platform-web-65d79f556-m2ntq",
+      "phase": "Running",
+      "ready": true,
+      "startedAt": [
+        "2026-10-11T21:02:26Z"
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-web-65d79f556-wvsqx",
+      "phase": "Running",
+      "ready": true,
+      "startedAt": [
+        "2026-10-11T21:00:46Z"
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-web-7cccbf9bbc-5rfdp",
+      "phase": "Running",
+      "ready": true,
+      "startedAt": [
+        "2026-10-11T19:35:34Z"
+      ]
+    }
+  ],
+  "sha256": {
+    "manifest": "c7071c6997fb34a5a069c23cf3ef22acae092565a495f493868f0484d68c87f9",
+    "rollout": "5f567565a1a2601b8bf88bfa509d87bcb89a9b5274350891b28538fd69a6d114"
+  },
+  "limitations": [
+    "Artifact does not preserve container imageIDs. The workflow imageID check passed for rolled services.",
+    "Screenshotter and workspaceAgent rebuilt references are not marked rolled; this does not prove these images are running."
+  ]
+}

@@ -1,0 +1,253 @@
+{
+  "runId": 38165474193,
+  "manifestSha256": "9cc443b4fab2153721f5ec9bf11fcaaa3b992170a1fa7ae911b3b5cace0f0bd4",
+  "rolloutSha256": "a49f5cdafd166f159080ff150e13a1908fab977078c00334cbc0ebe2e5762af4",
+  "targetSha": "80f1de14794b134a7073d20b708254d690ff6626",
+  "services": [
+    {
+      "service": "web",
+      "sourceSha": "80f1de14794b134a7073d20b708254d690ff6626",
+      "digest": "sha256:158999199081796edcceab5c48935763ae43a5d7cb91436345e8515b9096d4ba",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "admin",
+      "sourceSha": null,
+      "digest": "sha256:4a8cedc292d84663aa6a405f303d2046f3a5095a576ad3f237ef92e566c79a67",
+      "rebuilt": false,
+      "rolled": true,
+      "provenanceKnown": false
+    },
+    {
+      "service": "api",
+      "sourceSha": null,
+      "digest": "sha256:4c331d7ae5ea928208a048a0227a09bed516edbce63c82512cf7959b77de985e",
+      "rebuilt": false,
+      "rolled": true,
+      "provenanceKnown": false
+    },
+    {
+      "service": "worker",
+      "sourceSha": null,
+      "digest": "sha256:e232cb702a28b783c1b1cd4a63634c5a1e349dccb4ee115b1681bd64c02a0e62",
+      "rebuilt": false,
+      "rolled": true,
+      "provenanceKnown": false
+    },
+    {
+      "service": "aiGateway",
+      "sourceSha": null,
+      "digest": "sha256:3f1a4ea8640f8368d01b567ca1da34701a752cab5cfaa19b7e320205d5ab1ba5",
+      "rebuilt": false,
+      "rolled": true,
+      "provenanceKnown": false
+    },
+    {
+      "service": "workspaceManager",
+      "sourceSha": null,
+      "digest": "sha256:d3e261c67620026407120c9e8ef0ba4c340df89635791730da85168711dd22d6",
+      "rebuilt": false,
+      "rolled": true,
+      "provenanceKnown": false
+    },
+    {
+      "service": "previewProxy",
+      "sourceSha": null,
+      "digest": "sha256:85318e1a0d5fd0c270f93fccc2b49212a693fd547b5d8b36fad192139aff690a",
+      "rebuilt": false,
+      "rolled": true,
+      "provenanceKnown": false
+    },
+    {
+      "service": "screenshotter",
+      "sourceSha": null,
+      "digest": "sha256:92008385f56055f9876ddb4c117e019ef589fba91cf0e8d8e4b57927c36af8cf",
+      "rebuilt": false,
+      "rolled": false,
+      "provenanceKnown": false
+    },
+    {
+      "service": "workspaceAgent",
+      "sourceSha": null,
+      "digest": "sha256:c8cd060e91770a75e189161544aea13eb7c46b9b1f9eec7ec758198af9d5bd7c",
+      "rebuilt": false,
+      "rolled": false,
+      "provenanceKnown": false
+    }
+  ],
+  "fullyTraceable": false,
+  "provenanceGaps": [
+    "admin",
+    "api",
+    "worker",
+    "aiGateway",
+    "workspaceManager",
+    "previewProxy",
+    "screenshotter",
+    "workspaceAgent"
+  ],
+  "lastEvidence": {
+    "time": "2026-10-11T19:37:28.916Z",
+    "commandExitCode": 0,
+    "evidenceComplete": true
+  },
+  "webResources": [
+    {
+      "kind": "Deployment",
+      "name": "vibecore-vibecore-platform-web",
+      "status": {
+        "replicas": 3,
+        "readyReplicas": 3,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "ReplicaSetUpdated"
+        }
+      ],
+      "containers": []
+    },
+    {
+      "kind": "Pod",
+      "name": "vibecore-vibecore-platform-web-5c47b76656-wg2gz",
+      "status": {
+        "phase": "Running"
+      },
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "status": {
+            "name": "web",
+            "ready": true,
+            "restartCount": 0
+          },
+          "state": {
+            "running": {
+              "startedAt": "2026-10-11T17:51:29Z"
+            }
+          },
+          "lastState": {}
+        }
+      ]
+    },
+    {
+      "kind": "Pod",
+      "name": "vibecore-vibecore-platform-web-7cccbf9bbc-5rfdp",
+      "status": {
+        "phase": "Running"
+      },
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "status": {
+            "name": "web",
+            "ready": true,
+            "restartCount": 0
+          },
+          "state": {
+            "running": {
+              "startedAt": "2026-10-11T19:35:34Z"
+            }
+          },
+          "lastState": {}
+        }
+      ]
+    },
+    {
+      "kind": "Pod",
+      "name": "vibecore-vibecore-platform-web-7cccbf9bbc-lg9x8",
+      "status": {
+        "phase": "Running"
+      },
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "status": {
+            "name": "web",
+            "ready": true,
+            "restartCount": 0
+          },
+          "state": {
+            "running": {
+              "startedAt": "2026-10-11T19:36:59Z"
+            }
+          },
+          "lastState": {}
+        }
+      ]
+    }
+  ]
+}

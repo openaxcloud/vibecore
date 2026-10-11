@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://e-code.ai/subscribe?plan=pro&interval=annual",
+    "status": 302,
+    "location": "/upgrade?plan=pro&interval=annual"
+  },
+  {
+    "url": "https://e-code.ai/upgrade?plan=pro&interval=annual",
+    "status": 302,
+    "location": "/login?returnTo=%2Fupgrade%3Fplan%3Dpro%26interval%3Dannual"
+  },
+  {
+    "url": "https://e-code.ai/login?returnTo=%2Fupgrade%3Fplan%3Dpro%26interval%3Dannual",
+    "status": 301,
+    "location": "https://app.e-code.ai/login?returnTo=%2Fupgrade%3Fplan%3Dpro%26interval%3Dannual"
+  },
+  {
+    "url": "https://app.e-code.ai/login?returnTo=%2Fupgrade%3Fplan%3Dpro%26interval%3Dannual",
+    "status": 200,
+    "location": null
+  }
+]
