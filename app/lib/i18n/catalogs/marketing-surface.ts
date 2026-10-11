@@ -24,17 +24,9 @@ export interface MarketingSurfaceCategoryCopy {
 }
 
 export interface MarketingSurfaceUiCopy {
-  routeDetails: (title: string) => string;
-  importedCapabilities: (title: string) => string;
   relatedRoutes: (title: string) => string;
-  importedConfirmation: string;
   connectedRoutes: string;
-  connectedTitle: string;
   open: string;
-  productionControls: string;
-  productionBody: string;
-  workflowTitle: (title: string) => string;
-  workflowBody: (title: string) => string;
   notFound: string;
   advancedNotFound: string;
 }
@@ -437,37 +429,17 @@ export const marketingSurfaceCategoryFr = {
 } as const satisfies { surfaceCategories: Record<MarketingSurfaceCategory, MarketingSurfaceCategoryCopy> };
 
 const marketingSurfaceUiEnglish: MarketingSurfaceUiCopy = {
-  routeDetails: (title) => `${title} route details`,
-  importedCapabilities: (title) => `${title} imported capabilities`,
   relatedRoutes: (title) => `${title} related routes`,
-  importedConfirmation: 'Imported from E-Code and rendered through E-Code public navigation.',
   connectedRoutes: 'Connected routes',
-  connectedTitle: 'Keep moving through real pages.',
   open: 'Open',
-  productionControls: 'Production controls',
-  productionBody:
-    'The route is wired through the public shell, navigation-safe links and responsive content instead of an empty compatibility page.',
-  workflowTitle: (title) => `${title} workflow`,
-  workflowBody: (title) =>
-    `${title} is now a real E-Code route backed by the imported E-Code product map. It keeps the user moving from intent to a visible, recoverable product workflow.`,
   notFound: 'E-Code surface page not found',
   advancedNotFound: 'Advanced E-Code surface page not found',
 };
 
 const marketingSurfaceUiFrench: MarketingSurfaceUiCopy = {
-  routeDetails: (title) => `Détails de la route ${title}`,
-  importedCapabilities: (title) => `Capacités importées de ${title}`,
   relatedRoutes: (title) => `Routes associées à ${title}`,
-  importedConfirmation: 'Importé depuis E-Code et affiché dans la navigation publique E-Code.',
   connectedRoutes: 'Routes associées',
-  connectedTitle: 'Poursuivez votre parcours dans de vraies pages.',
   open: 'Ouvrir',
-  productionControls: 'Contrôles de production',
-  productionBody:
-    'La route utilise la structure publique, des liens de navigation sûrs et un contenu adaptatif à la place d’une page de compatibilité vide.',
-  workflowTitle: (title) => `Flux ${title}`,
-  workflowBody: (title) =>
-    `${title} est désormais une véritable route E-Code adossée au plan produit importé. Elle vous guide de l’intention à un flux visible et récupérable.`,
   notFound: 'Page de surface E-Code introuvable',
   advancedNotFound: 'Page de surface E-Code avancée introuvable',
 };
