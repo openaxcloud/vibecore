@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -43,27 +43,23 @@ describe('runtime E-Code branding', () => {
   it('keeps public contributor surfaces owned by E-Code', () => {
     const bugReport = source('.github/ISSUE_TEMPLATE/bug_report.yml');
     const issueConfig = source('.github/ISSUE_TEMPLATE/config.yml');
-    const preview = source('.github/workflows/preview.yaml');
     const changelog = source('.github/scripts/generate-changelog.sh');
     const codeowners = source('.github/CODEOWNERS');
 
     expect(bugReport).toContain('[E-Code](https://e-code.ai)');
     expect(bugReport).toContain('Link to the E-Code project that caused the error');
     expect(issueConfig).toContain('url: https://e-code.ai/contact');
-    expect(preview).toContain('projectName: bolt-diy-preview');
-    expect(preview.match(/Built with \[E-Code\]\(https:\/\/e-code\.ai\)/g)).toHaveLength(2);
     expect(changelog).toContain(': "${GITHUB_REPOSITORY:=openaxcloud/vibecore}"');
     expect(codeowners).toContain('# Code Owners for E-Code');
     expect(codeowners.match(/@openaxcloud/g)?.length).toBeGreaterThanOrEqual(10);
 
-    const brandedSurfaces = [
-      bugReport,
-      issueConfig,
-      preview.replace('bolt-diy-preview', ''),
-      changelog,
-      codeowners,
-    ].join('\n');
+    const brandedSurfaces = [bugReport, issueConfig, changelog, codeowners].join('\n');
     expect(brandedSurfaces).not.toMatch(/bolt\.diy|stackblitz-labs\/bolt|thinktank\.ottomator\.ai|@stackblitz-labs/i);
+  });
+
+  it('does not publish or wait for the retired Cloudflare preview', () => {
+    expect(existsSync(join(process.cwd(), '.github/workflows/preview.yaml'))).toBe(false);
+    expect(source('.github/workflows/pr-release-validation.yaml')).not.toContain('Deploy Preview');
   });
 
   it('keeps the published documentation on E-Code product and repository links', () => {

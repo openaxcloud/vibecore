@@ -148,7 +148,7 @@ export default function Desktop() {
               <a
                 href={desktopDownloadUrl(PRIMARY_DESKTOP_DOWNLOAD.file)}
                 download
-                className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
+                className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 px-6 py-3 rounded-md text-[var(--ecode-accent-contrast)] font-medium min-h-[44px] hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: 'var(--ecode-accent)' }}
                 data-testid="button-hero-download"
               >
@@ -198,7 +198,7 @@ export default function Desktop() {
                       <a
                         href={desktopDownloadUrl(download.file)}
                         download
-                        className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity mt-auto"
+                        className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-md text-[var(--ecode-accent-contrast)] font-medium min-h-[44px] hover:opacity-90 transition-opacity mt-auto"
                         style={{ backgroundColor: 'var(--ecode-accent)' }}
                         data-testid={`button-download-${download.os.toLowerCase()}`}
                       >
@@ -323,7 +323,7 @@ export default function Desktop() {
               <a
                 href={desktopDownloadUrl(PRIMARY_DESKTOP_DOWNLOAD.file)}
                 download
-                className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
+                className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 px-6 py-3 rounded-md text-[var(--ecode-accent-contrast)] font-medium min-h-[44px] hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: 'var(--ecode-accent)' }}
                 data-testid="button-desktop-cta"
               >

@@ -1,0 +1,25 @@
+import { chromium } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+const API='http://127.0.0.1:3011', APP='http://127.0.0.1:5183', MANAGER='http://127.0.0.1:3910', OUT='/private/tmp/claude-501/-Users-hb-dev-vibecore-base-tc/987e34e2-2756-4a63-bf5d-9718de24d014/scratchpad/retour';
+const SM=readFileSync(OUT+'/sm','utf8').trim(); const KC='/private/tmp/claude-501/-Users-hb-dev-vibecore-base-tc/987e34e2-2756-4a63-bf5d-9718de24d014/scratchpad/orb-seul.kubeconfig';
+const compte=JSON.parse(readFileSync(OUT+'/compte.json','utf8')); const pid=readFileSync(OUT+'/projet.txt','utf8').trim();
+const tok=(await (await fetch(API+'/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:compte.email,password:'Password123!'})})).json()).token;
+const k=(...a)=>execFileSync('kubectl',a,{encoding:'utf8',env:{...process.env,KUBECONFIG:KC}}).trim();
+const b=await chromium.launch();
+const ouvrir=async()=>{ const c=await b.newContext({viewport:{width:1440,height:900}}); await c.addCookies([{name:'vc_session',value:tok,url:APP,httpOnly:true,sameSite:'Lax'}]); const p=await c.newPage(); await p.goto(`${APP}/projects/${pid}/ide?lang=fr`,{timeout:180000}); await p.getByText('App.tsx',{exact:true}).first().waitFor({timeout:180000}); await p.waitForTimeout(6000); await p.getByText('App.tsx',{exact:true}).first().click(); await p.waitForTimeout(3000); return {c,p}; };
+const premiere=async(p)=>((await p.locator('.monaco-editor .view-line').allInnerTexts())[0]??'').replace(/ /g,' ');
+let {c,p}=await ouvrir();
+const m=`avant-recyclage-${Date.now().toString(36)}`;
+await p.locator('.monaco-editor .view-line').first().click(); await p.keyboard.press('Home'); await p.keyboard.type(`// ${m}`); await p.keyboard.press('Enter');
+await p.getByRole('button',{name:/^Enregistrer$/}).first().click(); await p.waitForTimeout(6000);
+console.log('1. modification enregistrée, 1re ligne écran :', await premiere(p)); await c.close();
+({c,p}=await ouvrir()); console.log('2. réouverture normale, 1re ligne écran :', await premiere(p)); await c.close();
+const ws=k('get','pods','-n','workspaces','-o','jsonpath={.items[0].metadata.labels.vibecore\\.ai/workspace-id}') || k('get','pods','-n','workspaces','-o','name').replace(/.*workspace-/,'');
+console.log('3. espace', ws, '— SUPPRESSION (ce que fait le ramassage après une longue inactivité : volume détruit)');
+const r=await fetch(`${MANAGER}/workspaces/${ws}`,{method:'DELETE',headers:{authorization:`Bearer ${SM}`}}); console.log('   manager :', r.status);
+for(let i=0;i<60;i++){ if(!k('get','pvc','-n','workspaces','-o','name').includes(ws)) break; await new Promise(r=>setTimeout(r,2000)); }
+console.log('   volume encore là ?', k('get','pvc','-n','workspaces','-o','name').includes(ws));
+({c,p}=await ouvrir()); const l=await premiere(p);
+console.log('4. retour après recyclage, 1re ligne écran :', l, '→', l.includes(m) ? 'TRAVAIL CONSERVÉ' : 'TRAVAIL PERDU (version de l’agent)');
+await c.close(); await b.close();

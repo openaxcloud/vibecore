@@ -1243,13 +1243,25 @@ describe('SaaS API', () => {
     // Invite acceptance now requires a verified email.
     await store.updateUser({ userId: invitee.user.id, emailVerifiedAt: new Date().toISOString() });
 
-    const created = await app.inject({
-      method: 'POST',
-      url: `/orgs/${owner.organization.id}/invitations`,
-      headers: { authorization: `Bearer ${owner.token}` },
-      payload: { email: invitee.user.email, roleKey: 'member' },
-    });
+    const inviter = () =>
+      app.inject({
+        method: 'POST',
+        url: `/orgs/${owner.organization.id}/invitations`,
+        headers: { authorization: `Bearer ${owner.token}` },
+        payload: { email: invitee.user.email, roleKey: 'member' },
+      });
+
+    // Forfait gratuit, place unique déjà prise : l'invitation est refusée dès sa création
+    // (BUG-QA0930-INVITATION-SANS-PLACE), au lieu d'échouer chez l'invité après son inscription.
+    const refused = await inviter();
+    expect(refused.statusCode).toBe(429);
+    expect(refused.json()).toMatchObject({ code: 'QUOTA_EXCEEDED', quotaKey: 'team.members' });
+
+    // L'acceptation reste gardée : invitation créée quand il restait des places, puis l'équipe repasse en gratuit.
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+    const created = await inviter();
     expect(created.statusCode).toBe(201);
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'CANCELED' });
 
     const accepted = await app.inject({
       method: 'POST',
@@ -1802,6 +1814,87 @@ describe('SaaS API', () => {
     });
     expect(saml.statusCode).toBe(200);
     expect(await store.findUserByEmail('saml-user@example.com')).toBeTruthy();
+    await app.close();
+  });
+
+  /*
+   * The verified-domain check on the SAML ACS path had NO discriminating test.
+   *
+   * The happy-path SAML test above verifies `example.com` before asserting, so
+   * it passes whether or not the check exists — removing the check leaves it
+   * green. That is the "test that passes on both sides" trap: a security
+   * control whose test cannot fail for its absence is an untested control.
+   *
+   * It matters more than it looks. `VerifiedDomain` is reachable from four
+   * screens that present it as APPLICATION HOSTING ("point your domain's DNS
+   * (CNAME) at the deployment", "managed TLS"), while its only two consumers in
+   * the whole codebase are this check and the SCIM one: verifying a domain is
+   * what authorises SAML assertions and SCIM provisioning for every identity on
+   * it. Any future consolidation of those screens must not weaken this silently.
+   */
+  it('rejects a SAML assertion whose email domain the organization has NOT verified', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const owner = await register(app, { email: 'saml-unverified-owner@example.com', organizationName: 'SAML Org 2' });
+    await store.upsertSubscription({ organizationId: owner.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+    const certificate = publicKey.export({ type: 'spki', format: 'pem' }).toString();
+    await reauth(app, owner.token);
+
+    const samlConfig = await app.inject({
+      method: 'PUT',
+      url: `/orgs/${owner.organization.id}/sso/saml`,
+      headers: { authorization: `Bearer ${owner.token}` },
+      payload: { entityId: 'urn:test:idp', ssoUrl: 'https://idp.example.com/sso', x509Certificate: certificate },
+    });
+    expect(samlConfig.statusCode).toBe(200);
+
+    const sign = (email: string) => {
+      const assertionXml = `<Assertion><Subject><NameID>${email}</NameID></Subject><AttributeStatement><Attribute Name="externalId"><AttributeValue>saml_unverified</AttributeValue></Attribute><Attribute Name="name"><AttributeValue>SAML User</AttributeValue></Attribute></AttributeStatement></Assertion>`;
+      const signature = createSign('RSA-SHA256').update(assertionXml).end().sign(privateKey, 'base64');
+
+      return Buffer.from(
+        `<Response>${assertionXml}<Signature><SignatureValue>${signature}</SignatureValue></Signature></Response>`,
+        'utf8',
+      ).toString('base64url');
+    };
+
+    /*
+     * The signature is valid against the org's own certificate — only the
+     * domain is unverified, so this isolates the check under test.
+     */
+    const rejected = await app.inject({
+      method: 'POST',
+      url: `/auth/saml/${owner.organization.id}/acs`,
+      payload: { SAMLResponse: sign('intruder@not-verified.example') },
+    });
+
+    expect(rejected.statusCode).toBe(403);
+    expect(rejected.json().code).toBe('SAML_EMAIL_DOMAIN_NOT_VERIFIED');
+    expect(await store.findUserByEmail('intruder@not-verified.example')).toBeFalsy();
+
+    /*
+     * Counter-proof: the SAME assertion flow must succeed once the domain IS
+     * verified. Without this half, a route that rejected everything — a broken
+     * SAML path — would satisfy the assertions above.
+     */
+    await store.createDomainVerification({
+      organizationId: owner.organization.id,
+      domain: 'now-verified.example',
+      verificationToken: 'domain-tok-2',
+    });
+    await store.verifyDomain({ organizationId: owner.organization.id, domain: 'now-verified.example' });
+
+    const accepted = await app.inject({
+      method: 'POST',
+      url: `/auth/saml/${owner.organization.id}/acs`,
+      payload: { SAMLResponse: sign('legit@now-verified.example') },
+    });
+
+    expect(accepted.statusCode).toBe(200);
+    expect(await store.findUserByEmail('legit@now-verified.example')).toBeTruthy();
+
     await app.close();
   });
 
@@ -3053,7 +3146,7 @@ describe('SaaS API', () => {
     }
   });
 
-  it('creates Stripe checkout through a configured billing endpoint', async () => {
+  it('respects the checkout interval and refuses annual-to-monthly substitution', async () => {
     const previousSecretKey = process.env.STRIPE_SECRET_KEY;
     const previousApiBase = process.env.STRIPE_API_BASE_URL;
     const previousProPrice = process.env.STRIPE_PRO_PRICE_ID;
@@ -3102,6 +3195,30 @@ describe('SaaS API', () => {
     const auth = await register(app, { email: 'checkout@example.com', organizationName: 'Checkout Org' });
 
     try {
+      await store.upsertBillingPlan({
+        key: 'pro',
+        name: 'Pro',
+        monthlyCents: 2900,
+        limits: {},
+        stripePriceId: 'price_checkout_pro',
+        stripePriceMonthlyId: 'price_checkout_pro',
+      });
+      const missingAnnual = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/billing/checkout`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          planKey: 'pro',
+          interval: 'annual',
+          successUrl: 'https://app.example.com/billing/success',
+          cancelUrl: 'https://app.example.com/billing/cancel',
+        },
+      });
+      expect(missingAnnual.statusCode).toBe(503);
+      expect(missingAnnual.json().code).toBe('STRIPE_PRICE_NOT_CONFIGURED');
+      expect(requests).toEqual([]);
+      expect(await store.getBillingCustomer(auth.organization.id)).toBeUndefined();
+
       const response = await app.inject({
         method: 'POST',
         url: `/orgs/${auth.organization.id}/billing/checkout`,
@@ -3125,6 +3242,23 @@ describe('SaaS API', () => {
       expect(requests[1].body['subscription_data[metadata][organizationId]']).toBe(auth.organization.id);
       expect(requests[1].body['subscription_data[metadata][planKey]']).toBe('pro');
       expect(store.auditLogs.some((event) => event.action === 'billing.checkout.create')).toBe(true);
+
+      await store.setPlanStripePrices({ key: 'pro', stripePriceAnnualId: 'price_checkout_annual' });
+      const annual = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/billing/checkout`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          planKey: 'pro',
+          interval: 'annual',
+          successUrl: 'https://app.example.com/billing/success',
+          cancelUrl: 'https://app.example.com/billing/cancel',
+        },
+      });
+      expect(annual.statusCode).toBe(200);
+      expect(requests).toHaveLength(3);
+      expect(requests[2].body['line_items[0][price]']).toBe('price_checkout_annual');
+      expect(requests[2].body['metadata[priceId]']).toBe('price_checkout_annual');
     } finally {
       process.env.STRIPE_SECRET_KEY = previousSecretKey;
       process.env.STRIPE_API_BASE_URL = previousApiBase;

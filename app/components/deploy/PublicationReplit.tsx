@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useState } from 'react';
 
 import {
+  avisDuDeploiement,
   domainesConnectes,
   formaterMontant,
   gabaritsDisponibles,
@@ -147,8 +148,14 @@ export const PublicationReplit = memo(
     const copy = getPublicationCopy(language);
     const dernier = deployments[0];
 
+    // Même règle que le bouton principal (`intentionDeRepublication`) : « Re- » seulement s'il y a un déploiement à rejouer.
+    const dejaPublie = deployments.length > 0;
+
     const etapes = useMemo(() => etapesDePublication(dernier), [dernier]);
     const journal = useMemo(() => lignesDeJournal(dernier), [dernier]);
+
+    // « Nous avons mis en veille votre projet X… » : dit ici, pas enfoui dans le journal.
+    const avis = useMemo(() => avisDuDeploiement(dernier), [dernier]);
     const echecs = useMemo(() => resumeDesEchecs(deployments), [deployments]);
     const domaines = useMemo(() => domainesConnectes(deployments), [deployments]);
     const gabarits = useMemo(() => gabaritsDisponibles(carteTarifaire), [carteTarifaire]);
@@ -191,7 +198,7 @@ export const PublicationReplit = memo(
     return (
       <div className="bolt-publication" data-testid="publication">
         <header className="bolt-publication-entete">
-          <h2>{copy['publication.title']}</h2>
+          <h2>{dejaPublie ? copy['publication.title'] : copy['publication.titleFirst']}</h2>
           <p>{copy['publication.subtitle']}</p>
           <button
             type="button"
@@ -353,6 +360,16 @@ export const PublicationReplit = memo(
                 </header>
 
                 <BarreDesEtapes etapes={etapes} copy={copy} />
+
+                {avis ? (
+                  <p
+                    className="bolt-publication-avis break-words [overflow-wrap:anywhere]"
+                    role="status"
+                    data-testid="publication-avis"
+                  >
+                    {avis}
+                  </p>
+                ) : null}
 
                 {journauxOuverts && journal.length > 0 ? (
                   <pre className="bolt-publication-journal" data-testid="publication-journal">
@@ -567,7 +584,7 @@ export const PublicationReplit = memo(
             onClick={onRepublier}
           >
             <span className="i-ph:rocket-launch" aria-hidden />
-            {deployments.length > 0 ? copy['publication.republish'] : copy['publication.publish']}
+            {dejaPublie ? copy['publication.republish'] : copy['publication.publish']}
           </button>
         </div>
       </div>
