@@ -63,6 +63,26 @@ Ne pas lui faire dire ça.
 
 Ce que ce montage prouve, lui, après le correctif de la réserve :
 
+---
+
+## Inscription et connexion sur bureau — 2026-09-30 (UIB-01)
+
+**Méthode.** `app.e-code.ai/signup` et `/login`, Playwright Chromium 1440×900, thème forcé par
+le cookie `ecode_theme`. Aucun compte créé. « Avant » = production (`dfc23575c`) ; « après » =
+serveur local du worktree `fix/ui-desktop-parcours` (même commit + correctif), en attendant le
+déploiement — **l'après sera remplacé par une capture de production une fois déployé.**
+
+| Page | Clair | Sombre |
+|---|---|---|
+| `/signup` | [avant](docs/design/captures/auth-signup-bureau-1440-clair-avant.png) · [après](docs/design/captures/auth-signup-bureau-1440-clair.png) | [avant](docs/design/captures/auth-signup-bureau-1440-sombre-avant.png) · [après](docs/design/captures/auth-signup-bureau-1440-sombre.png) |
+| `/login` | [avant](docs/design/captures/auth-login-bureau-1440-clair-avant.png) · [après](docs/design/captures/auth-login-bureau-1440-clair.png) | [avant](docs/design/captures/auth-login-bureau-1440-sombre-avant.png) · [après](docs/design/captures/auth-login-bureau-1440-sombre.png) |
+
+**Mesuré avant :** tout le texte à 12 px, titre `h1` à 14 px. **Après :** `h1` 43,2 px (1440) /
+38,4 px (1280), titre du panneau 37,4 / 33,3 px, chiffres 30 px.
+
+**Ne prouve PAS :** le rendu sous 1024 px, volontairement inchangé (mesuré identique à la prod
+à 390, 768 et 1023 px).
+
 ## Manque encore
 
 Les surfaces ci-dessous n'ont **aucune capture** à ce jour. Elles sont listées

@@ -1,11 +1,19 @@
 import type { CommandEvent, RuntimeAdapter } from '@vibecore/runtime-contract';
 import { useEffect, useMemo, useRef, type PropsWithChildren } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'react-toastify';
 import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
+import { formatEcrituresEnAttentePluriel, getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
+import {
+  definirProjetCourant,
+  demarrageRefusePourQuotaStore,
+  ecrituresEnAttenteStore,
+  rejouerDansLeWorkspace,
+} from '~/lib/runtime/ecritures-en-attente';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { fetchAnyPortServing } from '~/lib/runtime/serving-ports';
-import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
+import { isWorkspaceQuotaError, workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
 import {
   hasAdoptablePreviewPort,
   reseedWorkspacePreservingOnFailure,
@@ -55,8 +63,9 @@ export interface ProjectWorkspaceProviderProps extends PropsWithChildren {
   /*
    * The workspace the IDE is currently scoped to. When provided we seed the
    * runtime adapter with this id so every runtime call is bound to the correct
-   * working tree. Falling back to projectId keeps the legacy single-workspace
-   * assumption intact for callers that have not migrated yet.
+   * working tree. Absent, l'adaptateur n'a AUCUN identifiant tant que le
+   * démarrage n'a pas répondu — jamais l'identifiant du projet à la place
+   * (BUG-QA0928-RUNTIME-ID-PROJET).
    */
   workspaceId?: string;
   adapter?: RuntimeAdapter;
@@ -88,6 +97,14 @@ export function ProjectWorkspaceProvider({
     async function startWorkspace() {
       workbenchStore.configureRuntime(runtime);
       workbenchStore.configureProject(projectId);
+
+      /*
+       * BUG-QA0928-RUNTIME-ID-PROJET — recharger ce qui attendait pour CE projet :
+       * « Redémarrer l'espace de travail » recharge la page, et c'est ici que la
+       * file réapparaît pour être rejouée plus bas.
+       */
+      definirProjetCourant(projectId);
+      demarrageRefusePourQuotaStore.set(false);
       workbenchStore.workspaceLoading.set(true);
       workbenchStore.workspaceError.set(undefined);
       workbenchStore.workspaceLogs.set([]);
@@ -379,6 +396,29 @@ export function ProjectWorkspaceProvider({
         }
 
         await workbenchStore.loadRuntimeFiles('.');
+
+        /*
+         * BUG-QA0928-RUNTIME-ID-PROJET — écrire ce que l'agent avait produit
+         * pendant que le workspace manquait. ICI et pas plus tôt : le reseed
+         * ci-dessus vide l'arborescence, un rejeu antérieur serait effacé.
+         */
+        if (ecrituresEnAttenteStore.get().ecritures.length > 0) {
+          const bilan = await rejouerDansLeWorkspace(projectId, runtime);
+
+          if (bilan.ecrites.length > 0) {
+            const copy = getEcrituresEnAttenteCopy(languageRef.current);
+
+            const message = formatEcrituresEnAttentePluriel(languageRef.current, bilan.ecrites.length, {
+              one: copy['ecrituresEnAttente.rejoues_one'],
+              other: copy['ecrituresEnAttente.rejoues_other'],
+            });
+
+            workbenchStore.appendWorkspaceLog(message);
+            toast.success(message);
+            await workbenchStore.loadRuntimeFiles('.');
+          }
+        }
+
         await workbenchStore.refreshRuntimePorts().catch(() => undefined);
 
         /*
@@ -457,6 +497,9 @@ export function ProjectWorkspaceProvider({
         }
 
         const quotaPrompt = workspaceQuotaPrompt(error, languageRef.current);
+
+        // Prévenir AVANT que l'agent travaille : voir AvisEcrituresEnAttente.
+        demarrageRefusePourQuotaStore.set(isWorkspaceQuotaError(error));
 
         if (quotaPrompt) {
           workbenchStore.quotaWarning.set(quotaPrompt.warning);

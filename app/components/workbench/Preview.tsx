@@ -38,7 +38,7 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { demarrageBloque, msDepuisLeDernierProgres } from '~/lib/ide/demarrage-bloque';
-import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
+import { journalLisible, texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
@@ -3494,7 +3494,7 @@ function useReducedMotion(): boolean {
   return reduced;
 }
 
-function PreviewSplashSequence({
+export function PreviewSplashSequence({
   appName,
   activeStep,
   bloque,
@@ -3626,7 +3626,7 @@ function PreviewSplashSequence({
           </div>
           {appName ? <p>{t('idePanels.preview.preparingApp', { app: appName })}</p> : null}
         </div>
-        {logs?.length ? <pre className="bolt-preview-splash-log">{logs.join('\n')}</pre> : null}
+        {logs?.length ? <pre className="bolt-preview-splash-log">{journalLisible(logs)}</pre> : null}
       </div>
     </div>
   );
@@ -3660,7 +3660,7 @@ function PreviewResumeSkeleton({ currentTask }: { currentTask: string }) {
   );
 }
 
-function PreviewLoadingOverlay({
+export function PreviewLoadingOverlay({
   activeStep,
   bloque,
   currentTask,
@@ -3734,7 +3734,7 @@ function PreviewLoadingOverlay({
             {t('idePanels.preview.stalledBody')}
           </p>
         ) : null}
-        {logs.length ? <pre data-testid="preview-loading-log">{logs.join('\n')}</pre> : null}
+        {logs.length ? <pre data-testid="preview-loading-log">{journalLisible(logs)}</pre> : null}
         {onViewLogs ? (
           <button type="button" onClick={onViewLogs}>
             {t('idePanels.preview.viewLogs')}
@@ -3750,7 +3750,7 @@ function PreviewLoadingOverlay({
   );
 }
 
-function PreviewNotRunningState({
+export function PreviewNotRunningState({
   detail,
   isRunning,
   logs,
@@ -3778,7 +3778,7 @@ function PreviewNotRunningState({
           <span>{t('idePanels.preview.status')}</span>
           <h3>{t('idePanels.preview.notRunningTitle')}</h3>
           <p>{detail ?? t('idePanels.preview.notRunningBody')}</p>
-          {logs.length > 0 ? <pre className="bolt-preview-not-running-log">{logs.join('\n')}</pre> : null}
+          {logs.length > 0 ? <pre className="bolt-preview-not-running-log">{journalLisible(logs)}</pre> : null}
         </div>
         <button type="button" onClick={onRun} disabled={isRunning} className="bolt-preview-not-running-run">
           {isRunning ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : <Zap aria-hidden />}

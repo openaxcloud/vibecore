@@ -102,6 +102,7 @@ import { userAreaEn, type UserAreaTranslationKey } from '~/lib/i18n/catalogs/use
 import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
 import type { ProjectLifecycle } from '~/lib/project-card-presentation';
 import { profileStore } from '~/lib/stores/profile';
+import { loadSessionUser, sessionDisplayName, sessionUserStore } from '~/lib/stores/session-user';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
 import { resolveUserAreaSurface } from '~/lib/user-area-surface';
 import { classNames } from '~/utils/classNames';
@@ -1398,8 +1399,14 @@ function MobileSidebarDrawer({ open, onClose }: { open: boolean; onClose: () => 
 function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; embedded?: boolean }) {
   const { t } = useTranslation();
   const profile = useStore(profileStore);
+  const sessionUser = useStore(sessionUserStore);
   const theme = useStore(themeStore);
-  const displayName = profile.username?.trim() || t('userArea.shell.signedInUser');
+  const fallbackName = t('userArea.shell.signedInUser');
+  const displayName = sessionDisplayName(sessionUser, profile.username, fallbackName);
+
+  useEffect(() => {
+    void loadSessionUser();
+  }, []);
 
   const initials = displayName
     .split(/\s+/)
@@ -1408,7 +1415,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
     .join('')
     .toUpperCase();
 
-  const hasInitials = initials.length > 0 && profile.username?.trim();
+  const hasInitials = initials.length > 0 && displayName !== fallbackName;
 
   return (
     <div
@@ -1541,8 +1548,17 @@ export function ProjectShell({
       description={description}
       actions={<LinkButton to={`/projects/${projectId}/ide`}>{t('userArea.navigation.openIde')}</LinkButton>}
     >
-      <div className="mb-6 overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-sm">
-        <nav className="flex min-w-max gap-1" aria-label={t('userArea.project.navigation')}>
+      {/*
+       * UIB-04 — sur bureau, les onglets PASSENT À LA LIGNE au lieu de défiler.
+       * Mesuré à 1440 : 12 onglets pour 922 px, 7 visibles, et l'onglet de la
+       * page courante (« Déploiements ») caché, sans aucun signe qu'il en reste.
+       * Sous 1024 px, défilement horizontal inchangé (mobile gelé).
+       */}
+      <div
+        className="mb-6 overflow-x-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-sm lg:overflow-x-visible"
+        data-testid="project-nav-strip"
+      >
+        <nav className="flex min-w-max gap-1 lg:min-w-0 lg:flex-wrap" aria-label={t('userArea.project.navigation')}>
           {projectNav.map((item) => {
             const Icon = item.icon;
             return (
