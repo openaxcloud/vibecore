@@ -24,7 +24,7 @@ Ces annulations ne donnent aucun verdict sur le code. Avant réactivation d'une 
 
 ## Premier correctif de reprise de l’agent servi (#710)
 
-Le déploiement [38165474193](https://github.com/openaxcloud/vibecore/actions/runs/38165474193) est terminé avec succès. Le manifeste désigne le web reconstruit depuis `80f1de14794b134a7073d20b708254d690ff6626`, digest `sha256:158999199081796edcceab5c48935763ae43a5d7cb91436345e8515b9096d4ba`. À 19:37:28 UTC, deux réplicas web sont mis à jour, prêts et disponibles ; commande terminée à zéro, preuve complète. Mesure : `mesures/2026-10-11-reprise-agent-deployee.json`. Cette capture ne contient toujours pas les imageID exécutés.
+Le déploiement [38165474193](https://github.com/openaxcloud/vibecore/actions/runs/38165474193) est terminé avec succès. Le manifeste désigne le web reconstruit depuis `80f1de14794b134a7073d20b708254d690ff6626`, digest `sha256:158999199081796edcceab5c48935763ae43a5d7cb91436345e8515b9096d4ba`. À 19:37:28 UTC, le Deployment web compte trois réplicas prêts, deux mis à jour et deux disponibles. Deux pods du nouveau ReplicaSet sont Running/ready ; l’ancien pod est encore présent dans la capture. Commande terminée à zéro, preuve complète. Mesure : `mesures/2026-10-11-reprise-agent-deployee.json`. Cette capture ne contient toujours pas les imageID exécutés.
 
 Réserve nouvelle : le manifeste ne renseigne pas le sourceSha des huit images réutilisées et déclare `fullyTraceable: false`. Il ne prouve donc pas la provenance complète de la release. Le correctif de recherche paginée de la base des étages (#709) reste à déployer et son résultat à remesurer.
 
