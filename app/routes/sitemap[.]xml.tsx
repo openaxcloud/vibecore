@@ -19,7 +19,6 @@ export const INDEXABLE_PUBLIC_PATHS = [
   '/ai-docs',
   '/ai-documentation',
   '/blog',
-  '/bounties',
   '/careers',
   '/case-studies',
   '/changelog',

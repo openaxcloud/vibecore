@@ -257,7 +257,6 @@ const inlineThemeCode = stripIndents`
       '/ai-documentation',
       '/ai-docs',
       '/blog',
-      '/bounties',
       '/careers',
       '/case-studies',
       '/changelog',
@@ -282,7 +281,6 @@ const inlineThemeCode = stripIndents`
       '/ide/new',
       '/languages',
       '/legal',
-      '/marketing/bounties',
       '/marketing/deployments',
       '/marketing/teams',
       '/marketplace',
@@ -298,7 +296,6 @@ const inlineThemeCode = stripIndents`
       '/privacy',
       '/product',
       '/report-abuse',
-      '/runtime-test',
       '/search',
       '/security',
       '/status',
@@ -307,7 +304,6 @@ const inlineThemeCode = stripIndents`
       '/team',
       '/templates',
       '/terms',
-      '/theme-validation',
       '/tutorials',
     ]);
     const prefixes = [

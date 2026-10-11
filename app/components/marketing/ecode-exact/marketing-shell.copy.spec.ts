@@ -56,23 +56,23 @@ describe('marketing shell copy contract', () => {
     }
   });
 
-  it('keeps the four navigation groups at 38 unique entries', () => {
-    expect(MARKETING_SHELL_NAV_SECTIONS.product).toHaveLength(12);
+  it('keeps the four navigation groups at 37 unique entries', () => {
+    expect(MARKETING_SHELL_NAV_SECTIONS.product).toHaveLength(11);
     expect(MARKETING_SHELL_NAV_SECTIONS.solutions).toHaveLength(9);
     expect(MARKETING_SHELL_NAV_SECTIONS.resources).toHaveLength(11);
     expect(MARKETING_SHELL_NAV_SECTIONS.company).toHaveLength(6);
-    expect(navIds).toHaveLength(38);
-    expect(new Set(navIds).size).toBe(38);
+    expect(navIds).toHaveLength(37);
+    expect(new Set(navIds).size).toBe(37);
   });
 
-  it('keeps the footer at 46 unique links with the expected column sizes', () => {
-    expect(MARKETING_SHELL_FOOTER_SECTIONS.product).toHaveLength(13);
+  it('keeps the footer at 45 unique links with the expected column sizes', () => {
+    expect(MARKETING_SHELL_FOOTER_SECTIONS.product).toHaveLength(12);
     expect(MARKETING_SHELL_FOOTER_SECTIONS.resources).toHaveLength(8);
     expect(MARKETING_SHELL_FOOTER_SECTIONS.company).toHaveLength(5);
     expect(MARKETING_SHELL_FOOTER_SECTIONS.legal).toHaveLength(15);
     expect(MARKETING_SHELL_FOOTER_SECTIONS.compare).toHaveLength(5);
-    expect(footerIds).toHaveLength(46);
-    expect(new Set(footerIds).size).toBe(46);
+    expect(footerIds).toHaveLength(45);
+    expect(new Set(footerIds).size).toBe(45);
   });
 
   it('keeps route and social destinations separate from translated labels', () => {

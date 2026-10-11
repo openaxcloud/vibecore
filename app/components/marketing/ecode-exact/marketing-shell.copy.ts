@@ -19,7 +19,6 @@ export const MARKETING_SHELL_LINKS = {
   mcpIntegrations: { href: '/mcp' },
   polyglotBackends: { href: '/polyglot' },
   deployments: { href: '/marketing/deployments' },
-  bounties: { href: '/marketing/bounties' },
   teams: { href: '/marketing/teams' },
   appBuilder: { href: '/solutions/app-builder' },
   websiteBuilder: { href: '/solutions/website-builder' },
@@ -92,7 +91,6 @@ export const MARKETING_SHELL_NAV_SECTIONS = {
     'mcpIntegrations',
     'polyglotBackends',
     'deployments',
-    'bounties',
     'teams',
   ],
   solutions: [
@@ -138,7 +136,6 @@ export const MARKETING_SHELL_FOOTER_SECTIONS = {
     'teams',
     'deployments',
     'pricing',
-    'bounties',
     'aiPlatform',
   ],
   resources: ['documentation', 'blog', 'community', 'templates', 'marketplace', 'languages', 'status', 'forum'],
@@ -368,10 +365,6 @@ const en = {
         title: 'Deployments',
         description: 'Release with domain controls, runtime logs, health checks, and rollbacks.',
       },
-      bounties: {
-        title: 'Bounties',
-        description: 'Bring in an on-demand developer network when a project needs extra hands.',
-      },
       teams: {
         title: 'Teams',
         description: 'Manage access, governance, and shared delivery workflows across an organization.',
@@ -522,7 +515,6 @@ const en = {
       teams: 'Teams',
       deployments: 'Deployments',
       pricing: 'Pricing',
-      bounties: 'Bounties',
       aiPlatform: 'AI Platform',
       documentation: 'Docs',
       blog: 'Blog',
@@ -651,10 +643,6 @@ const fr = {
       deployments: {
         title: 'Déploiements',
         description: 'Mettez en ligne avec gestion des domaines, journaux, contrôles d’état et retours arrière.',
-      },
-      bounties: {
-        title: 'Missions',
-        description: 'Faites appel à un réseau de développeurs à la demande lorsqu’un projet exige du renfort.',
       },
       teams: {
         title: 'Équipes',
@@ -806,7 +794,6 @@ const fr = {
       teams: 'Équipes',
       deployments: 'Déploiements',
       pricing: 'Tarifs',
-      bounties: 'Missions',
       aiPlatform: 'Plateforme IA',
       documentation: 'Documentation',
       blog: 'Blog',
@@ -934,10 +921,6 @@ const es = {
       deployments: {
         title: 'Despliegues',
         description: 'Publica con control de dominios, registros, comprobaciones de estado y reversiones.',
-      },
-      bounties: {
-        title: 'Encargos',
-        description: 'Suma una red de desarrolladores bajo demanda cuando el proyecto necesita refuerzo.',
       },
       teams: {
         title: 'Equipos',
@@ -1089,7 +1072,6 @@ const es = {
       teams: 'Equipos',
       deployments: 'Despliegues',
       pricing: 'Precios',
-      bounties: 'Encargos',
       aiPlatform: 'Plataforma de IA',
       documentation: 'Documentación',
       blog: 'Blog',
@@ -1217,10 +1199,6 @@ const ar = {
       deployments: {
         title: 'عمليات النشر',
         description: 'انشر مع إدارة النطاقات والسجلات وفحوصات سلامة الخدمة وإمكانية التراجع.',
-      },
-      bounties: {
-        title: 'المهام المدفوعة',
-        description: 'استعن بشبكة مطورين عند الطلب عندما يحتاج المشروع إلى دعم إضافي.',
       },
       teams: {
         title: 'الفرق',
@@ -1372,7 +1350,6 @@ const ar = {
       teams: 'الفرق',
       deployments: 'عمليات النشر',
       pricing: 'الأسعار',
-      bounties: 'المهام المدفوعة',
       aiPlatform: 'منصة الذكاء الاصطناعي',
       documentation: 'التوثيق',
       blog: 'المدونة',

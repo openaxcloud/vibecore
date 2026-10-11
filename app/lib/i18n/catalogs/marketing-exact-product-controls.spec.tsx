@@ -17,7 +17,6 @@ import {
 import {
   ecodeProductMarketingPages,
   getEcodeExactProductMarketingPages,
-  makeEcodeCampaignMeta,
   makeEcodeProductMeta,
 } from '~/components/marketing/EcodeExactProductMarketingPages';
 import {
@@ -28,7 +27,6 @@ import {
 import { createI18nInstance } from '~/lib/i18n/runtime';
 import { loader as rootLoader } from '~/root';
 import { meta as aiAgentMeta } from '~/routes/ai-agent';
-import { meta as bountiesMeta } from '~/routes/bounties';
 
 function leafPaths(value: unknown, path: string[] = []): string[] {
   if (Array.isArray(value)) {
@@ -199,11 +197,6 @@ describe('exact product registry and landing control catalogs', () => {
       aiAgentMeta,
       marketingExactProductControlsFr.exactProductRegistry.pages['ai-agent'],
     ],
-    [
-      makeEcodeCampaignMeta('bounties'),
-      bountiesMeta,
-      marketingExactProductControlsFr.exactProductRegistry.pages.bounties,
-    ],
   ])('serves localized SEO metadata through the helper and direct route', (helperMeta, routeMeta, page) => {
     const args = { matches: [{ id: 'root', data: { language: 'fr' } }] } as never;
 
@@ -221,7 +214,7 @@ describe('exact product registry and landing control catalogs', () => {
     }
   });
 
-  it.each(['/ai-agent', '/bounties'])('inherits canonical and en/fr alternates for %s', (path) => {
+  it.each(['/ai-agent'])('inherits canonical and en/fr alternates for %s', (path) => {
     const result = rootLoader({
       request: new Request(`https://e-code.ai${path}?lang=fr`),
       params: {},
@@ -264,7 +257,6 @@ describe('exact product registry and landing control catalogs', () => {
       '../../../components/marketing/EcodeExactProductMarketingPages.tsx',
       '../../../components/marketing/ecode-exact/EcodeExactLandingControls.tsx',
       '../../../routes/ai-agent.tsx',
-      '../../../routes/bounties.tsx',
     ];
 
     for (const relativePath of files) {

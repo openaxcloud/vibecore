@@ -181,7 +181,6 @@ describe('public marketing brand', () => {
       'Desktop App',
       'AI Platform',
       'Deployments',
-      'Bounties',
       'Teams',
     ]);
     expect(menuTargets).toContain('/ai-agent');
@@ -205,7 +204,9 @@ describe('public marketing brand', () => {
     expect(menuTargets).toContain('/contact');
     expect(menuTargets).toContain('/accessibility');
     expect(menuTargets).toContain('/marketing/deployments');
-    expect(menuTargets).toContain('/marketing/bounties');
+
+    // Retirée le 2026-10-11 : promesse de « missions rémunérées » sans aucune machine derrière.
+    expect(menuTargets).not.toContain('/marketing/bounties');
     expect(menuTargets).toContain('/marketing/teams');
     expect(menuTargets).toContain('/partners');
     expect(menuTargets).toContain('/community');
@@ -220,7 +221,7 @@ describe('public marketing brand', () => {
     expect(footerTargets).toContain('/mobile');
     expect(footerTargets).toContain('/marketing/teams');
     expect(footerTargets).toContain('/marketing/deployments');
-    expect(footerTargets).toContain('/marketing/bounties');
+    expect(footerTargets).not.toContain('/marketing/bounties');
     expect(footerTargets).toContain('/docs');
     expect(footerTargets).toContain('/blog');
     expect(footerTargets).toContain('/templates/languages');

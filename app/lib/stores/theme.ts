@@ -27,7 +27,6 @@ const PUBLIC_MARKETING_PATHS = new Set([
   '/ai-documentation',
   '/ai-docs',
   '/blog',
-  '/bounties',
   '/careers',
   '/case-studies',
   '/changelog',
@@ -52,7 +51,6 @@ const PUBLIC_MARKETING_PATHS = new Set([
   '/ide/new',
   '/languages',
   '/legal',
-  '/marketing/bounties',
   '/marketing/deployments',
   '/marketing/teams',
   '/marketplace',
@@ -68,7 +66,6 @@ const PUBLIC_MARKETING_PATHS = new Set([
   '/privacy',
   '/product',
   '/report-abuse',
-  '/runtime-test',
   '/search',
   '/security',
   '/status',
@@ -77,7 +74,6 @@ const PUBLIC_MARKETING_PATHS = new Set([
   '/team',
   '/templates',
   '/terms',
-  '/theme-validation',
   '/tutorials',
 ]);
 

@@ -124,7 +124,6 @@ describe('E-Code marketing page registry', () => {
       'Desktop App',
       'AI Platform',
       'Deployments',
-      'Bounties',
       'Teams',
     ]);
     expect(publicFooterColumns.map((column) => column.title)).toEqual(['Product', 'Resources', 'Company', 'Legal']);

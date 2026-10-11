@@ -191,11 +191,6 @@ export const publicMarketingMenus = {
       legacyMarketingEn['legacyMarketing.description.deployments'],
     ],
     [
-      legacyMarketingEn['legacyMarketing.nav.bounties'],
-      '/marketing/bounties',
-      legacyMarketingEn['legacyMarketing.description.bounties'],
-    ],
-    [
       legacyMarketingEn['legacyMarketing.nav.teams'],
       '/marketing/teams',
       legacyMarketingEn['legacyMarketing.description.teams'],
@@ -333,7 +328,6 @@ export const publicFooterColumns: readonly FooterColumn[] = [
       [legacyMarketingEn['legacyMarketing.nav.teams'], '/marketing/teams'],
       [legacyMarketingEn['legacyMarketing.nav.deployments'], '/marketing/deployments'],
       [legacyMarketingEn['legacyMarketing.nav.pricing'], '/pricing'],
-      [legacyMarketingEn['legacyMarketing.nav.bounties'], '/marketing/bounties'],
       [legacyMarketingEn['legacyMarketing.nav.aiPlatform'], '/ai'],
     ],
   },

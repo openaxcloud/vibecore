@@ -23,7 +23,6 @@ import Partners from '~/components/marketing/ecode-exact/pages/Partners';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 import { meta as aboutMeta } from '~/routes/about';
 import { meta as contactMeta } from '~/routes/contact';
-import { meta as bountiesMeta } from '~/routes/marketing.bounties';
 import { meta as partnersMeta } from '~/routes/partners';
 
 function leafPaths(value: unknown, path: string[] = []): string[] {
@@ -127,7 +126,6 @@ describe('exact partners, bounties, contact and about catalogs', () => {
     [aboutMeta, 'À propos — E-Code'],
     [contactMeta, 'Contact — E-Code'],
     [partnersMeta, 'Partenaires — E-Code'],
-    [bountiesMeta, 'Missions rémunérées — E-Code'],
   ])('serves localized French route metadata', (meta, title) => {
     const tags = meta({ data: { language: 'fr' } } as never);
 

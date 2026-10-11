@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-395 entrées.
+396 entrées.
 
 ## Sans section
 
@@ -439,6 +439,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-KEYBOARD-BASCULE-001](docs/bugs/BUG-KEYBOARD-BASCULE-001.md) — P1 — iPhone : toucher la zone de saisie pendant le chargement de l'IDE → la zone de saisie reste SOUS le clavier. — 📤 Dispatché : ☑ 01/10 · 💻 Codé : ☐ #664 (`fix/clavier-repos-de-page`), pas encore sur `main` : hauteur de repos mémorisée pour la page (`memori · ✅ Testé live : ☐
 - [BUG-MODE-BASCULE-001](docs/bugs/BUG-MODE-BASCULE-001.md) — P1 — le mode choisi pendant le chargement de l'IDE est perdu : « Assistant » redevient « Agent » sans un mot, et le message suivant part en mode Agent (qui modi — 📤 Dispatché : ☑ 01/10 (trouvé et traité par la session mobile) · 💻 Codé : ☐ branche `fix/mode-garde-a-la-bascule` poussée, pas encore sur `main`. Correctif : la coquille déclare chaque · ✅ Testé live : ☐
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA1011-PAGES-INTERNES-ET-MISSIONS-PUBLIQUES](docs/bugs/BUG-QA1011-PAGES-INTERNES-ET-MISSIONS-PUBLIQUES.md) — Quatre pages servies en 200 au public n'avaient rien à y faire. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
