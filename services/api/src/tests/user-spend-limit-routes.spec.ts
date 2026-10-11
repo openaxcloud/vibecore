@@ -30,6 +30,21 @@ async function setup() {
   await store.createSession({ userId: user.id, token: 'usl-token', expiresAt: new Date(Date.now() + 3600_000) });
   await store.upsertSubscription({ organizationId: org.id, planKey: 'team', status: 'ACTIVE' });
   const project = await store.createProject({ organizationId: org.id, name: 'P', slug: 'p' });
+
+  /*
+   * AUDX-018 pose une réservation de crédits AVANT l'appel fournisseur, et ces
+   * tests activent eux-mêmes `BILLING_CREDITS_ENABLED`. Sur un portefeuille à
+   * zéro — celui que `ensureCreditWallet` crée — la réservation est refusée et
+   * `/ai/check-quota` rend 402 avant même d'avoir regardé le plafond par
+   * membre, qui est le sujet de ce fichier.
+   *
+   * Le solde est donc du DÉCOR, pas un assouplissement : il met l'organisation
+   * dans l'état où la question posée ici a un sens. Le refus à 402 reste
+   * exercé, par les specs d'AUDX-018 qui le visent.
+   */
+  const portefeuille = await store.ensureCreditWallet(org.id);
+  portefeuille.balanceCents = 100_000;
+
   return { app, store, org, user, project, token: 'usl-token' };
 }
 

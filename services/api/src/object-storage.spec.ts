@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   GcsObjectStorage,
+  OBJECT_UPLOAD_MAX_BYTES,
   NoopObjectStorage,
   ObjectStorageError,
   assertValidObjectKey,
@@ -321,7 +322,15 @@ describe('GcsObjectStorage', () => {
 
     const out = await svc.createUploadUrl(projectId, { key: 'a/b.bin', contentType: 'image/png' });
     expect(out.method).toBe('PUT');
-    expect(out.headers).toEqual({ 'Content-Type': 'image/png' });
+    // AUDX-021 — the size ceiling is now part of the signed contract, so the
+    // header set is deliberately larger than it was. Kept as an exact equality
+    // rather than a subset check: an upload URL must carry exactly the headers
+    // it was signed with, and a stray extra one is a signature mismatch waiting
+    // to happen.
+    expect(out.headers).toEqual({
+      'Content-Type': 'image/png',
+      'x-goog-content-length-range': `0,${OBJECT_UPLOAD_MAX_BYTES}`,
+    });
     expect(out.url).toContain('action=write');
     expect(storage.signed[0]).toMatchObject({ version: 'v4', action: 'write', contentType: 'image/png' });
     expect(Date.parse(out.expiresAt)).toBeGreaterThan(Date.now());
@@ -530,5 +539,75 @@ describe('AUDX-024 pagination beyond a single 1 000-object page', () => {
     const service = new GcsObjectStorage(new ThrowingDeleteStorage(storage, 'data/00007.bin'));
 
     await expect(service.deletePrefix(project, { prefix: 'data/' })).rejects.toThrow(/permission denied/);
+  });
+});
+
+/* ------------- AUDX-021 — bornes de taille et intégrité à l'upload ------------ */
+
+describe('AUDX-021 upload URL binds a size ceiling and an integrity check', () => {
+  const project = 'proj-up';
+
+  it('binds x-goog-content-length-range so an unbounded PUT is refused by GCS', async () => {
+    const storage = new FakeStorage();
+
+    const result = await new GcsObjectStorage(storage).createUploadUrl(project, { key: 'a.bin' });
+
+    /*
+     * Pre-fix the signed URL bound ONLY Content-Type: the holder could PUT any
+     * number of bytes. A signed URL is handed to the browser and used directly
+     * against GCS, so nothing server-side ever saw the size — no API limit could
+     * have caught it. The ceiling has to be signed INTO the URL.
+     */
+    const signed = storage.signed.at(-1)!;
+    const extension = signed.extensionHeaders as Record<string, string> | undefined;
+
+    expect(extension?.['x-goog-content-length-range']).toBe(`0,${OBJECT_UPLOAD_MAX_BYTES}`);
+
+    // The caller must be told to send it, or GCS rejects the PUT as unsigned.
+    expect(result.headers['x-goog-content-length-range']).toBe(`0,${OBJECT_UPLOAD_MAX_BYTES}`);
+    expect(result.maxBytes).toBe(OBJECT_UPLOAD_MAX_BYTES);
+  });
+
+  it('honours a smaller caller ceiling but never a larger one', async () => {
+    const storage = new FakeStorage();
+    const service = new GcsObjectStorage(storage);
+
+    await service.createUploadUrl(project, { key: 'small.bin', maxBytes: 1_024 });
+    expect((storage.signed.at(-1)!.extensionHeaders as Record<string, string>)['x-goog-content-length-range']).toBe(
+      '0,1024',
+    );
+
+    // A caller asking for more than the platform ceiling is clamped, not obeyed.
+    await service.createUploadUrl(project, { key: 'big.bin', maxBytes: OBJECT_UPLOAD_MAX_BYTES * 10 });
+    expect((storage.signed.at(-1)!.extensionHeaders as Record<string, string>)['x-goog-content-length-range']).toBe(
+      `0,${OBJECT_UPLOAD_MAX_BYTES}`,
+    );
+  });
+
+  it('binds the caller-declared MD5 so corrupted bytes are rejected at the source', async () => {
+    const storage = new FakeStorage();
+    const md5 = Buffer.from('0123456789abcdef').toString('base64');
+
+    const result = await new GcsObjectStorage(storage).createUploadUrl(project, { key: 'c.bin', contentMd5: md5 });
+
+    // GCS verifies Content-MD5 against the bytes it received and fails the PUT
+    // on mismatch — an integrity check the API never had.
+    expect(storage.signed.at(-1)!.contentMd5).toBe(md5);
+    expect(result.headers['Content-MD5']).toBe(md5);
+  });
+
+  it('rejects a malformed MD5 before signing anything', async () => {
+    const storage = new GcsObjectStorage(new FakeStorage());
+
+    await expect(storage.createUploadUrl(project, { key: 'c.bin', contentMd5: 'not-base64-md5' })).rejects.toThrow(
+      /Content-MD5/,
+    );
+  });
+
+  it('rejects a non-positive ceiling instead of signing an unbounded URL', async () => {
+    const storage = new GcsObjectStorage(new FakeStorage());
+
+    await expect(storage.createUploadUrl(project, { key: 'c.bin', maxBytes: 0 })).rejects.toThrow(/maxBytes/);
+    await expect(storage.createUploadUrl(project, { key: 'c.bin', maxBytes: -1 })).rejects.toThrow(/maxBytes/);
   });
 });

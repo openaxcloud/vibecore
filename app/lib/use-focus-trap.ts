@@ -46,19 +46,19 @@ export function useFocusTrap<T extends HTMLElement>(active: boolean) {
         return;
       }
 
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      const current = document.activeElement;
+      /*
+       * BUG-QA0928-MODALE-SANS-FOCUS — CHAQUE tabulation est menée ici, pas
+       * seulement aux bords. Sur WebKit, Tab ne passe pas par les boutons : laisser
+       * le navigateur avancer au milieu emmenait le focus hors de la modale dès la
+       * première tabulation (mesuré le 2026-09-30, projet webkit-iphone).
+       */
+      event.preventDefault();
 
-      if (event.shiftKey) {
-        if (current === first || !container.contains(current)) {
-          event.preventDefault();
-          last.focus();
-        }
-      } else if (current === last || !container.contains(current)) {
-        event.preventDefault();
-        first.focus();
-      }
+      const index = focusables.indexOf(document.activeElement as HTMLElement);
+      const pas = event.shiftKey ? -1 : 1;
+      const suivant = index === -1 ? (event.shiftKey ? focusables.length - 1 : 0) : index + pas;
+
+      focusables[(suivant + focusables.length) % focusables.length].focus();
     };
 
     container.addEventListener('keydown', handleKeyDown);

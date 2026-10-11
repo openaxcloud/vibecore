@@ -19,6 +19,31 @@ const webServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER
 
 export default defineConfig({
   testDir: './tests/e2e',
+
+  /*
+   * UNE SUITE QUI EXPIRE NE REND AUCUN VERDICT — et un run `cancelled` ne
+   * prouve rien, ni dans un sens ni dans l'autre.
+   *
+   * Mesuré le 2026-09-30 sur le contrôle requis de #597 : tentative 1 lancée à
+   * 03:42, `cancelled` à 05:13 — quatre-vingt-onze minutes, zéro ligne de
+   * verdict, aucun rapport. Le coureur GitHub a tué le processus au plafond du
+   * job (`timeout-minutes: 75` dans `.github/workflows/e2e.yml`), et Playwright,
+   * qui n'avait AUCUNE borne globale, n'a rien eu le temps d'écrire.
+   *
+   * La borne ci-dessous est volontairement SOUS le plafond du job : c'est
+   * Playwright qui doit s'arrêter le premier, parce que lui sait rendre un
+   * rapport en s'arrêtant. Tué par le coureur, il ne laisse rien — et une suite
+   * qui ne rend rien ne protège plus rien, elle fait seulement patienter.
+   */
+  globalTimeout: 60 * 60_000,
+
+  /*
+   * Au-delà de vingt échecs, la suite ne mesure plus un défaut mais un
+   * environnement cassé. On s'arrête et on rend le rapport tant qu'il reste du
+   * temps pour l'écrire.
+   */
+  maxFailures: process.env.CI ? 20 : 0,
+
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: false,
@@ -83,6 +108,29 @@ export default defineConfig({
         /agent-scroll-pill\.spec\.ts/,
         /agent-composer-panel-viewport\.spec\.ts/,
         /ide-touch-targets\.spec\.ts/,
+
+        // Un rognage par conteneur de défilement : mesuré identique sur les deux moteurs, épinglé sur les deux.
+        /bandeau-toast-visible\.spec\.ts/,
+
+        // Sans cookie : l'inscription par un fournisseur garde la destination, sur le moteur d'Avi aussi.
+        /oauth-garde-la-destination\.spec\.ts/,
+
+        // BUG-QA0928-MODALE-SANS-FOCUS : mesuré sur WebKit (focus resté dans la page), épinglé sur ce moteur aussi.
+        /modale-accueil-prend-le-focus\.spec\.ts/,
+
+        /*
+         * PAS `idee-entre-domaines.spec.ts`, et ce n'est pas un oubli. Mesuré le
+         * 2026-09-30 : le WebKit de Playwright ne garde AUCUN cookie `Secure` reçu
+         * en http — ni sur 127.0.0.1, ni sur localhost, ni sur *.localhost ;
+         * Chromium les garde. La CI sert le build de production en http, avec des
+         * cookies `Secure` : sous WebKit, l'inscription ne connecte jamais le
+         * visiteur. Le test y échouait 5/5 et faisait expirer ce canari. Ce
+         * parcours se prouve sur WebKit en production (https) :
+         * `docs/bugs/qa-2026-09-28/verif-live-idee-deux-domaines.mjs`.
+         */
+
+        // Le titre de l'accueil prend six lignes en français sur WebKit, trois sur Chromium : c'est ici que le champ sortait de l'écran.
+        /accueil-champ-au-premier-ecran\.spec\.ts/,
       ],
     },
   ],

@@ -259,7 +259,7 @@ function checkHeader(file, doc) {
   }
 
   const lineKeys = (doc.agentRouting?.lines ?? []).map((line) => line.key).sort();
-  const expected = ['classifier', 'economy', 'high-effort', 'lite', 'power', 'turbo'];
+  const expected = ['classifier', 'fallback', 'high-effort', 'lite', 'max', 'power', 'turbo'];
 
   if (JSON.stringify(lineKeys) !== JSON.stringify(expected)) {
     fail(file, `agentRouting.lines keys ${JSON.stringify(lineKeys)} != ${JSON.stringify(expected)}`);

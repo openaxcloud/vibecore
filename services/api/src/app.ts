@@ -1,12 +1,17 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, createVerify, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
+import {
+  LEGACY_OBJECT_STORAGE_SCOPES,
+  signObjectStorageAccessToken,
+  verifyObjectStorageAccessToken,
+  type ObjectStorageScope,
+} from '@e-code/sdk';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -303,6 +308,8 @@ import {
   type StaticBuildLog,
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
+import { libererUnCreneauPourPublier } from './liberer-creneau.js';
+import { toursEnCoursDuProjet, type LecteurRedisDesTours } from './tours-partages.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import { forwardedAgentQuery } from './forwarded-agent-query.js';
 import {
@@ -315,6 +322,7 @@ import { githubConnector, resolveGithubCredentials } from './integrations/provid
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
 import { connectorPublicErrorMessage } from './integrations/providers/public-error-copy.js';
+import { defaultOrganizationName } from './default-organization-name.js';
 import { supabaseConnector } from './integrations/providers/supabase.js';
 import {
   ConnectorProviderError,
@@ -380,6 +388,7 @@ import {
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
   agentRoutingCardSchema,
+  carteAvecRepli,
   getActiveAgentRoutingCard,
   resetAgentRoutingCache,
   seedAgentRoutingCard,
@@ -509,7 +518,7 @@ declare module 'fastify' {
     apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
 
     /* A workspace-app object-storage grant (non-user principal scoped to one project). */
-    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string };
+    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string; scopes?: ObjectStorageScope[] };
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
@@ -568,6 +577,10 @@ export type WorkspacePodBuildRefusal =
   | 'NO_USER_CONTEXT'
   | 'NO_WEBSOCKET_RUNTIME'
   | 'WORKSPACE_UNREACHABLE'
+  // Le démarrage de l'espace est REFUSÉ pour quota (#628) : réessayer ne changera rien.
+  | 'WORKSPACE_QUOTA'
+  // Quota, et l'autre espace a un tour d'agent en cours : on ne l'a PAS arrêté (#642).
+  | 'WORKSPACE_QUOTA_BUSY'
   | 'AGENT_TOKEN_UNAVAILABLE'
   | 'BUILD_INVOCATION_THREW';
 
@@ -670,6 +683,12 @@ export interface ApiAppOptions {
    * implementation so the deploy flow can be driven without a live pod.
    */
   buildStaticInWorkspacePod?: WorkspacePodStaticBuild;
+  /**
+   * Où lire les tours de génération en cours (tours-partages.ts). Par défaut, le
+   * Redis de `REDIS_URL` ; `null` = illisible, et alors aucun espace n'est mis en
+   * veille. Les tests le fixent pour mesurer UN monde, pas celui de la machine.
+   */
+  toursPartages?: LecteurRedisDesTours | null;
 
   /**
    * Override the platform Prometheus registry. Production/dev create a fresh one;
@@ -751,6 +770,24 @@ const contactSalesSchema = z
 const newsletterSubscribeSchema = z.object({
   email: z.string().email().max(320),
   source: z.string().max(64).optional(),
+});
+
+/*
+ * RELAIS DE L'IDÉE ENTRE LES DEUX DOMAINES (BUG-QA0928-IDEE-PERDUE-INSCRIPTION).
+ * L'idée reste ici ; seul un identifiant opaque traverse `e-code.ai` →
+ * `app.e-code.ai`, dans un cookie de domaine posé par le serveur web.
+ */
+const IDEA_RELAY_TTL_SECONDS = 60 * 60;
+
+const ideaRelayCreateSchema = z.object({
+  idea: z.string().trim().min(1).max(20_000),
+  mode: z.enum(['design-first', 'full-app', 'continue-planning']).optional(),
+  model: z.string().trim().min(1).max(200).optional(),
+  provider: z.string().trim().min(1).max(100).optional(),
+});
+
+const ideaRelayConsumeSchema = z.object({
+  id: z.string().regex(/^[A-Za-z0-9_-]{32}$/),
 });
 
 const ADMIN_USERS_PAGE_SIZE = 50;
@@ -1901,10 +1938,17 @@ const aiRecordUsageSchema = z.object({
   finishReason: z.string().optional(),
   source: z.string().min(1).default('remix-chat'),
 
+  /*
+   * AUDX-018 — the hold taken at check-quota, handed back so it can be settled
+   * against the real cost. Opaque and single-use: settling is conditional on
+   * status = 'HELD', so replaying an id cannot release credits twice.
+   */
+  reservationId: z.string().min(1).optional(),
+
   // Replit-parity per-request power controls (effort-based checkpoint).
   highPowerModel: z.boolean().optional(),
   extendedThinking: z.boolean().optional(),
-  buildTier: z.enum(['lite', 'economy', 'power']).optional(),
+  buildTier: z.enum(['lite', 'power', 'max']).optional(),
   turboMode: z.boolean().optional(),
 
   /*
@@ -1914,11 +1958,11 @@ const aiRecordUsageSchema = z.object({
    */
   agentRouting: z
     .object({
-      mode: z.enum(['lite', 'economy', 'power']),
+      mode: z.enum(['lite', 'power', 'max']),
       highEffort: z.boolean().default(false),
       escalated: z.boolean().default(false),
       turbo: z.boolean().default(false),
-      lineKey: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
+      lineKey: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
       source: z.string().min(1).default('chat'),
     })
     .optional(),
@@ -2171,6 +2215,120 @@ function verifyCollaborationWebSocketTicket(ticket: string, input: { projectId: 
 }
 
 /*
+ * AUDX-004 — runtime tickets.
+ *
+ * `/api/runtime-token` used to hand the browser `readSessionToken(request)` —
+ * the SESSION COOKIE VALUE itself. That defeats httpOnly entirely: any XSS could
+ * fetch the route and walk away with a full-privilege, full-lifetime session
+ * credential good for billing, admin surfaces and project deletion.
+ *
+ * A runtime ticket replaces it: short-lived, scoped to one project, and accepted
+ * ONLY on /api/runtime/* routes. Stealing one buys ~2 minutes of that project's
+ * runtime, not the account.
+ *
+ * Same construction as the collaboration WS ticket above (base64url payload +
+ * constant-time HMAC) so there is one ticket shape in this service, not two.
+ *
+ * ⚠️ KNOWN LIMIT, deliberate: a ticket is not revoked by logout — it simply
+ * expires. There is no findSessionById on the store, so binding to live session
+ * state would mean widening the store interface; the 2-minute TTL bounds the
+ * window instead. This is the ordinary short-lived-access-token trade-off, but
+ * it IS a difference from the session token it replaces, which died with the
+ * session.
+ */
+const RUNTIME_TICKET_PREFIX = 'vcrt_';
+
+/** Short enough that a stolen ticket is near-worthless; long enough to survive a slow request. */
+const RUNTIME_TICKET_TTL_MS = 120_000;
+
+function runtimeTicketSecret() {
+  const secret = process.env.RUNTIME_TICKET_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
+
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      // A literal 'dev' fallback in prod would make runtime tickets forgeable.
+      throw new Error(appPublicEnglish('INTERNAL_COLLAB_HMAC_SECRET_REQUIRED'));
+    }
+
+    return 'dev';
+  }
+
+  return secret;
+}
+
+function signRuntimeTicketPayload(payload: string) {
+  /*
+   * Domain-separated from the collaboration ticket. Both derive from the same
+   * env secret, so without a distinct label a collaboration ticket payload and a
+   * runtime ticket payload could be made to collide and cross-redeem.
+   */
+  return createHmac('sha256', runtimeTicketSecret()).update(`runtime-ticket/v1:${payload}`).digest('base64url');
+}
+
+export function createRuntimeTicket(input: { userId: string; projectId: string }) {
+  const payload = Buffer.from(
+    JSON.stringify({
+      userId: input.userId,
+      projectId: input.projectId,
+      expiresAt: Date.now() + RUNTIME_TICKET_TTL_MS,
+
+      /*
+       * AUDX-004 — unique id, so a ticket presented on an UPGRADE can be burned
+       * after its first use. Query-string credentials are the ones that leak:
+       * access logs, Referer headers to third-party origins, browser history,
+       * intermediary proxies. bearerToken() only honours `?token=` for upgrades
+       * precisely because of that, and this makes a leaked one worthless.
+       */
+      jti: randomUUID(),
+    }),
+  ).toString('base64url');
+
+  return `${RUNTIME_TICKET_PREFIX}${payload}.${signRuntimeTicketPayload(payload)}`;
+}
+
+export function verifyRuntimeTicket(ticket: string) {
+  if (!ticket.startsWith(RUNTIME_TICKET_PREFIX)) {
+    return undefined;
+  }
+
+  const [payload, signature] = ticket.slice(RUNTIME_TICKET_PREFIX.length).split('.');
+
+  if (!payload || !signature) {
+    return undefined;
+  }
+
+  /*
+   * Compare on BYTE length, not string .length — the signature is
+   * attacker-controlled and a multibyte string of equal char length would hand
+   * timingSafeEqual two different-sized buffers and throw (500 instead of 401).
+   * Same reasoning as verifyCollaborationWebSocketTicket.
+   */
+  const expectedBuf = Buffer.from(signRuntimeTicketPayload(payload));
+  const signatureBuf = Buffer.from(signature);
+
+  if (expectedBuf.length !== signatureBuf.length || !timingSafeEqual(expectedBuf, signatureBuf)) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+      userId?: string;
+      projectId?: string;
+      expiresAt?: number;
+      jti?: string;
+    };
+
+    if (!parsed.userId || !parsed.projectId || typeof parsed.expiresAt !== 'number' || parsed.expiresAt < Date.now()) {
+      return undefined;
+    }
+
+    return parsed as { userId: string; projectId: string; expiresAt: number; jti?: string };
+  } catch {
+    return undefined;
+  }
+}
+
+/*
  * Chat-share tokens (audit M5/M7). The stored snapshot is keyed by a random,
  * unguessable token; we additionally HMAC-sign the public token so the /share
  * view can reject tampered/garbage tokens before any DB lookup and so a token
@@ -2305,6 +2463,222 @@ async function authenticateCollaborationWebSocketTicket(request: FastifyRequest,
    * from outside the allowlist. Resolve the project's org and check it.
    */
   const ticketedProject = await store.getProject(match[1]).catch(() => undefined);
+
+  if (ticketedProject?.organizationId) {
+    const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
+
+    if (!isIpAllowed(request.ip, settings.ipAllowlist)) {
+      reply.code(403).send({ error: appPublicEnglish('IP_ALLOWLIST_BLOCKED'), code: 'IP_ALLOWLIST_BLOCKED' });
+      return 'rejected' as const;
+    }
+  }
+
+  request.currentUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    emailVerifiedAt: user.emailVerifiedAt,
+    mfaEnabled: user.mfaEnabled,
+    platformAdmin: user.platformAdmin,
+  };
+
+  return 'authenticated' as const;
+}
+
+/*
+ * AUDX-004 — accept a runtime ticket, and ONLY on runtime routes.
+ *
+ * Fail-closed by construction: a ticket presented anywhere outside
+ * /api/runtime/* is not "ignored and retried as a session" — requireAuth would
+ * then reject it as an unknown session token anyway, but the explicit prefix
+ * check here means a ticket can never widen into general API access.
+ *
+ * ⚠️ The IP-allowlist re-check below is not decoration. The main preHandler
+ * returns EARLY for any ticket-authenticated request, which skips its allowlist
+ * block — that exact omission already shipped once on the collaboration WS
+ * ticket and had to be fixed. Same shape here, same enforcement.
+ */
+/*
+ * AUDX-004 — one-shot consumption for tickets presented on an UPGRADE.
+ *
+ * Scope of the guarantee, stated plainly: single-use is applied where a ticket
+ * travels in a QUERY STRING (WebSocket/SSE upgrades), because that is the form
+ * that leaks — access logs, Referer, history, proxies. It is deliberately NOT
+ * applied to ordinary HTTP requests: the runtime adapter reuses one ticket
+ * across every file/port/logs call for its 2-minute life, and burning it per
+ * request would force a mint round-trip before each one. That is not a security
+ * improvement, it is a self-inflicted outage on the IDE's hot path.
+ *
+ * Backed by Redis so replicas share the burn list. With no REDIS_URL (dev,
+ * single replica) an in-process set is used — honest about being per-process,
+ * and never silently pretending to be cluster-wide.
+ */
+const runtimeTicketBurnedLocally = new Set<string>();
+
+let runtimeTicketRedis: import('ioredis').Redis | undefined;
+let runtimeTicketRedisTried = false;
+
+function runtimeTicketStore(): import('ioredis').Redis | undefined {
+  if (runtimeTicketRedisTried) {
+    return runtimeTicketRedis;
+  }
+
+  runtimeTicketRedisTried = true;
+
+  /*
+   * `lireUrlDEnvironnement` et non une lecture nue : une valeur entre
+   * guillemets dans un configmap donne une URL que `new Redis()` refuse, et le
+   * magasin de tickets retombe alors en silence sur « pas de Redis ». Les trois
+   * autres lectures de REDIS_URL de ce fichier passent déjà par là ; celle-ci
+   * l'avait oublié, et `env-url.spec.ts` l'a attrapée.
+   */
+  const url = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    runtimeTicketRedis = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: false });
+    runtimeTicketRedis.on('error', () => undefined);
+  } catch {
+    runtimeTicketRedis = undefined;
+  }
+
+  return runtimeTicketRedis;
+}
+
+/**
+ * Burn a ticket id. Returns false when it was already used.
+ *
+ * Fails CLOSED on a Redis error: if we cannot tell whether a ticket was already
+ * spent, treating it as fresh would make the whole one-shot property optional
+ * exactly when the infrastructure is unhealthy — which is when replay matters.
+ * A refused upgrade is recoverable (the client re-mints); a replayed one is not.
+ */
+async function consumeRuntimeTicketId(jti: string, expiresAt: number): Promise<boolean> {
+  const ttlSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    if (runtimeTicketBurnedLocally.has(jti)) {
+      return false;
+    }
+
+    runtimeTicketBurnedLocally.add(jti);
+    setTimeout(() => runtimeTicketBurnedLocally.delete(jti), ttlSeconds * 1000).unref?.();
+
+    return true;
+  }
+
+  try {
+    // SET NX is the atomic primitive: it succeeds only for the FIRST caller.
+    const result = await redis.set(`runtime-ticket:${jti}`, '1', 'EX', ttlSeconds, 'NX');
+
+    return result === 'OK';
+  } catch {
+    return false;
+  }
+}
+
+const ideaRelaysLocally = new Map<string, { value: string; expiresAt: number }>();
+
+/** Range un relais d'idée. Lève si Redis est configuré mais en panne : le relais n'est pas pris. */
+async function storeIdeaRelay(id: string, value: string): Promise<void> {
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    ideaRelaysLocally.set(id, { value, expiresAt: Date.now() + IDEA_RELAY_TTL_SECONDS * 1000 });
+    setTimeout(() => ideaRelaysLocally.delete(id), IDEA_RELAY_TTL_SECONDS * 1000).unref?.();
+
+    return;
+  }
+
+  await redis.set(`idea-relay:${id}`, value, 'EX', IDEA_RELAY_TTL_SECONDS);
+}
+
+/**
+ * Rend le relais UNE SEULE FOIS : `GETDEL` est atomique, deux lectures
+ * concurrentes ne peuvent pas l'obtenir toutes les deux.
+ */
+async function takeIdeaRelay(id: string): Promise<string | null> {
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    const entry = ideaRelaysLocally.get(id);
+    ideaRelaysLocally.delete(id);
+
+    return entry && entry.expiresAt > Date.now() ? entry.value : null;
+  }
+
+  try {
+    return await redis.getdel(`idea-relay:${id}`);
+  } catch {
+    return null;
+  }
+}
+
+async function authenticateRuntimeTicket(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
+  const pathname = new URL(request.url, 'http://vibecore.local').pathname;
+
+  if (!pathname.startsWith('/api/runtime/')) {
+    return 'not-ticketed' as const;
+  }
+
+  const presented = bearerToken(request);
+
+  if (!presented?.startsWith(RUNTIME_TICKET_PREFIX)) {
+    return 'not-ticketed' as const;
+  }
+
+  const payload = verifyRuntimeTicket(presented);
+
+  if (!payload) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  /*
+   * One-shot, upgrades only — see consumeRuntimeTicketId for why this is
+   * deliberately not applied to ordinary HTTP requests.
+   */
+  const isUpgradeRequest =
+    request.headers.upgrade?.toLowerCase() === 'websocket' ||
+    (typeof request.headers.accept === 'string' && request.headers.accept.includes('text/event-stream'));
+
+  if (isUpgradeRequest) {
+    if (!payload.jti || !(await consumeRuntimeTicketId(payload.jti, payload.expiresAt))) {
+      authError(reply);
+      return 'rejected' as const;
+    }
+  }
+
+  /*
+   * Scope enforcement. The ticket names ONE project; a runtime route names a
+   * workspace. Resolve the workspace and require it to belong to that project,
+   * otherwise a ticket for a project the user owns would drive the runtime of
+   * any other workspace id they can guess — which would make "scoped" a label
+   * rather than a control.
+   */
+  const workspaceId = (request.params as { workspaceId?: string } | undefined)?.workspaceId;
+
+  if (workspaceId) {
+    const workspace = await store.getWorkspace(workspaceId).catch(() => undefined);
+
+    if (!workspace || workspace.projectId !== payload.projectId) {
+      authError(reply);
+      return 'rejected' as const;
+    }
+  }
+
+  const user = await store.findUserById(payload.userId);
+
+  if (!user || (await isUserSuspended(store, user.id))) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  const ticketedProject = await store.getProject(payload.projectId).catch(() => undefined);
 
   if (ticketedProject?.organizationId) {
     const settings = await store.getEnterpriseSettings(ticketedProject.organizationId);
@@ -3629,6 +4003,12 @@ function buildWorkspaceObjectStorage(input: {
       userId: input.userId,
       workspaceId: input.workspaceId,
       expiresAt: Date.now() + ttlMs,
+      /*
+       * AUDX-022 — least privilege. A generated app reads and writes its own
+       * bucket; it has no business deleting objects wholesale or destroying the
+       * bucket. Those verbs stay with an authenticated user session.
+       */
+      scopes: ['read', 'write'],
     },
     secret,
   });
@@ -3651,6 +4031,33 @@ async function requirePlatformAdmin(request: FastifyRequest) {
  * WORKSPACE_MANAGER_SHARED_SECRET, which the manager/worker pods already hold).
  * Fails closed when no secret is configured.
  */
+/*
+ * AUDX-018 — how long a credit hold survives before the sweep reclaims it.
+ * Long enough for a slow generation, short enough that a crashed request does
+ * not strand a user's credits for any meaningful time.
+ */
+const AI_RESERVATION_TTL_MS = 15 * 60_000;
+
+/*
+ * Cost to hold for a request we have not made yet. Deliberately an ESTIMATE:
+ * the input tokens we know about plus a modest output allowance. The hold is
+ * provisional and settled against the real cost afterwards, so erring slightly
+ * HIGH is the correct direction — a hold that is too small lets the wallet go
+ * negative, which is the failure this exists to prevent.
+ */
+function estimateAiReservationCents(inputTokens: number, model?: string, provider?: string): number {
+  const assumedOutputTokens = Math.max(256, Math.ceil(inputTokens / 2));
+
+  const { costCents } = computeAiCostCents({
+    model: model ?? 'unknown',
+    provider: provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+    inputTokens: Math.max(0, inputTokens),
+    outputTokens: assumedOutputTokens,
+  });
+
+  return Math.max(1, costCents);
+}
+
 /*
  * AUDX-017 — provenance marker for a report that ALSO carries a user session.
  *
@@ -3676,8 +4083,7 @@ function hasInternalSecretHeader(request: FastifyRequest): boolean {
   const expectedBuf = Buffer.from(expected);
   const providedBuf = Buffer.from(provided);
 
-  return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);
-}
+  return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);}
 
 function requireInternalSecret(request: FastifyRequest) {
   const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
@@ -4382,6 +4788,9 @@ function isReadOnlyProjectRole(role?: string) {
   return role === 'viewer';
 }
 
+/** Le seul rôle qu'un lien de partage peut conférer (voir POST …/share-links). */
+const ROLE_PARTAGE_LECTURE_SEULE = 'viewer';
+
 function normalizeProjectPath(path?: string) {
   if (!path) {
     return undefined;
@@ -4476,7 +4885,9 @@ async function mutateProjectIdeState(
   });
 }
 
-function projectFilesFromPersistedIdeState(state?: PersistedIdeStateLike): Array<{ path: string; content: string }> {
+function projectFilesFromPersistedIdeState(
+  state?: PersistedIdeStateLike,
+): Array<{ path: string; content: string; ecrit?: true }> {
   const persistedManifest = projectFileManifestFromPersistedIdeState(state);
 
   if (persistedManifest.exists) {
@@ -4486,7 +4897,22 @@ function projectFilesFromPersistedIdeState(state?: PersistedIdeStateLike): Array
   return projectFilesFromIdeStateRoot(ideStateObject(state));
 }
 
-function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ path: string; content: string }> {
+/*
+ * Les contenus des messages déjà présents dans l'état enregistré : chacun a été
+ * matérialisé par le `PUT` qui l'y a mis. Un message dont le contenu a changé
+ * (flux prolongé) n'y figure pas sous sa nouvelle forme et sera matérialisé.
+ */
+function contenusDesMessagesEnregistres(state: unknown): Set<string> {
+  const chat = ideStateRecord(ideStateRecord(state).chat);
+  const messages = Array.isArray(chat.messages) ? chat.messages : [];
+
+  return new Set(messages.map(persistedIdeMessageContent).filter(Boolean));
+}
+
+function projectFilesFromIdeStateRoot(
+  root: Record<string, unknown>,
+  { dejaMaterialises }: { dejaMaterialises?: ReadonlySet<string> } = {},
+): Array<{ path: string; content: string }> {
   const chat =
     root.chat && typeof root.chat === 'object' && !Array.isArray(root.chat)
       ? (root.chat as Record<string, unknown>)
@@ -4498,7 +4924,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
   for (const message of messages) {
     const content = persistedIdeMessageContent(message);
 
-    if (!content) {
+    if (!content || dejaMaterialises?.has(content)) {
       continue;
     }
 
@@ -4512,7 +4938,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
 
 function projectFileManifestFromPersistedIdeState(state?: PersistedIdeStateLike): {
   exists: boolean;
-  files: Array<{ path: string; content: string }>;
+  files: Array<{ path: string; content: string; ecrit?: true }>;
 } {
   const root = ideStateObject(state);
   return projectFileManifestFromPersistedInput(root.files);
@@ -4520,7 +4946,7 @@ function projectFileManifestFromPersistedIdeState(state?: PersistedIdeStateLike)
 
 function projectFileManifestFromPersistedInput(input: unknown): {
   exists: boolean;
-  files: Array<{ path: string; content: string }>;
+  files: Array<{ path: string; content: string; ecrit?: true }>;
 } {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
@@ -4535,12 +4961,12 @@ function projectFileManifestFromPersistedInput(input: unknown): {
 
 function projectFilesFromPersistedFileManifest(
   input: unknown,
-): Array<{ path: string; content: string; encoding?: FileEncoding }> {
+): Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> {
   const manifest =
     input && typeof input === 'object' && !Array.isArray(input) ? (input as Record<string, unknown>) : {};
 
   const entries = Array.isArray(manifest.entries) ? manifest.entries : [];
-  const files: Array<{ path: string; content: string; encoding?: FileEncoding }> = [];
+  const files: Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }> = [];
 
   for (const entry of entries) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
@@ -4561,21 +4987,32 @@ function projectFilesFromPersistedFileManifest(
 
     // Preserve binary encoding if the manifest recorded it (absent = utf8 text).
     const encoding = record.encoding === 'base64' ? 'base64' : undefined;
-    files.push({ path: normalizedPath, content: record.content, ...(encoding ? { encoding } : {}) });
+    files.push({
+      path: normalizedPath,
+      content: record.content,
+      ...(encoding ? { encoding } : {}),
+      ...(record.ecrit === true ? { ecrit: true as const } : {}),
+    });
   }
 
   return files;
 }
 
-function projectFileManifestState(files: Array<{ path: string; content: string; encoding?: FileEncoding }>) {
+function projectFileManifestState(
+  files: Array<{ path: string; content: string; encoding?: FileEncoding; ecrit?: true }>,
+  options: { ecrit?: boolean } = {},
+) {
   return {
     entries: files
       .map((file) => ({
         path: normalizeProjectPath(file.path),
         content: file.content,
         ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+        ...(file.ecrit === true || options.ecrit ? { ecrit: true as const } : {}),
       }))
-      .filter((file): file is { path: string; content: string; encoding?: 'base64' } => Boolean(file.path)),
+      .filter((file): file is { path: string; content: string; encoding?: 'base64'; ecrit?: true } =>
+        Boolean(file.path),
+      ),
     updatedAt: new Date().toISOString(),
   };
 }
@@ -4618,7 +5055,7 @@ async function persistProjectFileManifest(
   projectId: string,
   files: Array<{ path: string; content: string }>,
   updatedByUserId?: string,
-  options: { clearRecoveredChatFiles?: boolean } = {},
+  options: { clearRecoveredChatFiles?: boolean; ecrit?: boolean } = {},
 ) {
   /*
    * Route through the version-guarded mutate loop instead of a bare read +
@@ -4631,7 +5068,7 @@ async function persistProjectFileManifest(
    */
   await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) =>
     mergeProjectIdeState(existing?.state, {
-      files: projectFileManifestState(files),
+      files: projectFileManifestState(files, { ecrit: options.ecrit }),
       ...(options.clearRecoveredChatFiles ? { chat: { clearMessages: true, messages: [] } } : {}),
     }),
   );
@@ -4654,7 +5091,14 @@ async function persistProjectFileManifest(
  * `/files/import/zip` à la fermeture de l'artefact, et y brancher le manifeste
  * ferait une mutation du blob partagé par FRAGMENT de fichier.
  */
-type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64' };
+/*
+ * `ecrit` — l'entrée a été RÉELLEMENT ÉCRITE (enregistrement, acceptation,
+ * import de fin d'artefact, restauration), par opposition au contenu de départ
+ * (modèle à la création, import initial, duplication) ou récupéré de la
+ * conversation. La conversation peut remplacer le second, jamais le premier
+ * (voir `PUT /projects/:projectId/ide-state`, P0 du 2026-10-06).
+ */
+type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64'; ecrit?: true };
 
 /**
  * BUG-RUNTIME-DIVERGENCE — le seul point de passage des mutations UNITAIRES du
@@ -4782,6 +5226,7 @@ async function persistProjectFileEntry(
       path: chemin,
       content: file.content,
       ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+      ecrit: true,
     };
     const index = entrees.findIndex((e) => normalizeProjectPath(e.path) === chemin);
 
@@ -8641,6 +9086,11 @@ export async function estimateAiTokens(content: string) {
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
+/** Un identifiant de prix Stripe, et rien d'autre (la base de production a porté une adresse e-mail à cette place). */
+function estUnIdentifiantDePrixStripe(valeur: string | null | undefined): valeur is string {
+  return typeof valeur === 'string' && /^price_[A-Za-z0-9_]+$/.test(valeur.trim());
+}
+
 async function seedBillingPlans(store: ApiStore) {
   /*
    * Admin-managed price IDs (set via /admin/stripe → Plan rows) are AUTHORITATIVE:
@@ -8660,12 +9110,19 @@ async function seedBillingPlans(store: ApiStore) {
       const upper = plan.key.toUpperCase();
       const prior = existing.get(plan.key);
 
+      /*
+       * Une valeur persistée qui n'est PAS un identifiant de prix (une adresse
+       * e-mail, mesurée en production le 2026-10-01) n'est pas « l'édition d'un
+       * admin à préserver » : on l'écarte, sinon elle survit à chaque redémarrage.
+       */
+      const valable = (valeur: string | null | undefined) => (estUnIdentifiantDePrixStripe(valeur) ? valeur : undefined);
+
       const monthly =
-        prior?.stripePriceMonthlyId ??
+        valable(prior?.stripePriceMonthlyId) ??
         process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ??
         process.env[plan.stripePriceEnv];
 
-      const annual = prior?.stripePriceAnnualId ?? process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
+      const annual = valable(prior?.stripePriceAnnualId) ?? process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
 
       return store.upsertBillingPlan({
         key: plan.key,
@@ -10333,6 +10790,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
+  /*
+   * RELAIS DE L'IDÉE TAPÉE SUR L'ACCUEIL (BUG-QA0928-IDEE-PERDUE-INSCRIPTION).
+   *
+   * Mesuré le 2026-09-30 en production : un visiteur arrivé sur `e-code.ai`
+   * perdait son idée au 301 de `/login` vers `app.e-code.ai`, une autre origine
+   * dont le `sessionStorage` est vide. L'idée est donc gardée ICI une heure,
+   * sous un identifiant aléatoire ; seul cet identifiant traverse, dans un
+   * cookie de domaine — jamais l'idée elle-même, ni dans une adresse ni dans un
+   * cookie.
+   *
+   * Dépôt anonyme (le visiteur n'a pas encore de compte), limité en débit.
+   * Retrait réservé à un utilisateur connecté, et une seule fois.
+   */
+  app.post(
+    '/idea-relays',
+    { config: { rateLimit: { max: Number(process.env.IDEA_RELAY_RATE_LIMIT_MAX ?? 10), timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = parse(ideaRelayCreateSchema, request.body);
+      const id = randomBytes(24).toString('base64url');
+
+      await storeIdeaRelay(id, JSON.stringify(body));
+
+      return reply.code(201).send({ id, expiresInSeconds: IDEA_RELAY_TTL_SECONDS });
+    },
+  );
+
+  app.post('/idea-relays/consume', async (request) => {
+    if (!request.currentUser) {
+      throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), { statusCode: 401, code: 'AUTH_REQUIRED' });
+    }
+
+    const { id } = parse(ideaRelayConsumeSchema, request.body);
+    const value = await takeIdeaRelay(id);
+
+    if (!value) {
+      throw Object.assign(new Error(appPublicEnglish('IDEA_RELAY_NOT_FOUND')), { statusCode: 404, code: 'IDEA_RELAY_NOT_FOUND' });
+    }
+
+    return JSON.parse(value) as z.infer<typeof ideaRelayCreateSchema>;
+  });
+
   app.post(
     '/auth/register',
     {
@@ -10376,11 +10874,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         email: user.email,
       });
 
-      const organization = await store.createOrganization({
-        name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
-        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
-        ownerUserId: user.id,
-      });
+      const organizationName = body.organizationName ?? defaultOrganizationName(body.name ?? body.email, locale);
+      const baseSlug = body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`;
+
+      /*
+       * UIB-10 — Organization.slug est @unique. Mesuré le 2026-10-01 : un second
+       * client qui choisissait un nom d'organisation déjà pris (« Acme ») recevait
+       * une erreur 500 — APRÈS la création de son compte, qui restait sans
+       * organisation ; en réessayant, « adresse déjà utilisée ». À l'inscription,
+       * le nom n'est qu'un libellé : on garde le nom choisi et on rend le slug
+       * unique avec un suffixe tiré de l'utilisateur (même forme que l'import).
+       */
+      let organization;
+
+      try {
+        organization = await store.createOrganization({ name: organizationName, slug: baseSlug, ownerUserId: user.id });
+      } catch (error) {
+        if ((error as { code?: string } | null)?.code !== 'P2002') {
+          throw error;
+        }
+
+        organization = await store.createOrganization({
+          name: organizationName,
+          slug: `${baseSlug}-${user.id.slice(-6)}`,
+          ownerUserId: user.id,
+        });
+      }
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: organization.id, token, request });
@@ -10894,7 +11413,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             organizationId = existingOrgs[0].id;
           } else {
             const org = await store.createOrganization({
-              name: `${profile.name ?? profile.email}'s Organization`,
+              name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
               slug: `org-${user.id.slice(-8)}`,
               ownerUserId: user.id,
             });
@@ -11083,7 +11602,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           oidcOrgId = oidcUserOrgs[0].id;
         } else {
           const org = await store.createOrganization({
-            name: `${profile.name ?? profile.email}'s Organization`,
+            name: defaultOrganizationName(profile.name ?? profile.email, transactionalLocaleForRequest(request)),
             slug: `org-${user.id.slice(-8)}`,
             ownerUserId: user.id,
           });
@@ -11370,6 +11889,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.url.startsWith('/auth/saml') ||
       request.url.startsWith('/contact-sales') ||
       request.url.startsWith('/newsletter/subscribe') ||
+      // Dépôt anonyme du relais d'idée — égalité STRICTE : `/idea-relays/consume` reste authentifié.
+      (request.method === 'POST' && request.url.split('?')[0] === '/idea-relays') ||
       request.url.startsWith('/billing/stripe/webhook') ||
       request.url.startsWith('/webhooks/') ||
       request.url.startsWith('/scim/') ||
@@ -11404,6 +11925,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const collaborationTicketAuth = await authenticateCollaborationWebSocketTicket(request, reply, store);
 
     if (collaborationTicketAuth !== 'not-ticketed') {
+      return;
+    }
+
+    const runtimeTicketAuth = await authenticateRuntimeTicket(request, reply, store);
+
+    if (runtimeTicketAuth !== 'not-ticketed') {
       return;
     }
 
@@ -14951,6 +15478,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * observe the pod arriving. Reopening with the same deterministic id returns
    * the existing pod, so this is safe to call even while a start is in flight.
    */
+  /*
+   * RÉSERVER UN CRÉNEAU `workspaces.active` AVANT DE DÉMARRER.
+   *
+   * Un espace déjà compté (PENDING/STARTING/RUNNING) ne consomme rien : on le
+   * redémarre librement, c'est le cas du pod ramassé dont la ligne est restée
+   * RUNNING. Sinon, sous verrou par organisation : libérer les créneaux fantômes,
+   * vérifier le quota, puis marquer l'espace STARTING — c'est cette écriture,
+   * DANS le verrou, qui empêche deux démarrages concurrents de passer le même
+   * décompte.
+   *
+   * Partagé par le redémarrage explicite et par le démarrage À LA DEMANDE
+   * (BUG-QA0928-PROVISION-SANS-QUOTA : ce dernier n'avait aucun contrôle, et une
+   * simple lecture sur l'onglet d'un autre projet donnait un second espace actif
+   * à un compte gratuit).
+   */
+  const reserverUnCreneauActif = async (request: any, organizationId: string | undefined, workspaceId: string) => {
+    const existant = await store.getWorkspace(workspaceId);
+    const dejaCompte = !!existant && ['PENDING', 'STARTING', 'RUNNING'].includes(existant.status as string);
+
+    if (!organizationId || dejaCompte) {
+      return false;
+    }
+
+    await store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
+      await ensureQuota(request, organizationId, 'workspaces.active');
+      await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
+    });
+
+    // Vrai quand un créneau vient d'être pris : l'appelant le rend (FAILED) si le démarrage échoue pour de bon.
+    return true;
+  };
+
   const provisionWorkspaceOnDemand = async (
     request: any,
     authorized: { workspaceId: string; projectId: string; organizationId?: string },
@@ -14963,6 +15523,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const env = collapseEnvForWorkspace(projectEnvVars);
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
+
+    const organisation =
+      authorized.organizationId ?? (await store.getProject(authorized.projectId))?.organizationId ?? undefined;
+
+    await reserverUnCreneauActif(request, organisation, authorized.workspaceId);
 
     /*
      * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
@@ -15095,6 +15660,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       await demarrageDemande;
     })().catch((error) => {
+      /*
+       * REFUS POUR QUOTA (BUG-QA0928-PROVISION-SANS-QUOTA) : ce n'est pas une
+       * panne, c'est la règle du forfait. On le journalise sans le compter comme
+       * échec, et on GARDE la fenêtre : la réarmer referait le contrôle — et son
+       * audit `quota.exceeded` — à chacune des dizaines de lectures d'une
+       * ouverture d'IDE.
+       */
+      if (error?.code === 'QUOTA_EXCEEDED') {
+        journal?.warn(
+          { workspaceId, event: 'workspace.read_triggered_start_refused_quota', quotaKey: error.quotaKey },
+          'demarrage declenche par une lecture refuse : quota atteint',
+        );
+
+        return;
+      }
+
       /*
        * JAMAIS AVALÉ (BUG-RUNTIME-SILENCE-002). Ajouter un déclenchement dont
        * l'échec disparaît dans un `catch` vide remplacerait un blocage
@@ -15235,6 +15816,133 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const DEPLOY_MAX_PULL_FILE_BYTES = 2 * 1024 * 1024; // matches the agent's default WORKSPACE_MAX_FILE_BYTES
 
+  /*
+   * Met en veille l'autre espace actif de l'organisation pour publier ce projet —
+   * jamais un espace qui a un tour d'agent en cours (liberer-creneau.ts).
+   */
+  const DEPLOY_AUTO_SLEEP_WAIT_MS = Math.max(0, Number(process.env.DEPLOY_AUTO_SLEEP_WAIT_MS ?? 4 * 60_000) || 0);
+
+  const libererUnCreneauPourPublierCeProjet = async (
+    request: any,
+    cible: { workspaceId: string; projectId: string; organizationId: string },
+    progress?: { onLog?: (log: StaticBuildLog) => void },
+  ) => {
+    const redis = options.toursPartages === undefined ? runtimeTicketStore() : (options.toursPartages ?? undefined);
+    const lireLesTours = (projectId: string) => toursEnCoursDuProjet(redis, projectId);
+
+    const ligne = (message: string) =>
+      progress?.onLog?.({ timestamp: new Date().toISOString(), level: 'warn', message });
+
+    const issue = await libererUnCreneauPourPublier({
+      attenteMaxMs: DEPLOY_AUTO_SLEEP_WAIT_MS,
+      autresEspacesActifs: async () => {
+        const actifs = (await store.listActiveWorkspaces(cible.organizationId).catch(() => [])).filter(
+          (espace) => espace.id !== cible.workspaceId,
+        );
+
+        return Promise.all(
+          actifs.map(async (espace) => ({
+            workspaceId: espace.id,
+            projectId: espace.projectId,
+            nomDuProjet: (await store.getProject(espace.projectId).catch(() => undefined))?.name ?? espace.projectId,
+          })),
+        );
+      },
+      toursEnCours: lireLesTours,
+      /*
+       * Sonde DIRECTE, pas `agentRequest` : sur un agent muet, `agentRequest`
+       * redémarre l'espace (démarrage déclenché par une lecture) — la sonde
+       * ranimait l'espace qu'on cherchait à mettre en veille. Mesuré en écrivant
+       * le test : l'espace A repassait STARTING. Agent muet = pas de build en cours,
+       * comme pour le ramassage du manager.
+       */
+      agentOccupe: async (workspaceId) => {
+        let jeton: string;
+
+        try {
+          jeton = await agentToken(workspaceId);
+        } catch {
+          return false;
+        }
+
+        try {
+          const reponse = await fetch(`${agentBaseUrl(workspaceId)}/busy`, {
+            headers: { authorization: `Bearer ${jeton}` },
+            signal: AbortSignal.timeout(2_500),
+          });
+          const corps = (await reponse.json().catch(() => null)) as { busy?: unknown } | null;
+
+          return reponse.ok && corps?.busy === true;
+        } catch {
+          return false;
+        }
+      },
+      mettreEnVeilleEtReserver: (espaces) =>
+        store.withSerializedMutation(`workspaces:${cible.organizationId}`, async () => {
+          // Revérifié SOUS le verrou : un tour lancé à l'instant ne doit pas être coupé.
+          for (const espace of espaces) {
+            if ((await lireLesTours(espace.projectId)) !== 0) {
+              return 'tour-apparu' as const;
+            }
+          }
+
+          for (const espace of espaces) {
+            try {
+              // Arrêt, pas suppression : le pod part, le volume et ses fichiers restent.
+              await managerRequest(`/workspaces/${encodeURIComponent(espace.workspaceId)}/stop`, { method: 'POST' });
+            } catch (error) {
+              if (!isRuntimeWorkspaceGone(error)) {
+                throw error;
+              }
+            }
+
+            await store.updateWorkspaceStatus({ workspaceId: espace.workspaceId, status: 'STOPPED' });
+            await audit(request, store, {
+              organizationId: cible.organizationId,
+              action: 'runtime.workspace.auto_sleep',
+              resourceType: 'workspace',
+              resourceId: espace.workspaceId,
+              metadata: { trigger: 'deploy', forProjectId: cible.projectId },
+            });
+          }
+
+          /*
+           * Le décompte est mis en cache pour la durée de la requête : sans cette
+           * invalidation, la revérification relit « 1 espace actif » — celui qu'on
+           * vient d'arrêter — et refuse quand même. Mesuré en écrivant le test.
+           */
+          invalidateQuotaUsageCache(request, cible.organizationId, 'workspaces.active');
+
+          // Le créneau libéré est pris DANS le même verrou : un onglet resté ouvert sur l'autre projet ne le reprend pas.
+          await ensureQuota(request, cible.organizationId, 'workspaces.active');
+          await store
+            .updateWorkspaceStatus({ workspaceId: cible.workspaceId, status: 'STARTING' })
+            .catch(() => undefined);
+
+          return 'fait' as const;
+        }),
+      annoncer: (evenement) => {
+        if (evenement.type === 'veille') {
+          ligne(appPublicEnglish('DEPLOY_WORKSPACE_AUTO_SLEPT', { project: evenement.espace.nomDuProjet }));
+        } else {
+          ligne(
+            appPublicEnglish('DEPLOY_WORKSPACE_WAITING_TURN', {
+              project: evenement.espaces.map((espace) => espace.nomDuProjet).join(', '),
+              minutes: evenement.minutes,
+            }),
+          );
+        }
+      },
+    });
+
+    request.log?.info?.(
+      { event: 'deploy.liberation-creneau', etat: issue.etat, projectId: cible.projectId },
+      'quota: liberation of another workspace for a deploy',
+    );
+
+    return issue;
+  };
+
   const realBuildStaticInWorkspacePod: WorkspacePodStaticBuild = async (
     request,
     project,
@@ -15262,10 +15970,57 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * seule phrase qui disait pourquoi le déploiement ne partait pas, et
      * l'utilisateur recevait « Échec » sans rien d'autre (règle 13).
      */
+    /*
+     * BUG-QA0930-DEPLOIEMENT-QUOTA-MASQUE — un refus pour quota n'est pas un
+     * espace « qui démarre » : le client lisait « réessayez » et réessayait sans
+     * fin, alors que seule la limite de son forfait bloquait. L'espace réellement
+     * injoignable, lui, garde son « réessayez ».
+     */
+    const refusDeDemarrage = (error: unknown) => ({
+      handled: false as const,
+      refusal: ((error as { code?: unknown })?.code === 'QUOTA_EXCEEDED'
+        ? 'WORKSPACE_QUOTA'
+        : 'WORKSPACE_UNREACHABLE') as WorkspacePodBuildRefusal,
+      detail: refusalDetail(error),
+    });
+
     try {
       await ensureWorkspaceReachable(request, authorized);
     } catch (error) {
-      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
+      if ((error as { code?: unknown })?.code !== 'QUOTA_EXCEEDED') {
+        return refusDeDemarrage(error);
+      }
+
+      /*
+       * Décision d'Avi du 2026-10-01 : on met en veille l'AUTRE espace au lieu de
+       * renvoyer le client le fermer à la main — sauf s'il a un tour d'agent en
+       * cours (liberer-creneau.ts).
+       */
+      let liberation: Awaited<ReturnType<typeof libererUnCreneauPourPublierCeProjet>>;
+
+      try {
+        liberation = await libererUnCreneauPourPublierCeProjet(request, authorized, progress);
+      } catch (erreurDeLiberation) {
+        return refusDeDemarrage(erreurDeLiberation);
+      }
+
+      if (liberation.etat === 'occupe') {
+        return {
+          handled: false,
+          refusal: 'WORKSPACE_QUOTA_BUSY',
+          detail: liberation.espaces.map((espace) => espace.nomDuProjet).join(', '),
+        };
+      }
+
+      if (liberation.etat === 'inconnu') {
+        return refusDeDemarrage(error);
+      }
+
+      try {
+        await ensureWorkspaceReachable(request, authorized);
+      } catch (secondeErreur) {
+        return refusDeDemarrage(secondeErreur);
+      }
     }
 
     let token: string;
@@ -17259,7 +18014,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * workspace to STOPPED: that would mislabel a running pod and let the
            * org under-count its active quota / exceed its concurrent limit.
            */
-          shouldStop = isRuntimeWorkspaceGone(error);
+          /*
+           * BUG-QA0928-RECONCILIATION-MANAGER-INJOIGNABLE — surtout pas
+           * `isRuntimeWorkspaceGone`, qui compte aussi le manager INJOIGNABLE comme
+           * « disparu » : c'est juste pour un arrêt idempotent, faux ici. Mesuré le
+           * 2026-09-28 : manager coupé → la seule ligne vivante passait STOPPED et
+           * le quota était contourné. Seul un 404 du manager dit « disparu ».
+           */
+          shouldStop = (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
         }
 
         if (shouldStop) {
@@ -17602,33 +18364,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Serialize the check to avoid TOCTOU; the slow manager restart stays outside
      * the lock. A restart of an already-active workspace consumes nothing.
      */
-    const existingForRestart = await store.getWorkspace(authorized.workspaceId);
-
-    const restartCountsAsActive =
-      !!existingForRestart && ['PENDING', 'STARTING', 'RUNNING'].includes(existingForRestart.status as string);
-
-    const restartOrgId = authorized.organizationId;
-
-    if (restartOrgId && !restartCountsAsActive) {
-      await store.withSerializedMutation(`workspaces:${restartOrgId}`, async () => {
-        /*
-         * Free any phantom (GC'd-but-RUNNING) slot before counting, identical to
-         * the start handler — otherwise a stale RUNNING row 429s a legitimate
-         * restart of another workspace for a quota-limited org.
-         */
-        await reconcileOrphanedActiveWorkspaces(restartOrgId, authorized.workspaceId);
-        await ensureQuota(request, restartOrgId, 'workspaces.active');
-
-        /*
-         * Claim the active slot INSIDE the lock by flipping the record to a
-         * counted state (STARTING). Without a state write here the lock is inert:
-         * concurrent restarts each pass the same count and all bypass the limit
-         * (countActiveWorkspaces counts PENDING/STARTING/RUNNING). The manager
-         * restart below reconciles to RUNNING/FAILED; the catch resets on error.
-         */
-        await store.updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' });
-      });
-    }
+    const creneauReserve = await reserverUnCreneauActif(request, authorized.organizationId, authorized.workspaceId);
 
     /*
      * Resolve the org's plan + resource entitlements exactly like the start
@@ -17715,7 +18451,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * (flipped to STARTING), reset to FAILED so the slot isn't leaked (a stuck
        * STARTING would count against workspaces.active forever), then rethrow.
        */
-      if (restartOrgId && !restartCountsAsActive) {
+      if (creneauReserve) {
         await store
           .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
           .catch(() => undefined);
@@ -20088,6 +20824,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { revoked };
     },
   );
+
+  /*
+   * AUDX-004 — mint a runtime ticket for one project.
+   *
+   * Session-authenticated (the normal preHandler), rate-limited, and gated by
+   * the SAME project permission the runtime routes require, so a ticket can
+   * never grant access the caller does not already have. Replaces
+   * /api/runtime-token handing the browser the raw session cookie value.
+   */
+  app.post(
+    '/auth/runtime-ticket',
+    { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      const body = z.object({ projectId: z.string().min(1) }).safeParse(request.body);
+
+      if (!body.success) {
+        return reply.code(400).send({
+          error: appPublicEnglish('WORKSPACE_OR_PROJECT_ID_REQUIRED'),
+          code: 'PROJECT_ID_REQUIRED',
+        });
+      }
+
+      const project = await requireProject(request, store, body.data.projectId, 'workspaces:read');
+
+      return {
+        ticket: createRuntimeTicket({ userId: request.currentUser!.id, projectId: project.id }),
+        expiresInMs: RUNTIME_TICKET_TTL_MS,
+      };
+    },
+  );
+
   app.post('/auth/reauth', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
     if (!request.currentSession) {
       return reply
@@ -20304,7 +21071,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const user = request.currentUser!;
 
       const org = await store.createOrganization({
-        name: `${user.name ?? user.email}'s Organization`,
+        name: defaultOrganizationName(user.name ?? user.email, transactionalLocaleForRequest(request)),
         slug: `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
@@ -20670,15 +21437,45 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
       }
 
+      /*
+       * BUG-QA0930-INVITATION-SANS-PLACE — l'acceptation consomme une place
+       * (ensureQuota team.members) ; la création ne la consultait pas. Une équipe
+       * gratuite (1 place, prise par le propriétaire) envoyait donc des invitations
+       * que personne ne pourrait jamais accepter : le collègue s'inscrivait,
+       * vérifiait son adresse, puis butait sur un 429. On refuse ici, au moment où
+       * le propriétaire peut encore agir, en comptant aussi les places déjà promises
+       * aux invitations en attente.
+       */
+      const pendingSeats = pendingInvites.filter(
+        (invite) => !invite.acceptedAt && new Date(invite.expiresAt).getTime() > nowMs,
+      ).length;
       const token = createOpaqueToken('invite');
 
-      const invitation = await store.createOrganizationInvite({
-        organizationId: orgId,
-        email: body.email,
-        roleKey,
-        token,
-        expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
-      });
+      let invitation: Awaited<ReturnType<typeof store.createOrganizationInvite>>;
+
+      try {
+        invitation = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
+          await ensureQuota(request, orgId, 'team.members', pendingSeats + 1);
+
+          return store.createOrganizationInvite({
+            organizationId: orgId,
+            email: body.email,
+            roleKey,
+            token,
+            expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+          });
+        });
+      } catch (error: any) {
+        if (error?.code === 'QUOTA_EXCEEDED') {
+          return reply.code(429).send({
+            error: appPublicCopy('TEAM_SEAT_LIMIT', transactionalLocaleForRequest(request)),
+            code: 'QUOTA_EXCEEDED',
+            quotaKey: 'team.members',
+          });
+        }
+
+        throw error;
+      }
       const invitedUser = await store.findUserByEmail(body.email);
       const invitationContent = invitationEmailContent({
         baseUrl: appPublicBaseUrl(),
@@ -20842,16 +21639,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * The email match alone is not enough: account email is user-mutable, so an
-     * attacker could set their address to the invite's target and join. Require
-     * the accepter's email to be VERIFIED so the binding is to a proven owner of
-     * that address.
+     * L'INVITATION VAUT VÉRIFICATION DE L'ADRESSE (décision d'Avi du 2026-10-01).
+     *
+     * L'adresse d'un compte se modifie : la correspondance seule ne prouve rien —
+     * d'où l'ancienne exigence d'une adresse déjà vérifiée. Mais le JETON, lui,
+     * n'a été envoyé qu'à cette boîte : le présenter prouve qu'on la lit. On
+     * vérifie donc l'adresse ICI, aux trois conditions posées par Avi :
+     *   1. invitation envoyée à CETTE adresse exacte (contrôle juste au-dessus) ;
+     *   2. lien à USAGE UNIQUE, et 3. LIMITÉ DANS LE TEMPS : la vérification n'est
+     *      écrite qu'APRÈS la consommation atomique du jeton (`acceptedAt` nul et
+     *      `expiresAt` à venir, dans la même écriture) — un lien rejoué ou expiré
+     *      ne vérifie rien.
+     * Tenu par invitation-vaut-verification.spec.ts (un cas par condition).
      */
-    if (!request.currentUser!.emailVerifiedAt) {
-      return reply
-        .code(403)
-        .send({ error: appPublicEnglish('INVITATION_EMAIL_VERIFICATION_REQUIRED'), code: 'EMAIL_NOT_VERIFIED' });
-    }
+    const adresseAVerifier = !request.currentUser!.emailVerifiedAt;
 
     const existingMembership = await store.getMembership(request.currentUser!.id, pendingInvitation.organizationId);
 
@@ -20871,6 +21672,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply
         .code(400)
         .send({ error: appPublicEnglish('INVITATION_TOKEN_INVALID'), code: 'INVITE_INVALID_TOKEN' });
+    }
+
+    if (adresseAVerifier) {
+      await store.updateUser({ userId: request.currentUser!.id, emailVerifiedAt: new Date().toISOString() });
+      await audit(request, store, {
+        organizationId: invitation.organizationId,
+        action: 'auth.email.verify',
+        resourceType: 'user',
+        resourceId: request.currentUser!.id,
+        metadata: { via: 'invitation', inviteId: invitation.id },
+      });
     }
 
     if (!existingMembership) {
@@ -22940,12 +23752,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let state = mergeProjectIdeState(existingState?.state, body.state);
 
-    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state));
+    /*
+     * BUG-QA0929-IDE-STATE-HISTORIQUE-ECRASE : un message n'est matérialisé
+     * qu'UNE fois. Rematérialiser tout le fil à chaque `PUT` — y compris un `PUT`
+     * qui ne porte que `ui`, puisque la fusion garde le fil enregistré — remettait
+     * la version de l'agent par-dessus l'enregistrement de l'utilisateur.
+     */
+    const generatedFiles = projectFilesFromIdeStateRoot(ideStateRecord(state), {
+      dejaMaterialises: contenusDesMessagesEnregistres(existingState?.state),
+    });
 
     if (generatedFiles.length) {
       const mergedFiles = new Map(projectFilesFromPersistedIdeState(existingState).map((file) => [file.path, file]));
 
       for (const file of generatedFiles) {
+        /*
+         * P0 — LA CONVERSATION NE RÉÉCRIT PAS LE MANIFESTE. Mesuré en production
+         * le 2026-10-06 : l'utilisateur enregistre `src/App.tsx` (son entrée de
+         * manifeste porte sa ligne), puis chaque envoi de l'état — conversation
+         * comprise, toutes les quelques secondes — réextrayait l'écriture
+         * historique de l'agent et la reposait PAR-DESSUS. À la réouverture, le
+         * pod est réensemencé depuis ce manifeste : la modification disparaît ;
+         * après le ramassage (24 h), elle n'existe plus nulle part.
+         *
+         * Les écritures de l'agent atteignent le manifeste par leurs propres
+         * chemins (fermeture d'artefact → `files/import/zip`, acceptation →
+         * `files/write`). La conversation ne remplace donc qu'une entrée qui
+         * n'a jamais été RÉELLEMENT ÉCRITE (`ecrit`) : le modèle de départ, ou un
+         * fichier lui-même récupéré de la conversation — c'est ce qui récupère
+         * un premier tour dont l'artefact ne s'est jamais fermé. Elle comble ce
+         * qui manque. Une écriture réelle n'est jamais remplacée.
+         */
+        if (mergedFiles.get(file.path)?.ecrit) {
+          continue;
+        }
+
         mergedFiles.set(file.path, file);
       }
 
@@ -23927,6 +24768,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id, {
       clearRecoveredChatFiles: body.replaceExisting === true,
+      ecrit: true,
     });
 
     await store.recordProjectActivity({
@@ -24524,6 +25366,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { removed: true };
   });
+  /**
+   * UIB-16 — le panneau Collaborateurs nomme les personnes.
+   *
+   * Mesuré le 2026-10-01 sur la copie locale : la présence affichait
+   * « Participant 1 » pour l'utilisateur connecté. Les lignes de présence, de
+   * collaborateurs et de commentaires ne portaient que `userId`, et l'interface
+   * se rabattait sur un libellé générique. On joint le NOM seulement (jamais
+   * l'adresse) : ce que voient déjà les membres du projet.
+   */
+  async function avecNomPersonne<T extends { userId: string }>(lignes: T[]): Promise<Array<T & { name?: string }>> {
+    const noms = new Map<string, string | undefined>();
+
+    await Promise.all(
+      [...new Set(lignes.map((ligne) => ligne.userId).filter(Boolean))].map(async (userId) => {
+        noms.set(userId, (await store.findUserById(userId))?.name ?? undefined);
+      }),
+    );
+
+    return lignes.map((ligne) => ({ ...ligne, name: noms.get(ligne.userId) }));
+  }
+
+  const avecNomUnePersonne = async <T extends { userId: string }>(ligne: T) => (await avecNomPersonne([ligne]))[0];
+
   app.get('/projects/:projectId/collaboration', async (request) => {
     const project = await requireProject(
       request,
@@ -24541,9 +25406,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : {};
 
     return {
-      collaborators: await store.listProjectCollaborators(project.id),
-      presence: await store.listCollaborationPresence(project.id),
-      comments: await store.listCollaborationComments(project.id),
+      collaborators: await avecNomPersonne(await store.listProjectCollaborators(project.id)),
+      presence: await avecNomPersonne(await store.listCollaborationPresence(project.id)),
+      comments: await avecNomPersonne(await store.listCollaborationComments(project.id)),
       activity: await store.listProjectActivity(project.id),
       shareLinks: (await store.listProjectShareLinks(project.id)).map(({ tokenHash: _tokenHash, ...link }) => link),
       documents: collaborationState.documents ?? {},
@@ -24583,9 +25448,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
       terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
     });
-    collaborationBroker.publish(project.id, { type: 'presence.update', presence });
+    const presenceNommee = await avecNomUnePersonne(presence);
+    collaborationBroker.publish(project.id, { type: 'presence.update', presence: presenceNommee });
 
-    return { presence };
+    return { presence: presenceNommee };
   });
   app.delete('/projects/:projectId/collaboration/presence/:sessionId', async (request, reply) => {
     const project = await requireProject(
@@ -24862,6 +25728,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(collaborationShareLinkSchema, request.body);
+
+    /*
+     * UN LIEN DE PARTAGE NE DONNE QUE LA LECTURE. Décision du 2026-10-11.
+     *
+     * Mesuré le 2026-10-06 (docs/bugs/qa-2026-10-06/repro-lien-de-partage-places) :
+     * sur un forfait gratuit à UNE place, une invitation était bien refusée
+     * (429 QUOTA_EXCEEDED) — et un lien `member` de 30 jours donnait ensuite
+     * l'ÉCRITURE à six comptes d'affilée, tous à 200, sans qu'aucune place soit
+     * consommée. Le lien contournait donc entièrement le quota que l'invitation
+     * fait respecter : deux portes vers le même droit, une seule comptée.
+     *
+     * On refuse explicitement au lieu de rétrograder en silence : un propriétaire
+     * qui demande un lien d'écriture doit APPRENDRE qu'il lui faut une invitation,
+     * sinon il croit avoir partagé l'écriture et ne le découvre jamais.
+     */
+    if (!isReadOnlyProjectRole(body.roleKey ?? 'viewer')) {
+      return reply.code(409).send({
+        error: {
+          code: 'SHARE_LINK_WRITE_NOT_ALLOWED',
+          message: appPublicEnglish('SHARE_LINK_WRITE_NOT_ALLOWED'),
+        },
+      });
+    }
+
     const token = createOpaqueToken('share');
     const roleKey = body.roleKey ?? 'viewer';
     const expiresInMinutes = body.expiresInMinutes ?? 60 * 24;
@@ -24978,10 +25868,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Inherit the share link's expiry so a TIME-LIMITED link doesn't grant
        * PERMANENT access. projectCollaborationRole ignores expired grants.
        */
+      /*
+       * SECONDE MOITIÉ DE LA MÊME GARDE, et elle n'est pas redondante : la
+       * création refuse désormais un rôle d'écriture, mais un lien ÉMIS AVANT
+       * cette garde porte encore `member` en base. On bride donc au moment où
+       * le droit est accordé, pas seulement au moment où il est demandé.
+       *
+       * Mesuré en production le 2026-10-11, avant de livrer : `ProjectShareLink`
+       * = 0 ligne et `ProjectCollaborator` = 0 ligne, contre 173 projets et 400
+       * comptes (contrôle positif). AUCUN lien existant ne perd donc l'écriture
+       * — la coupure est franche parce qu'il n'y a rien à faire transiter.
+       * Ce bridage ne sert pas le passé : il sert le jour où quelqu'un rouvrira
+       * un chemin de création sans repasser par la garde ci-dessus.
+       */
       await store.addProjectCollaborator({
         projectId: project.id,
         userId,
-        roleKey: link.roleKey,
+        roleKey: ROLE_PARTAGE_LECTURE_SEULE,
         expiresAt: link.expiresAt ? new Date(link.expiresAt) : null,
       });
       await store.recordProjectActivity({
@@ -25312,13 +26215,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })();
     });
 
-    collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
+    collaborationBroker.publish(project.id, { type: 'presence.join', presence: await avecNomUnePersonne(presence) }, client);
     client.send(
       JSON.stringify({
         type: 'collaboration.ready',
         projectId: project.id,
-        presence: await store.listCollaborationPresence(project.id),
-        comments: await store.listCollaborationComments(project.id),
+        presence: await avecNomPersonne(await store.listCollaborationPresence(project.id)),
+        comments: await avecNomPersonne(await store.listCollaborationComments(project.id)),
         timestamp: new Date().toISOString(),
       }),
     );
@@ -25386,7 +26289,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
           });
           ownPresenceUpdatedAt = updated.updatedAt;
-          collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
+          collaborationBroker.publish(
+            project.id,
+            { type: 'presence.update', presence: await avecNomUnePersonne(updated) },
+            client,
+          );
 
           return;
         }
@@ -27616,6 +28523,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
     await persistProjectFileManifest(store, project.id, restored, request.currentUser!.id, {
       clearRecoveredChatFiles: true,
+      ecrit: true,
     });
 
     /*
@@ -27988,6 +28896,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * can render a "X tokens left this month" hint. The plan-resolution
      * path is shared with ensureQuota so the override table is honoured.
      */
+    /*
+     * AUDX-018 — reserve credits BEFORE the provider call.
+     *
+     * Metering debits only when usage is REPORTED, i.e. after the call already
+     * cost money. A report that never arrives (crash, closed tab, a caller that
+     * simply omits it) is free AI, and N concurrent calls each clear this same
+     * pre-check and collectively overspend. A hold moves the decision before the
+     * spend and is released on settle, on failure, or by the expiry sweep.
+     *
+     * ⚠️ Inert unless BILLING_CREDITS_ENABLED === 'true' — credits are ~90%
+     * SHADOW today, and enforcing a hold while the wallet is dormant would
+     * refuse every chat on the platform. Same gate the rest of credits uses.
+     */
+    let reservation: { id: string; amountCents: number } | undefined;
+
+    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
+      const estimatedCostCents = estimateAiReservationCents(estimated, body.model, body.provider);
+
+      if (estimatedCostCents > 0) {
+        reservation = await store
+          .reserveCredits({
+            organizationId: project.organizationId,
+            projectId: project.id,
+            amountCents: estimatedCostCents,
+            expiresAtMs: Date.now() + AI_RESERVATION_TTL_MS,
+          })
+          .catch(() => undefined);
+
+        if (!reservation) {
+          throw Object.assign(new Error(appPublicEnglish('CREDITS_RESERVATION_REFUSED')), {
+            statusCode: 402,
+            code: 'CREDITS_RESERVATION_REFUSED',
+          });
+        }
+      }
+    }
+
     const state = await billingState(project.organizationId);
     const { limits, plan } = state;
     const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
@@ -28030,6 +28975,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       ok: true,
+
+      /*
+       * AUDX-018 — hand back the hold so the caller can settle it after the
+       * provider call. Undefined when credits are dormant or nothing was held.
+       */
+      reservationId: reservation?.id,
       ai: {
         inputTokens: {
           used: tokenUsed,
@@ -28169,7 +29120,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const query = parse(
       z.object({
-        mode: z.enum(['lite', 'economy', 'power']).default(DEFAULT_AGENT_MODE),
+        mode: z.enum(['lite', 'power', 'max']).default(DEFAULT_AGENT_MODE),
         highEffort: queryBool.default(false),
         turbo: queryBool.default(false),
       }),
@@ -28215,8 +29166,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let classifier: { provider: string; model: string } | undefined;
 
     if (query.turbo) {
-      // Turbo: Power only, plan-gated AND org-gated (agent_turbo flag, OFF by default).
-      if (requestedMode !== 'power') {
+      /*
+       * Turbo : mode MAX uniquement, puis porte de plan ET porte d'organisation
+       * (drapeau `agent_turbo`, éteint par défaut).
+       *
+       * ⚠️ Le renommage du 2026-09-16 a failli inverser cette garde : `power`
+       * désignait le SOMMET, il désigne le MILIEU. Laissée telle quelle, elle
+       * aurait ouvert Turbo au mode médian et l'aurait refusé au mode haut —
+       * c'est-à-dire facturé le multiplicateur ×2 à des utilisateurs qui ne
+       * l'avaient pas choisi. Troisième fois que ce piège se referme : il ne se
+       * voit qu'au comportement, jamais au typage.
+       */
+      if (requestedMode !== 'max') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_TURBO_REQUIRES_POWER'),
           code: 'AGENT_TURBO_POWER_ONLY',
@@ -28248,7 +29209,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (query.highEffort) {
-      // High effort: Economy and Power only — NEVER Lite — and plan-gated.
+      // Effort élevé : modes Power et Max seulement — JAMAIS Lite — et porte de plan.
       if (requestedMode === 'lite') {
         return reply.status(403).send({
           error: appPublicEnglish('AGENT_HIGH_EFFORT_UNAVAILABLE_IN_LITE'),
@@ -28281,6 +29242,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
+    /*
+     * LE REPLI DÉCLARÉ EST CELUI DE LA CARTE. Mesuré le 2026-09-28 en production :
+     * quand Anthropic était écarté, le tour partait sur `gpt-4.1`, pris dans une
+     * chaîne codée en dur côté `web`, alors que la carte déclare sa propre ligne
+     * `fallback` — et rien ne le disait à l'utilisateur. La ligne est renvoyée
+     * ici pour que la génération n'ait plus à la deviner ; absente ou inactive,
+     * il n'y a pas de repli, et l'erreur réelle du fournisseur est rendue.
+     */
+    const fallbackLine = routingLine(carteAvecRepli(card), 'fallback');
+
+    const fallback =
+      fallbackLine && fallbackLine.active
+        ? {
+            lineKey: fallbackLine.key,
+            provider: fallbackLine.provider,
+            model: fallbackLine.model,
+            multiplier: fallbackLine.multiplier,
+          }
+        : undefined;
+
     return {
       routingVersion: card.version,
       mode: requestedMode,
@@ -28288,6 +29269,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       base,
       escalation,
       classifier,
+      fallback,
     };
   });
 
@@ -28344,6 +29326,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     /*
+     * AUDX-018 — settle the hold taken at check-quota against the REAL cost.
+     *
+     * Without this the hold sits until the expiry sweep, so a busy project would
+     * watch its available credits shrink with every message and eventually
+     * refuse to start anything — a guard that breaks normal work gets reverted,
+     * not fixed. Best-effort: a settle failure must never fail the usage
+     * recording, and the sweep is the backstop.
+     */
+    if (process.env.BILLING_CREDITS_ENABLED === 'true' && body.reservationId) {
+      await store.settleCreditReservation({ id: body.reservationId, actualCents: costCents }).catch(() => false);
+    }
+
+    /*
      * AGM per-call log (admin-only): stamp the REAL provider+model this call
      * used, the mode/switch that routed it, and card-priced cost/credit/margin.
      * Best-effort — the log must never break usage recording.
@@ -28352,8 +29347,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         const routingCard = await getActiveAgentRoutingCard(store);
 
+        // Un tour servi par le repli intégré doit être chiffré, pas sauté.
         const callBilling = computeAgentCallBilling(
-          routingCard,
+          carteAvecRepli(routingCard),
           body.agentRouting.lineKey,
           body.inputTokens,
           body.outputTokens,
@@ -29038,11 +30034,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const plan = await store.getBillingPlan(body.planKey);
 
-    // Pick the interval-specific price; fall back to the legacy single price id.
-    const resolvedPriceId =
-      body.interval === 'annual'
-        ? (plan?.stripePriceAnnualId ?? plan?.stripePriceMonthlyId ?? plan?.stripePriceId)
-        : (plan?.stripePriceMonthlyId ?? plan?.stripePriceId);
+    /*
+     * BUG-QA1001-ANNUEL-FACTURE-AU-MOIS — l'annuel ne retombe JAMAIS sur un prix
+     * mensuel : il retombait sur `stripePriceMonthlyId`, et le client qui avait
+     * choisi « annuel » (−20 %, décision d'Avi) était abonné au mois. Et seul un
+     * VRAI identifiant de prix part chez Stripe — la base de production portait
+     * une adresse e-mail dans le prix annuel Team. Sans prix valable : refus clair,
+     * aucun appel à Stripe.
+     */
+    const resolvedPriceId = [
+      ...(body.interval === 'annual' ? [plan?.stripePriceAnnualId] : [plan?.stripePriceMonthlyId, plan?.stripePriceId]),
+    ].find(estUnIdentifiantDePrixStripe);
 
     if (!resolvedPriceId) {
       throw Object.assign(
@@ -30576,7 +31578,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   const adminAgentRoutingLineSchema = z.object({
-    key: z.enum(['lite', 'economy', 'power', 'high-effort', 'turbo', 'classifier', 'fallback']),
+    key: z.enum(['lite', 'power', 'max', 'high-effort', 'turbo', 'classifier', 'fallback']),
     label: z.string().min(1),
     provider: z.string().min(1),
     model: z.string().min(1),
@@ -34782,14 +35784,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const requireObjectStorageProject = async (
     request: FastifyRequest,
     permission: 'projects:read' | 'projects:write',
+    /*
+     * AUDX-022 — what the TOKEN path must carry. `permission` governs the user
+     * session; it says nothing about a workspace token, and this helper used to
+     * ignore it entirely once a grant was present. A read token therefore
+     * authorised deleting every object and destroying the bucket — from inside
+     * a workspace pod, which runs user-authored code.
+     *
+     * Defaults to the verb implied by `permission` so a route that forgets to
+     * pass one is never MORE permissive than the session check it declares.
+     */
+    tokenScope: ObjectStorageScope = permission === 'projects:write' ? 'write' : 'read',
   ) => {
     const projectId = parse(projectParams, request.params).projectId;
 
     /*
-     * A workspace app token already authorizes (read+write) THIS project's
-     * storage — no org membership check; the token's scope IS the authorization.
+     * A workspace app token authorizes THIS project's storage, for the verbs its
+     * `scopes` claim carries — no org membership check beyond that.
      */
     if (request.objectStorageGrant?.projectId === projectId) {
+      const granted = request.objectStorageGrant.scopes ?? LEGACY_OBJECT_STORAGE_SCOPES;
+
+      if (!granted.includes(tokenScope)) {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_SCOPE_REQUIRED')), {
+          statusCode: 403,
+          code: 'OBJECT_STORAGE_SCOPE_REQUIRED',
+        });
+      }
+
       const project = await store.getProject(projectId);
 
       if (!project) {
@@ -34830,7 +35852,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    /*
+     * AUDX-022 — `write`, deliberately NOT `admin`. ensureBucket is idempotent
+     * provisioning: it creates, it never destroys, and a workspace app enabling
+     * its own storage on first use is a legitimate flow. The destructive verb is
+     * DELETE on this same path, and that one does require `admin`.
+     */
+    const project = await requireObjectStorageProject(request, 'projects:write', 'write');
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
@@ -34844,7 +35872,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destroys the whole bucket: `admin` scope, which no workspace
+    // token is minted with. This stays an authenticated-user operation.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'admin');
 
     try {
       return reply.send(await resolveObjectStorage().deleteBucket(project.id));
@@ -34886,7 +35916,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:write');
 
     const body = parse(
-      z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
+      z.object({
+        key: z.string().min(1).max(1024),
+        contentType: z.string().max(255).optional(),
+        /*
+         * AUDX-021 — a caller may declare a SMALLER ceiling than the platform's
+         * and an MD5 to be verified by GCS. Neither can widen the limit: the
+         * service clamps `maxBytes` to OBJECT_UPLOAD_MAX_BYTES.
+         */
+        maxBytes: z.number().int().positive().optional(),
+        contentMd5: z.string().max(64).optional(),
+      }),
       request.body ?? {},
     );
 
@@ -34936,7 +35976,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destructive: needs the `delete` scope, not merely `write`.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'delete');
 
     const body = parse(
       z
@@ -35085,14 +36126,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * can't spam renders.
    */
   app.post('/projects/:projectId/thumbnail/refresh', async (request, reply) => {
-    if (!isObjectStorageEnabled()) {
-      return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
-    }
-
     const project = await requireObjectStorageProject(request, 'projects:write');
     const body = parse(z.object({ url: z.string().url().max(2048) }), request.body ?? {});
 
-    if (!thumbnailCapturer.enabled) {
+    /*
+     * Stockage coupé = capture d'écran absente : la fonction n'est pas là, rien
+     * n'a échoué. L'IDE appelle cette route seul, à chaque aperçu prêt ; un 404
+     * y était une erreur rouge dans la console du navigateur
+     * (tests/vignette-stockage-coupe.spec.ts). L'accès au projet est vérifié
+     * AVANT, comme pour une vignette réelle.
+     */
+    if (!isObjectStorageEnabled() || !thumbnailCapturer.enabled) {
       return reply.code(202).send({ scheduled: false, enabled: false });
     }
 
@@ -35786,7 +36830,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const hookResult = await triggerProviderDeployHook(body.provider);
 
     let staticBuildFailed = false;
-    let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+    let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }> = [];
+
+    // Vrai quand le refus final dit déjà tout (génération en cours) : l'avis « nous attendons » serait périmé.
+    let avisPerimes = false;
     let workspaceBuildTempDir: string | undefined;
 
     if (body.provider === 'static') {
@@ -35827,10 +36874,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
            * dans le journal du déploiement, où il est réellement consultable.
            */
-          const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
           const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+
+          // Un refus pour quota se dit comme tel : « réessayez » enverrait le client tourner en rond.
+          const message =
+            refus === 'WORKSPACE_QUOTA_BUSY'
+              ? appPublicEnglish('DEPLOY_WORKSPACE_QUOTA_BUSY', { project: workspaceAttempt.detail ?? '' })
+              : appPublicEnglish(refus === 'WORKSPACE_QUOTA' ? 'DEPLOY_WORKSPACE_QUOTA' : 'DEPLOY_WORKSPACE_UNREACHABLE');
           const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
-          const ligne = `${message} [${refus}]${detail}`;
+
+          /*
+           * Le refus « génération en cours » est écrit EXACTEMENT comme son modèle :
+           * c'est ce qui permet de le traduire à la lecture (localizeDeploymentRecord),
+           * et le nom du projet y figure déjà.
+           */
+          const ligne = refus === 'WORKSPACE_QUOTA_BUSY' ? message : `${message} [${refus}]${detail}`;
+
+          avisPerimes = refus === 'WORKSPACE_QUOTA_BUSY';
 
           buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message: ligne });
           request.log?.error?.(
@@ -35855,7 +36915,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      staticBuildLogs = staticBuild.logs;
+      /*
+       * Les AVIS (`warn` : autre espace mis en veille, attente d'un tour) sont émis
+       * en direct, avant le build ; le journal final ne garde que celui du build.
+       * Sans ce report, le client ne lirait jamais qu'on a mis son projet en veille.
+       */
+      const avisEnDirect = avisPerimes
+        ? []
+        : liveLog.filter(
+            (ligne) => ligne.level === 'warn' && !staticBuild.logs.some((autre) => autre.message === ligne.message),
+          );
+
+      staticBuildLogs = [...avisEnDirect, ...staticBuild.logs];
 
       if (staticBuild.ok && staticBuild.outputDir) {
         try {
@@ -37775,7 +38846,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let staticBuildFailed = false;
     let workspaceBuildTempDir: string | undefined;
 
-    const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
+    const rebuildLogs: Array<{ timestamp: string; level: 'info' | 'warn' | 'error'; message: string }> = [];
 
     if (source.provider === 'static') {
       /*

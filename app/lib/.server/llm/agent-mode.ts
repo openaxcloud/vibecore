@@ -21,9 +21,9 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('agent-mode');
 
-export type AgentMode = 'lite' | 'economy' | 'power';
+export type AgentMode = 'lite' | 'power' | 'max';
 
-export const DEFAULT_AGENT_MODE: AgentMode = 'economy';
+export const DEFAULT_AGENT_MODE: AgentMode = 'power';
 
 export interface AgentModeSelection {
   mode: AgentMode;
@@ -42,12 +42,12 @@ export function normalizeAgentSelection(agentPower?: {
   turboMode?: boolean;
 }): AgentModeSelection {
   const mode =
-    agentPower?.buildTier === 'lite' || agentPower?.buildTier === 'power' ? agentPower.buildTier : DEFAULT_AGENT_MODE;
+    agentPower?.buildTier === 'lite' || agentPower?.buildTier === 'max' ? agentPower.buildTier : DEFAULT_AGENT_MODE;
 
   return {
     mode,
     highEffort: mode !== 'lite' && Boolean(agentPower?.highEffort ?? agentPower?.highPowerModel),
-    turbo: mode === 'power' && Boolean(agentPower?.turboMode),
+    turbo: mode === 'max' && Boolean(agentPower?.turboMode),
   };
 }
 
@@ -56,6 +56,13 @@ const PROVIDER_NAME_BY_GATEWAY_ID: Record<string, string> = {
   anthropic: 'Anthropic',
   openai: 'OpenAI',
   'google-gemini': 'Google',
+
+  /*
+   * La ligne `fallback` de la carte écrit `google` (packages/billing
+   * agent-routing.ts). Sans cette entrée, le repli déclaré par la carte ne
+   * trouvait aucun fournisseur et était ignoré en silence.
+   */
+  google: 'Google',
   openrouter: 'OpenRouter',
   mistral: 'Mistral',
   groq: 'Groq',
@@ -81,6 +88,9 @@ export interface AgentRouteResolution {
   base: AgentRouteLine;
   escalation?: AgentRouteLine;
   classifier?: { provider: string; model: string };
+
+  /** Ligne de repli déclarée par la carte ; absente = aucun repli. */
+  fallback?: AgentRouteLine;
 }
 
 export type AgentRouteResult =

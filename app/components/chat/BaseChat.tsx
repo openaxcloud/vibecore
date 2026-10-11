@@ -87,6 +87,9 @@ import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './comp
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { AvisEcrituresEnAttente } from '~/components/chat/AvisEcrituresEnAttente';
+import { getEcrituresEnAttenteCopy } from '~/lib/i18n/catalogs/ecritures-en-attente';
+import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attente';
 import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
@@ -96,7 +99,15 @@ import {
   renderImageToCanvas,
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
+import {
+  composerHandoffScope,
+  peekPendingComposerInput,
+  takePendingComposerInput,
+  takePendingComposerMode,
+  useComposerHandoffLayoutEffect,
+} from './composer-handoff';
 import { devServerStatusText } from './dev-server-status';
+import { etatDeConnexionBarre } from './connexion-barre-etat';
 
 import {
   TAB_DRAG_PANE_MIME,
@@ -156,8 +167,12 @@ import {
   decalageAAnnulerClavierOuvert,
   recouvrementBasDuNavigateur,
   retrecissementDeLaVue,
+  revelerLeChampActif,
+  memoriserHauteurDeRepos,
+  retenirHauteurDeRepos,
 } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
+import { PhraseAvecCode } from '~/components/ui/PhraseAvecCode';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { initialesPersonne, libellePersonne } from '~/utils/person-label';
@@ -271,6 +286,7 @@ import {
   type IdeWorkspacePanel,
 } from '~/lib/ide/panel-registry';
 import { readProjectPanelCache, writeProjectPanelCache } from '~/lib/ide/panel-payload-cache';
+import { createSingleFlight } from '~/lib/ide/single-flight';
 import { resolvePendingSelectedFile } from '~/lib/ide/pending-selected-file';
 import {
   type CompactPreviewRunState,
@@ -2444,6 +2460,9 @@ interface BaseChatProps {
   data?: JSONValue[] | undefined;
   chatMode?: 'discuss' | 'build';
   setChatMode?: (mode: 'discuss' | 'build') => void;
+
+  /** La coquille d'avant-chargement déclare chaque choix de mode au passe-plat (voir `composer-handoff.ts`). */
+  onProjectAgentExecutionModeChange?: (mode: string) => void;
   append?: (message: Message) => void;
   onRewindToMessage?: (messageId: string) => void;
   resetChat?: () => void;
@@ -2502,6 +2521,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       data,
       chatMode,
       setChatMode,
+      onProjectAgentExecutionModeChange,
       append,
       onRewindToMessage,
       resetChat,
@@ -2748,6 +2768,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const composerDraftWriter = useMemo(() => createComposerDraftWriter(), []);
     const composerDraftRestoreDoneRef = useRef(false);
 
+    /*
+     * Reprise de la frappe faite pendant le chargement de l'historique.
+     *
+     * Elle passe AVANT le brouillon stocké : c'est ce que l'utilisateur vient
+     * de taper, pas ce qu'il avait laissé à une visite précédente. Le drapeau
+     * n'est levé qu'une fois qu'un gestionnaire existe — sinon le premier rendu
+     * consommerait la frappe sans pouvoir la poser nulle part.
+     */
+    const composerHandoffDoneRef = useRef(false);
+
+    useComposerHandoffLayoutEffect(() => {
+      if (composerHandoffDoneRef.current || !handleInputChange) {
+        return;
+      }
+
+      composerHandoffDoneRef.current = true;
+
+      const handedOver = takePendingComposerInput(
+        composerHandoffScope(projectId, typeof window === 'undefined' ? undefined : window.location.pathname),
+      );
+
+      if (!handedOver || (input?.length ?? 0) > 0) {
+        return;
+      }
+
+      handleInputChange({
+        target: { value: handedOver },
+        currentTarget: { value: handedOver },
+      } as unknown as React.ChangeEvent<HTMLTextAreaElement>);
+
+      /*
+       * Rendre le texte ne suffit pas : le remontage emporte aussi le FOCUS.
+       * Mesuré à 390, l'utilisateur tapait « Ajoute une page… », la bascule
+       * survenait après « Ajout », et tout ce qui suivait partait dans le vide —
+       * le champ récupérait bien les cinq premières lettres, mais plus personne
+       * n'écoutait le clavier. On rend le focus et on place le curseur en fin de
+       * texte, là où la frappe s'était arrêtée.
+       */
+      const field = textareaRef?.current;
+
+      if (field) {
+        field.focus();
+        field.setSelectionRange(handedOver.length, handedOver.length);
+      }
+    }, [handleInputChange, input, projectId, textareaRef]);
+
     useEffect(() => {
       if (composerDraftRestoreDoneRef.current || !projectId) {
         return;
@@ -2756,6 +2822,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       composerDraftRestoreDoneRef.current = true;
 
       if (input.length > 0 || !handleInputChange) {
+        return;
+      }
+
+      /*
+       * Une frappe transmise par la coquille de chargement est plus récente que
+       * le brouillon stocké : la restaurer par-dessus l'effacerait.
+       */
+      if (peekPendingComposerInput()) {
         return;
       }
 
@@ -3124,8 +3198,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return undefined;
       }
 
+      const libererHauteurDeRepos = retenirHauteurDeRepos();
+
       const updateVisualViewportHeight = () => {
         const vue = window.visualViewport;
+
+        /*
+         * Référence du rétrécissement : la hauteur de mise en page AU REPOS, mémorisée
+         * pour la PAGE (un rejeu de cet effet, clavier levé, ne la fait pas repartir de
+         * la hauteur rétrécie). Safari iOS 26 rétrécit `innerHeight` avec le clavier
+         * (699 → 362, mesuré le 30/09) : mesurée contre elle-même, la vue ne rétrécissait jamais.
+         */
+        const repos = memoriserHauteurDeRepos(window.innerWidth, window.innerHeight);
+
         const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
 
@@ -3164,12 +3249,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * se lit depuis le haut du document — décalée, elle sort de l'écran
          * (page blanche, socle flottant, zone de saisie invisible).
          */
-        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
+        if (clavierProbablementOuvert(retrecissementDeLaVue(repos.hauteur, vue ?? undefined))) {
           document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
 
-          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+          if (decalageAAnnulerClavierOuvert(repos.hauteur, vue ?? undefined) > 0) {
             window.scrollTo(0, 0);
           }
+
+          /*
+           * La coque tient dans la vue : un champ plus bas que le bas visible
+           * reste sous le clavier (« Nom du projet », Paramètres, mesuré le
+           * 30/09 sur iOS 26). On le ramène dans SA zone de défilement ;
+           * `nearest` ne bouge rien quand il est déjà visible (composeur).
+           */
+          revelerLeChampActif(document);
         } else {
           document.documentElement.removeAttribute('data-vc-clavier');
         }
@@ -3181,6 +3274,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       window.visualViewport?.addEventListener('scroll', updateVisualViewportHeight);
 
       return () => {
+        libererHauteurDeRepos();
         window.removeEventListener('resize', updateVisualViewportHeight);
         window.visualViewport?.removeEventListener('resize', updateVisualViewportHeight);
         window.visualViewport?.removeEventListener('scroll', updateVisualViewportHeight);
@@ -3749,6 +3843,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * closes — so keyboard users aren't dumped at the top of the document.
      */
     const commandPaletteReturnFocusRef = useRef<HTMLElement | null>(null);
+    const commandPaletteClosedByOutsideClickRef = useRef(false);
     useEffect(() => {
       if (commandPaletteOpen) {
         commandPaletteReturnFocusRef.current = document.activeElement as HTMLElement | null;
@@ -3758,9 +3853,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const previous = commandPaletteReturnFocusRef.current;
       commandPaletteReturnFocusRef.current = null;
 
+      // Fermée par un clic ailleurs : le focus appartient à ce que l'on vient de cliquer.
+      if (commandPaletteClosedByOutsideClickRef.current) {
+        commandPaletteClosedByOutsideClickRef.current = false;
+        return;
+      }
+
       if (previous && typeof previous.focus === 'function') {
         requestAnimationFrame(() => previous.focus());
       }
+    }, [commandPaletteOpen]);
+
+    /*
+     * BUG-QA0928-PALETTE-RESTE-OUVERTE — sur ordinateur (≥ 1200 px), le calque qui
+     * ferme la palette au clic est masqué (palette voulue non modale), et rien
+     * d'autre ne la fermait : elle restait par-dessus tout panneau ouvert ensuite,
+     * seule Échap la fermait. Un appui hors de la palette la ferme désormais.
+     */
+    useEffect(() => {
+      if (!commandPaletteOpen) {
+        return undefined;
+      }
+
+      const fermerSiAilleurs = (event: PointerEvent) => {
+        const cible = event.target as Element | null;
+
+        if (cible?.closest?.('.bolt-project-command-palette')) {
+          return;
+        }
+
+        commandPaletteClosedByOutsideClickRef.current = true;
+        setCommandPaletteOpen(false);
+      };
+
+      document.addEventListener('pointerdown', fermerSiAilleurs, true);
+
+      return () => document.removeEventListener('pointerdown', fermerSiAilleurs, true);
     }, [commandPaletteOpen]);
 
     const [keyboardShortcutsOpen, setKeyboardShortcutsOpen] = useState(false);
@@ -3770,6 +3898,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [conversationHistoryQuery, setConversationHistoryQuery] = useState('');
     const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
+
+    /*
+     * Le mode choisi DANS LA COQUILLE d'avant-chargement survit à la bascule vers
+     * le vrai chat, comme la frappe. Mesuré le 01/10 à 390 (mémoire du projet
+     * retenue) : « Assistant » choisi dans la coquille redevenait « Agent » à la
+     * bascule, 3 fois sur 3, sans un mot — et le message suivant partait en mode
+     * Agent, qui modifie le projet, au lieu de répondre à une question. On rend
+     * l'affichage ET le `chatMode` envoyé avec la requête, sinon l'écran mentirait.
+     */
+    const modeHandoffDoneRef = useRef(false);
+
+    useComposerHandoffLayoutEffect(() => {
+      if (modeHandoffDoneRef.current) {
+        return;
+      }
+
+      modeHandoffDoneRef.current = true;
+
+      const handedOver = takePendingComposerMode(
+        composerHandoffScope(projectId, typeof window === 'undefined' ? undefined : window.location.pathname),
+      );
+
+      const entry = PROJECT_AGENT_EXECUTION_MODES.find((item) => item.id === handedOver);
+
+      if (!entry) {
+        return;
+      }
+
+      setProjectAgentExecutionMode(entry.id);
+      setChatMode?.(entry.chatMode);
+      onProjectAgentExecutionModeChange?.(entry.id);
+    }, [onProjectAgentExecutionModeChange, projectId, setChatMode]);
+
     const isAgentRunning = projectIdeMode && isStreaming;
     const stopAgentLabel = projectAgentStopLabel(provider?.name, model, language);
     const [projectAgentPanelOpen, setProjectAgentPanelOpen] = useState(true);
@@ -3951,7 +4112,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           continue;
         }
 
-        if (!shouldAutoApplyPatch({ autoApplyEnabled: projectAutoApply, status: proposal.status })) {
+        if (
+          /*
+           * La proposition ENTIÈRE : chaque marque qui interdit l'application
+           * automatique (`enFlux`, `tronquee`, `conflit`, `relueDeLaBase`…)
+           * arrive ainsi à la règle sans qu'on ait à penser à la recopier ici.
+           */
+          !shouldAutoApplyPatch({ ...proposal, autoApplyEnabled: projectAutoApply })
+        ) {
           continue;
         }
 
@@ -4529,41 +4697,48 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * already drives .bolt-connection-status (no new polling) plus the live
      * workspace status for the 'Reconnecting' nuance.
      */
-    const statusbarConnection = !isOnline
-      ? ({
-          state: 'offline',
-          label: t('chat.copy.offline_e01fa717'),
-          color: 'var(--vc-ide-accent-error)',
-          text: t('chat.copy.varStatusErrorText_f1e5857c'),
-        } as const)
-      : /*
-         * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
-         * chaîne. Les deux comparaisons `=== 'STARTING'` / `=== 'PENDING'` étaient
-         * donc TOUJOURS fausses (TS2367, que le `@ts-nocheck` en tête de fichier
-         * empêchait de voir).
-         *
-         * Conséquence réelle : pendant tout le démarrage à froid, la barre de statut
-         * annonçait « Connected » au lieu de « Reconnecting ». Le produit affirmait
-         * une connexion qui n'existait pas encore.
-         *
-         * On lit le champ `status` et on compare en minuscules, comme le fait déjà
-         * `workspaceUiState` : le domaine de valeurs mélange les casses selon la
-         * source.
-         */
-        workspaceLoading ||
-          ['starting', 'booting', 'pending'].includes(runtimeWorkspaceStatus?.status?.toLowerCase() ?? '')
-        ? ({
-            state: 'reconnecting',
-            label: t('chat.copy.reconnecting_9d80f91f'),
-            color: 'var(--vc-ide-accent-warning)',
-            text: t('chat.copy.varStatusWarningText_58e57537'),
-          } as const)
-        : ({
-            state: 'connected',
-            label: t('chat.copy.connected_c2f9b7b4'),
-            color: 'var(--vc-ide-accent-success)',
-            text: t('chat.copy.varStatusSuccessText_8712f526'),
-          } as const);
+    /*
+     * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
+     * chaîne : on en lit le champ `status`. La décision elle-même vit dans
+     * `etatDeConnexionBarre`, tenue par son test.
+     */
+    const etatDeConnexion = etatDeConnexionBarre({
+      enLigne: isOnline,
+      chargement: workspaceLoading,
+      statutWorkspace: runtimeWorkspaceStatus?.status,
+      etatRuntime: runtimeUiState,
+    });
+
+    const statusbarConnection = {
+      offline: {
+        state: 'offline',
+        title: t('chat.copy.offlineEditsStayLocalUntilThe_6c528a0d'),
+        label: t('chat.copy.offline_e01fa717'),
+        color: 'var(--vc-ide-accent-error)',
+        text: t('chat.copy.varStatusErrorText_f1e5857c'),
+      },
+      error: {
+        state: 'error',
+        title: t('chat.copy.statusbarWorkspaceUnavailableTitle'),
+        label: t('chat.copy.statusbarWorkspaceUnavailable'),
+        color: 'var(--vc-ide-accent-error)',
+        text: t('chat.copy.varStatusErrorText_f1e5857c'),
+      },
+      reconnecting: {
+        state: 'reconnecting',
+        title: t('chat.copy.workspaceRuntimeIsStartingOrReconnecting_dae64fde'),
+        label: t('chat.copy.reconnecting_9d80f91f'),
+        color: 'var(--vc-ide-accent-warning)',
+        text: t('chat.copy.varStatusWarningText_58e57537'),
+      },
+      connected: {
+        state: 'connected',
+        title: t('chat.copy.workspaceConnectionHealthy_f87a6d3a'),
+        label: t('chat.copy.connected_c2f9b7b4'),
+        color: 'var(--vc-ide-accent-success)',
+        text: t('chat.copy.varStatusSuccessText_8712f526'),
+      },
+    }[etatDeConnexion];
 
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
@@ -7037,6 +7212,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
+      /*
+       * BUG-QA0928-RUNTIME-ID-PROJET — démarrage refusé pour quota : l'agent ne
+       * pourrait rien écrire. On retient l'envoi ICI, avant l'effacement du
+       * brouillon ci-dessous : `sendMessage` n'est pas attendu, et une garde
+       * posée seulement dans lui laissait la saisie vidée (mesuré sur WebKit).
+       */
+      if (projectIdeMode && demarrageRefusePourQuotaStore.get()) {
+        const avertissement = getEcrituresEnAttenteCopy(i18n.resolvedLanguage ?? i18n.language)[
+          'ecrituresEnAttente.quotaAvantEnvoi'
+        ];
+
+        toast.warning(avertissement, { toastId: 'quota-avant-envoi', autoClose: 12000 });
+
+        return;
+      }
+
       if (sendMessage) {
         sendMessage(event, messageInput);
         setSelectedElement?.(null);
@@ -7896,6 +8087,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     ))}
                   </div>
                 )}
+              {projectIdeMode && <AvisEcrituresEnAttente />}
               {projectIdeMode && (
                 <GenerateAppCta
                   files={projectFiles}
@@ -7978,6 +8170,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   const executionEntry = PROJECT_AGENT_EXECUTION_MODES.find((entry) => entry.id === execution);
                   setProjectAgentExecutionMode(execution);
                   setChatMode?.(executionEntry?.chatMode ?? 'build');
+                  onProjectAgentExecutionModeChange?.(execution);
                 }}
                 placeholder={
                   projectIdeMode
@@ -10623,13 +10816,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-pill"
                 role="status"
                 aria-live="polite"
-                title={
-                  statusbarConnection.state === 'offline'
-                    ? t('chat.copy.offlineEditsStayLocalUntilThe_6c528a0d')
-                    : statusbarConnection.state === 'reconnecting'
-                      ? t('chat.copy.workspaceRuntimeIsStartingOrReconnecting_dae64fde')
-                      : t('chat.copy.workspaceConnectionHealthy_f87a6d3a')
-                }
+                title={statusbarConnection.title}
               >
                 <span
                   aria-hidden
@@ -11178,6 +11365,13 @@ const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
  * with the retry/backoff above — resolves well under this budget, so Retry only
  * appears when the load is genuinely stuck (e.g. the workspace is still booting).
  */
+/*
+ * Portée MODULE : ce qu'on mutualise est une requête pour un couple
+ * (projet, panneau), pas pour un composant. Une portée d'instance ne
+ * corrigerait rien — c'est précisément le défaut qu'on corrige.
+ */
+const panneauEnVol = createSingleFlight<{ status: number; ok: boolean; corps: unknown }>();
+
 const PROJECT_PANEL_SLOW_LOAD_MS = 7000;
 
 function projectPanelFetchMethod(init?: RequestInit) {
@@ -11339,10 +11533,38 @@ function ProjectIdeApiServicePanel({
       setError(undefined);
 
       try {
-        const response = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
-          headers: { accept: 'application/json' },
+        /*
+         * BUG-PANEL-PERF-004 — TROISIÈME occurrence du même motif, et la plus
+         * instructive : ici une garde EXISTE (`loadingPanelRef`), elle
+         * fonctionne, et elle ne sert à rien contre ce défaut. Elle protège
+         * l'INSTANCE — elle empêche un même composant d'empiler ses appels —
+         * mais elle ne COORDONNE pas les instances entre elles. Trois panneaux
+         * montés en parallèle, ce sont trois gardes qui font chacune
+         * correctement leur travail, et trois requêtes quand même.
+         *
+         * Mesuré en production le 2026-09-05, iPhone, projet de 401 fichiers :
+         * trois appels à `/ide-panel/overview` (7 237 / 7 289 / 9 043 ms), aux
+         * piles d'appel IDENTIQUES — un seul site d'appel, trois invocations.
+         * Chacun coûte 5 à 7 s au serveur pour ~100 Ko, alors que le même appel
+         * ISOLÉ met 1,8 à 2,2 s : le surcoût est de la contention que la page
+         * s'inflige.
+         *
+         * `single-flight` mutualise l'appel RÉSEAU entre instances ; chaque
+         * instance continue d'appliquer le résultat à son propre état. La garde
+         * de ré-entrance reste : les deux protections ne couvrent pas le même
+         * cas.
+         */
+        const partage = await panneauEnVol.run(`${projectId}:${panel}`, async () => {
+          const reponse = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
+            headers: { accept: 'application/json' },
+          });
+
+          return { status: reponse.status, ok: reponse.ok, corps: await reponse.json() };
         });
-        const result = (await response.json()) as {
+
+        const response = { status: partage.status, ok: partage.ok };
+
+        const result = partage.corps as {
           error?: { code: string; message: string; retryable: boolean } | string;
           status?: 'ok' | 'empty' | 'error';
         };
@@ -13200,6 +13422,56 @@ function IdeTabBar({
    */
   const [dropSlot, setDropSlot] = useState<number | null>(null);
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const tabStripRef = useRef<HTMLDivElement | null>(null);
+
+  /*
+   * UIB-12 — l'onglet actif reste visible dans la bande, sur bureau.
+   *
+   * Mesuré le 2026-10-01 à 1440 : à partir du cinquième onglet ouvert depuis la
+   * barre d'outils, l'onglet ACTIF sortait de la bande (bord droit à 1205 px pour
+   * une bande finissant à 1076) et la bande restait défilée à 0 — on ouvrait un
+   * panneau sans voir son onglet. On défile juste assez pour le montrer. On règle
+   * `scrollLeft` de la bande, jamais `scrollIntoView` (qui ferait aussi défiler
+   * la page). À partir de 1024 px seulement : l'affichage mobile est gelé.
+   */
+  useEffect(() => {
+    const strip = tabStripRef.current;
+
+    if (!strip || !activeTabId || typeof window === 'undefined' || !window.matchMedia('(min-width: 1024px)').matches) {
+      return;
+    }
+
+    const tab = strip.querySelector<HTMLElement>(`[data-tab-id="${CSS.escape(activeTabId)}"]`);
+
+    if (!tab) {
+      return;
+    }
+
+    const stripBox = strip.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+    const style = window.getComputedStyle(strip);
+
+    // La bande a une marge intérieure (et un ajustement magnétique) : on la compte, sinon l'onglet reste rogné de 4 px.
+    const visibleRight = stripBox.right - (Number.parseFloat(style.paddingRight) || 0);
+    const visibleLeft = stripBox.left + (Number.parseFloat(style.paddingLeft) || 0);
+
+    const max = strip.scrollWidth - strip.clientWidth;
+
+    /*
+     * La bande a un ajustement magnétique (`scroll-snap-type: x`) : une position
+     * entre deux débuts d'onglet est ramenée au plus proche (mesuré : 295 au
+     * lieu de 303, onglet encore rogné). Les bords de la bande sont toujours des
+     * positions d'arrêt valides : près de la fin, on vise le bout.
+     */
+    if (tabBox.right > visibleRight) {
+      const target = strip.scrollLeft + Math.ceil(tabBox.right - visibleRight);
+      strip.scrollLeft = target >= max - 24 ? max : target;
+    } else if (tabBox.left < visibleLeft) {
+      const target = strip.scrollLeft - Math.ceil(visibleLeft - tabBox.left);
+      strip.scrollLeft = target <= 24 ? 0 : target;
+    }
+  }, [activeTabId, tabs.length]);
+
   const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
@@ -13592,6 +13864,7 @@ function IdeTabBar({
     <>
       <div className="bolt-project-tabbar" data-tools-panel-open={open ? 'true' : undefined}>
         <div
+          ref={tabStripRef}
           className="bolt-project-tabs"
           role="tablist"
           data-pane-strip={paneId}
@@ -19551,9 +19824,10 @@ function ProjectMonitoringPanel({
            * une chaîne traduite — « événement interne de routines ». Une clé
            * plurielle par langue règle les deux.
            */}
-          {t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
-          <code>project.ide_state.*</code>
-          {t('chat.copy.openTheLogsPanelToInspect_cc12758f')}
+          <PhraseAvecCode
+            texte={t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
+            codes={{ code: 'project.ide_state.*' }}
+          />
         </div>
       ) : null}
     </div>
@@ -20231,9 +20505,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   </small>
                 ) : (
                   <small className="bolt-project-workflow-nextrun">
-                    {t('chat.copy.notScheduledEnterACronExpression_4b9e799a')}
-                    <code>0 3 * * *</code>
-                    {t('chat.copy.andEnableItTheSchedulerWill_c6c6f347')}
+                    <PhraseAvecCode texte={t('baseChatAst.workflows.notScheduled')} codes={{ exemple: '0 3 * * *' }} />
                   </small>
                 )}
               </form>
@@ -20608,11 +20880,10 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
         <div>
           <PanelSectionTitle>{t('chat.copy.addAuthentication_2855841d')}</PanelSectionTitle>
           <p className="text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b')}
-            <code>users</code>
-            {t('chat.copy.tableMigrationAnExpressSessionJwt_120a5fe5')}
-            <code>AUTH_JWT_SECRET</code>
-            {t('chat.copy.forYou_c10f85ac')}
+            <PhraseAvecCode
+              texte={t('baseChatAst.integrations.authDescription')}
+              codes={{ users: 'users', secret: 'AUTH_JWT_SECRET' }}
+            />
           </p>
         </div>
         <button

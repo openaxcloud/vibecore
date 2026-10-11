@@ -64,6 +64,13 @@ vi.mock('./files', async () => {
 
   return {
     FilesStore: class {
+      /*
+       * `setSelectedFile` interroge le contenu distant depuis #349. Une
+       * doublure qui ne l'expose pas fait rejeter une promesse hors de tout
+       * test — 44 « unhandled rejection » qui ne pointent aucune assertion.
+       * Ici, rien à adopter : la doublure n'a pas de runtime.
+       */
+      adoptRemoteContent = vi.fn(async () => 'inchange' as const);
       files = map({});
       filesCount = 0;
       setRuntime = vi.fn();

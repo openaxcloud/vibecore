@@ -566,7 +566,18 @@ export class TestApiStore implements ApiStore {
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
-    const org = { id: id('org'), slug: input.slug || slugify(input.name), name: input.name, createdAt: now() };
+    const slug = input.slug || slugify(input.name);
+
+    /*
+     * Fidèle à Postgres : Organization.slug est @unique. Sans cette garde, le
+     * magasin de test acceptait deux organisations au même slug, et l'erreur 500
+     * de l'inscription (UIB-10) ne pouvait rougir dans aucun test.
+     */
+    if ([...this.organizations.values()].some((existing) => existing.slug === slug)) {
+      throw Object.assign(new Error('Unique constraint failed on the fields: (`slug`)'), { code: 'P2002' });
+    }
+
+    const org = { id: id('org'), slug, name: input.name, createdAt: now() };
     this.organizations.set(org.id, org);
     await this.addMember({ organizationId: org.id, userId: input.ownerUserId, roleKey: 'owner' });
 
@@ -3924,6 +3935,107 @@ export class TestApiStore implements ApiStore {
     }
 
     return wallet;
+  }
+
+  readonly heldCents = new Map<string, number>();
+
+  readonly creditReservations = new Map<
+    string,
+    {
+      id: string;
+      organizationId: string;
+      amountCents: number;
+      status: string;
+      expiresAt: number;
+      settledCents?: number;
+    }
+  >();
+
+  /*
+   * Mirrors the SQL implementation's ATOMICITY: availability is computed and the
+   * hold taken without an await in between, so the JS single-threaded run-to-
+   * completion gives the same all-or-nothing behaviour the conditional UPDATE
+   * gives in Postgres. A test double that read, awaited, then wrote would pass
+   * the concurrency test while the real thing races.
+   */
+  async reserveCredits(input: {
+    organizationId: string;
+    projectId?: string;
+    conversationId?: string;
+    amountCents: number;
+    expiresAtMs: number;
+  }) {
+    const amount = Math.max(0, Math.ceil(input.amountCents));
+
+    if (amount <= 0) {
+      return undefined;
+    }
+
+    const wallet = await this.ensureCreditWallet(input.organizationId);
+    const held = this.heldCents.get(input.organizationId) ?? 0;
+
+    if (wallet.balanceCents - held < amount) {
+      return undefined;
+    }
+
+    this.heldCents.set(input.organizationId, held + amount);
+
+    const reservation = {
+      id: id('credit_res'),
+      organizationId: input.organizationId,
+      amountCents: amount,
+      status: 'HELD',
+      expiresAt: input.expiresAtMs,
+    };
+    this.creditReservations.set(reservation.id, reservation);
+
+    return { id: reservation.id, amountCents: amount };
+  }
+
+  async releaseCreditReservation(input: { id: string; status?: 'RELEASED' | 'EXPIRED' }) {
+    const reservation = this.creditReservations.get(input.id);
+
+    if (!reservation || reservation.status !== 'HELD') {
+      return false;
+    }
+
+    reservation.status = input.status ?? 'RELEASED';
+    this.heldCents.set(
+      reservation.organizationId,
+      Math.max(0, (this.heldCents.get(reservation.organizationId) ?? 0) - reservation.amountCents),
+    );
+
+    return true;
+  }
+
+  async settleCreditReservation(input: { id: string; actualCents: number }) {
+    const reservation = this.creditReservations.get(input.id);
+
+    if (!reservation || reservation.status !== 'HELD') {
+      return false;
+    }
+
+    reservation.status = 'SETTLED';
+    reservation.settledCents = Math.max(0, Math.ceil(input.actualCents));
+    this.heldCents.set(
+      reservation.organizationId,
+      Math.max(0, (this.heldCents.get(reservation.organizationId) ?? 0) - reservation.amountCents),
+    );
+
+    return true;
+  }
+
+  async releaseExpiredCreditReservations(nowMs: number, take = 200) {
+    let released = 0;
+
+    for (const reservation of [...this.creditReservations.values()].slice(0, take)) {
+      if (reservation.status === 'HELD' && reservation.expiresAt < nowMs) {
+        await this.releaseCreditReservation({ id: reservation.id, status: 'EXPIRED' });
+        released += 1;
+      }
+    }
+
+    return released;
   }
 
   async updateCreditWalletSettings(input: {

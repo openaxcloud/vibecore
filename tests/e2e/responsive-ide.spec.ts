@@ -1313,21 +1313,24 @@ test.describe('responsive IDE shell', () => {
     await expectSettingsAiControlsFitViewport(page);
   });
 
-  test('mobile and tablet run button controls the real preview runtime', { tag: '@runtime' }, async ({ page }, testInfo) => {
-    test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
-    test.setTimeout(240_000);
+  test(
+    'mobile and tablet run button controls the real preview runtime',
+    { tag: '@runtime' },
+    async ({ page }, testInfo) => {
+      test.skip(!isCompactIdeProject(testInfo), 'compact IDE assertion');
+      test.setTimeout(240_000);
 
-    const projectId = await createTestProject(page, 'Responsive mobile run button project', {
-      'package.json': JSON.stringify(
-        {
-          private: true,
-          type: 'module',
-          scripts: { dev: 'node server.mjs' },
-        },
-        null,
-        2,
-      ),
-      'server.mjs': `import { createServer } from 'node:http';
+      const projectId = await createTestProject(page, 'Responsive mobile run button project', {
+        'package.json': JSON.stringify(
+          {
+            private: true,
+            type: 'module',
+            scripts: { dev: 'node server.mjs' },
+          },
+          null,
+          2,
+        ),
+        'server.mjs': `import { createServer } from 'node:http';
 
 const port = Number(process.env.PORT || 5173);
 
@@ -1338,76 +1341,77 @@ createServer((_request, response) => {
   console.log('mobile run button preview listening on ' + port);
 });
 `,
-      'src/App.tsx': 'export function App() { return <main>Run button editor fixture</main>; }\n',
-    });
+        'src/App.tsx': 'export function App() { return <main>Run button editor fixture</main>; }\n',
+      });
 
-    await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
-    await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45_000 });
-    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor');
-    await expectCompactIdeSurfaceFitsViewport(page, 'editor run panel');
+      await page.goto(`/projects/${projectId}/ide?panel=editor`, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible({ timeout: 45_000 });
+      await expect(page.locator('[data-testid="responsive-code-editor"]').first()).toBeVisible({ timeout: 45_000 });
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor');
+      await expectCompactIdeSurfaceFitsViewport(page, 'editor run panel');
 
-    const runButton = mobileBottomNavigation(page).getByTestId('button-play-stop');
-    await expect(runButton).toBeVisible({ timeout: 15_000 });
+      const runButton = mobileBottomNavigation(page).getByTestId('button-play-stop');
+      await expect(runButton).toBeVisible({ timeout: 15_000 });
 
-    const initialRunLabel = await runButton.getAttribute('aria-label');
-    const initialRunVisualState = await readButtonVisualState(runButton);
-    const editorRunButton = page.getByTestId('mobile-editor-run-toggle');
-    await expect(editorRunButton).toBeVisible({ timeout: 15_000 });
+      const initialRunLabel = await runButton.getAttribute('aria-label');
+      const initialRunVisualState = await readButtonVisualState(runButton);
+      const editorRunButton = page.getByTestId('mobile-editor-run-toggle');
+      await expect(editorRunButton).toBeVisible({ timeout: 15_000 });
 
-    const initialEditorRunVisualState = await readButtonVisualState(editorRunButton);
+      const initialEditorRunVisualState = await readButtonVisualState(editorRunButton);
 
-    if (initialRunLabel === 'Run project') {
-      await runButton.click();
-      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+      if (initialRunLabel === 'Run project') {
+        await runButton.click();
+        await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+          timeout: 15_000,
+        });
+      } else {
+        await mobileBottomNavigation(page).getByTestId('tab-preview').click();
+        await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+          timeout: 15_000,
+        });
+      }
+
+      await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 45_000 });
+      await expect(runButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
+      await expect(runButton).toHaveClass(/bolt-mobile-replit-run--active/);
+      await expect(runButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
+
+      const activeRunVisualState = await readButtonVisualState(runButton);
+
+      if (initialRunLabel === 'Run project') {
+        expect(activeRunVisualState).not.toEqual(initialRunVisualState);
+      }
+
+      await expect(
+        page.getByTestId('preview-splash-sequence').or(page.getByTestId('preview-loading-overlay')).first(),
+      ).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByTestId('preview-iframe')).toBeVisible({ timeout: 45_000 });
+      await expect(page.getByTestId('preview-loading-overlay')).toContainText(/Starting npm run dev|Building|Ready/, {
+        timeout: 45_000,
+      });
+      await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 15_000 });
+      await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
+
+      await mobileBottomNavigation(page).getByTestId('tab-editor').click();
+      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor', {
         timeout: 15_000,
       });
-    } else {
-      await mobileBottomNavigation(page).getByTestId('tab-preview').click();
-      await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview', {
+      await expect(editorRunButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, {
         timeout: 15_000,
       });
-    }
+      await expect(editorRunButton).toHaveAttribute('aria-pressed', 'true');
+      await expect(editorRunButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
+      await expect(editorRunButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
 
-    await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 45_000 });
-    await expect(runButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
-    await expect(runButton).toHaveClass(/bolt-mobile-replit-run--active/);
-    await expect(runButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
+      const activeEditorRunVisualState = await readButtonVisualState(editorRunButton);
 
-    const activeRunVisualState = await readButtonVisualState(runButton);
-
-    if (initialRunLabel === 'Run project') {
-      expect(activeRunVisualState).not.toEqual(initialRunVisualState);
-    }
-
-    await expect(
-      page.getByTestId('preview-splash-sequence').or(page.getByTestId('preview-loading-overlay')).first(),
-    ).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByTestId('preview-iframe')).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByTestId('preview-loading-overlay')).toContainText(/Starting npm run dev|Building|Ready/, {
-      timeout: 45_000,
-    });
-    await expect(runButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, { timeout: 15_000 });
-    await expect(runButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
-
-    await mobileBottomNavigation(page).getByTestId('tab-editor').click();
-    await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'editor', {
-      timeout: 15_000,
-    });
-    await expect(editorRunButton).toHaveAttribute('aria-label', /^(Starting project|Stop running)$/, {
-      timeout: 15_000,
-    });
-    await expect(editorRunButton).toHaveAttribute('aria-pressed', 'true');
-    await expect(editorRunButton).toHaveAttribute('data-run-state', /^(starting|running|static)$/);
-    await expect(editorRunButton.locator('span').first()).toHaveClass(/i-ph:square-fill/);
-
-    const activeEditorRunVisualState = await readButtonVisualState(editorRunButton);
-
-    if (initialRunLabel === 'Run project') {
-      expect(activeEditorRunVisualState).not.toEqual(initialEditorRunVisualState);
-    }
-  });
+      if (initialRunLabel === 'Run project') {
+        expect(activeEditorRunVisualState).not.toEqual(initialEditorRunVisualState);
+      }
+    },
+  );
 
   test('mobile and tablet keep a visible webview startup state until the iframe renders', async ({
     page,
@@ -1605,6 +1609,7 @@ createServer((request, response) => {
     await expect(page.locator('.bolt-responsive-ide')).toHaveAttribute('data-mobile-panel', 'files', {
       timeout: 45000,
     });
+
     // Le panneau des fichiers s'appelle « Library » (Bibliothèque) depuis la parité Replit.
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Library');
     await expect(
@@ -1847,6 +1852,7 @@ createServer((request, response) => {
     for (const [itemId, label] of [
       ['overview', 'Overview'],
       ['preview', 'Webview'],
+
       // L'outil s'appelle « Publish » (parité Replit), l'identifiant reste `deployments`.
       ['deployments', 'Publish'],
       ['object-storage', 'Object Storage'],

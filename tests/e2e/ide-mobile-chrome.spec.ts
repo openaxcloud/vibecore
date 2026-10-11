@@ -3153,6 +3153,15 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
       test.setTimeout(150_000);
 
       await ouvrirIde(page, request, { fil: true });
+
+      /*
+       * button-add-tab also exists in PendingComposerShell, which has no sendMessage.
+       * Do not dispatch the task until the real persisted conversation is mounted.
+       */
+      await expect(
+        page.locator('.bolt-user-message-bubble').filter({ hasText: 'Ajoute une page de contact.' }).first(),
+        'la conversation persistée doit être chargée avant de demander une réparation',
+      ).toBeVisible({ timeout: 60_000 });
       await ouvrirOutil(page, 'deployments');
 
       const coque = page.locator('.bolt-responsive-ide-mobile');
