@@ -31,6 +31,14 @@ un clic** (deux envois avec le fil) et un renvoi à l'identique ; après, quelqu
 de renvoyé. Contre-épreuve : sans le cumul des clés dues, le fil d'un envoi échoué est abandonné → rouge. 58 fichiers
 voisins (persistance, stores, chat) verts.
 
+## Doublon à ne pas livrer en plus
+
+La branche `fix/reprise-persistance-onglets-20261011` (`22ad8d0b9`, autre session, aucune proposition) corrige la
+même chose dans le même fichier. Vérifié dans les deux sens : ses 4 tests passent sur ce correctif, et les 6 tests
+de ce correctif passent sur le sien — les deux implémentations sont équivalentes (tous les appelants ne sauvegardent
+que `ui` et `chat`). Son test `projectIdeMemory.onglets.spec.ts` est repris ici, tel quel, pour que la garde soit
+complète (10 cas). Livrer les deux ferait entrer en conflit deux réécritures du même code : **une seule**.
+
 ## Reste à vérifier
 
 En production, avec une session : lequel des deux envois par clic subsiste (ils sont désormais de quelques
