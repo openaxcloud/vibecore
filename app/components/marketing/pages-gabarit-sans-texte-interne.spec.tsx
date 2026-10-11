@@ -91,7 +91,7 @@ describe('pages-gabarit publiques — aucun texte de développement', () => {
   it('témoin : les deux registres portent bien les pages relevées en production', () => {
     expect(SLUGS.length).toBeGreaterThanOrEqual(57);
     expect(SLUGS).toEqual(
-      expect.arrayContaining(['plans', 'account', 'secrets', 'analytics', 'solartech-crm', 'advanced/sso']),
+      expect.arrayContaining(['plans', 'account', 'secrets', 'analytics', 'profile', 'advanced/sso']),
     );
   });
 

@@ -84,10 +84,6 @@ describe('E-Code product surface registry', () => {
         '/networking',
         '/threads',
         '/referrals',
-        '/solartech-ai-chat',
-        '/solartech-crm',
-        '/salesforcepro-crm',
-        '/solartech-fortune500-store',
       ]),
     );
   });
@@ -99,7 +95,8 @@ describe('E-Code product surface registry', () => {
       ...Object.values(ecodeStandaloneSurfacePages),
     ];
 
-    expect(pages.length).toBeGreaterThan(60);
+    // 58 depuis le retrait des quatre pages de démonstration (2026-10-11) : le seuil garde un registre amputé par accident.
+    expect(pages.length).toBeGreaterThanOrEqual(58);
 
     for (const page of pages) {
       expect(page.title.length).toBeGreaterThan(3);

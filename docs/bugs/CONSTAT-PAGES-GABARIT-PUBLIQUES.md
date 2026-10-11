@@ -48,6 +48,18 @@ du contenu) et le sur-titre « Surface de création ». Suite `app/components/ma
 - Quatre pages portent des noms de données de démonstration : `solartech-ai-chat`, `solartech-crm`,
   `salesforcepro-crm`, `solartech-fortune500-store`. Les garder publiques ou non relève d'une décision.
 
+## Pages de démonstration retirées (décision du 2026-10-11)
+
+`solartech-crm`, `salesforcepro-crm`, `solartech-fortune500-store` et `solartech-ai-chat` répondaient 200 en
+production. Elles sont retirées du registre et du catalogue (EN et FR) et répondent désormais un **vrai 404** : page
+« introuvable » localisée, `noindex`, sans redirection ni contenu de remplacement. Les routes `/u/admin/solartech-*`
+répondaient déjà 404.
+
+Épinglé par `app/routes/pages-demo-retirees.spec.ts` : 4 sur 4 rouges avant (200), verts après ; contre-épreuve, les
+autres pages restent servies. Trois tests de registre qui listaient ces slugs et deux compteurs de pages (62 → 58) sont
+ajustés. Restant, signalé : un ancien paquet statique (`public/ecode-static/assets/index-*.js`) contient encore ces
+noms dans son code ; il n'est pas touché ici.
+
 ## 📤
 
 ☐ en attente de la décision d'Avi

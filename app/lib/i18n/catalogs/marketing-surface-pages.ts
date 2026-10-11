@@ -276,29 +276,6 @@ export const marketingSurfacePageEn = {
       description: 'Referral and invite flows for bringing builders, teams and partners into E-Code workspaces.',
       highlights: ['Builder invites', 'Team referrals', 'Partner paths', 'Community growth'],
     },
-    'solartech-ai-chat': {
-      title: 'SolarTech AI Chat',
-      description:
-        'A real app route for the imported SolarTech AI chat template with support, sales and workflow patterns.',
-      highlights: ['AI chat UX', 'Support workflows', 'Knowledge routing', 'Template-ready app'],
-    },
-    'solartech-crm': {
-      title: 'SolarTech CRM',
-      description:
-        'A CRM app template route for pipeline management, accounts, opportunities and operational workflows.',
-      highlights: ['Pipeline views', 'Accounts', 'Opportunities', 'Operational dashboards'],
-    },
-    'salesforcepro-crm': {
-      title: 'SalesforcePro CRM',
-      description:
-        'An enterprise CRM template route adapted from E-Code for sales operations and account intelligence.',
-      highlights: ['Sales operations', 'Account intelligence', 'Team workflows', 'Executive reporting'],
-    },
-    'solartech-fortune500-store': {
-      title: 'SolarTech Fortune 500 Store',
-      description: 'A commerce and procurement app route for enterprise catalogs, approvals and customer buying flows.',
-      highlights: ['Enterprise catalog', 'Procurement approvals', 'Commerce UX', 'Customer workflows'],
-    },
     'advanced/mobile': {
       title: 'Advanced Mobile',
       description: 'Advanced mobile delivery for responsive IDE surfaces, app assets, previews and release workflows.',
@@ -745,40 +722,6 @@ export const marketingSurfacePageFr = {
         'Parcours partenaires',
         'Croissance de la communauté',
       ],
-    },
-    'solartech-ai-chat': {
-      title: 'SolarTech AI Chat',
-      description:
-        'Une véritable page d’application pour le modèle de chat IA SolarTech importé, avec des schémas pour l’assistance, la vente et les flux de travail.',
-      highlights: [
-        'Expérience de chat IA',
-        'Flux d’assistance',
-        'Routage des connaissances',
-        'Application prête à partir d’un modèle',
-      ],
-    },
-    'solartech-crm': {
-      title: 'SolarTech CRM',
-      description:
-        'Un modèle d’application CRM pour gérer le pipeline, les comptes, les opportunités et les flux opérationnels.',
-      highlights: ['Vues du pipeline', 'Comptes', 'Opportunités', 'Tableaux de bord opérationnels'],
-    },
-    'salesforcepro-crm': {
-      title: 'SalesforcePro CRM',
-      description:
-        'Un modèle CRM d’entreprise adapté à E-Code pour les opérations commerciales et la connaissance des comptes.',
-      highlights: [
-        'Opérations commerciales',
-        'Connaissance des comptes',
-        'Flux de travail des équipes',
-        'Rapports de direction',
-      ],
-    },
-    'solartech-fortune500-store': {
-      title: 'SolarTech Fortune 500 Store',
-      description:
-        'Une page d’application de commerce et d’approvisionnement pour les catalogues d’entreprise, les approbations et les parcours d’achat des clients.',
-      highlights: ['Catalogue d’entreprise', 'Approbations des achats', 'Expérience d’achat', 'Parcours clients'],
     },
     'advanced/mobile': {
       title: 'Mobile avancé',

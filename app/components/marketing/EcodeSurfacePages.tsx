@@ -532,38 +532,6 @@ export const ecodeSurfacePages = {
     icon: Users,
     highlights: marketingSurfacePageEn.referrals.highlights,
   }),
-  'solartech-ai-chat': makeSurfacePage({
-    slug: 'solartech-ai-chat',
-    title: marketingSurfacePageEn['solartech-ai-chat'].title,
-    description: marketingSurfacePageEn['solartech-ai-chat'].description,
-    category: 'ai',
-    icon: Sparkles,
-    highlights: marketingSurfacePageEn['solartech-ai-chat'].highlights,
-  }),
-  'solartech-crm': makeSurfacePage({
-    slug: 'solartech-crm',
-    title: marketingSurfacePageEn['solartech-crm'].title,
-    description: marketingSurfacePageEn['solartech-crm'].description,
-    category: 'marketplace',
-    icon: Boxes,
-    highlights: marketingSurfacePageEn['solartech-crm'].highlights,
-  }),
-  'salesforcepro-crm': makeSurfacePage({
-    slug: 'salesforcepro-crm',
-    title: marketingSurfacePageEn['salesforcepro-crm'].title,
-    description: marketingSurfacePageEn['salesforcepro-crm'].description,
-    category: 'marketplace',
-    icon: Users,
-    highlights: marketingSurfacePageEn['salesforcepro-crm'].highlights,
-  }),
-  'solartech-fortune500-store': makeSurfacePage({
-    slug: 'solartech-fortune500-store',
-    title: marketingSurfacePageEn['solartech-fortune500-store'].title,
-    description: marketingSurfacePageEn['solartech-fortune500-store'].description,
-    category: 'marketplace',
-    icon: Boxes,
-    highlights: marketingSurfacePageEn['solartech-fortune500-store'].highlights,
-  }),
 } as const satisfies Record<string, EcodeSurfacePageDefinition>;
 
 export const ecodeAdvancedSurfacePages = {
