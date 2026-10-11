@@ -33,10 +33,13 @@ export interface ObjectStorageAccessTokenPayload {
    * which fall back to LEGACY_OBJECT_STORAGE_SCOPES.
    */
   scopes?: ObjectStorageScope[];
+
   /** The user the workspace runs as (for audit); optional for service contexts. */
   userId?: string;
+
   /** The workspace the token was minted for (binding/audit). */
   workspaceId?: string;
+
   /** Unix epoch milliseconds after which the token is rejected. */
   expiresAt: number;
 }
@@ -69,15 +72,14 @@ export function signObjectStorageAccessToken(input: {
 export function objectStorageTokenScopes(
   payload: Pick<ObjectStorageAccessTokenPayload, 'scopes'>,
 ): readonly ObjectStorageScope[] {
-  return Array.isArray(payload.scopes) && payload.scopes.length > 0
-    ? payload.scopes
-    : LEGACY_OBJECT_STORAGE_SCOPES;
+  return Array.isArray(payload.scopes) && payload.scopes.length > 0 ? payload.scopes : LEGACY_OBJECT_STORAGE_SCOPES;
 }
 
 export function verifyObjectStorageAccessToken(input: {
   token: string | undefined;
   secret: string;
   expectedProjectId?: string;
+
   /** When given, the token must carry this scope or verification fails. */
   requiredScope?: ObjectStorageScope;
   now?: number;

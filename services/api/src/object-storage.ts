@@ -181,6 +181,7 @@ export interface ListObjectsResult {
 export interface FullInventoryResult {
   objects: StoredObject[];
   totalBytes: number;
+
   /** Number of GCS list calls it took — non-zero proof the walk actually paged. */
   pages: number;
 }
@@ -435,6 +436,7 @@ export class GcsObjectStorage implements ObjectStorage {
    */
   async listAllObjects(projectId: string, opts: { prefix?: string } = {}): Promise<FullInventoryResult> {
     const objects: StoredObject[] = [];
+
     let pageToken: string | undefined;
     let pages = 0;
 

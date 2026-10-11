@@ -24,7 +24,7 @@ function litterauxDeRaison(): string[] {
   const source = readFileSync(new URL('./token.ts', import.meta.url), 'utf8');
   const declaration = source.match(/reason\?:\s*([^;]+);/u);
 
-  expect(declaration, "la déclaration du type `reason` est introuvable dans token.ts").toBeTruthy();
+  expect(declaration, 'la déclaration du type `reason` est introuvable dans token.ts').toBeTruthy();
 
   return [...declaration![1].matchAll(/'([^']+)'/gu)].map((occurrence) => occurrence[1]);
 }
