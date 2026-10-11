@@ -18,3 +18,8 @@ id: BUG-THREAD-TOP-GAP-001
 
 ☐ live iPhone
 
+## ✅ Testé live
+
+☐
+
+30/09 — non reproduit en prod à 390 px sous **Chromium** : 5 px entre l'en-tête (49) et le premier message (54) ; épinglé par `app/styles/agent-transcript-mobile.spec.ts`. **Reste ☐** : l'entrée exige l'iPhone, et un vert Chromium ne prouve rien pour Safari iOS.

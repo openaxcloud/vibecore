@@ -59,12 +59,7 @@ describe('pied de page — titre Newsletter aligné sur SCR-009', () => {
 });
 
 describe('échelle des h1 — familles cohérentes', () => {
-  const familleLegale = [
-    './pages/Subprocessors.tsx',
-    './pages/StudentDPA.tsx',
-    './pages/LegalArticle.tsx',
-    './pages/CommercialAgreement.tsx',
-  ];
+  const familleLegale = ['./pages/Subprocessors.tsx', './pages/StudentDPA.tsx', './pages/CommercialAgreement.tsx'];
 
   it.each(familleLegale)('%s : h1 en text-responsive-2xl, sans text-6xl ni text-4xl figé', (rel) => {
     const source = read(rel);

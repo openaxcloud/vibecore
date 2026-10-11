@@ -1,0 +1,93 @@
+# Doubles in-cluster de l'environnement d'audit : Redis (remplace Memorystore) et
+# puits e-mail (remplace Resend).
+#
+# CE FICHIER EST APPLIQUÉ DANS UNE NAMESPACE PASSÉE EN `-n` — aucun `namespace:`
+# n'est fixé ici, à dessein : `scripts/audit-env/addons.sh` l'installe dans la
+# namespace de la plateforme de l'environnement, et
+# `scripts/audit-env/deploy-isolated.sh` dans celle de la release isolée.
+#
+# POURQUOI CHAQUE RELEASE A LES SIENS. Ce sont des doubles, pas de
+# l'infrastructure partagée comme Cloud SQL. Deux releases qui pointeraient le même
+# Redis partageraient les files BullMQ et le pub/sub de collaboration : le
+# workspace-manager de l'une ramasserait les travaux de l'autre, et une preuve
+# cesserait d'être reproductible. La NetworkPolicy `allow-intra-namespace-platform`
+# n'ouvre de toute façon le trafic pod-à-pod QUE dans la namespace, donc un
+# `REDIS_URL` qui traverse les namespaces est jeté par `deny-all-default` : la
+# sonde de readiness de l'api rend 503 sur un `connect ETIMEDOUT`.
+#
+# Le label `app.kubernetes.io/part-of: vibecore` n'est pas cosmétique : c'est lui
+# que sélectionne cette policy. Sans lui, api -> Redis et api -> puits sont
+# bloqués.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vibecore-redis
+  labels: { app: vibecore-redis, env: audit-test, app.kubernetes.io/part-of: vibecore }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: vibecore-redis } }
+  template:
+    metadata:
+      labels: { app: vibecore-redis, env: audit-test, app.kubernetes.io/part-of: vibecore }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args: ["--save", "", "--appendonly", "no"]
+          ports: [{ containerPort: 6379 }]
+          resources:
+            requests: { cpu: 50m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vibecore-redis
+  labels: { app: vibecore-redis, env: audit-test, app.kubernetes.io/part-of: vibecore }
+spec:
+  selector: { app: vibecore-redis }
+  ports: [{ port: 6379, targetPort: 6379 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-sink
+  labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: email-sink } }
+  template:
+    metadata:
+      labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
+    spec:
+      containers:
+        - name: echo
+          image: mendhak/http-https-echo:31
+          env:
+            - { name: HTTP_PORT, value: "8080" }
+            - { name: DISABLE_REQUEST_LOGS, value: "false" }
+          ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 256Mi }
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            capabilities: { drop: ["ALL"] }
+            seccompProfile: { type: RuntimeDefault }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-sink
+  labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
+spec:
+  selector: { app: email-sink }
+  ports: [{ port: 8080, targetPort: 8080 }]

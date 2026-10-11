@@ -61,34 +61,42 @@ interface CliResult {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+
 function object(value: unknown): Record<string, unknown> {
   assert.ok(isRecord(value), 'expected an object');
   return value;
 }
+
 function string(value: unknown): string {
   assert.ok(typeof value === 'string');
   return value;
 }
+
 function boolean(value: unknown): boolean {
   assert.ok(typeof value === 'boolean');
   return value;
 }
+
 function number(value: unknown): number {
   assert.ok(typeof value === 'number' && Number.isFinite(value));
   return value;
 }
+
 function array(value: unknown): unknown[] {
   assert.ok(Array.isArray(value));
   return value;
 }
+
 function json(text: string): unknown {
   const decoded: unknown = JSON.parse(text);
   return decoded;
 }
+
 function parseProbe(value: unknown): Probe {
   const v = object(value);
   return { tier: string(v.tier), service: string(v.service), servi: string(v.servi) };
 }
+
 function parseManifest(value: unknown): Manifest {
   const v = object(value);
   return {
@@ -109,6 +117,7 @@ function parseManifest(value: unknown): Manifest {
     }),
   };
 }
+
 function parseProof(value: unknown): Proof {
   const v = object(value),
     r = object(v.run);
@@ -125,12 +134,15 @@ function parseProof(value: unknown): Proof {
     },
   };
 }
+
 function parseCli(text: string): CliResult {
   const v = object(json(text));
   assert.equal(v.scope, 'configured-source-references');
   assert.equal(v.runtimeVerification, 'not-performed');
+
   const verdict = v.verdict;
   assert.ok(verdict === 'unverified' || verdict === 'configured-current' || verdict === 'configured-behind');
+
   return {
     scope: 'configured-source-references',
     runtimeVerification: 'not-performed',
@@ -142,17 +154,25 @@ function parseCli(text: string): CliResult {
     }),
   };
 }
+
 function requiredNamed<T extends { service: string }>(entries: T[], service: string): T {
   const entry = entries.find((item) => item.service === service);
   assert.ok(entry, `missing ${service}`);
+
   return entry;
 }
+
 function parseVerifier(value: unknown) {
   const v = object(value),
     probeFunction = v.sondesRelease;
   assert.ok(typeof probeFunction === 'function', 'verifier must export sondesRelease');
+
   const services: Record<string, string[]> = {};
-  for (const [tier, names] of Object.entries(object(v.SERVICES_PAR_TIER))) services[tier] = array(names).map(string);
+
+  for (const [tier, names] of Object.entries(object(v.SERVICES_PAR_TIER))) {
+    services[tier] = array(names).map(string);
+  }
+
   return {
     SERVICES_PAR_TIER: services,
     sondesRelease(release: unknown, proof?: unknown): Probe[] {
@@ -175,11 +195,13 @@ interface RepositoryFixture {
 const moduleUrl = process.env.TIERS_MODULE
   ? pathToFileURL(process.env.TIERS_MODULE)
   : new URL('./tiers-a-jour.mjs', import.meta.url);
+
 const importedVerifier: unknown = await import(moduleUrl.href);
 const tiers = parseVerifier(importedVerifier);
 const digest = `sha256:${'d'.repeat(64)}`;
 const source = 'c'.repeat(40);
 const image = `registry/repo/workspace-agent@${digest}`;
+
 const run: Run = {
   id: 123,
   repository: { full_name: 'openaxcloud/vibecore' },
@@ -216,24 +238,30 @@ function repositoryFixture(test: (fixture: RepositoryFixture) => void): void {
   const origin = join(dir, 'origin.git');
   const author = join(dir, 'author');
   const stale = join(dir, 'stale');
+
   const git = (cwd: string, ...args: string[]): string =>
     execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const commit = (cwd: string, message: string): string => {
     git(cwd, 'add', '.');
     git(cwd, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-qm', message);
+
     return git(cwd, 'rev-parse', 'HEAD');
   };
+
   try {
     git(dir, 'init', '--bare', '--initial-branch=main', origin);
     git(dir, 'clone', origin, author);
     writeFileSync(join(author, 'package.json'), '{}\n');
+
     const old = commit(author, 'all tiers baseline');
     git(author, 'push', 'origin', 'main');
     git(dir, 'clone', origin, stale);
     mkdirSync(join(author, 'services/workspace-agent'), { recursive: true });
     writeFileSync(join(author, 'services/workspace-agent/index.ts'), '// changed agent\n');
+
     const current = commit(author, 'new workspace-agent code');
     git(author, 'push', 'origin', 'main');
+
     const bin = join(dir, 'bin');
     mkdirSync(bin);
     writeFileSync(
@@ -246,6 +274,7 @@ function repositoryFixture(test: (fixture: RepositoryFixture) => void): void {
       )});\n`,
       { mode: 0o755 },
     );
+
     const invoke = (...args: string[]): SpawnSyncReturns<string> =>
       spawnSync(process.execPath, [fileURLToPath(moduleUrl), '--json', ...args], {
         cwd: stale,
@@ -281,6 +310,7 @@ if (args[0] === 'api') {
 const realHistory = array(
   json(readFileSync(new URL('./fixtures/tiers-a-jour-release-history.json', import.meta.url), 'utf8')),
 ).map(parseProof);
+
 function configuredFromManifest(m: Manifest): Release {
   const agent = requiredNamed(m.services, 'workspaceAgent');
   return {
@@ -324,6 +354,7 @@ export const regressionCases: Array<[string, () => void]> = [
     'typed unknown boundaries reject malformed verifier, fixture and CLI shapes',
     () => {
       assert.throws(() => parseVerifier({ SERVICES_PAR_TIER: { web: [7] }, sondesRelease: () => [] }));
+
       const brokenVerifier = parseVerifier({
         SERVICES_PAR_TIER: { web: ['web'] },
         sondesRelease: () => [{ tier: 'web', service: 'web', servi: 7 }],
@@ -352,8 +383,10 @@ export const regressionCases: Array<[string, () => void]> = [
       const configured = configuredFromManifest(realHistory[0].manifest);
       assert.throws(() => tiers.sondesRelease(configured, [realHistory[0]]));
       assert.throws(() => tiers.sondesRelease(configured, [realHistory[1]]));
+
       const probes = tiers.sondesRelease(configured, realHistory);
       assert.equal(probes.length, 9);
+
       for (const probe of probes) {
         assert.equal(
           probe.servi,
@@ -372,12 +405,14 @@ export const regressionCases: Array<[string, () => void]> = [
       const untrusted = structuredClone(realHistory);
       untrusted[1].run.head_branch = 'attacker';
       assert.throws(() => tiers.sondesRelease(configured, untrusted));
+
       const conflict = structuredClone(realHistory);
       const extra = structuredClone(conflict[1]);
       extra.run.id = 456;
       extra.manifest.workflowRunUrl = 'https://github.com/openaxcloud/vibecore/actions/runs/456';
       requiredNamed(extra.manifest.services, 'admin').sourceSha = 'a'.repeat(40);
       assert.throws(() => tiers.sondesRelease(configured, [...conflict, extra]), /contradictoire/);
+
       const missing = structuredClone(realHistory);
       Object.assign(requiredNamed(missing[1].manifest.services, 'admin'), { provenanceKnown: false, sourceSha: null });
       assert.throws(() => tiers.sondesRelease(configured, missing), /absente/);
@@ -392,6 +427,7 @@ export const regressionCases: Array<[string, () => void]> = [
         const r = release();
         r.global = { imageTag: old.slice(0, 10), imageRegistry: 'registry/repo' };
         r.services = { web: { image: 'web', imageDigest: digest } };
+
         const first = { manifest: manifest(), run: { ...run } };
         first.manifest.services[0].sourceSha = current;
         first.manifest.services.push({
@@ -401,6 +437,7 @@ export const regressionCases: Array<[string, () => void]> = [
           sourceSha: null,
           provenanceKnown: false,
         });
+
         const second = structuredClone(first);
         second.run.id = 124;
         second.manifest.workflowRunUrl = 'https://github.com/openaxcloud/vibecore/actions/runs/124';
@@ -409,21 +446,26 @@ export const regressionCases: Array<[string, () => void]> = [
         second.manifest.services[1].sourceSha = old;
         second.manifest.services[1].provenanceKnown = true;
         installReleaseHistory(bin, r, [first, second]);
+
         for (const args of [[], ['--release-run', '123', '--release-run', '124']]) {
           const result = invoke('--configured-only', ...args);
           assert.equal(result.status, 0, result.stderr);
           assert.equal(parseCli(result.stdout).runtimeVerification, 'not-performed');
         }
         assert.equal(invoke().status, 2);
+
         const missing = invoke('--configured-only', '--release-run', '123');
         assert.equal(missing.status, 2);
+
         const tooMany = invoke(...Array.from({ length: 11 }, (_, i) => ['--release-run', String(i + 1)]).flat());
         assert.equal(tooMany.status, 2);
+
         const duplicate = invoke('--release-run', '123', '--release-run', '123');
         assert.equal(duplicate.status, 2);
         first.manifest.services[1] = structuredClone(second.manifest.services[1]);
         second.manifest.services[0] = { ...first.manifest.services[0], sourceSha: old };
         installReleaseHistory(bin, r, [first, second]);
+
         const conflict = invoke('--configured-only');
         assert.equal(conflict.status, 2);
         assert.equal(conflict.stdout, '');
@@ -443,9 +485,11 @@ export const regressionCases: Array<[string, () => void]> = [
     'digest without proof, malformed digest and unknown provenance fail closed',
     () => {
       assert.throws(() => tiers.sondesRelease(release()));
+
       for (const malformed of [image.slice(0, -1), 'registry/workspace-agent@sha256:abcdef1234']) {
         assert.throws(() => tiers.sondesRelease(release(malformed), { manifest: manifest(), run }));
       }
+
       for (const overrides of [
         { sourceSha: null },
         { sourceSha: 'abc1234' },
@@ -474,6 +518,7 @@ export const regressionCases: Array<[string, () => void]> = [
       ]) {
         assert.throws(() => tiers.sondesRelease(release(), { manifest: manifest(), run: { ...run, ...overrides } }));
       }
+
       for (const overrides of [
         { repository: 'other/repo' },
         { schemaVersion: 2 },
@@ -498,6 +543,7 @@ export const regressionCases: Array<[string, () => void]> = [
       r.global.imageRegistry = 'registry/repo';
       r.services = { web: { image: 'web', imageTag: 'a'.repeat(10), imageDigest: digest } };
       assert.throws(() => tiers.sondesRelease(r, { manifest: manifest(), run }));
+
       const m = manifest();
       m.services.push({ ...m.services[0], service: 'web', image: 'web', sourceSha: 'b'.repeat(40) });
       assert.equal(tiers.sondesRelease(r, { manifest: m, run })[0].servi, 'b'.repeat(40));
@@ -513,7 +559,9 @@ export const regressionCases: Array<[string, () => void]> = [
       r.global.imageRegistry = 'registry/repo';
       r.services = { web: { image: 'web', imageDigest: '' } };
       assert.throws(() => tiers.sondesRelease(r, { manifest: manifest(), run }));
+
       const m = manifest();
+
       for (const service of Object.values(tiers.SERVICES_PAR_TIER).flat()) {
         r.services[service] = { image: service, imageDigest: '' };
         m.services.push({ ...m.services[0], service, image: service });
@@ -531,9 +579,11 @@ export const regressionCases: Array<[string, () => void]> = [
         const r = release(`registry/workspace-agent:sha-${current.slice(0, 10)}`);
         r.global = { imageTag: old.slice(0, 10), imageRegistry: 'registry/repo' };
         r.services = { web: { image: 'web', imageTag: 'not-a-source-tag', imageDigest: digest } };
+
         const m = manifest();
         m.services = [{ ...m.services[0], service: 'web', image: 'web', sourceSha: old }];
         installReleaseProof(bin, r, m);
+
         const result = invoke('--configured-only');
         assert.equal(result.status, 0, result.stderr);
         assert.equal(requiredNamed(parseCli(result.stdout).services, 'web').servi, old);
@@ -545,16 +595,20 @@ export const regressionCases: Array<[string, () => void]> = [
       repositoryFixture(({ bin, old, current, invoke }) => {
         const r = release();
         r.global.imageTag = old.slice(0, 10);
+
         const m = manifest();
         m.services[0].sourceSha = current;
         installReleaseProof(bin, r, m);
+
         const result = invoke();
         assert.equal(result.status, 2, result.stderr);
+
         const body = parseCli(result.stdout);
         assert.equal(body.scope, 'configured-source-references');
         assert.equal(body.runtimeVerification, 'not-performed');
         assert.equal(body.verdict, 'unverified');
         assert.equal(body.configuredSourcesCurrent, true);
+
         const narrow = invoke('--configured-only');
         assert.equal(narrow.status, 0, narrow.stderr);
         assert.equal(parseCli(narrow.stdout).verdict, 'configured-current');
@@ -569,9 +623,11 @@ export const regressionCases: Array<[string, () => void]> = [
         r.global.imageTag = old.slice(0, 10);
         r.global.imageRegistry = 'registry/repo';
         r.services = { web: { image: 'web', imageTag: old.slice(0, 10), imageDigest: `sha256:${'e'.repeat(64)}` } };
+
         const m = manifest();
         m.services[0].sourceSha = current;
         installReleaseProof(bin, r, m);
+
         for (const args of [[], ['--configured-only']]) {
           const result = invoke(...args);
           assert.equal(result.status, 2, result.stdout);
@@ -584,8 +640,10 @@ export const regressionCases: Array<[string, () => void]> = [
     () =>
       repositoryFixture(({ stale, old, current, git, invoke }) => {
         assert.equal(git(stale, 'rev-parse', 'origin/main'), old);
+
         const result = invoke('--configured-only');
         assert.equal(result.status, 1, result.stderr || result.stdout);
+
         const rows = parseCli(result.stdout).services;
         const agent = requiredNamed(rows, 'workspace-agent');
         assert.equal(agent.aJour, false);
@@ -608,6 +666,7 @@ export const regressionCases: Array<[string, () => void]> = [
           )});\n`,
           { mode: 0o755 },
         );
+
         const m = manifest();
         m.services[0].sourceSha = old;
         writeFileSync(
@@ -626,13 +685,16 @@ if (args[0] === 'api') {
 `,
           { mode: 0o755 },
         );
+
         for (const args of [[], ['--release-run', '123']]) {
           const result = invoke('--configured-only', ...args);
           assert.equal(result.status, 1, result.stderr);
+
           const agent = requiredNamed(parseCli(result.stdout).services, 'workspace-agent');
           assert.equal(agent.servi, old);
           assert.equal(agent.aJour, false);
         }
+
         const malformed = invoke('--release-run', '../other');
         assert.equal(malformed.status, 2);
         assert.equal(malformed.stdout, '');
@@ -660,6 +722,7 @@ else process.exit(1);
 `,
           { mode: 0o755 },
         );
+
         const result = invoke('--release-run', '123');
         assert.equal(result.status, 2);
         assert.equal(result.stdout, '');
@@ -670,6 +733,7 @@ else process.exit(1);
     () =>
       repositoryFixture(({ stale, dir, git, invoke }) => {
         git(stale, 'remote', 'set-url', 'origin', join(dir, 'missing.git'));
+
         const result = invoke();
         assert.equal(result.status, 2);
         assert.equal(result.stdout, '');
@@ -680,6 +744,7 @@ else process.exit(1);
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   let failed = 0;
+
   for (const [name, test] of regressionCases) {
     try {
       test();

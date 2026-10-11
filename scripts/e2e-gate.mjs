@@ -109,7 +109,7 @@ if (daysLeft > MAX_WINDOW_DAYS) {
 const results = new Map();
 const flaky = [];
 
-function walk(suites, trail) {
+function walk(suites, trail, vusDansCeRapport) {
   for (const suite of suites ?? []) {
     const here = suite.title ? [...trail, suite.title] : trail;
 
@@ -142,24 +142,43 @@ function walk(suites, trail) {
 
       const wasFlaky = (spec.tests ?? []).some((t) => t.status === 'flaky');
 
-      results.set(key, ok ? 'passed' : 'failed');
+      vusDansCeRapport.add(key);
 
-      if (wasFlaky) {
+      /*
+       * UN ÉCHEC N'EST JAMAIS ÉCRASÉ. Un même test peut figurer dans plusieurs
+       * rapports — en mode spec seul, chaque tranche joue tout le spec. Écrire le
+       * dernier verdict lu faisait d'un échec en tranche 1 suivi d'une réussite
+       * en tranche 4 un « passed » : un faux vert.
+       */
+      if (results.get(key) !== 'failed') {
+        results.set(key, ok ? 'passed' : 'failed');
+      }
+
+      if (wasFlaky && !flaky.includes(key)) {
         flaky.push(key);
       }
     }
 
-    walk(suite.suites, here);
+    walk(suite.suites, here, vusDansCeRapport);
   }
 }
 
 const fichiersVus = new Set();
 
-for (const report of reports) {
-  const avant = results.size;
-  walk(report.suites, []);
+/*
+ * Mode spec seul (`workflow_dispatch`, entrée `spec`) : chaque tranche joue TOUT
+ * le spec, soit quatre exécutions indépendantes. Une tranche y rejoue donc des
+ * tests déjà vus : « vide » veut dire qu'elle ne porte AUCUN test, pas qu'elle
+ * n'en apporte aucun de NOUVEAU — sinon ce mode, fait pour prouver un correctif
+ * sans la suite entière, rendait la porte rouge à chaque fois.
+ */
+const specCible = (process.env.E2E_SPEC ?? '').trim();
 
-  if (results.size === avant) {
+for (const report of reports) {
+  const vusDansCeRapport = new Set();
+  walk(report.suites, [], vusDansCeRapport);
+
+  if (vusDansCeRapport.size === 0) {
     fail(
       'un rapport ne porte AUCUN test. Une tranche vide est une tranche verte : ' +
         'la porte ne conclut pas sur une couverture amputée.',
@@ -218,9 +237,11 @@ function porteUnTestNonRuntime(chemin) {
   return appels.some((apres) => !apres.slice(0, 400).includes('@runtime'));
 }
 
-const fichiersAttendus = readdirSync(racineSpecs)
-  .filter((f) => f.endsWith('.spec.ts'))
-  .filter((f) => porteUnTestNonRuntime(resolve(racineSpecs, f)));
+const fichiersAttendus = specCible
+  ? [basename(specCible)]
+  : readdirSync(racineSpecs)
+      .filter((f) => f.endsWith('.spec.ts'))
+      .filter((f) => porteUnTestNonRuntime(resolve(racineSpecs, f)));
 
 const fichiersManquants = fichiersAttendus.filter((f) => !fichiersVus.has(f));
 

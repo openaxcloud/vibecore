@@ -1,0 +1,131 @@
+{
+  "workflowRunId": 38156140310,
+  "targetSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+  "time": "2026-10-11T17:52:55.843Z",
+  "manifestSha256": "0db4213730f9b94bab0be6516ccbdc4ee9f134648b35bb6a6613643bfdfe4a6f",
+  "rolloutSha256": "7692452f95400aa791924f9fdfa0b50799b7f5142709d6b2c77d991ed1606ea3",
+  "web": {
+    "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+    "digest": "sha256:6272f54550f6315cc4a29053646af2890459e56af7b576f9ff27d6b59823e600",
+    "rebuilt": true,
+    "rolled": true
+  },
+  "deployment": {
+    "kind": "Deployment",
+    "name": "vibecore-vibecore-platform-web",
+    "status": {
+      "replicas": 2,
+      "readyReplicas": 2,
+      "availableReplicas": 2,
+      "updatedReplicas": 2
+    },
+    "conditions": [
+      {
+        "type": "Available",
+        "status": "True",
+        "reason": "MinimumReplicasAvailable"
+      },
+      {
+        "type": "Progressing",
+        "status": "True",
+        "reason": "NewReplicaSetAvailable"
+      }
+    ],
+    "containers": []
+  },
+  "pods": [
+    {
+      "kind": "Pod",
+      "name": "vibecore-vibecore-platform-web-5c47b76656-8d5kr",
+      "status": {
+        "phase": "Running"
+      },
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "status": {
+            "name": "web",
+            "ready": true,
+            "restartCount": 0
+          },
+          "state": {
+            "running": {
+              "startedAt": "2026-10-11T17:50:00Z"
+            }
+          },
+          "lastState": {}
+        }
+      ]
+    },
+    {
+      "kind": "Pod",
+      "name": "vibecore-vibecore-platform-web-5c47b76656-wg2gz",
+      "status": {
+        "phase": "Running"
+      },
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "status": {
+            "name": "web",
+            "ready": true,
+            "restartCount": 0
+          },
+          "state": {
+            "running": {
+              "startedAt": "2026-10-11T17:51:29Z"
+            }
+          },
+          "lastState": {}
+        }
+      ]
+    }
+  ],
+  "exit": {
+    "time": "2026-10-11T17:52:55.843Z",
+    "commandExitCode": 0,
+    "evidenceComplete": true
+  }
+}
