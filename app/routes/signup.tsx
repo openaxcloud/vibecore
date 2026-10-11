@@ -85,8 +85,37 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect(`${origineApplication}/register${requestUrl.search}`, { status: 301 });
   }
 
+  /*
+   * BUG-QA-OAUTH-REGISTER-NON-GATE-001 — disponibilité des fournisseurs sociaux.
+   *
+   * `/login` interrogeait déjà cet endpoint et masquait un bouton non prêt ;
+   * `/register` ne le faisait PAS et rendait les deux inconditionnellement. Un
+   * visiteur qui cliquait « S'inscrire avec Google » sur un environnement où le
+   * fournisseur n'est pas configuré était redirigé (302) vers
+   * `/login?oauth=google&error=not_configured` : l'inscription n'aboutissait
+   * pas, ET il changeait de page au passage — renvoyé vers la CONNEXION alors
+   * qu'il voulait CRÉER un compte.
+   *
+   * Repli OUVERT, identique à `/login` : en cas d'échec de l'appel on montre
+   * les deux boutons. Masquer un fournisseur qui marche à cause d'un hoquet
+   * d'API serait pire que le défaut corrigé.
+   */
+  let providers: Array<{ provider: string; ready: boolean }> = [];
+
+  try {
+    const result = await apiRequest<{ providers: Array<{ provider: string; ready: boolean }> }>(
+      request,
+      '/auth/oauth/providers',
+      { redirectOn401: false },
+    );
+    providers = result.providers ?? [];
+  } catch {
+    providers = [];
+  }
+
   return json({
     language: resolveRequestLocale(request).language,
+    providers,
     returnTo: safeReturnTo(new URL(request.url).searchParams.get('returnTo')) ?? null,
   });
 }
@@ -208,6 +237,19 @@ export default function SignupPage() {
         fields?: { name?: string; email?: string; organizationName?: string };
       }
     | undefined;
+
+  const loaderData = useLoaderData<typeof loader>() as
+    | { language?: string; providers?: Array<{ provider: string; ready: boolean }> }
+    | undefined;
+
+  /*
+   * Règle IDENTIQUE à `/login` : on montre un bouton social sauf si le
+   * fournisseur est EXPLICITEMENT signalé non prêt. Une disponibilité inconnue
+   * (appel en échec) laisse le bouton visible — on ne masque jamais un
+   * fournisseur qui marche à cause d'un hoquet d'API.
+   */
+  const providerReady = (provider: string) =>
+    loaderData?.providers?.find((p) => p.provider === provider)?.ready !== false;
 
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
@@ -406,24 +448,28 @@ export default function SignupPage() {
       </Form>
 
       <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
-        <AuthOauthButton
-          provider="github"
-          label={t('auth.signup.github')}
-          icon={<Github className="h-4 w-4" />}
-          pendingProvider={pendingProvider}
-          onStart={startOAuth}
-          disabled={isSubmitting}
-          returnTo={returnTo}
-        />
-        <AuthOauthButton
-          provider="google"
-          label={t('auth.signup.google')}
-          icon={<Chrome className="h-4 w-4" />}
-          pendingProvider={pendingProvider}
-          onStart={startOAuth}
-          disabled={isSubmitting}
-          returnTo={returnTo}
-        />
+        {providerReady('github') ? (
+          <AuthOauthButton
+            provider="github"
+            label={t('auth.signup.github')}
+            icon={<Github className="h-4 w-4" />}
+            pendingProvider={pendingProvider}
+            onStart={startOAuth}
+            disabled={isSubmitting}
+            returnTo={returnTo}
+          />
+        ) : null}
+        {providerReady('google') ? (
+          <AuthOauthButton
+            provider="google"
+            label={t('auth.signup.google')}
+            icon={<Chrome className="h-4 w-4" />}
+            pendingProvider={pendingProvider}
+            onStart={startOAuth}
+            disabled={isSubmitting}
+            returnTo={returnTo}
+          />
+        ) : null}
       </div>
     </AuthScreen>
   );
