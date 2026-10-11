@@ -23,6 +23,7 @@ import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { translateServerMessage } from '~/lib/i18n/server';
 import { invalidateRuntimeToken } from '~/lib/runtime/RuntimeAdapterProvider';
+import { espaceDuClientDejaConnecte } from '~/lib/session-ouverte.server';
 import { origineDeLApplication } from '~/utils/origine-application';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
@@ -155,6 +156,13 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }
 
     return redirect(loginUrl.toString(), { status: 301 });
+  }
+
+  // Deuxième visite d'un client déjà connecté : son espace, pas un second mot de passe.
+  const espace = await espaceDuClientDejaConnecte(request);
+
+  if (espace) {
+    return redirect(espace);
   }
 
   const url = new URL(request.url);
