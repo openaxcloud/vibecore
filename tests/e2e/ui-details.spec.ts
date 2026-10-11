@@ -1591,7 +1591,7 @@ async function expectReducedMotionDetails(page: Page) {
   }
 }
 
-async /** Luminance relative WCAG d'une couleur `rgb(r, g, b)`. */
+/** Luminance relative WCAG d'une couleur `rgb(r, g, b)`. */
 function luminanceRelative(couleur: string): number {
   const m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/u.exec(couleur);
 
@@ -1616,7 +1616,7 @@ function contrasteSuffisant(fond: string, encre: string): boolean {
   return ratio >= 4.5;
 }
 
-function expectAnimationDetails(page: Page) {
+async function expectAnimationDetails(page: Page) {
   const details = await page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
     const root = window.getComputedStyle(document.documentElement);
     const tabOpen = window.getComputedStyle(document.querySelector('[data-testid="ui-tab-open"]')!);
