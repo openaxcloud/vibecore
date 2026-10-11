@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { afterEach, describe, expect, it } from 'vitest';
 import ProgressCompilation, { deriveProgressState } from './ProgressCompilation';
+import { API_CHAT_PROGRESS_LABELS } from '~/lib/i18n/catalogs/api-chat';
 import type { ProgressAnnotation } from '~/types/context';
 
 /**
@@ -39,7 +40,7 @@ function renderLocalized(node: ReactNode, language: 'en' | 'fr') {
 const refusDeQuota: ProgressAnnotation[] = [
   {
     type: 'progress',
-    label: 'quota-exceeded',
+    label: API_CHAT_PROGRESS_LABELS.quotaExceeded,
     status: 'complete',
     order: 0,
     message: 'Limite d’utilisation de l’IA atteinte pour ce mois.',
@@ -79,5 +80,11 @@ describe('tour refusé avant tout travail (quota épuisé)', () => {
     expect(
       deriveProgressState({ completedCount: 0, totalCount: 0, hasActiveWork: false, failed: true, refused: true }),
     ).toBe('not-started');
+  });
+
+  it('un refus après du travail ne masque pas une interruption réelle', () => {
+    expect(
+      deriveProgressState({ completedCount: 1, totalCount: 3, hasActiveWork: false, failed: true, refused: true }),
+    ).toBe('interrupted');
   });
 });
