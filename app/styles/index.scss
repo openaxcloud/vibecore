@@ -1174,9 +1174,19 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-overlay: rgba(0, 0, 0, 0.1);
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
-  // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
-  --ecode-accent-text: #c74e00;
-  --ecode-accent-text-hover: #a33c00;
+  /*
+   * Orange AA pour le TEXTE et les liens sur fond clair ; les aplats gardent
+   * --ecode-accent.
+   *
+   * Assombri de #c74e00 à #a94100. #c74e00 ne passait AA que sur du BLANC PUR
+   * (4,65:1) : sur une surface un peu teintée il repassait sous le seuil —
+   * 4,11:1 sur --ecode-surface-secondary, 4,14:1 sur une pastille d'accent à
+   * 10 %, 3,70:1 sur cette pastille posée sur la surface secondaire.
+   * #a94100 : 6,10:1 sur blanc, au-dessus de 4,5 dans les trois cas
+   * (theme-token-parity.spec.ts).
+   */
+  --ecode-accent-text: #a94100;
+  --ecode-accent-text-hover: #8f3600;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
   /*
