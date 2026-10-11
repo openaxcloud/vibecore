@@ -979,7 +979,10 @@ describe('project IDE memory ETag / If-Match', () => {
       });
       vi.stubGlobal('fetch', fetchMock);
 
-      const lecture = getProjectIdeMemory(projectId);
+      const lecture = getProjectIdeMemory(projectId).then(
+        (memory) => ({ memory }),
+        (error: unknown) => ({ error }),
+      );
 
       await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_DEADLINES_MS[0]);
       await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_RETRY_DELAYS_MS[0]);
@@ -987,7 +990,7 @@ describe('project IDE memory ETag / If-Match', () => {
       await vi.advanceTimersByTimeAsync(PROJECT_IDE_MEMORY_LOAD_RETRY_DELAYS_MS[1]);
 
       await expect(lecture, 'la lecture doit finir par aboutir').resolves.toMatchObject({
-        ui: { agentWidth: 321 },
+        memory: { ui: { agentWidth: 321 } },
       });
       expect(fetchMock, 'trois tentatives attendues').toHaveBeenCalledTimes(3);
     } finally {
