@@ -117,7 +117,8 @@ export default function VercelConnection() {
       hasInitialized.current = false;
       console.error('Vercel: initialisation échouée, loquet libéré pour un nouvel essai', error);
     });
-      /*
+
+    /*
      * ET les dépendances sont celles qui décident QUOI faire (apport de #370) :
      * avec un tableau vide, une tentative échouée ne pourrait jamais être
      * retentée MÊME loquet libéré, et un jeton arrivé après le montage ne
