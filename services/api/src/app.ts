@@ -4788,6 +4788,9 @@ function isReadOnlyProjectRole(role?: string) {
   return role === 'viewer';
 }
 
+/** Le seul rôle qu'un lien de partage peut conférer (voir POST …/share-links). */
+const ROLE_PARTAGE_LECTURE_SEULE = 'viewer';
+
 function normalizeProjectPath(path?: string) {
   if (!path) {
     return undefined;
@@ -25299,6 +25302,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { removed: true };
   });
+  /**
+   * UIB-16 — le panneau Collaborateurs nomme les personnes.
+   *
+   * Mesuré le 2026-10-01 sur la copie locale : la présence affichait
+   * « Participant 1 » pour l'utilisateur connecté. Les lignes de présence, de
+   * collaborateurs et de commentaires ne portaient que `userId`, et l'interface
+   * se rabattait sur un libellé générique. On joint le NOM seulement (jamais
+   * l'adresse) : ce que voient déjà les membres du projet.
+   */
+  async function avecNomPersonne<T extends { userId: string }>(lignes: T[]): Promise<Array<T & { name?: string }>> {
+    const noms = new Map<string, string | undefined>();
+
+    await Promise.all(
+      [...new Set(lignes.map((ligne) => ligne.userId).filter(Boolean))].map(async (userId) => {
+        noms.set(userId, (await store.findUserById(userId))?.name ?? undefined);
+      }),
+    );
+
+    return lignes.map((ligne) => ({ ...ligne, name: noms.get(ligne.userId) }));
+  }
+
+  const avecNomUnePersonne = async <T extends { userId: string }>(ligne: T) => (await avecNomPersonne([ligne]))[0];
+
   app.get('/projects/:projectId/collaboration', async (request) => {
     const project = await requireProject(
       request,
@@ -25316,9 +25342,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : {};
 
     return {
-      collaborators: await store.listProjectCollaborators(project.id),
-      presence: await store.listCollaborationPresence(project.id),
-      comments: await store.listCollaborationComments(project.id),
+      collaborators: await avecNomPersonne(await store.listProjectCollaborators(project.id)),
+      presence: await avecNomPersonne(await store.listCollaborationPresence(project.id)),
+      comments: await avecNomPersonne(await store.listCollaborationComments(project.id)),
       activity: await store.listProjectActivity(project.id),
       shareLinks: (await store.listProjectShareLinks(project.id)).map(({ tokenHash: _tokenHash, ...link }) => link),
       documents: collaborationState.documents ?? {},
@@ -25358,9 +25384,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       mode: isReadOnlyProjectRole(role) ? 'read-only' : body.mode,
       terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
     });
-    collaborationBroker.publish(project.id, { type: 'presence.update', presence });
+    const presenceNommee = await avecNomUnePersonne(presence);
+    collaborationBroker.publish(project.id, { type: 'presence.update', presence: presenceNommee });
 
-    return { presence };
+    return { presence: presenceNommee };
   });
   app.delete('/projects/:projectId/collaboration/presence/:sessionId', async (request, reply) => {
     const project = await requireProject(
@@ -25637,6 +25664,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(collaborationShareLinkSchema, request.body);
+
+    /*
+     * UN LIEN DE PARTAGE NE DONNE QUE LA LECTURE. Décision du 2026-10-11.
+     *
+     * Mesuré le 2026-10-06 (docs/bugs/qa-2026-10-06/repro-lien-de-partage-places) :
+     * sur un forfait gratuit à UNE place, une invitation était bien refusée
+     * (429 QUOTA_EXCEEDED) — et un lien `member` de 30 jours donnait ensuite
+     * l'ÉCRITURE à six comptes d'affilée, tous à 200, sans qu'aucune place soit
+     * consommée. Le lien contournait donc entièrement le quota que l'invitation
+     * fait respecter : deux portes vers le même droit, une seule comptée.
+     *
+     * On refuse explicitement au lieu de rétrograder en silence : un propriétaire
+     * qui demande un lien d'écriture doit APPRENDRE qu'il lui faut une invitation,
+     * sinon il croit avoir partagé l'écriture et ne le découvre jamais.
+     */
+    if (!isReadOnlyProjectRole(body.roleKey ?? 'viewer')) {
+      return reply.code(409).send({
+        error: {
+          code: 'SHARE_LINK_WRITE_NOT_ALLOWED',
+          message: appPublicEnglish('SHARE_LINK_WRITE_NOT_ALLOWED'),
+        },
+      });
+    }
+
     const token = createOpaqueToken('share');
     const roleKey = body.roleKey ?? 'viewer';
     const expiresInMinutes = body.expiresInMinutes ?? 60 * 24;
@@ -25753,10 +25804,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Inherit the share link's expiry so a TIME-LIMITED link doesn't grant
        * PERMANENT access. projectCollaborationRole ignores expired grants.
        */
+      /*
+       * SECONDE MOITIÉ DE LA MÊME GARDE, et elle n'est pas redondante : la
+       * création refuse désormais un rôle d'écriture, mais un lien ÉMIS AVANT
+       * cette garde porte encore `member` en base. On bride donc au moment où
+       * le droit est accordé, pas seulement au moment où il est demandé.
+       *
+       * Mesuré en production le 2026-10-11, avant de livrer : `ProjectShareLink`
+       * = 0 ligne et `ProjectCollaborator` = 0 ligne, contre 173 projets et 400
+       * comptes (contrôle positif). AUCUN lien existant ne perd donc l'écriture
+       * — la coupure est franche parce qu'il n'y a rien à faire transiter.
+       * Ce bridage ne sert pas le passé : il sert le jour où quelqu'un rouvrira
+       * un chemin de création sans repasser par la garde ci-dessus.
+       */
       await store.addProjectCollaborator({
         projectId: project.id,
         userId,
-        roleKey: link.roleKey,
+        roleKey: ROLE_PARTAGE_LECTURE_SEULE,
         expiresAt: link.expiresAt ? new Date(link.expiresAt) : null,
       });
       await store.recordProjectActivity({
@@ -26087,13 +26151,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       })();
     });
 
-    collaborationBroker.publish(project.id, { type: 'presence.join', presence }, client);
+    collaborationBroker.publish(project.id, { type: 'presence.join', presence: await avecNomUnePersonne(presence) }, client);
     client.send(
       JSON.stringify({
         type: 'collaboration.ready',
         projectId: project.id,
-        presence: await store.listCollaborationPresence(project.id),
-        comments: await store.listCollaborationComments(project.id),
+        presence: await avecNomPersonne(await store.listCollaborationPresence(project.id)),
+        comments: await avecNomPersonne(await store.listCollaborationComments(project.id)),
         timestamp: new Date().toISOString(),
       }),
     );
@@ -26161,7 +26225,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             terminalAccess: isReadOnlyProjectRole(role) ? false : body.terminalAccess,
           });
           ownPresenceUpdatedAt = updated.updatedAt;
-          collaborationBroker.publish(project.id, { type: 'presence.update', presence: updated }, client);
+          collaborationBroker.publish(
+            project.id,
+            { type: 'presence.update', presence: await avecNomUnePersonne(updated) },
+            client,
+          );
 
           return;
         }
