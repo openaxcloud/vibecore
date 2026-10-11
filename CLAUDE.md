@@ -417,6 +417,59 @@ généraux : ce sont des pièges qui ont déjà coûté.
     worktree : vérifier vers quoi le paquet résout. Pour une sortie tronquée :
     filtrer sur la ligne de verdict, jamais sur les dernières lignes.
 
+20. **« Timed out waiting for required checks » n'est PAS un échec — c'est une
+    famine.** Même famille que « un `cancelled` ne vaut pas verdict » (règle 3) :
+    un contexte REQUIS passe au rouge sans qu'une ligne de code soit en cause.
+
+    Mesuré le 2026-10-11 à 13:05 : `Quality Gates` de #701 rend
+    `Timed out waiting for required checks: CodeQL Analysis (javascript)` — et ce
+    CodeQL était **encore `IN_PROGRESS`** au moment où je l'ai lu. La chaîne est
+    mécanique : `Quality Gates` attend CodeQL, CodeQL attend un coureur, et le
+    premier expire. Trois autres propositions étaient sur la même trajectoire,
+    dont la prioritaire.
+
+    **On relance, on ne diagnostique pas.** Et on relance **le seul contrôle
+    concerné** : ni refermer la proposition, ni la rebaser — un rebase redémarre
+    TOUS ses contrôles et aggrave la famine qui a causé l'expiration.
+
+    Le témoin qui distingue les deux cas en dix secondes : lire l'état du
+    contrôle que l'expiration nomme. S'il est `IN_PROGRESS` ou `QUEUED`, c'est
+    une famine. S'il est `FAILURE`, c'est un défaut.
+
+21. **Deux propositions en vol au maximum.** Ouvrir huit propositions en même
+    temps ne coûte pas des déploiements, ça coûte des **coureurs** — et le
+    premier affamé est toujours le déploiement, parce qu'il est le dernier
+    arrivé.
+
+    Mesuré le 2026-10-11 : avec huit propositions ouvertes, **51 runs en file
+    pour 8 en exécution**, le déploiement de #660 est resté `queued` **34 min**
+    sans démarrer, et la durée médiane des contrôles d'une proposition est passée
+    de **20 min** (file calme, 18 mesures avant 10:00 UTC) à **49 min**
+    (12 mesures entre 10:55 et 12:03). La famine a ensuite fabriqué un faux
+    échec REQUIS (règle 20).
+
+    **Une branche prête attend son tour FERMÉE** plutôt que de manger des
+    coureurs. Et la file ne se « libère » pas par annulation : elle est dominée
+    par les chemins requis — `Production E2E` porte « Playwright local stack »,
+    `Security Analysis` porte CodeQL attendu par `Quality Gates`. Les annuler
+    fabrique exactement les faux échecs de la règle 20, sur les propositions
+    qu'on veut fusionner. **Le seul levier est de ne pas en ouvrir une de plus.**
+
+22. **Un test s'ancre sur le DÉTECTEUR, pas sur une chaîne choisie par son
+    auteur.** C'est la forme la plus solide rencontrée sur ce projet, et elle
+    vient de #705 : au lieu d'affirmer que le libellé vaut telle chaîne, son test
+    appelle **`findFrenchAuditResidue`** — le détecteur de l'audit i18n lui-même —
+    et vérifie qu'il ne signale rien.
+
+    La différence décide : un test qui épingle une chaîne passe au vert dès que
+    son auteur a écrit la même chaîne des deux côtés, et il ne dit rien de ce que
+    le gardien en pensera. Un test qui interroge le détecteur ne peut pas être
+    d'accord avec lui-même — il ne passe que si le garde-fou réel est satisfait.
+
+    Généralisation : quand un garde-fou existe déjà quelque part (audit, linter,
+    validateur, porte de CI), un test doit l'APPELER plutôt que de reproduire son
+    critère. Reproduire un critère, c'est créer une seconde vérité qui dérivera.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
