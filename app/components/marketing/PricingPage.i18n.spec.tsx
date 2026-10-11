@@ -43,10 +43,10 @@ describe('localized Pricing page behavior', () => {
     expect(annuels.some((texte) => /950,40[\u00a0\u202f]€/u.test(texte))).toBe(true);
 
     // Le bouton emmène l'offre ET la période jusqu'au paiement (il menait à /register : l'offre était perdue).
-    expect(screen.getByRole('link', { name: /Choisir Pro/u }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: /Choisir la formule Pro/u }).getAttribute('href')).toBe(
       '/subscribe?plan=pro&interval=annual',
     );
-    expect(screen.getByRole('link', { name: /Choisir Team/u }).getAttribute('href')).toBe(
+    expect(screen.getByRole('link', { name: /Choisir la formule Team/u }).getAttribute('href')).toBe(
       '/subscribe?plan=team&interval=annual',
     );
 
