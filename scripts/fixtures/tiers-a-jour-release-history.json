@@ -1,0 +1,445 @@
+[
+  {
+    "artifactId": 11713435281,
+    "manifest": {
+      "schemaVersion": 1,
+      "repository": "openaxcloud/vibecore",
+      "targetSha": "80f1de14794b134a7073d20b708254d690ff6626",
+      "shortSha": "80f1de1479",
+      "registry": "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers",
+      "workflowRunUrl": "https://github.com/openaxcloud/vibecore/actions/runs/38165474193",
+      "gateVerdictSha256": "54624fa14a9e90c82a3b8d600d0fb14714e670df4b891bcff8c6ff7d12f39fb3",
+      "generatedAt": "2026-10-11T19:33:18.547Z",
+      "provenanceGaps": [
+        "admin",
+        "api",
+        "worker",
+        "aiGateway",
+        "workspaceManager",
+        "previewProxy",
+        "screenshotter",
+        "workspaceAgent"
+      ],
+      "fullyTraceable": false,
+      "services": [
+        {
+          "service": "web",
+          "image": "web",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "80f1de14794b134a7073d20b708254d690ff6626",
+          "provenanceKnown": true,
+          "tag": "80f1de1479",
+          "digest": "sha256:158999199081796edcceab5c48935763ae43a5d7cb91436345e8515b9096d4ba",
+          "rebuilt": true,
+          "cloudBuildId": "77646744-c5a2-40cc-98ef-9865d3af7d8d",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "d842eb34a47e06448eedd6515c79abeeb5d3c45ca229ec866141e08be77976f6",
+            "artifact": "sbom/web.cdx.json"
+          }
+        },
+        {
+          "service": "admin",
+          "image": "admin",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:4a8cedc292d84663aa6a405f303d2046f3a5095a576ad3f237ef92e566c79a67",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "c8c36acd76b1179f23e2446eea4499d5a3db0e46af4cb2219566460b5136eb5b",
+            "artifact": "sbom/admin.cdx.json"
+          }
+        },
+        {
+          "service": "api",
+          "image": "api",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:4c331d7ae5ea928208a048a0227a09bed516edbce63c82512cf7959b77de985e",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "8b92c56ed547405b7511f442d066457076e82ecc7fda4231501a52ef70f73f13",
+            "artifact": "sbom/api.cdx.json"
+          }
+        },
+        {
+          "service": "worker",
+          "image": "worker",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:e232cb702a28b783c1b1cd4a63634c5a1e349dccb4ee115b1681bd64c02a0e62",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "1568d692154d3ff2f9832999c9bb2a2ca897b0f51b9f26c742bbebaa5722465d",
+            "artifact": "sbom/worker.cdx.json"
+          }
+        },
+        {
+          "service": "aiGateway",
+          "image": "ai-gateway",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:3f1a4ea8640f8368d01b567ca1da34701a752cab5cfaa19b7e320205d5ab1ba5",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "1688fafa36ab5e6d29c548eb3df6411be1ddb1095995fe6f590d617758df74b9",
+            "artifact": "sbom/aiGateway.cdx.json"
+          }
+        },
+        {
+          "service": "workspaceManager",
+          "image": "workspace-manager",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:d3e261c67620026407120c9e8ef0ba4c340df89635791730da85168711dd22d6",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "bc15a2e73818f2ea356f30dd658793960d915f7adb57d9bdc7bafae6937fa497",
+            "artifact": "sbom/workspaceManager.cdx.json"
+          }
+        },
+        {
+          "service": "previewProxy",
+          "image": "preview-proxy",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:85318e1a0d5fd0c270f93fccc2b49212a693fd547b5d8b36fad192139aff690a",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "e099fbf2fee1a83cafa7b9ccf2ec055eb93824e9aa40038ada7a3cf28af16a77",
+            "artifact": "sbom/previewProxy.cdx.json"
+          }
+        },
+        {
+          "service": "screenshotter",
+          "image": "screenshotter",
+          "chartService": true,
+          "rolled": false,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:92008385f56055f9876ddb4c117e019ef589fba91cf0e8d8e4b57927c36af8cf",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "f5b7310729cb41df534a00ec936a25ec8cc05f4097672b35554c636e0000cf48",
+            "artifact": "sbom/screenshotter.cdx.json"
+          }
+        },
+        {
+          "service": "workspaceAgent",
+          "image": "workspace-agent",
+          "chartService": false,
+          "rolled": false,
+          "sourceSha": null,
+          "provenanceKnown": false,
+          "tag": "",
+          "digest": "sha256:c8cd060e91770a75e189161544aea13eb7c46b9b1f9eec7ec758198af9d5bd7c",
+          "rebuilt": false,
+          "cloudBuildId": null,
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "58a4ee1040ea6ba547cde5583a330f9c5d726f4813208fa35a69a4df5f452b49",
+            "artifact": "sbom/workspaceAgent.cdx.json"
+          }
+        }
+      ]
+    },
+    "run": {
+      "id": 38165474193,
+      "repository": {
+        "full_name": "openaxcloud/vibecore"
+      },
+      "path": ".github/workflows/deploy-main.yml",
+      "head_branch": "main",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push"
+    }
+  },
+  {
+    "artifactId": 11709879003,
+    "manifest": {
+      "schemaVersion": 1,
+      "repository": "openaxcloud/vibecore",
+      "targetSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+      "shortSha": "4f7c07f7a3",
+      "registry": "europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers",
+      "workflowRunUrl": "https://github.com/openaxcloud/vibecore/actions/runs/38156140310",
+      "gateVerdictSha256": "1d9b318cb9819167cdd1037aac957efecee0956d3eaf709b5d595b0fa26c9268",
+      "generatedAt": "2026-10-11T17:47:06.269Z",
+      "provenanceGaps": [],
+      "fullyTraceable": true,
+      "services": [
+        {
+          "service": "web",
+          "image": "web",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:6272f54550f6315cc4a29053646af2890459e56af7b576f9ff27d6b59823e600",
+          "rebuilt": true,
+          "cloudBuildId": "de013011-d975-4ae2-b2fa-249e609a4a1c",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "65ce76d7be94b4be8b32460f291f077548cf7185d4636b19fa1dd9b6b91d7be0",
+            "artifact": "sbom/web.cdx.json"
+          }
+        },
+        {
+          "service": "admin",
+          "image": "admin",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:4a8cedc292d84663aa6a405f303d2046f3a5095a576ad3f237ef92e566c79a67",
+          "rebuilt": true,
+          "cloudBuildId": "0bb26844-28c6-4055-ac3e-80c18ee2354c",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "2e21ef99f850629c302733c0ac7e8601c51feda1dc77bad6bac21626cbaa03e4",
+            "artifact": "sbom/admin.cdx.json"
+          }
+        },
+        {
+          "service": "api",
+          "image": "api",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:4c331d7ae5ea928208a048a0227a09bed516edbce63c82512cf7959b77de985e",
+          "rebuilt": true,
+          "cloudBuildId": "bb522159-642c-4afc-9d20-259aac654a00",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "de2ec928e3ec43b0f0ac73ed636352ab85509678286c717b6628b6f69a21b035",
+            "artifact": "sbom/api.cdx.json"
+          }
+        },
+        {
+          "service": "worker",
+          "image": "worker",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:e232cb702a28b783c1b1cd4a63634c5a1e349dccb4ee115b1681bd64c02a0e62",
+          "rebuilt": true,
+          "cloudBuildId": "bb522159-642c-4afc-9d20-259aac654a00",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "a1ef0a66b61d5856986bae90a17822abb2000a440b32083a5de90e797107fea4",
+            "artifact": "sbom/worker.cdx.json"
+          }
+        },
+        {
+          "service": "aiGateway",
+          "image": "ai-gateway",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:3f1a4ea8640f8368d01b567ca1da34701a752cab5cfaa19b7e320205d5ab1ba5",
+          "rebuilt": true,
+          "cloudBuildId": "bb522159-642c-4afc-9d20-259aac654a00",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "4824991136d6353e4fe630628d86349a814c60ea60ea81993202a9dc3bdcb50b",
+            "artifact": "sbom/aiGateway.cdx.json"
+          }
+        },
+        {
+          "service": "workspaceManager",
+          "image": "workspace-manager",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:d3e261c67620026407120c9e8ef0ba4c340df89635791730da85168711dd22d6",
+          "rebuilt": true,
+          "cloudBuildId": "bb522159-642c-4afc-9d20-259aac654a00",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "5f89be9248fd50a208d7e346d42e5708934090a3c92a08cfb2dd5dcbd94b5c30",
+            "artifact": "sbom/workspaceManager.cdx.json"
+          }
+        },
+        {
+          "service": "previewProxy",
+          "image": "preview-proxy",
+          "chartService": true,
+          "rolled": true,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:85318e1a0d5fd0c270f93fccc2b49212a693fd547b5d8b36fad192139aff690a",
+          "rebuilt": true,
+          "cloudBuildId": "bb522159-642c-4afc-9d20-259aac654a00",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "de10fbaf9992fdd31f924e805e64a075801d43e37f1031a4e6fd86f2e23dee89",
+            "artifact": "sbom/previewProxy.cdx.json"
+          }
+        },
+        {
+          "service": "screenshotter",
+          "image": "screenshotter",
+          "chartService": true,
+          "rolled": false,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "4f7c07f7a3",
+          "digest": "sha256:92008385f56055f9876ddb4c117e019ef589fba91cf0e8d8e4b57927c36af8cf",
+          "rebuilt": true,
+          "cloudBuildId": "bb522159-642c-4afc-9d20-259aac654a00",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "b810380efae6377b3a41c0ecb1dd25498537b47a6c03bf347bf6e8026319d5f9",
+            "artifact": "sbom/screenshotter.cdx.json"
+          }
+        },
+        {
+          "service": "workspaceAgent",
+          "image": "workspace-agent",
+          "chartService": false,
+          "rolled": false,
+          "sourceSha": "4f7c07f7a38e47f6e08c4a2a64de46382622af21",
+          "provenanceKnown": true,
+          "tag": "sha-4f7c07f7a3",
+          "digest": "sha256:c8cd060e91770a75e189161544aea13eb7c46b9b1f9eec7ec758198af9d5bd7c",
+          "rebuilt": true,
+          "cloudBuildId": "89cd60df-4e6b-4582-898e-591f37009d1f",
+          "signature": {
+            "verified": true,
+            "key": "gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+          },
+          "sbom": {
+            "format": "cyclonedx-json",
+            "sha256": "586fac12c04093a3ed2a353ba471a04f7027d96b56fcb81adbec0e3d97e0ce29",
+            "artifact": "sbom/workspaceAgent.cdx.json"
+          }
+        }
+      ]
+    },
+    "run": {
+      "id": 38156140310,
+      "repository": {
+        "full_name": "openaxcloud/vibecore"
+      },
+      "path": ".github/workflows/deploy-main.yml",
+      "head_branch": "main",
+      "status": "completed",
+      "conclusion": "success",
+      "event": "push"
+    }
+  }
+]
