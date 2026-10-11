@@ -67,5 +67,3 @@ piste.
 pire que pas de garde-fou, parce qu'il rassure. Vérifier qu'un test porte sur la
 famille RÉELLEMENT utilisée à l'écran, et préférer une énumération dérivée du
 produit à une liste écrite à la main.
-
-

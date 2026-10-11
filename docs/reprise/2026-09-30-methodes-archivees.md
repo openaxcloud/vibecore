@@ -261,4 +261,3 @@ gratuit, il est **dangereux**. Il avance `main`, donc il **écarte** le déploie
 attend dans le groupe de concurrence, puis ne déploie rien lui-même. Les lots qui sautent
 ne se fusionnent que **file de déploiement vide**. C'est la règle d'au-dessus — celle-ci
 dit juste comment savoir, sans se tromper, lesquels sautent.
-
