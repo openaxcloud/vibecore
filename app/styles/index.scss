@@ -8248,6 +8248,9 @@ body :where(.lucide, svg[data-lucide]) {
     -webkit-user-select: none;
     user-select: none;
   }
+}
+
+/*
  * Bandeau d'échec de chargement de la conversation.
  *
  * Le bouton est à 44 px, exprimés en PIXELS : la base rem du produit vaut 12 px
