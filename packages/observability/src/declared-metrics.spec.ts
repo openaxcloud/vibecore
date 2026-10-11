@@ -53,21 +53,18 @@ describe('métriques déclarées', () => {
   it('déclare toute métrique référencée par un littéral dans les services', () => {
     const declarees = new Set(platformMetricDefinitions.map((d) => d.name));
     const manquantes = new Map<string, string>();
+    const vues = new Set<string>();
 
     for (const dossier of DOSSIERS) {
-      let fichiers: string[];
-
-      try {
-        fichiers = fichiersTypeScript(join(RACINE, dossier));
-      } catch {
-        /* un service absent du checkout n'est pas un échec de ce test */
-        continue;
-      }
+      const fichiers = fichiersTypeScript(join(RACINE, dossier));
+      expect(fichiers.length, `sources examinées dans ${dossier}`).toBeGreaterThan(0);
 
       for (const fichier of fichiers) {
         const source = readFileSync(fichier, 'utf8');
 
         for (const [, nom] of source.matchAll(APPEL)) {
+          vues.add(nom);
+
           if (!declarees.has(nom)) {
             manquantes.set(nom, fichier.slice(RACINE.length));
           }
@@ -75,6 +72,8 @@ describe('métriques déclarées', () => {
       }
     }
 
+    expect(vues.size, 'appels de métriques effectivement examinés').toBeGreaterThan(0);
+    expect(vues.has('workspace_runtime_reseed_total'), 'témoin de la métrique historiquement omise').toBe(true);
     expect(Object.fromEntries(manquantes)).toEqual({});
   });
 
