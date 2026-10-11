@@ -1,0 +1,3 @@
+avant suppression — lecture : 200
+volume après SUPPRESSION : DÉTRUIT
+après suppression + réouverture — lecture du fichier : 404 (PERDU — la lecture sait détecter une perte)

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-394 entrées.
+395 entrées.
 
 ## Sans section
 
@@ -433,6 +433,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-QA1001-RETOUR-PERD-LES-MODIFICATIONS](docs/bugs/BUG-QA1001-RETOUR-PERD-LES-MODIFICATIONS.md) — P0 — Retour sur un projet existant : chaque réouverture remplace la copie SERVEUR du projet par la version — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1001-ANNUEL-FACTURE-AU-MOIS](docs/bugs/BUG-QA1001-ANNUEL-FACTURE-AU-MOIS.md) — Paiement : un client qui choisit la facturation ANNUELLE est abonné au prix MENSUEL quand le prix annuel — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1001-PRO-UNE-SEULE-PLACE](docs/bugs/BUG-QA1001-PRO-UNE-SEULE-PLACE.md) — Le forfait Pro (29 €/mois) n'avait qu'UNE place d'équipe — celle du propriétaire : un client qui paie ne — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE](docs/bugs/BUG-QA1001-PUBLIER-MET-EN-VEILLE-L-AUTRE-ESPACE.md) — Un client gratuit qui publie un projet pendant qu'un autre de ses projets tient son unique espace actif — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Sans section
 
