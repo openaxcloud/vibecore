@@ -120,6 +120,14 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Helm for installation regression checks
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
+        with:
+          version: v3.16.2
+
+      - name: From-scratch installation contracts (rendering and isolated commands)
+        run: node --test infra/scripts/test-installation-neuve.mjs
+
       - name: Strict rollout diagnostics typecheck and bundle reproducibility
         run: |
           pnpm exec tsc --project tsconfig.rollout-diagnostics.json --noEmit --pretty false
