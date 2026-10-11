@@ -1631,7 +1631,6 @@ export class TestApiStore implements ApiStore {
       gitPath: `.vibecore-workspaces/${workspaceId}`,
       environment: input.environment ?? 'development',
       createdAt: now(),
-      updatedAt: now(),
     };
     this.workspaces.set(workspace.id, workspace);
 
@@ -5046,9 +5045,6 @@ export class TestApiStore implements ApiStore {
     }
 
     workspace.status = input.status;
-
-    /* Comme Prisma (`@updatedAt`) : tout changement de statut date la ligne. */
-    workspace.updatedAt = now();
 
     return workspace;
   }

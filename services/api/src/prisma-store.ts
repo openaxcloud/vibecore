@@ -6631,7 +6631,6 @@ function mapWorkspace(workspace: any): WorkspaceRecord {
     gitRepositoryUrl: workspace.gitRepositoryUrl ?? undefined,
     environment: workspace.environment ?? undefined,
     createdAt: toIso(workspace.createdAt)!,
-    updatedAt: toIso(workspace.updatedAt),
   };
 }
 

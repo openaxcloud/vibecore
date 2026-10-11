@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { planByKey, type PlanKey } from '@vibecore/billing';
 import { workspacePod, type WorkspacePlan } from '@vibecore/k8s-client';
@@ -28,7 +27,7 @@ import { TestApiStore } from './test-api-store.js';
 
 type CorpsDeDemarrage = { plan: WorkspacePlan; resourceLimits?: Record<string, number> };
 
-async function demarrerFauxRuntime() {
+async function demarrerFauxRuntime(etatConnuDuManager: { status: string; updatedAt?: string } = { status: 'STOPPED' }) {
   /* Agent injoignable : la lecture doit demander un démarrage (chemin A). */
   const agent = createServer((_request, response) => response.writeHead(503).end('{}'));
   await new Promise<void>((resolve) => agent.listen(0, '127.0.0.1', resolve));
@@ -56,7 +55,7 @@ async function demarrerFauxRuntime() {
         return;
       }
 
-      response.end(JSON.stringify(chemin.endsWith('/agent-token') ? { token: 'jeton-test' } : { status: 'STOPPED' }));
+      response.end(JSON.stringify(chemin.endsWith('/agent-token') ? { token: 'jeton-test' } : etatConnuDuManager));
     });
   });
 
@@ -224,15 +223,37 @@ describe('un seul gabarit par espace, quel que soit le chemin qui le démarre', 
     });
   }
 
-  it('une lecture pendant un démarrage DÉJÀ EN COURS ne rappelle pas le manager', async () => {
-    runtime = await demarrerFauxRuntime();
-
+  it('une lecture pendant un démarrage DÉJÀ EN COURS (selon le manager) ne rappelle pas le manager', async () => {
+    runtime = await demarrerFauxRuntime({ status: 'STARTING', updatedAt: new Date().toISOString() });
     const banc = await preparer('enterprise', 'STARTING');
 
     await banc.lire();
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     expect(runtime.recus.filter((x) => x.chemin === '/workspaces/start')).toHaveLength(0);
+  });
+
+  it('un démarrage PÉRIMÉ (STARTING depuis plus de 10 min selon le manager) est relancé par la lecture', async () => {
+    runtime = await demarrerFauxRuntime({
+      status: 'STARTING',
+      updatedAt: new Date(Date.now() - 11 * 60_000).toISOString(),
+    });
+    const banc = await preparer('enterprise', 'STARTING');
+
+    await banc.lire();
+    await attendre(() => runtime!.recus.some((x) => x.chemin === '/workspaces/start'));
+
+    expect(runtime.recus.filter((x) => x.chemin === '/workspaces/start')).toHaveLength(1);
+  });
+
+  it('une ligne STARTING que le manager ne connaît pas comme démarrage en cours est relancée', async () => {
+    runtime = await demarrerFauxRuntime({ status: 'STOPPED' });
+    const banc = await preparer('enterprise', 'STARTING');
+
+    await banc.lire();
+    await attendre(() => runtime!.recus.some((x) => x.chemin === '/workspaces/start'));
+
+    expect(runtime.recus.filter((x) => x.chemin === '/workspaces/start')).toHaveLength(1);
   });
 
   it('contre-épreuve : une lecture sur un espace ÉTEINT le démarre toujours', async () => {
@@ -298,22 +319,4 @@ describe('aucun forfait payant ne perd de ressources', () => {
       }
     });
   }
-});
-
-describe('la date de dernière modification d’un espace atteint vraiment le code', () => {
-  /*
-   * L'exclusion « démarrage déjà en cours » lit `record.updatedAt`. Les bancs
-   * ci-dessus passent par le magasin de test ; en production, c'est
-   * `mapWorkspace` (prisma-store) qui fabrique l'enregistrement. Il ne recopiait
-   * PAS `updatedAt` : l'exclusion y aurait jugé tout démarrage périmé et n'aurait
-   * jamais rien exclu — sans un seul test rouge. Cette garde rougit si la ligne
-   * disparaît.
-   */
-  it('mapWorkspace recopie updatedAt', () => {
-    const source = readFileSync(new URL('../prisma-store.ts', import.meta.url), 'utf8');
-    const corps = /function mapWorkspace\(workspace: any\): WorkspaceRecord \{([\s\S]*?)\n\}/.exec(source)?.[1] ?? '';
-
-    expect(corps, 'mapWorkspace introuvable').toContain('createdAt: toIso(workspace.createdAt)');
-    expect(corps).toContain('updatedAt: toIso(workspace.updatedAt)');
-  });
 });

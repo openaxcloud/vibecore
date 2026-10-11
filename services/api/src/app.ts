@@ -15665,11 +15665,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * relance, comme avant.
        */
       if (['PENDING', 'STARTING'].includes(record.status as string)) {
-        const depuis = Date.now() - new Date(record.updatedAt ?? 0).getTime();
+        /*
+         * La ligne de l'api ne date pas ses transitions de façon fiable (voir
+         * `reconcileWorkspaceStatus`, dont la grâce repose sur un `updatedAt`
+         * jamais transmis) : on demande au MANAGER, comme
+         * `reconcileOrphanedActiveWorkspaces`. Un démarrage qu'il dit en cours
+         * depuis moins que le délai de provisionnement est laissé aboutir ; un
+         * démarrage qu'il ne connaît pas, ou trop ancien, est relancé.
+         */
+        const enCours = await managerRequest<{ status?: string; updatedAt?: string }>(
+          `/workspaces/${encodeURIComponent(workspaceId)}`,
+        )
+          .then((manager) => {
+            const depuis = Date.now() - new Date(manager?.updatedAt ?? 0).getTime();
 
-        if (depuis < WORKSPACE_PROVISION_DEADLINE_MS) {
+            return ['PENDING', 'STARTING'].includes(manager?.status ?? '') && depuis < WORKSPACE_PROVISION_DEADLINE_MS;
+          })
+          .catch(() => false);
+
+        if (enCours) {
           journal?.info(
-            { workspaceId, event: 'workspace.read_triggered_start_skipped_in_flight', depuisMs: depuis },
+            { workspaceId, event: 'workspace.read_triggered_start_skipped_in_flight' },
             'demarrage deja en cours : la lecture ne le relance pas',
           );
 
