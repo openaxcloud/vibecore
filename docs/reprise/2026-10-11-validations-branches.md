@@ -23,3 +23,9 @@ Chaque ligne correspond à une vraie fusion sur main c7a6fa5025 dans un arbre je
 | [#606](https://github.com/openaxcloud/vibecore/pull/606) | `8b7b3a4843` | Deux variables absentes ; corrigées dans le lot outillage, 4 tests verts | CI et live restent requis |
 | [#512](https://github.com/openaxcloud/vibecore/pull/512) | `fd1de91fef` | Test Files  3 passed (3) ; Tests  53 passed (53) | CI et live restent requis |
 | [#379](https://github.com/openaxcloud/vibecore/pull/379) | `6e994bafe5` | Test Files  2 passed (2) ; Tests  26 passed (26) | E2E non exécuté |
+
+## Cache navigateur : mesure du canari et réparation
+
+Le canari iOS du run 38160901806, job 114544372806, échoue avant les tests : `actions/cache` refuse la virgule de la clé `ms-playwright-Linux-1.59.1-chromium,webkit`. L’action commune hache désormais l’ensemble demandé et conserve la version Playwright dans la clé. La garde exécute le vrai script Bash et résout le vrai gabarit YAML pour Chromium et Chromium/WebKit : clés distinctes, sans virgule et dans la limite du validateur.
+
+Mesures locales : 22 tests verts dans trois suites, vérification des types web et de la garde sans erreur, ESLint sans erreur. Avant le correctif, la nouvelle assertion échoue ; retirer uniquement la liaison de l’entrée YAML vers Bash la fait aussi échouer. L’action a été restaurée après cette contre-épreuve. La CI complète et le canari du nouveau commit restent à mesurer ; le canari précédent n’a exécuté aucun test navigateur.

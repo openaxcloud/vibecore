@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
@@ -35,6 +37,7 @@ const RACINE = join(__dirname, '..', '..');
 const CHEMIN_ACTION = '.github/actions/preparer-pile-e2e/action.yml';
 
 const workflow = readFileSync(join(RACINE, '.github/workflows/e2e.yml'), 'utf8');
+
 const analyse = parse(workflow) as {
   jobs: Record<string, { steps?: Array<Record<string, unknown>> }>;
 };
@@ -53,8 +56,65 @@ const etapeCache = etapes.find((e) => String(e.uses ?? '').startsWith('actions/c
 const etapeInstall = etapes.find((e) => String(e.name ?? '') === 'Install Playwright browsers');
 
 describe('le cache des navigateurs Playwright', () => {
+  it('construit des clés valides et distinctes pour Chromium et le canari iOS', () => {
+    const lecture = etapesDeLAction.find((step) => step.id === 'version_playwright');
+    expect(lecture).toBeDefined();
+
+    const directory = mkdtempSync(join(tmpdir(), 'vibecore-cache-'));
+
+    try {
+      const keys = ['chromium', 'chromium,webkit'].map((browsers, index) => {
+        const output = join(directory, `output-${index}`);
+        const environment: Record<string, string | undefined> = { ...process.env, GITHUB_OUTPUT: output };
+        delete environment.BROWSER_CACHE_SET;
+
+        for (const [name, value] of Object.entries((lecture!.env as Record<string, unknown>) ?? {})) {
+          environment[name] = String(value).replaceAll('${{ inputs.navigateurs }}', browsers);
+        }
+        execFileSync('bash', ['-c', String(lecture!.run)], {
+          cwd: RACINE,
+          env: environment,
+          stdio: 'pipe',
+        });
+
+        const outputs = Object.fromEntries(
+          readFileSync(output, 'utf8')
+            .trim()
+            .split('\n')
+            .map((line) => {
+              const separator = line.indexOf('=');
+              return [line.slice(0, separator), line.slice(separator + 1)];
+            }),
+        );
+
+        const template = String((etapeCache!.with as Record<string, unknown>).key);
+
+        const key = template
+          .replaceAll('${{ runner.os }}', 'Linux')
+          .replaceAll('${{ inputs.navigateurs }}', browsers)
+          .replace(/\$\{\{ steps\.version_playwright\.outputs\.(\w+) \}\}/g, (_match, name: string) => {
+            expect(outputs[name], `sortie ${name} absente`).toBeDefined();
+            return outputs[name];
+          });
+
+        /*
+         * Contraintes appliquées par actions/cache : le canari a été refusé
+         * par son validateur pour une virgule, avant toute exécution de test.
+         */
+        expect(key).not.toContain(',');
+        expect(key.length).toBeLessThanOrEqual(512);
+        expect(key).not.toContain('${{');
+
+        return key;
+      });
+      expect(keys[0]).not.toBe(keys[1]);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it('TÉMOIN — les deux étapes existent, sinon la garde ne mesure rien', () => {
-    expect(etapeCache, "aucune étape `actions/cache` dans e2e.yml : le cache a disparu").toBeDefined();
+    expect(etapeCache, 'aucune étape `actions/cache` dans e2e.yml : le cache a disparu').toBeDefined();
     expect(etapeInstall, "l'étape « Install Playwright browsers » a été renommée ou retirée").toBeDefined();
   });
 
@@ -116,7 +176,7 @@ describe('le cache des navigateurs Playwright', () => {
       cle,
       `la clé « ${cle} » ne distingue pas les ensembles de navigateurs : le canari iOS partagerait ` +
         'le cache de la suite bloquante et retéléchargerait WebKit à chaque passage.',
-    ).toMatch(/inputs\.navigateurs/u);
+    ).toMatch(/(?:inputs\.navigateurs|version_playwright\.outputs\.browser_key)/u);
 
     expect(
       action.inputs,
@@ -126,7 +186,9 @@ describe('le cache des navigateurs Playwright', () => {
   });
 
   it('les jobs passent bien par l’action commune — sinon ce garde lit un fichier que personne n’exécute', () => {
-    const appels = etapesDuWorkflow.filter((e) => String(e.uses ?? '').startsWith('./.github/actions/preparer-pile-e2e'));
+    const appels = etapesDuWorkflow.filter((e) =>
+      String(e.uses ?? '').startsWith('./.github/actions/preparer-pile-e2e'),
+    );
 
     expect(
       appels.length,
@@ -138,7 +200,7 @@ describe('le cache des navigateurs Playwright', () => {
   it('le succès du cache est JOURNALISÉ, pour qu’on puisse mesurer ce qu’il économise', () => {
     expect(
       String(etapeInstall?.run ?? ''),
-      "sans trace du succès du cache dans le journal, on ne peut pas distinguer « le cache a servi » " +
+      'sans trace du succès du cache dans le journal, on ne peut pas distinguer « le cache a servi » ' +
         "de « le cache a raté » — et donc pas mesurer l'économie réelle.",
     ).toMatch(/cache-hit/u);
   });
