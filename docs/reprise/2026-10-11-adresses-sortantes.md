@@ -74,3 +74,21 @@ servi : aucun déploiement de ce complément, aucune preuve TLS en production,
 aucune preuve d’isolation de tous les protocoles navigateur par une politique
 réseau du cluster. Les protections réseau natives sont désactivées uniquement
 dans la fixture pour ne pas masquer un défaut applicatif.
+
+## Preuve du captureur exécuté lors de la livraison
+
+Le workflow attendait déjà le rollout conditionnel du captureur, mais le
+marquait rolled=false et ignorait son imageID. La matrice le marque désormais
+rollé ; une entrée absente et non reconstruite reste omise, alors qu’un
+captureur déployé doit fournir son imageID comme les autres Deployments.
+Le détecteur existant inclut maintenant les attentes littérales conditionnelles
+dans sa comparaison et exige l’archivage des seuls imageIDs vérifiés dans
+sbom/running-imageids.json. Aucun secret ni objet Kubernetes brut ajouté.
+
+Les 51 tests manifeste/branchements passent. Retirer seulement le statut rollé
+du captureur, ou seulement l’archivage, rend le détecteur réel rouge ; les
+protections restaurées rendent les 51 cas verts. Lint différentiel : aucune
+nouvelle erreur (dette de ces scripts antérieure à main maintenue). Le chart
+porte déjà une restriction d’egress du captureur : sa présence dans le dépôt
+ne prouve pas son efficacité dans le cluster ni l’absence de politiques
+externes additives. Cette réserve live reste ouverte.
