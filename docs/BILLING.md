@@ -61,6 +61,41 @@ Supported lifecycle events:
 
 Webhook events are idempotent through the `StripeEvent` table.
 
+## PAYG ledger history and invoice evidence
+
+A `PAYG_CHARGE` ledger entry records a tracked overage; it is not proof that
+Stripe issued an invoice or collected payment. The canonical stored reason
+`PAYG overage (billed to Stripe metered usage)` is historical system text, not
+billing evidence. The API localizes that reason as an overage recorded with
+invoicing status unverified, and the billing history uses a neutral recorded
+overage label in English and French. Unknown reasons and operator-authored
+adjustments remain unchanged.
+
+Historical invoice and payment status remains unknown until independently
+reconciled. Neither today's `BILLING_CREDITS_ENABLED`/`BILLING_CREDITS_SHADOW`
+flags nor a successful metered-usage report establishes that an invoice was
+issued or paid. Use actual invoice/payment records for those conclusions; the
+invoice API exposes Stripe invoice status and amounts due/paid. Do not infer
+either a charge or a non-charge from the ledger label.
+
+**Unresolved accounting defect:** checkpoint settlement can still append a
+`PAYG_CHARGE` in SHADOW mode, and `sumPaygSpendSince()` includes those rows
+without a transaction-time shadow/reporting discriminator. The wording fix
+does not change amounts, balances, stored reasons or budget calculations, and
+does not repair these mixed-status totals. Any accounting follow-up must retain
+the audit trail and reconcile historical records using evidence rather than
+reclassifying them from current global flags.
+
+Release verification for this correction remains pending:
+
+- [ ] Pass the required native checks for the exact final commit.
+- [ ] After deployment, verify existing PAYG rows in English and French on the
+      billing page and admin ledger, including desktop, tablet and mobile.
+      Confirm the neutral type label/unverified invoice wording, unchanged
+      signed amounts and unchanged operator notes.
+- [ ] Keep the SHADOW accounting defect open separately until its write path,
+      historical provenance and budget totals are tested and reconciled.
+
 ## Entitlements
 
 Backend entitlements come from the latest subscription state, not from the frontend.

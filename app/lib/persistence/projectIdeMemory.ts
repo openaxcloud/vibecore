@@ -323,6 +323,26 @@ let storageListenerInstalled = false;
 export const PROJECT_IDE_MEMORY_STORAGE_PREFIX = 'vibecore.projectIdeMemory';
 export const PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS = 5_000;
 
+/**
+ * Échéances successives d'une lecture, quand aucun repli local n'existe.
+ *
+ * Le défaut : l'échéance était unique et fixe, et son échec était TERMINAL pour
+ * la page. Mesuré — `getProjectIdeMemory` rejetait à 5004 ms sur
+ * `AbortError: Fetch is aborted` ; `chatMetadata` n'était alors jamais posé,
+ * donc aucun identifiant de conversation, donc transcription vide pour toute la
+ * durée de la page. Corrélation mesurée : la transcription s'affiche EXACTEMENT
+ * quand cette lecture aboutit — 6 lignes à 335 ms, 0 ligne quand elle avorte.
+ *
+ * La première échéance reste courte : quand un repli local existe, on préfère
+ * toujours l'afficher tout de suite plutôt que d'attendre le réseau. Les
+ * suivantes sont patientes, parce qu'un téléphone en réseau mobile mérite plus
+ * que cinq secondes avant qu'on renonce définitivement.
+ */
+export const PROJECT_IDE_MEMORY_LOAD_DEADLINES_MS = [PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS, 12_000, 25_000];
+
+/** Recul entre deux tentatives ; une de moins que d'échéances. */
+export const PROJECT_IDE_MEMORY_LOAD_RETRY_DELAYS_MS = [400, 1_200];
+
 const SAVE_RETRY_DELAYS_MS = [1_000, 4_000, 12_000];
 const PROJECT_IDE_MEMORY_AUTH_STATUSES = new Set([401, 403]);
 
@@ -432,16 +452,27 @@ function mergeProjectIdeMemory(existing: ProjectIdeMemory, patch: ProjectIdeMemo
 function memoryForServerSave(
   memory: ProjectIdeMemory,
   patch: ProjectIdeMemory,
-  pendingClearMessages?: boolean,
+  pending?: ProjectIdeMemory,
 ): ProjectIdeMemory {
-  const clearMessages = patch.chat?.clearMessages || pendingClearMessages;
+  const dirty: ProjectIdeMemory = { updatedAt: memory.updatedAt };
+
+  // Le serveur fusionne les domaines : déplacer un onglet ne renvoie pas le fil.
+  if (patch.ui || pending?.ui) {
+    dirty.ui = memory.ui;
+  }
+
+  if (patch.chat || pending?.chat) {
+    dirty.chat = memory.chat;
+  }
+
+  const clearMessages = patch.chat?.clearMessages || pending?.chat?.clearMessages;
 
   if (!clearMessages) {
-    return memory;
+    return dirty;
   }
 
   return {
-    ...memory,
+    ...dirty,
     chat: {
       ...memory.chat,
       clearMessages: true,
@@ -721,9 +752,33 @@ function readResponseHeader(response: Response, name: string): string | null {
   return headers.get(name) ?? null;
 }
 
-async function fetchProjectIdeMemory(endpoint: string): Promise<Response> {
+/**
+ * Un échec temporaire mérite un nouvel essai ; une réponse d'autorité, non.
+ *
+ * On réessaie une coupure (abandon sur échéance, erreur réseau) et une panne
+ * serveur (5xx). On ne réessaie PAS un 4xx : le serveur a répondu, et il a
+ * répondu non.
+ */
+function estUnEchecTemporaire(erreur: unknown): boolean {
+  if (erreur instanceof Error && (erreur.name === 'AbortError' || erreur.name === 'TypeError')) {
+    return true;
+  }
+
+  const statut = (erreur as { status?: number } | null)?.status;
+
+  return typeof statut === 'number' && statut >= 500;
+}
+
+function patienter(delaiMs: number): Promise<void> {
+  return new Promise((resoudre) => setTimeout(resoudre, delaiMs));
+}
+
+async function fetchProjectIdeMemory(
+  endpoint: string,
+  echeanceMs: number = PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS,
+): Promise<Response> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), echeanceMs);
 
   try {
     return await fetch(endpoint, {
@@ -888,8 +943,46 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
 async function chargerMemoireProjet(id: string, endpoint: string): Promise<ProjectIdeMemory> {
   const localMemory = readLocalProjectIdeMemory(id);
 
-  try {
-    const response = await fetchProjectIdeMemory(endpoint);
+  /*
+   * Une seule tentative quand un repli local existe : on préfère afficher tout
+   * de suite ce qu'on a plutôt que faire patienter. Sans repli — le premier
+   * chargement d'Avi sur son téléphone — abandonner au bout de cinq secondes
+   * laisse la page DÉFINITIVEMENT vide, alors on insiste.
+   */
+  const echeances = localMemory ? [PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS] : PROJECT_IDE_MEMORY_LOAD_DEADLINES_MS;
+
+  for (let essai = 0; essai < echeances.length; essai += 1) {
+    try {
+      return await lireUneFois(id, endpoint, localMemory, echeances[essai]);
+    } catch (error) {
+      if (localMemory) {
+        memoryCache.set(id, localMemory);
+
+        return localMemory;
+      }
+
+      const dernierEssai = essai === echeances.length - 1;
+
+      if (dernierEssai || !estUnEchecTemporaire(error)) {
+        throw error;
+      }
+
+      await patienter(PROJECT_IDE_MEMORY_LOAD_RETRY_DELAYS_MS[essai] ?? 0);
+    }
+  }
+
+  /* Inatteignable : la boucle sort toujours par un retour ou un jet. */
+  throw Object.assign(new Error(), { code: 'PROJECT_IDE_MEMORY_LOAD_FAILED' });
+}
+
+async function lireUneFois(
+  id: string,
+  endpoint: string,
+  localMemory: ProjectIdeMemory | undefined,
+  echeanceMs: number,
+): Promise<ProjectIdeMemory> {
+  {
+    const response = await fetchProjectIdeMemory(endpoint, echeanceMs);
 
     if (PROJECT_IDE_MEMORY_AUTH_STATUSES.has(response.status)) {
       /* Le serveur a répondu — refuser est une réponse : on ne le redemandera pas. */
@@ -920,14 +1013,6 @@ async function chargerMemoireProjet(id: string, endpoint: string): Promise<Proje
     writeLocalProjectIdeMemory(id, memory);
 
     return memory;
-  } catch (error) {
-    if (localMemory) {
-      memoryCache.set(id, localMemory);
-
-      return localMemory;
-    }
-
-    throw error;
   }
 }
 
@@ -975,14 +1060,21 @@ export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory,
   const existing = memoryCache.get(id) ?? {};
   const next = mergeProjectIdeMemory(existing, patch);
 
+  if (
+    !patch.chat?.clearMessages &&
+    JSON.stringify(existing.ui) === JSON.stringify(next.ui) &&
+    JSON.stringify(existing.chat) === JSON.stringify(next.chat)
+  ) {
+    return pendingDebouncedSaves.get(id)?.promise ?? pendingSaves.get(id) ?? Promise.resolve();
+  }
+
   /*
    * Make the chat REPLACE flag sticky across the debounce window: if an earlier
    * coalesced save already queued `clearMessages` for this scope, carry it onto
    * the new dirty payload so a follow-up ordinary chat save can't downgrade the
    * pending PUT from a replace to a union-merge (data-loss on rewind/delete).
    */
-  const pendingClearMessages = pendingDirty.get(id)?.chat?.clearMessages;
-  const dirty = memoryForServerSave(next, patch, pendingClearMessages);
+  const dirty = memoryForServerSave(next, patch, pendingDirty.get(id));
   memoryCache.set(id, next);
   writeLocalProjectIdeMemory(id, next);
   pendingDirty.set(id, dirty);
@@ -1101,7 +1193,7 @@ async function persistWithRetry(scope: string): Promise<void> {
       : `/api/projects/${encodeURIComponent(scope)}/ide-state`);
 
   for (let attempt = 0; attempt <= SAVE_RETRY_DELAYS_MS.length; attempt += 1) {
-    const dirty = pendingDirty.get(scope) ?? memoryCache.get(scope);
+    const dirty = pendingDirty.get(scope);
 
     if (!dirty) {
       return;

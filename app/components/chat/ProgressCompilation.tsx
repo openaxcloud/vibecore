@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { API_CHAT_PROGRESS_LABELS } from '~/lib/i18n/catalogs/api-chat';
 import {
   formatChatResidualsCopy,
   formatChatResidualsNumber,
@@ -38,6 +39,7 @@ export function deriveProgressState({
   streaming,
   failed,
   degraded,
+  refused,
 }: {
   completedCount: number;
   totalCount: number;
@@ -54,7 +56,19 @@ export function deriveProgressState({
    * run s'affiche « Terminé avec des erreurs », jamais un succès total.
    */
   degraded?: boolean;
-}): 'working' | 'done' | 'done-with-issues' | 'interrupted' {
+
+  /**
+   * La demande a été REFUSÉE avant tout travail (quota épuisé). Le serveur écrit
+   * alors une seule annotation `quota-exceeded` au statut `complete` : elle porte
+   * le message du refus, pas une étape faite. Sans ce signal, 1 étape « faite »
+   * sur 1 donnait « Interrompu · 100 % », barre pleine, pour un tour jamais parti.
+   */
+  refused?: boolean;
+}): 'working' | 'done' | 'done-with-issues' | 'interrupted' | 'not-started' {
+  if (refused && totalCount === 0 && !streaming) {
+    return 'not-started';
+  }
+
   if (failed) {
     return 'interrupted';
   }
@@ -133,11 +147,24 @@ export default function ProgressCompilation({
     return null;
   }
 
-  const completedCount = progressList.filter((item) => item.status === 'complete').length;
-  const totalCount = progressList.length;
+  // Un refus n'est pas une étape : il ne compte ni au total ni dans le pourcentage.
+  const workList = progressList.filter((item) => !REFUSAL_LABELS.has(item.label));
+  const refused = workList.length < progressList.length;
+  const completedCount = workList.filter((item) => item.status === 'complete').length;
+  const totalCount = workList.length;
   const progressPercent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
   const hasActiveWork = progressList.some((item) => item.status === 'in-progress');
-  const state = deriveProgressState({ completedCount, totalCount, hasActiveWork, streaming, failed, degraded });
+
+  const state = deriveProgressState({
+    completedCount,
+    totalCount,
+    hasActiveWork,
+    streaming,
+    failed,
+    degraded,
+    refused,
+  });
+
   const activeItem = progressList.find((item) => item.status === 'in-progress') ?? progressList.at(-1);
   const localizedMessage = localizePersistedProgressMessage(activeItem?.message, language);
 
@@ -148,7 +175,9 @@ export default function ProgressCompilation({
         ? copy['chatResiduals.progress.done']
         : state === 'done-with-issues'
           ? copy['chatResiduals.progress.doneWithIssues']
-          : copy['chatResiduals.progress.interrupted'];
+          : state === 'not-started'
+            ? copy['chatResiduals.progress.notStarted']
+            : copy['chatResiduals.progress.interrupted'];
 
   const formattedPercent = formatChatResidualsNumber(progressPercent, language);
 
@@ -158,11 +187,15 @@ export default function ProgressCompilation({
       role="status"
       aria-live="polite"
       aria-label={
-        state === 'interrupted'
-          ? formatChatResidualsCopy(copy['chatResiduals.progress.ariaInterrupted'], { percent: formattedPercent })
-          : state === 'done-with-issues'
-            ? formatChatResidualsCopy(copy['chatResiduals.progress.ariaDoneWithIssues'], { percent: formattedPercent })
-            : formatChatResidualsCopy(copy['chatResiduals.progress.aria'], { phase, percent: formattedPercent })
+        state === 'not-started'
+          ? copy['chatResiduals.progress.ariaNotStarted']
+          : state === 'interrupted'
+            ? formatChatResidualsCopy(copy['chatResiduals.progress.ariaInterrupted'], { percent: formattedPercent })
+            : state === 'done-with-issues'
+              ? formatChatResidualsCopy(copy['chatResiduals.progress.ariaDoneWithIssues'], {
+                  percent: formattedPercent,
+                })
+              : formatChatResidualsCopy(copy['chatResiduals.progress.aria'], { phase, percent: formattedPercent })
       }
       data-active-work={state === 'working' ? 'true' : 'false'}
       data-progress-state={state}
@@ -182,16 +215,18 @@ export default function ProgressCompilation({
         {copy['chatResiduals.progress.agent']}
       </span>
       <span className="text-bolt-elements-textSecondary truncate">· {phase}</span>
-      <span className="[margin-inline-start:auto] shrink-0 tabular-nums text-bolt-elements-textSecondary">
-        {formatChatResidualsCopy(copy['chatResiduals.progress.percent'], { percent: formattedPercent })}
-      </span>
+      {state !== 'not-started' && (
+        <span className="[margin-inline-start:auto] shrink-0 tabular-nums text-bolt-elements-textSecondary">
+          {formatChatResidualsCopy(copy['chatResiduals.progress.percent'], { percent: formattedPercent })}
+        </span>
+      )}
       <span
         className="pointer-events-none absolute inset-x-0 bottom-0 h-[2px] bg-bolt-elements-background-depth-3"
         aria-hidden
       >
         <span
           className={`block h-full transition-[width] duration-300 ${
-            state === 'interrupted' || state === 'done-with-issues'
+            state === 'interrupted' || state === 'done-with-issues' || state === 'not-started'
               ? 'bg-amber-500'
               : 'bg-bolt-elements-item-contentAccent'
           }`}
@@ -201,6 +236,8 @@ export default function ProgressCompilation({
     </div>
   );
 }
+
+const REFUSAL_LABELS: ReadonlySet<string> = new Set([API_CHAT_PROGRESS_LABELS.quotaExceeded]);
 
 function formatPhase(message: string | undefined, fallback: string) {
   return (message ?? '').replace(/\s+/g, ' ').trim() || fallback;

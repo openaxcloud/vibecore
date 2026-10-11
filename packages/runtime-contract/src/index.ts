@@ -32,6 +32,11 @@ export interface WorkspaceSession {
   reused?: boolean;
 }
 
+export interface ListFilesOptions {
+  /** Forcer la réconciliation stockage → runtime avant de lister (voir `RuntimeAdapter.listFiles`). */
+  reparer?: boolean;
+}
+
 export interface FileNode {
   path: string;
   name: string;
@@ -225,7 +230,14 @@ export interface RuntimeAdapter {
   restartWorkspace(workspaceId?: string): Promise<WorkspaceSession>;
   getWorkspaceStatus(workspaceId?: string): Promise<WorkspaceSession>;
 
-  listFiles(path?: string): Promise<FileNode[]>;
+  /**
+   * `reparer` — BUG-IDE-007 : un « Actualiser les fichiers » demandé par
+   * l'utilisateur est une demande de RÉPARATION, pas une simple relecture. Le
+   * runtime distant force alors la réconciliation stockage durable → pod (les
+   * fichiers que le projet possède et que le pod n'a pas) avant de lister.
+   * Les runtimes locaux, qui n'ont pas de second exemplaire, l'ignorent.
+   */
+  listFiles(path?: string, options?: ListFilesOptions): Promise<FileNode[]>;
 
   /**
    * Read a file's content. Binary files (images/fonts/wasm) come back base64-
