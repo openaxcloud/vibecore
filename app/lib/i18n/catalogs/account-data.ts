@@ -78,17 +78,17 @@ export const accountDataEn = {
         none: 'Active',
         requested: 'Deletion requested',
         grace_period: 'Pending deletion',
-        ready_to_purge: 'Deletion in progress',
+        ready_to_purge: 'Deletion request pending',
         purged: 'Deleted',
       },
-      scheduledTitle: 'Your account is scheduled for deletion.',
+      scheduledTitle: 'Your account deletion request is recorded.',
       requestedOn: 'Requested {date}.',
-      purgeOn: 'Your data will be permanently removed on {date}.',
+      purgeOn: 'You can cancel it until {date}.',
       daysToCancel_one: 'You have {count} day to cancel.',
       daysToCancel_other: 'You have {count} days to cancel.',
-      readyTitle: 'Permanent account deletion is in progress.',
+      readyTitle: 'Your deletion request is pending.',
       readyDescription:
-        'The grace period has ended. Permanent deletion is now in progress and can no longer be cancelled.',
+        'The cancellation period has ended. Permanent deletion is not automatic yet: your request is recorded and visible to the E-Code team.',
       purgedTitle: 'Your account has been deleted.',
       purgedDescription: 'The account deletion process has completed.',
       cancelling: 'Cancelling…',
@@ -98,9 +98,9 @@ export const accountDataEn = {
     deletion: {
       title: 'What gets deleted',
       description_one:
-        'Deletion is permanent after a {count}-day grace period. Some records are retained where the law requires it.',
+        'Permanent deletion is not automatic yet. This is what it covers, and what is retained where the law requires it.',
       description_other:
-        'Deletion is permanent after a {count}-day grace period. Some records are retained where the law requires it.',
+        'Permanent deletion is not automatic yet. This is what it covers, and what is retained where the law requires it.',
       permanentlyRemoved: 'Permanently removed',
       retained: 'Retained (legal/financial)',
       scopeItems: {
@@ -136,21 +136,21 @@ export const accountDataEn = {
     danger: {
       title: 'Delete account',
       description_one:
-        'This schedules your account for permanent deletion. You can cancel during the {count}-day grace period by signing back in and returning to this page. After that, deletion cannot be undone.',
+        'This records a request to delete your account. You can cancel it for {count} days by signing back in and returning to this page. Permanent deletion is not automatic yet: the request is visible to the E-Code team.',
       description_other:
-        'This schedules your account for permanent deletion. You can cancel during the {count}-day grace period by signing back in and returning to this page. After that, deletion cannot be undone.',
+        'This records a request to delete your account. You can cancel it for {count} days by signing back in and returning to this page. Permanent deletion is not automatic yet: the request is visible to the E-Code team.',
       open: 'Delete account…',
     },
     dialog: {
       title: 'Delete your account?',
       descriptionWithDate_one:
-        'Your account will be permanently deleted after a {count}-day grace period, on or after {date}. Until then, you can sign back in and cancel from this page.',
+        'Your deletion request will be recorded. You can cancel it from this page for {count} days, until {date}. Permanent deletion is not automatic yet.',
       descriptionWithDate_other:
-        'Your account will be permanently deleted after a {count}-day grace period, on or after {date}. Until then, you can sign back in and cancel from this page.',
+        'Your deletion request will be recorded. You can cancel it from this page for {count} days, until {date}. Permanent deletion is not automatic yet.',
       descriptionWithoutDate_one:
-        'Your account will be permanently deleted after a {count}-day grace period. Until then, you can sign back in and cancel from this page.',
+        'Your deletion request will be recorded. You can cancel it from this page for {count} days. Permanent deletion is not automatic yet.',
       descriptionWithoutDate_other:
-        'Your account will be permanently deleted after a {count}-day grace period. Until then, you can sign back in and cancel from this page.',
+        'Your deletion request will be recorded. You can cancel it from this page for {count} days. Permanent deletion is not automatic yet.',
       confirmPrefix: 'Type',
       confirmSuffix: 'to confirm',
       cancel: 'Cancel',
@@ -237,17 +237,17 @@ export const accountDataFr = {
         none: 'Actif',
         requested: 'Suppression demandée',
         grace_period: 'Suppression en attente',
-        ready_to_purge: 'Suppression en cours',
+        ready_to_purge: 'Demande en attente',
         purged: 'Supprimé',
       },
-      scheduledTitle: 'La suppression de votre compte est programmée.',
+      scheduledTitle: 'Votre demande de suppression du compte est enregistrée.',
       requestedOn: 'Demande effectuée le {date}.',
-      purgeOn: 'Vos données seront définitivement supprimées le {date}.',
+      purgeOn: 'Vous pouvez l’annuler jusqu’au {date}.',
       daysToCancel_one: 'Vous avez {count} jour pour annuler.',
       daysToCancel_other: 'Vous avez {count} jours pour annuler.',
-      readyTitle: 'La suppression définitive de votre compte est en cours.',
+      readyTitle: 'Votre demande de suppression est en attente.',
       readyDescription:
-        'Le délai de grâce est terminé. La suppression définitive est en cours et ne peut plus être annulée.',
+        'Le délai d’annulation est terminé. La suppression définitive n’est pas encore automatique : votre demande est enregistrée et visible par l’équipe E-Code.',
       purgedTitle: 'Votre compte a été supprimé.',
       purgedDescription: 'La procédure de suppression du compte est terminée.',
       cancelling: 'Annulation…',
@@ -257,9 +257,9 @@ export const accountDataFr = {
     deletion: {
       title: 'Données supprimées',
       description_one:
-        'La suppression devient définitive après un délai de grâce de {count} jour. Certaines données sont conservées lorsque la loi l’exige.',
+        'La suppression définitive n’est pas encore automatique. Voici ce qu’elle couvre, et ce qui est conservé lorsque la loi l’exige.',
       description_other:
-        'La suppression devient définitive après un délai de grâce de {count} jours. Certaines données sont conservées lorsque la loi l’exige.',
+        'La suppression définitive n’est pas encore automatique. Voici ce qu’elle couvre, et ce qui est conservé lorsque la loi l’exige.',
       permanentlyRemoved: 'Supprimées définitivement',
       retained: 'Conservées (obligations légales et financières)',
       scopeItems: {
@@ -299,21 +299,21 @@ export const accountDataFr = {
     danger: {
       title: 'Supprimer le compte',
       description_one:
-        'Cette action programme la suppression définitive de votre compte. Vous pouvez l’annuler pendant le délai de grâce de {count} jour en vous reconnectant et en revenant sur cette page. Une fois ce délai écoulé, la suppression est irréversible.',
+        'Cette action enregistre une demande de suppression de votre compte. Vous pouvez l’annuler pendant {count} jour en vous reconnectant et en revenant sur cette page. La suppression définitive n’est pas encore automatique : la demande est visible par l’équipe E-Code.',
       description_other:
-        'Cette action programme la suppression définitive de votre compte. Vous pouvez l’annuler pendant le délai de grâce de {count} jours en vous reconnectant et en revenant sur cette page. Une fois ce délai écoulé, la suppression est irréversible.',
+        'Cette action enregistre une demande de suppression de votre compte. Vous pouvez l’annuler pendant {count} jours en vous reconnectant et en revenant sur cette page. La suppression définitive n’est pas encore automatique : la demande est visible par l’équipe E-Code.',
       open: 'Supprimer le compte…',
     },
     dialog: {
       title: 'Supprimer votre compte ?',
       descriptionWithDate_one:
-        'Votre compte sera définitivement supprimé après un délai de grâce de {count} jour, à partir du {date}. D’ici là, vous pourrez vous reconnecter et annuler depuis cette page.',
+        'Votre demande de suppression sera enregistrée. Vous pourrez l’annuler depuis cette page pendant {count} jour, jusqu’au {date}. La suppression définitive n’est pas encore automatique.',
       descriptionWithDate_other:
-        'Votre compte sera définitivement supprimé après un délai de grâce de {count} jours, à partir du {date}. D’ici là, vous pourrez vous reconnecter et annuler depuis cette page.',
+        'Votre demande de suppression sera enregistrée. Vous pourrez l’annuler depuis cette page pendant {count} jours, jusqu’au {date}. La suppression définitive n’est pas encore automatique.',
       descriptionWithoutDate_one:
-        'Votre compte sera définitivement supprimé après un délai de grâce de {count} jour. D’ici là, vous pourrez vous reconnecter et annuler depuis cette page.',
+        'Votre demande de suppression sera enregistrée. Vous pourrez l’annuler depuis cette page pendant {count} jour. La suppression définitive n’est pas encore automatique.',
       descriptionWithoutDate_other:
-        'Votre compte sera définitivement supprimé après un délai de grâce de {count} jours. D’ici là, vous pourrez vous reconnecter et annuler depuis cette page.',
+        'Votre demande de suppression sera enregistrée. Vous pourrez l’annuler depuis cette page pendant {count} jours. La suppression définitive n’est pas encore automatique.',
       confirmPrefix: 'Saisissez',
       confirmSuffix: 'pour confirmer',
       cancel: 'Annuler',

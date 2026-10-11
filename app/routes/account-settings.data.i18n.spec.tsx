@@ -198,8 +198,9 @@ describe('account data French surface', () => {
       purgeDueAt: '2026-08-03T12:00:00.000Z',
     });
 
-    expect(screen.getByText('Suppression en cours')).toBeTruthy();
-    expect(screen.getByText('La suppression définitive de votre compte est en cours.')).toBeTruthy();
+    // Texte vrai depuis le 2026-10-11 : rien n'efface encore automatiquement (BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE).
+    expect(screen.getByText('Demande en attente')).toBeTruthy();
+    expect(screen.getByText('Votre demande de suppression est en attente.')).toBeTruthy();
     expect(screen.queryByText('Votre compte est actif. Vous pouvez demander sa suppression ci-dessous.')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Supprimer le compte…' })).toBeNull();
   });
