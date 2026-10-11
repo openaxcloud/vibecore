@@ -2,8 +2,10 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+import { decisionEcritureMessage, texteSansReflexion } from '../../../services/api/src/message-ne-raccourcit-pas';
 import {
   contenuARattraper,
+  estLaVersionDuServeur,
   estUneCoupureReseau,
   identifiantServeurDuMessage,
   planDeRattrapage,
@@ -120,6 +122,69 @@ describe('le plan de rattrapage', () => {
     expect(plan).toBeNull();
   });
 
+  /*
+   * Mesuré en production le 2026-10-01 à 12:20 (projet cmupi39un…) : coupure
+   * EN PLEIN raisonnement. Le texte local hors raisonnement est vide ; la base
+   * portait la copie partielle que le NAVIGATEUR avait lui-même enregistrée,
+   * raisonnement compris. Vide + n'importe quoi = « prolongement » : le
+   * rattrapage l'a recollée (raisonnement en double) et s'est déclaré appliqué,
+   * avant que le serveur ait fini — 3 fichiers sur 13. Le serveur n'écrit
+   * JAMAIS de raisonnement (mesuré : 0 bloc dans sa version de 26 176
+   * caractères) : une version qui en porte n'est pas la sienne.
+   */
+  it("n'apporte rien tant que la base ne porte que la copie partielle du NAVIGATEUR, coupée en plein raisonnement", async () => {
+    const idUtilisateur = await identifiantServeurDuMessage('c', 'u1');
+    const partielle = `${REFLEXION('Je planifie la structure.')}Voici`;
+
+    const plan = await planDeRattrapage(
+      'c',
+      [
+        { id: 'u1', role: 'user', content: 'Fais une app' },
+        { id: 'a1', role: 'assistant', content: '<div class="__boltThought__">Je planifie la str' },
+      ],
+      [
+        { id: idUtilisateur, role: 'user', content: 'Fais une app' },
+        { id: 'aimsg_x', role: 'assistant', content: partielle },
+      ],
+    );
+
+    expect(plan).toBeNull();
+  });
+
+  it('prend la version FINALE du serveur, sans raisonnement, quand elle arrive', async () => {
+    const idUtilisateur = await identifiantServeurDuMessage('c', 'u1');
+    const local = '<div class="__boltThought__">Je planifie la str';
+
+    const plan = await planDeRattrapage(
+      'c',
+      [
+        { id: 'u1', role: 'user', content: 'Fais une app' },
+        { id: 'a1', role: 'assistant', content: local },
+      ],
+      [
+        { id: idUtilisateur, role: 'user', content: 'Fais une app' },
+        { id: 'aimsg_x', role: 'assistant', content: 'Voici ma démarche.' },
+      ],
+    );
+
+    expect(plan).toEqual({ type: 'completer', messageId: 'a1', contenu: `${local}</div>\nVoici ma démarche.` });
+  });
+
+  it("n'AJOUTE pas non plus une copie du navigateur quand la page n'avait encore rien reçu", async () => {
+    const idUtilisateur = await identifiantServeurDuMessage('c', 'u1');
+
+    const plan = await planDeRattrapage(
+      'c',
+      [{ id: 'u1', role: 'user', content: 'Fais une app' }],
+      [
+        { id: idUtilisateur, role: 'user', content: 'Fais une app' },
+        { id: 'aimsg_x', role: 'assistant', content: `${REFLEXION('Je planifie.')}Voici` },
+      ],
+    );
+
+    expect(plan).toBeNull();
+  });
+
   it("ne prend jamais la réponse d'un AUTRE tour", async () => {
     const plan = await planDeRattrapage(
       'c',
@@ -149,5 +214,36 @@ describe('ce qui arme et désarme le rattrapage', () => {
   it('abandonne après quinze minutes', () => {
     expect(rattrapageEncoreOuvert(0, RATTRAPAGE_DUREE_MAX_MS - 1)).toBe(true);
     expect(rattrapageEncoreOuvert(0, RATTRAPAGE_DUREE_MAX_MS)).toBe(false);
+  });
+});
+
+/*
+ * DEUX IMPLÉMENTATIONS, UNE RÈGLE. L'API ne peut pas importer le code du
+ * navigateur : elle a sa copie de « texte sans raisonnement ». Mesuré le
+ * 2026-10-01 : quand les deux côtés ne comparent pas la même chose, la copie
+ * partielle du navigateur passe pour la version du serveur (rattrapage) et
+ * remplace la réponse complète en base (réouverture). Elles doivent rester
+ * identiques.
+ */
+describe('le navigateur et l’API retirent le raisonnement de la même façon', () => {
+  const cas = [
+    'Bonjour',
+    `${REFLEXION('Je réfléchis.')}Bonjour`,
+    `${REFLEXION('a')}x${REFLEXION('b')}y`,
+    '<div class="__boltThought__">coupé en plein raisonn',
+    '',
+  ];
+
+  it.each(cas)('même texte pour %j', (contenu) => {
+    expect(texteSansReflexion(contenu)).toBe(sansReflexion(contenu).texte);
+  });
+
+  it('ce que le rattrapage reconnaît comme la version du serveur, l’API refuse de l’écraser par la copie du navigateur', () => {
+    const serveur = 'Voici ma démarche. Puis les fichiers.';
+    const copie = `${REFLEXION('Je planifie.')}Voici ma`;
+
+    expect(estLaVersionDuServeur(serveur)).toBe(true);
+    expect(estLaVersionDuServeur(copie)).toBe(false);
+    expect(decisionEcritureMessage(serveur, copie).ecrire).toBe(false);
   });
 });

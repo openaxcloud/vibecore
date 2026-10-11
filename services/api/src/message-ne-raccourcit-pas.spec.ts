@@ -40,4 +40,35 @@ describe('une écriture ne raccourcit jamais un message déjà persisté', () =>
   it('un message vidé ne peut pas effacer un message plein', () => {
     expect(decisionEcritureMessage('bonjour tout le monde', '').ecrire).toBe(false);
   });
+
+  /*
+   * Mesuré en production le 2026-10-01 à 12:52 (projets cmupj5bfb…, cmupj5r9b…) :
+   * tour coupé, onglet fermé, le serveur va au bout et écrit SA version —
+   * 25 459 et 22 221 caractères, sans raisonnement. L'utilisateur rouvre le
+   * projet : la page renvoie la copie partielle qu'elle avait gardée — 295 et
+   * 1 827 caractères, RAISONNEMENT COMPRIS — et elle remplace la réponse
+   * complète. Le préfixe ne la reconnaissait pas : la copie commence par un bloc
+   * de raisonnement que la version du serveur n'a pas.
+   */
+  it('LE CAS MESURÉ — la copie du navigateur, raisonnement compris, ne remplace pas la réponse complète du serveur', () => {
+    const serveur = 'Voici ma démarche.\n\n<boltArtifact id="a">… 25 000 caractères …</boltArtifact>';
+    const copie = '<div class="__boltThought__">Je planifie la structure.</div>\nVoici ma';
+
+    const decision = decisionEcritureMessage(serveur, copie);
+
+    expect(decision.ecrire).toBe(false);
+    expect(decision.raison).toBe('instantane-perime');
+  });
+
+  it('coupée EN PLEIN raisonnement, la copie ne remplace pas non plus la réponse du serveur', () => {
+    expect(decisionEcritureMessage('Voici ma démarche.', '<div class="__boltThought__">Je planif').ecrire).toBe(false);
+  });
+
+  it('TÉMOIN POSITIF — la version complète du navigateur, raisonnement compris, peut s’écrire', () => {
+    const serveur = 'Voici ma démarche.';
+
+    expect(decisionEcritureMessage(serveur, `<div class="__boltThought__">Je planifie.</div>\n${serveur}`).ecrire).toBe(
+      true,
+    );
+  });
 });
