@@ -6,7 +6,7 @@ section: "2026-09-30 — Balayage QA avant lancement, parcours qui décident d'u
 ## Bug
 
 **BLOQUANT (paiement) — la page tarifs et le parcours de paiement vendent deux grilles différentes.
-DÉCISION D'AVI REQUISE : quelle grille fait foi.**
+Décision d'Avi du 08/10/2026 : Core 25 / Pro 100 fait foi. Migration encore requise.**
 
 Mesuré le 2026-09-30 (code de `main` + configuration de PRODUCTION, noms de clés seulement, aucune valeur lue) :
 
@@ -48,4 +48,4 @@ Lié : BUG-QA0930-OFFRE-PERDUE-TARIFS (les boutons de la page n'atteignent même
 
 ## Preuve
 
-Aucun correctif sans décision sur la grille qui fait foi — point OUVERT.
+Décision obtenue : Core 25 / Pro 100. Devise, prix Stripe, catalogue persistant et abonnements existants restent à réconcilier. Point OUVERT. La substitution annuelle→mensuelle est traitée séparément dans BUG-BILLING-ANNUAL-FALLBACK-001.

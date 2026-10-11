@@ -42,9 +42,9 @@
       "path": "app/components/marketing/ecode-exact/pages/Pricing.tsx",
       "rule": "*",
       "textPattern": ".*",
-      "justification": "This coordinated legacy component is absent from the active route graph; /pricing renders the fully localized EcodeProductMarketingPages implementation and a regression test enforces that boundary.",
+      "justification": "This coordinated legacy component is absent from the active route graph; /pricing renders the fully localized EcodeProductMarketingPages implementation and a regression test enforces that boundary. — Revue du 2026-10-05 : 0 importeur de production au 2026-10-05 (mesuré, contrôle positif à 31 sur workbench.ts).",
       "owner": "marketing-pricing-and-i18n",
-      "expiresOn": "2026-10-04"
+      "expiresOn": "2027-04-04"
     },
     {
       "id": "agent-role-protocol-titles",
@@ -131,28 +131,28 @@
       "id": "dormant-share-payload-helpers",
       "path": "app/lib/chat/share-link.ts",
       "rule": "error-message",
-      "textPattern": ".*",
-      "justification": "These legacy URL-embedded payload helpers have no production callers; the active share flow uses a server-minted token and maps every failure to clientRuntime.share locale copy.",
+      "textPattern": "^(?:Invalid share-link payload|Cannot build share URL from an empty payload|Share-link payload exceeds \\{…\\} KB)$",
+      "justification": "Les HELPERS de charge utile (encodeShareLinkPayload, decodeShareLinkPayload, buildShareLinkUrl) n ont aucun appelant de production ; ces trois messages sont des invariants de developpeur, jamais rendus. ⚠️ Revue du 2026-10-05 : le FICHIER a desormais un appelant de production (app/lib/hooks/useShareLink.ts -> app/components/chat/ShareConversationButton.tsx), mais il n importe que selectShareableMessages, qui ne contient aucun message et ne leve rien. L exemption passe donc d un `.*` sur tout le fichier aux TROIS messages exacts.",
       "owner": "collaboration-and-i18n",
-      "expiresOn": "2026-10-04"
+      "expiresOn": "2027-04-04"
     },
     {
       "id": "dormant-update-api-client",
       "path": "app/lib/api/updates.ts",
       "rule": "*",
       "textPattern": ".*",
-      "justification": "This legacy update helper has no production imports; the active Update tab uses /api/update and localized updateTab copy.",
+      "justification": "This legacy update helper has no production imports; the active Update tab uses /api/update and localized updateTab copy. — Revue du 2026-10-05 : 0 importeur de production au 2026-10-05 (mesuré, contrôle positif à 31 sur workbench.ts).",
       "owner": "settings-and-i18n",
-      "expiresOn": "2026-10-04"
+      "expiresOn": "2027-04-04"
     },
     {
       "id": "dormant-switchable-stream",
       "path": "app/lib/.server/llm/switchable-stream.ts",
       "rule": "error-message",
       "textPattern": ".*",
-      "justification": "The retired SwitchableStream implementation has no imports; api.chat now streams through mergeIntoDataStream and serializes localized stable error codes.",
+      "justification": "The retired SwitchableStream implementation has no imports; api.chat now streams through mergeIntoDataStream and serializes localized stable error codes. — Revue du 2026-10-05 : 0 importeur de production au 2026-10-05 (mesuré, contrôle positif à 31 sur workbench.ts).",
       "owner": "ai-platform-and-i18n",
-      "expiresOn": "2026-10-04"
+      "expiresOn": "2027-04-04"
     },
     {
       "id": "react-context-invariant-stick-to-bottom",
@@ -186,9 +186,9 @@
       "path": "app/lib/marketing/ecode-static-shell.server.ts",
       "rule": "response-message",
       "textPattern": "^Not Found$",
-      "justification": "No production route imports this retired copied-shell loader; marketing.$slug now re-exports the localized HTTP 404 and a regression test enforces the boundary.",
+      "justification": "No production route imports this retired copied-shell loader; marketing.$slug now re-exports the localized HTTP 404 and a regression test enforces the boundary. — Revue du 2026-10-05 : 0 importeur de production au 2026-10-05 (mesuré, contrôle positif à 31 sur workbench.ts).",
       "owner": "marketing-and-i18n",
-      "expiresOn": "2026-10-04"
+      "expiresOn": "2027-04-04"
     },
     {
       "id": "solution-example-domain-token",
@@ -258,9 +258,9 @@
       "path": "services/preview-proxy/src/readme-accuracy.ts",
       "rule": "visible-object-copy",
       "textPattern": ".*",
-      "justification": "This module is imported only by readme-accuracy.spec.ts and returns CI assertion diagnostics about stale documentation. It has no production import and cannot be rendered by the preview proxy.",
+      "justification": "This module is imported only by readme-accuracy.spec.ts and returns CI assertion diagnostics about stale documentation. It has no production import and cannot be rendered by the preview proxy. — Revue du 2026-10-05 : 0 importeur de production au 2026-10-05 ; importé uniquement par readme-accuracy.spec.ts (mesuré).",
       "owner": "preview-platform-and-docs",
-      "expiresOn": "2026-10-04"
+      "expiresOn": "2027-04-04"
     },
     {
       "id": "worker-control-plane-diagnostics",

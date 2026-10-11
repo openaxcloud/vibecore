@@ -35,9 +35,20 @@ describe('localized Pricing page behavior', () => {
     fireEvent.click(annual);
 
     expect(annual.getAttribute('aria-pressed')).toBe('true');
-    expect(
-      screen.getAllByText(/facturé annuellement/u).some((item) => /240[\u00a0\u202f]€/u.test(item.textContent ?? '')),
-    ).toBe(true);
+
+    // Grille du 01/10 : annuel −20 %, centimes compris (sans eux, « 278 € » n'était pas le prix facturé).
+    const annuels = screen.getAllByText(/facturé annuellement/u).map((item) => item.textContent ?? '');
+
+    expect(annuels.some((texte) => /278,40[\u00a0\u202f]€/u.test(texte))).toBe(true);
+    expect(annuels.some((texte) => /950,40[\u00a0\u202f]€/u.test(texte))).toBe(true);
+
+    // Le bouton emmène l'offre ET la période jusqu'au paiement (il menait à /register : l'offre était perdue).
+    expect(screen.getByRole('link', { name: /Choisir Pro/u }).getAttribute('href')).toBe(
+      '/subscribe?plan=pro&interval=annual',
+    );
+    expect(screen.getByRole('link', { name: /Choisir Team/u }).getAttribute('href')).toBe(
+      '/subscribe?plan=team&interval=annual',
+    );
 
     const contactLinks = screen.getAllByRole('link', { name: 'Contacter l’équipe commerciale' });
     expect(contactLinks.length).toBeGreaterThan(0);

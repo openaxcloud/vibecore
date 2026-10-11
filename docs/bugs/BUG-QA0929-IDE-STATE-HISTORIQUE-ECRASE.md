@@ -44,13 +44,31 @@ réensemencement.
 Piste : ne matérialiser un message qu'UNE fois (mémoriser dans l'état les messages déjà
 matérialisés) — un message relu sur un autre appareil ne réécrit alors plus rien.
 
+## Correctif (2026-10-06, branche `fix/retour-ne-recule-plus`)
+
+La piste ci-dessus, qui ne tranche PAS la question de la source de vérité : un message n'est matérialisé
+qu'UNE fois. Un message déjà présent dans l'état enregistré avec le même contenu a été matérialisé par le
+`PUT` qui l'y a mis ; il ne réécrit plus rien. Un message NOUVEAU ou PROLONGÉ écrit toujours ses fichiers :
+le mode WebContainer garde sa seule voie de persistance.
+
+Constat aggravant, mesuré par le test : la fusion garde le fil enregistré même quand le client n'envoie que
+`ui`. Le moindre `PUT` d'interface (un onglet ouvert) remettait donc la version de l'agent.
+
+Reste ouvert (non couvert, à ne pas confondre) : un fil présent dans la conversation serveur mais JAMAIS
+posé dans `ide-state` est matérialisé au premier `PUT` qui l'y apporte, comme avant.
+
+Épinglé par `services/api/src/tests/ide-state-materialise-une-fois.spec.ts` (4 cas) et, de bout en bout, par
+`tests/e2e/retour-ne-recule-pas.spec.ts`. Contre-épreuves : correctif retiré → les 2 cas utilisateur rougissent
+(« // VERSION-AGENT ») ; garde trop large (ne jamais matérialiser) → les 2 cas agent rougissent. Suite API
+complète : 2 241 réussis, 0 échec.
+
 ## 📤
 
-☐
+☑ pris par la session balayage le 2026-10-06, avec BUG-QA1001-RETOUR-PERD-LES-MODIFICATIONS (même perte)
 
 ## 💻
 
-☐
+☑ codé, en cours de preuve — branche `fix/retour-ne-recule-plus`, non fusionnée
 
 ## ✅
 
@@ -58,4 +76,4 @@ matérialisés) — un message relu sur un autre appareil ne réécrit alors plu
 
 ## Preuve
 
-Repro locale + CI ci-dessus. Aucun test — point OUVERT, décision requise.
+Repro locale et CI ci-dessus. Garde : épinglé par `services/api/src/tests/ide-state-materialise-une-fois.spec.ts`.
