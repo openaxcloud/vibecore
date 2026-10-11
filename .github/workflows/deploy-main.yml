@@ -1570,6 +1570,30 @@ jobs:
           # "1" + values.schema.json; the post-deploy step below verifies the
           # flag actually reached the running api pods.
           SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
+          # GRÂCE LONGUE (#647) — SANS CETTE LIGNE, LA GRÂCE N'ARRIVE JAMAIS.
+          #
+          # Mesuré en production le 2026-10-11 à 04:41 UTC, juste après que #647 ait
+          # été construit, déployé et servi avec succès : le pod web en cours portait
+          # `terminationGracePeriodSeconds: 30`, alors que values-prod.yaml:240 dit
+          # 600. #647 était donc fusionné, servi — et INOPÉRANT.
+          #
+          # La cause est écrite deux fois dans ce fichier même, vingt lignes plus
+          # haut : `--reuse-values` conserve les valeurs STOCKÉES dans la release et
+          # ignore values-prod.yaml. Seuls deux chemins atteignent la prod — un
+          # défaut de GABARIT, ou un `--set` explicite. Le reste de #647 (délai de
+          # progrès 1200 s) passait par le gabarit : il est bien arrivé. La grâce
+          # n'avait que le fichier de valeurs : elle est restée au vestiaire.
+          #
+          # Le second `helm upgrade` (armement phase 2) n'a pas besoin de la ligne :
+          # il tourne APRÈS celui-ci, et son `--reuse-values` conserve alors la
+          # valeur que celui-ci vient de stocker.
+          #
+          # ⚠️ Le nombre ci-dessous est un DOUBLON de values-prod.yaml:240, et c'est
+          # assumé : la garde tests/guards/la-grace-atteint-la-prod.spec.ts rougit si
+          # les deux divergent, OU si cette ligne disparaît alors que le fichier de
+          # valeurs déclare une grâce. Sans elle, ce correctif se déferait en silence
+          # — comme #647 s'est défait, sauf que #647 n'a jamais pris.
+          SETS+=( --set "services.web.terminationGracePeriodSeconds=600" )
           # P104 / SEC-8: phase-1 value of the activation interlock, decided by the
           # cutover step above ("0" on a cutover, "1" in steady state). Always
           # explicit — --reuse-values would otherwise freeze whatever the release
