@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-397 entrées.
+398 entrées.
 
 ## Sans section
 
@@ -444,6 +444,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [CONSTAT-PAGES-GABARIT-PUBLIQUES](docs/bugs/CONSTAT-PAGES-GABARIT-PUBLIQUES.md) — `e-code.ai/plans` et 56 autres pages publiques montrent au visiteur du texte de DÉVELOPPEMENT, et `/plans` n'affiche — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE](docs/bugs/BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE.md) — BLOQUANT LANCEMENT (droit à l'effacement) — DÉCISION REQUISE — une demande de suppression de compte n'est — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1011-AVERTISSEMENT-SANS-SUPPRESSION](docs/bugs/BUG-QA1011-AVERTISSEMENT-SANS-SUPPRESSION.md) — La tâche quotidienne d'inactivité envoie aux comptes gratuits inactifs l'e-mail « votre compte sera supprimé », — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
