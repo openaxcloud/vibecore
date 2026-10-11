@@ -94,7 +94,7 @@ export function sansReflexion(contenu: string): { texte: string; reflexionOuvert
  * mêmes artefacts, mêmes actions, mêmes identifiants.
  */
 export function contenuARattraper(local: string, serveur: string | null | undefined): string | null {
-  if (typeof serveur !== 'string') {
+  if (typeof serveur !== 'string' || !estLaVersionDuServeur(serveur)) {
     return null;
   }
 
@@ -106,6 +106,21 @@ export function contenuARattraper(local: string, serveur: string | null | undefi
 
   /* Coupé en plein raisonnement : on referme le bloc avant d'ajouter la réponse. */
   return local + (reflexionOuverte ? FERMETURE_REFLEXION : '') + serveur.slice(texte.length);
+}
+
+/**
+ * La version lue en base est-elle celle du SERVEUR ?
+ *
+ * Pendant le tour, le navigateur enregistre lui-même sa copie partielle, AVEC
+ * le raisonnement ; le serveur n'écrit qu'à la fin, et jamais de raisonnement
+ * (mesuré le 2026-10-01 : 0 bloc dans sa version de 26 176 caractères). Une
+ * version qui porte un bloc de raisonnement est donc notre propre copie — la
+ * reprendre recollerait ce qu'on a déjà, et déclarerait le tour rattrapé avant
+ * qu'il soit fini (mesuré deux fois sur deux le même jour, coupure en plein
+ * raisonnement : 3 fichiers sur 13).
+ */
+export function estLaVersionDuServeur(contenu: string): boolean {
+  return !contenu.includes(OUVERTURE_REFLEXION);
 }
 
 /** Faut-il encore attendre ? */
@@ -183,7 +198,7 @@ export async function planDeRattrapage(
     return contenu ? { type: 'completer', messageId: reponseLocale.id, contenu } : null;
   }
 
-  if (!reponseServeur.content.trim()) {
+  if (!reponseServeur.content.trim() || !estLaVersionDuServeur(reponseServeur.content)) {
     return null;
   }
 

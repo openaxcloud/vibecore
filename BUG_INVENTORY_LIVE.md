@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-407 entrées.
+410 entrées.
 
 ## Sans section
 
@@ -66,7 +66,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-HISTORY-CLEAR-002](docs/bugs/BUG-HISTORY-CLEAR-002.md) — 3 fois sur 3 — 📤 Dispatché : ☑ 14/09 · 💻 Codé : ☑ 14/09 · ✅ Testé live : ☐
 - [BUG-DEPLOY-ACTIONS-MOBILE-001](docs/bugs/BUG-DEPLOY-ACTIONS-MOBILE-001.md) — P2 — Déploiements « Gérer » sur iPhone : « Redéployer / Restauration / Annuler » empilés sur trois lignes, chacun étroit — 📤 Dispatché : ☑ 06/09 · 💻 Codé : ☑ 06/09 (`main`), déployé run 1498 (abaa279), 12:35 UTC — sur téléphone : ligne qui se replie (`display: flex · ✅ Testé live : ☐
 - [BUG-PROBLEMS-STALE-START-001](docs/bugs/BUG-PROBLEMS-STALE-START-001.md) — P2 — Problèmes garde les erreurs d'un démarrage raté pendant que la Webview sert l'application — 📤 Dispatché : ☑ 06/09 · 💻 Codé : ☑ 06/09 (`main`), déployé run 1498 (abaa279), 12:35 UTC — `buildRuntimeDiagnostics` : une ligne « prêt » du se · ✅ Testé live : ☐
-- [BUG-IDE-SPLIT-EFFACE-001](docs/bugs/BUG-IDE-SPLIT-EFFACE-001.md) — P2 — un partage de panneau (« Split active right ») DISPARAÎT tout seul ~2,5 s après avoir été fait, quand la machine est chargée. — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☐ — cause racine NON établie, et je ne livre pas un correctif sur une route déduite (règle 1) · ✅ Testé live : ☐
+- [BUG-IDE-SPLIT-EFFACE-001](docs/bugs/BUG-IDE-SPLIT-EFFACE-001.md) — P2 — un partage de panneau (« Split active right ») DISPARAÎT tout seul ~2,5 s après avoir été fait, quand la machine est chargée. — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 16/09 — cause racine MESURÉE, pas déduite (build instrumenté, CPU ×20 + 4 boucles CPU, puis reproduction dét · ✅ Testé live : ☐ — à constater sur `app.e-code.ai` après déploiement : ouvrir un projet sur une connexion lente (ou juste apr
 - [BUG-DEPLOY-PROVIDERS-UI-001](docs/bugs/BUG-DEPLOY-PROVIDERS-UI-001.md) — P1 — l'assistant proposait SEPT hébergeurs dont SIX ne pouvaient pas aboutir — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
 - [BUG-PUBLISH-NOOP-001](docs/bugs/BUG-PUBLISH-NOOP-001.md) — P1 — « Republier » ne lance AUCUN déploiement : le bouton renvoie vers l'onglet « Gérer » — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
 - [BUG-PUBLISH-SIZES-001](docs/bugs/BUG-PUBLISH-SIZES-001.md) — P2 — panneau Déploiements : tout le contenu est TROP GROS, loin de Replit — 📤 Dispatché : ☑ 09/09 · 💻 Codé : ☑ 09/09 · ✅ Testé live : ☐
@@ -472,6 +472,15 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-11 — Dette d'infrastructure : la production sait des choses que le dépôt ignore
 
 - [BUG-AUTH-CONNEXION-PERD-LA-LANGUE](docs/bugs/BUG-AUTH-CONNEXION-PERD-LA-LANGUE.md) — `e-code.ai/login?lang=fr` ouvert sans cookie de langue arrivait sur `app.e-code.ai/login` EN ANGLAIS. — 📤 Dispatché : ☑ 11/10 correctif ouvert en #698 · 💻 Codé : ☑ 11/10 `app/routes/login.tsx` (+12), `app/routes/login.spec.ts` (+60) · ✅ Testé live : ☐ en attente du déploiement
+
+## Sans section
+
+- [BUG-IDE-014](docs/bugs/BUG-IDE-014.md) — P2 — « Domaines » est offert deux fois dans l'IDE : comme carte autonome de la grille des outils ET comme onglet du panneau Déploiements. — 📤 Dispatché : ✅ 02/09 · 💻 Codé : ☑ PR #379 (branche `fix/ide-domains-duplicate-entry`, NON mergée) · ✅ Testé live : ☐ à prouver en prod
+- [BUG-QUOTA-001](docs/bugs/BUG-QUOTA-001.md) — limite 1 — 📤 Dispatché : ☐ · 💻 Codé : ☐ · ✅ Testé live : ☐ Constaté live 16/08
+
+## 2026-10-11 — Reprise vérifiée
+
+- [BUG-QA1011-MESSAGE-ACTIONS-CIBLE28](docs/bugs/BUG-QA1011-MESSAGE-ACTIONS-CIBLE28.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
