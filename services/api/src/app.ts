@@ -117,6 +117,7 @@ import {
   requireCsrfToken,
   requireProductionSecret,
   checkOutboundUrl,
+  fetchOutbound,
 } from '@vibecore/security';
 import { getGalleryDemoApp } from '@vibecore/template-catalog/server';
 import { DOMParser } from '@xmldom/xmldom';
@@ -8946,8 +8947,8 @@ export async function deliverSiemAbuseSignal(
        * address when the webhook was saved can resolve to 169.254.169.254 today,
        * and this pod would deliver a signed request there. Re-resolving on every
        * delivery rejects changes to private addresses before the request.
-       * The transport still resolves separately: DNS pinning at connection time
-       * remains necessary to close the check/use race.
+       * The native HTTP transport performs its own validation and passes the
+       * approved DNS addresses into the socket lookup, closing the check/use race.
        *
        * allowAnyPublicHost: a customer's SIEM endpoint cannot be enumerated; the
        * ADDRESS checks still apply in full.
@@ -8984,25 +8985,32 @@ export async function deliverSiemAbuseSignal(
       const timeout = setTimeout(() => controller.abort(), 5000);
 
       try {
-        await fetch(webhook.url, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-vibecore-signature': `sha256=${signature}`,
-            'x-vibecore-event': 'abuse.signal',
+        await fetchOutbound(
+          webhook.url,
+          {
+            allowedHostSuffixes: [],
+            allowAnyPublicHost: true,
+            resolveHost: options.resolveHost,
           },
-          body,
+          {
+          method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-vibecore-signature': `sha256=${signature}`,
+              'x-vibecore-event': 'abuse.signal',
+            },
+            body,
 
-          /*
-           * Do NOT follow redirects. SIEM webhook URLs are validated only at
-           * config time; a customer endpoint that passed that check can 3xx-redirect
-           * delivery from this in-cluster pod to an internal target (metadata,
-           * RFC1918, in-cluster DNS) — redirect-based blind SSRF. A 3xx is treated
-           * as a (silently ignored) delivery attempt rather than followed.
-           */
-          redirect: 'manual',
-          signal: controller.signal,
-        });
+            /*
+             * Do NOT follow redirects. A customer endpoint can 3xx-redirect
+             * delivery from this in-cluster pod to an internal target (metadata,
+             * RFC1918, in-cluster DNS) — redirect-based blind SSRF. A 3xx is treated
+             * as a (silently ignored) delivery attempt rather than followed.
+             */
+            signal: controller.signal,
+            maxBytes: 64 * 1024,
+          },
+        );
       } catch {
         // delivery failure must not block abuse handling
       } finally {
@@ -9509,7 +9517,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return (releases.at(0)?.metadata as Record<string, unknown> | undefined)?.access;
   };
-
 
 
   /*
@@ -17046,9 +17053,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await ensureWorkspaceReachable(scheduledRequest, authorized, SCHEDULED_COLD_START_BUDGET_MS);
       result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
+          method: 'POST',
+          body: JSON.stringify(body),
+        },
+      );
     } catch (error) {
       if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;

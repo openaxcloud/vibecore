@@ -1,7 +1,9 @@
 import { encryptJson } from '@vibecore/security';
+import * as security from '@vibecore/security';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { deliverSiemAbuseSignal } from '../app.js';
+
 import { TestApiStore } from './test-api-store.js';
 
 /*
@@ -40,8 +42,8 @@ async function withWebhook(url: string) {
     enabled: true,
   });
 
-  const fetchMock = vi.fn(async () => new Response('', { status: 200 }));
-  vi.stubGlobal('fetch', fetchMock);
+  const fetchMock = vi.spyOn(security, 'fetchOutbound').mockResolvedValue(new Response('', { status: 200 }));
+  vi.stubGlobal('fetch', vi.fn());
 
   return { store, fetchMock, resolveHost: vi.fn(async () => ['93.184.216.34']) };
 }
@@ -83,5 +85,14 @@ describe('AUDX-006 SIEM webhook delivery guard', () => {
 
     expect(resolveHost).toHaveBeenCalledWith('siem.example.com');
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://siem.example.com/ingest',
+      expect.objectContaining({
+        allowAnyPublicHost: true,
+        resolveHost,
+      }),
+      expect.objectContaining({ method: 'POST' }),
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

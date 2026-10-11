@@ -1,5 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
+export { fetchOutbound, resolveOutboundDestination, type OutboundHttpOptions } from './outbound-http.js';
+
 export const secretKeyPattern = /authorization|cookie|password|secret|token|api[-_]?key|refresh/i;
 export const secretValuePatterns = [
   /\bcanary_[A-Za-z0-9_-]{16,}\b/g,
@@ -681,9 +683,9 @@ export function detectUsageAbuse(input: {
  * time-of-check/time-of-use race. A true DNS-rebinding attacker can answer our
  * lookup with a public address and the CLIENT's subsequent lookup with a private
  * one. Eliminating that requires passing the validated address through to each
- * socket. Native HTTP clients expose lookup hooks; the callers here have not
- * wired them yet. Preview hosts use a configured in-cluster proxy, but that
- * does not establish the same guarantee for arbitrary external resources.
+ * socket. The native SIEM transport and Git import now use the validated addresses.
+ * The browser still has a separate lookup for arbitrary external resources;
+ * its preflight check does not establish the same connection guarantee.
  */
 const BLOCKED_IPV4_RANGES: ReadonlyArray<readonly [string, number]> = [
   ['0.0.0.0', 8], // "this network"
