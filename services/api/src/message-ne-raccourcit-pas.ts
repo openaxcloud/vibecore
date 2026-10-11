@@ -36,15 +36,56 @@ export interface DecisionEcriture {
   perdus?: number;
 }
 
+const OUVERTURE_REFLEXION = '<div class="__boltThought__">';
+const FERMETURE_REFLEXION = '</div>\n';
+
+/**
+ * Le texte d'un message SANS ses blocs de raisonnement.
+ *
+ * Le navigateur enregistre sa copie AVEC le raisonnement (enveloppé par
+ * `api.chat.ts` dans `<div class="__boltThought__">…</div>`) ; le serveur
+ * écrit la sienne SANS (#609). Les deux versions d'un même message ne se
+ * comparent qu'une fois les blocs retirés. Mesuré le 2026-10-01 à 12:52 : sans
+ * ce retrait, la copie partielle du navigateur (295 caractères, raisonnement
+ * compris) n'était pas un « préfixe » de la réponse complète du serveur
+ * (25 459), et la remplaçait à la réouverture du projet.
+ *
+ * Même règle que `sansReflexion` (app/lib/chat/rattrapage-reprise.ts) — un
+ * test les compare, le service ne pouvant pas importer le code du navigateur.
+ */
+export function texteSansReflexion(contenu: string): string {
+  let texte = '';
+  let position = 0;
+
+  for (;;) {
+    const ouverture = contenu.indexOf(OUVERTURE_REFLEXION, position);
+
+    if (ouverture < 0) {
+      return texte + contenu.slice(position);
+    }
+
+    texte += contenu.slice(position, ouverture);
+
+    const fermeture = contenu.indexOf(FERMETURE_REFLEXION, ouverture + OUVERTURE_REFLEXION.length);
+
+    if (fermeture < 0) {
+      return texte;
+    }
+
+    position = fermeture + FERMETURE_REFLEXION.length;
+  }
+}
+
 export function decisionEcritureMessage(existant: string | null | undefined, entrant: string): DecisionEcriture {
   if (!existant) {
     return { ecrire: true };
   }
 
-  const plusCourt = entrant.length < existant.length;
+  const texteExistant = texteSansReflexion(existant);
+  const texteEntrant = texteSansReflexion(entrant);
 
-  if (plusCourt && existant.startsWith(entrant)) {
-    return { ecrire: false, raison: 'instantane-perime', perdus: existant.length - entrant.length };
+  if (texteEntrant.length < texteExistant.length && texteExistant.startsWith(texteEntrant)) {
+    return { ecrire: false, raison: 'instantane-perime', perdus: texteExistant.length - texteEntrant.length };
   }
 
   return { ecrire: true };
