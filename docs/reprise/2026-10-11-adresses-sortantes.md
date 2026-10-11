@@ -1,4 +1,4 @@
-# A-35 — garde d'adresses sortantes, réserve DNS maintenue
+# A-35 — adresses de connexion validées et réserves de preuve
 
 Reprise par fusion réelle de `sec/audx-006-ssrf-dns-rebinding` sur `4f7c07f7`. Les deux conflits ont été résolus en conservant tous les messages de main et Playwright 1.63 de main ; ajout de la dépendance security du captureur. Installation hors ligne avec verrouillage figé réussie.
 
@@ -38,3 +38,39 @@ Preuves physiques dans le conteneur de test possédé : réseau Docker interne 9
 Contre-épreuves TCP : enlever seulement le lookup imposé à HTTP rend une requête privée ; enlever seulement curloptResolve de Git en rend deux ; autoriser seulement les redirections Git en rend une. Chaque preuve devient rouge. Sources restaurées : 80 cas dans quatorze suites passent (41 sécurité/index, 19 API, 20 captureur), dont trois cas physiques HTTP/Git/Chromium. Ces derniers nécessitent OUTBOUND_PROOF_CONTAINER et le Chromium installé ; sans prérequis ils sont explicitement ignorés, jamais présentés comme mesurés par une CI qui ne les joue pas. Types web/API/sécurité et constructions web/API réussis. Lint différentiel : aucune nouvelle erreur, dette historique conservée.
 
 Réserve maintenue : le navigateur poursuit certaines requêtes externes après un contrôle DNS préalable ; ces connexions et enchaînements de redirections ne sont pas reliés à la résolution validée. Les trois contre-épreuves du captureur empêchent de prendre ses politiques réseau natives pour une preuve de notre garde. A-35 reste partiel. Les connexions physiques mesurées ici sont HTTP, pas une preuve de négociation TLS en production. Aucun contrôle ni attaque de production effectué.
+
+## Connexions du navigateur figées (23:53 UTC)
+
+Le navigateur utilise désormais un proxy HTTP local. Chaque requête HTTP et
+chaque tunnel CONNECT est résolu et contrôlé par le détecteur partagé, puis
+connecté directement à l’adresse validée. Le proxy conserve Host et transmet
+les tunnels sans terminer TLS. Aucun second lookup ni proxy de secours.
+QUIC et les sorties WebRTC UDP non proxifiées sont désactivés ; les service
+workers restent bloqués. Les requêtes vers le proxy interne d’aperçu passent
+par un client HTTP dédié, sans suivre les redirections, pour préserver le rendu
+interne et son Host. Une erreur ferme la connexion.
+
+La preuve Chromium réelle charge le document d’aperçu, son image locale, une
+image externe publique et une WebSocket publique. Un DNS système de fixture
+renvoie pourtant une adresse privée pour cet hôte ; aucune seconde résolution
+ne se produit. Le serveur privé joignable reçoit zéro requête et zéro nouvelle
+connexion TCP. Les images privées, redirections privées et WebSockets privées
+sont refusées. Un second test TCP exerce HTTP et CONNECT directement. Un test
+sur sockets locales vérifie le refus HTTP/CONNECT en CI sans prérequis Docker.
+
+Quatre contre-épreuves séparées retirent uniquement l’adresse figée de HTTP ou
+de CONNECT : deux dans le client de preuve, deux dans Chromium. Chacune rend
+un cas rouge et une requête privée réelle (la WebSocket Chromium produit aussi
+une connexion TCP privée). Les garde-fous sont ensuite restaurés : les 22 cas
+du captureur passent. Types du service, construction et lint passent, avec
+deux avertissements antérieurs de fonctions vides. Le total tenu est de 82
+cas (41 sécurité/index, 19 API, 22 captureur), dont quatre cas physiques opt-in
+et un refus sur sockets réelles exécuté sans option.
+
+Les réserves DNS des sections précédentes décrivent les étapes antérieures ;
+la séparation entre validation et connexion est fermée pour les transports
+HTTP, Git, HTTP navigateur et CONNECT examinés ici. A-35 n’est pas déclaré
+servi : aucun déploiement de ce complément, aucune preuve TLS en production,
+aucune preuve d’isolation de tous les protocoles navigateur par une politique
+réseau du cluster. Les protections réseau natives sont désactivées uniquement
+dans la fixture pour ne pas masquer un défaut applicatif.
