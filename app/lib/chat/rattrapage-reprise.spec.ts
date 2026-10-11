@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-
+// eslint-disable-next-line no-restricted-imports -- Contre-épreuve croisée : détecteur réel de l’API, hors alias web.
 import { decisionEcritureMessage, texteSansReflexion } from '../../../services/api/src/message-ne-raccourcit-pas';
+
 import {
   contenuARattraper,
   estLaVersionDuServeur,
