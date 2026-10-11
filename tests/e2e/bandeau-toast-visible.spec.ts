@@ -99,18 +99,41 @@ async function monter(page: Page, largeur: number, hauteur: number) {
   return page.evaluate(() => {
     const toast = document.querySelector<HTMLElement>('.Toastify__toast')!;
     const r = toast.getBoundingClientRect();
-    const peint = (x: number, y: number) => !!document.elementFromPoint(x, y)?.closest('.Toastify__toast');
     const annuler = document.getElementById('annuler')!.getBoundingClientRect();
+    const tete = document.querySelector('.bolt-agent-applied-toast-head strong')!.getBoundingClientRect();
+
+    /*
+     * PEINT : un bandeau rogné par son conteneur n'est ni peint ni touchable.
+     * Depuis BUG-TOAST-GESTES-001 son corps est transparent aux gestes ; pour
+     * mesurer le ROGNAGE par le test de toucher, on le rend touchable le temps
+     * de la mesure, puis on retire ce forçage.
+     */
+    const forcage = document.createElement('style');
+    forcage.textContent = '.Toastify__toast, .Toastify__toast * { pointer-events: auto !important; }';
+    document.head.append(forcage);
+
+    const peint = (x: number, y: number) => !!document.elementFromPoint(x, y)?.closest('.Toastify__toast');
+    const centrePeint = peint(r.left + r.width / 2, r.top + r.height / 2);
+    const annulerPeint = peint(annuler.left + annuler.width / 2, annuler.top + annuler.height / 2);
+
+    forcage.remove();
+
+    // GESTES, sans forçage : ce que le moteur désigne vraiment sous le doigt.
+    const sousLeTexte = document.elementFromPoint(tete.left + 5, tete.top + tete.height / 2);
+    const sousAnnuler = document.elementFromPoint(annuler.left + annuler.width / 2, annuler.top + annuler.height / 2);
 
     return {
+      centrePeint,
+      annulerPeint,
+      texteLaissePasser: sousLeTexte?.id === 'chrome',
+      sousLeTexte: sousLeTexte ? `${sousLeTexte.tagName}#${sousLeTexte.id}.${sousLeTexte.className}` : null,
+      annulerGardeLeGeste: sousAnnuler?.id === 'annuler',
       rect: {
         haut: Math.round(r.top),
         bas: Math.round(r.bottom),
         gauche: Math.round(r.left),
         droite: Math.round(r.right),
       },
-      centrePeint: peint(r.left + r.width / 2, r.top + r.height / 2),
-      annulerPeint: peint(annuler.left + annuler.width / 2, annuler.top + annuler.height / 2),
       hauteurConteneur: Math.round(
         document.querySelector('.Toastify__toast-container')!.getBoundingClientRect().height,
       ),
@@ -136,6 +159,17 @@ for (const [nom, largeur, hauteur] of [
         `conteneur de ${m.hauteurConteneur}px qui le rogne`,
     ).toBe(true);
     expect(m.annulerPeint, '« Tout annuler » doit être atteignable').toBe(true);
+
+    /*
+     * BUG-TOAST-GESTES-001 — le bandeau ne confisque pas ce qu'il recouvre :
+     * sur téléphone il se pose sur le haut du fil, et un appui long sur le
+     * premier message tombait dessus (11 échecs sur 20, mesuré le 2026-09-29).
+     */
+    expect(
+      m.texteLaissePasser,
+      `sous le texte du bandeau, le geste doit atteindre le contenu recouvert — il atteint ${m.sousLeTexte}`,
+    ).toBe(true);
+    expect(m.annulerGardeLeGeste, '« Tout annuler » doit garder le geste').toBe(true);
 
     if (largeur < 768) {
       /*

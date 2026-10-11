@@ -137,7 +137,16 @@ export function createRuntimeAdapter(
        * re-fetch, so an interrupted session recovers instead of storming.
        */
       invalidateAuthToken: () => invalidateRuntimeToken(options.projectId ?? options.workspaceId),
-      workspaceId: options.workspaceId ?? options.projectId,
+
+      /*
+       * BUG-QA0928-RUNTIME-ID-PROJET — surtout pas `workspaceId ?? projectId`.
+       * L'identifiant du projet dans un chemin runtime est refusé `401` par la
+       * garde de périmètre du ticket (552 refus sur 552 en production le
+       * 2026-09-28, dont 78 écritures). L'adaptateur garde le projet pour le seul
+       * corps de `POST /workspaces`, qui sait le résoudre en workspace.
+       */
+      workspaceId: options.workspaceId,
+      projectId: options.projectId,
     });
   }
 

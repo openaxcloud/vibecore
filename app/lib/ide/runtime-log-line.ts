@@ -128,3 +128,17 @@ export function texteRuntimeLisible(ligne: string): string {
 
   return lisible.niveau ? `[${lisible.niveau}] ${lisible.texte}` : lisible.texte;
 }
+
+/*
+ * Un JOURNAL entier, pour les `<pre>` des cartes de l'Aperçu (préparation,
+ * démarrage, application non démarrée). Seules les lignes JSON de l'agent sont
+ * réécrites : une ligne ordinaire (sortie npm, pile d'appels) garde son
+ * indentation — `texteRuntimeLisible` la rognerait.
+ *
+ * BUG-LOGS-JSON-001 : le correctif du 06/09 n'avait couvert que le volet
+ * « Journaux du serveur ». Mesuré en prod le 30/09 à 390 px : la carte de
+ * démarrage affichait encore `{"level":"error","service":"workspace-agent",…}`.
+ */
+export function journalLisible(lignes: readonly string[]): string {
+  return lignes.map((ligne) => (ligne.trim().startsWith('{') ? texteRuntimeLisible(ligne) : ligne)).join('\n');
+}

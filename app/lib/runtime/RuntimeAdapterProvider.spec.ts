@@ -194,4 +194,35 @@ describe('AUDX-004 runtime ticket resolution', () => {
 
     expect(minted).toEqual(['project-a', 'project-b']);
   });
+
+  /*
+   * BUG-QA0928-RUNTIME-ID-PROJET — la fabrique passait `workspaceId ?? projectId`
+   * à l'adaptateur. Avant le démarrage, et pour toujours après un démarrage
+   * refusé, chaque requête runtime visait `/workspaces/<id du projet>/…`, refusée
+   * `401` par la garde de périmètre du ticket : 552 refus sur 552 en production le
+   * 2026-09-28, dont 78 écritures de fichiers.
+   */
+  it('ne met JAMAIS l’identifiant du projet dans un chemin runtime', async () => {
+    const projet = 'cmprojetcablage00000000000';
+    const urls: string[] = [];
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      urls.push(url);
+
+      if (url.includes('/api/runtime-token')) {
+        return new Response(JSON.stringify({ token: 'vcrt_ticket' }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+
+      return new Response(JSON.stringify({ code: 'UNAUTHORIZED' }), { status: 401 });
+    });
+
+    const adapter = createRuntimeAdapter('remote-kubernetes', { projectId: projet });
+
+    await expect(adapter.listFiles('.')).rejects.toMatchObject({ code: 'WORKSPACE_NOT_STARTED' });
+    expect(urls.filter((url) => url.includes(`/workspaces/${projet}`))).toEqual([]);
+  });
 });

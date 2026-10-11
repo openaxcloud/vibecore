@@ -43,7 +43,28 @@ export interface RemoteKubernetesRuntimeAdapterOptions {
    * token has no way to refresh, so this is a no-op there.
    */
   invalidateAuthToken?: () => void | Promise<void>;
+
+  /*
+   * Le VRAI identifiant de workspace (`ws-…`), quand l'appelant le connaît déjà.
+   * Ne jamais y mettre l'identifiant du projet : voir `projectId`.
+   */
   workspaceId?: string;
+
+  /*
+   * BUG-QA0928-RUNTIME-ID-PROJET — le projet, pour DÉMARRER seulement.
+   *
+   * Le fournisseur passait autrefois `workspaceId: workspaceId ?? projectId`.
+   * Toute requête lancée avant la réponse du démarrage — et TOUTES celles qui
+   * suivaient un démarrage refusé — partaient donc vers
+   * `/workspaces/<id du projet>/…`, que la garde de périmètre du ticket refuse
+   * en `401`. Mesuré en production le 2026-09-28 : 552 refus sur 552, dont 78
+   * écritures de fichiers, et 122 tickets frappés en une minute.
+   *
+   * Seul `POST /workspaces` sait résoudre un projet en workspace ; l'adaptateur
+   * garde donc le projet pour ce corps-là, et pour reconnaître qu'un identifiant
+   * « demandé » n'est pas un identifiant de workspace.
+   */
+  projectId?: string;
   fetchImpl?: typeof fetch;
   WebSocketImpl?: WebSocketConstructor;
 }
@@ -125,6 +146,15 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
    */
   #fileDeTickets: Promise<unknown> = Promise.resolve();
   #workspaceId?: string;
+  #projectId?: string;
+
+  /*
+   * Le démarrage en vol, s'il y en a un. Une ÉCRITURE lancée pendant qu'il court
+   * l'attend au lieu d'échouer : l'agent peut commencer à écrire pendant le
+   * démarrage à froid (relais de l'accueil, premier message envoyé tôt), et
+   * perdre ces fichiers-là serait le même défaut par un autre chemin.
+   */
+  #demarrageEnVol: Promise<unknown> | null = null;
   #fetch: typeof fetch;
   #WebSocket?: WebSocketConstructor;
   #session?: WorkspaceSession;
@@ -165,6 +195,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     this.#authToken = options.authToken;
     this.#invalidateAuthToken = options.invalidateAuthToken;
     this.#workspaceId = options.workspaceId;
+    this.#projectId = options.projectId;
     this.#fetch = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
     this.#WebSocket = options.WebSocketImpl ?? (globalThis.WebSocket as WebSocketConstructor | undefined);
 
@@ -190,6 +221,19 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
+    const demarrage = this.#demarrer(session);
+    this.#demarrageEnVol = demarrage;
+
+    try {
+      return await demarrage;
+    } finally {
+      if (this.#demarrageEnVol === demarrage) {
+        this.#demarrageEnVol = null;
+      }
+    }
+  }
+
+  async #demarrer(session: Partial<WorkspaceSession>): Promise<WorkspaceSession> {
     const requestedId = session.id ?? this.#workspaceId;
 
     /*
@@ -221,10 +265,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
     let payload: WorkspaceSession | undefined;
 
+    const corpsDuDemarrage = JSON.stringify({ workspaceId: requestedId, metadata: session.metadata });
+
+    /*
+     * BUG-QA0928-RUNTIME-ID-PROJET — l'identifiant « demandé » est souvent celui du
+     * PROJET (`workspaceId ?? projectId` côté IDE). Le serveur le résout en
+     * workspace dans CE corps-là ; aucune autre route ne sait le faire.
+     */
+    const idDemandeEstLeProjet =
+      !!requestedId && (requestedId === projectIdDesMetadonnees || requestedId === this.#projectId);
+
     try {
       payload = await this.#request<WorkspaceSession>('/workspaces', {
         method: 'POST',
-        body: JSON.stringify({ workspaceId: requestedId, metadata: session.metadata }),
+        body: corpsDuDemarrage,
       });
     } catch (error) {
       /*
@@ -236,11 +290,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
        * Genuine client errors (quota 402, auth 401/403, bad request) are NOT
        * transient and must surface immediately.
        */
-      if (!requestedId || !this.#isTransientStartError(error)) {
+      if (!this.#isTransientStartError(error)) {
         throw error;
       }
 
-      this.#workspaceId = requestedId;
+      if (requestedId && !idDemandeEstLeProjet) {
+        this.#workspaceId = requestedId;
+      } else {
+        /*
+         * On n'ADOPTE PAS l'identifiant du projet : chaque sonde de statut, chaque
+         * lecture et chaque écriture partiraient vers `/workspaces/<projet>/…` et
+         * seraient refusées. On redemande le démarrage, qui résout le projet.
+         */
+        payload = await this.#redemanderLeDemarrage(corpsDuDemarrage, error);
+      }
     }
 
     if (payload) {
@@ -271,6 +334,47 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * so the IDE cold-seeds it rather than reattaching to a possibly-empty tree.
      */
     return { ...(await this.#waitForWorkspaceRunning(pollId)), reused: false };
+  }
+
+  /**
+   * Redemander `POST /workspaces` jusqu'à obtenir l'identifiant réel, dans la même
+   * fenêtre que l'attente de disponibilité. Le démarrage est idempotent côté API :
+   * un workspace déjà STARTING ne consomme pas de quota une seconde fois.
+   */
+  async #redemanderLeDemarrage(corps: string, premiereErreur: unknown): Promise<WorkspaceSession> {
+    const echeance = Date.now() + this.#startReadinessTimeoutMs;
+
+    let derniereErreur = premiereErreur;
+
+    for (let tentative = 1; Date.now() < echeance; tentative++) {
+      await new Promise((resolve) => setTimeout(resolve, Math.min(this.#startPollIntervalMs, 250 * 2 ** tentative)));
+
+      try {
+        return await this.#request<WorkspaceSession>('/workspaces', { method: 'POST', body: corps });
+      } catch (error) {
+        if (!this.#isTransientStartError(error)) {
+          throw error;
+        }
+
+        derniereErreur = error;
+      }
+    }
+
+    throw derniereErreur;
+  }
+
+  /**
+   * L'identifiant pour une MUTATION. Si un démarrage court, on l'attend : une
+   * écriture de l'agent lancée pendant le démarrage à froid doit arriver dans le
+   * workspace, pas échouer parce qu'elle est partie trop tôt. Sans démarrage en
+   * vol et sans workspace, `WORKSPACE_NOT_STARTED` — sans requête réseau.
+   */
+  async #identifiantPourMuter(): Promise<string> {
+    if (!this.#workspaceId && this.#demarrageEnVol) {
+      await this.#demarrageEnVol.catch(() => undefined);
+    }
+
+    return this.#requireWorkspaceId();
   }
 
   #isTransientStartError(error: unknown): boolean {
@@ -479,8 +583,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * Overwrite is idempotent — retry through a transient api/agent 5xx so a pod
      * rollout/restart mid-generation never silently drops a generated file.
      */
+    const workspaceId = await this.#identifiantPourMuter();
+
     await this.#request(
-      `/workspaces/${this.#requireWorkspaceId()}/files/write`,
+      `/workspaces/${workspaceId}/files/write`,
       {
         method: 'PUT',
         body: JSON.stringify({ path, content }),
@@ -503,24 +609,30 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async createFile(path: string, content = ''): Promise<void> {
+    const workspaceId = await this.#identifiantPourMuter();
+
     await this.#request(
-      `/workspaces/${this.#requireWorkspaceId()}/files`,
+      `/workspaces/${workspaceId}/files`,
       { method: 'POST', body: JSON.stringify({ path, content }) },
       { retryIdempotentWrite: true },
     );
   }
 
   async createDirectory(path: string): Promise<void> {
+    const workspaceId = await this.#identifiantPourMuter();
+
     await this.#request(
-      `/workspaces/${this.#requireWorkspaceId()}/directories`,
+      `/workspaces/${workspaceId}/directories`,
       { method: 'POST', body: JSON.stringify({ path }) },
       { retryIdempotentWrite: true },
     );
   }
 
   async deleteFile(path: string): Promise<void> {
+    const workspaceId = await this.#identifiantPourMuter();
+
     await this.#request(
-      `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`,
+      `/workspaces/${workspaceId}/files?path=${encodeURIComponent(path)}`,
       { method: 'DELETE' },
       { retryIdempotentWrite: true },
     );
@@ -531,7 +643,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async moveFile(path: string, newPath: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/files/move`, {
+    const workspaceId = await this.#identifiantPourMuter();
+
+    await this.#request(`/workspaces/${workspaceId}/files/move`, {
       method: 'POST',
       body: JSON.stringify({ path, newPath }),
     });

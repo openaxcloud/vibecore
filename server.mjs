@@ -102,6 +102,58 @@ const server = app.listen(port, () => {
   console.log(`[vibecore-serve] http://localhost:${port}`);
 });
 
+/*
+ * ARRÊT PROPRE : ATTENDRE LES TOURS, PAS SEULEMENT LES CONNEXIONS.
+ *
+ * Mesuré en production le 2026-09-30 à 18:19 : un tour de génération démarré sur
+ * un pod que le déploiement remplaçait est mort à 18:20:28, sans aucune fin côté
+ * serveur. `server.close()` n'attend que les CONNEXIONS : un utilisateur qui a
+ * quitté la page a fermé la sienne alors que son tour continue — et doit aller
+ * au bout pour que sa réponse soit écrite (#609) et rattrapée (#622).
+ *
+ * On refuse donc les nouvelles connexions, on ferme celles qui sont inactives,
+ * puis on attend que le registre des tours soit vide (app/lib/.server/
+ * tours-en-cours.ts), avec une borne. La borne doit rester SOUS la période de
+ * grâce de Kubernetes (portée à ~10 min par la chaîne de livraison), sinon le
+ * pod est tué avant d'avoir pu le dire.
+ */
+const ATTENTE_MAX_MS = Number(process.env.ARRET_ATTENTE_MAX_MS ?? 540_000);
+
+let arretEnCours = false;
+
+async function arreter(signal) {
+  if (arretEnCours) {
+    return;
+  }
+
+  arretEnCours = true;
+  console.log(JSON.stringify({ event: 'arret.signal', signal, attenteMaxMs: ATTENTE_MAX_MS }));
+
+  /*
+   * Les connexions keep-alive INACTIVES que nginx garde ouvertes retenaient le
+   * processus jusqu'au bout de sa grâce : mesuré par la chaîne de livraison le
+   * 2026-09-30 à 19:51:46, un pod web sans travail a consommé ses 30 s et fini
+   * tué (`phase=Failed`). On les ferme tout de suite ; celles qui travaillent
+   * finissent leur requête.
+   */
+  const connexionsFermees = new Promise((resolve) => server?.close(resolve));
+  server?.closeIdleConnections?.();
+
+  const attendreLesTours = globalThis[Symbol.for('vibecore.attendreLesTours')];
+
+  if (typeof attendreLesTours === 'function') {
+    const { restants, attenteMs } = await attendreLesTours({ maxMs: ATTENTE_MAX_MS });
+    console.log(JSON.stringify({ event: 'arret.fin', restants, attenteMs }));
+  } else {
+    // Le module des tours n'a jamais été chargé : aucun tour de chat n'a pu démarrer ici.
+    console.log(JSON.stringify({ event: 'arret.fin', restants: 0, attenteMs: 0, registre: 'jamais-charge' }));
+  }
+
+  /* Les requêtes ordinaires encore en vol ont quelques secondes pour finir. */
+  await Promise.race([connexionsFermees, new Promise((resolve) => setTimeout(resolve, 5_000).unref())]);
+  process.exit(0);
+}
+
 for (const signal of ['SIGTERM', 'SIGINT']) {
-  process.once(signal, () => server?.close(console.error));
+  process.once(signal, () => void arreter(signal));
 }
