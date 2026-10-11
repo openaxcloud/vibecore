@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.package.node.json",
+  "include": ["scripts/capture-rollout-diagnostics*.ts", "scripts/build-rollout-diagnostics.ts"]
+}

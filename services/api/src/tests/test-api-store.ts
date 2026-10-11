@@ -566,7 +566,18 @@ export class TestApiStore implements ApiStore {
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
-    const org = { id: id('org'), slug: input.slug || slugify(input.name), name: input.name, createdAt: now() };
+    const slug = input.slug || slugify(input.name);
+
+    /*
+     * Fidèle à Postgres : Organization.slug est @unique. Sans cette garde, le
+     * magasin de test acceptait deux organisations au même slug, et l'erreur 500
+     * de l'inscription (UIB-10) ne pouvait rougir dans aucun test.
+     */
+    if ([...this.organizations.values()].some((existing) => existing.slug === slug)) {
+      throw Object.assign(new Error('Unique constraint failed on the fields: (`slug`)'), { code: 'P2002' });
+    }
+
+    const org = { id: id('org'), slug, name: input.name, createdAt: now() };
     this.organizations.set(org.id, org);
     await this.addMember({ organizationId: org.id, userId: input.ownerUserId, roleKey: 'owner' });
 

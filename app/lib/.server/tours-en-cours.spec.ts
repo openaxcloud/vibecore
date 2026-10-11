@@ -108,6 +108,11 @@ describe('câblage', () => {
     const { readFileSync } = await import('node:fs');
     const source = readFileSync('app/routes/api.chat.ts', 'utf8');
 
-    expect(source).toMatch(/createDataStream\(\{[\s\S]{0,400}execute: avecSuiviDuTour\(/);
+    /*
+     * `avecSuiviDuTourPartage` compose `avecSuiviDuTour` (registre local, arrêt
+     * propre) et l'annonce partagée lue par l'API — composition tenue par
+     * tours-partages.spec.ts (« l'enveloppe du chat… dans le registre local »).
+     */
+    expect(source).toMatch(/createDataStream\(\{[\s\S]{0,400}execute: avecSuiviDuTour(?:Partage)?\(/);
   });
 });
