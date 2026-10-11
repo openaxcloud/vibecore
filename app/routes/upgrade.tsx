@@ -12,6 +12,7 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import { annuelPublicCents, estUnPrixStripe } from '~/lib/forfaits-publics';
 import { billingDisplayName } from '~/lib/i18n/catalogs/billing';
 import {
   formatUpgradeAmount,
@@ -110,7 +111,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       key: plan.key,
       name: plan.name,
       monthlyCents: plan.monthlyCents,
-      annualAvailable: Boolean(plan.stripePriceAnnualId),
+
+      // Un VRAI identifiant de prix (la production a porté une adresse e-mail à cette place).
+      annualAvailable: estUnPrixStripe(plan.stripePriceAnnualId),
       limits: plan.limits ?? {},
     }));
 
@@ -359,6 +362,9 @@ export default function UpgradePage() {
             const isCurrent = plan.key === data.currentPlanKey;
             const isEnterprise = plan.key === 'enterprise';
             const isCheckoutable = CHECKOUTABLE_PLAN_KEYS.has(plan.key);
+
+            // Sans prix annuel, ce choix serait refusé au paiement : en annuel, on ne le propose pas.
+            const annuelIndisponible = billingInterval === 'annual' && !plan.annualAvailable;
             const isSuggested = !isCurrent && !hasActiveSubscription && plan.key === data.suggestedPlan;
 
             return (
@@ -391,9 +397,14 @@ export default function UpgradePage() {
                     copy['upgrade.price.custom']
                   ) : (
                     <>
-                      {formatUpgradeAmount(plan.monthlyCents, language)}
+                      {/* Annuel −20 % (décision d'Avi du 01/10) : le montant affiché est celui facturé. */}
+                      {billingInterval === 'annual' && plan.annualAvailable
+                        ? formatUpgradeAmount(annuelPublicCents(plan.monthlyCents), language)
+                        : formatUpgradeAmount(plan.monthlyCents, language)}
                       <span className="text-sm font-normal text-bolt-elements-textSecondary">
-                        {copy['upgrade.price.month']}
+                        {billingInterval === 'annual' && plan.annualAvailable
+                          ? copy['upgrade.price.year']
+                          : copy['upgrade.price.month']}
                       </span>
                     </>
                   )}
@@ -429,8 +440,8 @@ export default function UpgradePage() {
                     type="submit"
                     name="planKey"
                     value={plan.key}
-                    disabled={billingInterval === 'annual' && !plan.annualAvailable}
                     className={ACTION_CTA_CLASS}
+                    disabled={annuelIndisponible}
                   >
                     {formatUpgradeCopy(copy['upgrade.actions.upgrade'], { plan: upgradePlanName(plan, language) })}
                   </button>

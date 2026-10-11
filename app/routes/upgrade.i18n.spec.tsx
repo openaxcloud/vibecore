@@ -68,6 +68,7 @@ vi.mock('~/components/enterprise/EnterpriseFormPage', () => ({
 }));
 
 import UpgradePage, { action, loader, meta, upgradePlanName } from './upgrade';
+import { annuelPublicCents } from '~/lib/forfaits-publics';
 import { formatUpgradeAmount, getUpgradeCopy, upgradeLimitLabel } from '~/lib/i18n/catalogs/upgrade';
 
 function renderPage(loaderData: unknown, actionData?: unknown) {
@@ -175,6 +176,23 @@ describe('upgrade i18n', () => {
     expect(screen.queryByText('Upgrade')).toBeNull();
   });
 
+  it('période annuelle, formule SANS prix annuel : son bouton est désactivé — le paiement le refuserait', () => {
+    renderPage({
+      suggestedPlan: 'pro',
+      interval: 'annual',
+      plans: [{ key: 'team', name: 'Team', monthlyCents: 9900, annualAvailable: false, limits: {} }],
+      currentPlanKey: 'free',
+      subscriptionStatus: null,
+      billingAccessLimited: false,
+      language: 'fr',
+    });
+
+    const bouton = screen.getByRole('button', { name: /Team/u }) as HTMLButtonElement;
+
+    expect(bouton.disabled).toBe(true);
+    expect(screen.getByText(/Choisissez la facturation mensuelle/u)).toBeTruthy();
+  });
+
   it('renders plan controls in French while preserving plan names and checkout identifiers', () => {
     renderPage({
       suggestedPlan: 'pro',
@@ -209,10 +227,14 @@ describe('upgrade i18n', () => {
 
     expect(screen.getByText('Core')).toBeTruthy();
     expect(screen.getByText('Enterprise')).toBeTruthy();
+
+    // Période annuelle choisie : le montant affiché est l'ANNUEL (−20 %), celui qui sera facturé.
     expect(
       screen.getByText(
         (_content, element) =>
-          element?.tagName === 'P' && element.textContent?.startsWith(formatUpgradeAmount(1999, 'fr')) === true,
+          element?.tagName === 'P' &&
+          element.textContent?.startsWith(formatUpgradeAmount(annuelPublicCents(1999), 'fr')) === true &&
+          element.textContent.includes('/ an'),
       ),
     ).toBeTruthy();
     expect(screen.getByText('10 projets')).toBeTruthy();

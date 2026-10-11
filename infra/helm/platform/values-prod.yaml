@@ -220,6 +220,24 @@ services:
     enabled: true
     image: web
     port: 3000
+    # GRÂCE LONGUE — pourquoi 600 s et pas 30.
+    #
+    # Un tour d'agent dure 2 à 4 min. À 30 s, un pod web remplacé était tué en
+    # plein tour : mesuré en production le 2026-09-30 à 18:19, le navigateur a reçu
+    # « network error » et AUCUN pod ne portait de trace de fin. Ni #609 ni #622 ne
+    # rattrapent ce cas — personne n'a terminé la réponse.
+    #
+    # 600 s, et pas 540 : `server.mjs` borne son attente à ARRET_ATTENTE_MAX_MS =
+    # 540 s (9 min). La grâce doit être PLUS GRANDE, sinon le SIGKILL du kubelet
+    # décide avant la borne du serveur et tout le dispositif ne sert à rien. 60 s
+    # d'écart couvrent le préStop (10 s) et la fermeture des connexions.
+    #
+    # ⚠️ NE VAUT QUE SI LE SERVEUR SORT DÈS QUE LES TOURS SONT FINIS. Sans cela, la
+    # grâce n'est pas un plafond mais un COÛT FIXE : mesuré le 2026-09-30 à 21:51:46,
+    # un pod web arrêté par l'autoscaler a consommé ses 30 s entières et fini en
+    # `phase=Failed`. Le garde tests/guards/budget-drain-deploiement.spec.ts refuse
+    # cette valeur tant que la borne du serveur n'existe pas dans server.mjs.
+    terminationGracePeriodSeconds: 600
     # 2 replicas → PDB minAvailable: 1 activates (template guards on replicas>1)
     # so rolling updates and node drains never take the public site to zero.
     replicas: 2
