@@ -25,8 +25,8 @@ import { redirect, type LoaderFunctionArgs } from 'react-router';
  * The file stays so the `/editor/:id` pattern in `ecode-route-coverage.spec.ts`
  * and `ecodeCompatibilityRoutePatterns` remains backed by a route module.
  */
-export function loader({ params }: LoaderFunctionArgs) {
-  return redirect(`/projects/${encodeURIComponent(params.id ?? '')}/ide`, 301);
+export function loader({ params, request }: LoaderFunctionArgs) {
+  return redirect(`/projects/${encodeURIComponent(params.id ?? '')}/ide${new URL(request.url).search}`, 301);
 }
 
 export default function EditorCompatRoute() {
