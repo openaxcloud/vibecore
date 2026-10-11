@@ -2,6 +2,7 @@ import { Buffer } from 'node:buffer';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, join, posix, sep } from 'node:path';
 
+import { appPublicEnglish } from './app-public-copy.js';
 import type { StaticBuildLog, StaticBuildLogLevel } from './deployments.js';
 
 /*
@@ -209,9 +210,6 @@ function outputPrefix(cwd: string, outputDirectory: string): string {
  * inlines the same rules against the on-disk package.json + source scan.
  * ---------------------------------------------------------------------------
  */
-
-/** React 18-only client entry API — does not exist before React 18. */
-const REACT18_CLIENT_API_RE = /\breact-dom\/client\b|\bcreateRoot\s*\(|\bhydrateRoot\s*\(/;
 
 /** Supported React range forced when the code needs the 18-only client API. */
 export const DEPLOY_REACT18_RANGE = '^18.3.1';
@@ -468,7 +466,8 @@ export async function runWorkspaceStaticBuild(
       }
     }
 
-    log.push('info', `Workspace deploy: building in pod (cwd ${cwd})`);
+    // Par la clé du catalogue, jamais en dur : c'est ce qui permet de le traduire à la lecture du journal.
+    log.push('info', appPublicEnglish('WORKSPACE_BUILD_DIRECTORY', { path: cwd }));
 
     /*
      * 0. React 17/18 manifest guard (see REACT_MANIFEST_REPAIR_SCRIPT). Mirrors the

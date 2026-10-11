@@ -34,7 +34,7 @@ const validationCopy = {
     outputCost: 'costOutCentsPerM must be a non-negative number',
     multiplier: 'multiplier must be a non-negative number',
     unknownLine: 'unknown routing line "{line}"',
-    economyInvariant: 'economy is the default mode: it must stay active with multiplier 1',
+    defaultModeInvariant: 'power is the default mode: it must stay active with multiplier 1',
   },
   fr: {
     baseInput: 'baseUserInCentsPerM doit être un nombre positif ou nul',
@@ -46,7 +46,7 @@ const validationCopy = {
     outputCost: 'costOutCentsPerM doit être un nombre positif ou nul',
     multiplier: 'multiplier doit être un nombre positif ou nul',
     unknownLine: 'ligne de routage inconnue « {line} »',
-    economyInvariant: 'economy est le mode par défaut : il doit rester actif avec un multiplicateur de 1',
+    defaultModeInvariant: 'power est le mode par défaut : il doit rester actif avec un multiplicateur de 1',
   },
 } as const;
 

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-400 entrées.
+401 entrées.
 
 ## Sans section
 
@@ -453,6 +453,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-01 — Chaîne de tests : chemin critique de la porte de release
 
 - [BUG-DEPLOY-BASE-DES-TIERS-PERIMEE-001](docs/bugs/BUG-DEPLOY-BASE-DES-TIERS-PERIMEE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
+
+- [BUG-QA1001-JARGON-DANS-LES-MESSAGES](docs/bugs/BUG-QA1001-JARGON-DANS-LES-MESSAGES.md) — Des messages qu'un client peut lire contiennent du vocabulaire de développeur. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
