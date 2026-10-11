@@ -1,0 +1,20 @@
+// Repro : la palette ouverte par « Search » (barre d'activité) ne se ferme pas quand on ouvre un autre panneau.
+import { chromium } from '@playwright/test';
+import fs from 'node:fs';
+const WEB = process.env.WEB || 'http://127.0.0.1:5183';
+const fx = JSON.parse(fs.readFileSync(new URL('./.fixture.json', import.meta.url)));
+const b = await chromium.launch(); const c = await b.newContext({ viewport: { width: 1440, height: 900 } });
+await c.addCookies([{ name: 'vc_session', value: fx.token, domain: '127.0.0.1', path: '/', httpOnly: true }]);
+const p = await c.newPage(); await p.goto(`${WEB}/projects/${fx.project1}/ide`); await p.waitForTimeout(12000);
+const palette = p.getByPlaceholder(/Search tools, files, and commands|Rechercher des outils/i);
+await p.getByRole('button', { name: /^Search/i }).first().click(); await p.waitForTimeout(800);
+const ouverte = await palette.isVisible();
+await p.getByRole('button', { name: /^Git/i }).first().click(); await p.waitForTimeout(1500);
+const apresGit = await palette.isVisible();
+await p.screenshot({ path: new URL('./artefacts/palette-par-dessus-git-1440.png', import.meta.url).pathname });
+await p.mouse.click(780, 850); await p.waitForTimeout(800);
+const apresClicAilleurs = await palette.isVisible();
+await p.keyboard.press('Escape'); await p.waitForTimeout(800);
+const apresEchap = await palette.isVisible();
+console.log(JSON.stringify({ ouverteParSearch: ouverte, toujoursVisibleApresClicGit: apresGit, apresClicDansLaZoneCentrale: apresClicAilleurs, apresEchap }));
+await b.close();

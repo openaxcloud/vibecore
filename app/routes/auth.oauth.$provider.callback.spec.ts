@@ -10,7 +10,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  * backend. The pre-fetch branches (provider error, invalid callback, etc.) never
  * reach these helpers, so stubbing them does not affect those cases.
  */
-vi.mock('~/lib/enterprise-api.server', () => ({
+vi.mock('~/lib/enterprise-api.server', async (importOriginal) => ({
+  // Le vrai filtre des destinations : c'est lui qui protège d'une redirection hors du site.
+  safeReturnTo: (await importOriginal<typeof import('~/lib/enterprise-api.server')>()).safeReturnTo,
   apiBaseUrl: () => 'https://api.test',
   cookieSecure: () => '; Secure',
   sessionCookie: (token: string) => `vc_session=${token}; Path=/; HttpOnly`,

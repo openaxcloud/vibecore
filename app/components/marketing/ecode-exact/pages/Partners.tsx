@@ -111,7 +111,7 @@ export default function Partners() {
                 <div className="mt-7 flex flex-col sm:flex-row gap-3">
                   <Link
                     to="/contact-sales"
-                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium hover:brightness-110 transition-all min-h-[44px]"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-[var(--ecode-accent-contrast)] font-medium hover:brightness-110 transition-all min-h-[44px]"
                     style={{ backgroundColor: 'var(--ecode-accent)' }}
                     data-testid="button-partners-hero-apply"
                   >
@@ -141,7 +141,7 @@ export default function Partners() {
                     <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
                     <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                     <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
-                      <Building2 className="h-3 w-3 text-[var(--ecode-accent-text)]" />
+                      <Building2 className="h-3 w-3 text-[#F26207]" />
                       {PARTNER_APP_HOST}
                     </span>
                   </div>
@@ -180,7 +180,7 @@ export default function Partners() {
                   <Card key={program.id} className="flex flex-col">
                     <CardHeader>
                       <span
-                        className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white"
+                        className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg text-[var(--ecode-accent-contrast)]"
                         style={{ backgroundColor: 'var(--ecode-accent)' }}
                       >
                         <Icon className="h-6 w-6" />
@@ -245,7 +245,7 @@ export default function Partners() {
                   <Card key={benefit.id}>
                     <CardContent className="pt-6 text-center">
                       <span
-                        className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl text-white"
+                        className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl text-[var(--ecode-accent-contrast)]"
                         style={{ backgroundColor: 'var(--ecode-accent)' }}
                       >
                         <Icon className="h-6 w-6" />
@@ -272,7 +272,7 @@ export default function Partners() {
                   <div key={step.id} className="text-center">
                     <div className="relative mx-auto mb-4 h-14 w-14">
                       <span
-                        className="flex h-14 w-14 items-center justify-center rounded-full text-white"
+                        className="flex h-14 w-14 items-center justify-center rounded-full text-[var(--ecode-accent-contrast)]"
                         style={{ backgroundColor: 'var(--ecode-accent)' }}
                       >
                         <Icon className="h-6 w-6" />
@@ -303,7 +303,7 @@ export default function Partners() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   to="/contact-sales"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium hover:brightness-110 transition-all min-h-[44px]"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-[var(--ecode-accent-contrast)] font-medium hover:brightness-110 transition-all min-h-[44px]"
                   style={{ backgroundColor: 'var(--ecode-accent)' }}
                   data-testid="button-partners-contact-sales"
                 >

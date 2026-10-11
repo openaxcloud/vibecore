@@ -56,6 +56,13 @@ const PROVIDER_NAME_BY_GATEWAY_ID: Record<string, string> = {
   anthropic: 'Anthropic',
   openai: 'OpenAI',
   'google-gemini': 'Google',
+
+  /*
+   * La ligne `fallback` de la carte écrit `google` (packages/billing
+   * agent-routing.ts). Sans cette entrée, le repli déclaré par la carte ne
+   * trouvait aucun fournisseur et était ignoré en silence.
+   */
+  google: 'Google',
   openrouter: 'OpenRouter',
   mistral: 'Mistral',
   groq: 'Groq',
@@ -81,6 +88,9 @@ export interface AgentRouteResolution {
   base: AgentRouteLine;
   escalation?: AgentRouteLine;
   classifier?: { provider: string; model: string };
+
+  /** Ligne de repli déclarée par la carte ; absente = aucun repli. */
+  fallback?: AgentRouteLine;
 }
 
 export type AgentRouteResult =

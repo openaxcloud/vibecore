@@ -117,8 +117,15 @@ describe('transcript de l’agent en mobile', () => {
 
     expect(pastille).toContain('bottom: 2px;');
     expect(pastille).not.toContain('bottom: calc(var(--mobile-nav-height)');
+
+    /*
+     * Le scopage `[data-mobile-panel='chat']` est retiré depuis le 2026-09-24 :
+     * mesuré sous WebKit, l'attribut vaut `preview` sur l'IDE d'un vrai projet,
+     * donc aucune règle « clavier levé » ne s'appliquait. Le clavier ne dépend
+     * pas de l'onglet affiché.
+     */
     expect(source).toContain(
-      "html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-scroll {\n    padding-bottom: 0 !important;",
+      "html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile .bolt-project-agent-scroll {\n    padding-bottom: 0 !important;",
     );
   });
 

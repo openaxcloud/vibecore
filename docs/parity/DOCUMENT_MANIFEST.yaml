@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 173
+fileCount: 174
 generatedAt: "2026-08-30T15:22:13Z"
 generatedFromCommit: 6709d2cc56a33bf8975d2bb6a10359169b87fd69
 mergedCommit: 6709d2cc56a33bf8975d2bb6a10359169b87fd69
@@ -42,6 +42,11 @@ documents:
     sha256: "1fb2be1f4bc667c38a0359aa72a61a98f15f19302023ab89964526c619f4d21d"
     schemaVersion: 1
     repoCommit: 42a48091
+    reviewer: UNKNOWN
+  - file: AUDIT_A2_RECONCILIATION.md
+    sha256: "eb33c4931e7d5ce5fbca215495ec2a8b1a6bcb47735a920ccf8af08567a12e77"
+    schemaVersion: null
+    repoCommit: b774bfa3
     reviewer: UNKNOWN
   - file: AUTH_ACCESS_CONTRACT.md
     sha256: "4e8339a8e06e67fba7465a1bf54c13aee73836e26a9c94e65b597867ff5391fb"
@@ -274,7 +279,7 @@ documents:
     repoCommit: fee92bd0b09159247383814023ae63db8875dd7d
     reviewer: UNKNOWN
   - file: RATE_CARD.json
-    sha256: "16b79c90d8cf13b8969905de1d254f6ffe66725e9ad1cdd7e103fe71a1910d43"
+    sha256: "381d9ef2d764f1b1bbbc09ae06f48e9c705dee5cfeddd786359d7bcbfbd1ff99"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN

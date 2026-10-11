@@ -131,8 +131,8 @@ function SubscribeToUpdates({ copy, language }: { copy: StatusCopy['subscription
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex min-h-[40px] items-center justify-center rounded-md px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ backgroundColor: '#F26207' }}
+              className="inline-flex min-h-[40px] items-center justify-center rounded-md px-4 text-[14px] font-medium text-[var(--ecode-accent-contrast)] transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: 'var(--ecode-accent)' }}
             >
               {submitting ? copy.submitting : copy.submit}
             </button>
@@ -213,7 +213,7 @@ export default function StatusPage() {
                       <div className="flex flex-col items-start gap-4">
                         <div className="flex min-w-0 gap-3">
                           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F26207]/10 ring-1 ring-[#F26207]/20 flex-shrink-0">
-                            <Icon className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
+                            <Icon className="h-5 w-5 text-[#F26207]" aria-hidden />
                           </span>
                           <div className="min-w-0">
                             <h3 className="font-semibold text-bolt-elements-textPrimary">{service.name}</h3>
@@ -222,10 +222,7 @@ export default function StatusPage() {
                             </p>
                           </div>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className="border-[#F26207]/30 bg-[#F26207]/10 text-[var(--ecode-accent-text)]"
-                        >
+                        <Badge variant="secondary" className="border-[#F26207]/30 bg-[#F26207]/10 text-[#F26207]">
                           {copy.services.operational}
                         </Badge>
                       </div>
@@ -297,10 +294,7 @@ export default function StatusPage() {
           <div className="container-responsive py-16 sm:py-24">
             <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
               <div>
-                <Badge
-                  variant="secondary"
-                  className="mb-5 border-[#F26207]/30 bg-[#F26207]/10 text-[var(--ecode-accent-text)]"
-                >
+                <Badge variant="secondary" className="mb-5 border-[#F26207]/30 bg-[#F26207]/10 text-[#F26207]">
                   {copy.reliability.badge}
                 </Badge>
                 <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-6">{copy.reliability.title}</h2>
@@ -311,7 +305,7 @@ export default function StatusPage() {
                     return (
                       <div key={principle.id} className="flex gap-4">
                         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F26207]/10 ring-1 ring-[#F26207]/20 flex-shrink-0">
-                          <Icon className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
+                          <Icon className="h-5 w-5 text-[#F26207]" aria-hidden />
                         </span>
                         <div>
                           <h3 className="font-semibold text-bolt-elements-textPrimary mb-1">{principle.title}</h3>
@@ -347,7 +341,7 @@ export default function StatusPage() {
                 <CardHeader>
                   <div className="flex items-center gap-3">
                     <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F26207]/10 ring-1 ring-[#F26207]/20 flex-shrink-0">
-                      <SiOpenai className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
+                      <SiOpenai className="h-5 w-5 text-[#F26207]" aria-hidden />
                     </span>
                     <div>
                       <CardTitle className="text-bolt-elements-textPrimary">{copy.providers.title}</CardTitle>
@@ -379,8 +373,8 @@ export default function StatusPage() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a
                     href="/signup"
-                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: '#F26207' }}
+                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-[var(--ecode-accent-contrast)] min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: 'var(--ecode-accent)' }}
                     data-testid="button-status-cta"
                   >
                     {copy.cta.primary}
