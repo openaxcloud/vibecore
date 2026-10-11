@@ -195,7 +195,7 @@ export default function MarketingBounties() {
                 >
                   <div className="pointer-events-none absolute -right-10 top-1/2 h-32 w-32 -translate-y-1/2 rounded-full bg-[#F26207]/10" />
                   <div className="relative flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#F26207] text-white shadow-sm">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--ecode-accent)] text-[var(--ecode-accent-contrast)] shadow-sm">
                       <Icon className="h-5 w-5" />
                     </span>
                     <span className="text-[13px] font-semibold text-[#F26207]">
