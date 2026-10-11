@@ -13,3 +13,7 @@ Les contre-épreuves propres à chaque mécanisme sont conservées dans les docu
 État : préparation intégrée, pas sur main et pas servie. Les contrôles GitHub et les scénarios navigateur restent requis avant fusion ; les parcours authentifiés et mesures dans les trois formats/thèmes restent à établir en production. Ce lot n’active pas la purge physique A-6 et ne crée aucun prix Stripe A-2.
 
 Après fusion réelle de main 83d1c63e (#714), aucun contenu source du lot n’a changé. La correction de cible tactile à 44 px est conservée ; 51 tests dans cinq suites (détecteur tactile, libellés, contrastes, thèmes et index) passent. Construction web finale réussie et lint web complet : zéro erreur, 48 avertissements préexistants.
+
+CI complète du premier passage : 9 522 cas verts, deux ignorés, un rouge sur l’empreinte du bloc mobile. La procédure du test autorise un re-scellement après comparaison nommée : seules deux insertions de A-34 diffèrent de main, le hook de défilement et son ref DOM. Zéro ligne supprimée ; libellés, classes, en-tête et Terminal inchangés. L’empreinte est mise à jour après cette lecture ; le détecteur E2E de visibilité reste inchangé. Mesure : mesures/2026-10-11-a34-bloc-mobile.json. Ce re-scellement ne vaut pas mesure du parcours mobile en production.
+
+Après re-scellement : 29 cas dans quatre suites passent. Ajouter seulement une classe imprévue à la bande mobile rend la garde d’empreinte rouge ; balisage restauré, les 29 cas repassent. Lint du test vert. Aucun assouplissement du détecteur de visibilité ni du scanner français.

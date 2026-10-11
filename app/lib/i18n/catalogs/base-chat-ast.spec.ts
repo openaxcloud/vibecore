@@ -175,10 +175,16 @@ describe('BaseChat strengthened-AST catalog', () => {
      * près. Mesuré par `difflib` sur la tranche [frozenStartOffset,
      * frozenEndOffset) des deux versions.
      *
+     *   5. A-34, reprise explicitement demandée le 11/10 : maintien de l’onglet
+     *      actif entier par défilement de sa bande. Comparaison de la tranche
+     *      contre main 2cec44b4 : deux insertions seulement, le useLayoutEffect
+     *      de défilement et son ref DOM. Aucun texte, classe, en-tête, socle ou
+     *      Terminal modifié. Le détecteur ide-mobile-chrome reste inchangé.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('9183f9a8db6184e7f5f4797a54f6d58ffe73bac4fa656e279d153d3351e209cd');
+    expect(frozenHash).toBe('485fdb68189a244a05ff1c3f262225c4cf414544264c9dce592deab461f9192f');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
