@@ -18,6 +18,6 @@ Aucune transaction Stripe n'a été exécutée. Le clic sans compte n'a pas dém
 
 ## File GitHub
 
-33 demandes d'annulation ne visant que des workflows de propositions en brouillon : état `queued` relu et absence de job `in_progress` vérifiée avant chaque demande. Neuf candidats ont été préservés parce qu'un job avait commencé. Le journal conserve chaque identifiant, branche et commit dans `mesures/2026-10-11-annulations-attente.jsonl`.
+52 demandes d'annulation (33 lors du premier passage, 19 lors du second) ne visant que des workflows de propositions en brouillon : état `queued` relu et absence de job `in_progress` vérifiée avant chaque demande. À chaque passage, neuf candidats ont été préservés parce qu'un job avait commencé. Le journal conserve chaque identifiant, branche et commit dans `mesures/2026-10-11-annulations-attente.jsonl`.
 
 Ces annulations ne donnent aucun verdict sur le code. Avant réactivation d'une branche concernée, relancer les workflows de tests complets, puis les agrégateurs. Les propositions #709 et #710 et les déploiements de main ont été préservés.
