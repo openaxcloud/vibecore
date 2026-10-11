@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -77,8 +79,12 @@ describe('la carte des tiers reste alignée sur le déploiement', () => {
   it('la base partagée et le screenshotter ne disparaissent pas de la surveillance', () => {
     const shared = /grep -Eq '\^\(([^']+)\)'; then/u.exec(WORKFLOW);
     expect(shared).not.toBeNull();
+
     const detector = new RegExp(`^(${shared[1]})`, 'u');
-    for (const chemin of CHEMINS_PARTAGES) expect(detector.test(chemin)).toBe(true);
+
+    for (const chemin of CHEMINS_PARTAGES) {
+      expect(detector.test(chemin)).toBe(true);
+    }
     expect(CHEMINS_PAR_TIER.runtime).toContain('services/screenshotter/');
     expect(SERVICES_PAR_TIER.runtime).toContain('screenshotter');
   });
@@ -104,6 +110,7 @@ describe('une absence de preuve de version ne se lit jamais comme une production
 
   it('une release vide ou un agent sans référence de code est refusé', () => {
     expect(() => sondesRelease({})).toThrow(/aucun verdict/);
+
     const r = release();
     r.platformEnv.runtime.workspaceAgentImage = 'registry/workspace-agent@sha256:' + 'd'.repeat(64);
     expect(() => sondesRelease(r)).toThrow(/aucun verdict/);
@@ -113,6 +120,7 @@ describe('une absence de preuve de version ne se lit jamais comme une production
     const r = release();
     r.services.admin.imageTag = '$(SENTINELLE_INJECTEE)';
     expect(() => sondesRelease(r)).toThrow(/Version absente ou illisible pour admin/);
+
     try {
       sondesRelease(r);
     } catch (erreur) {
@@ -137,8 +145,49 @@ describe('une absence de preuve de version ne se lit jamais comme une production
  */
 describe('un commit servi inconnu localement est refusé, pas interprété', () => {
   it('TÉMOIN — sur un vrai couple de commits, la comparaison répond juste', () => {
-    expect(estAncetre('HEAD~1', 'HEAD'), 'la mesure ne mesure rien').toBe(true);
-    expect(estAncetre('HEAD', 'HEAD~1')).toBe(false);
+    /*
+     * Le checkout CI est superficiel : son HEAD~1 n'est pas disponible.
+     * Créer les deux commits mesurés évite de dépendre de l'histoire du runner.
+     */
+    const depot = mkdtempSync(join(tmpdir(), 'vibecore-ancetres-'));
+
+    try {
+      execFileSync('git', ['init', '--quiet', depot]);
+
+      for (const message of ['base', 'suite']) {
+        execFileSync(
+          'git',
+          [
+            '-c',
+            'user.name=Test',
+            '-c',
+            'user.email=test@example.com',
+            'commit',
+            '--quiet',
+            '--allow-empty',
+            '-m',
+            message,
+          ],
+          { cwd: depot },
+        );
+      }
+
+      const moduleUrl = new URL('./tiers-a-jour.mjs', import.meta.url).href;
+
+      const resultat = execFileSync(
+        process.execPath,
+        [
+          '--input-type=module',
+          '-e',
+          `import { estAncetre } from ${JSON.stringify(moduleUrl)}; process.stdout.write(JSON.stringify([estAncetre('HEAD~1', 'HEAD'), estAncetre('HEAD', 'HEAD~1')]));`,
+        ],
+        { cwd: depot, encoding: 'utf8' },
+      );
+
+      expect(JSON.parse(resultat), 'la mesure ne mesure rien').toEqual([true, false]);
+    } finally {
+      rmSync(depot, { recursive: true, force: true });
+    }
   });
 
   it('LE DÉFAUT — `estAncetre` ne peut PAS signaler un SHA inconnu : elle rend false, comme « pas un ancêtre »', () => {
@@ -147,7 +196,7 @@ describe('un commit servi inconnu localement est refusé, pas interprété', () 
     try {
       expect(estAncetre('HEAD', 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeef')).toBe(false);
     } catch (error) {
-      jete = error?.matcherResult ? false : true;
+      jete = !error?.matcherResult;
     }
 
     expect(jete, 'si elle jetait, le try/catch de la première version aurait suffi').toBe(false);

@@ -1,5 +1,7 @@
 # Validations locales des branches existantes
 
+Reprise de #709 à 17:42 UTC : la CI rend 9 353 tests verts, un ignoré et un échec dans le témoin d'ascendance de `tiers-a-jour.spec.mjs`. Le checkout superficiel ne fournit pas `HEAD~1` ; le test crée désormais son propre dépôt de deux commits et appelle le même détecteur réel dans ce dépôt. Contre-épreuve sur un clone `--depth=1` : ancienne garde rouge (code 1), nouvelle verte (code 0). Les 43 gardes voisines de comparaison/livraison passent, ainsi que les types des scripts ; le code de livraison n'est pas modifié par cette réparation du témoin. La CI du nouveau commit reste à mesurer.
+
 Chaque ligne correspond à une vraie fusion sur main c7a6fa5025 dans un arbre jetable. Les tests API et E2E ont des configurations distinctes ; une découverte vide ne vaut pas verdict. Aucun élément n’est déclaré servi par cette table.
 
 | PR | SHA testé | Résultat | Limite |
