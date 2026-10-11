@@ -475,10 +475,17 @@ export function validateAgentRoutingCard(
     }
   }
 
-  const economy = routingLine(card, 'power');
+  /*
+   * La variable s'appelait `economy` et le message NOMMAIT « economy » — un mode
+   * retiré du produit. L'administrateur lisait donc, en cas de refus, le nom
+   * d'une ligne qui n'existe plus dans la carte qu'il essayait de publier.
+   * Seul le VOCABULAIRE change ici ; l'invariant est le même : la ligne par
+   * défaut reste active et à ×1.
+   */
+  const defaut = routingLine(card, 'power');
 
-  if (economy && (!economy.active || economy.multiplier !== 1)) {
-    errors.push({ line: 'power', message: agentRoutingValidationMessage('economyInvariant', locale) });
+  if (defaut && (!defaut.active || defaut.multiplier !== 1)) {
+    errors.push({ line: 'power', message: agentRoutingValidationMessage('defaultModeInvariant', locale) });
   }
 
   return errors;
