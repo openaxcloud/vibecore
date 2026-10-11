@@ -31,10 +31,18 @@ const SETUP_I18N_VITEST = VITEST_A_LA_RACINE
     }
   : {};
 
-// Load environment variables from multiple files
-dotenv.config({ path: '.env.local' });
-dotenv.config({ path: '.env' });
-dotenv.config();
+/*
+ * Load environment variables from multiple files — pour le serveur de dev et le
+ * build, JAMAIS sous Vitest : les tests lisaient sinon le `.env` du développeur
+ * (clés, drapeaux) et rougissaient chez lui seulement. Mesuré le 2026-09-30 sur
+ * `provider-fallback.spec.ts` et `managed-models.spec.ts`. Épinglé par
+ * `tests/guards/vitest-ignore-le-env-local.spec.ts`.
+ */
+if (!process.env.VITEST) {
+  dotenv.config({ path: '.env.local' });
+  dotenv.config({ path: '.env' });
+  dotenv.config();
+}
 
 const IDE_OPTIMIZE_DEPS = [
   '@ai-sdk/amazon-bedrock',
@@ -188,6 +196,14 @@ export default defineConfig((config) => {
     optimizeDeps: {
       include: IDE_OPTIMIZE_DEPS,
       esbuildOptions: {
+        /*
+         * BUG-QA0928-DEV-WEB-ESBUILD — même cible que `build.target`. Sans elle,
+         * le pré-bundling garde la cible par défaut de Vite 5 (`safari14`, …),
+         * qu'esbuild 0.27 (monté par #569) refuse pour la déstructuration :
+         * `pnpm run dev:web` mourait sur toute installation neuve, et la CI ne
+         * le voyait pas (elle teste l'image, pas le serveur de dev).
+         */
+        target: 'esnext',
         define: {
           global: 'globalThis',
         },
@@ -246,6 +262,14 @@ export default defineConfig((config) => {
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModulesEnabled && optimizeCssModules({ apply: 'build' }),
     ],
+
+    /*
+     * Sous Vitest, un dossier qui N'EXISTE PAS : Vite n'y trouve aucun `.env`. Sans
+     * cela, il verse les `VITE_*` du `.env` du développeur dans `import.meta.env`
+     * des tests (second chemin, après `dotenv` plus haut). Épinglé par
+     * `tests/guards/vitest-ignore-le-env-local.spec.ts`.
+     */
+    envDir: process.env.VITEST ? join(RACINE_DU_DEPOT, '.vitest-sans-env') : undefined,
     envPrefix: [
       'VITE_',
       'OPENAI_LIKE_API_BASE_URL',

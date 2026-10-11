@@ -4,6 +4,7 @@ import {
   PROVIDER_FALLBACK_CHAIN,
   PROVIDER_UNHEALTHY_TTL_MS,
   classifyProviderFailure,
+  echecDeCle,
   getProviderHealth,
   isProviderHealthy,
   isRetriableProviderFailure,
@@ -138,6 +139,7 @@ describe('choix du fournisseur pour le tour', () => {
     expect(choix.model).toBe('gpt-4.1');
     expect(choix.switchedFrom).toEqual({
       provider: 'Anthropic',
+      model: 'claude-sonnet-4-5-20250929',
       reason: 'credit',
       detail: 'Your credit balance is too low',
     });
@@ -212,5 +214,83 @@ describe('modèles de la chaîne', () => {
 
   it('classe OpenAI avant Google', () => {
     expect(PROVIDER_FALLBACK_CHAIN.map((e) => e.provider)).toEqual([openai.name, google.name]);
+  });
+});
+
+describe('portée de la mise à l’écart — jamais le pod pour l’échec d’un seul utilisateur (2026-09-28)', () => {
+  beforeEach(() => {
+    resetProviderHealth();
+  });
+
+  it('seuls les échecs de CLÉ peuvent écarter un fournisseur pour tout le pod', () => {
+    expect(echecDeCle('credit')).toBe(true);
+    expect(echecDeCle('auth')).toBe(true);
+    expect(echecDeCle('rate-limit')).toBe(true);
+
+    // Un 5xx ou un délai sur le tour d'UN utilisateur reste dans sa requête.
+    expect(echecDeCle('server')).toBe(false);
+    expect(echecDeCle('timeout')).toBe(false);
+    expect(echecDeCle(null)).toBe(false);
+    expect(echecDeCle(undefined)).toBe(false);
+  });
+
+  it('LE DÉFAUT — un motif « stérile » ne peut plus entrer dans la table du pod', () => {
+    /*
+     * Mesuré en production le 2026-09-28 : une demande de plan sans fichier avait
+     * écarté Anthropic 300 s pour tous les utilisateurs du pod.
+     */
+    markProviderUnhealthy('Anthropic', 'sterile' as never, 'zéro fichier');
+
+    expect(isProviderHealthy('Anthropic')).toBe(true);
+    expect(getProviderHealth('Anthropic')).toBeUndefined();
+  });
+
+  it('TÉMOIN — la table fonctionne pour un vrai motif de clé', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'credit balance is too low');
+
+    expect(isProviderHealthy('Anthropic')).toBe(false);
+  });
+});
+
+describe('le repli est CELUI DE LA CARTE de routage (2026-09-28)', () => {
+  beforeEach(() => {
+    resetProviderHealth();
+  });
+
+  it('LE DÉFAUT — la carte déclare Gemini : le tour ne part plus sur gpt-4.1 codé en dur', () => {
+    /*
+     * Mesuré en production : Anthropic écarté, le tour partait sur `gpt-4.1`,
+     * premier maillon de la chaîne codée en dur, alors que la carte déclarait
+     * `google/gemini-2.5-pro`.
+     */
+    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+
+    const choix = resolveRuntimeProvider({
+      provider: anthropic,
+      model: 'claude-opus-5',
+      apiKeys: CLES,
+      chaine: [{ provider: 'Google', model: 'gemini-2.5-pro' }],
+    });
+
+    expect(choix.provider.name).toBe('Google');
+    expect(choix.model).toBe('gemini-2.5-pro');
+    expect(choix.switchedFrom).toMatchObject({ provider: 'Anthropic', model: 'claude-opus-5', reason: 'credit' });
+  });
+
+  it('la carte ne déclare AUCUN repli : on garde le modèle demandé et son erreur réelle', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+
+    const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES, chaine: [] });
+
+    expect(choix.provider.name).toBe('Anthropic');
+    expect(choix.switchedFrom).toBeUndefined();
+  });
+
+  it('TÉMOIN — sans carte, la chaîne historique reste le dernier recours', () => {
+    markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+
+    const choix = resolveRuntimeProvider({ provider: anthropic, model: 'claude-opus-5', apiKeys: CLES });
+
+    expect(choix.provider.name).toBe(PROVIDER_FALLBACK_CHAIN[0].provider);
   });
 });

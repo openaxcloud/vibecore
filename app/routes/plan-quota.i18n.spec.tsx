@@ -70,6 +70,7 @@ import {
   default as PlanComparisonPage,
 } from './plan-comparison';
 import { loader as quotaLoader, meta as quotaMeta, default as QuotaExceededPage } from './quota-exceeded';
+import { getPricingPlanCopy } from '~/lib/i18n/catalogs/marketing-product';
 import { formatPlanQuotaCopy, getPlanQuotaCopy, planQuotaEn, planQuotaFr } from '~/lib/i18n/catalogs/plan-quota';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
@@ -141,15 +142,15 @@ describe('localized plan comparison surface', () => {
     );
 
     expect(screen.getByRole('heading', { level: 1, name: 'Comparer les offres' })).toBeTruthy();
-    expect(screen.getByText('Modèles publics et petits espaces de travail.')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Choisir Starter' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Choisir Core' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Choisir Pro' })).toBeTruthy();
+    expect(screen.getByText(getPricingPlanCopy('fr').free.description)).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Choisir la formule Starter' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choisir la formule Pro' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choisir la formule Team' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Contacter l’équipe commerciale' })).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toBe(
       'Le paiement est indisponible pour le moment. Réessayez ultérieurement.',
     );
-    expect(screen.getByRole('link', { name: 'Choisir Starter' }).className).toContain('min-h-11');
+    expect(screen.getByRole('link', { name: 'Choisir la formule Starter' }).className).toContain('min-h-11');
     expect(document.body.textContent).not.toMatch(/Compare plans|Choose |Talk to sales|Checkout is unavailable/u);
 
     await act(async () => {
@@ -157,10 +158,47 @@ describe('localized plan comparison surface', () => {
     });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Compare plans' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Choose Core' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choose Pro' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Choose Team' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Talk to sales' })).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toBe('Checkout is unavailable right now. Try again later.');
   });
+
+  /*
+   * /plan-comparison est PUBLIQUE. Le 11/10 en production, elle affichait
+   * l'ancienne grille, et DÉCALÉE : le bouton « Pro » envoyait `planKey=team`
+   * (99 €), le bouton « Core » envoyait `planKey=pro`. Les noms viennent
+   * désormais de la même source que /pricing (`pricingPlanCopy`, grille d'Avi).
+   */
+  for (const langue of ['fr', 'en'] as const) {
+    it(`${langue} : chaque offre porte le nom de la grille, et son bouton commande CETTE offre`, () => {
+      const i18n = createI18nInstance(langue);
+
+      render(
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter>
+            <PlanComparisonPage />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+
+      const grille = getPricingPlanCopy(langue);
+
+      for (const [planKey, cle] of [
+        ['pro', 'pro'],
+        ['team', 'team'],
+      ] as const) {
+        const champ = document.querySelector<HTMLInputElement>(`input[name="planKey"][value="${planKey}"]`);
+        const section = champ?.closest('section');
+
+        expect(section?.querySelector('h2')?.textContent, `nom affiché pour planKey=${planKey}`).toBe(grille[cle].name);
+      }
+
+      expect(document.querySelector('#plan-free-name')?.textContent).toBe(grille.free.name);
+      expect(document.querySelector('#plan-enterprise-name')?.textContent).toBe(grille.core.name);
+      expect(document.body.textContent).not.toMatch(/Enterprise/u);
+    });
+  }
 
   it('announces and disables checkout actions while a selected plan is submitting', () => {
     routeState.navigationState = 'submitting';
@@ -182,7 +220,7 @@ describe('localized plan comparison surface', () => {
     expect((activeButton as HTMLButtonElement).disabled).toBe(true);
     expect(activeButton.getAttribute('aria-busy')).toBe('true');
     expect(activeButton.className).toContain('min-h-11');
-    expect(screen.getByRole('status').textContent).toBe('Ouverture du paiement sécurisé pour l’offre Core');
+    expect(screen.getByRole('status').textContent).toBe('Ouverture du paiement sécurisé pour l’offre Pro');
   });
 });
 

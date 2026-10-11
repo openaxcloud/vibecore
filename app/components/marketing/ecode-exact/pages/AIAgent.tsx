@@ -139,7 +139,7 @@ export default function AiAgent() {
               <div className="text-center lg:text-left">
                 <Badge
                   variant="default"
-                  className="mb-6 text-[13px] px-5 py-2 bg-gradient-to-r from-primary to-primary/80 text-white"
+                  className="mb-6 text-[13px] px-5 py-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground"
                 >
                   <Sparkles className="h-4 w-4 mr-1.5" />
                   {copy.badge}

@@ -76,7 +76,7 @@ describe('écran 1 — la liste des modes', () => {
 });
 
 describe('écran 2 — le choix du modèle', () => {
-  it('« Choisir pour moi » est toujours en tête, et nomme le modèle qu’il désigne', () => {
+  it('« Choisir automatiquement » est toujours en tête, et nomme le modèle qu’il désigne', () => {
     const lignes = lignesDuSelecteur(catalogue('max')!, TOUT_VA_BIEN, undefined);
 
     expect(lignes[0].sorte).toBe('automatique');
@@ -104,7 +104,7 @@ describe('écran 2 — le choix du modèle', () => {
     expect(choisies[0].serviceTier).toBe('fast');
   });
 
-  it('choisir un modèle décoche « Choisir pour moi »', () => {
+  it('choisir un modèle décoche « Choisir automatiquement »', () => {
     const lignes = lignesDuSelecteur(catalogue('power')!, TOUT_VA_BIEN, { modele: 'claude-sonnet-5' });
 
     expect(lignes[0].choisie).toBe(false);

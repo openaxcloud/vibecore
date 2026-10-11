@@ -23,6 +23,7 @@ import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
+import { decisionDeRepointage } from './cadre-apercu-repointage';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
 import {
   beginPreviewFrameReload,
@@ -37,7 +38,7 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { demarrageBloque, msDepuisLeDernierProgres } from '~/lib/ide/demarrage-bloque';
-import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
+import { journalLisible, texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
@@ -1203,6 +1204,52 @@ export const Preview = memo(
 
       return () => window.clearTimeout(saveTimer);
     }, [projectId, normalizedActivePreviewIndex, displayPath]);
+
+    /*
+     * FILET : un cadre garé sur `about:blank` alors qu'on connaît son URL est
+     * repointé.
+     *
+     * Mesuré en production le 2026-09-24 : le serveur de développement tournait
+     * et servait l'application — `/`, `src/main.tsx`, `src/App.tsx` tous en 200 —
+     * la barre d'adresse portait l'URL, et le cadre restait vide.
+     *
+     * React pose `src={iframeUrl}` ; le rechargement écrit
+     * `frame.src = 'about:blank'` IMPÉRATIVEMENT (le rebond voulu de BUG-A) puis
+     * repointe après un délai. Si ce second temps n'a pas lieu, React ne répare
+     * rien — sa prop n'a pas changé, donc il ne réécrit pas l'attribut — et le
+     * cadre reste blanc pour toujours. Ce filet ferme cette classe entière, quelle
+     * qu'en soit la cause immédiate.
+     *
+     * Il ne touche JAMAIS un cadre qui porte déjà une page : sur un aperçu en
+     * cours de démarrage, un rechargement coûterait le démarrage lui-même.
+     */
+    useEffect(() => {
+      if (!iframeUrl) {
+        return undefined;
+      }
+
+      const verifier = () => {
+        const frame = iframeRef.current;
+
+        if (!frame) {
+          return;
+        }
+
+        const decision = decisionDeRepointage({ src: frame.src, urlVoulue: iframeUrl });
+
+        if (decision.repointer) {
+          frame.src = decision.vers;
+        }
+      };
+
+      const minuterie = window.setInterval(verifier, 1500);
+      const premiere = window.setTimeout(verifier, 400);
+
+      return () => {
+        window.clearInterval(minuterie);
+        window.clearTimeout(premiere);
+      };
+    }, [iframeUrl]);
 
     useEffect(() => {
       if (!activePreview) {
@@ -3447,7 +3494,7 @@ function useReducedMotion(): boolean {
   return reduced;
 }
 
-function PreviewSplashSequence({
+export function PreviewSplashSequence({
   appName,
   activeStep,
   bloque,
@@ -3579,7 +3626,7 @@ function PreviewSplashSequence({
           </div>
           {appName ? <p>{t('idePanels.preview.preparingApp', { app: appName })}</p> : null}
         </div>
-        {logs?.length ? <pre className="bolt-preview-splash-log">{logs.join('\n')}</pre> : null}
+        {logs?.length ? <pre className="bolt-preview-splash-log">{journalLisible(logs)}</pre> : null}
       </div>
     </div>
   );
@@ -3613,7 +3660,7 @@ function PreviewResumeSkeleton({ currentTask }: { currentTask: string }) {
   );
 }
 
-function PreviewLoadingOverlay({
+export function PreviewLoadingOverlay({
   activeStep,
   bloque,
   currentTask,
@@ -3687,7 +3734,7 @@ function PreviewLoadingOverlay({
             {t('idePanels.preview.stalledBody')}
           </p>
         ) : null}
-        {logs.length ? <pre data-testid="preview-loading-log">{logs.join('\n')}</pre> : null}
+        {logs.length ? <pre data-testid="preview-loading-log">{journalLisible(logs)}</pre> : null}
         {onViewLogs ? (
           <button type="button" onClick={onViewLogs}>
             {t('idePanels.preview.viewLogs')}
@@ -3703,7 +3750,7 @@ function PreviewLoadingOverlay({
   );
 }
 
-function PreviewNotRunningState({
+export function PreviewNotRunningState({
   detail,
   isRunning,
   logs,
@@ -3731,7 +3778,7 @@ function PreviewNotRunningState({
           <span>{t('idePanels.preview.status')}</span>
           <h3>{t('idePanels.preview.notRunningTitle')}</h3>
           <p>{detail ?? t('idePanels.preview.notRunningBody')}</p>
-          {logs.length > 0 ? <pre className="bolt-preview-not-running-log">{logs.join('\n')}</pre> : null}
+          {logs.length > 0 ? <pre className="bolt-preview-not-running-log">{journalLisible(logs)}</pre> : null}
         </div>
         <button type="button" onClick={onRun} disabled={isRunning} className="bolt-preview-not-running-run">
           {isRunning ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : <Zap aria-hidden />}
