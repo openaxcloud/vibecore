@@ -22,4 +22,13 @@ describe('libellé d’état de plateforme', () => {
     expect(platformStateLabel(t, 'WEIRD_STATE')).toBe('WEIRD_STATE');
     expect(platformStateLabel(t, undefined)).toBe('[baseChatAst.status.unknown]');
   });
+
+  it('traduit l’état littéral « unknown » (UIB-13)', () => {
+    /*
+     * Mesuré le 01/10, panneau Paquets à 1440 : la carte « Environnement
+     * d'exécution » affichait « unknown ». L'appelant passe `status ?? 'unknown'`.
+     */
+    expect(platformStateLabel(t, 'unknown')).toBe('[baseChatAst.status.unknown]');
+    expect(platformStateLabel(t, 'UNKNOWN')).toBe('[baseChatAst.status.unknown]');
+  });
 });

@@ -39,6 +39,7 @@ import { demarrageRefusePourQuotaStore } from '~/lib/runtime/ecritures-en-attent
 import { workbenchStore } from '~/lib/stores/workbench';
 import { useRattrapageALaReprise } from '~/lib/hooks/useRattrapageALaReprise';
 import { estUneCoupureReseau } from '~/lib/chat/rattrapage-reprise';
+import { effacerLeTourEnCours, noterLeTourEnCours, tourInterrompuAReprendre } from '~/lib/chat/tour-en-cours';
 import { leTourAEcritDesFichiers, messageDeCommitDuTour, statistiquesDuTour } from '~/components/chat/fin-de-tour';
 import {
   consommerPrompt,
@@ -440,6 +441,35 @@ export const ChatImpl = memo(
     const latestMessagesRef = useRef<Message[]>(initialMessages);
 
     /*
+     * LE TOUR QUE CE NAVIGATEUR A VU PARTIR ET PAS FINIR (voir
+     * `~/lib/chat/tour-en-cours`). Déclaré AVANT que le parseur ne traite le fil
+     * — ici, au premier rendu, pour le cache local ; dans `applyTranscript` pour
+     * le fil relu du serveur — sinon ses actions sont déjà sautées comme
+     * historiques. Ses fichiers arrivent alors EN REVUE.
+     */
+    const repriseDuTourARmer = useRef(false);
+
+    const reprendreLeDernierTourSiInterrompu = (fil: Message[]) => {
+      if (!projectIdeMode || !projectId || !tourInterrompuAReprendre(projectId)) {
+        return;
+      }
+
+      const dernier = [...fil].reverse().find((message) => message.role === 'assistant');
+
+      if (dernier) {
+        workbenchStore.reprendreLeTourInterrompu(dernier.id);
+        repriseDuTourARmer.current = true;
+      }
+    };
+
+    const repriseDuCacheLocal = useRef(false);
+
+    if (!repriseDuCacheLocal.current) {
+      repriseDuCacheLocal.current = true;
+      reprendreLeDernierTourSiInterrompu(initialMessages);
+    }
+
+    /*
      * Composer send-stall guard: `lastStreamActivityRef` records the last time a
      * chat stream delta arrived. A watchdog resets a stuck `isLoading` after a
      * stall, and `sendMessage` uses it to avoid silently swallowing a send when
@@ -812,6 +842,10 @@ export const ChatImpl = memo(
          */
         workbenchStore.noterLaLectureDeLAgent();
 
+        if (projectIdeMode && projectId) {
+          noterLeTourEnCours(projectId);
+        }
+
         return ensureJsonSafeBody(
           {
             id,
@@ -889,6 +923,9 @@ export const ChatImpl = memo(
          */
         if (estUneCoupureReseau(e)) {
           armerRattrapageRef.current();
+        } else if (projectId) {
+          /* Le serveur a dit que le tour a échoué : il n'y a rien à reprendre. */
+          effacerLeTourEnCours(projectId);
         }
 
         /*
@@ -916,6 +953,11 @@ export const ChatImpl = memo(
       onFinish: (message, response) => {
         const usage = response.usage;
         setData(undefined);
+
+        /* Le tour est arrivé jusqu'ici : rien à reprendre à la prochaine ouverture. */
+        if (projectId) {
+          effacerLeTourEnCours(projectId);
+        }
 
         /*
          * Fail-safe (LOT A): the stream reached its terminal finish, so the UI
@@ -1151,10 +1193,25 @@ export const ChatImpl = memo(
       appliquer: (fil) => {
         latestMessagesRef.current = fil;
         setMessages(fil);
+
+        if (projectId) {
+          effacerLeTourEnCours(projectId);
+        }
       },
     });
 
     armerRattrapageRef.current = armerRattrapage;
+
+    /*
+     * Le tour repris : si le serveur n'a pas encore écrit sa version finale, le
+     * rattrapage va la chercher — et la rejoue, toujours EN REVUE.
+     */
+    useEffect(() => {
+      if (repriseDuTourARmer.current) {
+        repriseDuTourARmer.current = false;
+        armerRattrapage();
+      }
+    });
 
     /*
      * Envoyer, mais seulement une fois la conversation créée : c'est elle qui dit
@@ -1239,6 +1296,7 @@ export const ChatImpl = memo(
          * l'utilisateur.
          */
         workbenchStore.markHydratedMessages(backendMessages.map((message) => message.id));
+        reprendreLeDernierTourSiInterrompu(backendMessages);
         setMessages(backendMessages);
         latestMessagesRef.current = backendMessages;
         setChatStarted(true);
@@ -1310,6 +1368,11 @@ export const ChatImpl = memo(
 
     const abort = () => {
       stop();
+
+      /* Un arrêt volontaire n'est pas une coupure : ce que l'utilisateur a arrêté reste arrêté. */
+      if (projectId) {
+        effacerLeTourEnCours(projectId);
+      }
 
       /*
        * On the very first message, sendMessage() sets fakeLoading=true and then
