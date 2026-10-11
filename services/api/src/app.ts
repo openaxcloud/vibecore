@@ -33213,7 +33213,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          */
         const threshold = inactivityWarningCrossed(daysInactive);
 
-        if (threshold != null) {
+        /*
+         * Pas d'e-mail « votre compte sera supprimé » tant que la suppression est
+         * COUPÉE (production, constat du 2026-10-11) : ce serait une alarme
+         * mensongère. L'avertissement revient avec la vraie suppression.
+         * Épinglé par tests/avertissement-sans-suppression.spec.ts.
+         */
+        if (threshold != null && enabled) {
           try {
             const user = await store.findUserById(candidate.id);
             const preferences = (user?.preferences ?? {}) as { inactivityWarnings?: Record<string, string> };
