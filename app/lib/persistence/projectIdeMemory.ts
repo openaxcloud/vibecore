@@ -432,16 +432,27 @@ function mergeProjectIdeMemory(existing: ProjectIdeMemory, patch: ProjectIdeMemo
 function memoryForServerSave(
   memory: ProjectIdeMemory,
   patch: ProjectIdeMemory,
-  pendingClearMessages?: boolean,
+  pending?: ProjectIdeMemory,
 ): ProjectIdeMemory {
-  const clearMessages = patch.chat?.clearMessages || pendingClearMessages;
+  const dirty: ProjectIdeMemory = { updatedAt: memory.updatedAt };
+
+  // Le serveur fusionne les domaines : déplacer un onglet ne renvoie pas le fil.
+  if (patch.ui || pending?.ui) {
+    dirty.ui = memory.ui;
+  }
+
+  if (patch.chat || pending?.chat) {
+    dirty.chat = memory.chat;
+  }
+
+  const clearMessages = patch.chat?.clearMessages || pending?.chat?.clearMessages;
 
   if (!clearMessages) {
-    return memory;
+    return dirty;
   }
 
   return {
-    ...memory,
+    ...dirty,
     chat: {
       ...memory.chat,
       clearMessages: true,
@@ -975,14 +986,21 @@ export function saveProjectIdeMemory(projectId: string, patch: ProjectIdeMemory,
   const existing = memoryCache.get(id) ?? {};
   const next = mergeProjectIdeMemory(existing, patch);
 
+  if (
+    !patch.chat?.clearMessages &&
+    JSON.stringify(existing.ui) === JSON.stringify(next.ui) &&
+    JSON.stringify(existing.chat) === JSON.stringify(next.chat)
+  ) {
+    return pendingDebouncedSaves.get(id)?.promise ?? pendingSaves.get(id) ?? Promise.resolve();
+  }
+
   /*
    * Make the chat REPLACE flag sticky across the debounce window: if an earlier
    * coalesced save already queued `clearMessages` for this scope, carry it onto
    * the new dirty payload so a follow-up ordinary chat save can't downgrade the
    * pending PUT from a replace to a union-merge (data-loss on rewind/delete).
    */
-  const pendingClearMessages = pendingDirty.get(id)?.chat?.clearMessages;
-  const dirty = memoryForServerSave(next, patch, pendingClearMessages);
+  const dirty = memoryForServerSave(next, patch, pendingDirty.get(id));
   memoryCache.set(id, next);
   writeLocalProjectIdeMemory(id, next);
   pendingDirty.set(id, dirty);
@@ -1101,7 +1119,7 @@ async function persistWithRetry(scope: string): Promise<void> {
       : `/api/projects/${encodeURIComponent(scope)}/ide-state`);
 
   for (let attempt = 0; attempt <= SAVE_RETRY_DELAYS_MS.length; attempt += 1) {
-    const dirty = pendingDirty.get(scope) ?? memoryCache.get(scope);
+    const dirty = pendingDirty.get(scope);
 
     if (!dirty) {
       return;
