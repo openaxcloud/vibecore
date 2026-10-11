@@ -156,7 +156,8 @@ export const FileTree = memo(
         return;
       }
 
-      workbenchStore.loadRuntimeFiles('.').catch((error) => {
+      // Reconnexion demandée par l'utilisateur : réparer, pas seulement relire (BUG-IDE-007).
+      workbenchStore.loadRuntimeFiles('.', { reparer: true }).catch((error) => {
         logger.error('Failed to reconnect workspace files', error);
       });
     }, [onReconnectWorkspace]);

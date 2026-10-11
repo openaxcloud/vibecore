@@ -758,11 +758,11 @@ export class WorkbenchStore {
     void putAgentPatchProposal(projectId, proposal);
   }
 
-  async loadRuntimeFiles(rootPath = '.') {
+  async loadRuntimeFiles(rootPath = '.', options: { reparer?: boolean } = {}) {
     let runtimeError: unknown;
 
     try {
-      await this.#filesStore.reloadFromRuntime(rootPath);
+      await this.#filesStore.reloadFromRuntime(rootPath, options);
     } catch (error) {
       runtimeError = error;
     }

@@ -2,6 +2,9 @@
  * @vitest-environment jsdom
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 import { FilesStore, shouldPreserveHydratedTree } from './files';
 
@@ -121,5 +124,42 @@ describe('FilesStore.reloadFromRuntime — partial-listing protection (waking po
     expect(shouldPreserveHydratedTree(3, 1)).toBe(false);
     expect(shouldPreserveHydratedTree(0, 1)).toBe(false);
     expect(shouldPreserveHydratedTree(1, 0)).toBe(false);
+  });
+});
+
+/*
+ * BUG-IDE-007 — « Actualiser les fichiers » ne réparait pas l'arbre.
+ *
+ * Mesuré le 15/08 : Bibliothèque « 9 fichiers » → « 10 » après le clic, Git
+ * « 20 », stockage du projet 20. Le bouton relisait le pod tel quel ; c'est le
+ * runtime distant qui sait réconcilier stockage → pod, à condition qu'on le lui
+ * demande. Le magasin doit donc TRANSMETTRE la demande de réparation, et les
+ * deux gestes de l'utilisateur doivent la porter.
+ */
+describe('FilesStore.reloadFromRuntime — un rafraîchissement demandé répare, une relecture automatique non', () => {
+  it('transmet `reparer` au runtime quand on le lui demande', async () => {
+    const runtime = makeRuntime([{ type: 'file', name: 'App.tsx', path: 'src/App.tsx' }]);
+    const store = new FilesStore(runtime);
+
+    await store.reloadFromRuntime('.', { reparer: true });
+
+    expect(runtime.listFiles).toHaveBeenCalledWith('.', { reparer: true });
+  });
+
+  it('ne réclame PAS de réparation pour une relecture automatique — 55 relectures par session, mesuré', async () => {
+    const runtime = makeRuntime([{ type: 'file', name: 'App.tsx', path: 'src/App.tsx' }]);
+    const store = new FilesStore(runtime);
+
+    await store.reloadFromRuntime('.');
+
+    expect(runtime.listFiles).toHaveBeenCalledWith('.', undefined);
+  });
+
+  it('les deux gestes de l’utilisateur — « Actualiser les fichiers » et la reconnexion — demandent la réparation', () => {
+    const baseChat = readFileSync(join(process.cwd(), 'app/components/chat/BaseChat.tsx'), 'utf8');
+    const fileTree = readFileSync(join(process.cwd(), 'app/components/workbench/FileTree.tsx'), 'utf8');
+
+    expect(baseChat).toContain("onClick={() => void workbenchStore.loadRuntimeFiles('.', { reparer: true })}");
+    expect(fileTree).toContain("workbenchStore.loadRuntimeFiles('.', { reparer: true }).catch(");
   });
 });

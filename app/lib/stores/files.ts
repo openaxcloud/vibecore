@@ -290,8 +290,9 @@ export class FilesStore {
     return 'adopte';
   }
 
-  async reloadFromRuntime(rootPath = '.') {
-    const nodes = await this.#runtime.listFiles(rootPath);
+  async reloadFromRuntime(rootPath = '.', options: { reparer?: boolean } = {}) {
+    // `reparer` : rafraîchissement demandé par l'utilisateur → le runtime distant réconcilie d'abord (BUG-IDE-007).
+    const nodes = await this.#runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
     const nextFiles: FileMap = {};
 
     /*
