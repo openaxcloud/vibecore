@@ -33,8 +33,9 @@ function renderInFrench(node: ReactNode): string {
 describe('static marketing surface page catalog', () => {
   beforeAll(prechaufferCoquillePublique);
 
-  it('keeps all 62 English and French page records in exact structural parity', () => {
-    expect(Object.keys(marketingSurfacePageEn)).toHaveLength(62);
+  it('keeps all 58 English and French page records in exact structural parity', () => {
+    // 58 depuis le retrait des quatre pages de démonstration (« SolarTech », « SalesforcePro ») le 2026-10-11.
+    expect(Object.keys(marketingSurfacePageEn)).toHaveLength(58);
     expect(Object.keys(marketingSurfacePageFr).sort()).toEqual(Object.keys(marketingSurfacePageEn).sort());
 
     for (const slug of Object.keys(marketingSurfacePageEn) as Array<keyof typeof marketingSurfacePageEn>) {

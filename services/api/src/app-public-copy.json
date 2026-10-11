@@ -431,6 +431,10 @@
     "en": "Slug must contain at least one letter or number.",
     "fr": "Le slug doit contenir au moins une lettre ou un chiffre."
   },
+  "SHARE_LINK_WRITE_NOT_ALLOWED": {
+    "en": "A share link grants read-only access. To let someone edit, send an invitation: an editor takes a seat on your plan.",
+    "fr": "Un lien de partage donne un accès en lecture seule. Pour laisser quelqu’un modifier, envoyez une invitation : un éditeur occupe une place de votre forfait."
+  },
   "SHARE_LINK_INVALID": {
     "en": "Share link is invalid, expired, or revoked.",
     "fr": "Le lien de partage est invalide, expiré ou révoqué."
