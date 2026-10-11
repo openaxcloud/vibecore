@@ -3305,7 +3305,7 @@ export class WorkbenchStore {
     });
   }
 
-  updateArtifact({ artifactId }: ArtifactCallbackData, state: Partial<ArtifactUpdateState>) {
+  updateArtifact({ artifactId, messageId }: ArtifactCallbackData, state: Partial<ArtifactUpdateState>) {
     if (!artifactId) {
       return;
     }
@@ -3320,10 +3320,19 @@ export class WorkbenchStore {
     this.artifacts.setKey(artifactId, { ...artifact, ...state });
 
     if (state.closed && !wasClosed) {
+      /*
+       * BUG-QA1001-RETOUR-PERD-LES-MODIFICATIONS : un artefact REJOUÉ à la
+       * réouverture n'a rien écrit (ses actions sont sautées). L'enregistrer
+       * remplaçait la copie serveur par la version de l'agent, 10 réouvertures
+       * sur 10. Seul un message rattrapé après une coupure a de vrais fichiers
+       * neufs à enregistrer.
+       */
+      const enregistrer = !this.#reloadedMessages.contient(messageId) || this.#messagesRattrapes.has(messageId);
+
       this.addToExecutionQueue(async () => {
         await artifact.runner.waitForIdle();
         await this.#validatePendingAgentPatchProposalsForArtifact(artifactId);
-        await this.#refreshPreviewAfterArtifactClose(artifactId);
+        await this.#refreshPreviewAfterArtifactClose(artifactId, { enregistrer });
       });
     }
   }
@@ -3981,7 +3990,7 @@ export class WorkbenchStore {
     });
   }
 
-  async #refreshPreviewAfterArtifactClose(artifactId: string) {
+  async #refreshPreviewAfterArtifactClose(artifactId: string, { enregistrer }: { enregistrer: boolean }) {
     await this.loadRuntimeFiles('.').catch(() => {
       this.appendWorkspaceLog(workbenchText('workbenchRuntime.validation.previewRefreshSkipped'));
     });
@@ -4007,7 +4016,9 @@ export class WorkbenchStore {
      * LOST. Validation must only decide whether to (re)start the preview, never
      * whether the files are saved.
      */
-    await this.#persistRuntimeFilesToProjectStorage(artifactId);
+    if (enregistrer) {
+      await this.#persistRuntimeFilesToProjectStorage(artifactId);
+    }
 
     if (!(await this.#validateWorkspaceImportsAfterArtifactClose(artifactId))) {
       return;

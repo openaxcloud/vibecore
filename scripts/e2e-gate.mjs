@@ -14,7 +14,7 @@
  *
  * Usage: node scripts/e2e-gate.mjs <playwright-report.json>
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -153,8 +153,95 @@ function walk(suites, trail) {
   }
 }
 
+const fichiersVus = new Set();
+
 for (const report of reports) {
+  const avant = results.size;
   walk(report.suites, []);
+
+  if (results.size === avant) {
+    fail(
+      'un rapport ne porte AUCUN test. Une tranche vide est une tranche verte : ' +
+        'la porte ne conclut pas sur une couverture amputée.',
+    );
+  }
+}
+
+for (const cle of results.keys()) {
+  fichiersVus.add(cle.split(' › ')[0]);
+}
+
+/*
+ * ---- 2 bis. LA COUVERTURE EST-ELLE COMPLÈTE ? ----
+ *
+ * LE DÉFAUT QUE CE BLOC EXISTE POUR ATTRAPER, et c'est le plus dangereux de
+ * toute la famille des faux verts.
+ *
+ * Le 2026-10-01, en portant la découpe de deux à quatre tranches, j'ai laissé
+ * par contre-épreuve un `--shard=N/2` avec une matrice de quatre. Les SOIXANTE-DIX
+ * gardes sont restés verts. Avec un dénominateur trop grand — `/8` pour quatre
+ * tranches — un quart de la suite n'est joué par PERSONNE : chaque rapport est
+ * plein, chaque test qu'il contient passe, et la porte dit « vert » sur une
+ * couverture amputée. Ce n'est pas un rapport manquant (le compte de rapports
+ * l'attraperait), c'est une PERTE SILENCIEUSE DE COUVERTURE, invisible même en
+ * lisant les résultats un par un.
+ *
+ * Le même contrôle attrape l'autre moitié du problème, celle qui nous est
+ * arrivée cette nuit : des specs ajoutés sans que personne touche à la matrice.
+ *
+ * ⚠️ POURQUOI L'ENSEMBLE ATTENDU N'EST PAS « TOUS LES FICHIERS DE tests/e2e ».
+ * Mesuré avant d'écrire ce bloc, sur de vrais rapports : 48 fichiers vus pour 50
+ * présents. Les deux manquants (`critical-paths`, `preview-runtime`) ne portent
+ * QUE des tests marqués `@runtime`, et le workflow lance la suite avec
+ * `--grep-invert @runtime` — ils tournent dans le passage « E2E Runtime », non
+ * bloquant. Un contrôle naïf aurait donc été rouge pour une raison légitime, et
+ * on l'aurait désarmé. On exclut ces fichiers par une règle, pas par une liste
+ * tenue à la main : un fichier est attendu s'il contient au moins un `test(` qui
+ * n'est pas marqué `@runtime`.
+ */
+const racineSpecs = resolve(repoRoot, 'tests/e2e');
+
+function porteUnTestNonRuntime(chemin) {
+  const source = readFileSync(chemin, 'utf8');
+  const appels = source.split(/\btest(?:\.describe)?\s*\(/u).slice(1);
+
+  if (appels.length === 0) {
+    return false;
+  }
+
+  /*
+   * Un appel est « runtime » si `@runtime` apparaît avant la fin de sa liste
+   * d'arguments de tête — en pratique, dans les 400 premiers caractères qui
+   * suivent, ce qui couvre le titre et l'objet d'annotations sans déborder sur
+   * le corps du test suivant.
+   */
+  return appels.some((apres) => !apres.slice(0, 400).includes('@runtime'));
+}
+
+const fichiersAttendus = readdirSync(racineSpecs)
+  .filter((f) => f.endsWith('.spec.ts'))
+  .filter((f) => porteUnTestNonRuntime(resolve(racineSpecs, f)));
+
+const fichiersManquants = fichiersAttendus.filter((f) => !fichiersVus.has(f));
+
+console.log(`  fichiers de specs attendus : ${fichiersAttendus.length}`);
+console.log(`  fichiers de specs vus      : ${fichiersVus.size}`);
+
+if (fichiersAttendus.length === 0) {
+  fail(
+    "aucun fichier de spec attendu n'a été calculé : la règle d'exclusion `@runtime` est " +
+      'cassée, et ce contrôle ne mesurerait plus rien. Il refuse plutôt que de rassurer.',
+  );
+}
+
+if (fichiersManquants.length > 0) {
+  fail(
+    `${fichiersManquants.length} fichier(s) de specs n'ont été joués par AUCUNE tranche :\n` +
+      fichiersManquants.map((f) => `    - ${f}`).join('\n') +
+      '\n  Couverture amputée. Causes habituelles : le dénominateur de `--shard` ne ' +
+      "correspond pas au nombre de tranches, ou des specs ont été ajoutés sans que la " +
+      'matrice suive.',
+  );
 }
 
 const failed = [...results.entries()].filter(([, status]) => status === 'failed').map(([key]) => key);

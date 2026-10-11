@@ -2,9 +2,11 @@ import { createServer, type Server } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Redis } from 'ioredis';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { buildApiApp } from '../app.js';
+import { cleDesToursDuProjet, type LecteurRedisDesTours } from '../tours-partages.js';
 import { TestApiStore } from './test-api-store.js';
 
 /**
@@ -26,12 +28,48 @@ import { TestApiStore } from './test-api-store.js';
 let fermetures: Array<() => Promise<void>> = [];
 
 afterEach(async () => {
-  await Promise.all(fermetures.map((fermer) => fermer()));
+  // Dans l'ordre INVERSE et l'une après l'autre : un tour se retire avant que sa connexion Redis ne ferme.
+  for (const fermer of fermetures.reverse()) {
+    await fermer();
+  }
+
   fermetures = [];
 });
 
-async function preparer(creneauPris = true) {
+/*
+ * Redis RÉEL pour les cas où l'état des tours doit être lisible : celui de la CI
+ * (`REDIS_URL`, service de ci.yml) ou d'une pile locale. Sans lui, ces cas ne
+ * mesureraient rien — ils sont alors sautés EN LOCAL, et rougissent en CI.
+ */
+const redisUrl = process.env.REDIS_URL;
+
+if (process.env.CI && !redisUrl) {
+  throw new Error('REDIS_URL absent en CI : les cas « tours lisibles » ne mesureraient rien.');
+}
+
+async function redisReel(): Promise<Redis> {
+  const client = new Redis(redisUrl!, { lazyConnect: true, maxRetriesPerRequest: 1 });
+  await client.connect();
+  fermetures.push(async () => {
+    client.disconnect();
+  });
+
+  return client;
+}
+
+/** Un tour d'agent en cours sur ce projet, tel que le pod web l'annonce (tours-partages.server.ts). */
+async function annoncerUnTour(redis: Redis, projectId: string) {
+  await redis.zadd(cleDesToursDuProjet(projectId), Date.now() + 15 * 60_000, `tour-${projectId}`);
+
+  return () => redis.zrem(cleDesToursDuProjet(projectId), `tour-${projectId}`);
+}
+
+async function preparer(
+  creneauPris = true,
+  options: { toursPartages?: LecteurRedisDesTours | null; attenteMs?: number; avantDeployer?: (projetA: string) => Promise<void> } = {},
+) {
   const podsVivants = new Set<string>();
+  const arretsDemandes: string[] = [];
 
   const agent = createServer((_requete, reponse) => reponse.writeHead(503).end('{}'));
   await new Promise<void>((resolve) => agent.listen(0, '127.0.0.1', resolve));
@@ -45,6 +83,16 @@ async function preparer(creneauPris = true) {
     const identifiant = /^\/workspaces\/([^/]+)$/.exec(chemin)?.[1];
 
     reponse.setHeader('content-type', 'application/json');
+
+    const arret = /^\/workspaces\/([^/]+)\/stop$/.exec(chemin)?.[1];
+
+    if (requete.method === 'POST' && arret) {
+      arretsDemandes.push(arret);
+      podsVivants.delete(arret);
+      reponse.end(JSON.stringify({ id: arret, status: 'STOPPED' }));
+
+      return;
+    }
 
     if (identifiant && podsVivants.has(identifiant)) {
       reponse.end(JSON.stringify({ id: identifiant, status: 'RUNNING' }));
@@ -71,6 +119,7 @@ async function preparer(creneauPris = true) {
     secret: process.env.INTERNAL_API_SHARED_SECRET,
     stockage: process.env.STATIC_DEPLOY_STORAGE_DIR,
     budget: process.env.WORKSPACE_COLD_START_BUDGET_MS,
+    attente: process.env.DEPLOY_AUTO_SLEEP_WAIT_MS,
   };
 
   process.env.WORKSPACE_MANAGER_URL = `http://127.0.0.1:${(manager.address() as { port: number }).port}`;
@@ -78,9 +127,10 @@ async function preparer(creneauPris = true) {
   process.env.INTERNAL_API_SHARED_SECRET = 'secret-interne-test';
   process.env.STATIC_DEPLOY_STORAGE_DIR = stockage;
   process.env.WORKSPACE_COLD_START_BUDGET_MS = '5000';
+  process.env.DEPLOY_AUTO_SLEEP_WAIT_MS = String(options.attenteMs ?? 1_500);
 
   const store = new TestApiStore();
-  const app = await buildApiApp({ store });
+  const app = await buildApiApp({ store, toursPartages: options.toursPartages ?? null });
 
   fermetures.push(async () => {
     await app.close();
@@ -93,6 +143,7 @@ async function preparer(creneauPris = true) {
       INTERNAL_API_SHARED_SECRET: precedent.secret,
       STATIC_DEPLOY_STORAGE_DIR: precedent.stockage,
       WORKSPACE_COLD_START_BUDGET_MS: precedent.budget,
+      DEPLOY_AUTO_SLEEP_WAIT_MS: precedent.attente,
     })) {
       if (valeur === undefined) {
         delete process.env[cle];
@@ -148,6 +199,8 @@ async function preparer(creneauPris = true) {
   const projetB = await creerProjet('Projet B');
 
   const deployerB = async () => {
+    await options.avantDeployer?.(projetA);
+
     const enFile = await store.createDeployment({ projectId: projetB, provider: 'static', status: 'QUEUED' });
 
     const construit = await app.inject({
@@ -167,8 +220,29 @@ async function preparer(creneauPris = true) {
     return construit.json().deployment as { status: string; logs?: Array<{ level: string; message: string }> };
   };
 
-  return { deployerB };
+  const espaceDeA = async () => (await store.getWorkspace(espaceA.id))?.status;
+
+  /** Ce qu'un client FRANÇAIS lit dans la liste de ses publications (traduite par l'API à la lecture). */
+  const lireEnFrancais = async () => {
+    const reponse = await app.inject({
+      method: 'GET',
+      url: `/projects/${projetB}/deployments`,
+      headers: { authorization: `Bearer ${token}`, 'accept-language': 'fr' },
+    });
+
+    expect(reponse.statusCode, reponse.body).toBe(200);
+
+    return (reponse.json().deployments as Array<{ logs?: Array<{ level: string; message: string }> }>)[0];
+  };
+
+  return { deployerB, arretsDemandes, espaceA: espaceA.id, espaceDeA, lireEnFrancais };
 }
+
+const derniereErreur = (deploiement: { logs?: Array<{ level: string; message: string }> }) =>
+  [...(deploiement.logs ?? [])].reverse().find((ligne) => ligne.level === 'error')?.message ?? '';
+
+const avis = (deploiement: { logs?: Array<{ level: string; message: string }> }) =>
+  (deploiement.logs ?? []).filter((ligne) => ligne.level === 'warn').map((ligne) => ligne.message);
 
 describe('un déploiement refusé pour quota le DIT', () => {
   it('le client gratuit lit que sa limite est atteinte — pas « l’espace démarre, réessayez »', async () => {
@@ -192,6 +266,16 @@ describe('un déploiement refusé pour quota le DIT', () => {
     expect(erreur, 'jamais « réessayez » : réessayer ne changera rien').not.toMatch(/please retry/i);
   }, 30_000);
 
+  it('état des tours ILLISIBLE (pas de Redis) : l’autre espace n’est PAS arrêté — « on ne sait pas » n’est pas « inactif »', async () => {
+    const { deployerB, arretsDemandes, espaceDeA } = await preparer(true, { toursPartages: null });
+
+    const deploiement = await deployerB();
+
+    expect(arretsDemandes).toEqual([]);
+    expect(await espaceDeA()).toBe('RUNNING');
+    expect(derniereErreur(deploiement)).toMatch(/active workspace/i);
+  }, 30_000);
+
   it('TÉMOIN — créneau libre mais espace qui ne répond pas à temps : « réessayez » reste le bon message', async () => {
     const { deployerB } = await preparer(false);
 
@@ -202,5 +286,74 @@ describe('un déploiement refusé pour quota le DIT', () => {
     expect(deploiement.status).toBe('FAILED');
     expect(erreur).toMatch(/please retry/i);
     expect(erreur).not.toMatch(/active workspace at a time/i);
+  }, 30_000);
+});
+
+describe.runIf(redisUrl)('décision d’Avi du 01/10 : publier met en veille l’autre espace — jamais pendant un tour', () => {
+  it('autre espace INACTIF : il est mis en veille, et le client le lit — plus de « arrêtez-le vous-même »', async () => {
+    const redis = await redisReel();
+    const { deployerB, arretsDemandes, espaceA, espaceDeA, lireEnFrancais } = await preparer(true, {
+      toursPartages: redis,
+    });
+
+    const deploiement = await deployerB();
+
+    /*
+     * Mesuré AVANT correctif : aucun arrêt demandé, et le client lisait « Stop that
+     * project’s workspace, or upgrade your plan, then publish again ».
+     */
+    expect(arretsDemandes).toEqual([espaceA]);
+    expect(await espaceDeA()).toBe('STOPPED');
+    expect(avis(deploiement).join('\n')).toMatch(/We put your project “Projet A” to sleep/);
+    expect(derniereErreur(deploiement)).not.toMatch(/Stop that project’s workspace/);
+
+    // Le client français le lit dans sa langue, avec le nom de SON projet.
+    expect(avis(await lireEnFrancais()).join('\n')).toMatch(
+      /Nous avons mis en veille votre projet « Projet A » pour publier celui-ci/,
+    );
+  }, 30_000);
+
+  it('autre espace avec un TOUR EN COURS : il n’est PAS arrêté ; le client sait pourquoi, et rien n’est perdu', async () => {
+    const redis = await redisReel();
+
+    const { deployerB, arretsDemandes, espaceDeA } = await preparer(true, {
+      toursPartages: redis,
+      attenteMs: 1_500,
+      avantDeployer: async (projetA) => {
+        const retirer = await annoncerUnTour(redis, projetA);
+        fermetures.push(async () => {
+          await retirer();
+        });
+      },
+    });
+
+    const deploiement = await deployerB();
+
+    expect(arretsDemandes, 'un espace avec un tour en cours ne doit JAMAIS être arrêté').toEqual([]);
+    expect(await espaceDeA()).toBe('RUNNING');
+    // Une seule phrase, la bonne : « nous attendons » serait périmé une fois l'attente finie.
+    expect(avis(deploiement)).toEqual([]);
+    expect(derniereErreur(deploiement)).toMatch(/“Projet A” still has a generation in progress/);
+    expect(derniereErreur(deploiement)).not.toMatch(/please retry/i);
+  }, 30_000);
+
+  it('le tour se TERMINE pendant l’attente bornée : l’espace est mis en veille à ce moment-là', async () => {
+    const redis = await redisReel();
+
+    const { deployerB, arretsDemandes, espaceA } = await preparer(true, {
+      toursPartages: redis,
+      attenteMs: 10_000,
+      avantDeployer: async (projetA) => {
+        const retirer = await annoncerUnTour(redis, projetA);
+        const fin = new Promise<void>((resolve) => setTimeout(() => void retirer().finally(() => resolve()), 1_500));
+        fermetures.push(() => fin);
+      },
+    });
+
+    const deploiement = await deployerB();
+
+    expect(arretsDemandes).toEqual([espaceA]);
+    expect(avis(deploiement).join('\n')).toMatch(/has a generation in progress/);
+    expect(avis(deploiement).join('\n')).toMatch(/We put your project “Projet A” to sleep/);
   }, 30_000);
 });

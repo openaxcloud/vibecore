@@ -1,13 +1,19 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   clearPendingComposerInput,
+  clearPendingComposerMode,
   composerHandoffScope,
   peekPendingComposerInput,
   setPendingComposerInput,
+  setPendingComposerMode,
   takePendingComposerInput,
+  takePendingComposerMode,
 } from './composer-handoff';
 
-beforeEach(() => clearPendingComposerInput());
+beforeEach(() => {
+  clearPendingComposerInput();
+  clearPendingComposerMode();
+});
 
 describe('passe-plat du composeur', () => {
   it('rend la frappe en attente à la même portée, une seule fois', () => {
@@ -38,5 +44,22 @@ describe('passe-plat du composeur', () => {
     expect(composerHandoffScope('p1', '/projects/p1/ide')).toBe('project:p1');
     expect(composerHandoffScope(undefined, '/chat/abc')).toBe('path:/chat/abc');
     expect(composerHandoffScope(undefined, '/chat/def')).not.toBe(composerHandoffScope(undefined, '/chat/abc'));
+  });
+
+  it('rend le mode choisi dans la coquille à la même portée, une seule fois — sans toucher à la frappe', () => {
+    setPendingComposerInput('project:p1', 'une question');
+    setPendingComposerMode('project:p1', 'ask');
+
+    expect(takePendingComposerMode('project:p2')).toBeNull();
+    expect(takePendingComposerMode('project:p1')).toBe('ask');
+    expect(takePendingComposerMode('project:p1')).toBeNull();
+    expect(takePendingComposerInput('project:p1')).toBe('une question');
+  });
+
+  it('le dernier choix fait foi', () => {
+    setPendingComposerMode('project:p1', 'ask');
+    setPendingComposerMode('project:p1', 'agent');
+
+    expect(takePendingComposerMode('project:p1')).toBe('agent');
   });
 });

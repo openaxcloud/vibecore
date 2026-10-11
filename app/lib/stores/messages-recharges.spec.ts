@@ -51,4 +51,23 @@ describe('messages rechargés', () => {
     expect(recharges.contient('aimsg_a1')).toBe(false);
     expect(recharges.contient('m1')).toBe(false);
   });
+
+  it('les actions des SOUS-AGENTS d’un message rechargé sont rechargées elles aussi', () => {
+    const recharges = new MessagesRecharges();
+
+    recharges.marquerHydrates(['aimsg_a1']);
+    recharges.remplacer(['m1']);
+
+    expect(recharges.contient('aimsg_a1::lane:frontend')).toBe(true);
+    expect(recharges.contient('m1::lane:devops')).toBe(true);
+  });
+
+  it('contre-épreuve : les sous-agents d’un message produit en direct ne le sont pas', () => {
+    const recharges = new MessagesRecharges();
+
+    recharges.marquerHydrates(['aimsg_a1']);
+
+    expect(recharges.contient('direct::lane:frontend')).toBe(false);
+    expect(recharges.contient('aimsg_a1-lane')).toBe(false);
+  });
 });

@@ -84,10 +84,6 @@ describe('E-Code product surface registry', () => {
         '/networking',
         '/threads',
         '/referrals',
-        '/solartech-ai-chat',
-        '/solartech-crm',
-        '/salesforcepro-crm',
-        '/solartech-fortune500-store',
       ]),
     );
   });
@@ -99,13 +95,24 @@ describe('E-Code product surface registry', () => {
       ...Object.values(ecodeStandaloneSurfacePages),
     ];
 
-    expect(pages.length).toBeGreaterThan(60);
+    // 58 depuis le retrait des quatre pages de démonstration (2026-10-11) : le seuil garde un registre amputé par accident.
+    expect(pages.length).toBeGreaterThanOrEqual(58);
 
     for (const page of pages) {
       expect(page.title.length).toBeGreaterThan(3);
       expect(page.description.length).toBeGreaterThan(60);
       expect(page.highlights.length).toBeGreaterThanOrEqual(4);
-      expect(page.sections.length).toBeGreaterThanOrEqual(2);
+
+      /*
+       * Plus d'exigence « au moins deux sections » : ces deux sections étaient le
+       * texte de remplissage retiré le 2026-10-10 (CONSTAT-PAGES-GABARIT-PUBLIQUES),
+       * et le compter comme du contenu masquait des pages vides. Le contenu réel
+       * reste exigé ci-dessus et ci-dessous (description, points forts, routes).
+       */
+      for (const section of page.sections) {
+        expect(section.title.length).toBeGreaterThan(3);
+        expect(section.body.length).toBeGreaterThan(20);
+      }
       expect(page.relatedRoutes.length).toBeGreaterThanOrEqual(3);
       expect(page.primaryAction[1]).toMatch(/^\//);
       expect(page.secondaryAction[1]).toMatch(/^\//);

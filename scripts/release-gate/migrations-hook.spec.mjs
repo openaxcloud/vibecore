@@ -8,7 +8,7 @@ import { parse } from 'yaml';
  * Le hook de migration Prisma doit ÉCHOUER VITE ET PARLER quand il bloque.
  *
  * Mesuré le 2026-09-04, run 1453 : premier rollout portant la migration 0086,
- * `helm upgrade --atomic --timeout 10m` en « context deadline exceeded »,
+ * `helm upgrade --atomic --timeout 25m` en « context deadline exceeded »,
  * rollback automatique, et rien à lire — le hook avait le même délai (600 s)
  * que Helm, donc les deux expiraient ensemble et le rollback emportait le Job.
  * Un `ALTER TABLE` qui attend un verrou tenu ailleurs (transaction d'import

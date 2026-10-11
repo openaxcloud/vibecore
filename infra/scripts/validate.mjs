@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { validateScreenshotterNetwork } from './validate-screenshotter-network.mjs';
 
 const root = resolve(new URL('..', import.meta.url).pathname);
 
@@ -148,4 +149,7 @@ const overriddenPlatform = helmTemplate([
 assertIncludes(overriddenPlatform, 'app.kubernetes.io/name: "edge-nginx"', 'overridden ingress controller app label');
 assertIncludes(overriddenPlatform, 'kubernetes.io/metadata.name: "edge-nginx"', 'overridden ingress controller namespace label');
 
-console.log('infra scaffold valid');
+const screenshotterPlatform = helmTemplate(['--set', 'services.screenshotter.enabled=true']);
+const screenshotterProbes = validateScreenshotterNetwork(screenshotterPlatform);
+validateScreenshotterNetwork(helmTemplate(['-f', resolve(root, 'helm/platform/values-prod.yaml')]));
+console.log(`infra scaffold valid; screenshotter effective egress: ${screenshotterProbes} probes passed in default and prod`);
