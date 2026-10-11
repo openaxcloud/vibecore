@@ -140,3 +140,22 @@ Mesure d'origine : les trois scripts et la sortie des dix réouvertures dans `do
 Gardes : épinglé par `app/lib/stores/workbench.retour-ne-recule-pas.spec.ts`,
 `services/api/src/tests/ide-state-materialise-une-fois.spec.ts` et `tests/e2e/retour-ne-recule-pas.spec.ts`.
 Preuve live : à venir.
+
+## Deux trous restants après #692 (relecture du 2026-10-06, préparés le 2026-10-11)
+
+#692 ferme le chemin principal. Une relecture (`cb3e98639`) a trouvé deux cas où la version de l'agent repasse côté
+serveur, sur le manifeste que lisent le commit git, l'export, la duplication, les instantanés, la restauration et le
+réensemencement d'un espace recyclé :
+
+- **TROU 1 (bloquant, cas courant)** : l'utilisateur modifie un fichier écrit par l'agent, puis redemande une
+  modification. À la fin du tour, l'import (`replaceExisting`) vide le fil enregistré, et le `PUT /ide-state` suivant
+  rematérialise tout l'historique par-dessus l'enregistrement de l'utilisateur.
+- **TROU 2 (rare)** : l'utilisateur enregistre PENDANT le tour. #667 garde sa version, puis le message de l'agent,
+  arrivé avec un contenu neuf, est rematérialisé.
+
+Correctif (« marque d'écriture réelle », `ee5814565`) repris sur `main` `90c4049f62` dans la branche
+`fix/retour-marque-ecriture-reelle`, sans conflit. Épinglé par `services/api/src/tests/relecture-retour.spec.ts`
+(un test par trou) et `services/api/src/tests/reouverture-version-utilisateur.spec.ts`. Mesuré le 2026-10-11 :
+SANS le correctif (`app.ts` de main), les deux tests rougissent, chacun sur le contenu relu ; AVEC, ils passent.
+Les 14 fichiers de tests de l'API qui touchent ces chemins passent (222 tests).
+
