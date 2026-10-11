@@ -1377,6 +1377,9 @@ jobs:
       # du job) donne des identifiants frais juste avant les opérations qui en
       # dépendent. `get-credentials` seul n'y suffit pas : il réécrit le
       # kubeconfig, il ne renouvelle pas le jeton d'accès sous-jacent.
+      - name: Helm render test — production protections (blocking)
+        run: node scripts/validate-helm-production-protections.mjs
+
       - name: Refresh Google Cloud credentials before the rollout
         uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
@@ -1672,6 +1675,7 @@ jobs:
           # `|| true` — un garde contre les réglages silencieux, lui-même
           # silencieux. Exactement le défaut qu'il existe pour attraper.
           helm get values "${HELM_RELEASE}" --namespace "${HELM_NAMESPACE}" -o json > /tmp/valeurs-release.json
+          node scripts/release-gate/verifier-protections-production.mjs /tmp/valeurs-release.json
           python3 -c 'import json,sys,yaml; json.dump(yaml.safe_load(open(sys.argv[1])), open(sys.argv[2],"w"))' \
             infra/helm/platform/values-prod.yaml /tmp/valeurs-fichier.json
           node scripts/release-gate/detecter-derive-valeurs.mjs \
@@ -1721,6 +1725,9 @@ jobs:
       - name: Verify rollout
         run: |
           set -euo pipefail
+          helm get values "${HELM_RELEASE}" --namespace "${HELM_NAMESPACE}" -o json > /tmp/protections-release.json
+          kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" -o json > /tmp/protections-configmap.json
+          node scripts/release-gate/verifier-protections-production.mjs /tmp/protections-release.json /tmp/protections-configmap.json
           for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
               -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"

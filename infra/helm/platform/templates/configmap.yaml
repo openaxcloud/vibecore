@@ -76,16 +76,13 @@ data:
   # is the real client IP (audit logs, rate-limits, OAuth callback origin).
   TRUST_PROXY: {{ .Values.platformEnv.trustProxy | default "true" | quote }}
 
-  # MFA is OPTIONAL for everyone, admins included (Avi's decision). "false" turns
-  # adminMfaRequired() off so the global requireAuth gate (app.ts:2297) and
-  # requireAdminMfaForSensitiveAction (app.ts:3289, e.g. the platform-admin
-  # promotion) no longer block an admin who hasn't enrolled MFA. MFA stays
-  # AVAILABLE (anyone can enroll it on the security page), just never forced.
-  # Hardcoded LITERAL (not a values key) because CD's `helm upgrade
-  # --reuse-values` ignores values changes — same reason as BILLING_CREDITS_SHADOW.
-  # Reversible: set "true" (or delete this line — the env then defaults to
-  # MFA-required for admins).
-  ADMIN_MFA_REQUIRED: "false"
+  # Refus par défaut : une ancienne release sans cette clé exige aussi la MFA.
+  # hasKey préserve un false explicite dans les environnements de test.
+  {{- if hasKey .Values.platformEnv "adminMfaRequired" }}
+  ADMIN_MFA_REQUIRED: {{ .Values.platformEnv.adminMfaRequired | quote }}
+  {{- else }}
+  ADMIN_MFA_REQUIRED: "true"
+  {{- end }}
   # Default paths for API-local project files + static deployment artifacts.
   # The deployment template overrides these via per-pod env vars when the
   # `storage` block is enabled, so this is only the fallback for the

@@ -9,6 +9,7 @@ global:
   appDomain: app.e-code.ai
   previewDomain: preview.e-code.ai
   marketingDomain: e-code.ai
+  marketingWwwRedirect: true
   apiDomain: api.e-code.ai
   workspaceManagerDomain: workspace-manager.e-code.ai
   dns01:
@@ -86,6 +87,8 @@ secrets:
 # config — none of them are secrets. Mounted via a ConfigMap so they live
 # in version-controlled chart values, not Secret Manager.
 platformEnv:
+  adminMfaRequired: true
+  aiGatewayRequireAuth: 'true'
   saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   # P11 auto thumbnails — ENABLED (services.screenshotter.enabled=true below).
@@ -118,9 +121,8 @@ platformEnv:
   # Keep them in sync with `storage.mountPath` for sanity.
   projectStorageDir: '/data/vibecore/projects'
   staticDeployStorageDir: '/data/vibecore/static-deployments'
-  # NOTE: ADMIN_MFA_REQUIRED is hardcoded "false" in templates/configmap.yaml
-  # (MFA optional for everyone — Avi's decision; reuse-values would ignore a
-  # values key here). To re-require admin MFA, flip that literal to "true".
+  # Ces protections doivent aussi être présentes dans la release vivante :
+  # --reuse-values ne relit pas ce fichier. Le contrôle de livraison les vérifie.
   runtime:
     mode: 'remote-kubernetes'
     apiBaseUrl: 'https://api.e-code.ai/api/runtime'
@@ -211,6 +213,12 @@ ingress:
   previewTlsSecretName: vibecore-preview-wildcard-tls
   proxyReadTimeoutSeconds: 180
   proxySendTimeoutSeconds: 180
+
+# Actif en production. Garder cette valeur dans le dépôt ne dispense pas du
+# contrôle de la release vivante avant chaque upgrade avec --reuse-values.
+database:
+  sharedCluster:
+    enabled: true
 
 services:
   # Optional `imageTag` on any service overrides `global.imageTag` for that
