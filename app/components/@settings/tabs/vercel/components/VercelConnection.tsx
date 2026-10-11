@@ -144,8 +144,6 @@ export default function VercelConnection() {
     toast.success(t('settings.copy.disconnectedFromVercel_f567b00a'));
   };
 
-  console.log('connection', connection);
-
   return (
     <motion.div
       className="bg-bolt-elements-background-depth-2 rounded-lg border border-bolt-elements-borderColor"

@@ -52,6 +52,22 @@ afterEach(() => {
 });
 
 describe('AUDX-161 Vercel auto-connect retry', () => {
+  it('does not print the provider credential while rendering and connecting', async () => {
+    const credential = 'private-fixture-for-console-regression';
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    autoConnectVercel.mockResolvedValue({ success: true });
+    vercelConnection.set({ user: null, token: credential });
+
+    try {
+      render(<VercelConnection />);
+      await waitFor(() => expect(autoConnectVercel).toHaveBeenCalledOnce());
+      expect(log.mock.calls.length).toBeGreaterThan(0);
+      expect(JSON.stringify(log.mock.calls)).not.toContain(credential);
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it('starts when a token arrives after mounting without connection conditions', async () => {
     vercelConnection.set({ user: null, token: '' });
     autoConnectVercel.mockResolvedValue({ success: true });

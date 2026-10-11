@@ -2,13 +2,13 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { appPublicEnglish } from '../app-public-copy.js';
 import {
   CLEARED_LOCKOUT,
   nextStateOnFailure,
   type LoginLockoutState,
   type LoginThrottleConfig,
 } from '../login-throttle.js';
-import { appPublicEnglish } from '../app-public-copy.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
 import { DEFAULT_ENV_VAR_SCOPE, projectSnapshotManifest } from '../store.js';
 import type {
