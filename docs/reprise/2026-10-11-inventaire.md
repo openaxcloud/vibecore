@@ -90,7 +90,7 @@ Ne jamais intégrer `fix/forfait-pro-cinq-places`, `fix/reouverture-garde-la-ver
 
 📤 Dispatché : reprise engagée. 💻 Codé : #709, #710, #712 et #714 fusionnés. Les preuves de livraison ne remplacent pas les scénarios utilisateurs authentifiés ; les réserves figurent dans chaque ligne.
 
-La machine de cette reprise dispose d’environ 9 Go disponibles et aucun swap ; ce relevé ne remplace pas celui de l’ancienne machine. Installation avec pnpm 9.14.4 et verrouillage conservé. Accès GitHub via le plugin ; aucun credential GCP, Kubernetes ou Stripe disponible dans cet environnement. Aucune valeur de secret copiée.
+L’environnement actuel est limité à 16 Go de mémoire cgroup et quatre CPU ; la mémoire est mesurée avant les constructions, une seule construction web à la fois. Ce relevé ne remplace pas celui de l’ancienne machine. Installation avec pnpm 9.14.4 et verrouillage conservé. Accès GitHub via le plugin ; aucun credential GCP, Kubernetes ou Stripe disponible dans cet environnement. Aucune valeur de secret copiée.
 
 Les propositions existantes restent sources de travail, pas preuves suffisantes. Les indices de bugs sont dérivés : `node scripts/migrer-inventaire-bugs.mjs --index`. Les clients Prisma se régénèrent. Une annulation reste une absence de verdict ; les agrégateurs se relancent après les tests qu’ils lisent.
 
@@ -99,7 +99,7 @@ Les propositions existantes restent sources de travail, pas preuves suffisantes.
 - Gardes de livraison, gardes transversales et index : 262/262 tests verts, après utilisation de pnpm 9.14.4 aussi dans les sous-processus.
 - Rendu Helm : valeurs par défaut, production, clé ancienne absente et désactivation de test ; vert. Contre-épreuve avec le gabarit main imposant false : rouge.
 - PR #701 : 28 tests voisins verts. Le rapport E2E 11706259450 révèle une erreur de syntaxe dans ui-details.spec.ts, pas un verdict de contraste. Async replacé sur la fonction ; correction poussée sur la branche existante au commit 94da33ad328b5da2dca934ee6776cf576695369d. Playwright collecte désormais 21 tests dans ce fichier. CI relancée par ce push.
-- Le téléchargement du navigateur local est tronqué dans cet environnement. Aucun test pixel ni test live revendiqué.
+- Au relevé initial, le téléchargement navigateur était tronqué. Depuis, le Chromium installé permet des fixtures physiques Sass et captureur ; les mesures publiques de contraste figurent dans le document de production. Ces preuves ont chacune leur périmètre, elles ne constituent pas une validation E2E locale complète.
 
 ## Mise à jour après essais réels
 
@@ -140,10 +140,10 @@ Branches publiées : fix/reprise-livraison-securite-20261011, fix/reprise-tour-r
 
 ## Ordre de livraison après la fusion de #712
 
-Le déploiement #709 est réussi à 21:02 UTC. La proposition #711, fusionnée
-par une autre session, construit son étage runtime. #712 est fusionnée ; sa
-livraison attend la précédente. Une seule proposition est prête à ce constat :
-#713, tenue par une autre session. Le lot IDE est en validation locale finale.
+Les déploiements #709, #711 et #712 sont réussis. #714 est fusionnée ; son
+workflow de livraison 38181578340 attend ses contrôles de main. #713 est
+fusionnée à 2cec44b4 après tous les contrôles verts. #715 porte le lot parcours
+client ; l’outillage poursuit sa validation locale.
 Aucune annulation de livraison n’a été effectuée.
 
 Les branches de préparation nécessitent leur intégration finale et les contrôles
@@ -152,6 +152,6 @@ quota stockage, la protection GitHub et les preuves GCS/Kubernetes de purge.
 
 ## Relevé à 22:45 UTC
 
-#714 est fusionné après succès du verdict E2E, des quatre audits français, de CodeQL, des builds bureau et de Production CI. Une cible de menu de message de 28 px a réellement échoué à 390 et 768 px ; le correctif rend 44 px et garde 28 px au bureau. Le détecteur navigateur existant est repris dans une fixture Sass/Chromium ; retirer le correctif rend la garde rouge. #713 reste ouverte ; le lot parcours est le prochain lot client. Les scripts de preuve de #713 ont été relus et corrigés au lint dans une branche distincte, sans modifier le travail de son auteur.
+#714 est fusionné après succès du verdict E2E, des quatre audits français, de CodeQL, des builds bureau et de Production CI. Une cible de menu de message de 28 px a réellement échoué à 390 et 768 px ; le correctif rend 44 px et garde 28 px au bureau. Le détecteur navigateur existant est repris dans une fixture Sass/Chromium ; retirer le correctif rend la garde rouge. #713 est fusionnée ; #715 porte le prochain lot client. Les scripts de preuve de #713 ont été relus et corrigés au lint dans une branche distincte, sans modifier le travail de son auteur.
 
 Les manifestes 27273f19 et b0ddb2c9 déclarent une provenance incomplète des références réutilisées. Une correspondance exacte de digest avec les manifestes antérieurs signés retrouve leur source : cela ne prouve les conteneurs exécutés que pour les sept services rollés. Captureur et agent d’espace restent hors preuve de rollout. Voir mesures/2026-10-11-livraison-272.json et mesures/2026-10-11-livraison-b0.json.
