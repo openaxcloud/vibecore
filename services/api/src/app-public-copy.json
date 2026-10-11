@@ -588,8 +588,8 @@
     "fr": "Attribution quotidienne du forfait {plan}"
   },
   "CREDIT_LEDGER_PAYG_OVERAGE": {
-    "en": "PAYG overage (billed through Stripe metered usage)",
-    "fr": "Dépassement PAYG (facturé via l’usage mesuré par Stripe)"
+    "en": "PAYG overage recorded; invoicing status unverified",
+    "fr": "Dépassement PAYG enregistré ; état de facturation non vérifié"
   },
   "SUPPORT_ASSIGNEE_NOT_ADMIN": {
     "en": "Assignee must be a platform administrator",
