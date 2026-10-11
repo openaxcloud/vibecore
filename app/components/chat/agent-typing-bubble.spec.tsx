@@ -16,7 +16,13 @@ function monter(messages: Message[], isStreaming: boolean) {
   /* `Messages` lit la route pour ses actions ; sans routeur il ne monte pas. */
   return render(
     <MemoryRouter>
-      <Messages messages={messages} isStreaming={isStreaming} addToolResult={() => {}} />
+      <Messages
+        messages={messages}
+        isStreaming={isStreaming}
+        addToolResult={() => {
+          /* Aucune action outil dans cette sonde de rendu. */
+        }}
+      />
     </MemoryRouter>,
   );
 }

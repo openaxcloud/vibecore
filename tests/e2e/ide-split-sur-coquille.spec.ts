@@ -90,7 +90,9 @@ test('un partage fait sur la coquille de chargement survit au montage du vrai co
    */
   await feuille.evaluate((element) => element.setAttribute('data-temoin-coquille', 'oui'));
 
-  await feuille.click({ position: { x: 30, y: 8 } }).catch(() => {});
+  await feuille.click({ position: { x: 30, y: 8 } }).catch(() => {
+    /* Le contrôle suivant établit que le menu est effectivement ouvert. */
+  });
   await feuille.locator('[data-testid="tab-options"]').first().click();
   await page
     .locator('.bolt-project-tab-actions-menu')

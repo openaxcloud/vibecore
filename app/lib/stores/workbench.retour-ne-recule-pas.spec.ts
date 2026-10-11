@@ -243,8 +243,10 @@ describe('réouverture — un artefact rejoué ne remplace pas la copie serveur 
     await store.loadRuntimeFiles('.');
     store.updateArtifact(artefact, { closed: true });
 
-    // Le témoin entre après la fermeture dans la même file réelle : attendre
-    // son exécution couvre aussi la compression et l'enregistrement asynchrones.
+    /*
+     * Le témoin entre après la fermeture dans la même file réelle : attendre
+     * son exécution couvre aussi la compression et l'enregistrement asynchrones.
+     */
     await new Promise<void>((resolve) => {
       store.addToExecutionQueue(async () => resolve());
     });

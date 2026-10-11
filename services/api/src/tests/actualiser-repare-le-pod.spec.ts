@@ -121,6 +121,17 @@ async function contexte() {
   return {
     runtime,
 
+    async stabiliserOuverture() {
+      const archive = await app.inject({ method: 'GET', url: `/projects/${projectId}/files`, headers: entetes });
+      expect(archive.statusCode).toBe(200);
+
+      const chemins = (archive.json().files as Array<{ path: string }>).map((fichier) => fichier.path);
+      expect(chemins.length, 'témoin positif de l’archive durable').toBeGreaterThan(0);
+      await expect
+        .poll(() => chemins.every((path) => runtime.fichiers.has(path)), { timeout: 10_000, interval: 25 })
+        .toBe(true);
+    },
+
     /** Un collaborateur en LECTURE SEULE sur ce projet, membre d'aucune organisation du propriétaire. */
     async lecteur() {
       const inscription = await app.inject({
@@ -201,7 +212,7 @@ describe('BUG-IDE-007 — un « Actualiser » demandé par l’utilisateur répa
        * pas le sujet du test — le sujet commence une fois le pod stabilisé.
        */
       expect(await c.lister()).toEqual(expect.arrayContaining(['src/App.tsx', 'src/index.css', 'src/main.tsx']));
-      await laisserRespirer();
+      await c.stabiliserOuverture();
 
       const ecrituresApresOuverture = c.runtime.ecrituresRecues();
       expect(ecrituresApresOuverture, 'au moins mes trois écritures').toBeGreaterThanOrEqual(3);
@@ -281,12 +292,12 @@ describe('BUG-IDE-007 — un « Actualiser » demandé par l’utilisateur répa
     try {
       expect((await c.ecrire('src/App.tsx', 'export default function App() {}')).statusCode).toBe(204);
       expect(await c.lister()).toContain('src/App.tsx');
+      await c.stabiliserOuverture();
 
       /*
-       * Le workspace d'exécution est PAR UTILISATEUR (`resolveProjectWorkspaceId`) :
-       * la première lecture du lecteur ouvre le sien, avec SA réconciliation
-       * d'ouverture — un comportement d'ouverture, pas une réparation. On la
-       * laisse passer avant de prendre la ligne de base, sinon on la compterait.
+       * La réconciliation autorisée du propriétaire est terminée avant la ligne
+       * de base. La première lecture du lecteur, elle, ne peut rien écrire :
+       * elle ne doit pas être confondue avec ces écritures initiales.
        */
       const lecteur = await c.lecteur();
       expect((await c.listerEnTantQue(lecteur)).statut).toBe(200);
