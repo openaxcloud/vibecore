@@ -131,8 +131,8 @@ function SubscribeToUpdates({ copy, language }: { copy: StatusCopy['subscription
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex min-h-[40px] items-center justify-center rounded-md px-4 text-[14px] font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-              style={{ backgroundColor: '#F26207' }}
+              className="inline-flex min-h-[40px] items-center justify-center rounded-md px-4 text-[14px] font-medium text-[var(--ecode-accent-contrast)] transition-opacity hover:opacity-90 disabled:opacity-60"
+              style={{ backgroundColor: 'var(--ecode-accent)' }}
             >
               {submitting ? copy.submitting : copy.submit}
             </button>
@@ -373,8 +373,8 @@ export default function StatusPage() {
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a
                     href="/signup"
-                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-white min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: '#F26207' }}
+                    className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium text-[var(--ecode-accent-contrast)] min-h-[44px] w-full sm:w-auto transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: 'var(--ecode-accent)' }}
                     data-testid="button-status-cta"
                   >
                     {copy.cta.primary}
