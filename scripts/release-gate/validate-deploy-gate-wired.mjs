@@ -87,8 +87,18 @@ export function parseChartServiceKeys(valuesYaml) {
 
 /** Image names the deploy workflow waits for in its "Verify rollout" step. */
 export function parseRolloutWaitList(deployJobText) {
-  const m = /for svc in ([^;]+); do/.exec(deployJobText);
-  return m ? m[1].trim().split(/\s+/) : null;
+  const text = stripComments(deployJobText);
+  const m = /for svc in ([^;]+); do/.exec(text);
+
+  if (!m) {
+    return null;
+  }
+
+  const literalWaits = [
+    ...text.matchAll(/rollout status "deploy\/\$\{HELM_RELEASE\}-vibecore-platform-([a-z][a-z-]+)"/g),
+  ].map((match) => match[1]);
+
+  return [...new Set([...m[1].trim().split(/\s+/), ...literalWaits])];
 }
 
 /**
@@ -286,6 +296,10 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
   // Drift between them is silent and one-directional-bad: add a service to the chart
   // and forget the matrix, and it deploys by MUTABLE TAG while everything else is
   // digest-pinned — with every check still green, because nothing was looking.
+  if (!/cp \/tmp\/observed\.json sbom\/running-imageids\.json/.test(stripComments(deployJob))) {
+    problems.push(`${DEPLOY_WORKFLOW}: verified running imageIDs must be archived in the release evidence`);
+  }
+
   const matrix = parseServiceMatrix(deployJob);
   const chartKeys = chartValues ? parseChartServiceKeys(chartValues) : null;
   const waitList = parseRolloutWaitList(deployJob);
@@ -466,10 +480,10 @@ function selfTest() {
   // indistinguishable from no checker at all.
   const mutations = [
     ['deploy job no longer needs the gate', () => ({
-      deployWorkflow: deployWorkflow.replace(
-        'needs: [resolve-target, release-gate, preflight-gates]',
-        'needs: [resolve-target, preflight-gates]',
-      ),
+        deployWorkflow: deployWorkflow.replace(
+          'needs: [resolve-target, release-gate, preflight-gates]',
+          'needs: [resolve-target, preflight-gates]',
+        ),
       breakGlassWorkflow,
       policy,
       chartValues,
@@ -478,80 +492,88 @@ function selfTest() {
       arRetentionWorkflow,
     })],
     ['id-token granted workflow-wide', () => ({
-      deployWorkflow: deployWorkflow.replace('permissions:\n  contents: read', 'permissions:\n  contents: read\n  id-token: write'),
+        deployWorkflow: deployWorkflow.replace(
+          'permissions:\n  contents: read',
+          'permissions:\n  contents: read\n  id-token: write',
+        ),
       breakGlassWorkflow,
-      policy,
+        policy,
       chartValues,
-      signingBuildConfig,
+        signingBuildConfig,
       stagingWorkflow,
       arRetentionWorkflow,
     })],
     ['E2E dropped from the policy', () => ({
       deployWorkflow,
       breakGlassWorkflow,
-      policy: { ...policy, requiredWorkflows: policy.requiredWorkflows.filter((w) => w.displayName !== 'Production E2E') },
+        policy: {
+          ...policy,
+          requiredWorkflows: policy.requiredWorkflows.filter((w) => w.displayName !== 'Production E2E'),
+        },
       chartValues,
-      signingBuildConfig,
+        signingBuildConfig,
       stagingWorkflow,
       arRetentionWorkflow,
     })],
     ['verification keyring drifting from the signing keyring', () => ({
       deployWorkflow: deployWorkflow.replace('KMS_KEYRING: ecode-supply-chain', 'KMS_KEYRING: vibecore-supply-chain'),
       breakGlassWorkflow,
-      policy,
+        policy,
       chartValues,
-      signingBuildConfig,
+        signingBuildConfig,
       stagingWorkflow,
       arRetentionWorkflow,
     })],
     ['break-glass losing its second approval gate', () => ({
       deployWorkflow,
       breakGlassWorkflow: breakGlassWorkflow.replace(/production-break-glass-1/g, 'production-break-glass-2'),
-      policy,
+        policy,
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
-      arRetentionWorkflow,
+        arRetentionWorkflow,
     })],
     ['staging losing its refuse-production-cluster guard', () => ({
       deployWorkflow,
       breakGlassWorkflow,
-      policy,
+        policy,
       chartValues,
       signingBuildConfig,
-      stagingWorkflow: stagingWorkflow.replace(/Refuse to target the production cluster/g, 'Deploy'),
+        stagingWorkflow: stagingWorkflow.replace(/Refuse to target the production cluster/g, 'Deploy'),
     })],
     ['retention losing digest-safe package parsing', () => ({
-      deployWorkflow,
-      breakGlassWorkflow,
-      policy,
+        deployWorkflow,
+        breakGlassWorkflow,
+        policy,
       chartValues,
-      signingBuildConfig,
+        signingBuildConfig,
       stagingWorkflow,
-      // La variable ASSIGNÉE et celle LUE diffèrent dans l'implémentation réelle
-      // (`pkg="${ref%%@*}"`). Une mutation qui exige le même nom des deux côtés
-      // ne retire donc rien, et l'auto-test échoue en croyant que la règle ne
-      // détecte plus la régression — alors que c'est la mutation qui rate sa cible.
+        // La variable ASSIGNÉE et celle LUE diffèrent dans l'implémentation réelle
+        // (`pkg="${ref%%@*}"`). Une mutation qui exige le même nom des deux côtés
+        // ne retire donc rien, et l'auto-test échoue en croyant que la règle ne
+        // détecte plus la régression — alors que c'est la mutation qui rate sa cible.
       arRetentionWorkflow: arRetentionWorkflow.replace(/\w+="\$\{\w+%%@\*\}"; /g, ''),
     })],
     ['break-glass allowed to build', () => ({
-      deployWorkflow,
-      breakGlassWorkflow: `${breakGlassWorkflow}\n          gcloud builds submit .\n`,
-      policy,
+        deployWorkflow,
+        breakGlassWorkflow: `${breakGlassWorkflow}\n          gcloud builds submit .\n`,
+        policy,
       chartValues,
-      signingBuildConfig,
+        signingBuildConfig,
       stagingWorkflow,
       arRetentionWorkflow,
-    })],
+      }),
+    ],
     ['a chart service left out of the digest matrix', () => ({
-      deployWorkflow: deployWorkflow.replace('api:api:runtime:true:true ', ''),
+        deployWorkflow: deployWorkflow.replace('api:api:runtime:true:true ', ''),
       breakGlassWorkflow,
-      policy,
-      chartValues,
-      signingBuildConfig,
-      stagingWorkflow,
+        policy,
+        chartValues,
+        signingBuildConfig,
+        stagingWorkflow,
       arRetentionWorkflow,
-    })],
+      }),
+    ],
 
     /*
      * Le sabotage visait `admin`, qui est desormais LEGITIMEMENT dans la liste
@@ -564,14 +586,15 @@ function selfTest() {
      * redevient reel.
      */
     ['a service waited on but no longer verified', () => ({
-      deployWorkflow: deployWorkflow.replace('for svc in web admin', 'for svc in web screenshotter admin'),
-      breakGlassWorkflow,
-      policy,
-      chartValues,
+        deployWorkflow: deployWorkflow.replace('for svc in web admin', 'for svc in web unverified-service admin'),
+        breakGlassWorkflow,
+        policy,
+        chartValues,
       signingBuildConfig,
-      stagingWorkflow,
-      arRetentionWorkflow,
-    })],
+        stagingWorkflow,
+        arRetentionWorkflow,
+      }),
+    ],
   ];
 
   let failures = 0;

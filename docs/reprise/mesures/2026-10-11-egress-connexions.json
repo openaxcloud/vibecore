@@ -1,0 +1,84 @@
+{
+  "measuredAt": "2026-10-11T23:31:08.351504+00:00",
+  "baseSha": "2cec44b4dac5353f930ca2935e10e87bbabe23c9",
+  "isolatedNetwork": {
+    "internal": true,
+    "subnet": "93.184.216.0/24"
+  },
+  "http": {
+    "publicHits": 2,
+    "privateHits": 0,
+    "systemDnsCalls": 0,
+    "privateListenerPositiveWitness": 1,
+    "postBodyAndHeaderChecked": true
+  },
+  "git": {
+    "version": "2.39.5",
+    "realSmartHttpClone": true,
+    "publicHits": 4,
+    "privateHits": 0,
+    "privateListenerPositiveWitness": 1,
+    "dnsResolutionsPerClone": 1
+  },
+  "tcpCounters": [
+    {
+      "removed": "HTTP lookup pin",
+      "privateHits": 1,
+      "exit": 1
+    },
+    {
+      "removed": "Git curloptResolve mapping",
+      "privateHits": 2,
+      "exit": 1
+    },
+    {
+      "removed": "Git redirect refusal",
+      "privateHits": 1,
+      "exit": 1
+    }
+  ],
+  "selectedTests": 80,
+  "physicalTests": 3,
+  "productionMeasured": false,
+  "openReserve": "External browser connections and redirect chains remain separate from the checked DNS resolution.",
+  "browserProxy": {
+    "timestamp": "2026-10-11T23:53:00Z",
+    "httpAndConnectPinned": true,
+    "chromiumPublicImageAndWebSocket": true,
+    "privateRequests": 0,
+    "privateConnections": 0,
+    "counterExamples": [
+      {
+        "counter": "http",
+        "exit": 1,
+        "publicRequests": 0,
+        "privateRequests": 1
+      },
+      {
+        "counter": "connect",
+        "exit": 1,
+        "publicRequests": 1,
+        "privateRequests": 1
+      },
+      {
+        "counter": "browser-http",
+        "exit": 1,
+        "publicImages": 0,
+        "publicSockets": 1,
+        "privateRequests": 1
+      },
+      {
+        "counter": "browser-connect",
+        "exit": 1,
+        "publicImages": 1,
+        "publicSockets": 0,
+        "privateRequests": 1,
+        "privateConnections": 1
+      }
+    ],
+    "screenshotterCases": 22,
+    "productionMeasured": false,
+    "tlsHandshakeMeasured": false,
+    "clusterNetworkIsolationMeasured": false
+  }
+}

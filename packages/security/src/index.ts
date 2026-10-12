@@ -1,5 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
+export { fetchOutbound, resolveOutboundDestination, type OutboundHttpOptions } from './outbound-http.js';
+
 export const secretKeyPattern = /authorization|cookie|password|secret|token|api[-_]?key|refresh/i;
 export const secretValuePatterns = [
   /\bcanary_[A-Za-z0-9_-]{16,}\b/g,
@@ -229,8 +231,10 @@ export function encryptJson(value: unknown, secret?: string) {
   if (primary) {
     const cipher = createCipheriv('aes-256-gcm', encryptionKey(primary.secret), iv);
 
-    // The key id is authenticated, not merely prefixed: relabelling a payload
-    // from one key to another must not verify, even if both keys share a secret.
+    /*
+     * The key id is authenticated, not merely prefixed: relabelling a payload
+     * from one key to another must not verify, even if both keys share a secret.
+     */
     cipher.setAAD(Buffer.from(primary.keyId, 'utf8'));
 
     const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
@@ -655,6 +659,210 @@ export function detectUsageAbuse(input: {
 
   if ((input.previewRequests ?? 0) >= 10_000) {
     return { type: 'spam_preview', severity: 'medium', action: 'throttle', reason: 'preview spam threshold exceeded' };
+  }
+
+  return undefined;
+}
+
+/*
+ * AUDX-006 — SSRF / DNS-rebinding guard for outbound fetches we initiate on a
+ * caller's behalf (screenshotter today; git + webhook callers next).
+ *
+ * Two distinct failures are covered, and they need different mechanisms:
+ *
+ *  1. A LITERAL address that should never be reachable — 127.0.0.1, 10/8,
+ *     169.254.169.254 (cloud metadata: the credential-stealing target). A host
+ *     allowlist does nothing here when the allowlist is empty, which is exactly
+ *     how an "open renderer" happens.
+ *  2. An allowed NAME that RESOLVES somewhere forbidden. A string check on the
+ *     hostname cannot see this: `evil.allowed-suffix.example` can be an A record
+ *     pointing at 169.254.169.254. Only resolving and inspecting the addresses
+ *     catches it.
+ *
+ * ⚠️ HONEST LIMIT: this closes the check-time hole, not the full
+ * time-of-check/time-of-use race. A true DNS-rebinding attacker can answer our
+ * lookup with a public address and the CLIENT's subsequent lookup with a private
+ * one. Eliminating that requires passing the validated address through to each
+ * socket. The native SIEM transport and Git import now use the validated addresses.
+ * The browser still has a separate lookup for arbitrary external resources;
+ * its preflight check does not establish the same connection guarantee.
+ */
+const BLOCKED_IPV4_RANGES: ReadonlyArray<readonly [string, number]> = [
+  ['0.0.0.0', 8], // "this network"
+  ['10.0.0.0', 8], // RFC1918
+  ['100.64.0.0', 10], // CGNAT
+  ['127.0.0.0', 8], // loopback
+  ['169.254.0.0', 16], // link-local — includes 169.254.169.254 cloud metadata
+  ['172.16.0.0', 12], // RFC1918
+  ['192.0.0.0', 24], // IETF protocol assignments
+  ['192.168.0.0', 16], // RFC1918
+  ['198.18.0.0', 15], // benchmarking
+  ['224.0.0.0', 4], // multicast
+  ['240.0.0.0', 4], // reserved
+];
+
+// Reuses the module's existing ipv4ToInt (see isIpAllowed above).
+
+/** True when an IP literal must never be dialled. IPv6 is handled conservatively. */
+export function isBlockedOutboundAddress(address: string): boolean {
+  const normalized = address
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, '');
+
+  if (normalized.includes(':')) {
+    /*
+     * IPv6. Block loopback (::1), unspecified (::), unique-local (fc00::/7),
+     * link-local (fe80::/10) and anything IPv4-mapped, which would otherwise be
+     * a trivial bypass of the IPv4 table above (::ffff:169.254.169.254).
+     */
+    const value = ipv6ToBigInt(normalized);
+
+    if (value === undefined) {
+      return true;
+    }
+
+    /* URL and DNS can express a mapped IPv4 in hexadecimal or expanded form. */
+    if (value >> 32n === 0xffffn) {
+      const octets = [24n, 16n, 8n, 0n].map((shift) => Number((value >> shift) & 255n));
+
+      return isBlockedOutboundAddress(octets.join('.'));
+    }
+
+    return (
+      value === 0n ||
+      value === 1n ||
+      value >> 121n === 0x7en || // fc00::/7 — unique-local
+      value >> 118n === 0x3fan || // fe80::/10 — link-local
+      value >> 118n === 0x3fbn || // fec0::/10 — deprecated site-local
+      value >> 120n === 0xffn // ff00::/8 — multicast
+    );
+  }
+
+  const value = ipv4ToInt(normalized);
+
+  if (value === undefined) {
+    return false;
+  }
+
+  return BLOCKED_IPV4_RANGES.some(([base, bits]) => {
+    const baseValue = ipv4ToInt(base);
+
+    if (baseValue === undefined) {
+      return false;
+    }
+
+    const mask = bits === 0 ? 0 : (-1 << (32 - bits)) >>> 0;
+
+    return (value & mask) >>> 0 === (baseValue & mask) >>> 0;
+  });
+}
+
+export interface OutboundUrlPolicy {
+  /** Host suffixes the caller is willing to reach. MUST be non-empty unless allowAnyPublicHost. */
+  allowedHostSuffixes: readonly string[];
+
+  /*
+   * Opt-in for callers whose legitimate destination set is "the public
+   * internet" and cannot be enumerated — a git clone from an arbitrary forge, a
+   * customer's SIEM webhook. The ADDRESS checks still apply in full: only the
+   * host ALLOWLIST is waived, never the private/loopback/metadata refusal.
+   *
+   * Explicit and greppable on purpose. An EMPTY allowlist still fails closed, so
+   * this can never be reached by forgetting to configure something — it has to
+   * be asked for.
+   */
+  allowAnyPublicHost?: boolean;
+
+  /** Injected for tests; defaults to node:dns lookup with all addresses. */
+  resolveHost?: (hostname: string) => Promise<string[]>;
+}
+
+export type OutboundUrlRejection =
+  | 'INVALID_URL'
+  | 'UNSUPPORTED_PROTOCOL'
+  | 'ALLOWLIST_EMPTY'
+  | 'HOST_NOT_ALLOWED'
+  | 'BLOCKED_ADDRESS'
+  | 'RESOLUTION_FAILED';
+
+async function defaultResolveHost(hostname: string): Promise<string[]> {
+  const { lookup } = await import('node:dns/promises');
+  const records = await lookup(hostname, { all: true });
+
+  return records.map((record) => record.address);
+}
+
+/**
+ * Decide whether we may fetch `rawUrl`. Returns undefined when allowed, or a
+ * typed rejection reason.
+ *
+ * Fails CLOSED throughout: an empty allowlist is a rejection (not "allow
+ * everything"), and a hostname we cannot resolve is a rejection (not "probably
+ * fine"). Both of those defaults are how an SSRF guard silently stops guarding.
+ */
+export async function checkOutboundUrl(
+  rawUrl: string,
+  policy: OutboundUrlPolicy,
+): Promise<OutboundUrlRejection | undefined> {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return 'INVALID_URL';
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return 'UNSUPPORTED_PROTOCOL';
+  }
+
+  /*
+   * An empty allowlist previously meant "skip the check", turning the service
+   * into an open renderer against internal addresses. It is a configuration
+   * error, and configuration errors must fail closed.
+   */
+  if (policy.allowedHostSuffixes.length === 0 && !policy.allowAnyPublicHost) {
+    return 'ALLOWLIST_EMPTY';
+  }
+
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+
+  /*
+   * A literal address never matches a suffix allowlist, but check it first so
+   * the rejection reason is the accurate one.
+   */
+  if (isBlockedOutboundAddress(hostname)) {
+    return 'BLOCKED_ADDRESS';
+  }
+
+  const allowed =
+    policy.allowAnyPublicHost ||
+    policy.allowedHostSuffixes.some((suffix) => {
+      const normalized = suffix.trim().toLowerCase().replace(/^\./, '');
+
+      return normalized.length > 0 && (hostname === normalized || hostname.endsWith(`.${normalized}`));
+    });
+
+  if (!allowed) {
+    return 'HOST_NOT_ALLOWED';
+  }
+
+  /*
+   * The name is allowed — but where does it point? An attacker-controlled
+   * subdomain of an allowed suffix can resolve to the metadata address. A
+   * string check cannot see that.
+   */
+  let addresses: string[];
+
+  try {
+    addresses = await (policy.resolveHost ?? defaultResolveHost)(hostname);
+  } catch {
+    return 'RESOLUTION_FAILED';
+  }
+
+  if (addresses.length === 0 || addresses.some((address) => isBlockedOutboundAddress(address))) {
+    return 'BLOCKED_ADDRESS';
   }
 
   return undefined;

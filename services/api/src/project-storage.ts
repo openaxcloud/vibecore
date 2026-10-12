@@ -3,6 +3,7 @@ import { access, link, lstat, mkdir, readFile, readdir, realpath, rename, rm, st
 import { hostname } from 'node:os';
 import { dirname, join, normalize, relative, sep } from 'node:path';
 import { promisify } from 'node:util';
+import { resolveOutboundDestination, type OutboundUrlPolicy } from '@vibecore/security';
 import JSZip from 'jszip';
 import { appPublicEnglish } from './app-public-copy.js';
 
@@ -1020,6 +1021,8 @@ async function clearTreePreservingSecondaryWorkspaces(target: string) {
 }
 
 export class GitCliProvider implements GitProvider {
+  constructor(private readonly _options: Pick<OutboundUrlPolicy, 'resolveHost'> = {}) {}
+
   private workspacePath(projectId: string, workspaceId?: string) {
     if (!workspaceId) {
       return safeProjectPath(projectId);
@@ -1207,18 +1210,72 @@ export class GitCliProvider implements GitProvider {
 
     return withProjectLock(projectId, async () => {
       const target = safeProjectPath(projectId);
+
+      /*
+       * AUDX-006 — the clone URL is caller-supplied and reached NO SSRF check.
+       *
+       * `git clone` will happily fetch `http://169.254.169.254/...` (blind SSRF
+       * against cloud metadata from an in-cluster pod) and, worse, `file:///etc`
+       * — a local-filesystem read dressed up as a repository. Restricting to
+       * http/https and refusing private, loopback, link-local and metadata
+       * destinations closes both.
+       *
+       * `allowAnyPublicHost` because the legitimate destination set here is
+       * "any git forge on the internet" and cannot be enumerated — the ADDRESS
+       * checks still apply in full.
+       */
+      const destination = await resolveOutboundDestination(input.repositoryUrl, {
+        allowedHostSuffixes: [],
+        allowAnyPublicHost: true,
+        resolveHost: this._options.resolveHost,
+      });
+
+      if ('rejection' in destination) {
+        throw Object.assign(new Error(appPublicEnglish('GIT_REMOTE_NOT_ALLOWED')), {
+          statusCode: 400,
+          code: 'GIT_REMOTE_NOT_ALLOWED',
+          rejection: destination.rejection,
+        });
+      }
+
       await mkdir(dirname(target), { recursive: true });
+
+      const { url, addresses } = destination;
+      const port = url.port || (url.protocol === 'https:' ? '443' : '80');
+      const resolveEntry = `${url.hostname}:${port}:${addresses.map((address) => (address.includes(':') ? `[${address}]` : address)).join(',')}`;
 
       try {
         await execFile(
           'git',
-          ['clone', '--depth=1', ...(input.branch ? ['--branch', input.branch] : []), input.repositoryUrl, target],
+          [
+            '-c',
+            'http.proxy=',
+            '-c',
+            'http.sslVerify=true',
+            '-c',
+            'http.followRedirects=false',
+            '-c',
+            'http.curloptResolve=',
+            '-c',
+            `http.curloptResolve=${resolveEntry}`,
+            '-c',
+            'protocol.file.allow=never',
+            'clone',
+            '--depth=1',
+            ...(input.branch ? ['--branch', input.branch] : []),
+            input.repositoryUrl,
+            target,
+          ],
 
           /*
            * Network clone: hard timeout + raised maxBuffer so a stalled or chatty
            * remote can't hang the worker or overflow the 1MB default output buffer.
            */
-          { env: this.gitEnv(), timeout: 120_000, maxBuffer: 64 * 1024 * 1024 },
+          {
+            env: { ...this.gitEnv(), GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' },
+            timeout: 120_000,
+            maxBuffer: 64 * 1024 * 1024,
+          },
         );
 
         const files = await walkFiles(target);
