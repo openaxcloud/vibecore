@@ -12,11 +12,11 @@ P2 — Sur `/mobile` en thème clair, le bloc CODE de Full-Featured Editor utili
 
 ## 💻 Codé
 
-☐ — remplacement local par `text-bolt-elements-code-text`, non fusionné sur `main`.
+☑ — fusionné sur `main` par [#725](https://github.com/openaxcloud/vibecore/pull/725) le 12/10/2026 à 12:17:31 UTC, commit `a1a8d5de554a2c996ffeef04dfb4712649203632` ; remplacement par `text-bolt-elements-code-text`.
 
 ## ✅ Testé live
 
-☐ — aucune validation en production ; hydratation publique hors périmètre.
+☐ — [déploiement 38248117798](https://github.com/openaxcloud/vibecore/actions/runs/38248117798) en cours au relevé documentaire ; manifeste/imageIDs et contraste en production non vérifiés. Hydratation publique hors périmètre.
 
 ## Preuve locale
 
@@ -50,4 +50,4 @@ Adapter uniquement le chemin vers le Chromium local. La commande a été exécut
 - `VITEST=1 NODE_OPTIONS=--max-old-space-size=8192 node node_modules/@react-router/dev/bin.js build` : succès client + SSR. `VITEST=1` évite de charger les fichiers d'environnement locaux ; le mode du build reste production.
 - Relecture indépendante : aucun défaut bloquant ; limites du rendu statique et du navigateur facultatif confirmées.
 
-Pas de suite monorepo complète, de runtime distant, d'appel IA, de déploiement ou de validation de l'hydratation. Les fusions #701 et #723 sont ancêtres de la base et ne sont pas modifiées par ce lot.
+Pendant la préparation locale : pas de suite monorepo complète, de runtime distant, d'appel IA, de déploiement ou de validation de l'hydratation. Les fusions #701 et #723 sont ancêtres de la base et ne sont pas modifiées par ce lot.
