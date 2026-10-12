@@ -277,6 +277,44 @@ function entier(mesures: Mesure[], quoi: string) {
 test.describe('chrome de l’IDE sur téléphone — 390', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
+  /*
+   * L'onglet ACTIF de la barre du bas est entièrement visible.
+   *
+   * Mesuré en prod le 30/09 à 390 : sur « Activité », la bande d'onglets fait
+   * 146 px pour 182 px de contenu (4 places fixes), l'onglet actif (260→304)
+   * dépasse le bord droit de la bande (268) et elle reste à `scrollLeft: 0`. On
+   * ne voit qu'un demi-disque coincé contre « + ».
+   */
+  test('barre du bas : l’onglet actif est entièrement visible dans sa bande', async ({ page, request }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+    await ouvrirOutil(page, 'activity');
+    await page.waitForTimeout(1_500);
+
+    const m = await page.evaluate(() => {
+      const bande = document.querySelector<HTMLElement>('.bolt-mobile-replit-panel-scroll')!;
+      const actif = bande.querySelector<HTMLElement>('[aria-current="page"]');
+      const b = bande.getBoundingClientRect();
+      const a = actif?.getBoundingClientRect();
+
+      return {
+        deborde: bande.scrollWidth > bande.clientWidth,
+        bande: [Math.round(b.left), Math.round(b.right)],
+        actif: a ? [Math.round(a.left), Math.round(a.right)] : null,
+      };
+    });
+
+    // Contrôle positif : sans débordement, l'assertion ne mesurerait rien.
+    expect(m.deborde, 'la bande doit déborder (4 places à 390) — sinon ce test ne mesure rien').toBe(true);
+    expect(m.actif, 'aucun onglet actif dans la bande').not.toBeNull();
+    expect(m.actif![0], `onglet actif ${m.actif} coupé à gauche de la bande ${m.bande}`).toBeGreaterThanOrEqual(
+      m.bande[0] - 1,
+    );
+    expect(m.actif![1], `onglet actif ${m.actif} coupé à droite de la bande ${m.bande}`).toBeLessThanOrEqual(
+      m.bande[1] + 1,
+    );
+  });
+
   test('état de départ de l’Agent : chaque action entière, la puce du composeur entière', async ({ page, request }) => {
     test.setTimeout(150_000);
     await ouvrirIde(page, request, { fil: false });

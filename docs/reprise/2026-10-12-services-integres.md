@@ -1,6 +1,6 @@
 # Intégration des services — 12 octobre 2026
 
-A-5, A-6 et B-20 sont réunis dans `fix/reprise-services-coherente-20261012`, à partir de main b7a8b4b3. Les trois fusions ont été effectuées réellement. Le conflit de l’index a été résolu par le générateur ; les clients Prisma conflictuels ont été régénérés depuis le schéma fusionné. Le catalogue conserve les 685 anciennes entrées et ajoute huit messages locataires. La garde AST des métriques et son témoin locataire sont conservés.
+A-5, A-6 et B-20 sont réunis dans `fix/reprise-services-coherente-20261012`, à partir de main b7a8b4b3, puis fusion réelle de a94840ab (#715). Cette dernière fusion ne comporte que des conflits de registre, sans conflit de code. Les trois fusions ont été effectuées réellement. Le conflit de l’index a été résolu par le générateur ; les clients Prisma conflictuels ont été régénérés depuis le schéma fusionné. Le catalogue conserve les 685 anciennes entrées et ajoute huit messages locataires. La garde AST des métriques et son témoin locataire sont conservés.
 
 ## Comportement tenu
 

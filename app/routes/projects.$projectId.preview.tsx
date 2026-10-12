@@ -18,8 +18,11 @@ import { redirect, type LoaderFunctionArgs } from 'react-router';
  * `ecode-route-coverage.spec.ts` et de `ecodeCompatibilityRoutePatterns` garde
  * un module de route.
  */
-export function loader({ params }: LoaderFunctionArgs) {
-  return redirect(`/projects/${encodeURIComponent(params.projectId ?? '')}/ide?panel=preview`, 301);
+export function loader({ params, request }: LoaderFunctionArgs) {
+  const destination = new URL(request.url);
+  destination.searchParams.set('panel', 'preview');
+
+  return redirect(`/projects/${encodeURIComponent(params.projectId ?? '')}/ide${destination.search}`, 301);
 }
 
 export default function ProjectPreviewCompatRoute() {

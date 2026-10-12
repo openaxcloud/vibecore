@@ -945,16 +945,6 @@ export function createProjectImportSurfacePage(projectId: string, source: string
   });
 }
 
-export function createProjectPreviewSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `projects/${projectId}/preview`,
-    route: `/projects/${projectId}/preview`,
-    category: 'runtime',
-    icon: MonitorPlay,
-    dynamicCopy: { key: 'projectPreview', values: { projectId } },
-  });
-}
-
 /*
  * REMISE EN PLACE. #422 retirait cette fabrique comme morte — elle l'était
  * quand la proposition a été écrite. `app/routes/profile.$username.tsx` est
@@ -973,15 +963,5 @@ export function createProfileSurfacePage(username?: string): EcodeSurfacePageDef
       key: username ? 'profileNamed' : 'profile',
       values: { username: name },
     },
-  });
-}
-
-export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `editor/${editorId}`,
-    route: `/editor/${editorId}`,
-    category: 'builder',
-    icon: FileCode2,
-    dynamicCopy: { key: 'editor', values: { editorId } },
   });
 }
