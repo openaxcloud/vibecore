@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-410 entrées.
+416 entrées.
 
 ## Sans section
 
@@ -443,6 +443,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
 - [CONSTAT-PAGES-GABARIT-PUBLIQUES](docs/bugs/CONSTAT-PAGES-GABARIT-PUBLIQUES.md) — `e-code.ai/plans` et 56 autres pages publiques montrent au visiteur du texte de DÉVELOPPEMENT, et `/plans` n'affiche — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1001-CONNECTE-REVOIT-LA-CONNEXION](docs/bugs/BUG-QA1001-CONNECTE-REVOIT-LA-CONNEXION.md) — Deuxième visite — un client déjà connecté qui clique « Se connecter » sur e-code.ai se voit redemander — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## 2026-10-11 — Dette d'infrastructure : la production sait des choses que le dépôt ignore
 
@@ -455,6 +456,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## 2026-09-30 — Balayage QA avant lancement, parcours qui décident d'un client
 
+- [BUG-QA1001-JARGON-DANS-LES-MESSAGES](docs/bugs/BUG-QA1001-JARGON-DANS-LES-MESSAGES.md) — Des messages qu'un client peut lire contiennent du vocabulaire de développeur. — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE](docs/bugs/BUG-QA1006-SUPPRESSION-DE-COMPTE-JAMAIS-EXECUTEE.md) — BLOQUANT LANCEMENT (droit à l'effacement) — DÉCISION REQUISE — une demande de suppression de compte n'est — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1011-AVERTISSEMENT-SANS-SUPPRESSION](docs/bugs/BUG-QA1011-AVERTISSEMENT-SANS-SUPPRESSION.md) — La tâche quotidienne d'inactivité envoie aux comptes gratuits inactifs l'e-mail « votre compte sera supprimé », — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-QA1006-LECTEUR-CREE-DES-INSTANTANES](docs/bugs/BUG-QA1006-LECTEUR-CREE-DES-INSTANTANES.md) — Mineur — un membre en LECTURE SEULE (`viewer`) peut créer des instantanés d'un projet par l'outil — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1006-PORTE-E2E-SPEC-SEUL](docs/bugs/BUG-QA1006-PORTE-E2E-SPEC-SEUL.md) — Le mode « spec seul » de Production E2E (`workflow_dispatch`, entrée `spec`), fait pour prouver un correctif — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Sans section
@@ -480,6 +485,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## 2026-10-11 — Reprise vérifiée
 
+- [BUG-QA1011-VERCEL-JETON-DANS-CONSOLE](docs/bugs/BUG-QA1011-VERCEL-JETON-DANS-CONSOLE.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1011-MESSAGE-ACTIONS-CIBLE28](docs/bugs/BUG-QA1011-MESSAGE-ACTIONS-CIBLE28.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot

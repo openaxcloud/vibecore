@@ -47,6 +47,12 @@ beforeEach(() => {
   process.env.SAAS_API_URL = 'http://api.test.local';
   delete process.env.API_BASE_URL;
   process.env.NODE_ENV = 'test';
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(
+      async () => new Response(JSON.stringify({ providers: [] }), { headers: { 'content-type': 'application/json' } }),
+    ),
+  );
 });
 
 afterEach(() => {
@@ -77,16 +83,26 @@ describe('signup route loader', () => {
     expect(response.headers.get('location')).toBe('https://app.e-code.ai/register');
   });
 
-  it('returns null on app.e-code.ai so the form renders', async () => {
+  it('returns availability data on app.e-code.ai so the form renders', async () => {
     const response = toResponse(await loader(buildLoaderArgs('app.e-code.ai')));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ language: 'en', returnTo: null });
+
+    /*
+     * Le chargeur rend AUSSI la liste des fournisseurs OAuth : c'est l'objet même
+     * de cette proposition. Le serveur de test rend une liste vide.
+     */
+    expect(await response.json()).toEqual({ language: 'en', providers: [], returnTo: null });
   });
 
-  it('returns null on localhost so dev mode keeps working', async () => {
+  it('returns availability data on localhost so dev mode keeps working', async () => {
     const response = toResponse(await loader(buildLoaderArgs('localhost:5173')));
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ language: 'en', returnTo: null });
+
+    /*
+     * Le chargeur rend AUSSI la liste des fournisseurs OAuth : c'est l'objet même
+     * de cette proposition. Le serveur de test rend une liste vide.
+     */
+    expect(await response.json()).toEqual({ language: 'en', providers: [], returnTo: null });
   });
 
   it('publishes localized French route metadata', () => {

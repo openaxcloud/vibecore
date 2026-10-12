@@ -26,6 +26,9 @@ export default function VercelConnection() {
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const hasInitialized = useRef(false);
 
+  /* Separate from hasInitialized: stops CONCURRENT runs without latching failure. */
+  const autoConnectInFlight = useRef(false);
+
   console.log('VercelConnection initial state:', {
     connection: {
       user: connection.user,
@@ -35,9 +38,27 @@ export default function VercelConnection() {
   });
 
   useEffect(() => {
-    // Prevent multiple initializations
-    if (hasInitialized.current) {
-      console.log('Vercel: Already initialized, skipping');
+    /*
+     * AUDX-161 — the latch must mean "this SUCCEEDED", not "this STARTED".
+     *
+     * It previously set hasInitialized.current = true BEFORE awaiting
+     * autoConnectVercel(). A failed auto-connection — an expired env token, a
+     * Vercel blip, an offline laptop — latched anyway, so the effect never ran
+     * again for the life of the mount: the panel sat disconnected with a valid
+     * token in hand and nothing, anywhere, retried. Silent and intermittent,
+     * exactly the class this rule is about.
+     *
+     * The latch does two different jobs, and they need two different flags:
+     *   - inFlight: stop CONCURRENT runs (what the original was reaching for);
+     *   - succeeded: stop repeating work that already worked.
+     * The reference form is useProjectAiTranscriptHydration.ts, which latches
+     * early but pairs it with a bounded retry — the half that was missing here.
+     *
+     * The "no conditions met" branch deliberately latches NOTHING: those
+     * conditions can become true once a token arrives, and latching there would
+     * make the panel permanently inert for anyone who connects later.
+     */
+    if (hasInitialized.current || autoConnectInFlight.current) {
       return;
     }
 
@@ -48,48 +69,41 @@ export default function VercelConnection() {
         envToken: import.meta.env?.VITE_VERCEL_ACCESS_TOKEN ? '[ENV_TOKEN_EXISTS]' : '[NO_ENV_TOKEN]',
       });
 
-      hasInitialized.current = true;
+      autoConnectInFlight.current = true;
 
-      // Auto-connect using environment variable if no existing connection but token exists
-      if (!connection.user && connection.token && import.meta.env?.VITE_VERCEL_ACCESS_TOKEN) {
-        console.log('Vercel: Attempting auto-connection');
+      try {
+        // Auto-connect using environment variable if no existing connection but token exists
+        if (!connection.user && connection.token && import.meta.env?.VITE_VERCEL_ACCESS_TOKEN) {
+          const result = await autoConnectVercel();
 
-        const result = await autoConnectVercel();
-
-        if (result.success) {
-          toast.success(t('settings.copy.connectedToVercelAutomatically_a5d70873'));
-        } else {
-          console.error('Vercel auto-connection failed:', result.error);
+          if (result.success) {
+            hasInitialized.current = true;
+            toast.success(t('settings.copy.connectedToVercelAutomatically_a5d70873'));
+          } else {
+            console.error('Vercel auto-connection failed:', result.error);
+          }
+        } else if (connection.user && connection.token) {
+          await fetchVercelStats(connection.token);
+          hasInitialized.current = true;
         }
-      } else if (connection.user && connection.token) {
-        // Fetch stats for existing connection
-        console.log('Vercel: Fetching stats for existing connection');
-        await fetchVercelStats(connection.token);
-      } else {
-        console.log('Vercel: No auto-connection conditions met');
+      } finally {
+        // Release every path, including absent credentials and failed stats loading.
+        autoConnectInFlight.current = false;
       }
     };
 
-    /*
-     * FAMILLE C — le loquet doit être LIBÉRÉ sur tout chemin d'échec.
-     *
-     * `hasInitialized` est posé à l'entrée, ce qui est juste : il empêche deux
-     * initialisations concurrentes. Mais il n'était libéré NULLE PART — ni
-     * `catch`, ni `finally`. Une auto-connexion qui échouait (jeton expiré,
-     * réseau indisponible) laissait le loquet revendiqué : la connexion
-     * n'était **plus jamais** retentée tant que le composant vivait, et rien
-     * ne le signalait.
-     *
-     * Même forme que `useProjectAiTranscriptHydration`, qui pose le loquet à
-     * l'entrée puis le relâche dans son `catch` — « a returning user with a
-     * real (but transiently unreachable) transcript must never be left with a
-     * silently-empty chat panel ».
-     */
     initializeConnection().catch((error) => {
       hasInitialized.current = false;
       console.error('Vercel: initialisation échouée, loquet libéré pour un nouvel essai', error);
     });
-  }, []); // Empty dependency array to run only once
+
+    /*
+     * ET les dépendances sont celles qui décident QUOI faire (apport de #370) :
+     * avec un tableau vide, une tentative échouée ne pourrait jamais être
+     * retentée MÊME loquet libéré, et un jeton arrivé après le montage ne
+     * serait jamais remarqué. Libérer le loquet sans ceci ne relance rien.
+     */
+  }, [connection.user, connection.token]);
 
   const handleConnect = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -129,8 +143,6 @@ export default function VercelConnection() {
     updateVercelConnection({ user: null, token: '' });
     toast.success(t('settings.copy.disconnectedFromVercel_f567b00a'));
   };
-
-  console.log('connection', connection);
 
   return (
     <motion.div

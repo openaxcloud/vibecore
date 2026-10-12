@@ -1,0 +1,15 @@
+{
+  "baseSha": "2cec44b4dac5353f930ca2935e10e87bbabe23c9",
+  "beforeHash": "9183f9a8db6184e7f5f4797a54f6d58ffe73bac4fa656e279d153d3351e209cd",
+  "afterHash": "485fdb68189a244a05ff1c3f262225c4cf414544264c9dce592deab461f9192f",
+  "changes": [
+    "active-tab scroll layout effect",
+    "DOM ref on the existing strip"
+  ],
+  "insertedLines": [
+    25,
+    1
+  ],
+  "deletedLines": 0,
+  "existingE2EDetector": "tests/e2e/ide-mobile-chrome.spec.ts"
+}

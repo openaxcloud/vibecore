@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+
 // @ts-expect-error The repository scanner is an ESM build script without a TypeScript declaration file.
 import { scanSource } from '../../../../scripts/i18n/source-scanner.mjs';
 import {
@@ -209,9 +210,11 @@ describe('backend application response localization', () => {
       matched: true,
       value: 'Le délai d’attente du verrou du projet proj_1 est dépassé.',
     });
-    expect(localizeAppPublicMessage('[image] build build-1 queued (context gs://bucket/object.tgz)', 'fr')).toEqual({
+
+    // Le chemin interne de stockage (gs://…) n'est plus montré au client.
+    expect(localizeAppPublicMessage('[image] build build-1 queued', 'fr')).toEqual({
       matched: true,
-      value: '[image] compilation build-1 mise en file (contexte gs://bucket/object.tgz)',
+      value: '[image] compilation build-1 mise en file',
     });
   });
 
@@ -300,15 +303,19 @@ describe('backend application response localization', () => {
 describe('app.ts i18n source guard', () => {
   it('leaves only exact internal codes, telemetry labels, and machine contracts', () => {
     const result = scanSource(readFileSync(appPath, 'utf8'), 'services/api/src/app.ts');
+
     const allowedInternalFindings = new Set([
       // Metrics/audit dimensions and reconciliation state codes; never rendered.
       'invalid_credentials',
       'mfa_required',
       'invalid_mfa',
-      // Dimension de `auth_failures_total`, comme ses voisines : jamais rendue.
-      // La réponse vue par l'utilisateur passe par le catalogue
-      // (`AUTH_INVALID_CREDENTIALS`) et reste volontairement identique à celle
-      // d'un mauvais mot de passe, pour ne pas révéler qu'un compte existe.
+
+      /*
+       * Dimension de `auth_failures_total`, comme ses voisines : jamais rendue.
+       * La réponse vue par l'utilisateur passe par le catalogue
+       * (`AUTH_INVALID_CREDENTIALS`) et reste volontairement identique à celle
+       * d'un mauvais mot de passe, pour ne pas révéler qu'un compte existe.
+       */
       'account_locked',
       'suspended',
       'sso_enforced',
@@ -316,6 +323,7 @@ describe('app.ts i18n source guard', () => {
       'agent-unreachable',
       'persisted-read-failed',
       'no-persisted-files',
+
       /*
        * DEUX ALLOWLISTES POUR UNE SEULE REGLE, et la seconde est invisible depuis
        * la premiere. `espace-non-stabilise` avait ete declare dans
@@ -334,15 +342,18 @@ describe('app.ts i18n source guard', () => {
       'durable_archive_missing',
       'checksum_mismatch',
       'manager_failed',
+
       // Stable billing/policy identifiers consumed as machine data.
       'chat.completion',
       'chat.completion.{…}',
       'plan-allows-byok',
       'org-blocks-external-ai',
       'managed-mode-plan',
+
       // Internal deploy-manifest outcomes are discarded before the public response.
       'Open the project workspace before deploying.',
       'Workspace is starting — please retry.',
+
       /*
        * P0-V3-09 — motifs internes de la machine à états du checkpoint. Écrits
        * dans `ProjectCheckpoint.error` ou portés par une Error typée dont le
@@ -355,12 +366,17 @@ describe('app.ts i18n source guard', () => {
       'quiesce without finite timeout + guaranteed thaw',
       'checkpoint inadmissible',
       'manifest not visible',
-      // Libellé d'instantané du stockage (`checkpoint <barrierId>`) : identifiant
-      // interne corrélé aux journaux, pas de la copie destinée à l'utilisateur.
+
+      /*
+       * Libellé d'instantané du stockage (`checkpoint <barrierId>`) : identifiant
+       * interne corrélé aux journaux, pas de la copie destinée à l'utilisateur.
+       */
       'checkpoint {…}',
+
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',
+
       /*
        * P104: boot-time misconfiguration guard. Thrown only when NODE_ENV is
        * production and no deployment-access HMAC secret is configured at all —
@@ -394,6 +410,7 @@ describe('credit-ledger persistence source guard', () => {
         'no_overage',
         'no_subscription',
         'no_metered_item',
+
         // Stable persisted system reasons localized by localizeCreditLedgerReason at the HTTP boundary.
         '{…} (overdraw reversal)',
         'agent checkpoint',

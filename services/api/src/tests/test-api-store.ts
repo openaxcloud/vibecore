@@ -2,6 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { appPublicEnglish } from '../app-public-copy.js';
 import {
   CLEARED_LOCKOUT,
   nextStateOnFailure,
@@ -748,7 +749,7 @@ export class TestApiStore implements ApiStore {
     );
 
     if (clash) {
-      throw Object.assign(new Error('A project with this URL slug already exists in this organization.'), {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_TAKEN')), {
         statusCode: 409,
         code: 'PROJECT_SLUG_TAKEN',
       });
