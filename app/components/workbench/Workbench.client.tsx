@@ -64,6 +64,7 @@ interface WorkspaceProps {
   setSelectedElement?: (element: ElementInfo | null) => void;
   mobilePanel?: MobileWorkbenchPanel;
   onMobilePanelChange?: (panel: MobileWorkbenchPanel) => void;
+  onUserFileSelect?: (filePath: string) => void;
   projectId?: string;
 }
 
@@ -377,6 +378,7 @@ export const Workbench = memo(
     setSelectedElement,
     mobilePanel,
     onMobilePanelChange,
+    onUserFileSelect,
     projectId,
   }: WorkspaceProps) => {
     renderLogger.trace('Workbench');
@@ -481,6 +483,10 @@ export const Workbench = memo(
 
     const onFileSelect = useCallback(
       (filePath: string | undefined) => {
+        if (filePath) {
+          onUserFileSelect?.(filePath);
+        }
+
         workbenchStore.setSelectedFile(filePath);
         workbenchStore.currentView.set('code');
 
@@ -488,7 +494,7 @@ export const Workbench = memo(
           onMobilePanelChange?.('editor');
         }
       },
-      [mobilePanel, onMobilePanelChange, useMobileWorkbench],
+      [mobilePanel, onMobilePanelChange, onUserFileSelect, useMobileWorkbench],
     );
 
     const onFileSave = useCallback(() => {

@@ -6,6 +6,12 @@ const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http
 test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
 
 async function openPersistedFile({ page, request, context }: Pick<PlaywrightTestArgs, 'page' | 'request' | 'context'>) {
+  // The local restoration fixture never needs an external browser service.
+  await context.route(
+    (url) => !['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname),
+    (route) => route.abort('blockedbyclient'),
+  );
+
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const email = `file-tabs-${suffix}@local.test`;
 
@@ -84,7 +90,21 @@ async function openPersistedFile({ page, request, context }: Pick<PlaywrightTest
     return id;
   };
 
-  return { projectId, file, createOtherProject };
+  const replaceFixtureFiles = async (files: Record<string, string>) => {
+    const zip = new JSZip();
+
+    for (const [name, content] of Object.entries(files)) {
+      zip.file(name, content);
+    }
+
+    const response = await request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+      headers,
+      data: { zipBase64: await zip.generateAsync({ type: 'base64' }), replaceExisting: true },
+    });
+    expect(response.ok()).toBe(true);
+  };
+
+  return { projectId, file, createOtherProject, replaceFixtureFiles };
 }
 
 /*
@@ -283,3 +303,137 @@ test('does not persist project A selection into project B during a client route 
   ).toBe(true);
   expect(await saved(projectA)).toBe('/home/project/audit.txt');
 });
+
+test('a late project A memory response does not write its selection into project B', async ({
+  page,
+  request,
+  context,
+}) => {
+  test.setTimeout(90_000);
+
+  const { projectId: projectA, file, createOtherProject } = await openPersistedFile({ page, request, context });
+  const projectB = await createOtherProject();
+  await page.goto(`/projects/${projectB}/ide?panel=files`);
+  await file('project-b.txt').click();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('PROJECT-B-DOCUMENT');
+  await page.goto(`/projects/${projectA}/ide?panel=files`);
+  await file('audit.txt').click();
+
+  let release!: () => void;
+  let requested!: () => void;
+  let delivered!: () => void;
+
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const started = new Promise<void>((resolve) => {
+    requested = resolve;
+  });
+  const finished = new Promise<void>((resolve) => {
+    delivered = resolve;
+  });
+  await context.route(`**/api/projects/${projectA}/ide-state`, async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+
+    const response = await route.fetch();
+    requested();
+    await held;
+
+    try {
+      await route.fulfill({ response });
+    } finally {
+      delivered();
+    }
+  });
+
+  const writesToB: Array<string | undefined> = [];
+  page.on('request', (outgoing) => {
+    if (outgoing.method() === 'PUT' && new URL(outgoing.url()).pathname === `/api/projects/${projectB}/ide-state`) {
+      writesToB.push(outgoing.postDataJSON()?.state?.ui?.selectedFile);
+    }
+  });
+
+  try {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await started;
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.evaluate((id) => {
+      history.pushState(history.state, '', `/projects/${id}/ide?panel=editor`);
+      window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+    }, projectB);
+    await expect(page.locator('.cm-content')).toContainText('PROJECT-B-DOCUMENT', { timeout: 10000 });
+    release();
+    await finished;
+    await expect
+      .poll(() =>
+        page.evaluate(
+          (id) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${id}`) ?? '{}').ui?.selectedFile,
+          projectB,
+        ),
+      )
+      .toBe('/home/project/project-b.txt');
+    await expect.poll(() => writesToB.filter(Boolean).length).toBeGreaterThan(0);
+    expect(writesToB.filter(Boolean)).not.toContain('/home/project/audit.txt');
+    await expect(page.locator('.cm-content')).toContainText('PROJECT-B-DOCUMENT');
+  } finally {
+    release();
+  }
+});
+
+for (const explicitChoice of [false, true]) {
+  test(`preserves pending audit through temporary README; explicit choice ${explicitChoice}`, async ({
+    page,
+    request,
+    context,
+  }, testInfo) => {
+    test.setTimeout(90000);
+
+    const { projectId, file, replaceFixtureFiles } = await openPersistedFile({ page, request, context });
+
+    const saved = () =>
+      page.evaluate(
+        (id) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${id}`) ?? '{}').ui?.selectedFile,
+        projectId,
+      );
+    await expect.poll(saved).toBe('/home/project/audit.txt');
+    await page.goto('/dashboard');
+
+    // Real archive of a synthetic project in an intermediate state, not a mocked successful service.
+    await replaceFixtureFiles({ 'README.md': 'TEMPORARY-README', 'other.txt': 'SECOND-DOCUMENT' });
+    await page.setViewportSize({ width: 390, height: 900 });
+
+    const persisted = page.waitForResponse(
+      (r) =>
+        r.request().method() === 'PUT' &&
+        new URL(r.url()).pathname === `/api/projects/${projectId}/ide-state` &&
+        Boolean(r.request().postDataJSON()?.state?.ui?.selectedFile),
+    );
+    await page.goto(`/projects/${projectId}/ide?panel=editor`);
+    await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    await persisted;
+    await expect.poll(saved).toBe('/home/project/audit.txt');
+
+    if (explicitChoice) {
+      await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+      await page.getByTestId('mobile-more-menu-files').click();
+      await file('other.txt').click();
+      await expect(page.locator('.cm-content')).toContainText('SECOND-DOCUMENT');
+      await expect.poll(saved).toBe('/home/project/other.txt');
+    }
+
+    await replaceFixtureFiles({
+      'README.md': 'TEMPORARY-README',
+      'other.txt': 'SECOND-DOCUMENT',
+      'audit.txt': 'PERSISTENCE-ORIGINAL-20261012',
+    });
+    await page.reload();
+    await expect(page.locator('.cm-content')).toContainText(
+      explicitChoice ? 'SECOND-DOCUMENT' : 'PERSISTENCE-ORIGINAL-20261012',
+    );
+    await expect.poll(saved).toBe(explicitChoice ? '/home/project/other.txt' : '/home/project/audit.txt');
+    await page.screenshot({ path: testInfo.outputPath('pending-selection-restored.png') });
+  });
+}

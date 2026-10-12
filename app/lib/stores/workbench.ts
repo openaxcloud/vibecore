@@ -295,6 +295,8 @@ const projectStorageFilesInFlight = createSingleFlight<boolean>();
 
 export class WorkbenchStore {
   #runtime: RuntimeAdapter = getRuntimeAdapter();
+  #projectStorageBinding = 0;
+  #projectStorageSavedPaths = new Set<string>();
   #previewsStore = new PreviewsStore(this.#runtime);
   #filesStore = new FilesStore(this.#runtime);
   #editorStore = new EditorStore(this.#filesStore);
@@ -588,6 +590,8 @@ export class WorkbenchStore {
       return;
     }
 
+    this.#projectStorageBinding++;
+    this.#projectStorageSavedPaths.clear();
     this.#runtime = runtime;
     this.#previewsStore.setRuntime(runtime);
     this.#filesStore.setRuntime(runtime);
@@ -624,6 +628,8 @@ export class WorkbenchStore {
     fileHistoryStore.configure(projectId);
 
     if (changed) {
+      this.#projectStorageBinding++;
+      this.#projectStorageSavedPaths.clear();
       this.#runtimeFilesLoadedProjectId = undefined;
       this.filesHydrated.set(false);
       this.#reloadedMessages.oublier();
@@ -817,10 +823,14 @@ export class WorkbenchStore {
       return false;
     }
 
-    return projectStorageFilesInFlight.run(projectId, () => this.#loadProjectStorageFilesUncoalesced(projectId));
+    const binding = this.#projectStorageBinding;
+
+    return projectStorageFilesInFlight.run(`${projectId}:${binding}`, () =>
+      this.#loadProjectStorageFilesUncoalesced(projectId, binding),
+    );
   }
 
-  async #loadProjectStorageFilesUncoalesced(projectId: string) {
+  async #loadProjectStorageFilesUncoalesced(projectId: string, binding: number) {
     const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/export/zip`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
@@ -832,7 +842,7 @@ export class WorkbenchStore {
 
     const payload = (await response.json()) as ProjectExportResponse;
 
-    if (this.#projectId !== projectId) {
+    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
       return false;
     }
 
@@ -844,7 +854,7 @@ export class WorkbenchStore {
 
     const files = await this.#projectStorageFilesFromArchive(archiveBase64);
 
-    if (this.#projectId !== projectId) {
+    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
       return false;
     }
 
@@ -852,7 +862,7 @@ export class WorkbenchStore {
       return false;
     }
 
-    this.#filesStore.replaceWithProjectStorageFiles(files);
+    this.#filesStore.replaceWithProjectStorageFiles(files, this.#projectStorageSavedPaths);
     this.setDocuments(this.files.get());
     this.#runtimeFilesLoadedProjectId = projectId;
     this.#markFilesHydrated(projectId);
@@ -2422,7 +2432,12 @@ export class WorkbenchStore {
      * This is a more complex feature that would be implemented in a future update
      */
 
+    const binding = this.#projectStorageBinding;
     await this.#filesStore.saveFile(filePath, document.value, options);
+
+    if (binding === this.#projectStorageBinding) {
+      this.#projectStorageSavedPaths.add(filePath);
+    }
 
     if (!this.#enregistrementsDeLAgent.has(filePath)) {
       this.#enregistrementsUtilisateur.set(filePath, ++this.#horloge);
@@ -2446,7 +2461,12 @@ export class WorkbenchStore {
       this.#editorStore.updateFile(filePath, content);
     }
 
+    const binding = this.#projectStorageBinding;
     await this.#filesStore.saveFile(filePath, content);
+
+    if (binding === this.#projectStorageBinding) {
+      this.#projectStorageSavedPaths.add(filePath);
+    }
 
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
@@ -2471,7 +2491,12 @@ export class WorkbenchStore {
       this.#editorStore.updateFile(filePath, content);
     }
 
+    const binding = this.#projectStorageBinding;
     await this.#filesStore.saveFile(filePath, content);
+
+    if (binding === this.#projectStorageBinding) {
+      this.#projectStorageSavedPaths.add(filePath);
+    }
 
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
