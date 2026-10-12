@@ -2,7 +2,7 @@
 
 ## Séparation des lots
 
-La sélection mobile est conservée sur `codex/mobile-selection-restore-20261012`, commit local `9fd22be0dc3d208720968805c60565183f906b86`, sans push. Six scénarios répétés deux fois : 12/12, un worker, zéro retry (2,9 minutes). 47 tests ciblés et 7 gardes AST passent ; build, lint et typecheck passent avec la limite `@ts-nocheck` préexistante de BaseChat. Inspection des captures finales suspendue. Rapport détaillé dans cette branche : `docs/reprise/2026-10-12-restauration-selection-mobile.md`.
+La sélection mobile est conservée sur `codex/mobile-selection-restore-20261012`, commit local `9fd22be0dc3d208720968805c60565183f906b86`, sans push. Six scénarios répétés deux fois : 12/12, un worker, zéro retry (2,9 minutes). 47 tests ciblés et 7 gardes AST passent ; build, lint et typecheck passent avec la limite `@ts-nocheck` préexistante de BaseChat. Les sept captures finales demandées ont ensuite été inspectées par le relecteur indépendant : Back/reload aux deux largeurs, langue immédiate aux deux largeurs et interruption390 ; toutes montrent audit.txt et les deux lignes attendues, sans README ni écran vide. Cela ne prouve pas la chronologie ni la conservation des brouillons. Le commit mobile reste inchangé. Rapport détaillé dans cette branche : `docs/reprise/2026-10-12-restauration-selection-mobile.md`.
 
 Le diagnostic #731 utilise un worktree distinct, `/workspace/vibecore-731-ci`, branche `codex/731-ci-diagnosis-20261012`, base `1bd259831508a15cda5b8ece5e392628cd1e4d37`. La branche #731 reste à ce SHA. Main distant relu : `dfd1d1f071a2e19a516833e8fff491fb5a818bd0`. Aucun correctif sélection mobile n'est incorporé ici.
 
@@ -40,4 +40,23 @@ Relecture indépendante par `review_pastille`, en lecture seule : confirme l'abs
 
 ## État
 
-Aucun correctif produit/test appliqué à #731, aucune relance CI, aucun push, aucune fusion. Les vérifications locales ciblées des lecteurs DB et du sélecteur d'onglets ne reproduisent pas la CI. Les preuves manquantes sont les traces/réseau/captures des trois essais DB et du premier essai 390 px ; elles doivent être rendues disponibles par un chemin autorisé pour établir la cause historique.
+Aucun correctif produit appliqué à #731, aucune relance CI, aucun push, aucune fusion. Delta de test préparé ensuite à la demande du parent, décrit ci-dessous. Les vérifications locales ciblées des lecteurs DB et du sélecteur d'onglets ne reproduisent pas la CI. Les preuves manquantes sont les traces/réseau/captures des trois essais DB et du premier essai 390 px ; elles doivent être rendues disponibles par un chemin autorisé pour établir la cause historique.
+
+
+## Delta de test proposé au parent
+
+La garde du PUT exige le contrat actuel (aucun changement API) : HTTP200, `envVar.id` non vide, projet et clé attendus, valeur identique et scope implicite `production`. Les comparaisons de valeur retournent uniquement une erreur générique, jamais la valeur reçue/attendue. Le test RP-DB-05 attend ensuite `tab-database` actif et le titre réel « All databases » / « Toutes les bases de données » avant l'assertion existante `db-carte` (30s). Aucune assertion retirée, aucun délai augmenté.
+
+Diagnostics activés seulement pour RP-DB-05 et le nouveau parcours390 : jusqu'à16 marques et24 métadonnées de réponses navigateur, nombres/états DB et menus, panneau mobile borné à des valeurs connues, sélection/rectangle/réception au centre de l'onglet éditeur. Aucune URL, en-tête, valeur, corps de réponse ou texte DOM joint. La pièce jointe n'est créée qu'en échec. Le PUT par `APIRequestContext` n'est pas observé par le listener navigateur : son statut est contrôlé par la garde.
+
+Les marques horodatées n'attendent pas le DOM ; une seule observation peut être engagée. Si elle est occupée, `stateSkipped` le dit explicitement. Le teardown peut attendre au plus1s l'observation puis1s l'attachement, avec timers nettoyés et rejets absorbés. Ces bornes n'annulent pas une opération engagée ; l'ultime état peut manquer. Pas de modification des budgets métier. Ces mesures de diagnostic peuvent influencer marginalement le timing ; elles ne démontrent pas la cause historique.
+
+Validation du delta :
+
+- Une fixture locale bénigne a appelé le véritable PUT API sans authentification, obtenu401, puis laissé la garde échouer : rouge attendu `Database setup PUT failed: HTTP 401`, avant ouverture de panneau. Aucune base provisionnée ni service simulé opérationnel. Journal `/tmp/731-ci-evidence/red-final.log`.
+- Le collecteur a réellement joint son JSON sur ce rouge. Un texte-canari du DOM et l'URI bénigne de fixture en sont absents. [Pièce jointe filtrée](mesures/731-ci-2026-10-12/refus-401-diagnostic.json). Les autres artefacts Playwright automatiques de cette fixture ne sont pas déclarés expurgés ni ajoutés au dépôt.
+- Deux tests réels de garde passent : refus401 ; création d'un projet synthétique, PUT200 confirmé puis refus de confirmations comparées à un mauvais projet ou une mauvaise valeur. Ils testent la persistance d'une variable, pas la disponibilité de la base qu'elle désigne. Aucun appel schéma/query/provisionnement.
+- Typecheck strict des cinq fichiers TypeScript et lint ciblé réussis. Aucun build produit requis pour ce delta exclusivement test. Le parcours DB complet et le nouveau390 ne sont pas relancés ici : aucune reproduction historique supplémentaire n'est revendiquée.
+- Relecture indépendante après correction de trois réserves (marques desktop retirées, observation non bloquante, attachement protégé) : aucun blocage supplémentaire relevé. Limites de collecte conservées ci-dessus.
+
+Diff local remis pour revue du parent avant toute publication. Le refus Azure demeure respecté : aucun nouvel accès ni autre chemin de téléchargement utilisé.

@@ -1,0 +1,31 @@
+{
+  "samples": [
+    {
+      "label": "fixture-ready",
+      "elapsedMs": 144,
+      "state": {
+        "mobilePanel": "other",
+        "databaseTabActive": false,
+        "databaseMounted": true,
+        "databaseEmpty": false,
+        "databaseLoadFailed": false,
+        "databaseLoading": false,
+        "cards": 0,
+        "tables": 0,
+        "statuses": 0,
+        "alerts": 0,
+        "moreMenu": 0,
+        "tabSwitcher": 0,
+        "codeEditors": 0,
+        "editorTabs": []
+      },
+      "observedAtMs": 309
+    },
+    {
+      "label": "failure",
+      "elapsedMs": 301,
+      "stateSkipped": true
+    }
+  ],
+  "responses": []
+}

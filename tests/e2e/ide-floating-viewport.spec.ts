@@ -1,5 +1,6 @@
-import { expect, test, type Locator, type PlaywrightTestArgs } from '@playwright/test';
+import type { Locator, PlaywrightTestArgs } from '@playwright/test';
 import JSZip from 'jszip';
+import { expect, test } from './helpers/ide-failure-diagnostics';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
@@ -202,6 +203,7 @@ for (const width of [768, 390]) {
     page,
     request,
     context,
+    ideDiagnostics,
   }, testInfo) => {
     test.setTimeout(90_000);
 
@@ -209,7 +211,9 @@ for (const width of [768, 390]) {
     await page.setViewportSize({ width, height: 900 });
     await expect(page.getByTestId('mobile-ide-header')).toBeVisible();
     await expect(floating).toHaveCount(0);
+    ideDiagnostics.mark('before-editor-click');
     await page.getByTestId('tab-editor').click();
+    ideDiagnostics.mark('after-editor-click');
     await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10_000 });
 
     const locale = 'fr';
@@ -222,8 +226,12 @@ for (const width of [768, 390]) {
     // Locale reload can also lose the selected file; test explicit reachability.
     await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
     await page.getByTestId('mobile-more-menu-files').click();
+    ideDiagnostics.mark('before-file-click');
     await file('audit.txt').click();
+    ideDiagnostics.mark('after-file-click');
+    ideDiagnostics.mark('before-editor-click');
     await page.getByTestId('tab-editor').click();
+    ideDiagnostics.mark('after-editor-click');
     await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10_000 });
     await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
     await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible();
@@ -231,7 +239,9 @@ for (const width of [768, 390]) {
     await page.getByTestId('mobile-more-menu-close').click();
     await page.getByTestId('button-back').click();
     await expect(page).toHaveURL(/\/dashboard/);
+    ideDiagnostics.mark('before-back');
     await page.goBack();
+    ideDiagnostics.mark('after-back');
     await expect(page.getByTestId('mobile-ide-header')).toBeVisible();
 
     /*
@@ -240,8 +250,12 @@ for (const width of [768, 390]) {
      */
     await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
     await page.getByTestId('mobile-more-menu-files').click();
+    ideDiagnostics.mark('before-file-click');
     await file('audit.txt').click();
+    ideDiagnostics.mark('after-file-click');
+    ideDiagnostics.mark('before-editor-click');
     await page.getByTestId('tab-editor').click();
+    ideDiagnostics.mark('after-editor-click');
     await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10_000 });
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.screenshot({ path: testInfo.outputPath(`mobile-navigation-${width}-${locale}.png`) });
