@@ -1,0 +1,261 @@
+Scope: all 36 workspace projects
+(node:9809) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+Lockfile is up to date, resolution step is skipped
+Progress: resolved 1, reused 0, downloaded 0, added 0
+Packages: +2040
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Progress: resolved 2040, reused 1757, downloaded 0, added 0
+Progress: resolved 2040, reused 2031, downloaded 0, added 75
+Progress: resolved 2040, reused 2031, downloaded 0, added 165
+Progress: resolved 2040, reused 2031, downloaded 0, added 274
+Progress: resolved 2040, reused 2031, downloaded 0, added 318
+Progress: resolved 2040, reused 2031, downloaded 0, added 455
+Progress: resolved 2040, reused 2031, downloaded 0, added 511
+Progress: resolved 2040, reused 2031, downloaded 0, added 621
+Progress: resolved 2040, reused 2031, downloaded 0, added 723
+Progress: resolved 2040, reused 2031, downloaded 0, added 756
+Progress: resolved 2040, reused 2031, downloaded 0, added 807
+Progress: resolved 2040, reused 2031, downloaded 0, added 899
+Progress: resolved 2040, reused 2031, downloaded 0, added 959
+Progress: resolved 2040, reused 2031, downloaded 0, added 984
+Progress: resolved 2040, reused 2031, downloaded 0, added 1031
+Progress: resolved 2040, reused 2031, downloaded 0, added 1086
+Progress: resolved 2040, reused 2031, downloaded 0, added 1123
+Progress: resolved 2040, reused 2031, downloaded 0, added 1145
+Progress: resolved 2040, reused 2031, downloaded 0, added 1158
+Progress: resolved 2040, reused 2031, downloaded 0, added 1209
+Progress: resolved 2040, reused 2031, downloaded 0, added 1250
+Progress: resolved 2040, reused 2031, downloaded 0, added 1275
+Progress: resolved 2040, reused 2031, downloaded 0, added 1330
+Progress: resolved 2040, reused 2031, downloaded 0, added 1503
+Progress: resolved 2040, reused 2031, downloaded 0, added 1657
+Progress: resolved 2040, reused 2031, downloaded 0, added 1781
+Progress: resolved 2040, reused 2031, downloaded 0, added 1897
+Progress: resolved 2040, reused 2031, downloaded 0, added 2015
+Progress: resolved 2040, reused 2031, downloaded 0, added 2038
+Progress: resolved 2040, reused 2031, downloaded 0, added 2040, done
+
+dependencies:
++ @ai-sdk/amazon-bedrock 1.0.6
++ @ai-sdk/anthropic 1.2.12
++ @ai-sdk/cerebras 0.2.16
++ @ai-sdk/cohere 1.0.3
++ @ai-sdk/deepseek 0.1.3
++ @ai-sdk/fireworks 0.2.16
++ @ai-sdk/google 1.2.22
++ @ai-sdk/mistral 0.0.43
++ @ai-sdk/openai 1.1.2
++ @ai-sdk/react 1.2.12
++ @ai-sdk/ui-utils 1.2.11
++ @babel/parser 7.29.3
++ @codemirror/autocomplete 6.18.6
++ @codemirror/commands 6.8.1
++ @codemirror/lang-cpp 6.0.3
++ @codemirror/lang-css 6.3.1
++ @codemirror/lang-html 6.4.9
++ @codemirror/lang-javascript 6.2.4
++ @codemirror/lang-json 6.0.2
++ @codemirror/lang-markdown 6.3.3
++ @codemirror/lang-python 6.2.1
++ @codemirror/lang-sass 6.0.2
++ @codemirror/lang-vue 0.1.3
++ @codemirror/lang-wast 6.0.2
++ @codemirror/language 6.11.2
++ @codemirror/search 6.5.11
++ @codemirror/state 6.5.2
++ @codemirror/view 6.38.1
++ @fastify/cookie 11.0.2
++ @fastify/cors 11.2.0
++ @fastify/helmet 13.0.2
++ @fastify/jwt 10.0.0
++ @fastify/rate-limit 10.3.0
++ @fastify/websocket 11.2.0
++ @headlessui/react 2.2.4
++ @heroicons/react 2.2.0
++ @iconify-json/svg-spinners 1.2.2
++ @lezer/highlight 1.2.1
++ @modelcontextprotocol/sdk 1.29.0
++ @nanostores/react 0.7.3
++ @noble/hashes 1.8.0
++ @octokit/rest 21.1.1
++ @octokit/types 13.10.0
++ @openrouter/ai-sdk-provider 0.0.5
++ @opentelemetry/api 1.9.1
++ @opentelemetry/auto-instrumentations-node 0.75.0
++ @opentelemetry/sdk-node 0.217.0
++ @phosphor-icons/react 2.1.10
++ @prisma/adapter-pg 7.8.0
++ @prisma/client 7.8.0
++ @radix-ui/react-avatar 1.1.11
++ @radix-ui/react-checkbox 1.3.2
++ @radix-ui/react-collapsible 1.1.11
++ @radix-ui/react-context-menu 2.2.15
++ @radix-ui/react-dialog 1.1.14
++ @radix-ui/react-dropdown-menu 2.1.15
++ @radix-ui/react-label 2.1.7
++ @radix-ui/react-popover 1.1.14
++ @radix-ui/react-progress 1.1.7
++ @radix-ui/react-scroll-area 1.2.9
++ @radix-ui/react-select 2.2.6
++ @radix-ui/react-separator 1.1.7
++ @radix-ui/react-slider 1.3.6
++ @radix-ui/react-switch 1.2.5
++ @radix-ui/react-tabs 1.1.12
++ @radix-ui/react-toggle-group 1.1.11
++ @radix-ui/react-tooltip 1.2.7
++ @react-router/express 7.18.0
++ @react-router/fs-routes 7.18.0
++ @react-router/node 7.18.0
++ @react-router/serve 7.18.0
++ @tanstack/react-virtual 3.13.12
++ @types/katex 0.16.8
++ @types/pg 8.20.0
++ @types/react-beautiful-dnd 13.1.8
++ @uiw/codemirror-theme-vscode 4.24.1
++ @unocss/reset 0.61.9
++ @vibecore/billing <- packages/billing
++ @vibecore/editor <- packages/editor
++ @vibecore/runtime-contract <- packages/runtime-contract
++ @vibecore/runtime-remote <- packages/runtime-remote
++ @vibecore/runtime-webcontainer <- packages/runtime-webcontainer
++ @vibecore/workspace-sdk <- packages/workspace-sdk
++ @webcontainer/api 1.6.1-internal.1
++ @xterm/addon-fit 0.10.0
++ @xterm/addon-search 0.16.0
++ @xterm/addon-web-links 0.11.0
++ @xterm/xterm 5.5.0
++ ai 4.3.16
++ bullmq 5.76.2
++ chalk 5.4.1
++ chart.js 4.5.0
++ class-variance-authority 0.7.1
++ clsx 2.1.1
++ compression 1.8.1
++ date-fns 3.6.0
++ diff 5.2.0
++ dotenv 16.6.1
++ electron-log 5.4.1
++ electron-store 10.1.0
++ electron-updater 6.6.2
++ express 4.21.2
++ fastify 5.8.5
++ file-saver 2.0.5
++ framer-motion 11.18.2
++ franc-min 6.2.0
++ i18next 26.2.0
++ ignore 6.0.2
++ ioredis 5.10.1
++ isbot 4.4.0
++ isomorphic-git 1.32.1
++ istextorbinary 9.5.0
++ jose 5.10.0
++ js-cookie 3.0.7
++ jspdf 4.2.1
++ jszip 3.10.1
++ katex 0.16.46
++ lucide-react 0.485.0
++ mermaid 11.15.0
++ mime 4.0.7
++ monaco-editor 0.52.2
++ mongodb 7.2.0
++ morgan 1.10.1
++ mysql2 3.22.3
++ nanostores 0.10.3
++ ollama-ai-provider 0.15.2
++ path-browserify 1.0.1
++ pg 8.20.0
++ pino 10.3.1
++ pino-pretty 13.1.3
++ react 18.3.1
++ react-beautiful-dnd 13.1.1
++ react-chartjs-2 5.3.0
++ react-dnd 16.0.1
++ react-dnd-html5-backend 16.0.1
++ react-dom 18.3.1
++ react-hotkeys-hook 4.6.2
++ react-i18next 17.0.8
++ react-icons 5.5.0
++ react-markdown 9.1.0
++ react-qrcode-logo 3.0.0
++ react-resizable-panels 2.1.9
++ react-router 7.18.0
++ react-toastify 11.1.0
++ react-window 1.8.11
++ rehype-katex 7.0.1
++ rehype-raw 7.0.0
++ rehype-sanitize 6.0.0
++ remark-gfm 4.0.1
++ remark-math 6.0.0
++ remix-utils 7.7.0
++ rollup-plugin-node-polyfills 0.2.1
++ shiki 1.29.2
++ tailwind-merge 2.6.0
++ unist-util-visit 5.0.0
++ use-debounce 10.0.5
++ vite-plugin-node-polyfills 0.22.0
++ ws 8.20.0
++ zod 3.25.76
++ zustand 5.0.6
+
+devDependencies:
++ @blitz/eslint-plugin 0.1.4
++ @cloudflare/workers-types 4.20260507.1
++ @electron/notarize 2.5.0
++ @iconify-json/ph 1.2.2
++ @iconify/types 2.0.0
++ @playwright/test 1.59.1
++ @react-router/dev 7.18.0
++ @testing-library/jest-dom 6.6.3
++ @testing-library/react 16.3.0
++ @types/diff 5.2.3
++ @types/dom-speech-recognition 0.0.4
++ @types/electron 1.6.12
++ @types/file-saver 2.0.7
++ @types/js-cookie 3.0.6
++ @types/node 25.6.0
++ @types/path-browserify 1.0.3
++ @types/react 18.3.23
++ @types/react-dom 18.3.7
++ @types/react-window 1.8.8
++ @types/ws 8.18.1
++ @vitejs/plugin-react 4.7.0
++ concurrently 8.2.2
++ cross-env 7.0.3
++ crypto-browserify 3.12.1
++ electron 42.0.0
++ electron-builder 26.8.1
++ electron-builder-squirrel-windows 26.8.1
++ esbuild 0.27.7
++ eslint-config-prettier 10.1.8
++ eslint-plugin-prettier 5.5.3
++ fast-glob 3.3.3
++ husky 9.1.7
++ is-ci 3.0.1
++ jsdom 26.1.0
++ node-fetch 3.3.2
++ prettier 3.6.2
++ prisma 7.8.0
++ rehype-stringify 10.0.1
++ remark-parse 11.0.0
++ remark-rehype 11.1.2
++ rimraf 4.4.1
++ sass-embedded 1.99.0
++ stream-browserify 3.0.0
++ tsx 4.21.0
++ typescript 5.8.3
++ unified 11.0.5
++ unocss 0.61.9
++ vite 5.4.21
++ vite-plugin-copy 0.1.6
++ vite-plugin-optimize-css-modules 1.2.0
++ vite-tsconfig-paths 4.3.2
++ vitest 3.2.6
++ wrangler 4.90.0
++ yaml 2.8.4
+
+Done in 30.9s
+
+real	0m31.028s
+user	0m7.330s
+sys	0m15.019s

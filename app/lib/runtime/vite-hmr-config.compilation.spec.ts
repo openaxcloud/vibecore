@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { loadConfigFromFile } from 'vite';
@@ -183,13 +183,27 @@ export default typeof __ecodeApiUserConfig === 'function'
     const directory = project("import { defineConfig } from 'vite';\nexport default defineConfig({});");
     expect(compile(directory)).toEqual({ status: 0, output: '' });
 
-    const built = spawnSync('pnpm', ['run', 'build'], {
-      cwd: directory,
+    const dependencyState = () =>
+      ['typescript', '@types/node', 'vite'].map((name) => {
+        const manifest = path.join(repository, 'node_modules', name, 'package.json');
+        return { name, manifest: realpathSync(manifest), content: readFileSync(manifest, 'utf8') };
+      });
+
+    const beforeBuild = dependencyState();
+
+    /*
+     * Resolve Corepack's package manager from the repository, not the unpinned
+     * fixture: newer pnpm versions can auto-install into its shared node_modules.
+     */
+
+    const built = spawnSync('pnpm', ['--dir', directory, 'run', 'build'], {
+      cwd: repository,
       encoding: 'utf8',
       timeout: 30_000,
       env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=1024' },
     });
     expect(built.error).toBeUndefined();
+    expect(dependencyState()).toEqual(beforeBuild);
     expect(built.status, built.stdout + built.stderr).toBe(0);
     expect(readFileSync(path.join(directory, 'dist/index.html'), 'utf8')).toContain('type="module"');
     writeFileSync(path.join(directory, 'src/history.ts'), 'export const OTHER_LIMIT = 10;');

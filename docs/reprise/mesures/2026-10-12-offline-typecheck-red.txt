@@ -1,0 +1,11 @@
+
+> vibecore@1.0.0 typecheck /workspace/vibecore-offline-20261012
+> node scripts/typecheck.mjs
+
+[typecheck] web app
+[typecheck] web app passed in 31.3s
+[typecheck] node scripts
+scripts/audit/a37-gallery-local.ts(7,64): error TS2835: Relative import paths need explicit file extensions in ECMAScript imports when '--moduleResolution' is 'node16' or 'nodenext'. Did you mean '../../packages/template-catalog/src/server.js'?
+scripts/audit/a37-gallery-local.ts(50,34): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string | ArrayBufferView<ArrayBufferLike>'.
+[typecheck] node scripts failed with exit code 2
+ ELIFECYCLE  Command failed with exit code 1.

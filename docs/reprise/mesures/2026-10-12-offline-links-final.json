@@ -1,0 +1,67 @@
+{
+  "checked": 324,
+  "issues": [],
+  "critical": [
+    {
+      "importer": ".",
+      "kind": "devDependencies",
+      "name": "@types/node",
+      "locked": "25.6.0",
+      "real": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json",
+      "version": "25.6.0"
+    },
+    {
+      "importer": ".",
+      "kind": "devDependencies",
+      "name": "@vitejs/plugin-react",
+      "locked": "4.7.0(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))",
+      "real": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+      "version": "4.7.0"
+    },
+    {
+      "importer": ".",
+      "kind": "devDependencies",
+      "name": "typescript",
+      "locked": "5.8.3",
+      "real": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json",
+      "version": "5.8.3"
+    },
+    {
+      "importer": ".",
+      "kind": "devDependencies",
+      "name": "vite",
+      "locked": "5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)",
+      "real": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+      "version": "5.4.21"
+    },
+    {
+      "importer": ".",
+      "kind": "devDependencies",
+      "name": "vitest",
+      "locked": "3.2.6(@types/debug@4.1.12)(@types/node@25.6.0)(jsdom@26.1.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0)",
+      "real": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vitest@3.2.6_@types+debug@4.1.12_@types+node@25.6.0_jsdom@26.1.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vitest/package.json",
+      "version": "3.2.6"
+    }
+  ],
+  "reactPluginVite": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+  "pendingBuilds": [
+    ".",
+    "esbuild@0.27.7",
+    "@parcel/watcher@2.5.6",
+    "protobufjs@7.5.6",
+    "protobufjs@8.0.3",
+    "prisma@7.8.0(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@5.8.3)",
+    "@prisma/engines@7.8.0",
+    "workerd@1.20260507.1",
+    "esbuild@0.27.3",
+    "sharp@0.34.5",
+    "msgpackr-extract@3.0.3",
+    "core-js@3.44.0",
+    "electron-winstaller@5.4.0",
+    "prisma@7.8.0(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(typescript@7.0.2)",
+    "re2@1.24.1",
+    "node-pty@1.1.0",
+    "."
+  ],
+  "storeDir": "/workspace/.onboarding/pnpm-store/v3"
+}

@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { listGalleryDemoApps, materializeGalleryDemoApp } from '../../packages/template-catalog/src/server';
+import { listGalleryDemoApps, materializeGalleryDemoApp } from '../../packages/template-catalog/src/server.js';
 
 const root = process.cwd();
 const require = createRequire(path.join(root, 'package.json'));
