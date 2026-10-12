@@ -1,0 +1,262 @@
+{
+  "main": "a1a8d5de554a2c996ffeef04dfb4712649203632",
+  "localHead": "58861323a5aa917947ea3275c569f45347658a93",
+  "rerereUsed": false,
+  "unmergedEntries": "",
+  "files": [
+    {
+      "path": "BUG_INVENTORY_LIVE.md",
+      "added": 5,
+      "removed": 1,
+      "stagedBlob": "5a7d724add54497d8b2f2fb5862e5b2664586bcb",
+      "localBlob": "4bb5bfa21cdd774638b555ddb8e90ecdb6ed22c6",
+      "unchangedFromLocal": false
+    },
+    {
+      "path": "PROBLEMES.md",
+      "added": 5,
+      "removed": 0,
+      "stagedBlob": "adf287ddab8f5de117f80d3d5634a7adf6fd07df",
+      "localBlob": "adf287ddab8f5de117f80d3d5634a7adf6fd07df",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "app/lib/runtime/preview-manifest.ts",
+      "added": 5,
+      "removed": 3,
+      "stagedBlob": "ec6317da24317cd870ca84aab23a2c4c18b5f21b",
+      "localBlob": "ec6317da24317cd870ca84aab23a2c4c18b5f21b",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "app/lib/runtime/vite-api-serve.spec.ts",
+      "added": 1,
+      "removed": 1,
+      "stagedBlob": "4b6dc25c2eb32d76f2a7c2d714f4158e6e386379",
+      "localBlob": "4b6dc25c2eb32d76f2a7c2d714f4158e6e386379",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "app/lib/runtime/vite-api-serve.ts",
+      "added": 26,
+      "removed": 3,
+      "stagedBlob": "ed6ae04dad87cf4032f491a8b4491f71d290a10a",
+      "localBlob": "ed6ae04dad87cf4032f491a8b4491f71d290a10a",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "app/lib/runtime/vite-hmr-commonjs.spec.ts",
+      "added": 237,
+      "removed": 0,
+      "stagedBlob": "e3c01c7c45f1500e3e8eef63a9f2bf42d2482a4b",
+      "localBlob": "e3c01c7c45f1500e3e8eef63a9f2bf42d2482a4b",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "app/lib/runtime/vite-hmr-config.compilation.spec.ts",
+      "added": 215,
+      "removed": 0,
+      "stagedBlob": "20f6fd12ea86c1b95e7e918ff4aa755c7e0f4e1e",
+      "localBlob": "20f6fd12ea86c1b95e7e918ff4aa755c7e0f4e1e",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "app/lib/runtime/vite-hmr-config.spec.ts",
+      "added": 5,
+      "removed": 5,
+      "stagedBlob": "ee7dfd5950593d487432592bb02525b660a0efd3",
+      "localBlob": "ee7dfd5950593d487432592bb02525b660a0efd3",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "app/lib/runtime/vite-hmr-config.ts",
+      "added": 91,
+      "removed": 16,
+      "stagedBlob": "ee8674a9155d4d778768bb8a4362a185f257041d",
+      "localBlob": "ee8674a9155d4d778768bb8a4362a185f257041d",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/bugs/BUG-GEN-HMR-CONFIG-TYPES-001.md",
+      "added": 56,
+      "removed": 0,
+      "stagedBlob": "64811392d1b7ed7fee8d324414739edb40e09764",
+      "localBlob": "64811392d1b7ed7fee8d324414739edb40e09764",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/2026-10-12-a37-commonjs-et-galerie.md",
+      "added": 174,
+      "removed": 0,
+      "stagedBlob": "93e84b5508ffa7ea05f269ce1c1ac61660e75b2c",
+      "localBlob": "93e84b5508ffa7ea05f269ce1c1ac61660e75b2c",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/2026-10-12-a37-compilation-locale.md",
+      "added": 140,
+      "removed": 0,
+      "stagedBlob": "93114c9aae2f4bee1f3ec9636b0e815bd1f8f302",
+      "localBlob": "93114c9aae2f4bee1f3ec9636b0e815bd1f8f302",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/2026-10-12-a37-galerie-prerequis.md",
+      "added": 106,
+      "removed": 0,
+      "stagedBlob": "1d49a99b4d715ccbbe0fa8425d14e84e0e8c1006",
+      "localBlob": "1d49a99b4d715ccbbe0fa8425d14e84e0e8c1006",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/2026-10-12-a37-restauration-offline.md",
+      "added": 136,
+      "removed": 0,
+      "stagedBlob": "bb313709d8f27550b8f3bc11341fc34dc790aabc",
+      "localBlob": "bb313709d8f27550b8f3bc11341fc34dc790aabc",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/2026-10-12-typecheck-dependances.md",
+      "added": 109,
+      "removed": 0,
+      "stagedBlob": "d8f51fbdf1e3699402d61888d9485945695fef13",
+      "localBlob": "d8f51fbdf1e3699402d61888d9485945695fef13",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-a37-compilation-locale.json",
+      "added": 79,
+      "removed": 0,
+      "stagedBlob": "15d395eabef5cdad274cd9e813d8140dd0a5c123",
+      "localBlob": "15d395eabef5cdad274cd9e813d8140dd0a5c123",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-a37-diagnostics-globaux.txt",
+      "added": 85,
+      "removed": 0,
+      "stagedBlob": "fd0bbc6a640322d39443886e8b991890dd7ea9e0",
+      "localBlob": "fd0bbc6a640322d39443886e8b991890dd7ea9e0",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-a37-galerie-locale.json",
+      "added": 978,
+      "removed": 0,
+      "stagedBlob": "e2d251d8b596a8ccac2074ab370361a0a683e1d0",
+      "localBlob": "e2d251d8b596a8ccac2074ab370361a0a683e1d0",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-galerie-graphe-racine.json",
+      "added": 23,
+      "removed": 0,
+      "stagedBlob": "143f0d4e1402d70ddf59f8fc3b1b2a7016f4a14c",
+      "localBlob": "143f0d4e1402d70ddf59f8fc3b1b2a7016f4a14c",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-galerie-prerequis.json",
+      "added": 1530,
+      "removed": 0,
+      "stagedBlob": "ac22fb9b2d4009b602ee50fe749d6761c828f672",
+      "localBlob": "ac22fb9b2d4009b602ee50fe749d6761c828f672",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-offline-links-final.json",
+      "added": 67,
+      "removed": 0,
+      "stagedBlob": "f5b40068392acd134c7e5a50068ede4669c1441c",
+      "localBlob": "f5b40068392acd134c7e5a50068ede4669c1441c",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-offline-restore-final.txt",
+      "added": 16,
+      "removed": 0,
+      "stagedBlob": "75cbeb240933df13169b21bd27e6f6524a3e7b23",
+      "localBlob": "75cbeb240933df13169b21bd27e6f6524a3e7b23",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-offline-restore-initial.txt",
+      "added": 261,
+      "removed": 0,
+      "stagedBlob": "525212f5b605dccba79f3e153e5812db76ded18c",
+      "localBlob": "525212f5b605dccba79f3e153e5812db76ded18c",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-offline-tests-green.txt",
+      "added": 34,
+      "removed": 0,
+      "stagedBlob": "2ee215a2a1c04e089f744fb4c51bc78a3b938d11",
+      "localBlob": "2ee215a2a1c04e089f744fb4c51bc78a3b938d11",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-offline-typecheck-green.txt",
+      "added": 139,
+      "removed": 0,
+      "stagedBlob": "372d525837a7aa9a05a86b415bc3466f8f93d45a",
+      "localBlob": "372d525837a7aa9a05a86b415bc3466f8f93d45a",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-offline-typecheck-red.txt",
+      "added": 11,
+      "removed": 0,
+      "stagedBlob": "398f405e442b6b5baf426d06d6b2fb20fbd62592",
+      "localBlob": "398f405e442b6b5baf426d06d6b2fb20fbd62592",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-typecheck-dependency-probe.json",
+      "added": 42,
+      "removed": 0,
+      "stagedBlob": "243d6d700f43f109a55fec878ed661ad76d802fc",
+      "localBlob": "243d6d700f43f109a55fec878ed661ad76d802fc",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "docs/reprise/mesures/2026-10-12-typecheck-ts583.txt",
+      "added": 66,
+      "removed": 0,
+      "stagedBlob": "42f5df571d7aa9c5e3eb22e97ea379e7ac39095e",
+      "localBlob": "42f5df571d7aa9c5e3eb22e97ea379e7ac39095e",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "scripts/audit/a37-gallery-local.ts",
+      "added": 114,
+      "removed": 0,
+      "stagedBlob": "97cbf9fe99354c12a84b1c3d2d987eed7f65b391",
+      "localBlob": "97cbf9fe99354c12a84b1c3d2d987eed7f65b391",
+      "unchangedFromLocal": true
+    },
+    {
+      "path": "scripts/audit/typecheck-dependency-probe.ts",
+      "added": 72,
+      "removed": 0,
+      "stagedBlob": "5a1876edc7de1bc8b6a7e5f60840d40deacea06b",
+      "localBlob": "5a1876edc7de1bc8b6a7e5f60840d40deacea06b",
+      "unchangedFromLocal": true
+    }
+  ],
+  "contrast": [
+    {
+      "path": "app/components/marketing/EcodeProductMarketingPages.tsx",
+      "unchangedFromMain": true
+    },
+    {
+      "path": "app/components/marketing/mobile-code-contrast.spec.tsx",
+      "unchangedFromMain": true
+    },
+    {
+      "path": "docs/bugs/BUG-MOBILE-CODE-CONTRAST-001.md",
+      "unchangedFromMain": true
+    }
+  ]
+}

@@ -1,0 +1,472 @@
+[
+  {
+    "file": "ar-protect-images.yml",
+    "name": "AR Protect Running Images",
+    "events": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "ci.yml",
+    "name": "Production CI",
+    "events": [
+      "pull_request",
+      "push",
+      "workflow_dispatch"
+    ],
+    "push": {
+      "branches": [
+        "main",
+        "stable",
+        "product/saas-platform-production"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "deploy-break-glass.yml",
+    "name": "Deploy Production (Break-glass)",
+    "events": [
+      "workflow_dispatch"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "deploy-chain-change.yml",
+    "name": "Deploy delivery-chain corrections",
+    "events": [
+      "push"
+    ],
+    "push": {
+      "branches": [
+        "main"
+      ],
+      "paths": [
+        ".github/workflows/deploy-main.yml",
+        ".github/workflows/deploy-chain-change.yml",
+        "scripts/release-gate/declencher-correctif-livraison.mjs"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "deploy-main.yml",
+    "name": "Deploy Production (Continuous)",
+    "events": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "push": {
+      "branches": [
+        "main"
+      ],
+      "paths-ignore": [
+        "**/*.md",
+        "docs/**",
+        ".github/**",
+        "tests/**",
+        "**/*.spec.ts",
+        "**/*.spec.tsx",
+        "**/*.spec.mjs",
+        "**/*.spec.js",
+        "playwright*.config.ts"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "deploy-staging.yml",
+    "name": "Deploy Staging",
+    "events": [
+      "workflow_dispatch",
+      "workflow_run"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": {
+      "workflows": [
+        "Production Docker"
+      ],
+      "types": [
+        "completed"
+      ],
+      "branches": [
+        "stable"
+      ]
+    }
+  },
+  {
+    "file": "desktop-release.yml",
+    "name": "Desktop Release",
+    "events": [
+      "workflow_dispatch",
+      "push"
+    ],
+    "push": {
+      "tags": [
+        "desktop-v*",
+        "v*"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "docker.yml",
+    "name": "Production Docker",
+    "events": [
+      "push",
+      "workflow_dispatch"
+    ],
+    "push": {
+      "branches": [
+        "stable",
+        "product/saas-platform-production"
+      ],
+      "tags": [
+        "v*"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "docs.yaml",
+    "name": "Docs CI/CD",
+    "events": [
+      "push"
+    ],
+    "push": {
+      "branches": [
+        "main"
+      ],
+      "paths": [
+        "docs/**"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "e2e-runtime.yml",
+    "name": "E2E Runtime",
+    "events": [
+      "workflow_dispatch",
+      "schedule"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "e2e.yml",
+    "name": "Production E2E",
+    "events": [
+      "pull_request",
+      "workflow_dispatch",
+      "push"
+    ],
+    "push": {
+      "branches": [
+        "main",
+        "stable",
+        "product/saas-platform-production"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "electron.yml",
+    "name": "Desktop Electron",
+    "events": [
+      "pull_request",
+      "workflow_dispatch",
+      "push"
+    ],
+    "push": {
+      "tags": [
+        "v*"
+      ]
+    },
+    "pullRequest": {
+      "paths": [
+        "electron/**",
+        "app/**",
+        "package.json",
+        "pnpm-lock.yaml",
+        "electron-builder.yml",
+        ".github/workflows/electron.yml"
+      ]
+    },
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "i18n-live-audit.yml",
+    "name": "French i18n live audit",
+    "events": [
+      "pull_request",
+      "workflow_dispatch"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "mobile-release.yml",
+    "name": "Mobile Release",
+    "events": [
+      "workflow_dispatch",
+      "push"
+    ],
+    "push": {
+      "tags": [
+        "mobile-v*",
+        "v*"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "parity-registries.yml",
+    "name": "Parity registries",
+    "events": [
+      "pull_request",
+      "push",
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "push": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pullRequest": {
+      "paths": [
+        "docs/parity/**",
+        "scripts/parity/**",
+        "docs/deploy-evidence/2026-07-22-livescan-hashes/**",
+        ".github/workflows/parity-registries.yml"
+      ]
+    },
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "pr-release-validation.yaml",
+    "name": "PR Validation",
+    "events": [
+      "pull_request"
+    ],
+    "push": null,
+    "pullRequest": {
+      "types": [
+        "opened",
+        "synchronize",
+        "reopened",
+        "labeled",
+        "unlabeled"
+      ],
+      "branches": [
+        "main"
+      ]
+    },
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "quality.yaml",
+    "name": "Code Quality",
+    "events": [
+      "push",
+      "pull_request"
+    ],
+    "push": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pullRequest": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "release-gate-dryrun.yml",
+    "name": "Release gate (dry run)",
+    "events": [
+      "workflow_dispatch"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "security.yaml",
+    "name": "Security Analysis",
+    "events": [
+      "push",
+      "pull_request",
+      "schedule"
+    ],
+    "push": {
+      "branches": [
+        "main",
+        "stable"
+      ]
+    },
+    "pullRequest": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "semantic-pr.yaml",
+    "name": "Semantic Pull Request",
+    "events": [
+      "pull_request_target"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": {
+      "types": [
+        "opened",
+        "reopened",
+        "edited",
+        "synchronize"
+      ]
+    },
+    "workflowRun": null
+  },
+  {
+    "file": "staging-runtime-validation.yml",
+    "name": "Staging Runtime Validation",
+    "events": [
+      "workflow_dispatch"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "stale.yml",
+    "name": "Mark Stale Issues and Pull Requests",
+    "events": [
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "terraform.yml",
+    "name": "Production Terraform",
+    "events": [
+      "pull_request",
+      "push",
+      "workflow_dispatch"
+    ],
+    "push": {
+      "branches": [
+        "stable",
+        "product/saas-platform-production"
+      ],
+      "paths": [
+        "infra/terraform/**",
+        "infra/gcp/**",
+        ".github/workflows/terraform.yml"
+      ]
+    },
+    "pullRequest": {
+      "paths": [
+        "infra/terraform/**",
+        "infra/gcp/**",
+        ".github/workflows/terraform.yml"
+      ]
+    },
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "test-workflows.yaml",
+    "name": "Test Workflows",
+    "events": [
+      "push",
+      "pull_request",
+      "workflow_dispatch"
+    ],
+    "push": {
+      "branches": [
+        "workflow-testing",
+        "test-*"
+      ]
+    },
+    "pullRequest": {
+      "branches": [
+        "workflow-testing"
+      ]
+    },
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "update-stable.yml",
+    "name": "Update Stable Branch",
+    "events": [
+      "push"
+    ],
+    "push": {
+      "branches": [
+        "main"
+      ]
+    },
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  },
+  {
+    "file": "wif-proof.yml",
+    "name": "wif-proof",
+    "events": [
+      "workflow_dispatch"
+    ],
+    "push": null,
+    "pullRequest": null,
+    "pullRequestTarget": null,
+    "workflowRun": null
+  }
+]
