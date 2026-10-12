@@ -175,6 +175,10 @@ runs:
       pnpm --filter @vibecore/database db:seed
 
   - name: Start API
+    # UI fixtures mirror the chart's observe-only rollout. Dedicated tenant
+    # route tests separately enforce the default and explicit true boundaries.
+    env:
+      TENANT_GUARDRAILS_ENABLED: 'false'
     shell: bash
     run: |
       pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &

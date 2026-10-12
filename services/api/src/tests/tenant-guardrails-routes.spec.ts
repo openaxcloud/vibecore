@@ -90,6 +90,30 @@ describe('tenant guardrails — secure rollout semantics', () => {
   });
 });
 
+describe('tenant guardrails — UI fixture deployment mode', () => {
+  it.each([false, true])('keeps an unverified fixture audited with enforcement=%j', async (enforced) => {
+    process.env.TENANT_GUARDRAILS_ENABLED = String(enforced);
+
+    const { app, store, org, token } = await setup();
+    const projectResponse = await createProject(app, org.id, token, 'ui-publication');
+    expect(projectResponse.statusCode).toBe(201);
+
+    const projectId = projectResponse.json().project.id;
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: auth(token),
+      payload: { provider: 'static', timeoutSeconds: 30 },
+    });
+    expect(response.statusCode).toBe(enforced ? 403 : 202);
+
+    const refusals = (await store.listAuditLogs(org.id)).filter((entry) => entry.action === 'tenant.guardrail.refused');
+    expect(refusals.length).toBeGreaterThan(0);
+    expect(refusals.at(-1)?.metadata?.enforced).toBe(enforced);
+  });
+});
+
 describe('tenant guardrails — route-level negative proofs', () => {
   it('serializes concurrent creates so exactly one request receives the last slot', async () => {
     process.env.TENANT_GUARDRAILS_ENABLED = 'true';
