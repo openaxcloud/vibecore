@@ -116,9 +116,8 @@ export function buildManifest(input) {
       // Not every image this release ships is a Deployment that gets rolled:
       //   chartService — has a `services.<key>` entry, so its digest is set on the chart
       //   rolled       — this workflow waits for its rollout and verifies its imageIDs
-      // `admin` and `screenshotter` are chart services this path never rolls; the
-      // workspace-agent is not a chart service at all (it is an image reference the
-      // api hands to workspace pods). All three are still built, scanned, signature-
+      // The workspace-agent is not a chart service (it is an image reference the
+      // api hands to workspace pods). It is still built, scanned, signature-
       // verified and recorded — dropping them from the manifest to keep the rollout
       // check simple would have silently ended their vulnerability coverage.
       chartService: s.chartService !== false,

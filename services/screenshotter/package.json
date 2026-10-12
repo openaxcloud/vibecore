@@ -5,7 +5,8 @@
   "dependencies": {
     "fastify": "^5.8.5",
     "playwright-core": "^1.63.0",
-    "tsx": "^4.21.0"
+    "tsx": "^4.21.0",
+    "@vibecore/security": "workspace:*"
   },
   "devDependencies": {
     "vitest": "^3.2.6"
@@ -15,7 +16,7 @@
     "start": "node dist/server.js",
     "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck true --strict true src/app.ts src/server.ts src/browser.ts",
     "test": "vitest --run",
-    "typecheck": "tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --types node --skipLibCheck true --strict true src/app.ts src/server.ts src/browser.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "pnpm run typecheck"
   }
 }

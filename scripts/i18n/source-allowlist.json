@@ -371,6 +371,15 @@
       "expiresOn": "2027-08-04"
     },
     {
+      "id": "screenshotter-startup-ssrf-allowlist-required",
+      "path": "services/screenshotter/src/server.ts",
+      "rule": "error-message",
+      "textPattern": "^SCREENSHOTTER_ALLOWED_HOSTS is required in production \\(SSRF allowlist; empty = open renderer\\)\\.$",
+      "justification": "Boot-time configuration invariant for AUDX-006. It is thrown while the process starts, before any route is registered, so it can never reach a response body; the audience is whoever reads the pod's crash log. Naming the environment variable is the point — localizing it would hide which variable is missing. The service refuses to start rather than 403-ing every capture, so a misconfigured deploy is loud instead of silently broken.",
+      "owner": "platform-security",
+      "expiresOn": "2027-08-05"
+    },
+    {
       "id": "llm-connector-catalog-invariant",
       "path": "app/lib/.server/llm/connector-prompt.ts",
       "rule": "error-message",
@@ -1503,6 +1512,33 @@
       "justification": "BUG-PERF-I18N-RACINE-001 : code de diagnostic du chargement du catalogue JSON, consigné en console par entry.client.tsx avant d'hydrater quand même ; jamais affiché à l'utilisateur.",
       "owner": "i18n",
       "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "outbound-http-private-transport-diagnostics",
+      "path": "packages/security/src/outbound-http.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:Outbound destination refused|Outbound credentials in URL are unsupported|Unexpected outbound hostname|No approved address family|Outbound response exceeds limit|Outbound request timed out)$",
+      "justification": "Native transport failures carry stable codes. The only production caller, deliverAbuseToSiem, catches these failures without serializing their messages into responses; these diagnostics are never rendered as product copy.",
+      "owner": "security-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "browser-egress-private-diagnostics",
+      "path": "services/screenshotter/src/egress-proxy.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:Outbound request timed out|Browser egress proxy failed to listen)$",
+      "justification": "Proxy transport diagnostics are server-only: screenshotter catches render failures and emits its existing generic internal-service response. Raw exception messages are logged, never serialized to a client.",
+      "owner": "security-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "outbound-http-physical-fixture-payload",
+      "path": "packages/security/src/outbound-http.socket-proof.mjs",
+      "rule": "visible-object-copy",
+      "textPattern": "^(?:\\{\"event\":\"fixture\"\\})$",
+      "justification": "This literal is the signed JSON request body of the opt-in real-socket proof, referenced only by outbound-http.real.spec.ts. It is protocol fixture data, not visible copy, and translating it would change the payload under test.",
+      "owner": "security-platform-and-i18n",
+      "expiresOn": "2027-01-12"
     },
     {
       "id": "worker-freeze-reconcile-job-diagnostics",

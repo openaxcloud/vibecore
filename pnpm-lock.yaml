@@ -1019,6 +1019,9 @@ importers:
 
   services/screenshotter:
     dependencies:
+      '@vibecore/security':
+        specifier: workspace:*
+        version: link:../../packages/security
       fastify:
         specifier: ^5.8.5
         version: 5.8.5

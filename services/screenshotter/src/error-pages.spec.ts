@@ -18,7 +18,11 @@ import { PageRenderError } from './browser.js';
  * chaque aperçu qui n'existe pas encore.
  */
 
-const ALLOWED = { allowedHostSuffixes: ['preview.e-code.ai'] };
+const ALLOWED = {
+  allowedHostSuffixes: ['preview.e-code.ai'],
+  resolveHost: async () => ['93.184.216.34'],
+};
+
 const URL_OK = 'https://ws-1.preview.e-code.ai/';
 
 function rendererThrowing(error: Error): PageRenderer {
@@ -65,7 +69,7 @@ describe('screenshotter — pages d’erreur', () => {
     const res = await capture(rendererThrowing(new Error('browser crashed')));
 
     expect(res.statusCode).toBe(502);
-    expect(res.json().error).toBe('render failed');
+    expect(res.json()).toEqual({ error: 'render failed' });
   });
 
   it('PageRenderError porte le statut, pour journaliser sans alerter', () => {

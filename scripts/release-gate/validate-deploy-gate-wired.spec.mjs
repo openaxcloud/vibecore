@@ -170,6 +170,7 @@ describe('service matrix must not drift from the chart or the rollout wait', () 
     const shot = matrix.find((s) => s.key === 'screenshotter');
     expect(shot, 'screenshotter must be in the matrix').toBeDefined();
     expect(shot.chartService, 'screenshotter must be digest-pinned when present').toBe(true);
+    expect(shot.rolled, 'the conditional screenshotter rollout also requires running imageIDs').toBe(true);
   });
 
   it('verifies imageIDs for exactly the services it waits on', () => {
@@ -199,8 +200,17 @@ describe('service matrix must not drift from the chart or the rollout wait', () 
      * passait au vert sur un sabotage devenu sans effet. On vise donc un service
      * qui n'y est pas — le mecanisme garde est le meme, l'ecart redevient reel.
      */
-    files.deployWorkflow = files.deployWorkflow.replace('for svc in web admin', 'for svc in web screenshotter admin');
+    files.deployWorkflow = files.deployWorkflow.replace(
+      'for svc in web admin',
+      'for svc in web unverified-service admin',
+    );
     expect(checkGateWiring(files).join('\n')).toMatch(/do not match the rollout wait list/);
+  });
+
+  it('rejects missing evidence for the running imageIDs', () => {
+    const files = realFiles();
+    files.deployWorkflow = files.deployWorkflow.replace('cp /tmp/observed.json sbom/running-imageids.json', '');
+    expect(checkGateWiring(files).join('\n')).toMatch(/running imageIDs must be archived/);
   });
 
   it('catches a chart service dropped from the digest matrix', () => {

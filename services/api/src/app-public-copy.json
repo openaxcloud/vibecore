@@ -863,10 +863,6 @@
     "en": "This access token is not allowed to perform that storage operation.",
     "fr": "Ce jeton d’accès n’est pas autorisé à effectuer cette opération de stockage."
   },
-  "OBJECT_STORAGE_PURGE_FROZEN": {
-    "en": "Object storage is frozen while this account is being deleted.",
-    "fr": "Le stockage d’objets est gelé pendant la suppression de ce compte."
-  },
   "THUMBNAIL_NOT_FOUND": {
     "en": "No thumbnail has been captured.",
     "fr": "Aucune miniature n’a été capturée."
@@ -2734,6 +2730,14 @@
   "DEPLOY_WORKSPACE_QUOTA": {
     "en": "Your plan allows one active workspace at a time, and another of your projects is using it. Stop that project’s workspace, or upgrade your plan, then publish again.",
     "fr": "Votre forfait permet un seul espace de travail actif à la fois, et un autre de vos projets l’utilise. Arrêtez l’espace de ce projet, ou passez à un forfait supérieur, puis publiez de nouveau."
+  },
+  "GIT_REMOTE_NOT_ALLOWED": {
+    "en": "This repository address cannot be reached.",
+    "fr": "Cette adresse de dépôt ne peut pas être atteinte."
+  },
+  "OBJECT_STORAGE_PURGE_FROZEN": {
+    "en": "Object storage is frozen while this account is being deleted.",
+    "fr": "Le stockage d’objets est gelé pendant la suppression de ce compte."
   },
   "OBJECT_STORAGE_USAGE_UNAVAILABLE": {
     "en": "Storage usage could not be checked. Please try again.",

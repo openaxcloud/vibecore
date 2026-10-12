@@ -886,18 +886,16 @@ jobs:
           # rather than assumed here; otherwise a genuinely running service would be the
           # only one left on a mutable tag.
           #
-          # screenshotter stays rolled=false on purpose: this workflow has never waited
-          # on its rollout, and it is not enabled in every environment, so demanding a
-          # running pod for it would introduce a new failure mode. Its digest IS pinned,
-          # scanned and signature-verified; only the post-rollout imageID check skips it.
-          # That is a deliberate, stated limit — not an oversight.
+          # screenshotter has its own conditional rollout wait below. When absent
+          # and not rebuilt it is omitted from the manifest; when present its
+          # running imageIDs must be verified just like every other Deployment.
           #
           # workspace-agent is not a chart service at all — it is an image reference the
           # api hands to each workspace pod, tagged `sha-<sha>`. It is listed so that
           # when it is rebuilt it is still scanned and signature-verified; the previous
           # vulnerability gate covered it, and dropping it would have silently ended
           # that coverage.
-          SERVICES="web:web:web:true:true admin:admin:admin:true:true api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:false workspaceAgent:workspace-agent:wsagent:false:false"
+          SERVICES="web:web:web:true:true admin:admin:admin:true:true api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:true workspaceAgent:workspace-agent:wsagent:false:false"
 
           rebuilt_web="${{ steps.tiers.outputs.web }}"
           rebuilt_runtime="${{ steps.tiers.outputs.runtime }}"
@@ -1868,12 +1866,12 @@ jobs:
           jq . /tmp/observed.json
           echo "::endgroup::"
 
-          # verify-imageids itself skips entries with rolled=false (admin, screenshotter,
-          # workspace-agent), so the set of services that must match is decided by the
+          # verify-imageids itself skips entries with rolled=false (workspace-agent), so the set of services that must match is decided by the
           # manifest — an auditable artifact — rather than by a filter in this file.
           node scripts/release-gate/release-manifest.mjs verify-imageids \
             --manifest release-manifest.json \
             --observed /tmp/observed.json
+          cp /tmp/observed.json sbom/running-imageids.json
       # ---- P104 / SEC-8 · phase 1 -> phase 2 barrier -------------------------
       #
       # `rollout status` above returned as soon as the NEW ReplicaSet was complete.

@@ -119,6 +119,8 @@ import {
   isIpAllowed,
   requireCsrfToken,
   requireProductionSecret,
+  checkOutboundUrl,
+  fetchOutbound,
 } from '@vibecore/security';
 import { getGalleryDemoApp } from '@vibecore/template-catalog/server';
 import { DOMParser } from '@xmldom/xmldom';
@@ -9056,7 +9058,13 @@ async function recordAbuseSignal(
   return abuseEvent;
 }
 
-async function deliverSiemAbuseSignal(
+/*
+ * Exported as a narrow TEST SEAM (AUDX-006): the delivery-time destination
+ * guard below is the whole point of the change, and it is unreachable from any
+ * route-level test without standing up an abuse signal and a configured SIEM
+ * webhook. Nothing else imports this.
+ */
+export async function deliverSiemAbuseSignal(
   store: ApiStore,
   payload: {
     organizationId: string;
@@ -9068,6 +9076,10 @@ async function deliverSiemAbuseSignal(
     userId?: string;
     workspaceId?: string;
   },
+  options: {
+    /** Injected in tests so delivery assertions never depend on real DNS. */
+    resolveHost?: (hostname: string) => Promise<string[]>;
+  } = {},
 ) {
   const webhooks = await store.listSiemWebhooks(payload.organizationId).catch(() => []);
   const enabled = webhooks.filter((webhook) => webhook.enabled);
@@ -9099,30 +9111,79 @@ async function deliverSiemAbuseSignal(
         return;
       }
 
+      /*
+       * AUDX-006 — re-check the destination AT DELIVERY TIME.
+       *
+       * The comment below is right that redirects are the obvious redirect-SSRF
+       * vector, but it also states the deeper problem: the URL "is validated only
+       * at config time". DNS is not config: a hostname that resolved to a public
+       * address when the webhook was saved can resolve to 169.254.169.254 today,
+       * and this pod would deliver a signed request there. Re-resolving on every
+       * delivery rejects changes to private addresses before the request.
+       * The native HTTP transport performs its own validation and passes the
+       * approved DNS addresses into the socket lookup, closing the check/use race.
+       *
+       * allowAnyPublicHost: a customer's SIEM endpoint cannot be enumerated; the
+       * ADDRESS checks still apply in full.
+       */
+      const destinationRejection = await checkOutboundUrl(webhook.url, {
+        allowedHostSuffixes: [],
+        allowAnyPublicHost: true,
+        resolveHost: options.resolveHost,
+      });
+
+      if (destinationRejection) {
+        /*
+         * Refusing is right, but refusing SILENTLY is not: SIEM carries security
+         * telemetry, and a DNS outage would otherwise make deliveries disappear
+         * with nothing to look at. Surfaced with the typed reason so an operator
+         * can tell "your endpoint points somewhere private" apart from
+         * "resolution is failing".
+         */
+        console.warn(
+          JSON.stringify({
+            level: 'warn',
+            service: 'api',
+            event: 'siem.webhook.delivery_refused',
+            organizationId: payload.organizationId,
+            rejection: destinationRejection,
+          }),
+        );
+
+        return;
+      }
+
       const signature = createHmac('sha256', secret).update(body).digest('hex');
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
 
       try {
-        await fetch(webhook.url, {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-vibecore-signature': `sha256=${signature}`,
-            'x-vibecore-event': 'abuse.signal',
+        await fetchOutbound(
+          webhook.url,
+          {
+            allowedHostSuffixes: [],
+            allowAnyPublicHost: true,
+            resolveHost: options.resolveHost,
           },
-          body,
+          {
+          method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              'x-vibecore-signature': `sha256=${signature}`,
+              'x-vibecore-event': 'abuse.signal',
+            },
+            body,
 
-          /*
-           * Do NOT follow redirects. SIEM webhook URLs are validated only at
-           * config time; a customer endpoint that passed that check can 3xx-redirect
-           * delivery from this in-cluster pod to an internal target (metadata,
-           * RFC1918, in-cluster DNS) — redirect-based blind SSRF. A 3xx is treated
-           * as a (silently ignored) delivery attempt rather than followed.
-           */
-          redirect: 'manual',
-          signal: controller.signal,
-        });
+            /*
+             * Do NOT follow redirects. A customer endpoint can 3xx-redirect
+             * delivery from this in-cluster pod to an internal target (metadata,
+             * RFC1918, in-cluster DNS) — redirect-based blind SSRF. A 3xx is treated
+             * as a (silently ignored) delivery attempt rather than followed.
+             */
+            signal: controller.signal,
+            maxBytes: 64 * 1024,
+          },
+        );
       } catch {
         // delivery failure must not block abuse handling
       } finally {
@@ -17179,9 +17240,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await ensureWorkspaceReachable(scheduledRequest, authorized, SCHEDULED_COLD_START_BUDGET_MS);
       result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
-        method: 'POST',
-        body: JSON.stringify(body),
-      });
+          method: 'POST',
+          body: JSON.stringify(body),
+        },
+      );
     } catch (error) {
       if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
