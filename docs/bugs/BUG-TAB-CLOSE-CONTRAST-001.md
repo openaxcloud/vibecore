@@ -16,7 +16,7 @@ id: BUG-TAB-CLOSE-CONTRAST-001
 
 ## ✅ Testé live
 
-☐
+☑ 30/09 — preuve live en prod à 390 px (Chromium), compte QA jetable : croix sombre sur pastille claire en thème clair (capture) + épinglé par `app/styles/av-ux-12points.spec.ts`.
 
 ## Preuve
 

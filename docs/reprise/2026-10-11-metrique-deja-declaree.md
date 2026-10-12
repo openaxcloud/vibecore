@@ -1,0 +1,7 @@
+# Métrique de réconciliation — B-21
+
+Le point de l’inventaire « rien n’existe » est périmé : main après #709 déclare déjà `workspace_runtime_reseed_total`, avec une garde des métriques littérales appelées dans les trois services examinés. Le registre continue volontairement de refuser les noms inconnus.
+
+La garde existante passait aussi si ses répertoires étaient absents. La reprise exige des sources dans chaque service, des appels effectivement lus et le témoin de la métrique de réconciliation. Deux tests passent ; retirer uniquement la déclaration de cette métrique rend un test rouge, le contrôle des doublons reste vert. Après restauration, les deux tests repassent au vert. Aucune modification de la déclaration ou du comportement du registre n’est livrée en doublon. Lint ciblé vert. Cette mesure concerne les noms littéraux reconnus par la garde, pas toutes les expressions dynamiques possibles.
+
+Intégration finale : le détecteur est repris par AST depuis le lot anti-abus pour reconnaître les appels optionnels, littéraux simples et gabarits sans interpolation, tout en ignorant commentaires et chaînes ordinaires. Le témoin multi-locataires appartient à la branche B-20 encore non intégrée ; cette branche garde le témoin de réconciliation existant et teste les appels optionnels dans la fixture du détecteur. Trois cas passent ; retirer seulement la déclaration de réconciliation rend un cas rouge, deux verts. Déclaration restaurée, trois cas verts. Les noms construits dynamiquement restent hors périmètre.

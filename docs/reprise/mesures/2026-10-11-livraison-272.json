@@ -1,0 +1,90 @@
+{
+  "deployment": 38171920340,
+  "targetSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+  "conclusion": "success",
+  "manifestFullyTraceable": false,
+  "manifestProvenanceGaps": [
+    "admin",
+    "workspaceAgent"
+  ],
+  "compositeReferences": [
+    {
+      "service": "web",
+      "digest": "sha256:445668f797f3791f9810201e3dc8c08c529165cf8ab543c0decf5c48dcf34349",
+      "rebuilt": true,
+      "rolled": true,
+      "sourceSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+      "proofRun": "38171920340"
+    },
+    {
+      "service": "admin",
+      "digest": "sha256:ff5a63ce42026d5c65629a0070cafcbca1eb4374215cc736c5c96a2606fd7b9d",
+      "rebuilt": false,
+      "rolled": true,
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "proofRun": "38169434734"
+    },
+    {
+      "service": "api",
+      "digest": "sha256:01bac3497950bcf777aa7fbbd04da591a106e8d566d5c70eba844b1f490f6a3a",
+      "rebuilt": true,
+      "rolled": true,
+      "sourceSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+      "proofRun": "38171920340"
+    },
+    {
+      "service": "worker",
+      "digest": "sha256:b9764131ad7aa166e7a84c21c2911c9c22461be20450f6351d458ca86ffab8d3",
+      "rebuilt": true,
+      "rolled": true,
+      "sourceSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+      "proofRun": "38171920340"
+    },
+    {
+      "service": "aiGateway",
+      "digest": "sha256:7d9cfef46a4a72e6b7569cd8c91a652baba568b7f8145041dbb799e333745ac7",
+      "rebuilt": true,
+      "rolled": true,
+      "sourceSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+      "proofRun": "38171920340"
+    },
+    {
+      "service": "workspaceManager",
+      "digest": "sha256:22b4654b7769be017eb26c4692931d88d226dab75714c6a870ce280e7cc1307b",
+      "rebuilt": true,
+      "rolled": true,
+      "sourceSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+      "proofRun": "38171920340"
+    },
+    {
+      "service": "previewProxy",
+      "digest": "sha256:90240bb77027ca3c9333dbe63c7e089ca71e07d31dda03d36dfd9af6b6764d53",
+      "rebuilt": true,
+      "rolled": true,
+      "sourceSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+      "proofRun": "38171920340"
+    },
+    {
+      "service": "screenshotter",
+      "digest": "sha256:160493b1805aafba033d8f3908522313d96847819344d9c4353d33a1bc4cf21b",
+      "rebuilt": true,
+      "rolled": false,
+      "sourceSha": "27273f19029058e5e5da9e39bf46ada8d430c066",
+      "proofRun": "38171920340"
+    },
+    {
+      "service": "workspaceAgent",
+      "digest": "sha256:c8cd060e91770a75e189161544aea13eb7c46b9b1f9eec7ec758198af9d5bd7c",
+      "rebuilt": false,
+      "rolled": false,
+      "sourceSha": "408e9f847afadf2cc75ba764b3211c36d0bc2c35",
+      "proofRun": "38169434734"
+    }
+  ],
+  "runningEvidenceLimit": "Only rolled services have the workflow imageID verdict; screenshotter and workspaceAgent were not rolled.",
+  "finalRollout": {
+    "time": "2026-10-11T21:48:36.680Z",
+    "commandExitCode": 0,
+    "evidenceComplete": true
+  }
+}

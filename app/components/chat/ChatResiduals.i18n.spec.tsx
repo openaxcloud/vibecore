@@ -5,7 +5,6 @@ import { createInstance } from 'i18next';
 import type { ReactNode } from 'react';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DiscussMode } from './DicussMode';
 import { GenerateAppCta } from './GenerateAppCta';
 import { PlanChecklistView } from './PlanChecklist';
 import ProgressCompilation from './ProgressCompilation';
@@ -72,7 +71,6 @@ describe('remaining chat surfaces i18n', () => {
         <ThoughtBox title="Analyse du schéma">
           <span>SELECT * FROM invoices</span>
         </ThoughtBox>
-        <DiscussMode />
         <ConnectionFailedNote
           payload={{
             kind: 'connection_failed',
@@ -121,7 +119,6 @@ describe('remaining chat surfaces i18n', () => {
     fireEvent.click(thoughtToggle);
     expect(screen.getByText('SELECT * FROM invoices')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Réduire Analyse du schéma' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Discussion' }).className).toContain('min-h-11');
 
     expect(screen.getByText('La connexion à GitHub n’a pas pu être établie.')).toBeTruthy();
     expect(screen.getByText('Les autorisations accordées ne couvrent pas les besoins de l’agent.')).toBeTruthy();
@@ -136,7 +133,6 @@ describe('remaining chat surfaces i18n', () => {
     expect(screen.getByRole('button', { name: 'Generate app' })).toBeTruthy();
     expect(screen.getByRole('status', { name: /Generating Response/u })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Collapse Analyse du schéma' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Discuss' })).toBeTruthy();
     expect(screen.getByText('GitHub connected as avi@example.test.')).toBeTruthy();
     expect(screen.getByText('Vérifier le schéma')).toBeTruthy();
   });

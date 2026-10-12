@@ -18,6 +18,8 @@ id: BUG-MESSAGE-FOOTER-HIDDEN-001
 
 ☐ live iPhone
 
+30/09 — non reproduit en prod à 390 px sous **Chromium** : dernier message fini à 598, zone de saisie à 647 ; épinglé par `app/styles/agent-transcript-mobile.spec.ts`. **Reste ☐** : l'entrée exige l'iPhone, et un vert Chromium ne prouve rien pour Safari iOS.
+
 ## Preuve
 
 épinglé par `app/styles/agent-transcript-mobile.spec.ts` + `tests/e2e/ide-mobile-chrome.spec.ts` « fin de tour à la Replit »

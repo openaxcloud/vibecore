@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parse } from 'yaml';
+import { parseAllDocuments } from 'yaml';
 
 /*
  * Le hook de migration Prisma doit ÉCHOUER VITE ET PARLER quand il bloque.
@@ -28,7 +28,16 @@ function job() {
     .replace(/^\{\{-?[^}]*-?\}\}\s*$/gm, '')
     .replace(/\{\{[^}]*\}\}/g, 'X');
 
-  return parse(texte);
+  const jobs = parseAllDocuments(texte)
+    .map((document) => {
+      expect(document.errors).toEqual([]);
+
+      return document.toJSON();
+    })
+    .filter((resource) => resource?.kind === 'Job');
+  expect(jobs, 'exactly one migration Job must be inspected').toHaveLength(1);
+
+  return jobs[0];
 }
 
 const HELM_TIMEOUT_SECONDES = 600;
