@@ -36,6 +36,6 @@ La préparation a été arrêtée. Les trois conteneurs créés pour `pastille72
 
 ## Hypothèse à vérifier, pas cause démontrée
 
-`attendreLeFilStable` considère la chaîne `aucune` comme stable après quatre lectures identiques à 250 ms. Un conteneur absent peut donc satisfaire cette attente. La remontée suivante ne fait rien si elle ne trouve pas de cible (`if (sc)`). C’est une hypothèse précise de précondition insuffisante, pas une reproduction de la panne CI.
+`attendreLeFilStable` considère la chaîne `aucune` comme stable après quatre comparaisons stables espacées de 250 ms (cinq lectures avec l’initiale). Un conteneur absent peut donc satisfaire cette attente. La remontée suivante ne fait rien si elle ne trouve pas de cible (`if (sc)`). C’est une hypothèse précise de précondition insuffisante, pas une reproduction de la panne CI.
 
 Pour conclure, il manque les traces/captures accessibles et une préparation locale supportée fonctionnelle : moteur Prisma exact disponible par un chemin autorisé, puis diagnostic de la réponse Mailpit. Aucun contournement de réseau, modification de politique, assouplissement d’assertion ou relance de workflow n’a été tenté.
