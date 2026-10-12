@@ -74,6 +74,7 @@ import {
   dockPane as engineDockPane,
   floatPane as engineFloatPane,
   moveTab as engineMoveTab,
+  openTabInPane as engineOpenTabInPane,
   reorderTab as engineReorderTab,
   setSplitRatio as engineSetSplitRatio,
   splitPane as engineSplitPane,
@@ -6098,31 +6099,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         const targetPaneId = options.paneId ?? activePaneId;
         setActivePaneId(targetPaneId);
-        setPaneTree((currentTree) =>
-          updateLeaf(currentTree, targetPaneId, (leaf) => {
-            const existing = options.filePath
-              ? leaf.tabs.find((tab) => tab.panel === panel && tab.filePath === options.filePath)
-              : leaf.tabs.find((tab) => tab.panel === panel && !tab.filePath);
-            const nextTab =
-              existing ??
-              makePaneTab(panel, {
-                pinned: panel === 'preview',
-                filePath: options.filePath,
-                preview: options.preview,
-              });
-            const baseTabs =
-              panel === 'editor' && options.preview
-                ? leaf.tabs.filter((tab) => !(tab.panel === 'editor' && tab.preview))
-                : leaf.tabs;
-            const tabs = existing
-              ? baseTabs.map((tab) =>
-                  tab.id === existing.id ? { ...tab, preview: options.preview ?? tab.preview } : tab,
-                )
-              : [...baseTabs, nextTab];
+        setPaneTree((currentTree) => {
+          /*
+           * Bind the initial editor to its first file and reuse preview tabs
+           * through the same document-identity rules as the layout engine.
+           */
+          const next = runProjectEditorWindowOp(
+            { root: currentTree, floatingPanes: [], activePaneId: targetPaneId },
+            (windowState) =>
+              engineOpenTabInPane(windowState, {
+                paneId: targetPaneId,
+                tab: {
+                  ...makePaneTab(panel, {
+                    pinned: panel === 'preview' ? true : undefined,
+                    filePath: options.filePath,
+                  }),
+                  preview: options.preview,
+                },
+              }),
+          );
 
-            return { ...leaf, tabs, activeTabId: nextTab.id };
-          }),
-        );
+          return next.root ?? currentTree;
+        });
 
         if (panel === 'editor' && options.filePath) {
           workbenchStore.setSelectedFile(options.filePath);
