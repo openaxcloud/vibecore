@@ -517,3 +517,5 @@ Ils sont conservés ici tels quels : une migration ne perd pas de contenu en sil
 > de la periode fautive. Mesure a l appui : 77 % de messages assistant vides le
 > 01/09, 9 % le 04/09, **0 % le 05/09** — le defaut est eteint, pas masque.
 > Ne pas reposer la question.
+
+- [BUG-IDE-ONGLET-BROUILLON-PERDU-001](docs/bugs/BUG-IDE-ONGLET-BROUILLON-PERDU-001.md) — Signal CI : retour sur audit.txt épinglé, onglet actif mais contenu original à la place du brouillon ; premier essai rouge, retry vert sur 9c07d3a. 📤 Dispatché : ☑ — diagnostic ciblé sur branche séparée ; 💻 Codé : ☐ — cause et correctif non établis ; ✅ Testé live : ☐ — aucune validation production.
