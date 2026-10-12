@@ -286,9 +286,12 @@ function workspaceLogLines(event: CommandEvent | string) {
  * l'identifiant de projet — ce qu'on mutualise, c'est un téléchargement pour un
  * projet donné, pas pour un objet donné.
  */
-const PROJECT_ARCHIVE_COOLDOWN_MS = 30_000;
-
-const projectStorageFilesInFlight = createSingleFlight<boolean>({ cooldownMs: PROJECT_ARCHIVE_COOLDOWN_MS });
+/*
+ * Le résultat est celui d'une hydratation, pas une archive réutilisable : un
+ * rebind peut avoir vidé les fichiers depuis le succès précédent. Mutualiser
+ * uniquement les appels en vol, sinon un retour rapide annonce un faux succès.
+ */
+const projectStorageFilesInFlight = createSingleFlight<boolean>();
 
 export class WorkbenchStore {
   #runtime: RuntimeAdapter = getRuntimeAdapter();

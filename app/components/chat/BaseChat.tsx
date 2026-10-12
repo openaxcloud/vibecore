@@ -4345,6 +4345,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const gardeDeRestauration = useRef(creerGardeDeRestauration());
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
+    const restoredProjectSelectionScope = useRef<{ projectId: string; workspaceId?: string } | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
 
@@ -5068,6 +5069,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
       gardeDeRestauration.current.oublier();
+      restoredProjectSelectionScope.current = undefined;
       pendingProjectSelectedFile.current = undefined;
     }, [projectIdeMode, projectId]);
 
@@ -5670,6 +5672,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * jamais à l'entrée de l'opération.
            */
           gardeDeRestauration.current.reussir(projectId);
+          restoredProjectSelectionScope.current = { projectId, workspaceId: currentWorkspaceId };
         })
         .catch((error) => {
           console.error('Failed to restore project IDE state', error);
@@ -5942,6 +5945,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [firstProjectFile, projectIdeMode, projectStateReady, selectedFile]);
 
     useEffect(() => {
+      const restoredScope = restoredProjectSelectionScope.current;
+
+      if (
+        !projectIdeMode ||
+        !projectId ||
+        !projectStateReady ||
+        restoredScope?.projectId !== projectId ||
+        restoredScope.workspaceId !== currentWorkspaceId
+      ) {
+        return;
+      }
+
+      /*
+       * Une navigation peut annuler le délai de sauvegarde de la disposition.
+       * Conserver immédiatement la sélection ; la couche de persistance garde
+       * son regroupement réseau. Lire le store après les effets de restauration
+       * évite d'enregistrer une sélection provisoire du rendu précédent.
+       */
+      const filePath = workbenchStore.selectedFile.get();
+
+      if (filePath) {
+        void saveProjectIdeMemory(projectId, { ui: { selectedFile: filePath } }, currentWorkspaceId).catch((error) => {
+          console.error('Failed to persist selected project file', error);
+        });
+      }
+    }, [projectIdeMode, projectId, currentWorkspaceId, projectStateReady, selectedFile]);
+
+    useEffect(() => {
       if (!projectIdeMode || !projectId || !projectStateReady) {
         return undefined;
       }
@@ -5964,7 +5995,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           projectId,
           {
             ui: {
-              selectedFile,
+              // Une sélection en attente des fichiers n'est pas une désélection.
+              selectedFile: selectedFile ?? pendingProjectSelectedFile.current,
               currentView,
               rightPanelOpen,
               rightPanelMode,
