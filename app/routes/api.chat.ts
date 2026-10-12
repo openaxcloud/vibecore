@@ -2201,6 +2201,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 solderUsageConnu(suiviDeChaine.delaiDepasse() ? 'CHAIN_DEADLINE' : 'STREAM_ABORTED');
                 await persisterLaReponseDuServeur();
                 await safeCloseMcp();
+
                 return;
               }
 
@@ -2684,8 +2685,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         if (delaiDepasse) {
-          // La borne a déjà clôturé les lectures fusionnées et arrêté le fournisseur.
-          // Aucun nouveau PUT partiel : la persistance reste liée aux segments terminés.
+          /*
+           * La borne a déjà clôturé les lectures fusionnées et demandé l’arrêt du fournisseur.
+           * Aucun nouveau PUT partiel : la persistance reste liée aux segments terminés.
+           */
           solderUsageConnu('CHAIN_DEADLINE');
           void mcpService.close().catch(() => undefined);
           logger.error(
@@ -2752,6 +2755,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           : clientDisconnected
             ? 'STREAM_ABORTED'
             : classifyStreamError(error);
+
         const detail = error?.message ? ` (${error.message})` : '';
 
         logger.info(`stream onError code=${code}${detail}`);

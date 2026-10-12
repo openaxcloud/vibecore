@@ -1,7 +1,7 @@
-import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { decisionDeFacturationSurAbandon } from '../lib/.server/llm/facturation-abandon';
+import { describe, it } from 'vitest';
+import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 
 const CHAT = readFileSync('app/routes/api.chat.ts', 'utf8');
 
@@ -22,12 +22,16 @@ describe('borne de génération : câblage et sorties terminales', () => {
   it('une fin tardive persiste le segment mais ne lance jamais la continuation', async () => {
     const start = CHAT.indexOf('if (suiviDeChaine.signal.aborted) {');
     assert.ok(start > CHAT.indexOf("contenuDuTour += content ?? ''"));
+
     const end = CHAT.indexOf("if (finishReason !== 'length'", start);
     assert.ok(end > start);
+
     const fence = CHAT.slice(start, end);
+
     let saved = 0;
     let closed = 0;
     let continued = 0;
+
     const run = new Function(
       'suiviDeChaine',
       'solderUsageConnu',
@@ -71,12 +75,15 @@ describe('borne de génération : câblage et sorties terminales', () => {
   it('deadline, erreur puis fin tardive : une facture connue, persistance conservée', async () => {
     const start = CHAT.indexOf('const solderUsageConnu = (code: string) => {');
     assert.ok(start > 0);
+
     const end = CHAT.indexOf('const dataStream = createDataStream({', start);
     const settlement = CHAT.slice(start, end).replace('(code: string)', '(code)');
     const fenceStart = CHAT.indexOf('if (suiviDeChaine.signal.aborted) {');
     const fence = CHAT.slice(fenceStart, CHAT.indexOf("if (finishReason !== 'length'", fenceStart));
     const writes: unknown[] = [];
+
     let saved = 0;
+
     const run = new Function(
       'decisionDeFacturationSurAbandon',
       'recordChatUsage',

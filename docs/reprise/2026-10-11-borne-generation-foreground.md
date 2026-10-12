@@ -1,6 +1,6 @@
 # Borne terminale de génération : correction isolée, sans nouveau PUT partiel
 
-Proposition locale contre les octets exacts de main 27273f19029058e5e5da9e39bf46ada8d430c066. Aucun déploiement ni mutation GitHub. Aucun fichier possédé par une PR ouverte au contrôle du 11 octobre 2026 à 20:23 UTC ; #712 reste hors périmètre.
+Variante publiée en brouillon dans la PR #723, tête initiale 4761e24b93a4606f96832e30954a63f0d580a2b7, issue de main 27273f19029058e5e5da9e39bf46ada8d430c066. Vérification du 12 octobre 2026 : application sans conflit à main 7ce2aa9ceac014b2449d053e3991baeaea9f427d ; arbre de fusion Git local identique à celui de GitHub. Aucun déploiement de ce lot. La première CI native a échoué sur 48 erreurs de lint ; le correctif de style et d’import nécessite une nouvelle passe native complète. Les courses de persistance restent hors périmètre.
 
 ## Correction bornée
 

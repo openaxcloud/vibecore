@@ -23,6 +23,7 @@ export interface SuiviDeChaine {
   /** Signal du tour : arrêt existant de la requête OU borne de la chaîne. */
   signal: AbortSignal;
   delaiDepasse(): boolean;
+
   /** Ferme le flux fusionné même si la source ignore son signal d'arrêt. */
   bornerFlux<T>(source: ReadableStream<T>): ReadableStream<T>;
 
@@ -60,6 +61,7 @@ export interface SuiviDeChaine {
 export function creerSuiviDeChaine(delaiMaxMs: number, signalRequete?: AbortSignal): SuiviDeChaine {
   const arret = new AbortController();
   const signal = signalRequete ? AbortSignal.any([signalRequete, arret.signal]) : arret.signal;
+
   let delaiDepasse = false;
   let enVol = 0;
   let premierDebut: number | undefined;
@@ -77,26 +79,39 @@ export function creerSuiviDeChaine(delaiMaxMs: number, signalRequete?: AbortSign
     delaiDepasse: () => delaiDepasse,
     bornerFlux<T>(source: ReadableStream<T>): ReadableStream<T> {
       const lecteur = source.getReader();
+
       let ferme = false;
       let terminer: () => void;
 
       return new ReadableStream<T>({
         start(controller) {
           terminer = () => {
-            if (ferme) return;
+            if (ferme) {
+              return;
+            }
+
             ferme = true;
             signal.removeEventListener('abort', terminer);
             controller.close();
+
             // Ne pas attendre une source dont cancel() peut lui-même rester bloqué.
             void lecteur.cancel(signal.reason).catch(() => undefined);
           };
+
           signal.addEventListener('abort', terminer, { once: true });
-          if (signal.aborted) terminer();
+
+          if (signal.aborted) {
+            terminer();
+          }
         },
         async pull(controller) {
           try {
             const resultat = await lecteur.read();
-            if (ferme) return;
+
+            if (ferme) {
+              return;
+            }
+
             if (resultat.done) {
               ferme = true;
               signal.removeEventListener('abort', terminer);
@@ -105,7 +120,10 @@ export function creerSuiviDeChaine(delaiMaxMs: number, signalRequete?: AbortSign
               controller.enqueue(resultat.value);
             }
           } catch (error) {
-            if (ferme) return;
+            if (ferme) {
+              return;
+            }
+
             ferme = true;
             signal.removeEventListener('abort', terminer);
             controller.error(error);
@@ -142,10 +160,14 @@ export function creerSuiviDeChaine(delaiMaxMs: number, signalRequete?: AbortSign
       let borne: ReturnType<typeof setTimeout> | undefined;
 
       let surArret: () => void = () => {};
+
       const abandon = new Promise<boolean>((resolve) => {
         surArret = () => resolve(delaiDepasse);
         signal.addEventListener('abort', surArret, { once: true });
-        if (signal.aborted) surArret();
+
+        if (signal.aborted) {
+          surArret();
+        }
       });
       const depasse = await Promise.race([
         abandon,
@@ -164,6 +186,7 @@ export function creerSuiviDeChaine(delaiMaxMs: number, signalRequete?: AbortSign
       }
 
       signal.removeEventListener('abort', surArret);
+
       return depasse;
     },
   };
