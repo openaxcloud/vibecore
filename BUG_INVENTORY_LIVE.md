@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-417 entrées.
+418 entrées.
 
 ## Sans section
 
@@ -491,6 +491,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001](docs/bugs/BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001.md) — P1 — le captureur reconstruit ne démarre pas avec sa nouvelle dépendance de sécurité TypeScript. — 📤 Dispatché : Pris en charge le 12 octobre 2026 après le déploiement 38194840868. · 💻 Codé : ☑ Fusionné par #722 à `7ce2aa9ceac014b2449d053e3991baeaea9f427d` après 26 contrôles verts : `tsx dist/server.j · ✅ Testé live : ☐ Vérification complète encore partielle : le démarrage est confirmé dans la livraison 38203837782 (pod Runnin
+- [BUG-MOBILE-CODE-CONTRAST-001](docs/bugs/BUG-MOBILE-CODE-CONTRAST-001.md) — P2 — Sur `/mobile` en thème clair, le bloc CODE de Full-Featured Editor utilise une encre verte fixe trop claire : contraste 2,338688:1 à 12 px, sous le seuil A — 📤 Dispatché : ☑ 12/10/2026 — correction minimale reconstruite sur `e1ba08b68c2e9ba82a838ca9c5dc8f0206fcac43`. · 💻 Codé : ☐ — remplacement local par `text-bolt-elements-code-text`, non fusionné sur `main`. · ✅ Testé live : ☐ — aucune validation en production ; hydratation publique hors périmètre.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
