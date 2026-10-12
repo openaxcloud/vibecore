@@ -29,3 +29,7 @@ Contre-épreuve Playwright avant correction : `tests/e2e/ide-file-tab-identity.s
 Voir le [rapport du parcours local](../reprise/2026-10-12-audit-local-fichiers.md) pour les résultats de validation, la matrice fonctionnelle et les limites de l'environnement.
 
 Après correction : 37 tests unitaires du moteur, build, typecheck web et lint ciblé réussis ; E2E 3/3 verts après initialisation observable de Monaco, sans retry. Un défaut distinct à froid reste ouvert et empêche de valider le parcours complet ; voir le rapport.
+
+## Complément : épinglage et volets flottants
+
+La validation étendue a démontré deux limites du premier correctif : preview épinglée remplacée par un autre fichier, et cible flottante absente de l'état transmis au moteur. Contre-épreuves moteur et navigateur, correctifs ciblés et conservation réelle d'un brouillon A → B → A sont détaillés dans le [rapport complémentaire](../reprise/2026-10-12-editeurs-partages-et-onglets.md). Aucun état de livraison ou de test production modifié.

@@ -45,6 +45,11 @@ test('opening a stored file binds the initial editor tab without duplicating it'
    */
   await context.route(/\/api\/(runtime|runtime-token|chat)(\/|\?|$)/, (route) => route.abort('blockedbyclient'));
   await context.routeWebSocket('**/*', (socket) => socket.close());
+
+  // Keep this a local draft test: unsuccessful saves must not clear the draft.
+  await context.route(/\/api\/projects\/[^/]+\/files(?:\/|\?|$)/, (route) =>
+    route.request().method() === 'GET' ? route.continue() : route.abort('blockedbyclient'),
+  );
   await page.goto('/login');
   await page.locator('input[name=email]').fill(email);
   await page.locator('input[name=password]').fill('Password123!');
@@ -82,4 +87,39 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   await expect(page.getByRole('tab').filter({ hasText: 'other.txt' })).toHaveCount(1);
   await expect(documentTabs).toHaveCount(0);
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('SECOND-DOCUMENT');
+
+  await file('audit.txt').click();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
+  await page.locator('.monaco-editor .view-lines').click();
+  await page.keyboard.press('ControlOrMeta+a');
+  await page.keyboard.insertText('UNSAVED-A-UNIQUE\n');
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
+
+  const storageReads: string[] = [];
+  page.on('request', (request) => {
+    const path = new URL(request.url()).pathname;
+
+    if (request.method() === 'GET' && /\/api\/projects\/[^/]+\/(files|export)(?:\/|$)/.test(path)) {
+      storageReads.push(path);
+    }
+  });
+  await file('other.txt').click();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('SECOND-DOCUMENT');
+  await file('audit.txt').click();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
+  expect(storageReads).toEqual([]);
+  await page.screenshot({ path: testInfo.outputPath('unsaved-draft-return.png') });
+
+  await documentTabs.locator('.bolt-project-tab-pin').click();
+
+  const pinnedFile = page.getByRole('tab', { name: 'Pinned tab: /audit.txt, unsaved changes', exact: true });
+  await expect(pinnedFile).toHaveCount(1);
+  await file('other.txt').click();
+  await expect(pinnedFile).toHaveCount(1);
+  await expect(page.getByRole('tab').filter({ hasText: 'other.txt' })).toHaveCount(1);
+  await file('other.txt').click();
+  await expect(page.getByRole('tab').filter({ hasText: 'other.txt' })).toHaveCount(1);
+  await pinnedFile.click();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
+  await page.screenshot({ path: testInfo.outputPath('pinned-file-preserved.png') });
 });

@@ -559,7 +559,7 @@ export function openTabInPane(
     const reusable =
       requested.panel === 'editor' && requested.filePath
         ? requested.preview
-          ? (pane.tabs.find((tab) => tab.panel === 'editor' && tab.preview) ??
+          ? (pane.tabs.find((tab) => tab.panel === 'editor' && tab.preview && !tab.pinned) ??
             pane.tabs.find((tab) => tab.panel === 'editor' && !tab.filePath && !tab.pinned))
           : pane.tabs.find((tab) => tab.panel === 'editor' && !tab.filePath && !tab.pinned)
         : undefined;

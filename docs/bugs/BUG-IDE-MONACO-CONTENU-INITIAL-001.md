@@ -31,3 +31,7 @@ Le test borné de duplication attend maintenant que le README initial soit effec
 ## Suite autorisée : correction locale
 
 Le [second rapport](../reprise/2026-10-12-monaco-document-initial.md) confirme la course d'import : reproduction normale et module retenu, avec modèle actif README divergent du store audit.txt. Correction par refs courantes et resynchronisation après création de Monaco. Contre-épreuve composant rouge sur l'ancienne source puis verte ; 35 tests ciblés, build, typechecks package/web et scénarios navigateur corrigés réussis. Douze instantanés après correction cohérents, y compris réouverture ; test onglets combiné 3/3 sans retry. Aucune sauvegarde IDE ni production validée.
+
+## Complément : modèles partagés
+
+La relecture a ajouté des contre-épreuves pour une URI préexistante, deux widgets du même fichier, les emprunts de modèles d'index, le changement de langue et le démontage indépendant. Collision de création et notification externe parasite démontrées puis corrigées localement ; voir le [rapport complémentaire](../reprise/2026-10-12-editeurs-partages-et-onglets.md). Aucun état de livraison ou de test production modifié.
