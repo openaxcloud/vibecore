@@ -1,0 +1,67 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore-purge52/services/workspace-manager
+
+stdout | src/purge-fence-cas.integration.spec.ts > purge barrier release is an atomic compare-and-set (real PostgreSQL)
+[proof] server: PostgreSQL 16.13 (Debian 16.13-1.pgdg12+1) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
+
+stdout | src/purge-fence-cas.integration.spec.ts > purge barrier release is an atomic compare-and-set (real PostgreSQL) > LEGACY read-then-write loses the ABA race — a delayed unfreeze wipes a NEWER barrier
+[proof] legacy → purgeFrozen=false token=null
+
+stdout | src/purge-fence-cas.integration.spec.ts > purge barrier release is an atomic compare-and-set (real PostgreSQL) > FIXED CAS survives the identical interleaving — the newer barrier stands
+[proof] cas → released=false purgeFrozen=true token=owner-N1
+
+stdout | src/purge-fence-cas.integration.spec.ts > stale-freeze reconciler is version-checked (real PostgreSQL) > LEGACY reconciler lifts a barrier that was re-frozen after the scan
+[proof] legacy reconciler → purgeFrozen=false
+
+stdout | src/purge-fence-cas.integration.spec.ts > stale-freeze reconciler is version-checked (real PostgreSQL) > FIXED reconciler leaves a barrier re-frozen mid-sweep alone (CAS miss)
+[proof] cas reconciler → reconciled=0 purgeFrozen=true token=owner-N1
+
+stdout | src/purge-fence-cas.integration.spec.ts > fence liveness is bound to a real PurgePlan lease > the reconciler skips a long-running purge and reclaims it once the lease lapses
+[proof] longpurge alive → skippedLiveOwner=1 purgeFrozen=true
+
+stdout | src/purge-fence-cas.integration.spec.ts > fence liveness is bound to a real PurgePlan lease > the reconciler skips a long-running purge and reclaims it once the lease lapses
+[proof] longpurge dead → purgeFrozen=false
+
+stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > the read really does reject (the harness is not silently succeeding)
+prisma:error 
+Invalid `any).workspaceRuntime.findUnique()` invocation in
+/Users/hb/dev/vibecore-purge52/services/workspace-manager/src/purge-fence-cas.integration.spec.ts:632:55
+
+  629 
+  630 it('the read really does reject (the harness is not silently succeeding)', async () => {
+  631   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+→ 632   await expect((deadPrisma as any).workspaceRuntime.findUnique(
+Database `does_not_exist_purge52_r_p3_06` does not exist on the database server
+
+stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > startWorkspace REFUSES when the purge barrier cannot be read
+prisma:error 
+Invalid `this.prisma.workspaceRuntime.findUnique()` invocation in
+/Users/hb/dev/vibecore-purge52/services/workspace-manager/src/prisma-store.ts:292:53
+
+  289 }
+  290 
+  291 async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {
+→ 292   const row = (await this.prisma.workspaceRuntime.findUnique(
+Database `does_not_exist_purge52_r_p3_06` does not exist on the database server
+
+stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > startWorkspace REFUSES when the purge barrier cannot be read
+[proof] fail-closed → WORKSPACE_PURGE_BARRIER_UNVERIFIABLE: could not read the purge barrier for ws-failclosed-mspxn3du-7q2rkh — reprovision r
+
+stdout | src/purge-fence-cas.integration.spec.ts > barrier reads fail CLOSED on a real database error > freezeWorkspace REFUSES rather than routing down the "no runtime row" branch
+prisma:error 
+Invalid `this.prisma.workspaceRuntime.findUnique()` invocation in
+/Users/hb/dev/vibecore-purge52/services/workspace-manager/src/prisma-store.ts:292:53
+
+  289 }
+  290 
+  291 async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {
+→ 292   const row = (await this.prisma.workspaceRuntime.findUnique(
+Database `does_not_exist_purge52_r_p3_06` does not exist on the database server
+
+ ✓ src/purge-fence-cas.integration.spec.ts (19 tests) 494ms
+
+ Test Files  1 passed (1)
+      Tests  19 passed (19)
+   Start at  13:14:33
+   Duration  1.40s (transform 222ms, setup 0ms, collect 657ms, tests 494ms, environment 0ms, prepare 65ms)
+

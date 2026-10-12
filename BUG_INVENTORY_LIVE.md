@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-410 entrées.
+411 entrées.
 
 ## Sans section
 
@@ -481,6 +481,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-11 — Reprise vérifiée
 
 - [BUG-QA1011-MESSAGE-ACTIONS-CIBLE28](docs/bugs/BUG-QA1011-MESSAGE-ACTIONS-CIBLE28.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## 2026-10-11 — Effacement de compte et preuves physiques
+
+- [BUG-PURGE-PHYSIQUE-PRODUCTION-NON-PROUVEE](docs/bugs/BUG-PURGE-PHYSIQUE-PRODUCTION-NON-PROUVEE.md) — La suppression physique d’un compte n’est pas prouvée de bout en bout en — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
