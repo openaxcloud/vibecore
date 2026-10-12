@@ -15482,8 +15482,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * (voir `declencherDemarrageDepuisLecture`) : il porte l'utilisateur courant,
    * dont dépend le jeton de stockage objet, et le journal de la requête. Il reste
    * optionnel pour que les appelants internes (crons, réconciliation) continuent
-   * de fonctionner sans contexte — le démarrage part quand même, simplement sans
-   * identifiant d'utilisateur.
+   * de lire un agent déjà joignable sans contexte. Un démarrage exige désormais
+   * une identité vérifiable, même en observation, pour la décision locataire.
    */
   const agentRequest = async <T = unknown>(
     workspaceId: string,
@@ -16030,10 +16030,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const agentFileRead = async (workspaceId: string, path: string) => {
+  const agentFileRead = async (workspaceId: string, path: string, request?: any) => {
     return agentRequest<{ content: string; encoding?: 'utf8' | 'base64' }>(
       workspaceId,
       `/files/read?path=${encodeURIComponent(path)}`,
+      {},
+      request,
     );
   };
 
@@ -16042,8 +16044,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * operate on string content. The runtime read route uses agentFileRead so it
    * can forward the `encoding` field and keep binary files lossless.
    */
-  const agentFileContent = async (workspaceId: string, path: string) => {
-    const file = await agentFileRead(workspaceId, path);
+  const agentFileContent = async (workspaceId: string, path: string, request?: any) => {
+    const file = await agentFileRead(workspaceId, path, request);
 
     return file.content;
   };
@@ -18420,7 +18422,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
       output = mapRuntimeNodes(nodes);
     } else if (toolName === 'read_file') {
-      output = { path, content: await agentFileContent(workspaceId, path ?? '.') };
+      output = { path, content: await agentFileContent(workspaceId, path ?? '.', request) };
     } else if (toolName === 'write_file') {
       await agentRequest(workspaceId, '/files/write', {
         method: 'POST',
@@ -18448,7 +18450,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const matches = [];
 
       for (const file of flattenRuntimeFiles(nodes)) {
-        const content = await agentFileContent(workspaceId, file.path);
+        const content = await agentFileContent(workspaceId, file.path, request);
 
         if (query && content.includes(query)) {
           matches.push({ path: file.path, preview: content.split('\n').find((line) => line.includes(query)) });
@@ -19234,6 +19236,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const nodes = await agentRequest<AgentNode[]>(
       authorized.workspaceId,
       `/files/tree?path=${encodeURIComponent(path)}`,
+      {},
+      request,
     );
 
     /*
@@ -19263,7 +19267,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const file = await agentFileRead(authorized.workspaceId, path);
+    const file = await agentFileRead(authorized.workspaceId, path, request);
 
     return { path, content: file.content, encoding: file.encoding };
   });
@@ -19507,7 +19511,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         break;
       }
 
-      const content = await agentFileContent(authorized.workspaceId, file.path);
+      const content = await agentFileContent(authorized.workspaceId, file.path, request);
 
       if (content.length > MAX_FILE_BYTES) {
         continue;
@@ -20219,7 +20223,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * every image/font/.ico/wasm in the export. Decode base64 entries to real
        * bytes (via {base64:true}); store text entries as utf8.
        */
-      const fileRead = await agentFileRead(authorized.workspaceId, file.path);
+      const fileRead = await agentFileRead(authorized.workspaceId, file.path, request);
       const isBase64 = fileRead.encoding === 'base64';
 
       exportBytes += isBase64 ? Math.floor((fileRead.content.length * 3) / 4) : Buffer.byteLength(fileRead.content);
@@ -24038,7 +24042,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (workspace) {
       try {
-        const nodes = await agentRequest<AgentNode[]>(workspace.id, '/files/tree');
+        const nodes = await agentRequest<AgentNode[]>(workspace.id, '/files/tree', {}, request);
 
         const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
           const basename = file.path.split('/').pop() ?? '';
@@ -24053,7 +24057,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           const basename = file.path.split('/').pop() ?? '';
           filesByPath.set(file.path, {
             path: file.path,
-            content: basename === 'bun.lockb' ? '' : await agentFileContent(workspace.id, file.path),
+            content: basename === 'bun.lockb' ? '' : await agentFileContent(workspace.id, file.path, request),
             updatedAt: new Date().toISOString(),
           });
         }
@@ -24165,7 +24169,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const basename = file.path.split('/').pop() ?? '';
         filesByPath.set(file.path, {
           path: file.path,
-          content: basename === 'bun.lockb' ? '' : await agentFileContent(authorized.workspaceId, file.path),
+          content: basename === 'bun.lockb' ? '' : await agentFileContent(authorized.workspaceId, file.path, request),
           updatedAt: new Date().toISOString(),
         });
       }
