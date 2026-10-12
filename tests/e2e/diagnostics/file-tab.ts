@@ -186,62 +186,93 @@ export const test = base.extend<{ fileTabDiagnostics: { mark: (phase: string) =>
         return;
       }
 
-      /*
-       * Fixture teardown still runs after the original 30 s test timeout.
-       * Trial clicks never activate a tab; their tiny budget is diagnostic only.
-       */
-      const domAtFailure = lastDom;
-      const trials: Record<string, string> = {};
+      let expired = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
 
-      for (const [name, locator] of [
-        ['exactPinnedDraft', page.getByRole('tab', { name: 'Pinned tab: /audit.txt, unsaved changes', exact: true })],
-        ['auditRegardlessOfDirtyLabel', page.locator('[role="tab"][data-tab-id]').filter({ hasText: 'audit.txt' })],
-      ] as const) {
-        if (page.isClosed()) {
-          trials[name] = 'page-closed';
-          continue;
-        }
-
-        try {
-          await locator.click({ trial: true, timeout: 500 });
-          trials[name] = 'actionable';
-        } catch {
-          trials[name] = 'not-actionable-within-500ms';
-        }
-      }
-
-      const env = loadEnv('production', process.cwd(), ['RUNTIME_MODE', 'VITE_RUNTIME_MODE', 'VITE_SAAS_COMMERCIAL']);
-
-      const mode = (value: string | undefined) =>
-        value === 'remote-kubernetes' || value === 'webcontainer' ? value : value === undefined ? 'unset' : 'other';
-
-      await testInfo.attach('file-tab-failure-diagnostic', {
-        contentType: 'application/json',
-        body: JSON.stringify(
-          {
-            phase,
-            firstMonacoMs,
-            ideNavigationMs,
-            monacoContentReadyMs,
-            domAtFailure,
-            actionabilityTrialsAfterFailure: trials,
-            trialLimit:
-              'Trial clicks may scroll; these observations follow the failure and do not prove prior actionability.',
-            droppedEvents,
-            runtimeConfiguration: {
-              source: 'selected production build inputs on the test runner; browser requests are separate evidence',
-              RUNTIME_MODE: mode(env.RUNTIME_MODE),
-              VITE_RUNTIME_MODE: mode(env.VITE_RUNTIME_MODE),
-              VITE_SAAS_COMMERCIAL: env.VITE_SAAS_COMMERCIAL === 'true',
-            },
-            saveEvidenceLimit:
-              'No HTTP response or dirty flag alone proves a WebContainer write; absent completion evidence means unknown.',
-            events,
-          },
-          null,
-          2,
-        ),
+      const deadline = new Promise<void>((resolve) => {
+        timer = setTimeout(() => {
+          expired = true;
+          resolve();
+        }, 2_000);
       });
+      const collect = async () => {
+        /*
+         * Fixture teardown still runs after the original 30 s test timeout.
+         * Trial clicks never activate a tab; their tiny budget is diagnostic only.
+         */
+        const domAtFailure = lastDom;
+        const trials: Record<string, string> = {};
+
+        for (const [name, locator] of [
+          ['exactPinnedDraft', page.getByRole('tab', { name: 'Pinned tab: /audit.txt, unsaved changes', exact: true })],
+          ['auditRegardlessOfDirtyLabel', page.locator('[role="tab"][data-tab-id]').filter({ hasText: 'audit.txt' })],
+        ] as const) {
+          if (expired) {
+            return;
+          }
+
+          if (page.isClosed()) {
+            trials[name] = 'page-closed';
+            continue;
+          }
+
+          try {
+            await locator.click({ trial: true, timeout: 500 });
+            trials[name] = 'actionable';
+          } catch {
+            trials[name] = 'not-actionable-within-500ms';
+          }
+        }
+
+        if (expired) {
+          return;
+        }
+
+        const env = loadEnv('production', process.cwd(), ['RUNTIME_MODE', 'VITE_RUNTIME_MODE', 'VITE_SAAS_COMMERCIAL']);
+
+        const mode = (value: string | undefined) =>
+          value === 'remote-kubernetes' || value === 'webcontainer' ? value : value === undefined ? 'unset' : 'other';
+
+        if (expired) {
+          return;
+        }
+
+        await testInfo.attach('file-tab-failure-diagnostic', {
+          contentType: 'application/json',
+          body: JSON.stringify(
+            {
+              phase,
+              firstMonacoMs,
+              ideNavigationMs,
+              monacoContentReadyMs,
+              domAtFailure,
+              actionabilityTrialsAfterFailure: trials,
+              trialLimit:
+                'Trial clicks may scroll; these observations follow the failure and do not prove prior actionability.',
+              droppedEvents,
+              runtimeConfiguration: {
+                source: 'selected production build inputs on the test runner; browser requests are separate evidence',
+                RUNTIME_MODE: mode(env.RUNTIME_MODE),
+                VITE_RUNTIME_MODE: mode(env.VITE_RUNTIME_MODE),
+                VITE_SAAS_COMMERCIAL: env.VITE_SAAS_COMMERCIAL === 'true',
+              },
+              saveEvidenceLimit:
+                'No HTTP response or dirty flag alone proves a WebContainer write; absent completion evidence means unknown.',
+              events,
+            },
+            null,
+            2,
+          ),
+        });
+      };
+
+      try {
+        // A diagnostic failure must never replace or add to the test failure.
+        await Promise.race([collect().catch(() => undefined), deadline]);
+      } finally {
+        expired = true;
+        clearTimeout(timer);
+      }
     },
     { auto: true },
   ],
