@@ -113,6 +113,7 @@ import type {
   RecordSkillAuditInput,
   SnapshotListOptions,
 } from '../store.js';
+import { countActiveModerationStrikes } from '../strike-system.js';
 
 function id(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
@@ -1274,6 +1275,42 @@ export class TestApiStore implements ApiStore {
 
   newsletterSubscribers = new Map<string, { email: string; source: string; unsubscribedAt: string | null }>();
 
+  async countOrganizationActiveStrikes(organizationId: string, nowMs: number) {
+    const memberUserIds = new Set(
+      [...this.memberships.values()]
+        .filter((membership) => membership.organizationId === organizationId)
+        .map((membership) => membership.userId),
+    );
+
+    return [...memberUserIds].reduce(
+      (total, userId) => total + countActiveModerationStrikes(this.users.get(userId)?.preferences, nowMs),
+      0,
+    );
+  }
+
+  async countRecentSevereAbuseEvents(organizationId: string, since: Date) {
+    const sinceMs = since.getTime();
+
+    if (!organizationId || !Number.isFinite(sinceMs)) {
+      throw new TypeError('TENANT_GUARDRAIL_ABUSE_COUNTER_CONTEXT_INVALID');
+    }
+
+    return [...this.abuseEvents.values()].filter((event) => {
+      if (
+        event.organizationId !== organizationId ||
+        !['high', 'critical'].includes(event.severity) ||
+        event.disposition === 'dismissed'
+      ) {
+        return false;
+      }
+
+      const createdAtMs = Date.parse(event.createdAt);
+
+      /* Malformed authoritative timestamps are suspicious and demote. */
+      return !Number.isFinite(createdAtMs) || createdAtMs >= sinceMs;
+    }).length;
+  }
+
   async subscribeNewsletter(input: { email: string; source?: string }) {
     const email = input.email.trim().toLowerCase();
     const existing = this.newsletterSubscribers.get(email);
@@ -2077,6 +2114,7 @@ export class TestApiStore implements ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+    initialStatus?: WorkspaceRecord['status'];
   }) {
     const workspaceId = input.id ?? id('workspace');
 
@@ -2085,7 +2123,7 @@ export class TestApiStore implements ApiStore {
       projectId: input.projectId,
       name: input.name,
       runtimeMode: input.runtimeMode,
-      status: 'PENDING',
+      status: input.initialStatus ?? 'PENDING',
       gitPath: `.vibecore-workspaces/${workspaceId}`,
       environment: input.environment ?? 'development',
       createdAt: now(),

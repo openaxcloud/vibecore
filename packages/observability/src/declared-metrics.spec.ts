@@ -121,6 +121,10 @@ describe('métriques déclarées', () => {
 
     expect(vues.size, 'appels de métriques effectivement examinés').toBeGreaterThan(0);
     expect(vues.has('workspace_runtime_reseed_total'), 'témoin de la métrique historiquement omise').toBe(true);
+    expect(
+      vues.has('tenant_guardrail_refusals_total'),
+      'témoin de l’appel optionnel des protections multi-locataires',
+    ).toBe(true);
     expect(Object.fromEntries(manquantes)).toEqual({});
   });
 

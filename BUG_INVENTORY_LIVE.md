@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-411 entrées.
+412 entrées.
 
 ## Sans section
 
@@ -485,6 +485,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-11 — Effacement de compte et preuves physiques
 
 - [BUG-PURGE-PHYSIQUE-PRODUCTION-NON-PROUVEE](docs/bugs/BUG-PURGE-PHYSIQUE-PRODUCTION-NON-PROUVEE.md) — La suppression physique d’un compte n’est pas prouvée de bout en bout en — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## 2026-10-11 — Reprise des protections multi-locataires
+
+- [BUG-GARDES-LOCATAIRES-CONTRATS-ABSENTS](docs/bugs/BUG-GARDES-LOCATAIRES-CONTRATS-ABSENTS.md) — La branche `feat/p0-a2-14-tenant-guardrails` appelle des contrats absents du module, — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

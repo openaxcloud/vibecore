@@ -141,3 +141,42 @@ export function countActiveStrikes(strikes: ReadonlyArray<StrikeRecordLike>, now
 
   return count;
 }
+
+/**
+ * Count the moderation-strike records stored in a User.preferences blob. Tenant
+ * reputation uses this for every organization member, so a struck owner cannot
+ * invite a clean collaborator and regain the higher tenant tier. A present but
+ * malformed strike collection is treated as one active strike (fail closed).
+ */
+export function countActiveModerationStrikes(preferences: unknown, nowMs: number): number {
+  if (!Number.isFinite(nowMs)) {
+    throw new RangeError('moderation strike clock must be finite');
+  }
+
+  if (!preferences || typeof preferences !== 'object' || Array.isArray(preferences)) {
+    return 0;
+  }
+
+  const strikes = (preferences as Record<string, unknown>).moderationStrikes;
+
+  if (strikes === undefined || strikes === null) {
+    return 0;
+  }
+
+  if (!Array.isArray(strikes)) {
+    return 1;
+  }
+
+  const cutoff = nowMs - STRIKE_EXPIRY_DAYS * MS_PER_DAY;
+
+  return strikes.reduce((count, strike) => {
+    if (!strike || typeof strike !== 'object' || Array.isArray(strike)) {
+      return count + 1;
+    }
+
+    const createdAt = (strike as Record<string, unknown>).createdAt;
+    const createdMs = new Date(createdAt as string | number | Date).getTime();
+
+    return !Number.isFinite(createdMs) || createdMs >= cutoff ? count + 1 : count;
+  }, 0);
+}

@@ -1454,6 +1454,8 @@ export interface ApiStore {
     pagePath?: string;
   }): Promise<ContactRequestRecord>;
   countProjects(organizationId: string): Promise<number>;
+  countOrganizationActiveStrikes(organizationId: string, nowMs: number): Promise<number>;
+  countRecentSevereAbuseEvents(organizationId: string, since: Date): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;
 
@@ -1909,6 +1911,7 @@ export interface ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+    initialStatus?: WorkspaceRecord['status'];
   }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
