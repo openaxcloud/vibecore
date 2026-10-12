@@ -92,3 +92,16 @@ nouvelle erreur (dette de ces scripts antérieure à main maintenue). Le chart
 porte déjà une restriction d’egress du captureur : sa présence dans le dépôt
 ne prouve pas son efficacité dans le cluster ni l’absence de politiques
 externes additives. Cette réserve live reste ouverte.
+
+## Intégration à main b7a8b4b3 — 12 octobre
+
+Fusion réelle du lot #716, sans conflit. Après cette intégration : 110 cas
+sécurité/manifeste/index/i18n/code mort et 3 cas métriques passent ; les 19
+cas API passent, dont le clone Git réel. Les 22 cas du captureur sont tenus
+à l’étape précédente, ses fichiers n’ont pas été modifiés par la fusion.
+Total distinct : 154 cas. Types web et API passent. Lint web complet : zéro
+erreur, 48 avertissements antérieurs. Lint différentiel des fichiers touchés :
+aucune nouvelle erreur ; le seul avertissement ajouté dans cette mesure est
+une directive d’import NodeNext rendue inutilisée par son override de services.
+Les quatre contre-épreuves physiques navigateur/proxy et les deux contre-épreuves
+du détecteur de livraison restent documentées ci-dessus.
