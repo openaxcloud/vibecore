@@ -1,0 +1,78 @@
+{
+  "baseSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+  "branch": "fix/reprise-services-coherente-20261012",
+  "distinctTests": 370,
+  "logs": {
+    "api": {
+      "passed": 181,
+      "sha256": "9129170e2670895b7e4be16ee8a15bd883fd7e896320b5302ea30b6c26bb7218",
+      "includedInDistinct": true,
+      "note": "Initial 181 cases plus new quota/purge race case, rechecked in 51-case storage subset."
+    },
+    "postgresPurge": {
+      "passed": 29,
+      "sha256": "9deb50fdad71c6c5a798c719b42124b446bcaea42d37e5afebaa53d272a878be",
+      "includedInDistinct": true
+    },
+    "postgresTenant": {
+      "passed": 2,
+      "sha256": "60c54ba454eef5afd7477417fbb98b23f28e4d6643410a38a3740c4affcc384d",
+      "includedInDistinct": true
+    },
+    "manager": {
+      "passed": 97,
+      "sha256": "6b8fe785b79666ff732d65646615e3cdbbbf7edbf3ab1890ed28bcb399e3b6af",
+      "includedInDistinct": true
+    },
+    "postgresManager": {
+      "passed": 19,
+      "sha256": "bd170084e963e247ef35b7f019e2f58894d9ef2f213af7beee2ad5b176093ede",
+      "includedInDistinct": true
+    },
+    "worker": {
+      "passed": 10,
+      "sha256": "e4098f74df809b0474b37d3db10d07198b7d97da6d070ac351d07fb1b4ea365d",
+      "includedInDistinct": true
+    },
+    "sdk": {
+      "passed": 8,
+      "sha256": "790c211dae84906f01e7e5730dd5ef2d1d631709ad6f27f584ce221655eb1da7",
+      "includedInDistinct": true
+    },
+    "indexAndMetrics": {
+      "passed": 9,
+      "sha256": "c387c8132cf7941b7b0ebe955c48ba4c1cf4a7d57166168904ce1718af068896",
+      "includedInDistinct": true
+    },
+    "i18nScanner": {
+      "passed": 14,
+      "sha256": "15705800d705f63f255837cf60c6fa2fc486500cead64d70bc65c9d7dae1acec",
+      "includedInDistinct": true
+    },
+    "storageRecheckSubset": {
+      "passed": 51,
+      "sha256": "7236b4c5e4f82e0c8a933e8bdccf5b8ba442976bc4f6751fe1f530a6a7521042",
+      "includedInDistinct": false
+    }
+  },
+  "newQuotaRouteTest": {
+    "passed": true,
+    "counterExpectedStatus": 403,
+    "counterObservedStatus": 422,
+    "counterFailureRequired": true
+  },
+  "scope": "Local fixtures only; real PostgreSQL, mocked GCS/Kubernetes; no customer data deleted and no production flags activated.",
+  "apiDistinctTests": 182,
+  "checks": {
+    "apiTypes": true,
+    "apiBuild": true,
+    "managerTypes": true,
+    "managerBuild": true,
+    "workerTypes": true,
+    "workerBuild": true,
+    "observabilityTypes": true,
+    "newLintErrors": 0,
+    "globalLintClean": false,
+    "i18nSourceBaselineUnchanged": true
+  }
+}
