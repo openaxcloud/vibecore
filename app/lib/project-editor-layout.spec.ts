@@ -301,6 +301,99 @@ describe('document-backed editor tabs', () => {
   });
 });
 
+describe('document identity across pinned and floating tabs', () => {
+  it('keeps a pinned preview document when another file opens in preview', () => {
+    let state = openTabInPane(createProjectEditorWindow(), {
+      paneId: 'pane-main',
+      tab: { id: 'request-a', panel: 'editor', filePath: '/a.txt', preview: true },
+    });
+    state = updatePane(state, 'pane-main', (pane) => ({
+      ...pane,
+      tabs: pane.tabs.map((tab) => ({ ...tab, pinned: true })),
+    }));
+
+    const pinned = findPane(state, 'pane-main')!.tabs[0];
+
+    const opened = openTabInPane(state, {
+      paneId: 'pane-main',
+      tab: { id: 'request-b', panel: 'editor', filePath: '/b.txt', preview: true, pinned: undefined },
+    });
+
+    expect(findPane(opened, 'pane-main')?.tabs).toEqual([
+      pinned,
+      expect.objectContaining({ filePath: '/b.txt', preview: true }),
+    ]);
+    expect(findPane(opened, 'pane-main')?.activeTabId).not.toBe(pinned.id);
+    expectValid(opened);
+  });
+
+  it('retains the same tab when repeatedly opening its preview and then replaces only that preview', () => {
+    let state = openTabInPane(createProjectEditorWindow(), {
+      paneId: 'pane-main',
+      tab: { id: 'request-a', panel: 'editor', filePath: '/a.txt', preview: true },
+    });
+
+    const originalId = findPane(state, 'pane-main')!.activeTabId;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      state = openTabInPane(state, {
+        paneId: 'pane-main',
+        tab: { id: `repeat-${attempt}`, panel: 'editor', filePath: '/a.txt', preview: true },
+      });
+      expect(findPane(state, 'pane-main')?.tabs).toHaveLength(1);
+      expect(findPane(state, 'pane-main')?.activeTabId).toBe(originalId);
+    }
+
+    state = openTabInPane(state, {
+      paneId: 'pane-main',
+      tab: { id: 'request-b', panel: 'editor', filePath: '/b.txt', preview: true },
+    });
+    expect(findPane(state, 'pane-main')?.tabs).toEqual([
+      expect.objectContaining({ id: originalId, filePath: '/b.txt', preview: true }),
+    ]);
+    expectValid(state);
+  });
+
+  it('opens files in the floating target and preserves both panes when docking it back', () => {
+    let state = splitPane(createProjectEditorWindow(), {
+      paneId: 'pane-main',
+      direction: 'horizontal',
+      newPaneId: 'pane-right',
+      newTabId: 'tab-right',
+    });
+    state = openTabInPane(state, {
+      paneId: 'pane-main',
+      tab: { id: 'request-a', panel: 'editor', filePath: '/a.txt', preview: false },
+    });
+
+    const leftBefore = findPane(state, 'pane-main');
+    state = floatPane(state, { paneId: 'pane-right' });
+    expect(state.floatingPanes).toHaveLength(1);
+    state = openTabInPane(state, {
+      paneId: 'pane-right',
+      tab: { id: 'request-b', panel: 'editor', filePath: '/b.txt', preview: true },
+    });
+    expect(state.floatingPanes[0].pane.tabs).toEqual([
+      expect.objectContaining({ id: 'tab-right', filePath: '/b.txt', preview: true }),
+    ]);
+    expect(findPane(state, 'pane-main')).toEqual(leftBefore);
+    state = openTabInPane(state, {
+      paneId: 'pane-right',
+      tab: { id: 'request-c', panel: 'editor', filePath: '/c.txt', preview: true },
+    });
+
+    const floatingBeforeDock = findPane(state, 'pane-right');
+    expect(floatingBeforeDock?.tabs).toEqual([
+      expect.objectContaining({ id: 'tab-right', filePath: '/c.txt', preview: true }),
+    ]);
+    state = dockPane(state, { paneId: 'pane-right' });
+    expect(state.floatingPanes).toHaveLength(0);
+    expect(findPane(state, 'pane-main')).toEqual(leftBefore);
+    expect(findPane(state, 'pane-right')).toEqual(floatingBeforeDock);
+    expectValid(state);
+  });
+});
+
 describe('splitPane', () => {
   it('creates a resizable horizontal split and moves a selected tab', () => {
     const source = createProjectEditorWindow(

@@ -701,6 +701,7 @@ function installWorkspaceSemanticProviders(
     getCurrentValue: () => string;
     getCurrentFilePath: () => string | undefined;
     getProjectFiles: () => Record<string, string> | undefined;
+    acquireModel: (filePath: string, contents: string) => MonacoTypes.editor.ITextModel;
     onOpenFile: (filePath: string) => void;
   },
 ) {
@@ -724,20 +725,15 @@ function installWorkspaceSemanticProviders(
     getWorkspaceIndex(sources.getProjectFiles(), sources.getCurrentFilePath(), sources.getCurrentValue());
 
   const ensureModel = (filePath: string, contents: string) => {
-    const uri = modelUriForPath(monaco, filePath);
-    const existing = monaco.editor.getModel(uri);
+    const model = sources.acquireModel(filePath, contents);
 
-    if (existing) {
-      if (existing.getValue() !== contents) {
-        existing.setValue(contents);
-      }
-
-      monaco.editor.setModelLanguage(existing, languageForPath(filePath));
-
-      return existing;
+    if (model.getValue() !== contents) {
+      setExternalModelValue(model, contents);
     }
 
-    return monaco.editor.createModel(contents, languageForPath(filePath), uri);
+    monaco.editor.setModelLanguage(model, languageForPath(filePath));
+
+    return model;
   };
 
   const symbolKind = (kind: WorkspaceSymbol['kind']) => {
@@ -988,6 +984,47 @@ function installWorkspaceSemanticProviders(
   ];
 }
 
+// Monaco models are global by URI; editor widgets do not own them exclusively.
+const desktopModelUsers = new WeakMap<MonacoTypes.editor.ITextModel, { count: number; owned: boolean }>();
+const externallyUpdatingModels = new WeakSet<MonacoTypes.editor.ITextModel>();
+
+function setExternalModelValue(model: MonacoTypes.editor.ITextModel, value: string) {
+  /*
+   * setValue notifies every widget attached to this model synchronously.
+   * Suppress synthetic user edits in all of them, not just in the caller.
+   */
+  const alreadyUpdating = externallyUpdatingModels.has(model);
+  externallyUpdatingModels.add(model);
+
+  try {
+    model.setValue(value);
+  } finally {
+    if (!alreadyUpdating) {
+      externallyUpdatingModels.delete(model);
+    }
+  }
+}
+
+function retainDesktopModel(model: MonacoTypes.editor.ITextModel, owned: boolean) {
+  const users = desktopModelUsers.get(model) ?? { count: 0, owned };
+  users.count++;
+  desktopModelUsers.set(model, users);
+}
+
+function releaseDesktopModel(model: MonacoTypes.editor.ITextModel) {
+  const users = desktopModelUsers.get(model);
+
+  if (!users || --users.count > 0) {
+    return;
+  }
+
+  desktopModelUsers.delete(model);
+
+  if (users.owned && !model.isDisposed()) {
+    model.dispose();
+  }
+}
+
 export function DesktopCodeEditor({
   value,
   filePath,
@@ -1003,6 +1040,7 @@ export function DesktopCodeEditor({
   onSave,
 }: EditorAdapterProps) {
   const copy = useEditorUiCopy();
+  const [editorVersion, setEditorVersion] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<MonacoTypes.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof import('monaco-editor/esm/vs/editor/editor.api') | null>(null);
@@ -1010,24 +1048,18 @@ export function DesktopCodeEditor({
   const onSaveRef = useRef(onSave);
   const valueRef = useRef(value);
   const filePathRef = useRef(filePath);
+  const languageRef = useRef(language);
   const projectFilesRef = useRef(projectFiles);
+  const retainedModelsRef = useRef(new Map<string, MonacoTypes.editor.ITextModel>());
   const ownedWorkspaceModelsRef = useRef<Set<string>>(new Set());
   const envMaskDecorationsRef = useRef<string[]>([]);
-
-  /*
-   * Set while we programmatically push an external/agent-streamed value into the
-   * Monaco model via setValue(). Monaco fires onDidChangeModelContent
-   * synchronously for setValue, so without this guard each programmatic update
-   * would re-fire onChange — collapsing the user's selection, polluting the undo
-   * stack, and scheduling redundant autosaves while an agent is writing.
-   */
-  const isApplyingExternalRef = useRef(false);
 
   useEffect(() => {
     onChangeRef.current = onChange;
     onSaveRef.current = onSave;
     valueRef.current = value;
     filePathRef.current = filePath;
+    languageRef.current = language;
     projectFilesRef.current = projectFiles;
   });
 
@@ -1063,6 +1095,26 @@ export function DesktopCodeEditor({
     );
   }, []);
 
+  const acquireModel = useCallback((path: string, contents: string, modelLanguage?: string) => {
+    const monaco = monacoRef.current!;
+    const uri = modelUriForPath(monaco, path);
+    const key = uri.toString();
+    const existing = monaco.editor.getModel(uri);
+    const model = existing ?? monaco.editor.createModel(contents, languageForPath(path, modelLanguage), uri);
+    const retained = retainedModelsRef.current.get(key);
+
+    if (retained !== model) {
+      if (retained) {
+        releaseDesktopModel(retained);
+      }
+
+      retainDesktopModel(model, !existing);
+      retainedModelsRef.current.set(key, model);
+    }
+
+    return model;
+  }, []);
+
   useEffect(() => {
     if (!containerRef.current || editorRef.current) {
       return;
@@ -1078,11 +1130,7 @@ export function DesktopCodeEditor({
 
         monacoRef.current = monaco;
 
-        const currentModel = monaco.editor.createModel(
-          value,
-          languageForPath(filePath, language),
-          modelUriForPath(monaco, filePath ?? 'untitled'),
-        );
+        const currentModel = acquireModel(filePathRef.current ?? 'untitled', valueRef.current, languageRef.current);
 
         monaco.editor.defineTheme('vibecore-vs-dark', {
           base: 'vs-dark',
@@ -1175,8 +1223,17 @@ export function DesktopCodeEditor({
 
         editorRef.current = editor;
 
+        /*
+         * The selected document can change while the module is loading. Refs
+         * give the initial model its current identity; the version also reruns
+         * synchronization for options, workspace models and theme that changed
+         * before an editor existed. A later locale-driven remount must do this
+         * again, so a one-time ready boolean would not be sufficient.
+         */
+        setEditorVersion((version) => version + 1);
+
         const disposable = editor.onDidChangeModelContent(() => {
-          if (isApplyingExternalRef.current) {
+          if (externallyUpdatingModels.has(editor.getModel()!)) {
             return;
           }
 
@@ -1222,6 +1279,7 @@ export function DesktopCodeEditor({
           getCurrentValue: () => valueRef.current,
           getCurrentFilePath: () => filePathRef.current,
           getProjectFiles: () => projectFilesRef.current,
+          acquireModel,
           onOpenFile: (targetFilePath) => {
             window.dispatchEvent(
               new CustomEvent('vibecore:open-editor-file', { detail: { filePath: targetFilePath } }),
@@ -1237,7 +1295,6 @@ export function DesktopCodeEditor({
           disposable.dispose();
           selectionDisposable.dispose();
           providerDisposables.forEach((providerDisposable) => providerDisposable.dispose());
-          currentModel.dispose();
         });
       })
       .catch((error) => {
@@ -1257,13 +1314,14 @@ export function DesktopCodeEditor({
       editorRef.current?.dispose();
       editorRef.current = null;
 
-      for (const uriString of ownedWorkspaceModelsRef.current) {
-        monacoRef.current?.editor.getModel(monacoRef.current.Uri.parse(uriString))?.dispose();
+      for (const model of retainedModelsRef.current.values()) {
+        releaseDesktopModel(model);
       }
 
+      retainedModelsRef.current.clear();
       ownedWorkspaceModelsRef.current.clear();
     };
-  }, [copy]);
+  }, [acquireModel, copy]);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -1274,14 +1332,8 @@ export function DesktopCodeEditor({
     }
 
     if (monaco && filePath) {
-      const uri = modelUriForPath(monaco, filePath);
       const activeModel = editor.getModel();
-
-      let targetModel = monaco.editor.getModel(uri);
-
-      if (!targetModel) {
-        targetModel = monaco.editor.createModel(value, languageForPath(filePath, language), uri);
-      }
+      const targetModel = acquireModel(filePath, value, language);
 
       /*
        * Identity, not URI. A disposed model keeps its URI, so comparing URIs
@@ -1299,13 +1351,7 @@ export function DesktopCodeEditor({
     const model = editor.getModel();
 
     if (model && model.getValue() !== value) {
-      isApplyingExternalRef.current = true;
-
-      try {
-        model.setValue(value);
-      } finally {
-        isApplyingExternalRef.current = false;
-      }
+      setExternalModelValue(model, value);
     }
 
     editor.updateOptions({
@@ -1353,17 +1399,13 @@ export function DesktopCodeEditor({
         }
 
         const uri = modelUriForPath(monaco, workspaceFilePath);
-        const existingModel = monaco.editor.getModel(uri);
+        const workspaceModel = acquireModel(workspaceFilePath, contents);
 
-        if (existingModel) {
-          if (existingModel.getValue() !== contents) {
-            existingModel.setValue(contents);
-          }
-
-          monaco.editor.setModelLanguage(existingModel, languageForPath(workspaceFilePath));
-        } else {
-          monaco.editor.createModel(contents, languageForPath(workspaceFilePath), uri);
+        if (workspaceModel.getValue() !== contents) {
+          setExternalModelValue(workspaceModel, contents);
         }
+
+        monaco.editor.setModelLanguage(workspaceModel, languageForPath(workspaceFilePath));
 
         nextOwnedModelUris.add(uri.toString());
       }
@@ -1373,16 +1415,21 @@ export function DesktopCodeEditor({
         nextOwnedModelUris,
         editor.getModel()?.uri.toString(),
       )) {
-        monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
+        const retained = retainedModelsRef.current.get(uriString);
+
+        if (retained) {
+          releaseDesktopModel(retained);
+          retainedModelsRef.current.delete(uriString);
+        }
       }
 
       ownedWorkspaceModelsRef.current = nextOwnedModelUris;
     }
-  }, [filePath, language, largeFile, minimapEnabled, projectFiles, readOnly, value]);
+  }, [acquireModel, editorVersion, filePath, language, largeFile, minimapEnabled, projectFiles, readOnly, value]);
 
   useEffect(() => {
     monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vibecore-vs-light');
-  }, [theme]);
+  }, [editorVersion, theme]);
 
   useEffect(() => {
     const runEditorCommand = (event: Event) => {

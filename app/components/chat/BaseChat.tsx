@@ -74,6 +74,7 @@ import {
   dockPane as engineDockPane,
   floatPane as engineFloatPane,
   moveTab as engineMoveTab,
+  openTabInPane as engineOpenTabInPane,
   reorderTab as engineReorderTab,
   setSplitRatio as engineSetSplitRatio,
   splitPane as engineSplitPane,
@@ -3784,6 +3785,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () => dispositionTransmise?.floatingPanes ?? [],
     );
 
+    const floatingPanesRef = useRef(floatingPanes);
+    floatingPanesRef.current = floatingPanes;
+
     /** RPL-IDE-001.1 — last layout signature applied, to skip redundant cross-tab echoes. */
     const projectEditorWindowSyncRef = useRef<string>('');
 
@@ -6098,31 +6102,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         const targetPaneId = options.paneId ?? activePaneId;
         setActivePaneId(targetPaneId);
-        setPaneTree((currentTree) =>
-          updateLeaf(currentTree, targetPaneId, (leaf) => {
-            const existing = options.filePath
-              ? leaf.tabs.find((tab) => tab.panel === panel && tab.filePath === options.filePath)
-              : leaf.tabs.find((tab) => tab.panel === panel && !tab.filePath);
-            const nextTab =
-              existing ??
-              makePaneTab(panel, {
-                pinned: panel === 'preview',
-                filePath: options.filePath,
-                preview: options.preview,
-              });
-            const baseTabs =
-              panel === 'editor' && options.preview
-                ? leaf.tabs.filter((tab) => !(tab.panel === 'editor' && tab.preview))
-                : leaf.tabs;
-            const tabs = existing
-              ? baseTabs.map((tab) =>
-                  tab.id === existing.id ? { ...tab, preview: options.preview ?? tab.preview } : tab,
-                )
-              : [...baseTabs, nextTab];
 
-            return { ...leaf, tabs, activeTabId: nextTab.id };
-          }),
-        );
+        const openTab = (windowState: ProjectEditorWindowState) =>
+          engineOpenTabInPane(windowState, {
+            paneId: targetPaneId,
+            tab: {
+              ...makePaneTab(panel, {
+                pinned: panel === 'preview' ? true : undefined,
+                filePath: options.filePath,
+              }),
+              preview: options.preview,
+            },
+          });
+
+        /*
+         * A floating target belongs to floatingPanes, not the docked tree.
+         * Pass the complete window to the engine and update the target's owner;
+         * otherwise selecting a file changes the global document but not its tab.
+         */
+        if (floatingPanesRef.current.some((floating) => floating.pane.id === targetPaneId)) {
+          setFloatingPanes(
+            (current) =>
+              runProjectEditorWindowOp(
+                { root: paneTreeRef.current, floatingPanes: current, activePaneId: targetPaneId },
+                openTab,
+              ).floatingPanes,
+          );
+        } else {
+          setPaneTree((currentTree) => {
+            const next = runProjectEditorWindowOp(
+              { root: currentTree, floatingPanes: floatingPanesRef.current, activePaneId: targetPaneId },
+              openTab,
+            );
+
+            return next.root ?? currentTree;
+          });
+        }
 
         if (panel === 'editor' && options.filePath) {
           workbenchStore.setSelectedFile(options.filePath);
