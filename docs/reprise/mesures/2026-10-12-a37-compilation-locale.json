@@ -1,0 +1,79 @@
+{
+  "date": "2026-10-12",
+  "baseSha": "e1ba08b68c2e9ba82a838ca9c5dc8f0206fcac43",
+  "branch": "audit/a37-local-20261012",
+  "scope": "Local deterministic ESM HMR config repair; A-37 remains open",
+  "versions": {
+    "node": "v24.19.0",
+    "pnpm": "9.14.4",
+    "typescript": "5.9.3",
+    "vite": "5.4.21"
+  },
+  "red": {
+    "testsFailed": 6,
+    "diagnostics": [
+      "TS7006",
+      "TS2349"
+    ],
+    "log": "/tmp/a37-red.log"
+  },
+  "final": {
+    "suitesPassed": 5,
+    "testsPassed": 54,
+    "exitCode": 0,
+    "vitestSeconds": 16.05,
+    "wallSeconds": 17.79,
+    "childMaxRssKiB": 430520,
+    "log": "/tmp/a37-final-tests.log"
+  },
+  "independentReview": {
+    "suitesPassed": 3,
+    "testsPassed": 32,
+    "verdict": "No new blocker in the reviewed ESM scope; before three extra counterexamples"
+  },
+  "lint": {
+    "exitCode": 0,
+    "errors": 0,
+    "warnings": 51
+  },
+  "typecheck": {
+    "exitCode": 1,
+    "baselineDiagnostics": 6,
+    "currentDiagnostics": 6,
+    "baselineMethod": "TypeScript CompilerHost with modified tracked source contents replaced by git show HEAD; same restored dependency graph",
+    "diagnostics": [
+      "app/lib/stores/workbench.ts(4398,30): TS2345",
+      "app/routes/api.projects.$id.files.$.tsx(97,23): TS2345",
+      "app/routes/api.projects.$projectId.project-action.ts(55,23): TS2345",
+      "packages/runtime-remote/src/index.ts(1165,9): TS2322",
+      "vite-electron.config.ts(20,29): TS2769",
+      "vite.config.ts(130,29): TS2769"
+    ]
+  },
+  "generatedProjectBuild": "tsc -b && vite build: passed",
+  "negativeControl": "Missing MAX_HISTORY export: TS2305",
+  "notValidated": [
+    "Fresh AI generation",
+    "Isolated exact gallery dependency installs",
+    "Full strict typing of injected API middleware",
+    "CommonJS correction",
+    "Global Vibecore build",
+    "CI",
+    "Remote preview",
+    "Publication",
+    "Published app interaction"
+  ],
+  "networkOperations": [
+    "git fetch origin main only"
+  ],
+  "push": false,
+  "publication": false,
+  "targetedTypecheck": {
+    "exitCode": 0,
+    "scope": "HMR suites and imported runtime modules, strict TypeScript"
+  },
+  "finalIndexCheck": {
+    "testsPassed": 6,
+    "exitCode": 0
+  }
+}

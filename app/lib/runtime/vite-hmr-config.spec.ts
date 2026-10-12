@@ -24,7 +24,7 @@ describe('ensureViteHmrConfig', () => {
 
     expect(out).toContain("import { mergeConfig as __ecodeMergeConfig } from 'vite'");
     expect(out).toContain('const __ecodeUserConfig = defineConfig({');
-    expect(out).toContain('__ecodeMergeConfig(__ecodeUserConfig, __ecodeHmrOverride)');
+    expect(out).toContain('__ecodeMergeConfig(await resolveConfig(env), __ecodeHmrOverride)');
 
     // The model's original settings are still present.
     expect(out).toContain('plugins: [react()]');
@@ -49,7 +49,7 @@ describe('ensureViteHmrConfig', () => {
     const out = ensureViteHmrConfig(FUNCTION_CONFIG);
 
     expect(out).toContain('const __ecodeUserConfig = defineConfig(({ mode }) =>');
-    expect(out).toContain('(env) => __ecodeMergeConfig(__ecodeUserConfig(env), __ecodeHmrOverride)');
+    expect(out).toContain('export default __ecodeDefineConfig(async (env) => {');
     expect(out).toContain('define: { __MODE__: JSON.stringify(mode) }');
   });
 

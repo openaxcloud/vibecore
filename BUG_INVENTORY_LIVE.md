@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-417 entrées.
+418 entrées.
 
 ## Sans section
 
@@ -491,6 +491,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001](docs/bugs/BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001.md) — P1 — le captureur reconstruit ne démarre pas avec sa nouvelle dépendance de sécurité TypeScript. — 📤 Dispatché : Pris en charge le 12 octobre 2026 après le déploiement 38194840868. · 💻 Codé : ☑ Fusionné par #722 à `7ce2aa9ceac014b2449d053e3991baeaea9f427d` après 26 contrôles verts : `tsx dist/server.j · ✅ Testé live : ☐ Vérification complète encore partielle : le démarrage est confirmé dans la livraison 38203837782 (pod Runnin
+
+## 2026-10-12 — Revalidation locale A-37
+
+- [BUG-GEN-HMR-CONFIG-TYPES-001](docs/bugs/BUG-GEN-HMR-CONFIG-TYPES-001.md) — Le post-traitement ESM de `vite.config.ts` par `ensureViteHmrConfig` — 📤 Dispatché : ☑ 12/10 — chantier local A-37. · 💻 Codé : ☐ Correctif local préparé et relu indépendamment ; aucun push ni fusion. · ✅ Testé live : ☐ Aucun test live. A-37 reste ouvert.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

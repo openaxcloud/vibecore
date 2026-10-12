@@ -56,14 +56,32 @@ const OVERRIDE_BLOCK = `const ${MARKER} = {
 };
 `;
 
+const CONFIG_IMPORT = `import { defineConfig as __ecodeDefineConfig } from 'vite';`;
+
 const INJECTED_HEADER = `import { mergeConfig as __ecodeMergeConfig } from 'vite';
+${CONFIG_IMPORT}
 
 ${OVERRIDE_BLOCK}`;
 
-const INJECTED_FOOTER = `
+const LEGACY_ESM_FOOTER = `
 export default typeof __ecodeUserConfig === 'function'
   ? (env) => __ecodeMergeConfig(__ecodeUserConfig(env), ${MARKER})
   : __ecodeMergeConfig(__ecodeUserConfig, ${MARKER});
+`;
+
+/*
+ * defineConfig contextualizes env in both JS and TS. Normalize the callable
+ * before invoking it: calling the function branch directly narrows object-only
+ * configs to never in TypeScript. The default argument keeps zero-arg configs
+ * callable with ConfigEnv without an any cast or a TS-only annotation.
+ */
+const INJECTED_FOOTER = `
+export default __ecodeDefineConfig(async (env) => {
+  const resolveConfig = typeof __ecodeUserConfig === 'function'
+    ? __ecodeUserConfig
+    : (_env = env) => __ecodeUserConfig;
+  return __ecodeMergeConfig(await resolveConfig(env), ${MARKER});
+});
 `;
 
 /*
@@ -125,14 +143,24 @@ export function ensureViteHmrConfig(source: string): string {
      * existing env-gated override block so it aligns without a full, fragile
      * re-wrap. When the pin is already there it's current → no-op (idempotent).
      */
-    if (source.includes(PIN_MARKER)) {
-      return source;
+    let upgraded = source.includes(PIN_MARKER)
+      ? source
+      : source.replace(
+          /(process\.env\.VITE_HMR_CLIENT_PORT\s*\?\s*\{)/,
+          '$1\n          port: 5173,\n          strictPort: true,',
+        );
+
+    // Upgrade only our exact previous footer; do not rewrite user-authored code.
+    for (const prefix of ['export default ', 'const __ecodeApiUserConfig = ']) {
+      const legacy = LEGACY_ESM_FOOTER.trim().replace('export default ', prefix);
+      const replacement = INJECTED_FOOTER.trim().replace('export default ', prefix);
+
+      if (upgraded.includes(legacy)) {
+        upgraded = `${CONFIG_IMPORT}\n${upgraded.replace(legacy, replacement)}`;
+      }
     }
 
-    return source.replace(
-      /(process\.env\.VITE_HMR_CLIENT_PORT\s*\?\s*\{)/,
-      '$1\n          port: 5173,\n          strictPort: true,',
-    );
+    return upgraded;
   }
 
   /*

@@ -7,6 +7,7 @@ Ce fichier n'est pas un second registre de statuts.
 
 - [Inventaire de reprise du 11 octobre](docs/reprise/2026-10-11-inventaire.md) : conserver les 71 entrées A-1–A-35 et B-1–B-36, leurs preuves et leurs réserves.
 - [Complément de périmètre et priorités](docs/reprise/2026-10-12-complement-inventaire.md) : A-36/A-37, B-4bis, C à F et ordre P0–P4 ; les observations anciennes ne valent pas vérification actuelle.
+- [A-37 : compilation locale revalidée](docs/reprise/2026-10-12-a37-compilation-locale.md) : défaut actuel du wrapper HMR reproduit ; aucune clôture du parcours génération/publication live.
 - [Bugs](BUG_INVENTORY_LIVE.md) : index dérivé des fiches dans `docs/bugs/`, jamais à modifier à la main.
 - [Programme design](DESIGN_PROGRAM_MASTER.md) et [audit design](DESIGN_AUDIT_LIVE.md) : exigences et preuves visuelles.
 - [Plan restant](PLAN_REMAINING_UNIFIED.md) et [parité Replit](REPLIT_PARITY.md) : plan fonctionnel et visuel.

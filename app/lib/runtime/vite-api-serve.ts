@@ -288,10 +288,16 @@ const INJECTED_ESM_HEADER = `import { mergeConfig as __ecodeApiMergeConfig } fro
 
 ${API_SERVE_PLUGIN_BLOCK}`;
 
-const INJECTED_ESM_FOOTER = `
+const LEGACY_ESM_FOOTER = `
 export default typeof __ecodeApiUserConfig === 'function'
   ? (env) => __ecodeApiMergeConfig(__ecodeApiUserConfig(env), __ecodeApiServeOverride)
   : __ecodeApiMergeConfig(__ecodeApiUserConfig, __ecodeApiServeOverride);
+`;
+
+const INJECTED_ESM_FOOTER = `
+export default typeof __ecodeApiUserConfig === 'function'
+  ? async (env) => __ecodeApiMergeConfig(await __ecodeApiUserConfig(env), __ecodeApiServeOverride)
+  : async () => __ecodeApiMergeConfig(await __ecodeApiUserConfig, __ecodeApiServeOverride);
 `;
 
 const INJECTED_CJS_HEADER = `const { mergeConfig: __ecodeApiMergeConfig } = require('vite');
@@ -313,8 +319,12 @@ module.exports = typeof __ecodeApiUserConfig === 'function'
  * unlike the HMR pin, the preview still renders without this middleware).
  */
 export function ensureViteApiServeConfig(source: string): string {
-  if (!source || source.includes(API_SERVE_MARKER)) {
+  if (!source) {
     return source;
+  }
+
+  if (source.includes(API_SERVE_MARKER)) {
+    return source.replace(LEGACY_ESM_FOOTER.trim(), INJECTED_ESM_FOOTER.trim());
   }
 
   const exportDefault = /(^|\n)\s*export\s+default\s+/;

@@ -1,5 +1,5 @@
 import { synthesizeMissingBarrels } from './barrel-synthesis';
-import { ensureViteApiServeConfig, needsApiDevServe } from './vite-api-serve';
+import { API_SERVE_MARKER, ensureViteApiServeConfig, needsApiDevServe } from './vite-api-serve';
 import { ensureViteHmrConfig } from './vite-hmr-config';
 
 export interface GeneratedPreviewFile {
@@ -363,7 +363,7 @@ function supplementalPreviewFiles(
      */
     let ensured = ensureViteHmrConfig(files[viteConfigPath]);
 
-    if (wireApiServe) {
+    if (wireApiServe || ensured.includes(API_SERVE_MARKER)) {
       ensured = ensureViteApiServeConfig(ensured);
     }
 
