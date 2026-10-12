@@ -69,7 +69,7 @@ describe('screenshotter — pages d’erreur', () => {
     const res = await capture(rendererThrowing(new Error('browser crashed')));
 
     expect(res.statusCode).toBe(502);
-    expect(res.json().error).toBe('render failed');
+    expect(res.json()).toEqual({ error: 'render failed' });
   });
 
   it('PageRenderError porte le statut, pour journaliser sans alerter', () => {

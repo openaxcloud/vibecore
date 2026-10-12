@@ -105,3 +105,16 @@ aucune nouvelle erreur ; le seul avertissement ajouté dans cette mesure est
 une directive d’import NodeNext rendue inutilisée par son override de services.
 Les quatre contre-épreuves physiques navigateur/proxy et les deux contre-épreuves
 du détecteur de livraison restent documentées ci-dessus.
+
+## Premier verdict CI et diagnostic i18n
+
+Production CI au SHA 0b21e764 échoue avant les tests : le scanner classe huit
+diagnostics internes de transport et un corps JSON de fixture comme nouvelle
+dette. Les appelants ont été relus : SIEM intercepte l’exception sans sérialiser
+son message ; le captureur rend sa réponse générique et ne transmet pas
+l’exception. Trois exceptions précises, documentées, attribuées et expirant
+le 12 janvier 2027 couvrent uniquement ces fichiers et textes. Le registre
+de baseline reste intact. i18n:check passe ; 14 tests du scanner passent.
+Retirer les trois exceptions rend le scanner réel rouge ; après restauration
+il ne reste que les 21 constats de la baseline existante. La garde du captureur
+exige la réponse générique entière, pour exclure l’ajout de diagnostics bruts.
