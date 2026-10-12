@@ -336,7 +336,7 @@
   "pnpm": {
     "overrides": {
       "@grpc/grpc-js": "^1.14.4",
-      "shell-quote": "^1.8.4",
+      "shell-quote": "1.11.0",
       "@modelcontextprotocol/sdk": "^1.29.0",
       "fast-xml-parser": "^5.7.3",
       "fast-jwt": "^6.3.4",
