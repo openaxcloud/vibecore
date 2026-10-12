@@ -127,6 +127,7 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
                 : copy['chatBoxChildren.mcp.triggerInitializing']
           }
           tooltip={copy['chatBoxChildren.mcp.triggerLabel']}
+          ariaBusy={!isInitialized && !errorKind}
           disabled={!isInitialized && !errorKind}
           className={classNames(
             isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all',

@@ -68,3 +68,9 @@ Les deux manifestes déclarent fullyTraceable=false. Les sources manquantes des 
 Le [workflow 38181578340](https://github.com/openaxcloud/vibecore/actions/runs/38181578340) est réussi. La capture termine le 12 octobre à 00:30:58 UTC, sortie zéro et `evidenceComplete=true`. Le manifeste déclare neuf références reconstruites depuis `83d1c63e1c4d360ffd359378c74ab8fb2f6f3669`, `fullyTraceable=true`, sans lacune de provenance. Sept services sont rollés et ont passé la comparaison des imageIDs du workflow.
 
 Le captureur et l’agent d’espace restent marqués non rollés : leurs nouvelles références ne prouvent pas que ces conteneurs tournent. Ce workflow n’archive pas les imageIDs bruts. Le lot A-8/A-9/A-11/A-12/A-14/A-16/A-17/B-22/B-24 est livré dans le web reconstruit ; les parcours authentifiés correspondants ne sont pas remesurés en production. Mesure limitée et empreintes des deux artefacts : `mesures/2026-10-12-livraison-83.json`. Aucun paiement ni effacement client exécuté.
+
+## Lot outillage #716 — release b7a8b4b3
+
+Le [workflow 38186261396](https://github.com/openaxcloud/vibecore/actions/runs/38186261396) est réussi. La capture termine le 12 octobre à 01:34:31 UTC, sortie zéro et `evidenceComplete=true`. Les neuf références sont reconstruites depuis `b7a8b4b339628fd98fd0898b397cceb4e70fd71f`, avec neuf signatures vérifiées, `fullyTraceable=true` et aucune lacune de provenance. Sept services sont rollés. Le captureur et l’agent d’espace restent non rollés ; leurs références reconstruites ne prouvent pas qu’ils tournent.
+
+Mesure limitée et empreintes : `mesures/2026-10-12-livraison-b7.json`. L’installation distante à neuf et les parcours authentifiés restent non remesurés. Les lots #715 et #717 sont fusionnés après cette release, mais leur livraison n’est pas établie ici.
