@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 // @ts-expect-error The repository scanner is an ESM build script without a TypeScript declaration file.
-import { scanSource } from '../../../../scripts/i18n/source-scanner.mjs';
+import { applyAllowlist, scanSource, validateAllowlist } from '../../../../scripts/i18n/source-scanner.mjs';
 import {
   appPublicCopy,
   appPublicCopyKeys,
@@ -22,6 +22,24 @@ const creditsServicePath = fileURLToPath(new URL('../credits-service.ts', import
 const meteringServicePath = fileURLToPath(new URL('../metering-service.ts', import.meta.url));
 const prismaStorePath = fileURLToPath(new URL('../prisma-store.ts', import.meta.url));
 const catalogue = JSON.parse(readFileSync(cataloguePath, 'utf8')) as Catalogue;
+
+/*
+ * Use the existing scanner's exact purge classifications instead of copying
+ * diagnostic strings into a second allowlist that can drift from the CLI.
+ */
+const sourceAllowlist = JSON.parse(
+  readFileSync(new URL('../../../../scripts/i18n/source-allowlist.json', import.meta.url), 'utf8'),
+);
+const purgeAllowlist = {
+  schemaVersion: sourceAllowlist.schemaVersion,
+  entries: sourceAllowlist.entries.filter((entry: { id: string }) =>
+    entry.id.startsWith('recovery-purge-control-plane-'),
+  ),
+};
+const withoutClassifiedPurgeDiagnostics = (findings: unknown[]) => {
+  expect(validateAllowlist(purgeAllowlist)).toEqual([]);
+  return applyAllowlist(findings, purgeAllowlist).residual;
+};
 
 function placeholders(value: string): string[] {
   return [...value.matchAll(/\{([A-Za-z][A-Za-z0-9_]*)\}/g)].map((match) => match[1] ?? '').sort();
@@ -303,6 +321,7 @@ describe('backend application response localization', () => {
 describe('app.ts i18n source guard', () => {
   it('leaves only exact internal codes, telemetry labels, and machine contracts', () => {
     const result = scanSource(readFileSync(appPath, 'utf8'), 'services/api/src/app.ts');
+    result.findings = withoutClassifiedPurgeDiagnostics(result.findings);
 
     const allowedInternalFindings = new Set([
       // Metrics/audit dimensions and reconciliation state codes; never rendered.
@@ -433,6 +452,7 @@ describe('credit-ledger persistence source guard', () => {
     'classifies every scanner finding in $file as internal or localized persisted data',
     ({ file, path, expected }) => {
       const result = scanSource(readFileSync(path, 'utf8'), file);
+      result.findings = withoutClassifiedPurgeDiagnostics(result.findings);
 
       expect(result.parseErrors).toEqual([]);
       expect(new Set(result.findings.map((finding: { text: string }) => finding.text))).toEqual(new Set(expected));

@@ -258,12 +258,12 @@ model RolePermission {
 }
 
 model Project {
-  id                     String                  @id @default(cuid())
+  id                     String                     @id @default(cuid())
   organizationId         String
   name                   String
   slug                   String
   description            String?
-  sourceType             String                  @default("blank")
+  sourceType             String                     @default("blank")
   templateName           String?
   gitRepositoryUrl       String?
   gitDefaultBranch       String?
@@ -271,19 +271,20 @@ model Project {
   thumbnailUrl           String?
   thumbnailUpdatedAt     DateTime?
   deletedAt              DateTime?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  organization           Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   environments           ProjectEnvironment[]
   envVars                ProjectEnvVar[]
   secrets                ProjectSecret[]
   collaborators          ProjectCollaborator[]
   activity               ProjectActivity[]
-  templates              ProjectTemplate[]       @relation("ProjectTemplates")
-  galleryListings        GalleryListing[]        @relation("ProjectGalleryListings")
+  templates              ProjectTemplate[]          @relation("ProjectTemplates")
+  galleryListings        GalleryListing[]           @relation("ProjectGalleryListings")
   workspaces             Workspace[]
   snapshots              ProjectSnapshot[]
   storageObjects         ProjectStorageObject[]
+  objectStorageUsage     ProjectObjectStorageUsage?
   deployments            Deployment[]
   fileSnapshots          FileSnapshot[]
   conversations          AiConversation[]
@@ -791,6 +792,30 @@ model ProjectStorageObject {
   @@index([projectId])
   @@index([kind])
   @@index([createdAt])
+}
+
+/// AUDX-023 — measured usage of a project's REAL GCS bucket.
+///
+/// Object-storage metering used to sum `ProjectStorageObject.byteLength`, a
+/// table holding base64 archives inside PostgreSQL, written only by the
+/// snapshot/export path. The `/object-storage/*` routes write to GCS and never
+/// touch it, so every byte uploaded through a signed URL was invisible to
+/// billing AND to any quota — while the code claimed it summed "the REAL stored
+/// bytes".
+///
+/// This row is what the daily inventory writes after walking the bucket with
+/// `listAllObjects` (all pages — a single page stops at 1 000 objects, AUDX-024).
+/// `measuredAt` is carried explicitly because a quota decision taken on a stale
+/// measurement must be able to SAY that it is stale rather than pretend to be
+/// current.
+model ProjectObjectStorageUsage {
+  projectId   String   @id
+  bytes       BigInt   @default(0)
+  objectCount Int      @default(0)
+  measuredAt  DateTime
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([measuredAt])
 }
 
 model Deployment {
@@ -1748,6 +1773,16 @@ model WorkspaceRuntime {
   // createdAt) to lastActiveAt on stop, then advances this marker — idempotent
   // across manager restarts. Null until first metered.
   lastMeteredAt        DateTime?
+  // RR-CODEX-14 (P3): durable purge barrier. Once an account purge freezes this
+  // runtime, NO reprovision (start / restart / agent-token / PVC / Pod / Secret /
+  // Service) may recreate it until the tombstone. purgeFenceToken identifies the
+  // owning purge plan; the barrier is released on abandon and recoverable.
+  purgeFrozen          Boolean   @default(false)
+  purgeFenceToken      String?
+  // RR-CODEX-14 v5 (R-P3-04): when the barrier was set, so an ORPHANED barrier
+  // (owning purge crashed before unfreeze) is recoverable by age via the manager's
+  // reconcileStaleWorkspaceFreezes — never left durably frozen with no owner.
+  purgeFrozenAt        DateTime?
   updatedAt            DateTime  @updatedAt
 
   @@index([orgId])
@@ -2917,6 +2952,56 @@ model WorkspacePostMortem {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, capturedAt])
+}
+
+// RR-1bd27929 — PER-PLAN ownership of account-purge freezes (§16.12). The old
+// model used GLOBAL id-lists, so two concurrent purges sharing an org/project could
+// not tell whose freeze was whose: releasing plan A lifted a freeze plan B still
+// needed. Now each active purge holds a PurgePlan (lease + ownerToken + version for
+// CAS reclaim) and each frozen resource is a PurgeFreeze row OWNED by exactly one
+// plan. A resource is frozen iff >= 1 PurgeFreeze row references it, so releasing
+// one plan only deletes ITS rows and never lifts a freeze another live plan owns.
+// The reconciler reclaims ONLY plans whose lease has expired, via CAS on version —
+// it never touches a live plan.
+model PurgePlan {
+  id             String        @id @default(cuid())
+  // RR-CODEX-12: at most ONE plan per subject — the per-user singleton that stops
+  // two workers running two physical purges of the same account.
+  userId         String        @unique
+  ownerToken     String
+  leaseExpiresAt DateTime
+  version        Int           @default(0)
+  // 'ACTIVE' while an owner holds it; 'RECLAIMING' once a reconciler CAS-claims an
+  // abandoned plan for cleanup (durable, so the old owner cannot continue).
+  status         String        @default("ACTIVE")
+  createdAt      DateTime      @default(now())
+  freezes        PurgeFreeze[]
+
+  @@index([leaseExpiresAt])
+}
+
+model PurgeFreeze {
+  id           String    @id @default(cuid())
+  planId       String
+  resourceType String
+  resourceId   String
+  createdAt    DateTime  @default(now())
+  plan         PurgePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceType, resourceId, planId])
+  @@index([resourceType, resourceId])
+  @@index([planId])
+}
+
+// RR-CODEX-14 (P6): the erasure PROOF written in the SAME transaction as the
+// tombstone. The purge-executor removes a user from the pending queue ONLY once a
+// PurgeReceipt exists — so a failed AdminAuditLog write can never leave a purged
+// account without a reconstructable proof. Unique per user (idempotent).
+model PurgeReceipt {
+  userId    String   @id
+  purgedAt  DateTime
+  proof     Json
+  createdAt DateTime @default(now())
 }
 
 /// Exécution d'une migration de schéma sur la base d'un projet, au moment du

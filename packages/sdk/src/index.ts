@@ -38,9 +38,7 @@ function envOf(name: string): string | undefined {
 
 /** The Postgres connection URL injected by the workspace, per environment. */
 export function getDatabaseUrl(environment: 'development' | 'production' = 'development'): string | undefined {
-  return environment === 'production'
-    ? envOf('PROD_DATABASE_URL') ?? envOf('DATABASE_URL')
-    : envOf('DATABASE_URL');
+  return environment === 'production' ? (envOf('PROD_DATABASE_URL') ?? envOf('DATABASE_URL')) : envOf('DATABASE_URL');
 }
 
 /** Read a project secret/env var the workspace injected. */

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   GcsObjectStorage,
@@ -7,9 +7,11 @@ import {
   ObjectStorageError,
   assertValidObjectKey,
   buildLifecycleRules,
+  guardObjectStorageWrites,
   projectBucketName,
   type BucketLike,
   type FileLike,
+  type ObjectStorage,
   type StorageLike,
   isMissingBucketError,
 } from './object-storage.js';
@@ -69,6 +71,7 @@ class FakeStorage implements StorageLike {
       async setMetadata() {
         return undefined;
       },
+
       /*
        * Models the REAL GCS contract, which the previous fake did not: it
        * ignored `maxResults` and returned every object, so a caller capped at
@@ -81,9 +84,11 @@ class FakeStorage implements StorageLike {
         const map = self.buckets.get(name) ?? new Map<string, FakeObject>();
         const prefix = (query.prefix as string) || '';
         const delimiter = query.delimiter as string | undefined;
+
         const matched = [...map.values()]
           .filter((object) => object.name.startsWith(prefix))
           .sort((a, b) => a.name.localeCompare(b.name));
+
         const prefixes = new Set<string>();
         const collected: FakeObject[] = [];
 
@@ -113,11 +118,7 @@ class FakeStorage implements StorageLike {
         const files: FileLike[] = page.map((object) => self._file(name, object.name));
         const nextQuery = next && query.autoPaginate === false ? { ...query, pageToken: next } : null;
 
-        return [files, nextQuery, { prefixes: [...prefixes] }] as [
-          FileLike[],
-          unknown,
-          { prefixes?: string[] },
-        ];
+        return [files, nextQuery, { prefixes: [...prefixes] }] as [FileLike[], unknown, { prefixes?: string[] }];
       },
       file(fileName: string) {
         return self._file(name, fileName);
@@ -190,17 +191,17 @@ class FakeStorage implements StorageLike {
 /** Wraps a FakeStorage so one object refuses deletion, like a real IAM denial. */
 class ThrowingDeleteStorage implements StorageLike {
   constructor(
-    private readonly inner: FakeStorage,
-    private readonly failingKey: string,
+    private readonly _inner: FakeStorage,
+    private readonly _failingKey: string,
   ) {}
 
   get buckets() {
-    return this.inner.buckets;
+    return this._inner.buckets;
   }
 
   bucket(name: string): BucketLike {
-    const real = this.inner.bucket(name);
-    const failingKey = this.failingKey;
+    const real = this._inner.bucket(name);
+    const failingKey = this._failingKey;
 
     return {
       ...real,
@@ -322,11 +323,14 @@ describe('GcsObjectStorage', () => {
 
     const out = await svc.createUploadUrl(projectId, { key: 'a/b.bin', contentType: 'image/png' });
     expect(out.method).toBe('PUT');
-    // AUDX-021 — the size ceiling is now part of the signed contract, so the
-    // header set is deliberately larger than it was. Kept as an exact equality
-    // rather than a subset check: an upload URL must carry exactly the headers
-    // it was signed with, and a stray extra one is a signature mismatch waiting
-    // to happen.
+
+    /*
+     * AUDX-021 — the size ceiling is now part of the signed contract, so the
+     * header set is deliberately larger than it was. Kept as an exact equality
+     * rather than a subset check: an upload URL must carry exactly the headers
+     * it was signed with, and a stray extra one is a signature mismatch waiting
+     * to happen.
+     */
     expect(out.headers).toEqual({
       'Content-Type': 'image/png',
       'x-goog-content-length-range': `0,${OBJECT_UPLOAD_MAX_BYTES}`,
@@ -403,6 +407,85 @@ describe('GcsObjectStorage', () => {
     const result = await svc.deleteBucket('missing');
 
     expect(result.deleted).toBe(false);
+  });
+});
+
+describe('guardObjectStorageWrites — account-purge freeze barrier (RR-08 #1)', () => {
+  function tracking(): { storage: ObjectStorage; calls: string[] } {
+    const calls: string[] = [];
+
+    const record =
+      <T>(name: string, value: T) =>
+      async () => {
+        calls.push(name);
+
+        return value;
+      };
+    const storage: ObjectStorage = {
+      active: true,
+      ensureBucket: record('ensureBucket', { bucket: 'vc-p', created: true, location: 'EU' }),
+      bucketExists: record('bucketExists', true),
+      listObjects: record('listObjects', { objects: [], folders: [] }),
+      listAllObjects: record('listAllObjects', { objects: [], totalBytes: 0, pages: 1 }),
+      createUploadUrl: record('createUploadUrl', {
+        url: 'u',
+        method: 'PUT' as const,
+        headers: {},
+        expiresAt: 'x',
+        maxBytes: 1,
+      }),
+      createDownloadUrl: record('createDownloadUrl', { url: 'd', expiresAt: 'y' }),
+      putObject: record('putObject', { key: 'k', size: 1 }),
+      moveObject: record('moveObject', { moved: true, key: 't' }),
+      deleteObject: record('deleteObject', { deleted: true, count: 1 }),
+      deletePrefix: record('deletePrefix', { deleted: true, count: 1 }),
+      deleteBucket: record('deleteBucket', { deleted: true, bucket: 'vc-p' }),
+    };
+
+    return { storage, calls };
+  }
+
+  const frozenFor = (frozen: Set<string>) => async (projectId: string) => frozen.has(projectId);
+
+  it('REFUSES every create/modify primitive for a frozen project and never touches the backend', async () => {
+    const { storage, calls } = tracking();
+    const guarded = guardObjectStorageWrites(storage, frozenFor(new Set(['p'])));
+
+    for (const call of [
+      () => guarded.ensureBucket('p'),
+      () => guarded.createUploadUrl('p', { key: 'thumbnail.png' }),
+      () => guarded.putObject('p', { key: 'thumbnail.png', body: new Uint8Array([1]) }),
+      () => guarded.moveObject('p', { from: 'a', to: 'b' }),
+    ]) {
+      await expect(call()).rejects.toMatchObject({ code: 'OBJECT_STORAGE_PURGE_FROZEN' });
+    }
+
+    // Not one write reached the underlying backend.
+    expect(calls).toEqual([]);
+  });
+
+  it('lets a frozen project still be READ and DELETED, and lets an UNFROZEN project write', async () => {
+    const { storage, calls } = tracking();
+    const guarded = guardObjectStorageWrites(storage, frozenFor(new Set(['p'])));
+
+    // Reads + deletes pass through even for the frozen project.
+    await guarded.bucketExists('p');
+    await guarded.listObjects('p');
+    await guarded.deleteBucket('p');
+    await guarded.deleteObject('p', { key: 'x' });
+
+    // A different, unfrozen project writes normally.
+    await guarded.ensureBucket('other');
+    await guarded.createUploadUrl('other', { key: 'k' });
+
+    expect(calls).toEqual([
+      'bucketExists',
+      'listObjects',
+      'deleteBucket',
+      'deleteObject',
+      'ensureBucket',
+      'createUploadUrl',
+    ]);
   });
 });
 
@@ -495,6 +578,7 @@ describe('AUDX-024 pagination beyond a single 1 000-object page', () => {
   it('follows the caller-supplied page token to the end', async () => {
     const storage = new FakeStorage();
     seedBig(storage, 2_100);
+
     const service = new GcsObjectStorage(storage);
 
     const first = await service.listObjects(project, { prefix: 'data/' });
@@ -503,6 +587,7 @@ describe('AUDX-024 pagination beyond a single 1 000-object page', () => {
 
     expect(second.objects).toHaveLength(1_000);
     expect(third.objects).toHaveLength(100);
+
     // Exhausted: no token means no more pages, which is how a caller knows it is done.
     expect(third.nextPageToken).toBeUndefined();
 
@@ -590,8 +675,10 @@ describe('AUDX-021 upload URL binds a size ceiling and an integrity check', () =
 
     const result = await new GcsObjectStorage(storage).createUploadUrl(project, { key: 'c.bin', contentMd5: md5 });
 
-    // GCS verifies Content-MD5 against the bytes it received and fails the PUT
-    // on mismatch — an integrity check the API never had.
+    /*
+     * GCS verifies Content-MD5 against the bytes it received and fails the PUT
+     * on mismatch — an integrity check the API never had.
+     */
     expect(storage.signed.at(-1)!.contentMd5).toBe(md5);
     expect(result.headers['Content-MD5']).toBe(md5);
   });

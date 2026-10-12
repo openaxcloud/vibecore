@@ -69,8 +69,10 @@ describe('AUDX-022 object-storage token scopes', () => {
       secret: SECRET,
     });
 
-    // Expiry must win over scope so an expired read token is not reported as a
-    // mere scope problem.
+    /*
+     * Expiry must win over scope so an expired read token is not reported as a
+     * mere scope problem.
+     */
     expect(verifyObjectStorageAccessToken({ token, secret: SECRET, requiredScope: 'delete' }).reason).toBe('expired');
   });
 });

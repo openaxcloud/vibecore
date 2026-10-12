@@ -23,3 +23,22 @@ A-6 : PostgreSQL utilise exclusivement des fixtures isolées ; la preuve récent
 B-20 : chart désactivé, séparation GCP non provisionnée. Les contrats sont testés, sans prétendre protéger déjà la production.
 
 Ce lot n’est ni fusionné ni servi à ce relevé. Les preuves de livraison de #714 sont distinctes de ces mesures locales.
+
+
+## Réintégration de la protection sortante
+
+Main a8108ea7 (#717) est fusionné réellement. Le seul conflit dans app.ts est une ligne vide ; les exceptions i18n et messages publics des deux branches sont conservés par union avec vérification des valeurs partagées. Après cette fusion : 54 cas API ciblés verts, types et build API verts, contrôle i18n vert, types web et build web complets verts. Nouvelle comparaison ESLint des douze fichiers corrigés : aucune nouvelle erreur, aucune mutation de code supplémentaire. Les 370 cas du relevé initial ne sont pas recomptés avec ces suites voisines. Le brouillon n’est ni fusionné ni servi et ses réserves sont inchangées.
+
+## Corrections des premiers contrôles complets
+
+Sur f29cfdc8, Production CI 38191620390 a exécuté 9 552 cas réussis, trois ignorés et un échec : le détecteur `.env.example` trouve huit variables manquantes. Les huit définitions sont ajoutées sans activation ; les quatre cas du détecteur passent.
+
+E2E 38191620336 refuse cinq préparations de publication par HTTP 403 : ces comptes synthétiques non vérifiés rencontrent la protection locataire activée par défaut dans l’API. La pile d’interface déclare désormais explicitement le mode observation déjà présent dans le chart. Aucune assertion navigateur ni exemption modifiée. Une garde compare la configuration API de la pile au mode du chart ; enlever cette configuration la fait rougir. Deux contre-cas de la route réelle prouvent que le même compte est accepté en observation (202, avec refus audité) et refusé en application (403). Retirer la protection fait rougir le second ; restauration verte. Validation : 17 gardes racine, 23 cas de routes locataires, types API et lint des tests avec la règle des imports relatifs adaptée au backend NodeNext. La CI complète du nouveau head reste à rejouer.
+
+## Dépendances croisées révélées par l’intégration complète
+
+Le head ad5a4bdd passe les unités mais l’intégration API 38194849035 rend 2 532 cas réussis, 23 ignorés et 11 échecs sur trois fichiers. Ne pas relancer ce verdict sans correction : neuf assertions de démarrage/quota échouent parce que les lectures de fichiers ne transmettent pas leur utilisateur à l’admission locataire ; deux gardes de texte utilisent une liste interne distincte du détecteur central.
+
+Les lectures authentifiées transmettent désormais leur contexte jusqu’au démarrage (fichiers, outils, recherche, export et paquets). Les appels internes sans identité continuent à lire un agent joignable, mais ne contournent pas l’admission pour démarrer un espace. Le test du journal observe le journal de la requête, désormais réellement transmis. Les gardes de texte utilisent `applyAllowlist` avec les classifications exactes et datées déjà présentes pour le contrôle de purge ; aucun diagnostic n’est ajouté en copie dans le test.
+
+Validation : 53 cas sur les quatre suites liées passent, types API et construction API passent, zéro erreur lint ajoutée aux lignes modifiées. Retirer le contexte utilisateur fait rougir les deux contre-cas de démarrage ; neutraliser le démarrage aussi. Retirer les classifications du détecteur fait rougir les deux gardes concernés. Restauration finale : 53 cas verts. Les réserves GCS/PVC, de quota et de périmètre demeurent.

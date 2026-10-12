@@ -23,10 +23,12 @@ async function demarrerFauxRuntime(panne: 'connexion-refusee' | 'nom-introuvable
   /* Agent injoignable : le port est fermé, donc la connexion est refusée. */
   const agent = createServer((_request, response) => response.writeHead(503).end('{}'));
   await new Promise<void>((resolve) => agent.listen(0, '127.0.0.1', resolve));
+
   const agentPort = (agent.address() as { port: number }).port;
   await new Promise<void>((resolve) => agent.close(() => resolve()));
 
   const demarragesRecus: string[] = [];
+
   let manageurEnPanne = false;
 
   const manager = createServer((request, response) => {
@@ -58,6 +60,7 @@ async function demarrerFauxRuntime(panne: 'connexion-refusee' | 'nom-introuvable
   };
 
   process.env.WORKSPACE_MANAGER_URL = `http://127.0.0.1:${(manager.address() as { port: number }).port}`;
+
   /*
    * DEUX PANNES DISTINCTES, deux branches distinctes du code :
    *  - port fermé  -> ECONNREFUSED -> branche « agent injoignable » (502) ;
@@ -82,9 +85,17 @@ async function demarrerFauxRuntime(panne: 'connexion-refusee' | 'nom-introuvable
   };
 }
 
-async function preparer() {
+async function preparer(erreurs?: unknown[]) {
   const store = new TestApiStore();
   const app = await buildApiApp({ store });
+
+  if (erreurs) {
+    app.addHook('onRequest', async (request) => {
+      request.log.error = ((...argumentsLog: unknown[]) => {
+        erreurs.push(argumentsLog[0]);
+      }) as typeof request.log.error;
+    });
+  }
 
   const auth = await app.inject({
     method: 'POST',
@@ -156,7 +167,10 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
   it('CONDITION 0 — la lecture déclenche un démarrage au lieu de ne rien faire', async () => {
     const runtime = await demarrerFauxRuntime();
     const { app, lireArbre } = await preparer();
-    fermetures.push(() => runtime.close(), () => app.close());
+    fermetures.push(
+      () => runtime.close(),
+      () => app.close(),
+    );
 
     const reponse = await lireArbre();
     await laisserRespirer();
@@ -171,7 +185,10 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
   it('CONDITION 1 — une rafale de lectures ne déclenche pas une rafale de démarrages', async () => {
     const runtime = await demarrerFauxRuntime();
     const { app, lireArbre } = await preparer();
-    fermetures.push(() => runtime.close(), () => app.close());
+    fermetures.push(
+      () => runtime.close(),
+      () => app.close(),
+    );
 
     await Promise.all(Array.from({ length: 12 }, () => lireArbre()));
     await laisserRespirer();
@@ -188,13 +205,12 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
     const runtime = await demarrerFauxRuntime();
     runtime.tomberEnPanne();
 
-    const { app, lireArbre } = await preparer();
-    fermetures.push(() => runtime.close(), () => app.close());
-
     const erreurs: unknown[] = [];
-    app.log.error = ((...arguments_: unknown[]) => {
-      erreurs.push(arguments_[0]);
-    }) as typeof app.log.error;
+    const { app, lireArbre } = await preparer(erreurs);
+    fermetures.push(
+      () => runtime.close(),
+      () => app.close(),
+    );
 
     await lireArbre();
     await laisserRespirer();
@@ -215,12 +231,16 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
     runtime.tomberEnPanne();
 
     const { app, lireArbre } = await preparer();
-    fermetures.push(() => runtime.close(), () => app.close());
+    fermetures.push(
+      () => runtime.close(),
+      () => app.close(),
+    );
 
     app.log.error = (() => undefined) as typeof app.log.error;
 
     await lireArbre();
     await laisserRespirer();
+
     const apresLePremier = runtime.demarragesRecus.length;
 
     await lireArbre();
@@ -237,7 +257,10 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
   it('CONDITION 0 bis — le déclenchement vaut aussi quand le nom DNS ne résout pas encore', async () => {
     const runtime = await demarrerFauxRuntime('nom-introuvable');
     const { app, lireArbre } = await preparer();
-    fermetures.push(() => runtime.close(), () => app.close());
+    fermetures.push(
+      () => runtime.close(),
+      () => app.close(),
+    );
 
     const reponse = await lireArbre();
     await laisserRespirer();
@@ -278,7 +301,10 @@ describe('une lecture sur un espace de travail éteint demande son démarrage', 
      */
     const runtime = await demarrerFauxRuntime('nom-introuvable');
     const { app, listerRacine } = await preparer();
-    fermetures.push(() => runtime.close(), () => app.close());
+    fermetures.push(
+      () => runtime.close(),
+      () => app.close(),
+    );
 
     const reponse = await listerRacine();
     await laisserRespirer();

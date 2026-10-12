@@ -2,8 +2,8 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { PurgeStorageDeps, PurgeUserAccountResult } from './account-purge.js';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
-
 export interface UserRecord {
   id: string;
   email: string;
@@ -1307,6 +1307,33 @@ export interface ApiStore {
     preferences?: Record<string, unknown> | null;
   }): Promise<UserRecord>;
   deleteUser(userId: string): Promise<boolean>;
+
+  /**
+   * Execute the REAL purge of a self-serve account deletion (§16.12 : the
+   * executor that consumes ready_to_purge). Guarded end-to-end:
+   *   - refuses unless the user's accountDeletion request exists AND the
+   *     14-day grace window has elapsed (deletionStatus === 'ready_to_purge');
+   *   - idempotent: an already-purged account returns already_purged, no-op;
+   *   - concurrency-safe: two workers racing on the same user must yield ONE
+   *     purge (the store serializes per user — advisory lock in Postgres);
+   *   - retention fail-closed: financial records inside the 7-year window and
+   *     posted ledger transactions (immutability triggers, mig 0078) are
+   *     RETAINED and consigned as exceptions in the proof, never silently;
+   *   - audit logs are REDACTED (anonymized), never deleted;
+   *   - the user row becomes an anonymized tombstone carrying purgedAt.
+   * Returns the persisted-shape erasure proof (per class: deleted/anonymized/
+   * retained counts + post-purge 0-rows verification) on success.
+   */
+  purgeUserAccount(input: { userId: string; nowMs?: number }, deps?: PurgeStorageDeps): Promise<PurgeUserAccountResult>;
+
+  /** RR-09: release any account-purge freeze left behind by a crashed run. */
+  reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }>;
+
+  /** RR-1bd27929: is this project's object storage frozen by >= 1 in-flight purge? */
+  isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean>;
+
+  /** RR-CODEX-14 (P6): does a durable erasure receipt exist for this user? */
+  hasPurgeReceipt(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;
   /**
@@ -1427,6 +1454,8 @@ export interface ApiStore {
     pagePath?: string;
   }): Promise<ContactRequestRecord>;
   countProjects(organizationId: string): Promise<number>;
+  countOrganizationActiveStrikes(organizationId: string, nowMs: number): Promise<number>;
+  countRecentSevereAbuseEvents(organizationId: string, since: Date): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;
 
@@ -1882,6 +1911,7 @@ export interface ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+    initialStatus?: WorkspaceRecord['status'];
   }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
@@ -1961,6 +1991,32 @@ export interface ApiStore {
    * to their org). Drives the daily object-storage metering sweep (P4).
    */
   aggregateStorageBytesByOrg(): Promise<Array<{ organizationId: string; bytes: number }>>;
+
+  /**
+   * AUDX-023 — every project, with its org, so the object-storage sweep can walk
+   * the REAL GCS buckets. `aggregateStorageBytesByOrg` above sums
+   * `ProjectStorageObject.byteLength`, which is base64 archives held in
+   * PostgreSQL and has nothing to do with the GCS buckets the object-storage
+   * routes write to.
+   */
+  listAllProjectsForStorageInventory(): Promise<Array<{ id: string; organizationId: string }>>;
+
+  /**
+   * Persist a project's measured GCS usage. Written by the daily inventory so a
+   * quota check (AUDX-020) can read a number instead of re-listing the bucket on
+   * every upload-URL request.
+   */
+  recordProjectObjectStorageUsage(input: {
+    projectId: string;
+    bytes: number;
+    objectCount: number;
+    measuredAt: Date;
+  }): Promise<void>;
+
+  /** Last measured GCS usage for a project, or undefined if never inventoried. */
+  getProjectObjectStorageUsage(
+    projectId: string,
+  ): Promise<{ bytes: number; objectCount: number; measuredAt: Date } | undefined>;
   /**
    * Database point-in-time rollback (Phase-1 scaffold, dormant behind
    * DB_ROLLBACK_ENABLED). Read the project's managed-database instance and its

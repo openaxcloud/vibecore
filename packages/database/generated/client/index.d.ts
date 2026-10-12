@@ -197,6 +197,24 @@ export type ProjectSnapshot = $Result.DefaultSelection<Prisma.$ProjectSnapshotPa
  */
 export type ProjectStorageObject = $Result.DefaultSelection<Prisma.$ProjectStorageObjectPayload>
 /**
+ * Model ProjectObjectStorageUsage
+ * AUDX-023 — measured usage of a project's REAL GCS bucket.
+ * 
+ * Object-storage metering used to sum `ProjectStorageObject.byteLength`, a
+ * table holding base64 archives inside PostgreSQL, written only by the
+ * snapshot/export path. The `/object-storage/*` routes write to GCS and never
+ * touch it, so every byte uploaded through a signed URL was invisible to
+ * billing AND to any quota — while the code claimed it summed "the REAL stored
+ * bytes".
+ * 
+ * This row is what the daily inventory writes after walking the bucket with
+ * `listAllObjects` (all pages — a single page stops at 1 000 objects, AUDX-024).
+ * `measuredAt` is carried explicitly because a quota decision taken on a stale
+ * measurement must be able to SAY that it is stale rather than pretend to be
+ * current.
+ */
+export type ProjectObjectStorageUsage = $Result.DefaultSelection<Prisma.$ProjectObjectStorageUsagePayload>
+/**
  * Model Deployment
  * 
  */
@@ -779,6 +797,21 @@ export type WorkspaceLifecycleEvent = $Result.DefaultSelection<Prisma.$Workspace
  * 
  */
 export type WorkspacePostMortem = $Result.DefaultSelection<Prisma.$WorkspacePostMortemPayload>
+/**
+ * Model PurgePlan
+ * 
+ */
+export type PurgePlan = $Result.DefaultSelection<Prisma.$PurgePlanPayload>
+/**
+ * Model PurgeFreeze
+ * 
+ */
+export type PurgeFreeze = $Result.DefaultSelection<Prisma.$PurgeFreezePayload>
+/**
+ * Model PurgeReceipt
+ * 
+ */
+export type PurgeReceipt = $Result.DefaultSelection<Prisma.$PurgeReceiptPayload>
 /**
  * Model DBMigrationExecution
  * Exécution d'une migration de schéma sur la base d'un projet, au moment du
@@ -1579,6 +1612,16 @@ export class PrismaClient<
     * ```
     */
   get projectStorageObject(): Prisma.ProjectStorageObjectDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectObjectStorageUsage`: Exposes CRUD operations for the **ProjectObjectStorageUsage** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectObjectStorageUsages
+    * const projectObjectStorageUsages = await prisma.projectObjectStorageUsage.findMany()
+    * ```
+    */
+  get projectObjectStorageUsage(): Prisma.ProjectObjectStorageUsageDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.deployment`: Exposes CRUD operations for the **Deployment** model.
@@ -2481,6 +2524,36 @@ export class PrismaClient<
   get workspacePostMortem(): Prisma.WorkspacePostMortemDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.purgePlan`: Exposes CRUD operations for the **PurgePlan** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PurgePlans
+    * const purgePlans = await prisma.purgePlan.findMany()
+    * ```
+    */
+  get purgePlan(): Prisma.PurgePlanDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.purgeFreeze`: Exposes CRUD operations for the **PurgeFreeze** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PurgeFreezes
+    * const purgeFreezes = await prisma.purgeFreeze.findMany()
+    * ```
+    */
+  get purgeFreeze(): Prisma.PurgeFreezeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.purgeReceipt`: Exposes CRUD operations for the **PurgeReceipt** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PurgeReceipts
+    * const purgeReceipts = await prisma.purgeReceipt.findMany()
+    * ```
+    */
+  get purgeReceipt(): Prisma.PurgeReceiptDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.dBMigrationExecution`: Exposes CRUD operations for the **DBMigrationExecution** model.
     * Example usage:
     * ```ts
@@ -2959,6 +3032,7 @@ export namespace Prisma {
     FileSnapshot: 'FileSnapshot',
     ProjectSnapshot: 'ProjectSnapshot',
     ProjectStorageObject: 'ProjectStorageObject',
+    ProjectObjectStorageUsage: 'ProjectObjectStorageUsage',
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
     ReleaseManifest: 'ReleaseManifest',
@@ -3049,6 +3123,9 @@ export namespace Prisma {
     PreviewReadinessBeacon: 'PreviewReadinessBeacon',
     WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
     WorkspacePostMortem: 'WorkspacePostMortem',
+    PurgePlan: 'PurgePlan',
+    PurgeFreeze: 'PurgeFreeze',
+    PurgeReceipt: 'PurgeReceipt',
     DBMigrationExecution: 'DBMigrationExecution'
   };
 
@@ -3065,7 +3142,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "projectObjectStorageUsage" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "purgePlan" | "purgeFreeze" | "purgeReceipt" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5714,6 +5791,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectStorageObjectCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectStorageObjectCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectObjectStorageUsage: {
+        payload: Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>
+        fields: Prisma.ProjectObjectStorageUsageFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectObjectStorageUsageFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectObjectStorageUsageFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectObjectStorageUsageFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectObjectStorageUsageFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          findMany: {
+            args: Prisma.ProjectObjectStorageUsageFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>[]
+          }
+          create: {
+            args: Prisma.ProjectObjectStorageUsageCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          createMany: {
+            args: Prisma.ProjectObjectStorageUsageCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectObjectStorageUsageCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectObjectStorageUsageDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          update: {
+            args: Prisma.ProjectObjectStorageUsageUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectObjectStorageUsageDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectObjectStorageUsageUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectObjectStorageUsageUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectObjectStorageUsageUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectObjectStorageUsageAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectObjectStorageUsage>
+          }
+          groupBy: {
+            args: Prisma.ProjectObjectStorageUsageGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectObjectStorageUsageGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectObjectStorageUsageCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectObjectStorageUsageCountAggregateOutputType> | number
           }
         }
       }
@@ -12377,6 +12528,228 @@ export namespace Prisma {
           }
         }
       }
+      PurgePlan: {
+        payload: Prisma.$PurgePlanPayload<ExtArgs>
+        fields: Prisma.PurgePlanFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PurgePlanFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PurgePlanFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>
+          }
+          findFirst: {
+            args: Prisma.PurgePlanFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PurgePlanFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>
+          }
+          findMany: {
+            args: Prisma.PurgePlanFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>[]
+          }
+          create: {
+            args: Prisma.PurgePlanCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>
+          }
+          createMany: {
+            args: Prisma.PurgePlanCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PurgePlanCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>[]
+          }
+          delete: {
+            args: Prisma.PurgePlanDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>
+          }
+          update: {
+            args: Prisma.PurgePlanUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>
+          }
+          deleteMany: {
+            args: Prisma.PurgePlanDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PurgePlanUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PurgePlanUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>[]
+          }
+          upsert: {
+            args: Prisma.PurgePlanUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgePlanPayload>
+          }
+          aggregate: {
+            args: Prisma.PurgePlanAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePurgePlan>
+          }
+          groupBy: {
+            args: Prisma.PurgePlanGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PurgePlanGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PurgePlanCountArgs<ExtArgs>
+            result: $Utils.Optional<PurgePlanCountAggregateOutputType> | number
+          }
+        }
+      }
+      PurgeFreeze: {
+        payload: Prisma.$PurgeFreezePayload<ExtArgs>
+        fields: Prisma.PurgeFreezeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PurgeFreezeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PurgeFreezeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>
+          }
+          findFirst: {
+            args: Prisma.PurgeFreezeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PurgeFreezeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>
+          }
+          findMany: {
+            args: Prisma.PurgeFreezeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>[]
+          }
+          create: {
+            args: Prisma.PurgeFreezeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>
+          }
+          createMany: {
+            args: Prisma.PurgeFreezeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PurgeFreezeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>[]
+          }
+          delete: {
+            args: Prisma.PurgeFreezeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>
+          }
+          update: {
+            args: Prisma.PurgeFreezeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>
+          }
+          deleteMany: {
+            args: Prisma.PurgeFreezeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PurgeFreezeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PurgeFreezeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>[]
+          }
+          upsert: {
+            args: Prisma.PurgeFreezeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeFreezePayload>
+          }
+          aggregate: {
+            args: Prisma.PurgeFreezeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePurgeFreeze>
+          }
+          groupBy: {
+            args: Prisma.PurgeFreezeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PurgeFreezeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PurgeFreezeCountArgs<ExtArgs>
+            result: $Utils.Optional<PurgeFreezeCountAggregateOutputType> | number
+          }
+        }
+      }
+      PurgeReceipt: {
+        payload: Prisma.$PurgeReceiptPayload<ExtArgs>
+        fields: Prisma.PurgeReceiptFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PurgeReceiptFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PurgeReceiptFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          findFirst: {
+            args: Prisma.PurgeReceiptFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PurgeReceiptFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          findMany: {
+            args: Prisma.PurgeReceiptFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>[]
+          }
+          create: {
+            args: Prisma.PurgeReceiptCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          createMany: {
+            args: Prisma.PurgeReceiptCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PurgeReceiptCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>[]
+          }
+          delete: {
+            args: Prisma.PurgeReceiptDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          update: {
+            args: Prisma.PurgeReceiptUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          deleteMany: {
+            args: Prisma.PurgeReceiptDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PurgeReceiptUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PurgeReceiptUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>[]
+          }
+          upsert: {
+            args: Prisma.PurgeReceiptUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PurgeReceiptPayload>
+          }
+          aggregate: {
+            args: Prisma.PurgeReceiptAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePurgeReceipt>
+          }
+          groupBy: {
+            args: Prisma.PurgeReceiptGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PurgeReceiptGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PurgeReceiptCountArgs<ExtArgs>
+            result: $Utils.Optional<PurgeReceiptCountAggregateOutputType> | number
+          }
+        }
+      }
       DBMigrationExecution: {
         payload: Prisma.$DBMigrationExecutionPayload<ExtArgs>
         fields: Prisma.DBMigrationExecutionFieldRefs
@@ -12595,6 +12968,7 @@ export namespace Prisma {
     fileSnapshot?: FileSnapshotOmit
     projectSnapshot?: ProjectSnapshotOmit
     projectStorageObject?: ProjectStorageObjectOmit
+    projectObjectStorageUsage?: ProjectObjectStorageUsageOmit
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     releaseManifest?: ReleaseManifestOmit
@@ -12685,6 +13059,9 @@ export namespace Prisma {
     previewReadinessBeacon?: PreviewReadinessBeaconOmit
     workspaceLifecycleEvent?: WorkspaceLifecycleEventOmit
     workspacePostMortem?: WorkspacePostMortemOmit
+    purgePlan?: PurgePlanOmit
+    purgeFreeze?: PurgeFreezeOmit
+    purgeReceipt?: PurgeReceiptOmit
     dBMigrationExecution?: DBMigrationExecutionOmit
   }
 
@@ -14286,6 +14663,37 @@ export namespace Prisma {
    */
   export type LedgerTransactionCountOutputTypeCountReversalsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: LedgerTransactionWhereInput
+  }
+
+
+  /**
+   * Count Type PurgePlanCountOutputType
+   */
+
+  export type PurgePlanCountOutputType = {
+    freezes: number
+  }
+
+  export type PurgePlanCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    freezes?: boolean | PurgePlanCountOutputTypeCountFreezesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PurgePlanCountOutputType without action
+   */
+  export type PurgePlanCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlanCountOutputType
+     */
+    select?: PurgePlanCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PurgePlanCountOutputType without action
+   */
+  export type PurgePlanCountOutputTypeCountFreezesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PurgeFreezeWhereInput
   }
 
 
@@ -27365,6 +27773,7 @@ export namespace Prisma {
     workspaces?: boolean | Project$workspacesArgs<ExtArgs>
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
+    objectStorageUsage?: boolean | Project$objectStorageUsageArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
@@ -27452,6 +27861,7 @@ export namespace Prisma {
     workspaces?: boolean | Project$workspacesArgs<ExtArgs>
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
+    objectStorageUsage?: boolean | Project$objectStorageUsageArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
@@ -27490,6 +27900,7 @@ export namespace Prisma {
       workspaces: Prisma.$WorkspacePayload<ExtArgs>[]
       snapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
       storageObjects: Prisma.$ProjectStorageObjectPayload<ExtArgs>[]
+      objectStorageUsage: Prisma.$ProjectObjectStorageUsagePayload<ExtArgs> | null
       deployments: Prisma.$DeploymentPayload<ExtArgs>[]
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       conversations: Prisma.$AiConversationPayload<ExtArgs>[]
@@ -27927,6 +28338,7 @@ export namespace Prisma {
     workspaces<T extends Project$workspacesArgs<ExtArgs> = {}>(args?: Subset<T, Project$workspacesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     snapshots<T extends Project$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     storageObjects<T extends Project$storageObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$storageObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectStorageObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    objectStorageUsage<T extends Project$objectStorageUsageArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageUsageArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     deployments<T extends Project$deploymentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$deploymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     conversations<T extends Project$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -28624,6 +29036,25 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectStorageObjectScalarFieldEnum | ProjectStorageObjectScalarFieldEnum[]
+  }
+
+  /**
+   * Project.objectStorageUsage
+   */
+  export type Project$objectStorageUsageArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    where?: ProjectObjectStorageUsageWhereInput
   }
 
   /**
@@ -57288,6 +57719,1094 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectStorageObjectInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectObjectStorageUsage
+   */
+
+  export type AggregateProjectObjectStorageUsage = {
+    _count: ProjectObjectStorageUsageCountAggregateOutputType | null
+    _avg: ProjectObjectStorageUsageAvgAggregateOutputType | null
+    _sum: ProjectObjectStorageUsageSumAggregateOutputType | null
+    _min: ProjectObjectStorageUsageMinAggregateOutputType | null
+    _max: ProjectObjectStorageUsageMaxAggregateOutputType | null
+  }
+
+  export type ProjectObjectStorageUsageAvgAggregateOutputType = {
+    bytes: number | null
+    objectCount: number | null
+  }
+
+  export type ProjectObjectStorageUsageSumAggregateOutputType = {
+    bytes: bigint | null
+    objectCount: number | null
+  }
+
+  export type ProjectObjectStorageUsageMinAggregateOutputType = {
+    projectId: string | null
+    bytes: bigint | null
+    objectCount: number | null
+    measuredAt: Date | null
+  }
+
+  export type ProjectObjectStorageUsageMaxAggregateOutputType = {
+    projectId: string | null
+    bytes: bigint | null
+    objectCount: number | null
+    measuredAt: Date | null
+  }
+
+  export type ProjectObjectStorageUsageCountAggregateOutputType = {
+    projectId: number
+    bytes: number
+    objectCount: number
+    measuredAt: number
+    _all: number
+  }
+
+
+  export type ProjectObjectStorageUsageAvgAggregateInputType = {
+    bytes?: true
+    objectCount?: true
+  }
+
+  export type ProjectObjectStorageUsageSumAggregateInputType = {
+    bytes?: true
+    objectCount?: true
+  }
+
+  export type ProjectObjectStorageUsageMinAggregateInputType = {
+    projectId?: true
+    bytes?: true
+    objectCount?: true
+    measuredAt?: true
+  }
+
+  export type ProjectObjectStorageUsageMaxAggregateInputType = {
+    projectId?: true
+    bytes?: true
+    objectCount?: true
+    measuredAt?: true
+  }
+
+  export type ProjectObjectStorageUsageCountAggregateInputType = {
+    projectId?: true
+    bytes?: true
+    objectCount?: true
+    measuredAt?: true
+    _all?: true
+  }
+
+  export type ProjectObjectStorageUsageAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectObjectStorageUsage to aggregate.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectObjectStorageUsages
+    **/
+    _count?: true | ProjectObjectStorageUsageCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProjectObjectStorageUsageAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProjectObjectStorageUsageSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectObjectStorageUsageMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectObjectStorageUsageMaxAggregateInputType
+  }
+
+  export type GetProjectObjectStorageUsageAggregateType<T extends ProjectObjectStorageUsageAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectObjectStorageUsage]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectObjectStorageUsage[P]>
+      : GetScalarType<T[P], AggregateProjectObjectStorageUsage[P]>
+  }
+
+
+
+
+  export type ProjectObjectStorageUsageGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectObjectStorageUsageWhereInput
+    orderBy?: ProjectObjectStorageUsageOrderByWithAggregationInput | ProjectObjectStorageUsageOrderByWithAggregationInput[]
+    by: ProjectObjectStorageUsageScalarFieldEnum[] | ProjectObjectStorageUsageScalarFieldEnum
+    having?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectObjectStorageUsageCountAggregateInputType | true
+    _avg?: ProjectObjectStorageUsageAvgAggregateInputType
+    _sum?: ProjectObjectStorageUsageSumAggregateInputType
+    _min?: ProjectObjectStorageUsageMinAggregateInputType
+    _max?: ProjectObjectStorageUsageMaxAggregateInputType
+  }
+
+  export type ProjectObjectStorageUsageGroupByOutputType = {
+    projectId: string
+    bytes: bigint
+    objectCount: number
+    measuredAt: Date
+    _count: ProjectObjectStorageUsageCountAggregateOutputType | null
+    _avg: ProjectObjectStorageUsageAvgAggregateOutputType | null
+    _sum: ProjectObjectStorageUsageSumAggregateOutputType | null
+    _min: ProjectObjectStorageUsageMinAggregateOutputType | null
+    _max: ProjectObjectStorageUsageMaxAggregateOutputType | null
+  }
+
+  type GetProjectObjectStorageUsageGroupByPayload<T extends ProjectObjectStorageUsageGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectObjectStorageUsageGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectObjectStorageUsageGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectObjectStorageUsageGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectObjectStorageUsageGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectObjectStorageUsageSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectObjectStorageUsage"]>
+
+  export type ProjectObjectStorageUsageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectObjectStorageUsage"]>
+
+  export type ProjectObjectStorageUsageSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectObjectStorageUsage"]>
+
+  export type ProjectObjectStorageUsageSelectScalar = {
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+  }
+
+  export type ProjectObjectStorageUsageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"projectId" | "bytes" | "objectCount" | "measuredAt", ExtArgs["result"]["projectObjectStorageUsage"]>
+  export type ProjectObjectStorageUsageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectObjectStorageUsageIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectObjectStorageUsageIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectObjectStorageUsagePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectObjectStorageUsage"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      projectId: string
+      bytes: bigint
+      objectCount: number
+      measuredAt: Date
+    }, ExtArgs["result"]["projectObjectStorageUsage"]>
+    composites: {}
+  }
+
+  type ProjectObjectStorageUsageGetPayload<S extends boolean | null | undefined | ProjectObjectStorageUsageDefaultArgs> = $Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload, S>
+
+  type ProjectObjectStorageUsageCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectObjectStorageUsageFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectObjectStorageUsageCountAggregateInputType | true
+    }
+
+  export interface ProjectObjectStorageUsageDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectObjectStorageUsage'], meta: { name: 'ProjectObjectStorageUsage' } }
+    /**
+     * Find zero or one ProjectObjectStorageUsage that matches the filter.
+     * @param {ProjectObjectStorageUsageFindUniqueArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectObjectStorageUsageFindUniqueArgs>(args: SelectSubset<T, ProjectObjectStorageUsageFindUniqueArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectObjectStorageUsage that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectObjectStorageUsageFindUniqueOrThrowArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectObjectStorageUsageFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectObjectStorageUsageFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectObjectStorageUsage that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageFindFirstArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectObjectStorageUsageFindFirstArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageFindFirstArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectObjectStorageUsage that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageFindFirstOrThrowArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectObjectStorageUsageFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectObjectStorageUsages that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectObjectStorageUsages
+     * const projectObjectStorageUsages = await prisma.projectObjectStorageUsage.findMany()
+     * 
+     * // Get first 10 ProjectObjectStorageUsages
+     * const projectObjectStorageUsages = await prisma.projectObjectStorageUsage.findMany({ take: 10 })
+     * 
+     * // Only select the `projectId`
+     * const projectObjectStorageUsageWithProjectIdOnly = await prisma.projectObjectStorageUsage.findMany({ select: { projectId: true } })
+     * 
+     */
+    findMany<T extends ProjectObjectStorageUsageFindManyArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageCreateArgs} args - Arguments to create a ProjectObjectStorageUsage.
+     * @example
+     * // Create one ProjectObjectStorageUsage
+     * const ProjectObjectStorageUsage = await prisma.projectObjectStorageUsage.create({
+     *   data: {
+     *     // ... data to create a ProjectObjectStorageUsage
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectObjectStorageUsageCreateArgs>(args: SelectSubset<T, ProjectObjectStorageUsageCreateArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectObjectStorageUsages.
+     * @param {ProjectObjectStorageUsageCreateManyArgs} args - Arguments to create many ProjectObjectStorageUsages.
+     * @example
+     * // Create many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectObjectStorageUsageCreateManyArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectObjectStorageUsages and returns the data saved in the database.
+     * @param {ProjectObjectStorageUsageCreateManyAndReturnArgs} args - Arguments to create many ProjectObjectStorageUsages.
+     * @example
+     * // Create many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectObjectStorageUsages and only return the `projectId`
+     * const projectObjectStorageUsageWithProjectIdOnly = await prisma.projectObjectStorageUsage.createManyAndReturn({
+     *   select: { projectId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectObjectStorageUsageCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageDeleteArgs} args - Arguments to delete one ProjectObjectStorageUsage.
+     * @example
+     * // Delete one ProjectObjectStorageUsage
+     * const ProjectObjectStorageUsage = await prisma.projectObjectStorageUsage.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectObjectStorageUsage
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectObjectStorageUsageDeleteArgs>(args: SelectSubset<T, ProjectObjectStorageUsageDeleteArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageUpdateArgs} args - Arguments to update one ProjectObjectStorageUsage.
+     * @example
+     * // Update one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectObjectStorageUsageUpdateArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpdateArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectObjectStorageUsages.
+     * @param {ProjectObjectStorageUsageDeleteManyArgs} args - Arguments to filter ProjectObjectStorageUsages to delete.
+     * @example
+     * // Delete a few ProjectObjectStorageUsages
+     * const { count } = await prisma.projectObjectStorageUsage.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectObjectStorageUsageDeleteManyArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectObjectStorageUsages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectObjectStorageUsageUpdateManyArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectObjectStorageUsages and returns the data updated in the database.
+     * @param {ProjectObjectStorageUsageUpdateManyAndReturnArgs} args - Arguments to update many ProjectObjectStorageUsages.
+     * @example
+     * // Update many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectObjectStorageUsages and only return the `projectId`
+     * const projectObjectStorageUsageWithProjectIdOnly = await prisma.projectObjectStorageUsage.updateManyAndReturn({
+     *   select: { projectId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectObjectStorageUsageUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageUpsertArgs} args - Arguments to update or create a ProjectObjectStorageUsage.
+     * @example
+     * // Update or create a ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.upsert({
+     *   create: {
+     *     // ... data to create a ProjectObjectStorageUsage
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectObjectStorageUsage we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectObjectStorageUsageUpsertArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpsertArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectObjectStorageUsages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageCountArgs} args - Arguments to filter ProjectObjectStorageUsages to count.
+     * @example
+     * // Count the number of ProjectObjectStorageUsages
+     * const count = await prisma.projectObjectStorageUsage.count({
+     *   where: {
+     *     // ... the filter for the ProjectObjectStorageUsages we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectObjectStorageUsageCountArgs>(
+      args?: Subset<T, ProjectObjectStorageUsageCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectObjectStorageUsageCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectObjectStorageUsage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectObjectStorageUsageAggregateArgs>(args: Subset<T, ProjectObjectStorageUsageAggregateArgs>): Prisma.PrismaPromise<GetProjectObjectStorageUsageAggregateType<T>>
+
+    /**
+     * Group by ProjectObjectStorageUsage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectObjectStorageUsageGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectObjectStorageUsageGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectObjectStorageUsageGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectObjectStorageUsageGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectObjectStorageUsageGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectObjectStorageUsage model
+   */
+  readonly fields: ProjectObjectStorageUsageFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectObjectStorageUsage.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectObjectStorageUsageClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectObjectStorageUsage model
+   */
+  interface ProjectObjectStorageUsageFieldRefs {
+    readonly projectId: FieldRef<"ProjectObjectStorageUsage", 'String'>
+    readonly bytes: FieldRef<"ProjectObjectStorageUsage", 'BigInt'>
+    readonly objectCount: FieldRef<"ProjectObjectStorageUsage", 'Int'>
+    readonly measuredAt: FieldRef<"ProjectObjectStorageUsage", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectObjectStorageUsage findUnique
+   */
+  export type ProjectObjectStorageUsageFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage findUniqueOrThrow
+   */
+  export type ProjectObjectStorageUsageFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage findFirst
+   */
+  export type ProjectObjectStorageUsageFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectObjectStorageUsages.
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectObjectStorageUsages.
+     */
+    distinct?: ProjectObjectStorageUsageScalarFieldEnum | ProjectObjectStorageUsageScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectObjectStorageUsage findFirstOrThrow
+   */
+  export type ProjectObjectStorageUsageFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectObjectStorageUsages.
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectObjectStorageUsages.
+     */
+    distinct?: ProjectObjectStorageUsageScalarFieldEnum | ProjectObjectStorageUsageScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectObjectStorageUsage findMany
+   */
+  export type ProjectObjectStorageUsageFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsages to fetch.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectObjectStorageUsages.
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectObjectStorageUsages.
+     */
+    distinct?: ProjectObjectStorageUsageScalarFieldEnum | ProjectObjectStorageUsageScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectObjectStorageUsage create
+   */
+  export type ProjectObjectStorageUsageCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectObjectStorageUsage.
+     */
+    data: XOR<ProjectObjectStorageUsageCreateInput, ProjectObjectStorageUsageUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectObjectStorageUsage createMany
+   */
+  export type ProjectObjectStorageUsageCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectObjectStorageUsages.
+     */
+    data: ProjectObjectStorageUsageCreateManyInput | ProjectObjectStorageUsageCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectObjectStorageUsage createManyAndReturn
+   */
+  export type ProjectObjectStorageUsageCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectObjectStorageUsages.
+     */
+    data: ProjectObjectStorageUsageCreateManyInput | ProjectObjectStorageUsageCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectObjectStorageUsage update
+   */
+  export type ProjectObjectStorageUsageUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectObjectStorageUsage.
+     */
+    data: XOR<ProjectObjectStorageUsageUpdateInput, ProjectObjectStorageUsageUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectObjectStorageUsage to update.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage updateMany
+   */
+  export type ProjectObjectStorageUsageUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectObjectStorageUsages.
+     */
+    data: XOR<ProjectObjectStorageUsageUpdateManyMutationInput, ProjectObjectStorageUsageUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectObjectStorageUsages to update
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * Limit how many ProjectObjectStorageUsages to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectObjectStorageUsage updateManyAndReturn
+   */
+  export type ProjectObjectStorageUsageUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectObjectStorageUsages.
+     */
+    data: XOR<ProjectObjectStorageUsageUpdateManyMutationInput, ProjectObjectStorageUsageUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectObjectStorageUsages to update
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * Limit how many ProjectObjectStorageUsages to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectObjectStorageUsage upsert
+   */
+  export type ProjectObjectStorageUsageUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectObjectStorageUsage to update in case it exists.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * In case the ProjectObjectStorageUsage found by the `where` argument doesn't exist, create a new ProjectObjectStorageUsage with this data.
+     */
+    create: XOR<ProjectObjectStorageUsageCreateInput, ProjectObjectStorageUsageUncheckedCreateInput>
+    /**
+     * In case the ProjectObjectStorageUsage was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectObjectStorageUsageUpdateInput, ProjectObjectStorageUsageUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectObjectStorageUsage delete
+   */
+  export type ProjectObjectStorageUsageDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectObjectStorageUsage to delete.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage deleteMany
+   */
+  export type ProjectObjectStorageUsageDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectObjectStorageUsages to delete
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * Limit how many ProjectObjectStorageUsages to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectObjectStorageUsage without action
+   */
+  export type ProjectObjectStorageUsageDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
   }
 
 
@@ -111806,6 +113325,9 @@ export namespace Prisma {
     createdAt: Date | null
     lastActiveAt: Date | null
     lastMeteredAt: Date | null
+    purgeFrozen: boolean | null
+    purgeFenceToken: string | null
+    purgeFrozenAt: Date | null
     updatedAt: Date | null
   }
 
@@ -111823,6 +113345,9 @@ export namespace Prisma {
     createdAt: Date | null
     lastActiveAt: Date | null
     lastMeteredAt: Date | null
+    purgeFrozen: boolean | null
+    purgeFenceToken: string | null
+    purgeFrozenAt: Date | null
     updatedAt: Date | null
   }
 
@@ -111841,6 +113366,9 @@ export namespace Prisma {
     createdAt: number
     lastActiveAt: number
     lastMeteredAt: number
+    purgeFrozen: number
+    purgeFenceToken: number
+    purgeFrozenAt: number
     updatedAt: number
     _all: number
   }
@@ -111860,6 +113388,9 @@ export namespace Prisma {
     createdAt?: true
     lastActiveAt?: true
     lastMeteredAt?: true
+    purgeFrozen?: true
+    purgeFenceToken?: true
+    purgeFrozenAt?: true
     updatedAt?: true
   }
 
@@ -111877,6 +113408,9 @@ export namespace Prisma {
     createdAt?: true
     lastActiveAt?: true
     lastMeteredAt?: true
+    purgeFrozen?: true
+    purgeFenceToken?: true
+    purgeFrozenAt?: true
     updatedAt?: true
   }
 
@@ -111895,6 +113429,9 @@ export namespace Prisma {
     createdAt?: true
     lastActiveAt?: true
     lastMeteredAt?: true
+    purgeFrozen?: true
+    purgeFenceToken?: true
+    purgeFrozenAt?: true
     updatedAt?: true
     _all?: true
   }
@@ -111986,6 +113523,9 @@ export namespace Prisma {
     createdAt: Date
     lastActiveAt: Date
     lastMeteredAt: Date | null
+    purgeFrozen: boolean
+    purgeFenceToken: string | null
+    purgeFrozenAt: Date | null
     updatedAt: Date
     _count: WorkspaceRuntimeCountAggregateOutputType | null
     _min: WorkspaceRuntimeMinAggregateOutputType | null
@@ -112021,6 +113561,9 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
+    purgeFrozenAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -112039,6 +113582,9 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
+    purgeFrozenAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -112057,6 +113603,9 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
+    purgeFrozenAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
@@ -112075,10 +113624,13 @@ export namespace Prisma {
     createdAt?: boolean
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
+    purgeFrozen?: boolean
+    purgeFenceToken?: boolean
+    purgeFrozenAt?: boolean
     updatedAt?: boolean
   }
 
-  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "agentTokenScheme" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
+  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "agentTokenScheme" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "purgeFrozen" | "purgeFenceToken" | "purgeFrozenAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
 
   export type $WorkspaceRuntimePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "WorkspaceRuntime"
@@ -112098,6 +113650,9 @@ export namespace Prisma {
       createdAt: Date
       lastActiveAt: Date
       lastMeteredAt: Date | null
+      purgeFrozen: boolean
+      purgeFenceToken: string | null
+      purgeFrozenAt: Date | null
       updatedAt: Date
     }, ExtArgs["result"]["workspaceRuntime"]>
     composites: {}
@@ -112536,6 +114091,9 @@ export namespace Prisma {
     readonly createdAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly lastActiveAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly lastMeteredAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
+    readonly purgeFrozen: FieldRef<"WorkspaceRuntime", 'Boolean'>
+    readonly purgeFenceToken: FieldRef<"WorkspaceRuntime", 'String'>
+    readonly purgeFrozenAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
   }
     
@@ -159784,6 +161342,3187 @@ export namespace Prisma {
 
 
   /**
+   * Model PurgePlan
+   */
+
+  export type AggregatePurgePlan = {
+    _count: PurgePlanCountAggregateOutputType | null
+    _avg: PurgePlanAvgAggregateOutputType | null
+    _sum: PurgePlanSumAggregateOutputType | null
+    _min: PurgePlanMinAggregateOutputType | null
+    _max: PurgePlanMaxAggregateOutputType | null
+  }
+
+  export type PurgePlanAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type PurgePlanSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type PurgePlanMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    ownerToken: string | null
+    leaseExpiresAt: Date | null
+    version: number | null
+    status: string | null
+    createdAt: Date | null
+  }
+
+  export type PurgePlanMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    ownerToken: string | null
+    leaseExpiresAt: Date | null
+    version: number | null
+    status: string | null
+    createdAt: Date | null
+  }
+
+  export type PurgePlanCountAggregateOutputType = {
+    id: number
+    userId: number
+    ownerToken: number
+    leaseExpiresAt: number
+    version: number
+    status: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PurgePlanAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type PurgePlanSumAggregateInputType = {
+    version?: true
+  }
+
+  export type PurgePlanMinAggregateInputType = {
+    id?: true
+    userId?: true
+    ownerToken?: true
+    leaseExpiresAt?: true
+    version?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type PurgePlanMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    ownerToken?: true
+    leaseExpiresAt?: true
+    version?: true
+    status?: true
+    createdAt?: true
+  }
+
+  export type PurgePlanCountAggregateInputType = {
+    id?: true
+    userId?: true
+    ownerToken?: true
+    leaseExpiresAt?: true
+    version?: true
+    status?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PurgePlanAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgePlan to aggregate.
+     */
+    where?: PurgePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgePlans to fetch.
+     */
+    orderBy?: PurgePlanOrderByWithRelationInput | PurgePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PurgePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PurgePlans
+    **/
+    _count?: true | PurgePlanCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PurgePlanAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PurgePlanSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PurgePlanMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PurgePlanMaxAggregateInputType
+  }
+
+  export type GetPurgePlanAggregateType<T extends PurgePlanAggregateArgs> = {
+        [P in keyof T & keyof AggregatePurgePlan]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePurgePlan[P]>
+      : GetScalarType<T[P], AggregatePurgePlan[P]>
+  }
+
+
+
+
+  export type PurgePlanGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PurgePlanWhereInput
+    orderBy?: PurgePlanOrderByWithAggregationInput | PurgePlanOrderByWithAggregationInput[]
+    by: PurgePlanScalarFieldEnum[] | PurgePlanScalarFieldEnum
+    having?: PurgePlanScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PurgePlanCountAggregateInputType | true
+    _avg?: PurgePlanAvgAggregateInputType
+    _sum?: PurgePlanSumAggregateInputType
+    _min?: PurgePlanMinAggregateInputType
+    _max?: PurgePlanMaxAggregateInputType
+  }
+
+  export type PurgePlanGroupByOutputType = {
+    id: string
+    userId: string
+    ownerToken: string
+    leaseExpiresAt: Date
+    version: number
+    status: string
+    createdAt: Date
+    _count: PurgePlanCountAggregateOutputType | null
+    _avg: PurgePlanAvgAggregateOutputType | null
+    _sum: PurgePlanSumAggregateOutputType | null
+    _min: PurgePlanMinAggregateOutputType | null
+    _max: PurgePlanMaxAggregateOutputType | null
+  }
+
+  type GetPurgePlanGroupByPayload<T extends PurgePlanGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PurgePlanGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PurgePlanGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PurgePlanGroupByOutputType[P]>
+            : GetScalarType<T[P], PurgePlanGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PurgePlanSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    ownerToken?: boolean
+    leaseExpiresAt?: boolean
+    version?: boolean
+    status?: boolean
+    createdAt?: boolean
+    freezes?: boolean | PurgePlan$freezesArgs<ExtArgs>
+    _count?: boolean | PurgePlanCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["purgePlan"]>
+
+  export type PurgePlanSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    ownerToken?: boolean
+    leaseExpiresAt?: boolean
+    version?: boolean
+    status?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgePlan"]>
+
+  export type PurgePlanSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    ownerToken?: boolean
+    leaseExpiresAt?: boolean
+    version?: boolean
+    status?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgePlan"]>
+
+  export type PurgePlanSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    ownerToken?: boolean
+    leaseExpiresAt?: boolean
+    version?: boolean
+    status?: boolean
+    createdAt?: boolean
+  }
+
+  export type PurgePlanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "ownerToken" | "leaseExpiresAt" | "version" | "status" | "createdAt", ExtArgs["result"]["purgePlan"]>
+  export type PurgePlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    freezes?: boolean | PurgePlan$freezesArgs<ExtArgs>
+    _count?: boolean | PurgePlanCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PurgePlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type PurgePlanIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+
+  export type $PurgePlanPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PurgePlan"
+    objects: {
+      freezes: Prisma.$PurgeFreezePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      ownerToken: string
+      leaseExpiresAt: Date
+      version: number
+      status: string
+      createdAt: Date
+    }, ExtArgs["result"]["purgePlan"]>
+    composites: {}
+  }
+
+  type PurgePlanGetPayload<S extends boolean | null | undefined | PurgePlanDefaultArgs> = $Result.GetResult<Prisma.$PurgePlanPayload, S>
+
+  type PurgePlanCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PurgePlanFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PurgePlanCountAggregateInputType | true
+    }
+
+  export interface PurgePlanDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PurgePlan'], meta: { name: 'PurgePlan' } }
+    /**
+     * Find zero or one PurgePlan that matches the filter.
+     * @param {PurgePlanFindUniqueArgs} args - Arguments to find a PurgePlan
+     * @example
+     * // Get one PurgePlan
+     * const purgePlan = await prisma.purgePlan.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PurgePlanFindUniqueArgs>(args: SelectSubset<T, PurgePlanFindUniqueArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PurgePlan that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PurgePlanFindUniqueOrThrowArgs} args - Arguments to find a PurgePlan
+     * @example
+     * // Get one PurgePlan
+     * const purgePlan = await prisma.purgePlan.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PurgePlanFindUniqueOrThrowArgs>(args: SelectSubset<T, PurgePlanFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgePlan that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgePlanFindFirstArgs} args - Arguments to find a PurgePlan
+     * @example
+     * // Get one PurgePlan
+     * const purgePlan = await prisma.purgePlan.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PurgePlanFindFirstArgs>(args?: SelectSubset<T, PurgePlanFindFirstArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgePlan that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgePlanFindFirstOrThrowArgs} args - Arguments to find a PurgePlan
+     * @example
+     * // Get one PurgePlan
+     * const purgePlan = await prisma.purgePlan.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PurgePlanFindFirstOrThrowArgs>(args?: SelectSubset<T, PurgePlanFindFirstOrThrowArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PurgePlans that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgePlanFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PurgePlans
+     * const purgePlans = await prisma.purgePlan.findMany()
+     * 
+     * // Get first 10 PurgePlans
+     * const purgePlans = await prisma.purgePlan.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const purgePlanWithIdOnly = await prisma.purgePlan.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PurgePlanFindManyArgs>(args?: SelectSubset<T, PurgePlanFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PurgePlan.
+     * @param {PurgePlanCreateArgs} args - Arguments to create a PurgePlan.
+     * @example
+     * // Create one PurgePlan
+     * const PurgePlan = await prisma.purgePlan.create({
+     *   data: {
+     *     // ... data to create a PurgePlan
+     *   }
+     * })
+     * 
+     */
+    create<T extends PurgePlanCreateArgs>(args: SelectSubset<T, PurgePlanCreateArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PurgePlans.
+     * @param {PurgePlanCreateManyArgs} args - Arguments to create many PurgePlans.
+     * @example
+     * // Create many PurgePlans
+     * const purgePlan = await prisma.purgePlan.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PurgePlanCreateManyArgs>(args?: SelectSubset<T, PurgePlanCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PurgePlans and returns the data saved in the database.
+     * @param {PurgePlanCreateManyAndReturnArgs} args - Arguments to create many PurgePlans.
+     * @example
+     * // Create many PurgePlans
+     * const purgePlan = await prisma.purgePlan.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PurgePlans and only return the `id`
+     * const purgePlanWithIdOnly = await prisma.purgePlan.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PurgePlanCreateManyAndReturnArgs>(args?: SelectSubset<T, PurgePlanCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PurgePlan.
+     * @param {PurgePlanDeleteArgs} args - Arguments to delete one PurgePlan.
+     * @example
+     * // Delete one PurgePlan
+     * const PurgePlan = await prisma.purgePlan.delete({
+     *   where: {
+     *     // ... filter to delete one PurgePlan
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PurgePlanDeleteArgs>(args: SelectSubset<T, PurgePlanDeleteArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PurgePlan.
+     * @param {PurgePlanUpdateArgs} args - Arguments to update one PurgePlan.
+     * @example
+     * // Update one PurgePlan
+     * const purgePlan = await prisma.purgePlan.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PurgePlanUpdateArgs>(args: SelectSubset<T, PurgePlanUpdateArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PurgePlans.
+     * @param {PurgePlanDeleteManyArgs} args - Arguments to filter PurgePlans to delete.
+     * @example
+     * // Delete a few PurgePlans
+     * const { count } = await prisma.purgePlan.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PurgePlanDeleteManyArgs>(args?: SelectSubset<T, PurgePlanDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgePlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgePlanUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PurgePlans
+     * const purgePlan = await prisma.purgePlan.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PurgePlanUpdateManyArgs>(args: SelectSubset<T, PurgePlanUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgePlans and returns the data updated in the database.
+     * @param {PurgePlanUpdateManyAndReturnArgs} args - Arguments to update many PurgePlans.
+     * @example
+     * // Update many PurgePlans
+     * const purgePlan = await prisma.purgePlan.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PurgePlans and only return the `id`
+     * const purgePlanWithIdOnly = await prisma.purgePlan.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PurgePlanUpdateManyAndReturnArgs>(args: SelectSubset<T, PurgePlanUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PurgePlan.
+     * @param {PurgePlanUpsertArgs} args - Arguments to update or create a PurgePlan.
+     * @example
+     * // Update or create a PurgePlan
+     * const purgePlan = await prisma.purgePlan.upsert({
+     *   create: {
+     *     // ... data to create a PurgePlan
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PurgePlan we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PurgePlanUpsertArgs>(args: SelectSubset<T, PurgePlanUpsertArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PurgePlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgePlanCountArgs} args - Arguments to filter PurgePlans to count.
+     * @example
+     * // Count the number of PurgePlans
+     * const count = await prisma.purgePlan.count({
+     *   where: {
+     *     // ... the filter for the PurgePlans we want to count
+     *   }
+     * })
+    **/
+    count<T extends PurgePlanCountArgs>(
+      args?: Subset<T, PurgePlanCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PurgePlanCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PurgePlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgePlanAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PurgePlanAggregateArgs>(args: Subset<T, PurgePlanAggregateArgs>): Prisma.PrismaPromise<GetPurgePlanAggregateType<T>>
+
+    /**
+     * Group by PurgePlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgePlanGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PurgePlanGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PurgePlanGroupByArgs['orderBy'] }
+        : { orderBy?: PurgePlanGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PurgePlanGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPurgePlanGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PurgePlan model
+   */
+  readonly fields: PurgePlanFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PurgePlan.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PurgePlanClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    freezes<T extends PurgePlan$freezesArgs<ExtArgs> = {}>(args?: Subset<T, PurgePlan$freezesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PurgePlan model
+   */
+  interface PurgePlanFieldRefs {
+    readonly id: FieldRef<"PurgePlan", 'String'>
+    readonly userId: FieldRef<"PurgePlan", 'String'>
+    readonly ownerToken: FieldRef<"PurgePlan", 'String'>
+    readonly leaseExpiresAt: FieldRef<"PurgePlan", 'DateTime'>
+    readonly version: FieldRef<"PurgePlan", 'Int'>
+    readonly status: FieldRef<"PurgePlan", 'String'>
+    readonly createdAt: FieldRef<"PurgePlan", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PurgePlan findUnique
+   */
+  export type PurgePlanFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgePlan to fetch.
+     */
+    where: PurgePlanWhereUniqueInput
+  }
+
+  /**
+   * PurgePlan findUniqueOrThrow
+   */
+  export type PurgePlanFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgePlan to fetch.
+     */
+    where: PurgePlanWhereUniqueInput
+  }
+
+  /**
+   * PurgePlan findFirst
+   */
+  export type PurgePlanFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgePlan to fetch.
+     */
+    where?: PurgePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgePlans to fetch.
+     */
+    orderBy?: PurgePlanOrderByWithRelationInput | PurgePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgePlans.
+     */
+    cursor?: PurgePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgePlans.
+     */
+    distinct?: PurgePlanScalarFieldEnum | PurgePlanScalarFieldEnum[]
+  }
+
+  /**
+   * PurgePlan findFirstOrThrow
+   */
+  export type PurgePlanFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgePlan to fetch.
+     */
+    where?: PurgePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgePlans to fetch.
+     */
+    orderBy?: PurgePlanOrderByWithRelationInput | PurgePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgePlans.
+     */
+    cursor?: PurgePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgePlans.
+     */
+    distinct?: PurgePlanScalarFieldEnum | PurgePlanScalarFieldEnum[]
+  }
+
+  /**
+   * PurgePlan findMany
+   */
+  export type PurgePlanFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgePlans to fetch.
+     */
+    where?: PurgePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgePlans to fetch.
+     */
+    orderBy?: PurgePlanOrderByWithRelationInput | PurgePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PurgePlans.
+     */
+    cursor?: PurgePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgePlans.
+     */
+    distinct?: PurgePlanScalarFieldEnum | PurgePlanScalarFieldEnum[]
+  }
+
+  /**
+   * PurgePlan create
+   */
+  export type PurgePlanCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PurgePlan.
+     */
+    data: XOR<PurgePlanCreateInput, PurgePlanUncheckedCreateInput>
+  }
+
+  /**
+   * PurgePlan createMany
+   */
+  export type PurgePlanCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PurgePlans.
+     */
+    data: PurgePlanCreateManyInput | PurgePlanCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PurgePlan createManyAndReturn
+   */
+  export type PurgePlanCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * The data used to create many PurgePlans.
+     */
+    data: PurgePlanCreateManyInput | PurgePlanCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PurgePlan update
+   */
+  export type PurgePlanUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PurgePlan.
+     */
+    data: XOR<PurgePlanUpdateInput, PurgePlanUncheckedUpdateInput>
+    /**
+     * Choose, which PurgePlan to update.
+     */
+    where: PurgePlanWhereUniqueInput
+  }
+
+  /**
+   * PurgePlan updateMany
+   */
+  export type PurgePlanUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PurgePlans.
+     */
+    data: XOR<PurgePlanUpdateManyMutationInput, PurgePlanUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgePlans to update
+     */
+    where?: PurgePlanWhereInput
+    /**
+     * Limit how many PurgePlans to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgePlan updateManyAndReturn
+   */
+  export type PurgePlanUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * The data used to update PurgePlans.
+     */
+    data: XOR<PurgePlanUpdateManyMutationInput, PurgePlanUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgePlans to update
+     */
+    where?: PurgePlanWhereInput
+    /**
+     * Limit how many PurgePlans to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgePlan upsert
+   */
+  export type PurgePlanUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PurgePlan to update in case it exists.
+     */
+    where: PurgePlanWhereUniqueInput
+    /**
+     * In case the PurgePlan found by the `where` argument doesn't exist, create a new PurgePlan with this data.
+     */
+    create: XOR<PurgePlanCreateInput, PurgePlanUncheckedCreateInput>
+    /**
+     * In case the PurgePlan was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PurgePlanUpdateInput, PurgePlanUncheckedUpdateInput>
+  }
+
+  /**
+   * PurgePlan delete
+   */
+  export type PurgePlanDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+    /**
+     * Filter which PurgePlan to delete.
+     */
+    where: PurgePlanWhereUniqueInput
+  }
+
+  /**
+   * PurgePlan deleteMany
+   */
+  export type PurgePlanDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgePlans to delete
+     */
+    where?: PurgePlanWhereInput
+    /**
+     * Limit how many PurgePlans to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgePlan.freezes
+   */
+  export type PurgePlan$freezesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    where?: PurgeFreezeWhereInput
+    orderBy?: PurgeFreezeOrderByWithRelationInput | PurgeFreezeOrderByWithRelationInput[]
+    cursor?: PurgeFreezeWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PurgeFreezeScalarFieldEnum | PurgeFreezeScalarFieldEnum[]
+  }
+
+  /**
+   * PurgePlan without action
+   */
+  export type PurgePlanDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgePlan
+     */
+    select?: PurgePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgePlan
+     */
+    omit?: PurgePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgePlanInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PurgeFreeze
+   */
+
+  export type AggregatePurgeFreeze = {
+    _count: PurgeFreezeCountAggregateOutputType | null
+    _min: PurgeFreezeMinAggregateOutputType | null
+    _max: PurgeFreezeMaxAggregateOutputType | null
+  }
+
+  export type PurgeFreezeMinAggregateOutputType = {
+    id: string | null
+    planId: string | null
+    resourceType: string | null
+    resourceId: string | null
+    createdAt: Date | null
+  }
+
+  export type PurgeFreezeMaxAggregateOutputType = {
+    id: string | null
+    planId: string | null
+    resourceType: string | null
+    resourceId: string | null
+    createdAt: Date | null
+  }
+
+  export type PurgeFreezeCountAggregateOutputType = {
+    id: number
+    planId: number
+    resourceType: number
+    resourceId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PurgeFreezeMinAggregateInputType = {
+    id?: true
+    planId?: true
+    resourceType?: true
+    resourceId?: true
+    createdAt?: true
+  }
+
+  export type PurgeFreezeMaxAggregateInputType = {
+    id?: true
+    planId?: true
+    resourceType?: true
+    resourceId?: true
+    createdAt?: true
+  }
+
+  export type PurgeFreezeCountAggregateInputType = {
+    id?: true
+    planId?: true
+    resourceType?: true
+    resourceId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PurgeFreezeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgeFreeze to aggregate.
+     */
+    where?: PurgeFreezeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeFreezes to fetch.
+     */
+    orderBy?: PurgeFreezeOrderByWithRelationInput | PurgeFreezeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PurgeFreezeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeFreezes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeFreezes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PurgeFreezes
+    **/
+    _count?: true | PurgeFreezeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PurgeFreezeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PurgeFreezeMaxAggregateInputType
+  }
+
+  export type GetPurgeFreezeAggregateType<T extends PurgeFreezeAggregateArgs> = {
+        [P in keyof T & keyof AggregatePurgeFreeze]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePurgeFreeze[P]>
+      : GetScalarType<T[P], AggregatePurgeFreeze[P]>
+  }
+
+
+
+
+  export type PurgeFreezeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PurgeFreezeWhereInput
+    orderBy?: PurgeFreezeOrderByWithAggregationInput | PurgeFreezeOrderByWithAggregationInput[]
+    by: PurgeFreezeScalarFieldEnum[] | PurgeFreezeScalarFieldEnum
+    having?: PurgeFreezeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PurgeFreezeCountAggregateInputType | true
+    _min?: PurgeFreezeMinAggregateInputType
+    _max?: PurgeFreezeMaxAggregateInputType
+  }
+
+  export type PurgeFreezeGroupByOutputType = {
+    id: string
+    planId: string
+    resourceType: string
+    resourceId: string
+    createdAt: Date
+    _count: PurgeFreezeCountAggregateOutputType | null
+    _min: PurgeFreezeMinAggregateOutputType | null
+    _max: PurgeFreezeMaxAggregateOutputType | null
+  }
+
+  type GetPurgeFreezeGroupByPayload<T extends PurgeFreezeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PurgeFreezeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PurgeFreezeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PurgeFreezeGroupByOutputType[P]>
+            : GetScalarType<T[P], PurgeFreezeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PurgeFreezeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    planId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    createdAt?: boolean
+    plan?: boolean | PurgePlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["purgeFreeze"]>
+
+  export type PurgeFreezeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    planId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    createdAt?: boolean
+    plan?: boolean | PurgePlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["purgeFreeze"]>
+
+  export type PurgeFreezeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    planId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    createdAt?: boolean
+    plan?: boolean | PurgePlanDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["purgeFreeze"]>
+
+  export type PurgeFreezeSelectScalar = {
+    id?: boolean
+    planId?: boolean
+    resourceType?: boolean
+    resourceId?: boolean
+    createdAt?: boolean
+  }
+
+  export type PurgeFreezeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "planId" | "resourceType" | "resourceId" | "createdAt", ExtArgs["result"]["purgeFreeze"]>
+  export type PurgeFreezeInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    plan?: boolean | PurgePlanDefaultArgs<ExtArgs>
+  }
+  export type PurgeFreezeIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    plan?: boolean | PurgePlanDefaultArgs<ExtArgs>
+  }
+  export type PurgeFreezeIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    plan?: boolean | PurgePlanDefaultArgs<ExtArgs>
+  }
+
+  export type $PurgeFreezePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PurgeFreeze"
+    objects: {
+      plan: Prisma.$PurgePlanPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      planId: string
+      resourceType: string
+      resourceId: string
+      createdAt: Date
+    }, ExtArgs["result"]["purgeFreeze"]>
+    composites: {}
+  }
+
+  type PurgeFreezeGetPayload<S extends boolean | null | undefined | PurgeFreezeDefaultArgs> = $Result.GetResult<Prisma.$PurgeFreezePayload, S>
+
+  type PurgeFreezeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PurgeFreezeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PurgeFreezeCountAggregateInputType | true
+    }
+
+  export interface PurgeFreezeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PurgeFreeze'], meta: { name: 'PurgeFreeze' } }
+    /**
+     * Find zero or one PurgeFreeze that matches the filter.
+     * @param {PurgeFreezeFindUniqueArgs} args - Arguments to find a PurgeFreeze
+     * @example
+     * // Get one PurgeFreeze
+     * const purgeFreeze = await prisma.purgeFreeze.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PurgeFreezeFindUniqueArgs>(args: SelectSubset<T, PurgeFreezeFindUniqueArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PurgeFreeze that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PurgeFreezeFindUniqueOrThrowArgs} args - Arguments to find a PurgeFreeze
+     * @example
+     * // Get one PurgeFreeze
+     * const purgeFreeze = await prisma.purgeFreeze.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PurgeFreezeFindUniqueOrThrowArgs>(args: SelectSubset<T, PurgeFreezeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgeFreeze that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeFreezeFindFirstArgs} args - Arguments to find a PurgeFreeze
+     * @example
+     * // Get one PurgeFreeze
+     * const purgeFreeze = await prisma.purgeFreeze.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PurgeFreezeFindFirstArgs>(args?: SelectSubset<T, PurgeFreezeFindFirstArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgeFreeze that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeFreezeFindFirstOrThrowArgs} args - Arguments to find a PurgeFreeze
+     * @example
+     * // Get one PurgeFreeze
+     * const purgeFreeze = await prisma.purgeFreeze.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PurgeFreezeFindFirstOrThrowArgs>(args?: SelectSubset<T, PurgeFreezeFindFirstOrThrowArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PurgeFreezes that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeFreezeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PurgeFreezes
+     * const purgeFreezes = await prisma.purgeFreeze.findMany()
+     * 
+     * // Get first 10 PurgeFreezes
+     * const purgeFreezes = await prisma.purgeFreeze.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const purgeFreezeWithIdOnly = await prisma.purgeFreeze.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PurgeFreezeFindManyArgs>(args?: SelectSubset<T, PurgeFreezeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PurgeFreeze.
+     * @param {PurgeFreezeCreateArgs} args - Arguments to create a PurgeFreeze.
+     * @example
+     * // Create one PurgeFreeze
+     * const PurgeFreeze = await prisma.purgeFreeze.create({
+     *   data: {
+     *     // ... data to create a PurgeFreeze
+     *   }
+     * })
+     * 
+     */
+    create<T extends PurgeFreezeCreateArgs>(args: SelectSubset<T, PurgeFreezeCreateArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PurgeFreezes.
+     * @param {PurgeFreezeCreateManyArgs} args - Arguments to create many PurgeFreezes.
+     * @example
+     * // Create many PurgeFreezes
+     * const purgeFreeze = await prisma.purgeFreeze.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PurgeFreezeCreateManyArgs>(args?: SelectSubset<T, PurgeFreezeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PurgeFreezes and returns the data saved in the database.
+     * @param {PurgeFreezeCreateManyAndReturnArgs} args - Arguments to create many PurgeFreezes.
+     * @example
+     * // Create many PurgeFreezes
+     * const purgeFreeze = await prisma.purgeFreeze.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PurgeFreezes and only return the `id`
+     * const purgeFreezeWithIdOnly = await prisma.purgeFreeze.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PurgeFreezeCreateManyAndReturnArgs>(args?: SelectSubset<T, PurgeFreezeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PurgeFreeze.
+     * @param {PurgeFreezeDeleteArgs} args - Arguments to delete one PurgeFreeze.
+     * @example
+     * // Delete one PurgeFreeze
+     * const PurgeFreeze = await prisma.purgeFreeze.delete({
+     *   where: {
+     *     // ... filter to delete one PurgeFreeze
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PurgeFreezeDeleteArgs>(args: SelectSubset<T, PurgeFreezeDeleteArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PurgeFreeze.
+     * @param {PurgeFreezeUpdateArgs} args - Arguments to update one PurgeFreeze.
+     * @example
+     * // Update one PurgeFreeze
+     * const purgeFreeze = await prisma.purgeFreeze.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PurgeFreezeUpdateArgs>(args: SelectSubset<T, PurgeFreezeUpdateArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PurgeFreezes.
+     * @param {PurgeFreezeDeleteManyArgs} args - Arguments to filter PurgeFreezes to delete.
+     * @example
+     * // Delete a few PurgeFreezes
+     * const { count } = await prisma.purgeFreeze.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PurgeFreezeDeleteManyArgs>(args?: SelectSubset<T, PurgeFreezeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgeFreezes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeFreezeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PurgeFreezes
+     * const purgeFreeze = await prisma.purgeFreeze.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PurgeFreezeUpdateManyArgs>(args: SelectSubset<T, PurgeFreezeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgeFreezes and returns the data updated in the database.
+     * @param {PurgeFreezeUpdateManyAndReturnArgs} args - Arguments to update many PurgeFreezes.
+     * @example
+     * // Update many PurgeFreezes
+     * const purgeFreeze = await prisma.purgeFreeze.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PurgeFreezes and only return the `id`
+     * const purgeFreezeWithIdOnly = await prisma.purgeFreeze.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PurgeFreezeUpdateManyAndReturnArgs>(args: SelectSubset<T, PurgeFreezeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PurgeFreeze.
+     * @param {PurgeFreezeUpsertArgs} args - Arguments to update or create a PurgeFreeze.
+     * @example
+     * // Update or create a PurgeFreeze
+     * const purgeFreeze = await prisma.purgeFreeze.upsert({
+     *   create: {
+     *     // ... data to create a PurgeFreeze
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PurgeFreeze we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PurgeFreezeUpsertArgs>(args: SelectSubset<T, PurgeFreezeUpsertArgs<ExtArgs>>): Prisma__PurgeFreezeClient<$Result.GetResult<Prisma.$PurgeFreezePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PurgeFreezes.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeFreezeCountArgs} args - Arguments to filter PurgeFreezes to count.
+     * @example
+     * // Count the number of PurgeFreezes
+     * const count = await prisma.purgeFreeze.count({
+     *   where: {
+     *     // ... the filter for the PurgeFreezes we want to count
+     *   }
+     * })
+    **/
+    count<T extends PurgeFreezeCountArgs>(
+      args?: Subset<T, PurgeFreezeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PurgeFreezeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PurgeFreeze.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeFreezeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PurgeFreezeAggregateArgs>(args: Subset<T, PurgeFreezeAggregateArgs>): Prisma.PrismaPromise<GetPurgeFreezeAggregateType<T>>
+
+    /**
+     * Group by PurgeFreeze.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeFreezeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PurgeFreezeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PurgeFreezeGroupByArgs['orderBy'] }
+        : { orderBy?: PurgeFreezeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PurgeFreezeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPurgeFreezeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PurgeFreeze model
+   */
+  readonly fields: PurgeFreezeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PurgeFreeze.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PurgeFreezeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    plan<T extends PurgePlanDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PurgePlanDefaultArgs<ExtArgs>>): Prisma__PurgePlanClient<$Result.GetResult<Prisma.$PurgePlanPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PurgeFreeze model
+   */
+  interface PurgeFreezeFieldRefs {
+    readonly id: FieldRef<"PurgeFreeze", 'String'>
+    readonly planId: FieldRef<"PurgeFreeze", 'String'>
+    readonly resourceType: FieldRef<"PurgeFreeze", 'String'>
+    readonly resourceId: FieldRef<"PurgeFreeze", 'String'>
+    readonly createdAt: FieldRef<"PurgeFreeze", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PurgeFreeze findUnique
+   */
+  export type PurgeFreezeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgeFreeze to fetch.
+     */
+    where: PurgeFreezeWhereUniqueInput
+  }
+
+  /**
+   * PurgeFreeze findUniqueOrThrow
+   */
+  export type PurgeFreezeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgeFreeze to fetch.
+     */
+    where: PurgeFreezeWhereUniqueInput
+  }
+
+  /**
+   * PurgeFreeze findFirst
+   */
+  export type PurgeFreezeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgeFreeze to fetch.
+     */
+    where?: PurgeFreezeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeFreezes to fetch.
+     */
+    orderBy?: PurgeFreezeOrderByWithRelationInput | PurgeFreezeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgeFreezes.
+     */
+    cursor?: PurgeFreezeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeFreezes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeFreezes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeFreezes.
+     */
+    distinct?: PurgeFreezeScalarFieldEnum | PurgeFreezeScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeFreeze findFirstOrThrow
+   */
+  export type PurgeFreezeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgeFreeze to fetch.
+     */
+    where?: PurgeFreezeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeFreezes to fetch.
+     */
+    orderBy?: PurgeFreezeOrderByWithRelationInput | PurgeFreezeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgeFreezes.
+     */
+    cursor?: PurgeFreezeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeFreezes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeFreezes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeFreezes.
+     */
+    distinct?: PurgeFreezeScalarFieldEnum | PurgeFreezeScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeFreeze findMany
+   */
+  export type PurgeFreezeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * Filter, which PurgeFreezes to fetch.
+     */
+    where?: PurgeFreezeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeFreezes to fetch.
+     */
+    orderBy?: PurgeFreezeOrderByWithRelationInput | PurgeFreezeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PurgeFreezes.
+     */
+    cursor?: PurgeFreezeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeFreezes from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeFreezes.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeFreezes.
+     */
+    distinct?: PurgeFreezeScalarFieldEnum | PurgeFreezeScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeFreeze create
+   */
+  export type PurgeFreezeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PurgeFreeze.
+     */
+    data: XOR<PurgeFreezeCreateInput, PurgeFreezeUncheckedCreateInput>
+  }
+
+  /**
+   * PurgeFreeze createMany
+   */
+  export type PurgeFreezeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PurgeFreezes.
+     */
+    data: PurgeFreezeCreateManyInput | PurgeFreezeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PurgeFreeze createManyAndReturn
+   */
+  export type PurgeFreezeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * The data used to create many PurgeFreezes.
+     */
+    data: PurgeFreezeCreateManyInput | PurgeFreezeCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PurgeFreeze update
+   */
+  export type PurgeFreezeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PurgeFreeze.
+     */
+    data: XOR<PurgeFreezeUpdateInput, PurgeFreezeUncheckedUpdateInput>
+    /**
+     * Choose, which PurgeFreeze to update.
+     */
+    where: PurgeFreezeWhereUniqueInput
+  }
+
+  /**
+   * PurgeFreeze updateMany
+   */
+  export type PurgeFreezeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PurgeFreezes.
+     */
+    data: XOR<PurgeFreezeUpdateManyMutationInput, PurgeFreezeUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgeFreezes to update
+     */
+    where?: PurgeFreezeWhereInput
+    /**
+     * Limit how many PurgeFreezes to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeFreeze updateManyAndReturn
+   */
+  export type PurgeFreezeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * The data used to update PurgeFreezes.
+     */
+    data: XOR<PurgeFreezeUpdateManyMutationInput, PurgeFreezeUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgeFreezes to update
+     */
+    where?: PurgeFreezeWhereInput
+    /**
+     * Limit how many PurgeFreezes to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PurgeFreeze upsert
+   */
+  export type PurgeFreezeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PurgeFreeze to update in case it exists.
+     */
+    where: PurgeFreezeWhereUniqueInput
+    /**
+     * In case the PurgeFreeze found by the `where` argument doesn't exist, create a new PurgeFreeze with this data.
+     */
+    create: XOR<PurgeFreezeCreateInput, PurgeFreezeUncheckedCreateInput>
+    /**
+     * In case the PurgeFreeze was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PurgeFreezeUpdateInput, PurgeFreezeUncheckedUpdateInput>
+  }
+
+  /**
+   * PurgeFreeze delete
+   */
+  export type PurgeFreezeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+    /**
+     * Filter which PurgeFreeze to delete.
+     */
+    where: PurgeFreezeWhereUniqueInput
+  }
+
+  /**
+   * PurgeFreeze deleteMany
+   */
+  export type PurgeFreezeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgeFreezes to delete
+     */
+    where?: PurgeFreezeWhereInput
+    /**
+     * Limit how many PurgeFreezes to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeFreeze without action
+   */
+  export type PurgeFreezeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeFreeze
+     */
+    select?: PurgeFreezeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeFreeze
+     */
+    omit?: PurgeFreezeOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PurgeFreezeInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PurgeReceipt
+   */
+
+  export type AggregatePurgeReceipt = {
+    _count: PurgeReceiptCountAggregateOutputType | null
+    _min: PurgeReceiptMinAggregateOutputType | null
+    _max: PurgeReceiptMaxAggregateOutputType | null
+  }
+
+  export type PurgeReceiptMinAggregateOutputType = {
+    userId: string | null
+    purgedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PurgeReceiptMaxAggregateOutputType = {
+    userId: string | null
+    purgedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type PurgeReceiptCountAggregateOutputType = {
+    userId: number
+    purgedAt: number
+    proof: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PurgeReceiptMinAggregateInputType = {
+    userId?: true
+    purgedAt?: true
+    createdAt?: true
+  }
+
+  export type PurgeReceiptMaxAggregateInputType = {
+    userId?: true
+    purgedAt?: true
+    createdAt?: true
+  }
+
+  export type PurgeReceiptCountAggregateInputType = {
+    userId?: true
+    purgedAt?: true
+    proof?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PurgeReceiptAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgeReceipt to aggregate.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PurgeReceipts
+    **/
+    _count?: true | PurgeReceiptCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PurgeReceiptMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PurgeReceiptMaxAggregateInputType
+  }
+
+  export type GetPurgeReceiptAggregateType<T extends PurgeReceiptAggregateArgs> = {
+        [P in keyof T & keyof AggregatePurgeReceipt]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePurgeReceipt[P]>
+      : GetScalarType<T[P], AggregatePurgeReceipt[P]>
+  }
+
+
+
+
+  export type PurgeReceiptGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PurgeReceiptWhereInput
+    orderBy?: PurgeReceiptOrderByWithAggregationInput | PurgeReceiptOrderByWithAggregationInput[]
+    by: PurgeReceiptScalarFieldEnum[] | PurgeReceiptScalarFieldEnum
+    having?: PurgeReceiptScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PurgeReceiptCountAggregateInputType | true
+    _min?: PurgeReceiptMinAggregateInputType
+    _max?: PurgeReceiptMaxAggregateInputType
+  }
+
+  export type PurgeReceiptGroupByOutputType = {
+    userId: string
+    purgedAt: Date
+    proof: JsonValue
+    createdAt: Date
+    _count: PurgeReceiptCountAggregateOutputType | null
+    _min: PurgeReceiptMinAggregateOutputType | null
+    _max: PurgeReceiptMaxAggregateOutputType | null
+  }
+
+  type GetPurgeReceiptGroupByPayload<T extends PurgeReceiptGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PurgeReceiptGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PurgeReceiptGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PurgeReceiptGroupByOutputType[P]>
+            : GetScalarType<T[P], PurgeReceiptGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PurgeReceiptSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgeReceipt"]>
+
+  export type PurgeReceiptSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgeReceipt"]>
+
+  export type PurgeReceiptSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["purgeReceipt"]>
+
+  export type PurgeReceiptSelectScalar = {
+    userId?: boolean
+    purgedAt?: boolean
+    proof?: boolean
+    createdAt?: boolean
+  }
+
+  export type PurgeReceiptOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"userId" | "purgedAt" | "proof" | "createdAt", ExtArgs["result"]["purgeReceipt"]>
+
+  export type $PurgeReceiptPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PurgeReceipt"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      userId: string
+      purgedAt: Date
+      proof: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["purgeReceipt"]>
+    composites: {}
+  }
+
+  type PurgeReceiptGetPayload<S extends boolean | null | undefined | PurgeReceiptDefaultArgs> = $Result.GetResult<Prisma.$PurgeReceiptPayload, S>
+
+  type PurgeReceiptCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PurgeReceiptFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PurgeReceiptCountAggregateInputType | true
+    }
+
+  export interface PurgeReceiptDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PurgeReceipt'], meta: { name: 'PurgeReceipt' } }
+    /**
+     * Find zero or one PurgeReceipt that matches the filter.
+     * @param {PurgeReceiptFindUniqueArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PurgeReceiptFindUniqueArgs>(args: SelectSubset<T, PurgeReceiptFindUniqueArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PurgeReceipt that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PurgeReceiptFindUniqueOrThrowArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PurgeReceiptFindUniqueOrThrowArgs>(args: SelectSubset<T, PurgeReceiptFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgeReceipt that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptFindFirstArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PurgeReceiptFindFirstArgs>(args?: SelectSubset<T, PurgeReceiptFindFirstArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PurgeReceipt that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptFindFirstOrThrowArgs} args - Arguments to find a PurgeReceipt
+     * @example
+     * // Get one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PurgeReceiptFindFirstOrThrowArgs>(args?: SelectSubset<T, PurgeReceiptFindFirstOrThrowArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PurgeReceipts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PurgeReceipts
+     * const purgeReceipts = await prisma.purgeReceipt.findMany()
+     * 
+     * // Get first 10 PurgeReceipts
+     * const purgeReceipts = await prisma.purgeReceipt.findMany({ take: 10 })
+     * 
+     * // Only select the `userId`
+     * const purgeReceiptWithUserIdOnly = await prisma.purgeReceipt.findMany({ select: { userId: true } })
+     * 
+     */
+    findMany<T extends PurgeReceiptFindManyArgs>(args?: SelectSubset<T, PurgeReceiptFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PurgeReceipt.
+     * @param {PurgeReceiptCreateArgs} args - Arguments to create a PurgeReceipt.
+     * @example
+     * // Create one PurgeReceipt
+     * const PurgeReceipt = await prisma.purgeReceipt.create({
+     *   data: {
+     *     // ... data to create a PurgeReceipt
+     *   }
+     * })
+     * 
+     */
+    create<T extends PurgeReceiptCreateArgs>(args: SelectSubset<T, PurgeReceiptCreateArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PurgeReceipts.
+     * @param {PurgeReceiptCreateManyArgs} args - Arguments to create many PurgeReceipts.
+     * @example
+     * // Create many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PurgeReceiptCreateManyArgs>(args?: SelectSubset<T, PurgeReceiptCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PurgeReceipts and returns the data saved in the database.
+     * @param {PurgeReceiptCreateManyAndReturnArgs} args - Arguments to create many PurgeReceipts.
+     * @example
+     * // Create many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PurgeReceipts and only return the `userId`
+     * const purgeReceiptWithUserIdOnly = await prisma.purgeReceipt.createManyAndReturn({
+     *   select: { userId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PurgeReceiptCreateManyAndReturnArgs>(args?: SelectSubset<T, PurgeReceiptCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PurgeReceipt.
+     * @param {PurgeReceiptDeleteArgs} args - Arguments to delete one PurgeReceipt.
+     * @example
+     * // Delete one PurgeReceipt
+     * const PurgeReceipt = await prisma.purgeReceipt.delete({
+     *   where: {
+     *     // ... filter to delete one PurgeReceipt
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PurgeReceiptDeleteArgs>(args: SelectSubset<T, PurgeReceiptDeleteArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PurgeReceipt.
+     * @param {PurgeReceiptUpdateArgs} args - Arguments to update one PurgeReceipt.
+     * @example
+     * // Update one PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PurgeReceiptUpdateArgs>(args: SelectSubset<T, PurgeReceiptUpdateArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PurgeReceipts.
+     * @param {PurgeReceiptDeleteManyArgs} args - Arguments to filter PurgeReceipts to delete.
+     * @example
+     * // Delete a few PurgeReceipts
+     * const { count } = await prisma.purgeReceipt.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PurgeReceiptDeleteManyArgs>(args?: SelectSubset<T, PurgeReceiptDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgeReceipts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PurgeReceiptUpdateManyArgs>(args: SelectSubset<T, PurgeReceiptUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PurgeReceipts and returns the data updated in the database.
+     * @param {PurgeReceiptUpdateManyAndReturnArgs} args - Arguments to update many PurgeReceipts.
+     * @example
+     * // Update many PurgeReceipts
+     * const purgeReceipt = await prisma.purgeReceipt.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PurgeReceipts and only return the `userId`
+     * const purgeReceiptWithUserIdOnly = await prisma.purgeReceipt.updateManyAndReturn({
+     *   select: { userId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PurgeReceiptUpdateManyAndReturnArgs>(args: SelectSubset<T, PurgeReceiptUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PurgeReceipt.
+     * @param {PurgeReceiptUpsertArgs} args - Arguments to update or create a PurgeReceipt.
+     * @example
+     * // Update or create a PurgeReceipt
+     * const purgeReceipt = await prisma.purgeReceipt.upsert({
+     *   create: {
+     *     // ... data to create a PurgeReceipt
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PurgeReceipt we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PurgeReceiptUpsertArgs>(args: SelectSubset<T, PurgeReceiptUpsertArgs<ExtArgs>>): Prisma__PurgeReceiptClient<$Result.GetResult<Prisma.$PurgeReceiptPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PurgeReceipts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptCountArgs} args - Arguments to filter PurgeReceipts to count.
+     * @example
+     * // Count the number of PurgeReceipts
+     * const count = await prisma.purgeReceipt.count({
+     *   where: {
+     *     // ... the filter for the PurgeReceipts we want to count
+     *   }
+     * })
+    **/
+    count<T extends PurgeReceiptCountArgs>(
+      args?: Subset<T, PurgeReceiptCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PurgeReceiptCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PurgeReceipt.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PurgeReceiptAggregateArgs>(args: Subset<T, PurgeReceiptAggregateArgs>): Prisma.PrismaPromise<GetPurgeReceiptAggregateType<T>>
+
+    /**
+     * Group by PurgeReceipt.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PurgeReceiptGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PurgeReceiptGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PurgeReceiptGroupByArgs['orderBy'] }
+        : { orderBy?: PurgeReceiptGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PurgeReceiptGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPurgeReceiptGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PurgeReceipt model
+   */
+  readonly fields: PurgeReceiptFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PurgeReceipt.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PurgeReceiptClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PurgeReceipt model
+   */
+  interface PurgeReceiptFieldRefs {
+    readonly userId: FieldRef<"PurgeReceipt", 'String'>
+    readonly purgedAt: FieldRef<"PurgeReceipt", 'DateTime'>
+    readonly proof: FieldRef<"PurgeReceipt", 'Json'>
+    readonly createdAt: FieldRef<"PurgeReceipt", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PurgeReceipt findUnique
+   */
+  export type PurgeReceiptFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt findUniqueOrThrow
+   */
+  export type PurgeReceiptFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt findFirst
+   */
+  export type PurgeReceiptFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgeReceipts.
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeReceipts.
+     */
+    distinct?: PurgeReceiptScalarFieldEnum | PurgeReceiptScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeReceipt findFirstOrThrow
+   */
+  export type PurgeReceiptFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipt to fetch.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PurgeReceipts.
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeReceipts.
+     */
+    distinct?: PurgeReceiptScalarFieldEnum | PurgeReceiptScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeReceipt findMany
+   */
+  export type PurgeReceiptFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter, which PurgeReceipts to fetch.
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PurgeReceipts to fetch.
+     */
+    orderBy?: PurgeReceiptOrderByWithRelationInput | PurgeReceiptOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PurgeReceipts.
+     */
+    cursor?: PurgeReceiptWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PurgeReceipts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PurgeReceipts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PurgeReceipts.
+     */
+    distinct?: PurgeReceiptScalarFieldEnum | PurgeReceiptScalarFieldEnum[]
+  }
+
+  /**
+   * PurgeReceipt create
+   */
+  export type PurgeReceiptCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data needed to create a PurgeReceipt.
+     */
+    data: XOR<PurgeReceiptCreateInput, PurgeReceiptUncheckedCreateInput>
+  }
+
+  /**
+   * PurgeReceipt createMany
+   */
+  export type PurgeReceiptCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PurgeReceipts.
+     */
+    data: PurgeReceiptCreateManyInput | PurgeReceiptCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PurgeReceipt createManyAndReturn
+   */
+  export type PurgeReceiptCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data used to create many PurgeReceipts.
+     */
+    data: PurgeReceiptCreateManyInput | PurgeReceiptCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PurgeReceipt update
+   */
+  export type PurgeReceiptUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data needed to update a PurgeReceipt.
+     */
+    data: XOR<PurgeReceiptUpdateInput, PurgeReceiptUncheckedUpdateInput>
+    /**
+     * Choose, which PurgeReceipt to update.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt updateMany
+   */
+  export type PurgeReceiptUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PurgeReceipts.
+     */
+    data: XOR<PurgeReceiptUpdateManyMutationInput, PurgeReceiptUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgeReceipts to update
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * Limit how many PurgeReceipts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeReceipt updateManyAndReturn
+   */
+  export type PurgeReceiptUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The data used to update PurgeReceipts.
+     */
+    data: XOR<PurgeReceiptUpdateManyMutationInput, PurgeReceiptUncheckedUpdateManyInput>
+    /**
+     * Filter which PurgeReceipts to update
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * Limit how many PurgeReceipts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeReceipt upsert
+   */
+  export type PurgeReceiptUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * The filter to search for the PurgeReceipt to update in case it exists.
+     */
+    where: PurgeReceiptWhereUniqueInput
+    /**
+     * In case the PurgeReceipt found by the `where` argument doesn't exist, create a new PurgeReceipt with this data.
+     */
+    create: XOR<PurgeReceiptCreateInput, PurgeReceiptUncheckedCreateInput>
+    /**
+     * In case the PurgeReceipt was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PurgeReceiptUpdateInput, PurgeReceiptUncheckedUpdateInput>
+  }
+
+  /**
+   * PurgeReceipt delete
+   */
+  export type PurgeReceiptDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+    /**
+     * Filter which PurgeReceipt to delete.
+     */
+    where: PurgeReceiptWhereUniqueInput
+  }
+
+  /**
+   * PurgeReceipt deleteMany
+   */
+  export type PurgeReceiptDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PurgeReceipts to delete
+     */
+    where?: PurgeReceiptWhereInput
+    /**
+     * Limit how many PurgeReceipts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PurgeReceipt without action
+   */
+  export type PurgeReceiptDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PurgeReceipt
+     */
+    select?: PurgeReceiptSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PurgeReceipt
+     */
+    omit?: PurgeReceiptOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model DBMigrationExecution
    */
 
@@ -161595,6 +166334,16 @@ export namespace Prisma {
   export type ProjectStorageObjectScalarFieldEnum = (typeof ProjectStorageObjectScalarFieldEnum)[keyof typeof ProjectStorageObjectScalarFieldEnum]
 
 
+  export const ProjectObjectStorageUsageScalarFieldEnum: {
+    projectId: 'projectId',
+    bytes: 'bytes',
+    objectCount: 'objectCount',
+    measuredAt: 'measuredAt'
+  };
+
+  export type ProjectObjectStorageUsageScalarFieldEnum = (typeof ProjectObjectStorageUsageScalarFieldEnum)[keyof typeof ProjectObjectStorageUsageScalarFieldEnum]
+
+
   export const DeploymentScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -162315,6 +167064,9 @@ export namespace Prisma {
     createdAt: 'createdAt',
     lastActiveAt: 'lastActiveAt',
     lastMeteredAt: 'lastMeteredAt',
+    purgeFrozen: 'purgeFrozen',
+    purgeFenceToken: 'purgeFenceToken',
+    purgeFrozenAt: 'purgeFrozenAt',
     updatedAt: 'updatedAt'
   };
 
@@ -163032,6 +167784,40 @@ export namespace Prisma {
   export type WorkspacePostMortemScalarFieldEnum = (typeof WorkspacePostMortemScalarFieldEnum)[keyof typeof WorkspacePostMortemScalarFieldEnum]
 
 
+  export const PurgePlanScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    ownerToken: 'ownerToken',
+    leaseExpiresAt: 'leaseExpiresAt',
+    version: 'version',
+    status: 'status',
+    createdAt: 'createdAt'
+  };
+
+  export type PurgePlanScalarFieldEnum = (typeof PurgePlanScalarFieldEnum)[keyof typeof PurgePlanScalarFieldEnum]
+
+
+  export const PurgeFreezeScalarFieldEnum: {
+    id: 'id',
+    planId: 'planId',
+    resourceType: 'resourceType',
+    resourceId: 'resourceId',
+    createdAt: 'createdAt'
+  };
+
+  export type PurgeFreezeScalarFieldEnum = (typeof PurgeFreezeScalarFieldEnum)[keyof typeof PurgeFreezeScalarFieldEnum]
+
+
+  export const PurgeReceiptScalarFieldEnum: {
+    userId: 'userId',
+    purgedAt: 'purgedAt',
+    proof: 'proof',
+    createdAt: 'createdAt'
+  };
+
+  export type PurgeReceiptScalarFieldEnum = (typeof PurgeReceiptScalarFieldEnum)[keyof typeof PurgeReceiptScalarFieldEnum]
+
+
   export const DBMigrationExecutionScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -163200,6 +167986,20 @@ export namespace Prisma {
    * Reference to a field of type 'WorkspaceStatus[]'
    */
   export type ListEnumWorkspaceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkspaceStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt'
+   */
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt[]'
+   */
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -163382,20 +168182,6 @@ export namespace Prisma {
    * Reference to a field of type 'DatabaseInstanceStatus[]'
    */
   export type ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DatabaseInstanceStatus[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'BigInt'
-   */
-  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
-    
-
-
-  /**
-   * Reference to a field of type 'BigInt[]'
-   */
-  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -164376,6 +169162,7 @@ export namespace Prisma {
     workspaces?: WorkspaceListRelationFilter
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
+    objectStorageUsage?: XOR<ProjectObjectStorageUsageNullableScalarRelationFilter, ProjectObjectStorageUsageWhereInput> | null
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
@@ -164420,6 +169207,7 @@ export namespace Prisma {
     workspaces?: WorkspaceOrderByRelationAggregateInput
     snapshots?: ProjectSnapshotOrderByRelationAggregateInput
     storageObjects?: ProjectStorageObjectOrderByRelationAggregateInput
+    objectStorageUsage?: ProjectObjectStorageUsageOrderByWithRelationInput
     deployments?: DeploymentOrderByRelationAggregateInput
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
     conversations?: AiConversationOrderByRelationAggregateInput
@@ -164468,6 +169256,7 @@ export namespace Prisma {
     workspaces?: WorkspaceListRelationFilter
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
+    objectStorageUsage?: XOR<ProjectObjectStorageUsageNullableScalarRelationFilter, ProjectObjectStorageUsageWhereInput> | null
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
@@ -166471,6 +171260,58 @@ export namespace Prisma {
     byteLength?: IntWithAggregatesFilter<"ProjectStorageObject"> | number
     contentHash?: StringWithAggregatesFilter<"ProjectStorageObject"> | string
     createdAt?: DateTimeWithAggregatesFilter<"ProjectStorageObject"> | Date | string
+  }
+
+  export type ProjectObjectStorageUsageWhereInput = {
+    AND?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    OR?: ProjectObjectStorageUsageWhereInput[]
+    NOT?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    projectId?: StringFilter<"ProjectObjectStorageUsage"> | string
+    bytes?: BigIntFilter<"ProjectObjectStorageUsage"> | bigint | number
+    objectCount?: IntFilter<"ProjectObjectStorageUsage"> | number
+    measuredAt?: DateTimeFilter<"ProjectObjectStorageUsage"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type ProjectObjectStorageUsageOrderByWithRelationInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type ProjectObjectStorageUsageWhereUniqueInput = Prisma.AtLeast<{
+    projectId?: string
+    AND?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    OR?: ProjectObjectStorageUsageWhereInput[]
+    NOT?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    bytes?: BigIntFilter<"ProjectObjectStorageUsage"> | bigint | number
+    objectCount?: IntFilter<"ProjectObjectStorageUsage"> | number
+    measuredAt?: DateTimeFilter<"ProjectObjectStorageUsage"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "projectId">
+
+  export type ProjectObjectStorageUsageOrderByWithAggregationInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+    _count?: ProjectObjectStorageUsageCountOrderByAggregateInput
+    _avg?: ProjectObjectStorageUsageAvgOrderByAggregateInput
+    _max?: ProjectObjectStorageUsageMaxOrderByAggregateInput
+    _min?: ProjectObjectStorageUsageMinOrderByAggregateInput
+    _sum?: ProjectObjectStorageUsageSumOrderByAggregateInput
+  }
+
+  export type ProjectObjectStorageUsageScalarWhereWithAggregatesInput = {
+    AND?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput | ProjectObjectStorageUsageScalarWhereWithAggregatesInput[]
+    OR?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput[]
+    NOT?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput | ProjectObjectStorageUsageScalarWhereWithAggregatesInput[]
+    projectId?: StringWithAggregatesFilter<"ProjectObjectStorageUsage"> | string
+    bytes?: BigIntWithAggregatesFilter<"ProjectObjectStorageUsage"> | bigint | number
+    objectCount?: IntWithAggregatesFilter<"ProjectObjectStorageUsage"> | number
+    measuredAt?: DateTimeWithAggregatesFilter<"ProjectObjectStorageUsage"> | Date | string
   }
 
   export type DeploymentWhereInput = {
@@ -170068,6 +174909,9 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
+    purgeFrozen?: BoolFilter<"WorkspaceRuntime"> | boolean
+    purgeFenceToken?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    purgeFrozenAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
   }
 
@@ -170086,6 +174930,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrderInput | SortOrder
+    purgeFrozenAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
   }
 
@@ -170107,6 +174954,9 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
+    purgeFrozen?: BoolFilter<"WorkspaceRuntime"> | boolean
+    purgeFenceToken?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    purgeFrozenAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
   }, "id">
 
@@ -170125,6 +174975,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrderInput | SortOrder
+    purgeFrozenAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
     _count?: WorkspaceRuntimeCountOrderByAggregateInput
     _max?: WorkspaceRuntimeMaxOrderByAggregateInput
@@ -170149,6 +175002,9 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
     lastActiveAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"WorkspaceRuntime"> | Date | string | null
+    purgeFrozen?: BoolWithAggregatesFilter<"WorkspaceRuntime"> | boolean
+    purgeFenceToken?: StringNullableWithAggregatesFilter<"WorkspaceRuntime"> | string | null
+    purgeFrozenAt?: DateTimeNullableWithAggregatesFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
   }
 
@@ -173788,6 +178644,176 @@ export namespace Prisma {
     capturedAt?: DateTimeWithAggregatesFilter<"WorkspacePostMortem"> | Date | string
   }
 
+  export type PurgePlanWhereInput = {
+    AND?: PurgePlanWhereInput | PurgePlanWhereInput[]
+    OR?: PurgePlanWhereInput[]
+    NOT?: PurgePlanWhereInput | PurgePlanWhereInput[]
+    id?: StringFilter<"PurgePlan"> | string
+    userId?: StringFilter<"PurgePlan"> | string
+    ownerToken?: StringFilter<"PurgePlan"> | string
+    leaseExpiresAt?: DateTimeFilter<"PurgePlan"> | Date | string
+    version?: IntFilter<"PurgePlan"> | number
+    status?: StringFilter<"PurgePlan"> | string
+    createdAt?: DateTimeFilter<"PurgePlan"> | Date | string
+    freezes?: PurgeFreezeListRelationFilter
+  }
+
+  export type PurgePlanOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ownerToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    freezes?: PurgeFreezeOrderByRelationAggregateInput
+  }
+
+  export type PurgePlanWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId?: string
+    AND?: PurgePlanWhereInput | PurgePlanWhereInput[]
+    OR?: PurgePlanWhereInput[]
+    NOT?: PurgePlanWhereInput | PurgePlanWhereInput[]
+    ownerToken?: StringFilter<"PurgePlan"> | string
+    leaseExpiresAt?: DateTimeFilter<"PurgePlan"> | Date | string
+    version?: IntFilter<"PurgePlan"> | number
+    status?: StringFilter<"PurgePlan"> | string
+    createdAt?: DateTimeFilter<"PurgePlan"> | Date | string
+    freezes?: PurgeFreezeListRelationFilter
+  }, "id" | "userId">
+
+  export type PurgePlanOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ownerToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    _count?: PurgePlanCountOrderByAggregateInput
+    _avg?: PurgePlanAvgOrderByAggregateInput
+    _max?: PurgePlanMaxOrderByAggregateInput
+    _min?: PurgePlanMinOrderByAggregateInput
+    _sum?: PurgePlanSumOrderByAggregateInput
+  }
+
+  export type PurgePlanScalarWhereWithAggregatesInput = {
+    AND?: PurgePlanScalarWhereWithAggregatesInput | PurgePlanScalarWhereWithAggregatesInput[]
+    OR?: PurgePlanScalarWhereWithAggregatesInput[]
+    NOT?: PurgePlanScalarWhereWithAggregatesInput | PurgePlanScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PurgePlan"> | string
+    userId?: StringWithAggregatesFilter<"PurgePlan"> | string
+    ownerToken?: StringWithAggregatesFilter<"PurgePlan"> | string
+    leaseExpiresAt?: DateTimeWithAggregatesFilter<"PurgePlan"> | Date | string
+    version?: IntWithAggregatesFilter<"PurgePlan"> | number
+    status?: StringWithAggregatesFilter<"PurgePlan"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"PurgePlan"> | Date | string
+  }
+
+  export type PurgeFreezeWhereInput = {
+    AND?: PurgeFreezeWhereInput | PurgeFreezeWhereInput[]
+    OR?: PurgeFreezeWhereInput[]
+    NOT?: PurgeFreezeWhereInput | PurgeFreezeWhereInput[]
+    id?: StringFilter<"PurgeFreeze"> | string
+    planId?: StringFilter<"PurgeFreeze"> | string
+    resourceType?: StringFilter<"PurgeFreeze"> | string
+    resourceId?: StringFilter<"PurgeFreeze"> | string
+    createdAt?: DateTimeFilter<"PurgeFreeze"> | Date | string
+    plan?: XOR<PurgePlanScalarRelationFilter, PurgePlanWhereInput>
+  }
+
+  export type PurgeFreezeOrderByWithRelationInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    createdAt?: SortOrder
+    plan?: PurgePlanOrderByWithRelationInput
+  }
+
+  export type PurgeFreezeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    resourceType_resourceId_planId?: PurgeFreezeResourceTypeResourceIdPlanIdCompoundUniqueInput
+    AND?: PurgeFreezeWhereInput | PurgeFreezeWhereInput[]
+    OR?: PurgeFreezeWhereInput[]
+    NOT?: PurgeFreezeWhereInput | PurgeFreezeWhereInput[]
+    planId?: StringFilter<"PurgeFreeze"> | string
+    resourceType?: StringFilter<"PurgeFreeze"> | string
+    resourceId?: StringFilter<"PurgeFreeze"> | string
+    createdAt?: DateTimeFilter<"PurgeFreeze"> | Date | string
+    plan?: XOR<PurgePlanScalarRelationFilter, PurgePlanWhereInput>
+  }, "id" | "resourceType_resourceId_planId">
+
+  export type PurgeFreezeOrderByWithAggregationInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    createdAt?: SortOrder
+    _count?: PurgeFreezeCountOrderByAggregateInput
+    _max?: PurgeFreezeMaxOrderByAggregateInput
+    _min?: PurgeFreezeMinOrderByAggregateInput
+  }
+
+  export type PurgeFreezeScalarWhereWithAggregatesInput = {
+    AND?: PurgeFreezeScalarWhereWithAggregatesInput | PurgeFreezeScalarWhereWithAggregatesInput[]
+    OR?: PurgeFreezeScalarWhereWithAggregatesInput[]
+    NOT?: PurgeFreezeScalarWhereWithAggregatesInput | PurgeFreezeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PurgeFreeze"> | string
+    planId?: StringWithAggregatesFilter<"PurgeFreeze"> | string
+    resourceType?: StringWithAggregatesFilter<"PurgeFreeze"> | string
+    resourceId?: StringWithAggregatesFilter<"PurgeFreeze"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"PurgeFreeze"> | Date | string
+  }
+
+  export type PurgeReceiptWhereInput = {
+    AND?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    OR?: PurgeReceiptWhereInput[]
+    NOT?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    userId?: StringFilter<"PurgeReceipt"> | string
+    purgedAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+    proof?: JsonFilter<"PurgeReceipt">
+    createdAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+  }
+
+  export type PurgeReceiptOrderByWithRelationInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    proof?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptWhereUniqueInput = Prisma.AtLeast<{
+    userId?: string
+    AND?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    OR?: PurgeReceiptWhereInput[]
+    NOT?: PurgeReceiptWhereInput | PurgeReceiptWhereInput[]
+    purgedAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+    proof?: JsonFilter<"PurgeReceipt">
+    createdAt?: DateTimeFilter<"PurgeReceipt"> | Date | string
+  }, "userId">
+
+  export type PurgeReceiptOrderByWithAggregationInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    proof?: SortOrder
+    createdAt?: SortOrder
+    _count?: PurgeReceiptCountOrderByAggregateInput
+    _max?: PurgeReceiptMaxOrderByAggregateInput
+    _min?: PurgeReceiptMinOrderByAggregateInput
+  }
+
+  export type PurgeReceiptScalarWhereWithAggregatesInput = {
+    AND?: PurgeReceiptScalarWhereWithAggregatesInput | PurgeReceiptScalarWhereWithAggregatesInput[]
+    OR?: PurgeReceiptScalarWhereWithAggregatesInput[]
+    NOT?: PurgeReceiptScalarWhereWithAggregatesInput | PurgeReceiptScalarWhereWithAggregatesInput[]
+    userId?: StringWithAggregatesFilter<"PurgeReceipt"> | string
+    purgedAt?: DateTimeWithAggregatesFilter<"PurgeReceipt"> | Date | string
+    proof?: JsonWithAggregatesFilter<"PurgeReceipt">
+    createdAt?: DateTimeWithAggregatesFilter<"PurgeReceipt"> | Date | string
+  }
+
   export type DBMigrationExecutionWhereInput = {
     AND?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
     OR?: DBMigrationExecutionWhereInput[]
@@ -174893,6 +179919,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -174936,6 +179963,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -174979,6 +180007,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -175022,6 +180051,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -177093,6 +182123,54 @@ export namespace Prisma {
     byteLength?: IntFieldUpdateOperationsInput | number
     contentHash?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageCreateInput = {
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+    project: ProjectCreateNestedOneWithoutObjectStorageUsageInput
+  }
+
+  export type ProjectObjectStorageUsageUncheckedCreateInput = {
+    projectId: string
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageUpdateInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutObjectStorageUsageNestedInput
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageCreateManyInput = {
+    projectId: string
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageUpdateManyMutationInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateManyInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type DeploymentCreateInput = {
@@ -181008,6 +186086,9 @@ export namespace Prisma {
     createdAt?: Date | string
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
+    purgeFrozen?: boolean
+    purgeFenceToken?: string | null
+    purgeFrozenAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -181026,6 +186107,9 @@ export namespace Prisma {
     createdAt?: Date | string
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
+    purgeFrozen?: boolean
+    purgeFenceToken?: string | null
+    purgeFrozenAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -181044,6 +186128,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
+    purgeFrozenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -181062,6 +186149,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
+    purgeFrozenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -181080,6 +186170,9 @@ export namespace Prisma {
     createdAt?: Date | string
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
+    purgeFrozen?: boolean
+    purgeFenceToken?: string | null
+    purgeFrozenAt?: Date | string | null
     updatedAt?: Date | string
   }
 
@@ -181098,6 +186191,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
+    purgeFrozenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -181116,6 +186212,9 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    purgeFrozen?: BoolFieldUpdateOperationsInput | boolean
+    purgeFenceToken?: NullableStringFieldUpdateOperationsInput | string | null
+    purgeFrozenAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -185270,6 +190369,184 @@ export namespace Prisma {
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type PurgePlanCreateInput = {
+    id?: string
+    userId: string
+    ownerToken: string
+    leaseExpiresAt: Date | string
+    version?: number
+    status?: string
+    createdAt?: Date | string
+    freezes?: PurgeFreezeCreateNestedManyWithoutPlanInput
+  }
+
+  export type PurgePlanUncheckedCreateInput = {
+    id?: string
+    userId: string
+    ownerToken: string
+    leaseExpiresAt: Date | string
+    version?: number
+    status?: string
+    createdAt?: Date | string
+    freezes?: PurgeFreezeUncheckedCreateNestedManyWithoutPlanInput
+  }
+
+  export type PurgePlanUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ownerToken?: StringFieldUpdateOperationsInput | string
+    leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    freezes?: PurgeFreezeUpdateManyWithoutPlanNestedInput
+  }
+
+  export type PurgePlanUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ownerToken?: StringFieldUpdateOperationsInput | string
+    leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    freezes?: PurgeFreezeUncheckedUpdateManyWithoutPlanNestedInput
+  }
+
+  export type PurgePlanCreateManyInput = {
+    id?: string
+    userId: string
+    ownerToken: string
+    leaseExpiresAt: Date | string
+    version?: number
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type PurgePlanUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ownerToken?: StringFieldUpdateOperationsInput | string
+    leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgePlanUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ownerToken?: StringFieldUpdateOperationsInput | string
+    leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeFreezeCreateInput = {
+    id?: string
+    resourceType: string
+    resourceId: string
+    createdAt?: Date | string
+    plan: PurgePlanCreateNestedOneWithoutFreezesInput
+  }
+
+  export type PurgeFreezeUncheckedCreateInput = {
+    id?: string
+    planId: string
+    resourceType: string
+    resourceId: string
+    createdAt?: Date | string
+  }
+
+  export type PurgeFreezeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    plan?: PurgePlanUpdateOneRequiredWithoutFreezesNestedInput
+  }
+
+  export type PurgeFreezeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    planId?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeFreezeCreateManyInput = {
+    id?: string
+    planId: string
+    resourceType: string
+    resourceId: string
+    createdAt?: Date | string
+  }
+
+  export type PurgeFreezeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeFreezeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    planId?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeReceiptCreateInput = {
+    userId: string
+    purgedAt: Date | string
+    proof: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PurgeReceiptUncheckedCreateInput = {
+    userId: string
+    purgedAt: Date | string
+    proof: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PurgeReceiptUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeReceiptUncheckedUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeReceiptCreateManyInput = {
+    userId: string
+    purgedAt: Date | string
+    proof: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type PurgeReceiptUpdateManyMutationInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeReceiptUncheckedUpdateManyInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    purgedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    proof?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DBMigrationExecutionCreateInput = {
     id?: string
     projectId: string
@@ -186557,6 +191834,11 @@ export namespace Prisma {
     every?: ProjectStorageObjectWhereInput
     some?: ProjectStorageObjectWhereInput
     none?: ProjectStorageObjectWhereInput
+  }
+
+  export type ProjectObjectStorageUsageNullableScalarRelationFilter = {
+    is?: ProjectObjectStorageUsageWhereInput | null
+    isNot?: ProjectObjectStorageUsageWhereInput | null
   }
 
   export type DeploymentListRelationFilter = {
@@ -187919,6 +193201,64 @@ export namespace Prisma {
 
   export type ProjectStorageObjectSumOrderByAggregateInput = {
     byteLength?: SortOrder
+  }
+
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type ProjectObjectStorageUsageCountOrderByAggregateInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageAvgOrderByAggregateInput = {
+    bytes?: SortOrder
+    objectCount?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageMaxOrderByAggregateInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageMinOrderByAggregateInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageSumOrderByAggregateInput = {
+    bytes?: SortOrder
+    objectCount?: SortOrder
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type EnumDeploymentStatusFilter<$PrismaModel = never> = {
@@ -189990,6 +195330,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrder
+    purgeFrozenAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -190007,6 +195350,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrder
+    purgeFrozenAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -190024,6 +195370,9 @@ export namespace Prisma {
     createdAt?: SortOrder
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
+    purgeFrozen?: SortOrder
+    purgeFenceToken?: SortOrder
+    purgeFrozenAt?: SortOrder
     updatedAt?: SortOrder
   }
 
@@ -191020,17 +196369,6 @@ export namespace Prisma {
     not?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
   }
 
-  export type BigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
-  }
-
   export type DatabaseSnapshotListRelationFilter = {
     every?: DatabaseSnapshotWhereInput
     some?: DatabaseSnapshotWhereInput
@@ -191119,22 +196457,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
-  }
-
-  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type DatabaseInstanceScalarRelationFilter = {
@@ -192451,6 +197773,108 @@ export namespace Prisma {
     finalState?: SortOrder
     logsTail?: SortOrder
     capturedAt?: SortOrder
+  }
+
+  export type PurgeFreezeListRelationFilter = {
+    every?: PurgeFreezeWhereInput
+    some?: PurgeFreezeWhereInput
+    none?: PurgeFreezeWhereInput
+  }
+
+  export type PurgeFreezeOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PurgePlanCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ownerToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgePlanAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type PurgePlanMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ownerToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgePlanMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    ownerToken?: SortOrder
+    leaseExpiresAt?: SortOrder
+    version?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgePlanSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type PurgePlanScalarRelationFilter = {
+    is?: PurgePlanWhereInput
+    isNot?: PurgePlanWhereInput
+  }
+
+  export type PurgeFreezeResourceTypeResourceIdPlanIdCompoundUniqueInput = {
+    resourceType: string
+    resourceId: string
+    planId: string
+  }
+
+  export type PurgeFreezeCountOrderByAggregateInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeFreezeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeFreezeMinOrderByAggregateInput = {
+    id?: SortOrder
+    planId?: SortOrder
+    resourceType?: SortOrder
+    resourceId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptCountOrderByAggregateInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    proof?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptMaxOrderByAggregateInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PurgeReceiptMinOrderByAggregateInput = {
+    userId?: SortOrder
+    purgedAt?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type DBMigrationExecutionProjectIdIdempotencyKeyCompoundUniqueInput = {
@@ -195730,6 +201154,12 @@ export namespace Prisma {
     connect?: ProjectStorageObjectWhereUniqueInput | ProjectStorageObjectWhereUniqueInput[]
   }
 
+  export type ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
   export type DeploymentCreateNestedManyWithoutProjectInput = {
     create?: XOR<DeploymentCreateWithoutProjectInput, DeploymentUncheckedCreateWithoutProjectInput> | DeploymentCreateWithoutProjectInput[] | DeploymentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: DeploymentCreateOrConnectWithoutProjectInput | DeploymentCreateOrConnectWithoutProjectInput[]
@@ -195899,6 +201329,12 @@ export namespace Prisma {
     connectOrCreate?: ProjectStorageObjectCreateOrConnectWithoutProjectInput | ProjectStorageObjectCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectStorageObjectCreateManyProjectInputEnvelope
     connect?: ProjectStorageObjectWhereUniqueInput | ProjectStorageObjectWhereUniqueInput[]
+  }
+
+  export type ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
   }
 
   export type DeploymentUncheckedCreateNestedManyWithoutProjectInput = {
@@ -196148,6 +201584,16 @@ export namespace Prisma {
     update?: ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput | ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput | ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectStorageObjectScalarWhereInput | ProjectStorageObjectScalarWhereInput[]
+  }
+
+  export type ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    upsert?: ProjectObjectStorageUsageUpsertWithoutProjectInput
+    disconnect?: ProjectObjectStorageUsageWhereInput | boolean
+    delete?: ProjectObjectStorageUsageWhereInput | boolean
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
+    update?: XOR<XOR<ProjectObjectStorageUsageUpdateToOneWithWhereWithoutProjectInput, ProjectObjectStorageUsageUpdateWithoutProjectInput>, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
   }
 
   export type DeploymentUpdateManyWithoutProjectNestedInput = {
@@ -196490,6 +201936,16 @@ export namespace Prisma {
     update?: ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput | ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput | ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectStorageObjectScalarWhereInput | ProjectStorageObjectScalarWhereInput[]
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    upsert?: ProjectObjectStorageUsageUpsertWithoutProjectInput
+    disconnect?: ProjectObjectStorageUsageWhereInput | boolean
+    delete?: ProjectObjectStorageUsageWhereInput | boolean
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
+    update?: XOR<XOR<ProjectObjectStorageUsageUpdateToOneWithWhereWithoutProjectInput, ProjectObjectStorageUsageUpdateWithoutProjectInput>, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
   }
 
   export type DeploymentUncheckedUpdateManyWithoutProjectNestedInput = {
@@ -197512,6 +202968,28 @@ export namespace Prisma {
     delete?: ProjectWhereInput | boolean
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutStorageObjectsInput, ProjectUpdateWithoutStorageObjectsInput>, ProjectUncheckedUpdateWithoutStorageObjectsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutObjectStorageUsageInput = {
+    create?: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutObjectStorageUsageInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type ProjectUpdateOneRequiredWithoutObjectStorageUsageNestedInput = {
+    create?: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutObjectStorageUsageInput
+    upsert?: ProjectUpsertWithoutObjectStorageUsageInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutObjectStorageUsageInput, ProjectUpdateWithoutObjectStorageUsageInput>, ProjectUncheckedUpdateWithoutObjectStorageUsageInput>
   }
 
   export type ProjectCreateNestedOneWithoutDeploymentsInput = {
@@ -199206,14 +204684,6 @@ export namespace Prisma {
     set?: $Enums.DatabaseInstanceStatus
   }
 
-  export type BigIntFieldUpdateOperationsInput = {
-    set?: bigint | number
-    increment?: bigint | number
-    decrement?: bigint | number
-    multiply?: bigint | number
-    divide?: bigint | number
-  }
-
   export type ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput = {
     create?: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
     connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstancesInput
@@ -199729,6 +205199,62 @@ export namespace Prisma {
     update?: XOR<XOR<WorkspaceUpdateToOneWithWhereWithoutPostMortemsInput, WorkspaceUpdateWithoutPostMortemsInput>, WorkspaceUncheckedUpdateWithoutPostMortemsInput>
   }
 
+  export type PurgeFreezeCreateNestedManyWithoutPlanInput = {
+    create?: XOR<PurgeFreezeCreateWithoutPlanInput, PurgeFreezeUncheckedCreateWithoutPlanInput> | PurgeFreezeCreateWithoutPlanInput[] | PurgeFreezeUncheckedCreateWithoutPlanInput[]
+    connectOrCreate?: PurgeFreezeCreateOrConnectWithoutPlanInput | PurgeFreezeCreateOrConnectWithoutPlanInput[]
+    createMany?: PurgeFreezeCreateManyPlanInputEnvelope
+    connect?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+  }
+
+  export type PurgeFreezeUncheckedCreateNestedManyWithoutPlanInput = {
+    create?: XOR<PurgeFreezeCreateWithoutPlanInput, PurgeFreezeUncheckedCreateWithoutPlanInput> | PurgeFreezeCreateWithoutPlanInput[] | PurgeFreezeUncheckedCreateWithoutPlanInput[]
+    connectOrCreate?: PurgeFreezeCreateOrConnectWithoutPlanInput | PurgeFreezeCreateOrConnectWithoutPlanInput[]
+    createMany?: PurgeFreezeCreateManyPlanInputEnvelope
+    connect?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+  }
+
+  export type PurgeFreezeUpdateManyWithoutPlanNestedInput = {
+    create?: XOR<PurgeFreezeCreateWithoutPlanInput, PurgeFreezeUncheckedCreateWithoutPlanInput> | PurgeFreezeCreateWithoutPlanInput[] | PurgeFreezeUncheckedCreateWithoutPlanInput[]
+    connectOrCreate?: PurgeFreezeCreateOrConnectWithoutPlanInput | PurgeFreezeCreateOrConnectWithoutPlanInput[]
+    upsert?: PurgeFreezeUpsertWithWhereUniqueWithoutPlanInput | PurgeFreezeUpsertWithWhereUniqueWithoutPlanInput[]
+    createMany?: PurgeFreezeCreateManyPlanInputEnvelope
+    set?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    disconnect?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    delete?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    connect?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    update?: PurgeFreezeUpdateWithWhereUniqueWithoutPlanInput | PurgeFreezeUpdateWithWhereUniqueWithoutPlanInput[]
+    updateMany?: PurgeFreezeUpdateManyWithWhereWithoutPlanInput | PurgeFreezeUpdateManyWithWhereWithoutPlanInput[]
+    deleteMany?: PurgeFreezeScalarWhereInput | PurgeFreezeScalarWhereInput[]
+  }
+
+  export type PurgeFreezeUncheckedUpdateManyWithoutPlanNestedInput = {
+    create?: XOR<PurgeFreezeCreateWithoutPlanInput, PurgeFreezeUncheckedCreateWithoutPlanInput> | PurgeFreezeCreateWithoutPlanInput[] | PurgeFreezeUncheckedCreateWithoutPlanInput[]
+    connectOrCreate?: PurgeFreezeCreateOrConnectWithoutPlanInput | PurgeFreezeCreateOrConnectWithoutPlanInput[]
+    upsert?: PurgeFreezeUpsertWithWhereUniqueWithoutPlanInput | PurgeFreezeUpsertWithWhereUniqueWithoutPlanInput[]
+    createMany?: PurgeFreezeCreateManyPlanInputEnvelope
+    set?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    disconnect?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    delete?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    connect?: PurgeFreezeWhereUniqueInput | PurgeFreezeWhereUniqueInput[]
+    update?: PurgeFreezeUpdateWithWhereUniqueWithoutPlanInput | PurgeFreezeUpdateWithWhereUniqueWithoutPlanInput[]
+    updateMany?: PurgeFreezeUpdateManyWithWhereWithoutPlanInput | PurgeFreezeUpdateManyWithWhereWithoutPlanInput[]
+    deleteMany?: PurgeFreezeScalarWhereInput | PurgeFreezeScalarWhereInput[]
+  }
+
+  export type PurgePlanCreateNestedOneWithoutFreezesInput = {
+    create?: XOR<PurgePlanCreateWithoutFreezesInput, PurgePlanUncheckedCreateWithoutFreezesInput>
+    connectOrCreate?: PurgePlanCreateOrConnectWithoutFreezesInput
+    connect?: PurgePlanWhereUniqueInput
+  }
+
+  export type PurgePlanUpdateOneRequiredWithoutFreezesNestedInput = {
+    create?: XOR<PurgePlanCreateWithoutFreezesInput, PurgePlanUncheckedCreateWithoutFreezesInput>
+    connectOrCreate?: PurgePlanCreateOrConnectWithoutFreezesInput
+    upsert?: PurgePlanUpsertWithoutFreezesInput
+    connect?: PurgePlanWhereUniqueInput
+    update?: XOR<XOR<PurgePlanUpdateToOneWithWhereWithoutFreezesInput, PurgePlanUpdateWithoutFreezesInput>, PurgePlanUncheckedUpdateWithoutFreezesInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -200009,6 +205535,33 @@ export namespace Prisma {
     _max?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
   }
 
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
   export type NestedEnumDeploymentStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.DeploymentStatus | EnumDeploymentStatusFieldRefInput<$PrismaModel>
     in?: $Enums.DeploymentStatus[] | ListEnumDeploymentStatusFieldRefInput<$PrismaModel>
@@ -200220,17 +205773,6 @@ export namespace Prisma {
     not?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
   }
 
-  export type NestedBigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
-  }
-
   export type NestedEnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.DatabaseInstanceStatus | EnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
     in?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
@@ -200239,22 +205781,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
-  }
-
-  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type NestedEnumDatabaseRestoreStatusFilter<$PrismaModel = never> = {
@@ -203237,6 +208763,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -203279,6 +208806,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -206499,6 +212027,23 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectObjectStorageUsageCreateWithoutProjectInput = {
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput = {
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput = {
+    where: ProjectObjectStorageUsageWhereUniqueInput
+    create: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+  }
+
   export type DeploymentCreateWithoutProjectInput = {
     id?: string
     workspaceId?: string | null
@@ -207289,6 +212834,29 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ProjectStorageObject"> | Date | string
   }
 
+  export type ProjectObjectStorageUsageUpsertWithoutProjectInput = {
+    update: XOR<ProjectObjectStorageUsageUpdateWithoutProjectInput, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    where?: ProjectObjectStorageUsageWhereInput
+  }
+
+  export type ProjectObjectStorageUsageUpdateToOneWithWhereWithoutProjectInput = {
+    where?: ProjectObjectStorageUsageWhereInput
+    data: XOR<ProjectObjectStorageUsageUpdateWithoutProjectInput, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectObjectStorageUsageUpdateWithoutProjectInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DeploymentUpsertWithWhereUniqueWithoutProjectInput = {
     where: DeploymentWhereUniqueInput
     update: XOR<DeploymentUpdateWithoutProjectInput, DeploymentUncheckedUpdateWithoutProjectInput>
@@ -207685,6 +213253,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -207727,6 +213296,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -207785,6 +213355,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -207827,6 +213398,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -208269,6 +213841,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -208311,6 +213884,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -208369,6 +213943,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -208411,6 +213986,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -208647,6 +214223,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -208689,6 +214266,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -208953,6 +214531,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -208995,6 +214574,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209037,6 +214617,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209079,6 +214660,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209242,6 +214824,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209284,6 +214867,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209437,6 +215021,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209479,6 +215064,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209537,6 +215123,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209579,6 +215166,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209621,6 +215209,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209663,6 +215252,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209721,6 +215311,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209763,6 +215354,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209805,6 +215397,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209847,6 +215440,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209905,6 +215499,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209947,6 +215542,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209988,6 +215584,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210030,6 +215627,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210088,6 +215686,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210130,6 +215729,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210172,6 +215772,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210214,6 +215815,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210272,6 +215874,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210314,6 +215917,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210356,6 +215960,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210398,6 +216003,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210456,6 +216062,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210498,6 +216105,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210540,6 +216148,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210582,6 +216191,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210745,6 +216355,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210787,6 +216398,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210940,6 +216552,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210982,6 +216595,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -211145,6 +216759,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -211187,6 +216802,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -211341,6 +216957,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -211383,6 +217000,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -211546,6 +217164,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -211588,6 +217207,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -211741,6 +217361,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -211783,6 +217404,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -211946,6 +217568,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -211988,6 +217611,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -212141,6 +217765,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -212183,6 +217808,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -212346,6 +217972,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -212388,6 +218015,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -212540,6 +218168,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -212582,6 +218211,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -212729,6 +218359,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -212771,6 +218402,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -212908,6 +218540,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -212950,6 +218583,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -213195,6 +218829,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -213237,6 +218872,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -213742,6 +219378,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -213784,6 +219421,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -213885,6 +219523,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -213927,6 +219566,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -214017,6 +219657,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -214059,6 +219700,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -214222,6 +219864,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -214264,6 +219907,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -214417,6 +220061,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -214459,6 +220104,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -214517,6 +220163,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -214559,6 +220206,195 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectCreateWithoutObjectStorageUsageInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutObjectStorageUsageInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutObjectStorageUsageInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+  }
+
+  export type ProjectUpsertWithoutObjectStorageUsageInput = {
+    update: XOR<ProjectUpdateWithoutObjectStorageUsageInput, ProjectUncheckedUpdateWithoutObjectStorageUsageInput>
+    create: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutObjectStorageUsageInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutObjectStorageUsageInput, ProjectUncheckedUpdateWithoutObjectStorageUsageInput>
+  }
+
+  export type ProjectUpdateWithoutObjectStorageUsageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutObjectStorageUsageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -214602,6 +220438,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -214644,6 +220481,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -214717,6 +220555,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -214759,6 +220598,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -216752,6 +222592,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -216794,6 +222635,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -216985,6 +222827,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -217027,6 +222870,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -222999,6 +228843,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -223041,6 +228886,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -223257,6 +229103,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -223299,6 +229146,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -226302,6 +232150,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -226344,6 +232193,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -226470,6 +232320,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -226512,6 +232363,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -227345,6 +233197,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -227387,6 +233240,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -227550,6 +233404,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -227592,6 +233447,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -228334,6 +234190,113 @@ export namespace Prisma {
     ideState?: WorkspaceIdeStateUncheckedUpdateOneWithoutWorkspaceNestedInput
     readinessBeacons?: PreviewReadinessBeaconUncheckedUpdateManyWithoutWorkspaceNestedInput
     lifecycleEvents?: WorkspaceLifecycleEventUncheckedUpdateManyWithoutWorkspaceNestedInput
+  }
+
+  export type PurgeFreezeCreateWithoutPlanInput = {
+    id?: string
+    resourceType: string
+    resourceId: string
+    createdAt?: Date | string
+  }
+
+  export type PurgeFreezeUncheckedCreateWithoutPlanInput = {
+    id?: string
+    resourceType: string
+    resourceId: string
+    createdAt?: Date | string
+  }
+
+  export type PurgeFreezeCreateOrConnectWithoutPlanInput = {
+    where: PurgeFreezeWhereUniqueInput
+    create: XOR<PurgeFreezeCreateWithoutPlanInput, PurgeFreezeUncheckedCreateWithoutPlanInput>
+  }
+
+  export type PurgeFreezeCreateManyPlanInputEnvelope = {
+    data: PurgeFreezeCreateManyPlanInput | PurgeFreezeCreateManyPlanInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PurgeFreezeUpsertWithWhereUniqueWithoutPlanInput = {
+    where: PurgeFreezeWhereUniqueInput
+    update: XOR<PurgeFreezeUpdateWithoutPlanInput, PurgeFreezeUncheckedUpdateWithoutPlanInput>
+    create: XOR<PurgeFreezeCreateWithoutPlanInput, PurgeFreezeUncheckedCreateWithoutPlanInput>
+  }
+
+  export type PurgeFreezeUpdateWithWhereUniqueWithoutPlanInput = {
+    where: PurgeFreezeWhereUniqueInput
+    data: XOR<PurgeFreezeUpdateWithoutPlanInput, PurgeFreezeUncheckedUpdateWithoutPlanInput>
+  }
+
+  export type PurgeFreezeUpdateManyWithWhereWithoutPlanInput = {
+    where: PurgeFreezeScalarWhereInput
+    data: XOR<PurgeFreezeUpdateManyMutationInput, PurgeFreezeUncheckedUpdateManyWithoutPlanInput>
+  }
+
+  export type PurgeFreezeScalarWhereInput = {
+    AND?: PurgeFreezeScalarWhereInput | PurgeFreezeScalarWhereInput[]
+    OR?: PurgeFreezeScalarWhereInput[]
+    NOT?: PurgeFreezeScalarWhereInput | PurgeFreezeScalarWhereInput[]
+    id?: StringFilter<"PurgeFreeze"> | string
+    planId?: StringFilter<"PurgeFreeze"> | string
+    resourceType?: StringFilter<"PurgeFreeze"> | string
+    resourceId?: StringFilter<"PurgeFreeze"> | string
+    createdAt?: DateTimeFilter<"PurgeFreeze"> | Date | string
+  }
+
+  export type PurgePlanCreateWithoutFreezesInput = {
+    id?: string
+    userId: string
+    ownerToken: string
+    leaseExpiresAt: Date | string
+    version?: number
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type PurgePlanUncheckedCreateWithoutFreezesInput = {
+    id?: string
+    userId: string
+    ownerToken: string
+    leaseExpiresAt: Date | string
+    version?: number
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type PurgePlanCreateOrConnectWithoutFreezesInput = {
+    where: PurgePlanWhereUniqueInput
+    create: XOR<PurgePlanCreateWithoutFreezesInput, PurgePlanUncheckedCreateWithoutFreezesInput>
+  }
+
+  export type PurgePlanUpsertWithoutFreezesInput = {
+    update: XOR<PurgePlanUpdateWithoutFreezesInput, PurgePlanUncheckedUpdateWithoutFreezesInput>
+    create: XOR<PurgePlanCreateWithoutFreezesInput, PurgePlanUncheckedCreateWithoutFreezesInput>
+    where?: PurgePlanWhereInput
+  }
+
+  export type PurgePlanUpdateToOneWithWhereWithoutFreezesInput = {
+    where?: PurgePlanWhereInput
+    data: XOR<PurgePlanUpdateWithoutFreezesInput, PurgePlanUncheckedUpdateWithoutFreezesInput>
+  }
+
+  export type PurgePlanUpdateWithoutFreezesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ownerToken?: StringFieldUpdateOperationsInput | string
+    leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgePlanUncheckedUpdateWithoutFreezesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    ownerToken?: StringFieldUpdateOperationsInput | string
+    leaseExpiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    version?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AccountCreateManyUserInput = {
@@ -230177,6 +236140,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -230219,6 +236183,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -233622,6 +239587,34 @@ export namespace Prisma {
     rateCardVersion?: NullableIntFieldUpdateOperationsInput | number | null
     postedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     metadata?: NullableJsonNullValueInput | InputJsonValue
+  }
+
+  export type PurgeFreezeCreateManyPlanInput = {
+    id?: string
+    resourceType: string
+    resourceId: string
+    createdAt?: Date | string
+  }
+
+  export type PurgeFreezeUpdateWithoutPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeFreezeUncheckedUpdateWithoutPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PurgeFreezeUncheckedUpdateManyWithoutPlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    resourceType?: StringFieldUpdateOperationsInput | string
+    resourceId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

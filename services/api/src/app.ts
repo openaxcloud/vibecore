@@ -95,6 +95,9 @@ import {
   nixGenerationRegistryFromEnv,
   parseEcodeLock,
   serializeEcodeLock,
+  WORKSPACE_CONTAINER_MAX_CPU_MILLICORES,
+  WORKSPACE_CONTAINER_MAX_DISK_GB,
+  WORKSPACE_CONTAINER_MAX_RAM_MB,
   type ClusterCapacity,
   type EcodeLock,
 } from '@vibecore/k8s-client';
@@ -148,13 +151,6 @@ import {
   isEligibleForInactivityDeletion,
   shouldSendInactivityWarning,
 } from './account-lifecycle.js';
-import {
-  AgentMemoryConfigurationError,
-  AgentMemoryService,
-  createPostgresAgentMemoryService,
-  type AgentMemoryScope,
-  type AgentMemoryType,
-} from './agent-memory.js';
 import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
   detectPodPackageManager,
@@ -201,7 +197,6 @@ import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import { slugify, slugifyRouteSegment } from './slugify.js';
 import { publicErrorCode } from './public-error-code.js';
-import { acquireTerminalSlot, releaseTerminalSlot } from './terminal-concurrency.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -209,6 +204,21 @@ import {
   reportUsagePaygUsage,
   settleCheckpoint,
 } from './credits-service.js';
+import type { PurgeClassReport } from './account-purge.js';
+import type { PurgeStorageInventory } from './account-purge.js';
+import {
+  eraseSubjectStorage,
+  type WorkspaceVolumeErasurePort,
+  type WriteBarrierPort,
+  type StorageErasureInventory,
+} from './account-storage-purge.js';
+import {
+  AgentMemoryConfigurationError,
+  AgentMemoryService,
+  createPostgresAgentMemoryService,
+  type AgentMemoryScope,
+  type AgentMemoryType,
+} from './agent-memory.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -311,7 +321,6 @@ import {
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { libererUnCreneauPourPublier } from './liberer-creneau.js';
-import { toursEnCoursDuProjet, type LecteurRedisDesTours } from './tours-partages.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import { forwardedAgentQuery } from './forwarded-agent-query.js';
 import {
@@ -363,14 +372,6 @@ import {
   meterObjectStorage,
   meterWorkspaceCompute,
 } from './metering-service.js';
-import {
-  BUCKET_NOT_PROVISIONED,
-  isObjectStorageEnabled,
-  type ObjectStorage,
-  ObjectStorageError,
-  PROJECT_THUMBNAIL_KEY,
-  resolveDefaultObjectStorage,
-} from './object-storage.js';
 import { teardownProjectExternalResources } from './project-teardown.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
@@ -460,20 +461,6 @@ import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
 import { findRepoEntry, normalizeOwnerRepo, skillRepoCatalogForLocale } from './skills-repo-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
-  abuseWarningEmailContent,
-  invoiceEmailContent,
-  invitationEmailContent,
-  localizedPublicErrorPayload,
-  localizedNotificationContent,
-  passwordResetEmailContent,
-  publicErrorMessage,
-  resolveTransactionalLocale,
-  verificationEmailContent,
-  welcomeEmailContent,
-  type InvoiceEmailEvent,
-  type TransactionalLocale,
-} from './transactional-i18n.js';
-import {
   API_KEY_SCOPES,
   type ApiKeyScope,
   type ApiStore,
@@ -500,10 +487,48 @@ import {
 } from './strike-system.js';
 import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
 import { decideWorkspaceSlot } from './workspace-slot.js';
-import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { assertObjectStorageQuota } from './object-storage-quota.js';
+import {
+  BUCKET_NOT_PROVISIONED,
+  guardObjectStorageWrites,
+  isObjectStorageEnabled,
+  OBJECT_UPLOAD_MAX_BYTES,
+  ObjectStorageError,
+  PROJECT_THUMBNAIL_KEY,
+  resolveDefaultObjectStorage,
+  type ObjectStorage,
+} from './object-storage.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
+import {
+  type GuardedAction,
+  type ReputationTier,
+  type TenantAdmissionCode,
+  type TenantActionContext,
+  assertTenantActionContext,
+  deriveReputationTier,
+  evaluateTenantAdmission,
+  resolveBillingAccountBinding,
+  tenantGuardrailUsageType,
+} from './tenant-guardrails.js';
+import { acquireTerminalSlot, releaseTerminalSlot } from './terminal-concurrency.js';
+import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import { toursEnCoursDuProjet, type LecteurRedisDesTours } from './tours-partages.js';
+import {
+  abuseWarningEmailContent,
+  invoiceEmailContent,
+  invitationEmailContent,
+  localizedPublicErrorPayload,
+  localizedNotificationContent,
+  passwordResetEmailContent,
+  publicErrorMessage,
+  resolveTransactionalLocale,
+  verificationEmailContent,
+  welcomeEmailContent,
+  type InvoiceEmailEvent,
+  type TransactionalLocale,
+} from './transactional-i18n.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -618,6 +643,16 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /**
+   * Physical-erasure hook for account purge (§16.12). Defaults to erasing real
+   * GCS buckets + workspace PVCs via `eraseSubjectStorage`; tests inject a fake
+   * to exercise the fail-closed gate without live GCS / workspace-manager.
+   */
+  accountStoragePurger?: (
+    inventory: PurgeStorageInventory,
+    userId: string,
+  ) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
 
   /**
    * Provisionneur de bases projet. Par défaut résolu depuis l'environnement
@@ -8017,6 +8052,144 @@ async function writeReleaseManifest(
 }
 
 /*
+ * Workspace-volume eraser for account purge (§16.12 physical erasure): deletes a
+ * workspace's Pod+PVC+Service+Secret via workspace-manager and verifies it is
+ * gone. The API pod has no Kubernetes access of its own — only workspace-manager
+ * does — so PVC deletion necessarily goes through it. `workspaceExists` treats a
+ * 404 or a DELETED row as "gone" (verified erased).
+ */
+function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
+  const authHeaders = () => {
+    const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+    return {
+      accept: 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    };
+  };
+
+  return {
+    async pvcExists(workspaceId: string) {
+      /*
+       * Reserve #2: ask workspace-manager for the REAL Kubernetes PVC state
+       * (a live `kubectl get pvc`), NOT the workspace row's `DELETED` flag — a
+       * partial k8s delete can leave a PVC while the row says deleted.
+       */
+      const response = await fetch(
+        `${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/pvc-exists`,
+        {
+          headers: authHeaders(),
+          signal: AbortSignal.timeout(15_000),
+        },
+      );
+
+      if (response.status === 404) {
+        return false;
+      }
+
+      if (!response.ok) {
+        throw new Error(`pvc existence check failed: ${response.status}`);
+      }
+
+      const body = (await response.json().catch(() => null)) as { exists?: boolean } | null;
+
+      return Boolean(body?.exists);
+    },
+
+    async deleteWorkspace(workspaceId: string) {
+      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(60_000),
+      });
+
+      /*
+       * 404 = already gone (idempotent). Anything else non-2xx is a real failure
+       * → the caller re-counts (real PVC check) and fails closed.
+       */
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`workspace delete failed: ${response.status}`);
+      }
+    },
+  };
+}
+
+/*
+ * Workspace write barrier (reserve #1): freeze each of the subject's workspaces
+ * BEFORE the erasure — workspace-manager `POST /workspaces/:id/freeze` (revoke
+ * token + stop pod) — so a pod can't recreate files between erase/verify and the
+ * tombstone. The OBJECT-STORAGE freeze (and the membership freeze) is now acquired
+ * earlier, inside the store's topology guarantee (RR-09), before this runs.
+ * FAIL-CLOSED: throws on ANY failure (freeze not acquired) so the erasure aborts.
+ */
+function createWriteBarrier(
+  workspaceIdsFor: (inv: StorageErasureInventory) => string[],
+  fenceToken: string,
+): WriteBarrierPort {
+  const authHeaders = () => {
+    const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+    return {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    };
+  };
+
+  return {
+    async freeze(inventory: StorageErasureInventory) {
+      /*
+       * RR-CODEX-14 (P3): freeze each workspace with the owning plan's fence token, so
+       * no reprovision path can recreate it until the tombstone. Throws on any failure.
+       */
+      for (const workspaceId of workspaceIdsFor(inventory)) {
+        const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/freeze`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ fenceToken }),
+          signal: AbortSignal.timeout(30_000),
+        });
+
+        // 404 = no workspace to freeze (idempotent); other non-2xx = real failure.
+        if (!response.ok && response.status !== 404) {
+          throw new Error(`workspace freeze failed for ${workspaceId}: ${response.status}`);
+        }
+      }
+    },
+  };
+}
+
+/*
+ * RR-CODEX-14 v5 (R-P3-04): lift the durable workspace barriers this attempt raised,
+ * fenced by the attempt's ownerToken. Called on EVERY exit (success/abandon) from the
+ * store's finally, so a runtime is never left durably frozen with no owner. Best-effort
+ * per workspace (the manager's stale-freeze reconciler self-heals any cross-replica
+ * orphan); the fence guarantees a delayed release never lifts a newer attempt's barrier.
+ */
+async function releaseWorkspaceBarriers(workspaceIds: string[], fenceToken: string): Promise<void> {
+  const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const headers = {
+    accept: 'application/json',
+    'content-type': 'application/json',
+    ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+  };
+
+  for (const workspaceId of workspaceIds) {
+    /*
+     * Best-effort: a missed unfreeze is recoverable by the manager's stale-freeze
+     * reconciler; it must never abort the purge's release path (hence the .catch).
+     */
+    await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/unfreeze`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ fenceToken }),
+      signal: AbortSignal.timeout(30_000),
+    }).catch(() => undefined);
+  }
+}
+
+/*
  * Run ONE isolated build pod via the workspace-manager (synchronous, like the
  * scheduled-jobs transport): revision in, docker-context artifact out. The HTTP
  * timeout tracks the build's own budget plus slack so the manager's poll — not
@@ -9517,7 +9690,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return (releases.at(0)?.metadata as Record<string, unknown> | undefined)?.access;
   };
-
 
   /*
    * When a caller injects its own staticBuildRunner (unit/integration tests), it
@@ -11903,7 +12075,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           request.log?.error?.({ err: error }, 'admin rate limit store unavailable — refusing (fail-closed)');
 
           return reply.code(503).header('retry-after', '5').send({
-            error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
+              error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
             code: 'RATE_LIMIT_STORE_UNAVAILABLE',
             retryable: true,
           });
@@ -15310,8 +15482,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * (voir `declencherDemarrageDepuisLecture`) : il porte l'utilisateur courant,
    * dont dépend le jeton de stockage objet, et le journal de la requête. Il reste
    * optionnel pour que les appelants internes (crons, réconciliation) continuent
-   * de fonctionner sans contexte — le démarrage part quand même, simplement sans
-   * identifiant d'utilisateur.
+   * de lire un agent déjà joignable sans contexte. Un démarrage exige désormais
+   * une identité vérifiable, même en observation, pour la décision locataire.
    */
   const agentRequest = async <T = unknown>(
     workspaceId: string,
@@ -15554,21 +15726,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * à un compte gratuit).
    */
   const reserverUnCreneauActif = async (request: any, organizationId: string | undefined, workspaceId: string) => {
-    const existant = await store.getWorkspace(workspaceId);
-    const dejaCompte = !!existant && ['PENDING', 'STARTING', 'RUNNING'].includes(existant.status as string);
-
-    if (!organizationId || dejaCompte) {
+    if (!organizationId) {
       return false;
     }
 
-    await store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
-      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
-      await ensureQuota(request, organizationId, 'workspaces.active');
-      await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
-    });
+    const budget = await billingState(organizationId);
+    const contexte = tenantWorkspaceContext(budget.limits);
 
-    // Vrai quand un créneau vient d'être pris : l'appelant le rend (FAILED) si le démarrage échoue pour de bon.
-    return true;
+    return store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
+
+      // Relire sous le verrou : une requête concurrente peut déjà avoir réservé.
+      const courant = await store.getWorkspace(workspaceId);
+      const actif = !!courant && ['PENDING', 'STARTING', 'RUNNING'].includes(courant.status as string);
+      assertTenantActionContext('workspace.start', contexte);
+      await ensureTenantAdmission(request, organizationId, 'workspace.start', contexte, {
+        capacityIncrement: actif ? 0 : 1,
+      });
+      await recordTenantWorkspaceStart(request, organizationId);
+
+      if (!actif) {
+        await ensureQuota(request, organizationId, 'workspaces.active');
+        await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
+      }
+
+      // L’appelant rend le créneau en cas d’échec de démarrage définitif.
+      return !actif;
+    });
   };
 
   const provisionWorkspaceOnDemand = async (
@@ -15846,10 +16030,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const agentFileRead = async (workspaceId: string, path: string) => {
+  const agentFileRead = async (workspaceId: string, path: string, request?: any) => {
     return agentRequest<{ content: string; encoding?: 'utf8' | 'base64' }>(
       workspaceId,
       `/files/read?path=${encodeURIComponent(path)}`,
+      {},
+      request,
     );
   };
 
@@ -15858,8 +16044,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * operate on string content. The runtime read route uses agentFileRead so it
    * can forward the `encoding` field and keep binary files lossless.
    */
-  const agentFileContent = async (workspaceId: string, path: string) => {
-    const file = await agentFileRead(workspaceId, path);
+  const agentFileContent = async (workspaceId: string, path: string, request?: any) => {
+    const file = await agentFileRead(workspaceId, path, request);
 
     return file.content;
   };
@@ -16929,6 +17115,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId,
       name: 'Scheduled',
       runtimeMode: process.env.WORKSPACE_DEFAULT_RUNTIME_MODE ?? 'docker',
+
+      // This row identifies a checkout/PVC; the disposable job is the active runtime.
+      initialStatus: 'STOPPED',
     });
   };
 
@@ -17619,7 +17808,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const override = await store.getQuotaOverride(organizationId, key);
     const activeOverride = isQuotaOverrideActive(override) ? override : undefined;
     const limit = activeOverride?.limit ?? limits[key] ?? 0;
-    const used = await usageForQuota(organizationId, key, request);
+    /*
+     * Mutating gates require a fresh authoritative read. Reusing the request
+     * display-cache here made the second check after a slow import clone stale:
+     * another replica could create while this request waited, then the cached
+     * pre-clone count still passed inside the serialized mutation.
+     */
+    const used = await computeUsageForQuota(organizationId, key);
 
     try {
       assertQuota({ key, used, limit, increment });
@@ -17633,6 +17828,310 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       throw error;
     }
+  };
+
+  /*
+   * ===== Multi-tenant anti-abuse guardrails (P0-A2-14 — ./tenant-guardrails.ts) =====
+   *
+   * The plan quota (`ensureQuota` above) answers "did they buy this?". These
+   * guardrails answer "do we trust them with it?" — a separate question, because
+   * a stolen card buys plan quota just fine. Both walls apply; the effective
+   * limit is the lower of the two.
+   *
+   * Enforcement is ON by default. Only the explicit emergency kill-switch value
+   * `TENANT_GUARDRAILS_ENABLED=false` enters observe-only mode; an omitted env
+   * value must never silently remove a security boundary.
+   */
+  const tenantGuardrailsEnabled = process.env.TENANT_GUARDRAILS_ENABLED !== 'false';
+
+  const firstPartyOrgIds = new Set(
+    (process.env.FIRST_PARTY_ORG_IDS ?? '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+
+  const TENANT_BURST_WINDOW_MS = 60 * 60 * 1000;
+
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+  const tenantAdmissionCopyKey = (code: TenantAdmissionCode | undefined): AppPublicCopyKey => {
+    switch (code) {
+      case 'BILLING_ACCOUNT_REQUIRED':
+        return 'TENANT_BILLING_ACCOUNT_REQUIRED';
+      case 'BILLING_ACCOUNT_DELINQUENT':
+        return 'TENANT_BILLING_ACCOUNT_DELINQUENT';
+      case 'BILLING_ACCOUNT_REVOKED':
+        return 'TENANT_BILLING_ACCOUNT_REVOKED';
+      case 'TENANT_CAP_EXCEEDED':
+        return 'TENANT_CAP_EXCEEDED';
+      case 'TENANT_BURST_EXCEEDED':
+        return 'TENANT_BURST_EXCEEDED';
+      case 'TENANT_PROVIDER_NOT_ALLOWED':
+        return 'TENANT_PROVIDER_NOT_ALLOWED';
+      case 'TENANT_RESOURCE_LIMIT_EXCEEDED':
+        return 'TENANT_RESOURCE_LIMIT_EXCEEDED';
+      case 'TENANT_GUARDRAIL_CONTEXT_INVALID':
+      default:
+        return 'TENANT_GUARDRAIL_UNAVAILABLE';
+    }
+  };
+
+  const tenantGuardrailUnavailableError = (cause?: unknown) => {
+    const publicMessage = appPublicEnglish('TENANT_GUARDRAIL_UNAVAILABLE');
+
+    return Object.assign(new Error(publicMessage), {
+      statusCode: 503,
+      code: 'TENANT_GUARDRAIL_UNAVAILABLE',
+      publicMessage,
+      cause,
+    });
+  };
+
+  const resolveTenantReputation = async (request: any, organizationId: string) => {
+    const now = Date.now();
+    const severeAbuseSince = new Date(now - 7 * MS_PER_DAY);
+
+    const [organization, requestUser, members, customer, billing, recentSevereAbuseEvents, activeStrikes] =
+      await Promise.all([
+        store.getOrganization(organizationId),
+        request.currentUser?.id ? store.findUserById(request.currentUser.id) : undefined,
+        store.listMembers(organizationId),
+        store.getBillingCustomer(organizationId),
+        billingState(organizationId),
+        store.countRecentSevereAbuseEvents(organizationId, severeAbuseSince),
+        store.countOrganizationActiveStrikes(organizationId, now),
+      ]);
+
+    const ownerMembers = members.filter((member) => member.roleKey === 'owner');
+
+    const ownerUsers = await Promise.all(
+      ownerMembers.map((member) =>
+        member.userId === requestUser?.id ? Promise.resolve(requestUser) : store.findUserById(member.userId),
+      ),
+    );
+
+    if (!organization || !requestUser || ownerUsers.length === 0 || ownerUsers.some((owner) => !owner)) {
+      throw tenantGuardrailUnavailableError();
+    }
+
+    const createdMs = organization?.createdAt ? Date.parse(organization.createdAt) : Number.NaN;
+    const accountAgeDays = Number.isFinite(createdMs) ? Math.floor((now - createdMs) / MS_PER_DAY) : 0;
+
+    const billingAccountBound = Boolean(customer?.provider?.trim() && customer.externalId?.trim());
+
+    const tier = deriveReputationTier({
+      firstParty: firstPartyOrgIds.has(organizationId),
+
+      /* Every owner is part of the tenant trust boundary; one weak owner demotes. */
+      emailVerified: ownerUsers.every((owner) => Boolean(owner?.emailVerifiedAt)),
+      billingAccountBound,
+      subscriptionActive: ['ACTIVE', 'TRIALING'].includes(String(billing?.subscription?.status)),
+      accountAgeDays,
+      activeStrikes,
+      recentSevereAbuseEvents,
+    });
+
+    const binding = resolveBillingAccountBinding({
+      organizationId,
+      tier,
+      customer: customer ? { provider: customer.provider, externalId: customer.externalId } : null,
+      delinquent: ['PAST_DUE', 'UNPAID'].includes(String(billing.subscription?.status)),
+    });
+
+    return { tier, binding };
+  };
+
+  const tenantWorkspaceContext = (
+    limits: Record<QuotaKey, number>,
+  ): Extract<TenantActionContext, { action: 'workspace.start' }> => ({
+    action: 'workspace.start',
+
+    /* Match the k8s admission clamp: authorize the resources that will exist. */
+    cpuMillicores: Math.min(limits['workspace.cpuMillicores'], WORKSPACE_CONTAINER_MAX_CPU_MILLICORES),
+    ramMb: Math.min(limits['workspace.ramMb'], WORKSPACE_CONTAINER_MAX_RAM_MB),
+    storageGb: Math.min(limits['storage.gb'], WORKSPACE_CONTAINER_MAX_DISK_GB),
+  });
+
+  const tenantDeploymentContext = (input: {
+    provider: string;
+    vcpu?: number;
+    artifactSizeMb?: number;
+    timeoutSeconds?: number;
+  }): Extract<TenantActionContext, { action: 'deployment.create' }> => ({
+    action: 'deployment.create',
+    provider: input.provider,
+    vcpu: input.vcpu ?? 0,
+    artifactSizeMb: input.artifactSizeMb ?? 0,
+    timeoutSeconds: input.timeoutSeconds ?? 0,
+  });
+
+  const ensureTenantAdmission = async (
+    request: any,
+    organizationId: string,
+    action: GuardedAction,
+    context: TenantActionContext,
+    options: { capacityIncrement?: 0 | 1; preflight?: boolean } = {},
+  ) => {
+    assertTenantActionContext(action, context);
+
+    let reputation;
+    let projects: number;
+    let concurrentWorkspaces: number;
+    let recent: number;
+    let override;
+
+    try {
+      const since = new Date(Date.now() - TENANT_BURST_WINDOW_MS);
+      [reputation, projects, concurrentWorkspaces, recent, override] = await Promise.all([
+        resolveTenantReputation(request, organizationId),
+        action === 'project.create' ? store.countProjects(organizationId) : Promise.resolve(0),
+        action === 'workspace.start' ? store.countActiveWorkspaces(organizationId) : Promise.resolve(0),
+        store.sumUsage(organizationId, tenantGuardrailUsageType(action), since),
+        store.getQuotaOverride(
+          organizationId,
+          action === 'project.create'
+            ? 'projects.count'
+            : action === 'deployment.create'
+              ? 'deployments.count'
+              : 'workspaces.active',
+        ),
+      ]);
+    } catch (error: any) {
+      request.log?.warn?.({ err: error, organizationId, action }, 'tenant guardrail evaluation failed');
+      await audit(request, store, {
+        organizationId,
+        action: 'tenant.guardrail.unavailable',
+        resourceType: 'tenantGuardrail',
+        resourceId: action,
+        metadata: { code: 'TENANT_GUARDRAIL_UNAVAILABLE' },
+      }).catch((auditError) => request.log?.warn?.({ err: auditError }, 'tenant guardrail outage audit failed'));
+
+      throw tenantGuardrailUnavailableError(error);
+    }
+
+    const tier: ReputationTier = reputation.tier;
+
+    const decision = evaluateTenantAdmission({
+      action,
+      tier,
+      binding: reputation.binding,
+      organizationId,
+      usage: { projects, concurrentWorkspaces },
+      recentCreates: { [action]: recent },
+      overrideActive: isQuotaOverrideActive(override),
+      capacityIncrement: options.capacityIncrement,
+      context,
+    });
+
+    const persistAttempt = () =>
+      store.recordUsageEvent({
+        organizationId,
+        userId: request.currentUser?.id,
+        type: tenantGuardrailUsageType(action),
+        quantity: 1,
+        metadata: {
+          tier,
+          bindingState: reputation.binding.state,
+          capacityIncrement: options.capacityIncrement ?? 1,
+        },
+      });
+
+    if (decision.allowed && tenantGuardrailsEnabled && !options.preflight) {
+      try {
+        await audit(request, store, {
+          organizationId,
+          action: 'tenant.guardrail.admitted',
+          resourceType: 'tenantGuardrail',
+          resourceId: action,
+          metadata: {
+            tier,
+            bindingState: reputation.binding.state,
+            billingAccountKey: reputation.binding.billingAccountKey,
+            isolationFolder: decision.policy.isolationFolder,
+            capacityIncrement: options.capacityIncrement ?? 1,
+          },
+        });
+        /*
+         * Claim the rolling-window slot while the org advisory lock is held and
+         * before the protected mutation. Unlike resource-row counts, this
+         * immutable UsageEvent survives failure, deletion, restore and transfer,
+         * so destructive cleanup cannot reset the abuse wall.
+         */
+        await persistAttempt();
+      } catch (error) {
+        request.log?.warn?.({ err: error, organizationId, action }, 'tenant guardrail admission persistence failed');
+        throw tenantGuardrailUnavailableError(error);
+      }
+
+      return decision;
+    }
+
+    if (decision.allowed) {
+      if (!tenantGuardrailsEnabled && !options.preflight) {
+        await persistAttempt().catch((error) =>
+          request.log?.warn?.({ err: error, organizationId, action }, 'tenant guardrail observe-only claim failed'),
+        );
+      }
+
+      return decision;
+    }
+
+    try {
+      request.observabilityMetrics?.increment?.('tenant_guardrail_refusals_total', {
+        action,
+        tier,
+        code: String(decision.code),
+        enforced: String(tenantGuardrailsEnabled),
+      });
+    } catch (metricError) {
+      request.log?.warn?.({ err: metricError }, 'tenant guardrail metric emit failed');
+    }
+
+    await audit(request, store, {
+      organizationId,
+      action: 'tenant.guardrail.refused',
+      resourceType: 'tenantGuardrail',
+      resourceId: action,
+      metadata: {
+        tier,
+        code: decision.code,
+        bindingState: reputation.binding.state,
+        billingAccountKey: reputation.binding.billingAccountKey,
+        isolationFolder: decision.policy.isolationFolder,
+        details: decision.details,
+        enforced: tenantGuardrailsEnabled,
+      },
+    }).catch((error) => request.log?.warn?.({ err: error }, 'tenant guardrail refusal audit failed'));
+
+    if (decision.abuseSignal) {
+      await recordAbuseSignal(request, store, {
+        organizationId,
+        userId: request.currentUser?.id,
+        type: decision.abuseSignal.type,
+        severity: decision.abuseSignal.severity,
+        reason: decision.abuseSignal.reason,
+        action: decision.abuseSignal.action,
+      }).catch((error) => request.log?.warn?.({ err: error }, 'tenant guardrail abuse signal failed'));
+    }
+
+    if (tenantGuardrailsEnabled) {
+      const publicMessage = appPublicEnglish(tenantAdmissionCopyKey(decision.code));
+
+      throw Object.assign(new Error(publicMessage), {
+        statusCode: decision.statusCode ?? 429,
+        code: decision.code,
+        publicMessage,
+      });
+    }
+
+    if (!options.preflight) {
+      await persistAttempt().catch((error) =>
+        request.log?.warn?.({ err: error, organizationId, action }, 'tenant guardrail observe-only claim failed'),
+      );
+    }
+
+    return decision;
   };
 
   const usageAbuseTriggerTypes = new Set<QuotaKey>(['ai.messages', 'previews.public', 'workspaces.active']);
@@ -17697,6 +18196,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (usageAbuseTriggerTypes.has(type)) {
       await evaluateUsageAbuse(request, organizationId, type);
+    }
+  };
+
+  /**
+   * Workspace starts use UsageEvent as their durable rolling-hour counter. That
+   * write is part of the security decision, not best-effort telemetry: without
+   * it repeated stop/start cycles could bypass the burst ceiling during a
+   * metering outage. Normalize storage failures to the same stable fail-closed
+   * contract as authoritative admission reads.
+   */
+  const recordTenantWorkspaceStart = async (request: any, organizationId: string) => {
+    try {
+      await recordUsage(request, organizationId, 'workspaces.active');
+    } catch (error) {
+      request.log?.warn?.(
+        { err: error, organizationId, action: 'workspace.start' },
+        'tenant workspace burst claim failed',
+      );
+      await audit(request, store, {
+        organizationId,
+        action: 'tenant.guardrail.unavailable',
+        resourceType: 'tenantGuardrail',
+        resourceId: 'workspace.start',
+        metadata: { code: 'TENANT_GUARDRAIL_UNAVAILABLE', phase: 'burst-claim' },
+      }).catch((auditError) => request.log?.warn?.({ err: auditError }, 'tenant guardrail outage audit failed'));
+
+      throw tenantGuardrailUnavailableError(error);
     }
   };
 
@@ -17896,7 +18422,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
       output = mapRuntimeNodes(nodes);
     } else if (toolName === 'read_file') {
-      output = { path, content: await agentFileContent(workspaceId, path ?? '.') };
+      output = { path, content: await agentFileContent(workspaceId, path ?? '.', request) };
     } else if (toolName === 'write_file') {
       await agentRequest(workspaceId, '/files/write', {
         method: 'POST',
@@ -17924,7 +18450,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const matches = [];
 
       for (const file of flattenRuntimeFiles(nodes)) {
-        const content = await agentFileContent(workspaceId, file.path);
+        const content = await agentFileContent(workspaceId, file.path, request);
 
         if (query && content.includes(query)) {
           matches.push({ path: file.path, preview: content.split('\n').find((line) => line.includes(query)) });
@@ -18009,7 +18535,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       output = {
         deployment: await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+          await ensureTenantAdmission(
+            request,
+            project.organizationId,
+            'deployment.create',
+            tenantDeploymentContext({ provider: input.provider ?? 'manual' }),
+          );
           await ensureQuota(request, project.organizationId, 'deployments.count');
+
           return store.createDeployment({ projectId: project.id, provider: input.provider ?? 'manual' });
         }),
       };
@@ -18137,64 +18670,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
+    const workspaceAdmissionContext = state ? tenantWorkspaceContext(state.limits) : undefined;
 
     /*
-     * Runtime workspace ids are deterministic per (project, user), so a re-open
-     * reuses the same record. Only a genuinely new workspace consumes the
-     * active-workspace quota — charging on every (re)start counted the existing
-     * record against itself and locked free-tier users out of reopening their
-     * own IDE (used=1, limit=1 → used+1 > limit → 429).
-     */
-    const existingWorkspace = await store.getWorkspace(workspaceId);
-
-    /*
-     * Quota-gate on whether the record currently COUNTS as active, not on mere
-     * existence. countActiveWorkspaces counts only PENDING/STARTING/RUNNING, so a
-     * STOPPED/FAILED record is not yet in the live count — reopening it adds one
-     * and must be checked. (Reopening an already-running workspace stays free, so
-     * we don't double-charge a user reopening their own live IDE.)
-     */
-    const countsAsActive =
-      !!existingWorkspace && ['PENDING', 'STARTING', 'RUNNING'].includes(existingWorkspace.status as string);
-
-    /*
-     * Serialize the quota check + the record transition that makes this workspace
-     * count as active, so two concurrent reopens for the same org can't both pass
-     * ensureQuota via TOCTOU and exceed workspaces.active. The slow manager start
-     * (HTTP) stays OUTSIDE the advisory-lock transaction. When the workspace is
-     * already active (reopening a live IDE), no quota is consumed — just create
-     * the record.
+     * Runtime workspace ids are deterministic per (project, user), so every
+     * explicit start enters the org lock and re-reads its status there. Reading
+     * before the lock let two concurrent reopens make decisions from the same
+     * stale STOPPED row. A live reopen consumes no additional concurrent slot,
+     * but it still crosses the reputation/billing wall and consumes the hourly
+     * start wall because it asks the manager to start/reconcile a runtime.
+     *
+     * The slow manager HTTP call remains outside the advisory-lock transaction.
      */
     const orgIdForQuota = authorized.organizationId;
 
-    const workspaceRecord =
-      orgIdForQuota && !countsAsActive
-        ? await store.withSerializedMutation(`workspaces:${orgIdForQuota}`, async () => {
-            /*
-             * Free any slot held by a record whose pod the GC already reaped
-             * (see reconcileOrphanedActiveWorkspaces) so the quota reflects what
-             * is actually running, not stale RUNNING rows. Runs inside the lock
-             * so the freed slot is visible to this same ensureQuota.
-             */
-            await reconcileOrphanedActiveWorkspaces(orgIdForQuota, workspaceId);
-            await ensureQuota(request, orgIdForQuota, 'workspaces.active');
+    if (!orgIdForQuota) {
+      throw tenantGuardrailUnavailableError();
+    }
 
-            const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
+    const workspaceRecord = await store.withSerializedMutation(`workspaces:${orgIdForQuota}`, async () => {
+      /*
+       * Free any slot held by a record whose pod the GC already reaped (see
+       * reconcileOrphanedActiveWorkspaces) so the quota reflects what is
+       * actually running, not stale rows.
+       */
+      await reconcileOrphanedActiveWorkspaces(orgIdForQuota, workspaceId);
 
-            /*
-             * Claim the active slot INSIDE the lock. A brand-new record is created
-             * as PENDING (a counted state), but reopening an existing STOPPED/FAILED
-             * workspace returns it unchanged — without flipping it to a counted
-             * state here, concurrent reopens all pass the same ensureQuota and
-             * exceed workspaces.active (the reconcile below moves it to RUNNING/FAILED).
-             */
-            if (!['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
-              await store.updateWorkspaceStatus({ workspaceId: record.id, status: 'STARTING' });
-            }
+      const current = await store.getWorkspace(workspaceId);
+      const currentlyActive = !!current && ['PENDING', 'STARTING', 'RUNNING'].includes(current.status as string);
 
-            return record;
-          })
-        : await ensureRuntimeWorkspaceRecord(workspaceId, project);
+      assertTenantActionContext('workspace.start', workspaceAdmissionContext);
+      await ensureTenantAdmission(request, orgIdForQuota, 'workspace.start', workspaceAdmissionContext, {
+        capacityIncrement: currentlyActive ? 0 : 1,
+      });
+
+      if (!currentlyActive) {
+        await ensureQuota(request, orgIdForQuota, 'workspaces.active');
+      }
+
+      /*
+       * Persist the burst claim BEFORE asking the manager or making a dormant
+       * row active. A storage outage can never create an unmetered start.
+       */
+      await recordTenantWorkspaceStart(request, orgIdForQuota);
+
+      const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
+
+      /*
+       * Claim a new active slot inside the lock. A brand-new record is PENDING;
+       * reopening STOPPED/FAILED must be flipped to a counted state before the
+       * lock is released.
+       */
+      if (!currentlyActive && !['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
+        await store.updateWorkspaceStatus({ workspaceId: record.id, status: 'STARTING' });
+      }
+
+      return record;
+    });
     authorized.workspaceId = workspaceRecord.id;
 
     /*
@@ -18231,11 +18763,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
           plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
+          resourceLimits: workspaceAdmissionContext
             ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
+                cpuMillicores: workspaceAdmissionContext.cpuMillicores,
+                ramMb: workspaceAdmissionContext.ramMb,
+                storageGb: workspaceAdmissionContext.storageGb,
               }
             : undefined,
           env,
@@ -18316,10 +18848,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     const startFailed = managerWorkspace?.status === 'FAILED';
-
-    if (authorized.organizationId && !existingWorkspace && !startFailed) {
-      await recordUsage(request, authorized.organizationId, 'workspaces.active');
-    }
 
     /*
      * Reconcile our own record to the manager's state. The active-workspace
@@ -18437,6 +18965,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * starved free-tier CPU/RAM.
      */
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
+    const restartAdmissionContext = state ? tenantWorkspaceContext(state.limits) : undefined;
 
     const [projectEnvVars, projectSecrets] = await Promise.all([
       store.listProjectEnvVars(authorized.projectId),
@@ -18461,11 +18990,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
           plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
+          resourceLimits: restartAdmissionContext
             ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
+                cpuMillicores: restartAdmissionContext.cpuMillicores,
+                ramMb: restartAdmissionContext.ramMb,
+                storageGb: restartAdmissionContext.storageGb,
               }
             : undefined,
           env,
@@ -18707,6 +19236,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const nodes = await agentRequest<AgentNode[]>(
       authorized.workspaceId,
       `/files/tree?path=${encodeURIComponent(path)}`,
+      {},
+      request,
     );
 
     /*
@@ -18736,7 +19267,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const file = await agentFileRead(authorized.workspaceId, path);
+    const file = await agentFileRead(authorized.workspaceId, path, request);
 
     return { path, content: file.content, encoding: file.encoding };
   });
@@ -18980,7 +19511,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         break;
       }
 
-      const content = await agentFileContent(authorized.workspaceId, file.path);
+      const content = await agentFileContent(authorized.workspaceId, file.path, request);
 
       if (content.length > MAX_FILE_BYTES) {
         continue;
@@ -19692,7 +20223,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * every image/font/.ico/wasm in the export. Decode base64 entries to real
        * bytes (via {base64:true}); store text entries as utf8.
        */
-      const fileRead = await agentFileRead(authorized.workspaceId, file.path);
+      const fileRead = await agentFileRead(authorized.workspaceId, file.path, request);
       const isBase64 = fileRead.encoding === 'base64';
 
       exportBytes += isBase64 ? Math.floor((fileRead.content.length * 3) / 4) : Buffer.byteLength(fileRead.content);
@@ -21500,7 +22031,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .code(409)
           .send({
             error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
-            code: 'ALREADY_INVITED',
+          code: 'ALREADY_INVITED',
           });
       }
 
@@ -22328,6 +22859,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * projects.count check via TOCTOU.
      */
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -22437,6 +22969,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -22507,6 +23040,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -23024,7 +23558,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ? (job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip')
         : ('blank' as const);
       const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+        await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
         await ensureQuota(request, orgId, 'projects.count');
+
         return store.createProject({
           organizationId: orgId,
           name,
@@ -23233,6 +23769,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Cheap pre-check to reject an over-quota org before the (slow) clone; the
      * authoritative atomic check is inside the serialized block below.
      */
+    await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' }, { preflight: true });
     await ensureQuota(request, orgId, 'projects.count');
 
     const clone = await clonerLeDepotPourImport(request, body);
@@ -23258,6 +23795,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the advisory-lock transaction).
      */
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -23306,6 +23844,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(githubImportSchema, request.body);
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
+    await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' }, { preflight: true });
     await ensureQuota(request, orgId, 'projects.count');
 
     const clone = await clonerLeDepotPourImport(request, body);
@@ -23327,6 +23866,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'Imported project';
 
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -23376,6 +23916,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+      await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, orgId, 'projects.count');
 
       return store.createProject({
@@ -23501,7 +24042,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (workspace) {
       try {
-        const nodes = await agentRequest<AgentNode[]>(workspace.id, '/files/tree');
+        const nodes = await agentRequest<AgentNode[]>(workspace.id, '/files/tree', {}, request);
 
         const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
           const basename = file.path.split('/').pop() ?? '';
@@ -23516,7 +24057,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           const basename = file.path.split('/').pop() ?? '';
           filesByPath.set(file.path, {
             path: file.path,
-            content: basename === 'bun.lockb' ? '' : await agentFileContent(workspace.id, file.path),
+            content: basename === 'bun.lockb' ? '' : await agentFileContent(workspace.id, file.path, request),
             updatedAt: new Date().toISOString(),
           });
         }
@@ -23628,7 +24169,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const basename = file.path.split('/').pop() ?? '';
         filesByPath.set(file.path, {
           path: file.path,
-          content: basename === 'bun.lockb' ? '' : await agentFileContent(authorized.workspaceId, file.path),
+          content: basename === 'bun.lockb' ? '' : await agentFileContent(authorized.workspaceId, file.path, request),
           updatedAt: new Date().toISOString(),
         });
       }
@@ -26531,7 +27072,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * limit could soft-delete then restore to exceed it.
      */
     const restored = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(request, project.organizationId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, project.organizationId, 'projects.count');
+
       return store.restoreProject(project.id);
     });
     await store.recordProjectActivity({
@@ -26672,6 +27215,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * and exceed the plan limit (TOCTOU). Matches the create handlers.
      */
     const transferred = await store.withSerializedMutation(`projects:${body.targetOrganizationId}`, async () => {
+      await ensureTenantAdmission(request, body.targetOrganizationId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, body.targetOrganizationId, 'projects.count');
 
       return store.transferProject({
@@ -27367,7 +27911,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       // (4) CLONING — new project (metadata only) in the TARGET org + files scrubbed.
       const duplicate = await store.withSerializedMutation(`projects:${targetOrganizationId}`, async () => {
+        await ensureTenantAdmission(request, targetOrganizationId, 'project.create', { action: 'project.create' });
         await ensureQuota(request, targetOrganizationId, 'projects.count');
+
         return store.duplicateProject({
           projectId: sourceProject.id,
           organizationId: targetOrganizationId,
@@ -28063,6 +28609,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // Serialize quota-check + duplicate (projects.count TOCTOU); see /transfer.
     const duplicate = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(request, project.organizationId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, project.organizationId, 'projects.count');
 
       return store.duplicateProject({
@@ -28145,13 +28692,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(createWorkspaceSchema, request.body);
     await requireOrganizationNotSuspended(store, project.organizationId);
 
+    const workspaceBilling = await billingState(project.organizationId);
+    const createWorkspaceAdmissionContext = tenantWorkspaceContext(workspaceBilling.limits);
+
     /*
      * Serialize the quota check + create so concurrent workspace creations for the
      * same org can't both pass ensureQuota via TOCTOU and over-provision past the
      * workspaces.active limit.
      */
     const workspace = await store.withSerializedMutation(`workspaces:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(request, project.organizationId, 'workspace.start', createWorkspaceAdmissionContext);
       await ensureQuota(request, project.organizationId, 'workspaces.active');
+
+      /* Refuse before row creation if the durable burst counter cannot be written. */
+      await recordTenantWorkspaceStart(request, project.organizationId);
 
       return store.createWorkspace({
         projectId: project.id,
@@ -28159,7 +28713,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         runtimeMode: body.runtimeMode ?? 'remote-kubernetes',
       });
     });
-    await recordUsage(request, project.organizationId, 'workspaces.active');
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'workspace.create',
@@ -33497,6 +34050,237 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * ===== Account-purge executor (§16.12 — internal, worker-triggered) =====
+   * Consumes the ready_to_purge queue the self-serve deletion machine feeds
+   * (request → 14-day grace → ready_to_purge, ./data-deletion.ts): for each
+   * user in account.pendingDeletionUserIds whose grace window has ELAPSED, run
+   * store.purgeUserAccount — the real class-by-class erasure with fail-closed
+   * financial retention (canPurgeFinancialRecord), audit-log redaction (never
+   * deletion), ledger immutability respected (mig 0078), an anonymized
+   * tombstone carrying purgedAt, and a structured ERASURE PROOF verified
+   * "0 rows remaining" per purged class. The proof is persisted to the
+   * AdminAuditLog (action account.purge_completed) and the user leaves the
+   * pending set. Idempotent (already-purged → no-op) and concurrency-safe
+   * (per-user advisory lock in the store).
+   *
+   * DRY-RUN by default: scans + counts but only purges when
+   * ACCOUNT_PURGE_ENABLED=true (or body.enabled) — mirrors /internal/inactivity-gc.
+   */
+  app.post('/internal/account-purge', async (request) => {
+    requireInternalSecret(request);
+
+    const body = parse(
+      z.object({
+        enabled: z.boolean().optional(),
+        take: z.number().int().positive().max(1000).optional(),
+        userId: z.string().min(1).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    const enabled = body.enabled ?? process.env.ACCOUNT_PURGE_ENABLED === 'true';
+    const nowMs = Date.now();
+
+    let ids: string[];
+
+    if (body.userId) {
+      ids = [body.userId];
+    } else {
+      const settings = await store.listSystemSettings();
+      const pending = settings.find((setting) => setting.key === ACCOUNT_DELETION_PENDING_KEY);
+      ids = Array.isArray(pending?.value)
+        ? (pending!.value as unknown[]).filter((id): id is string => typeof id === 'string')
+        : [];
+    }
+
+    ids = ids.slice(0, body.take ?? 500);
+
+    /*
+     * RR-09 (4): recover from a crash. Release any purge freeze left behind by a
+     * run that died between acquiring its topology guarantee and releasing it, so
+     * a legitimate org/project is never frozen forever. Users still ready_to_purge
+     * re-acquire a fresh guarantee below.
+     */
+    const reconciled = await store.reconcilePurgeFreezes();
+
+    let ready = 0;
+    let purged = 0;
+    let alreadyPurged = 0;
+    let notDue = 0;
+    let stale = 0;
+    let failed = 0;
+    let missingReceipt = 0; // RR-CODEX-14 (P6): purged-but-no-receipt → kept queued
+
+    /*
+     * RR-CODEX-14 v5 (P6): the SINGLE primitive through which a userId ever leaves
+     * the pending queue on a purge/already-purged path. It removes ONLY when the
+     * durable erasure receipt exists (written in the SAME tx as the tombstone);
+     * otherwise it increments missingReceipt and KEEPS the id queued (surfaced),
+     * so a purge can never be silently forgotten without proof. Every queue-removal
+     * that follows a "this account is purged" claim MUST go through here — no path
+     * calls mutateSystemSettingIds(remove) on its own.
+     */
+    const removePendingOnlyWithReceipt = async (uid: string): Promise<boolean> => {
+      if (await store.hasPurgeReceipt(uid)) {
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: uid });
+        return true;
+      }
+
+      missingReceipt += 1;
+
+      return false;
+    };
+
+    for (const userId of ids) {
+      const user = await store.findUserById(userId);
+      const state = readAccountDeletionState(user?.preferences);
+      const status = deletionStatus({ ...state, nowMs });
+
+      if (!user || status === 'none') {
+        // Cancelled/vanished request still indexed — drop the stale id.
+        stale += 1;
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        continue;
+      }
+
+      if (status === 'grace_period') {
+        notDue += 1;
+        continue;
+      }
+
+      if (status === 'purged') {
+        alreadyPurged += 1;
+
+        // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+        await removePendingOnlyWithReceipt(userId);
+        continue;
+      }
+
+      // ready_to_purge
+      ready += 1;
+
+      if (!enabled) {
+        continue; // dry-run: counted, not purged
+      }
+
+      try {
+        const result = await store.purgeUserAccount(
+          { userId, nowMs },
+          {
+            /*
+             * Physical-erasure gate (§16.12): erase the account's GCS buckets +
+             * workspace PVCs and prove 0 remaining BEFORE the DB tombstone is
+             * stamped. A failure throws → the account stays queued and is retried
+             * → an account is never marked purged with storage still on disk.
+             */
+            eraseStorage: (inventory, guard, fenceToken) =>
+              options.accountStoragePurger
+                ? options.accountStoragePurger(inventory, userId)
+                : eraseSubjectStorage(
+                    {
+                      bucketProjectIds: inventory.bucketProjectIds,
+
+                      /*
+                       * Reserve #3: a per-user workspace exists in EVERY project the
+                       * subject touched (sole-org + collaborator), deterministically
+                       * named runtimeWorkspaceId(projectId, userId).
+                       */
+                      workspaceIds: inventory.workspaceProjectIds.map((projectId) =>
+                        runtimeWorkspaceId(projectId, userId),
+                      ),
+                    },
+                    {
+                      /*
+                       * RAW (unguarded) backend: the erasure must delete the very
+                       * projects it freezes; the freeze guard would refuse them.
+                       */
+                      objectStorage: resolveRawObjectStorage(),
+                      workspaceVolumes: createWorkspaceVolumeEraser(),
+
+                      /*
+                       * RR-CODEX-14 v5 (R-P3-05): the fence is the PER-ATTEMPT ownerToken
+                       * (from the store's guarantee), NOT the stable userId — so a
+                       * delayed release from a prior attempt can't lift a new barrier.
+                       */
+                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds, fenceToken ?? ''),
+
+                      // RR-CODEX-12: revalidate the lease before each irreversible delete.
+                      guard,
+                      log: app.log as unknown as { warn(o: unknown, m?: string): void },
+                    },
+                  ),
+
+            /*
+             * RR-CODEX-14 v5 (R-P3-04): release the durable workspace barrier on every
+             * exit, fenced by this attempt's ownerToken.
+             */
+            releaseWorkspaceBarrier: (inventory, fenceToken) =>
+              releaseWorkspaceBarriers(
+                inventory.workspaceProjectIds.map((projectId) => runtimeWorkspaceId(projectId, userId)),
+                fenceToken,
+              ),
+          },
+        );
+
+        if (result.outcome === 'purged') {
+          purged += 1;
+          /*
+           * The PROOF is persisted before the id leaves the pending set: if the
+           * audit write fails the purge stays visible in the queue and the next
+           * run resolves it as already_purged (idempotent), so an erasure can
+           * never end up both unlisted and unproven.
+           */
+          await store.recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.purge_completed',
+            metadata: { userId, proof: result.proof },
+          });
+
+          // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+          await removePendingOnlyWithReceipt(userId);
+        } else if (result.outcome === 'already_purged') {
+          alreadyPurged += 1;
+
+          // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+          await removePendingOnlyWithReceipt(userId);
+        } else if (result.outcome === 'not_due') {
+          // Store-level re-check disagreed (clock skew) — leave it queued.
+          ready -= 1;
+          notDue += 1;
+        } else {
+          ready -= 1;
+          stale += 1;
+          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        }
+      } catch (error) {
+        // Fail-closed: a failed purge stays in the queue and is observable.
+        failed += 1;
+        request.log?.error?.({ err: error, userId }, 'account purge failed');
+        await store
+          .recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.purge_failed',
+            metadata: { userId, error: error instanceof Error ? error.message : String(error) },
+          })
+          .catch(() => {});
+      }
+    }
+
+    return {
+      enabled,
+      scanned: ids.length,
+      ready,
+      purged,
+      alreadyPurged,
+      notDue,
+      stale,
+      failed,
+      missingReceipt,
+      reconciledFreezes: reconciled.reconciled,
+    };
+  });
+
+  /*
    * ===== Replit-parity metering ingest (P8/P4 — internal, service-to-service) =====
    * The workspace-manager GC (compute), and other producers (object storage, DB,
    * deployments), POST real usage here after an event. Dispatches to
@@ -33667,12 +34451,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /**
-   * Daily object-storage metering sweep (Replit parity — $0.03/GiB-month). Unlike
-   * /internal/metering (per-event, producer-driven), this scans the REAL stored
-   * bytes (ProjectStorageObject.byteLength) for every org and meters one day's
-   * worth of GiB-months so the monthly total accrues across the daily cron. No
-   * producer instrumentation needed — the numbers come straight from what's on
-   * disk. Shadow unless billing credits are fully enabled. Auth = internal secret.
+   * Daily object-storage metering sweep (Replit parity — $0.03/GiB-month).
+   *
+   * ⚠️ AUDX-023 — this comment used to claim the numbers came "straight from
+   * what's on disk". They did not. `ProjectStorageObject.byteLength` is base64
+   * archives held INSIDE PostgreSQL, written only by the snapshot/export path;
+   * the `/projects/:id/object-storage/*` routes write to GCS and never touch
+   * that table. Every byte uploaded through a signed URL was counted by nobody.
+   *
+   * With OBJECT_STORAGE_INVENTORY_ENABLED=true the sweep additionally walks each
+   * project's real GCS bucket (`listAllObjects`, all pages) and persists the
+   * measurement per project so a quota check can read it cheaply.
+   *
+   * ⚠️ The flag defaults OFF on purpose: switching it on starts counting bytes
+   * that were never counted, so metered storage RISES for anyone using object
+   * storage. That is a pricing decision (D-03 = Avi), not an engineering one.
+   * Off, this route behaves exactly as before, to the byte.
+   *
+   * Shadow unless billing credits are fully enabled. Auth = internal secret.
    */
   app.post('/internal/metering/object-storage', async (request, reply) => {
     requireInternalSecret(request);
@@ -33688,6 +34484,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       shadow,
       nowMs: Date.now(),
       daysInPeriod: body.daysInPeriod,
+      ...(process.env.OBJECT_STORAGE_INVENTORY_ENABLED === 'true' && isObjectStorageEnabled()
+        ? { objectStorage: resolveObjectStorage() }
+        : {}),
     });
 
     return { kind: 'object-storage-sweep', shadow, result };
@@ -35830,13 +36629,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       /*
        * `BUCKET_NOT_PROVISIONED` rejoint 404 et non 422 : un projet qui n'a rien
        * stocké n'est pas une requête invalide, c'est un projet vide.
+       *
+       * `OBJECT_STORAGE_PURGE_FROZEN` garde son 403 : la ressource existe, elle
+       * est gelée par une purge en cours. Les deux codes sont arrivés séparément
+       * (#52 et main) ; aucun ne remplace l'autre.
        */
       const status =
         error.code === 'INVALID_KEY'
           ? 400
           : error.code === 'FEATURE_NOT_ENABLED' || error.code === BUCKET_NOT_PROVISIONED
             ? 404
-            : 422;
+            : error.code === 'OBJECT_STORAGE_PURGE_FROZEN'
+              ? 403
+              : error.code === 'OBJECT_STORAGE_QUOTA_EXCEEDED'
+                ? 507
+                : error.code === 'OBJECT_STORAGE_USAGE_UNAVAILABLE'
+                  ? 503
+                  : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -35844,7 +36653,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     throw error;
   };
 
-  const resolveObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+  /*
+   * Reserve #3 / RR-08 #1: is THIS project's object storage frozen by an in-flight
+   * account purge? Shared by the explicit route guard (objectStorageWriteBlocked,
+   * early 403) and the structural write wrapper below (defence in depth for the
+   * background thumbnail capturer and any future write path).
+   */
+  const isObjectStoragePurgeFrozen = async (projectId: string): Promise<boolean> =>
+    store.isObjectStorageProjectPurgeFrozen(projectId);
+
+  /*
+   * RAW backend — used ONLY by the account-purge erasure, which must be able to
+   * delete the very project it just froze (the guard below would otherwise refuse
+   * it). Erasure only ever reads/deletes, never creates, so this is safe.
+   */
+  const resolveRawObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+
+  /*
+   * Everyone else — every request route AND the background thumbnail capturer —
+   * obtains the freeze-GUARDED wrapper, so no present or future write path can
+   * recreate a bucket/object for a project under purge (RR-08 #1).
+   */
+  const resolveObjectStorage = (): ObjectStorage =>
+    guardObjectStorageWrites(resolveRawObjectStorage(), isObjectStoragePurgeFrozen);
 
   /*
    * P11 automatic thumbnails. Inert unless SCREENSHOTTER_URL is set, so this is a
@@ -35920,6 +36751,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
+  /*
+   * Reserve #3: refuse any object-storage WRITE for a project whose storage was
+   * frozen by an in-flight account purge, so a bucket/object can't be recreated
+   * after the zero-check and before the tombstone. Returns true (blocked) after
+   * sending the 403.
+   */
+  const objectStorageWriteBlocked = async (projectId: string, reply: FastifyReply): Promise<boolean> => {
+    if (await isObjectStoragePurgeFrozen(projectId)) {
+      /*
+       * Catalogue copy, not a literal: this 403 is sent straight to the client, and the
+       * preSerialization hook localizes a >=400 payload by looking its ENGLISH text up
+       * in app-public-copy. A hardcoded string misses that lookup, so a French client
+       * was told in English that their storage is frozen — the one user-visible message
+       * in the whole account-purge freeze path that never got translated.
+       */
+      await reply
+        .code(403)
+        .send({ error: appPublicEnglish('OBJECT_STORAGE_PURGE_FROZEN'), code: 'OBJECT_STORAGE_PURGE_FROZEN' });
+
+      return true;
+    }
+
+    return false;
+  };
+
   app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
@@ -35932,6 +36788,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * DELETE on this same path, and that one does require `admin`.
      */
     const project = await requireObjectStorageProject(request, 'projects:write', 'write');
+
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
@@ -35988,6 +36848,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const project = await requireObjectStorageProject(request, 'projects:write');
 
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
+
     const body = parse(
       z.object({
         key: z.string().min(1).max(1024),
@@ -36004,7 +36868,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveObjectStorage().createUploadUrl(project.id, body));
+      const storage = resolveObjectStorage();
+
+      /*
+       * AUDX-020 — the quota is decided HERE, before the URL exists. Once a
+       * signed URL is handed out it is used directly against GCS: the api is no
+       * longer on the path and can refuse nothing. Minting is the only moment
+       * the ceiling can apply.
+       *
+       * `requestedBytes` is the ceiling actually signed into the URL by
+       * AUDX-021, so the check reasons about the most the holder could upload,
+       * not an optimistic guess.
+       */
+      const requestedBytes = Math.min(body.maxBytes ?? OBJECT_UPLOAD_MAX_BYTES, OBJECT_UPLOAD_MAX_BYTES);
+      await assertObjectStorageQuota(store, storage, {
+        projectId: project.id,
+        requestedBytes,
+        nowMs: Date.now(),
+        requireLive: true,
+      });
+
+      return reply.send(await storage.createUploadUrl(project.id, body));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -36019,7 +36903,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(z.object({ key: z.string().min(1).max(1024) }), request.query ?? {});
 
     try {
-      return reply.send(await resolveObjectStorage().createDownloadUrl(project.id, query));
+      const storage = resolveObjectStorage();
+      await assertObjectStorageQuota(store, storage, {
+        projectId: project.id,
+        requestedBytes: 0,
+        nowMs: Date.now(),
+        requireLive: true,
+      });
+
+      return reply.send(await storage.createDownloadUrl(project.id, query));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -36031,6 +36923,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     const body = parse(
       z.object({ from: z.string().min(1).max(1024), to: z.string().min(1).max(1024) }),
@@ -36086,6 +36982,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    /*
+     * RR-08 #1: the thumbnail signed-upload is a storage WRITE like any other —
+     * it must refuse a project frozen for account deletion, or ensureBucket +
+     * createUploadUrl could recreate the bucket/object after the purge zero-check.
+     */
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     try {
       const storage = resolveObjectStorage();
@@ -37342,11 +38247,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * publish HERE with a clear message, not hang a pod in Pending forever.
      */
     let deployMachineSize: string | undefined;
+    let deployMachineVcpu = 0;
 
     if (body.provider === 'server') {
       try {
         const rateCard = await getActiveRateCard(store);
-        deployMachineSize = resolveDeployMachineSize(rateCard, body.machineSize, deployPlanKey).key;
+        const resolvedMachineSize = resolveDeployMachineSize(rateCard, body.machineSize, deployPlanKey);
+        deployMachineSize = resolvedMachineSize.key;
+        deployMachineVcpu = resolvedMachineSize.vcpu;
       } catch (error) {
         if (error instanceof MachineSizeError) {
           const locale = transactionalLocaleForRequest(request);
@@ -37398,6 +38306,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const inheritedAccess = await currentSiteAccessConfig(store, project.id, body.provider, body.environment);
 
     const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(
+        request,
+        project.organizationId,
+        'deployment.create',
+        tenantDeploymentContext({
+          provider: body.provider,
+          vcpu: deployMachineVcpu,
+          artifactSizeMb: body.artifactSizeLimitMb,
+          timeoutSeconds: body.timeoutSeconds,
+        }),
+      );
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
       const inFlight = await findInFlightDeploymentForCwd(store, project.id, secondaryWorkspaceId);
@@ -38252,6 +39171,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply;
   });
+
   /*
    * P104: set a deployment's access mode. Owner-only. `password` protects the
    * deployment behind the /__access gate (hash stored, never the plaintext);
@@ -38502,6 +39422,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         projectId: project.id,
         organizationId: project.organizationId,
         environment: 'production',
+
         /*
          * Clé d'idempotence liée au déploiement ET au contenu : republier le même
          * déploiement rejoue la même clé et ne ré-applique rien ; un lot modifié
@@ -38571,8 +39492,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * JAMAIS se traduire par « 0 publication active » — ce serait un quota remis
      * à zéro par une panne. On refuse temporairement (503) et on réessaiera.
      */
+    const publishMetadata = (source.metadata ?? {}) as Record<string, unknown>;
+
+    const publishMachineVcpu =
+      source.provider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), source.machineSize).vcpu : 0;
     const publishOutcome = await store.withSerializedMutation(
-      `publish:org:${project.organizationId}`,
+      `deploy-org:${project.organizationId}`,
       async (): Promise<
         | { ok: true; deployment: Awaited<ReturnType<typeof store.createDeployment>> }
         | { ok: false; response: unknown; status: number }
@@ -38599,6 +39524,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             },
           };
         }
+
+        await ensureTenantAdmission(
+          request,
+          project.organizationId,
+          'deployment.create',
+          tenantDeploymentContext({
+            provider: source.provider,
+            vcpu: publishMachineVcpu,
+            artifactSizeMb:
+              typeof publishMetadata.artifactSizeLimitMb === 'number' ? publishMetadata.artifactSizeLimitMb : 250,
+            timeoutSeconds: typeof publishMetadata.timeoutSeconds === 'number' ? publishMetadata.timeoutSeconds : 600,
+          }),
+        );
+        await ensureQuota(request, project.organizationId, 'deployments.count');
 
         try {
           assertPublishEntitlement({
@@ -38660,6 +39599,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const published = publishOutcome.deployment;
+    await recordUsage(request, project.organizationId, 'deployments.count');
 
     /*
      * P2d: publishing gives the project a real PRODUCTION database, distinct
@@ -38720,6 +39660,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           name: 'Production',
           runtimeMode: devTemplate?.runtimeMode ?? 'docker',
           environment: 'production',
+
+          // A source checkout is not a running workspace and must not consume a slot.
+          initialStatus: 'STOPPED',
         });
       }
 
@@ -38799,6 +39742,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * could never run.
      */
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
+    const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
+
+    const sourceTimeoutSeconds =
+      typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
+    const sourceArtifactSizeLimitMb =
+      typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : 250;
+    const sourceMachineVcpu =
+      sourceProvider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), source.machineSize).vcpu : 0;
 
     /*
      * Serialize quota + in-flight guard + create at the ORG level, identical to
@@ -38818,6 +39769,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const redeployResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(
+        request,
+        project.organizationId,
+        'deployment.create',
+        tenantDeploymentContext({
+          provider: sourceProvider,
+          vcpu: sourceMachineVcpu,
+          artifactSizeMb: sourceArtifactSizeLimitMb,
+          timeoutSeconds: sourceTimeoutSeconds,
+        }),
+      );
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
       const inFlight = await findInFlightDeploymentForCwd(store, project.id, secondaryWorkspaceId);
@@ -38842,6 +39804,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           // A redeploy runs on the SAME machine the original was priced for.
           machineSize: source.machineSize,
+
           /*
            * SEC-14: the spread carries the SOURCE build's access config, which is
            * the wrong source of truth. Redeploying a build that predates the
@@ -38887,8 +39850,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const redeploy = redeployResult.queued;
 
-    const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
-
     /*
      * Stored env values matching the secret pattern were persisted as the literal
      * '[REDACTED]' (the raw value is never stored). Feeding '[REDACTED]' back into
@@ -38902,18 +39863,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ),
     );
 
-    const sourceTimeoutSeconds =
-      typeof sourceMetadata.timeoutSeconds === 'number' ? sourceMetadata.timeoutSeconds : 600;
-
     /*
      * Default to the standard 250MB cap when the source metadata doesn't carry a
      * limit — passing undefined disabled the artifact-size check entirely in
      * runStaticBuild (the gate is `if (options.artifactSizeLimitMb)`), so a
      * redeploy of an older deployment could publish an unbounded artifact.
      */
-    const sourceArtifactSizeLimitMb =
-      typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : 250;
-
     const hookResult = await triggerProviderDeployHook(sourceProvider);
 
     let staticBuildFailed = false;
@@ -39214,6 +40169,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       )?.access;
 
       const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+        await ensureTenantAdmission(
+          request,
+          project.organizationId,
+          'deployment.create',
+          tenantDeploymentContext({ provider: 'static', artifactSizeMb: 250, timeoutSeconds: 600 }),
+        );
         await ensureQuota(request, project.organizationId, 'deployments.count');
 
         return store.createDeployment({
@@ -39312,7 +40273,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
+      const rollbackDefaultVcpu = machineSizeFromCard(await getActiveRateCard(store), undefined).vcpu;
+
       const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+        await ensureTenantAdmission(
+          request,
+          project.organizationId,
+          'deployment.create',
+          tenantDeploymentContext({ provider: 'server', vcpu: rollbackDefaultVcpu, timeoutSeconds: 600 }),
+        );
         await ensureQuota(request, project.organizationId, 'deployments.count');
 
         return store.createDeployment({
@@ -39524,8 +40493,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * terminal READY, which would silently drop the re-deploy + its metadata.
      */
     const willServerDigestRollback = !willTriggerProviderRollback && target.provider === 'server';
+    const rollbackMetadata = (target.metadata ?? {}) as Record<string, unknown>;
+
+    const rollbackMachineVcpu =
+      target.provider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), target.machineSize).vcpu : 0;
 
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      await ensureTenantAdmission(
+        request,
+        project.organizationId,
+        'deployment.create',
+        tenantDeploymentContext({
+          provider: target.provider,
+          vcpu: rollbackMachineVcpu,
+          artifactSizeMb:
+            typeof rollbackMetadata.artifactSizeLimitMb === 'number' ? rollbackMetadata.artifactSizeLimitMb : 250,
+          timeoutSeconds: typeof rollbackMetadata.timeoutSeconds === 'number' ? rollbackMetadata.timeoutSeconds : 600,
+        }),
+      );
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
       return store.createDeployment({
