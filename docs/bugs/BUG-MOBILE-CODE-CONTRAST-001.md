@@ -16,7 +16,28 @@ P2 — Sur `/mobile` en thème clair, le bloc CODE de Full-Featured Editor utili
 
 ## ✅ Testé live
 
-☐ — [déploiement 38248117798](https://github.com/openaxcloud/vibecore/actions/runs/38248117798) en cours au relevé documentaire ; manifeste/imageIDs et contraste en production non vérifiés. Hydratation publique hors périmètre.
+☐ — validation live partielle : bloc CODE conforme AA en clair/sombre à 1180 × 757 uniquement. Aucun test live à 390/768/1440 ; validation des formats incomplète. Hydratation ouverte.
+
+## Livraison web vérifiée
+
+Le [déploiement 38248117798](https://github.com/openaxcloud/vibecore/actions/runs/38248117798) est terminé avec succès (statut et étapes revérifiés via GitHub). Le parent a vérifié le manifeste et les imageIDs : web source `a1a8d5de554a2c996ffeef04dfb4712649203632`, digest `sha256:91905c5a6529e7526e4998f77d0e88af0e75ae9add4064b555921d359eef3ff6` observé dans deux imageIDs web. Helm, Verify rollout et comparaison des imageIDs réussis ; rollback non exécuté (`skipped`). Capture Helm terminée le 12/10/2026 à 13:05:02.760 UTC, exit 0, `evidenceComplete=true`.
+
+Preuves originales transmises par le parent : [artefact 11749202303](https://github.com/openaxcloud/vibecore/actions/runs/38248117798/artifacts/11749202303) et [artefact 11748957512](https://github.com/openaxcloud/vibecore/actions/runs/38248117798/artifacts/11748957512). Seul web a été reconstruit. Le manifeste actuel ne fournit pas de `sourceSha` pour les autres images : cette source ne leur est pas attribuée.
+
+La preuve de livraison est distincte du contrôle du contraste ci-dessous.
+
+## Preuve live limitée — 12 octobre 2026, 13:08–13:09 UTC
+
+Mesures transmises par le parent sur [la page publique `/mobile`](https://e-code.ai/mobile), interface française, **viewport réel 1180 × 757 uniquement**. Les captures ont été inspectées par l’auditeur et le parent ; elles restent dans l’environnement du parent et n’ont pas été inspectées par cette tâche.
+
+| Thème  | Texte                      | Fond composé                | Ratio         |
+| ------ | -------------------------- | --------------------------- | ------------- |
+| Clair  | `rgb(17,24,39)`            | `rgb(147.87,149.01,150.72)` | **5,9144:1**  |
+| Sombre | blanc (`rgb(255,255,255)`) | `rgb(13.35,16.2,23.61)`     | **18,9904:1** |
+
+Texte 12 px, graisse 400 ; le PRE porte `text-bolt-elements-code-text` et CODE hérite. Les deux thèmes sont conformes AA pour ce bloc à ce viewport. **Aucun test live à 390, 768 ou 1440 px** : les mesures locales de ces formats ne sont pas des preuves live. Le ratio sombre public utilise du blanc, contrairement au `#f5f9fc` du rendu local statique ; les deux relevés restent distincts.
+
+**Hydratation toujours ouverte** : cinq erreurs React 418 et une erreur React 423 persistent au chargement à 13:08:16 UTC, asset `vendor-react-Bl_XRpqi.js`. Leur cause n’est pas établie ici ; elles ne sont pas attribuées au correctif de contraste. Le contrôle AA de ce bloc ne clôt pas ce problème.
 
 ## Preuve locale
 
