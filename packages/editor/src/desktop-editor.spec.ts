@@ -1,16 +1,23 @@
 /** @vitest-environment jsdom */
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { createElement } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { DesktopCodeEditor } from './index.js';
 
 type TestUri = { path: string; toString: () => string };
-type TestModel = { uri: TestUri; getValue: () => string; setValue: (value: string) => void; dispose: () => void };
+type TestModel = {
+  isDisposed: () => boolean;
+  uri: TestUri;
+  getValue: () => string;
+  setValue: (value: string) => void;
+  dispose: () => void;
+};
 type TestEditor = {
   getModel: () => TestModel;
   getValue: () => string;
   contentChanged: () => void;
   updateOptions: ReturnType<typeof vi.fn>;
+  disposed: boolean;
 };
 
 const pendingMonaco = vi.hoisted(() => {
@@ -30,21 +37,28 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
   const disposable = () => ({ dispose: vi.fn() });
 
   const createModel = (initial: string, _language: string, uri: TestUri): TestModel => {
+    if (models.has(uri.toString())) {
+      throw new Error(`ModelService: Cannot add model because it already exists: ${uri.toString()}`);
+    }
+
     let value = initial;
+    let disposed = false;
 
     const model: TestModel = {
       uri,
+      isDisposed: () => disposed,
       getValue: () => value,
       setValue: (next) => {
         value = next;
 
         for (const editor of pendingMonaco.created) {
-          if (editor.getModel() === model) {
+          if (!editor.disposed && editor.getModel() === model) {
             editor.contentChanged();
           }
         }
       },
       dispose: () => {
+        disposed = true;
         models.delete(uri.toString());
       },
     };
@@ -71,6 +85,7 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
         let onDispose: () => void = () => undefined;
 
         const editor = {
+          disposed: false,
           getModel: () => model,
           getValue: () => model.getValue(),
           contentChanged: () => onChange(),
@@ -86,7 +101,10 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
             onDispose = callback;
             return disposable();
           },
-          dispose: () => onDispose(),
+          dispose: () => {
+            editor.disposed = true;
+            onDispose();
+          },
           addCommand: vi.fn(),
           addAction: vi.fn(),
           updateOptions: vi.fn(),
@@ -111,6 +129,7 @@ vi.mock('monaco-editor/esm/vs/editor/editor.api', async () => {
 afterEach(() => {
   cleanup();
   document.documentElement.removeAttribute('lang');
+  pendingMonaco.created.length = 0;
 });
 
 it('initializes the latest document after a delayed import and ignores an unmounted editor', async () => {
@@ -169,4 +188,90 @@ it('initializes the latest document after a delayed import and ignores an unmoun
   expect(pendingMonaco.setTheme).toHaveBeenLastCalledWith('vibecore-vs-light');
   expect(onChange).not.toHaveBeenCalled();
   expect(onSave).not.toHaveBeenCalled();
+});
+
+it('borrows an existing model and never destroys it on unmount', async () => {
+  pendingMonaco.release();
+
+  const monaco = await import('monaco-editor/esm/vs/editor/editor.api');
+  const uri = monaco.Uri.parse('file:///existing.txt');
+  const external = monaco.editor.createModel('EXTERNAL', 'plaintext', uri);
+  const mounted = render(createElement(DesktopCodeEditor, { filePath: '/existing.txt', value: 'EXTERNAL' }));
+  await waitFor(() => expect(pendingMonaco.created.filter((e) => !e.disposed)).toHaveLength(1));
+
+  const editor = pendingMonaco.created.find((e) => !e.disposed)!;
+  expect(editor.getModel()).toBe(external);
+  mounted.unmount();
+  expect(external.isDisposed()).toBe(false);
+  external.dispose();
+});
+
+it('shares one file across two editors, locale remount and independent unmount', async () => {
+  pendingMonaco.release();
+
+  const onChange = vi.fn();
+  const props = { filePath: '/shared.txt', value: 'SHARED DRAFT', onChange };
+  const first = render(createElement(DesktopCodeEditor, props));
+  await waitFor(() => expect(pendingMonaco.created.filter((e) => !e.disposed)).toHaveLength(1));
+
+  const model = pendingMonaco.created.find((e) => !e.disposed)!.getModel();
+
+  const second = render(createElement(DesktopCodeEditor, props));
+  await waitFor(() => expect(pendingMonaco.created.filter((e) => !e.disposed)).toHaveLength(2));
+  expect(pendingMonaco.created.filter((e) => !e.disposed).every((e) => e.getModel() === model)).toBe(true);
+  first.rerender(createElement(DesktopCodeEditor, { ...props, value: 'EXTERNAL UPDATE' }));
+  second.rerender(createElement(DesktopCodeEditor, { ...props, value: 'EXTERNAL UPDATE' }));
+  expect(onChange).not.toHaveBeenCalled();
+  first.rerender(createElement(DesktopCodeEditor, props));
+  second.rerender(createElement(DesktopCodeEditor, props));
+  expect(onChange).not.toHaveBeenCalled();
+  first.unmount();
+  expect(model.isDisposed()).toBe(false);
+  expect(pendingMonaco.created.find((e) => !e.disposed)!.getValue()).toBe('SHARED DRAFT');
+  await act(async () => {
+    document.documentElement.lang = 'fr';
+    window.dispatchEvent(new Event('vibecore:language-change'));
+    await Promise.resolve();
+  });
+
+  await waitFor(() => expect(pendingMonaco.created.filter((editor) => !editor.disposed)).toHaveLength(1));
+
+  const active = pendingMonaco.created.filter((e) => !e.disposed);
+  expect(active).toHaveLength(1);
+  expect(active[0].getValue()).toBe('SHARED DRAFT');
+  expect(active[0].getModel().isDisposed()).toBe(false);
+  second.unmount();
+  expect(active[0].getModel().isDisposed()).toBe(true);
+});
+
+it('keeps borrowed workspace models alive when indexing stops and the owner unmounts', async () => {
+  pendingMonaco.release();
+
+  const monaco = await import('monaco-editor/esm/vs/editor/editor.api');
+  const external = monaco.editor.createModel('EXTERNAL INDEX', 'plaintext', monaco.Uri.parse('file:///index.ts'));
+
+  const owner = render(
+    createElement(DesktopCodeEditor, {
+      filePath: '/owner.ts',
+      value: 'OWNER',
+      projectFiles: { '/index.ts': 'EXTERNAL INDEX', '/other.ts': 'OTHER' },
+    }),
+  );
+  await waitFor(() => expect(pendingMonaco.created.filter((e) => !e.disposed)).toHaveLength(1));
+
+  const indexed = monaco.editor.getModel(monaco.Uri.parse('file:///other.ts'))!;
+  expect(indexed).toBeTruthy();
+
+  const borrower = render(createElement(DesktopCodeEditor, { filePath: '/other.ts', value: 'OTHER' }));
+  await waitFor(() => expect(pendingMonaco.created.filter((e) => !e.disposed)).toHaveLength(2));
+  owner.rerender(createElement(DesktopCodeEditor, { filePath: '/owner.ts', value: 'OWNER', projectFiles: {} }));
+  expect(external.isDisposed()).toBe(false);
+  expect(indexed.isDisposed()).toBe(false);
+  owner.unmount();
+  expect(indexed.isDisposed()).toBe(false);
+  expect(pendingMonaco.created.find((e) => !e.disposed)!.getModel()).toBe(indexed);
+  borrower.unmount();
+  expect(indexed.isDisposed()).toBe(true);
+  expect(external.isDisposed()).toBe(false);
+  external.dispose();
 });
