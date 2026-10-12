@@ -7,7 +7,7 @@ settings:
 overrides:
   '@typescript-eslint/utils': ^8.0.0-alpha.30
   '@grpc/grpc-js': ^1.14.4
-  shell-quote: ^1.8.4
+  shell-quote: 1.11.0
   '@modelcontextprotocol/sdk': ^1.29.0
   fast-xml-parser: ^5.7.3
   fast-jwt: ^6.3.4
@@ -9783,8 +9783,8 @@ packages:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
 
-  shell-quote@1.8.4:
-    resolution: {integrity: sha512-VsC6n6vz1ihYYyZZwX7YZSF5l5x36ca17OC+a69h94YqB7X6XLwf+5MOgynYir2SLFUbl8gIYvBo8K8RoNQ6bQ==}
+  shell-quote@1.11.0:
+    resolution: {integrity: sha512-JdxDPD0DBTyu08pq0kPC0xSNet/qsU07qT6IsX1AS8oO2ICNRY4ldNa8OAI6PuwAH8tG3lxEhbqmyp4Dw4036g==}
     engines: {node: '>= 0.4'}
 
   shiki@1.29.2:
@@ -16829,7 +16829,7 @@ snapshots:
       date-fns: 2.30.0
       lodash: 4.18.1
       rxjs: 7.8.2
-      shell-quote: 1.8.4
+      shell-quote: 1.11.0
       spawn-command: 0.0.2
       supports-color: 8.1.1
       tree-kill: 1.2.2
@@ -21455,7 +21455,7 @@ snapshots:
 
   shebang-regex@3.0.0: {}
 
-  shell-quote@1.8.4: {}
+  shell-quote@1.11.0: {}
 
   shiki@1.29.2:
     dependencies:

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-419 entrées.
+420 entrées.
 
 ## Sans section
 
@@ -496,6 +496,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-12 — Revalidation locale A-37
 
 - [BUG-GEN-HMR-CONFIG-TYPES-001](docs/bugs/BUG-GEN-HMR-CONFIG-TYPES-001.md) — Le post-traitement ESM de `vite.config.ts` par `ensureViteHmrConfig` — 📤 Dispatché : ☑ 12/10 — chantier local A-37. · 💻 Codé : ☐ Correctif local préparé et relu indépendamment ; aucun push ni fusion. · ✅ Testé live : ☐ Aucun test live. A-37 reste ouvert.
+
+## Sans section
+
+- [BUG-TOOLING-SHELL-QUOTE-001](docs/bugs/BUG-TOOLING-SHELL-QUOTE-001.md) — Le lockfile de main `0ca891a17ab8af30b545ede6f66d22271c283f59` résout `shell-quote@1.8.4` via la dépendance de développement racine `concurrently@8.2.2`. L’over — 📤 Dispatché : ☑ 12/10/2026 — lot local limité sur `security/shell-quote-20261012`. · 💻 Codé : ☐ — correction préparée localement ; ni poussée, ni PR, ni fusion sur main. · ✅ Testé live : ☐ — aucun déploiement ni contrôle production. Selon les inventaires transmis par le parent, les images servies
 
 ## Résidus non tabulaires — reportés mot pour mot
 
