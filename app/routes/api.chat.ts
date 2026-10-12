@@ -589,7 +589,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * désormais dérivée du nombre de segments autorisés, donc elle suit
    * automatiquement toute modification de `MAX_RESPONSE_SEGMENTS`.
    */
-  const suiviDeChaine = creerSuiviDeChaine((MAX_RESPONSE_SEGMENTS + 1) * BUDGET_PAR_SEGMENT_MS);
+  const suiviDeChaine = creerSuiviDeChaine((MAX_RESPONSE_SEGMENTS + 1) * BUDGET_PAR_SEGMENT_MS, request.signal);
 
   /*
    * JALONS DE `onFinish` — NOMMER L'`await` QUI NE REND JAMAIS LA MAIN.
@@ -742,6 +742,46 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const estimatedInputTokens = Math.ceil((totalMessageContent.length / 4) * 1.2);
 
     let lastChunk: string | undefined = undefined;
+
+    // Même garde atomique que flushUsage : aucune seconde écriture du tour.
+    const solderUsageConnu = (code: string) => {
+      const factureAbandon = decisionDeFacturationSurAbandon({
+        dejaFacture: tourDejaFacture,
+        projectId,
+        usage: cumulativeUsage,
+        abandonneParLeClient: code === 'STREAM_ABORTED' || code === 'CHAIN_DEADLINE',
+      });
+
+      if (factureAbandon.facturer) {
+        const projetFacture = factureAbandon.projectId;
+
+        tourDejaFacture = true;
+
+        logger.info(
+          JSON.stringify({
+            event: 'chat.completion.usage',
+            projectId,
+            chatMode,
+            finishReason: code === 'CHAIN_DEADLINE' ? 'chain-deadline' : factureAbandon.finishReason,
+            partiel: true,
+            promptTokens: cumulativeUsage.promptTokens,
+            completionTokens: cumulativeUsage.completionTokens,
+            totalTokens: cumulativeUsage.totalTokens,
+          }),
+        );
+
+        void recordChatUsage({
+          projectId: projetFacture,
+          provider: routedTurnProvider ?? 'unknown',
+          model: routedTurnModel ?? 'unknown',
+          inputTokens: cumulativeUsage.promptTokens,
+          outputTokens: cumulativeUsage.completionTokens,
+          finishReason: code === 'CHAIN_DEADLINE' ? 'chain-deadline' : factureAbandon.finishReason,
+          cookieHeader: request.headers.get('Cookie') ?? undefined,
+          source: 'chat',
+        }).catch(() => undefined);
+      }
+    };
 
     const dataStream = createDataStream({
       /*
@@ -2157,6 +2197,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             }
 
             try {
+              if (suiviDeChaine.signal.aborted) {
+                solderUsageConnu(suiviDeChaine.delaiDepasse() ? 'CHAIN_DEADLINE' : 'STREAM_ABORTED');
+                await persisterLaReponseDuServeur();
+                await safeCloseMcp();
+
+                return;
+              }
+
               if (finishReason !== 'length' && suite.action !== 'continuer') {
                 if (suite.action === 'terminer-en-echec') {
                   /*
@@ -2310,7 +2358,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   designScheme,
                   summary,
                   messageSliceId,
-                  abortSignal: request.signal,
+                  abortSignal: suiviDeChaine.signal,
                   agentOrchestrationPlan: orchestrationPlan,
                   agentOrchestrationContext,
                   agentMemoryContext: agentMemory?.context,
@@ -2326,7 +2374,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 });
 
                 // Le raisonnement part au client : `ai@4.3.16` ne l'envoie pas par défaut.
-                result.mergeIntoDataStream(dataStream, { sendReasoning: true });
+                result.mergeIntoDataStream(
+                  { ...dataStream, merge: (source) => dataStream.merge(suiviDeChaine.bornerFlux(source)) },
+                  { sendReasoning: true },
+                );
               } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                   // Client went away mid-continuation — expected, just clean up.
@@ -2506,7 +2557,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
            * it, so clicking Stop aborted the client read but the provider kept
            * generating the first segment server-side — and kept billing tokens.
            */
-          abortSignal: request.signal,
+          abortSignal: suiviDeChaine.signal,
           agentOrchestrationPlan: orchestrationPlan,
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
@@ -2543,7 +2594,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * le fil rendait encore ZÉRO ligne `g:` au navigateur. Épinglé par
          * `reflexion-envoyee-au-client.spec.ts`.
          */
-        result.mergeIntoDataStream(dataStream, { sendReasoning: true });
+        result.mergeIntoDataStream(
+          { ...dataStream, merge: (source) => dataStream.merge(suiviDeChaine.bornerFlux(source)) },
+          { sendReasoning: true },
+        );
 
         /*
          * `mergeIntoDataStream` n'est pas attendu — c'est le contrat du SDK, qui
@@ -2626,7 +2680,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           }),
         );
 
+        if (suiviDeChaine.signal.aborted && !delaiDepasse) {
+          solderUsageConnu('STREAM_ABORTED');
+        }
+
         if (delaiDepasse) {
+          /*
+           * La borne a déjà clôturé les lectures fusionnées et demandé l’arrêt du fournisseur.
+           * Aucun nouveau PUT partiel : la persistance reste liée aux segments terminés.
+           */
+          solderUsageConnu('CHAIN_DEADLINE');
+          void mcpService.close().catch(() => undefined);
           logger.error(
             JSON.stringify({
               event: 'chat.chaine.delai-depasse',
@@ -2686,7 +2750,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           return serializeLocalizedStreamError(error);
         }
 
-        const code = clientDisconnected ? 'STREAM_ABORTED' : classifyStreamError(error);
+        const code = suiviDeChaine.delaiDepasse()
+          ? 'CHAIN_DEADLINE'
+          : clientDisconnected
+            ? 'STREAM_ABORTED'
+            : classifyStreamError(error);
+
         const detail = error?.message ? ` (${error.message})` : '';
 
         logger.info(`stream onError code=${code}${detail}`);
@@ -2705,42 +2774,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * `onFinish` se sont exécutés. Ceux de la génération interrompue ne nous
          * sont pas rendus par le SDK sur ce chemin — on ne les devine pas.
          */
-        const factureAbandon = decisionDeFacturationSurAbandon({
-          dejaFacture: tourDejaFacture,
-          projectId,
-          usage: cumulativeUsage,
-          abandonneParLeClient: code === 'STREAM_ABORTED',
-        });
-
-        if (factureAbandon.facturer) {
-          const projetFacture = factureAbandon.projectId;
-
-          tourDejaFacture = true;
-
-          logger.info(
-            JSON.stringify({
-              event: 'chat.completion.usage',
-              projectId,
-              chatMode,
-              finishReason: factureAbandon.finishReason,
-              partiel: true,
-              promptTokens: cumulativeUsage.promptTokens,
-              completionTokens: cumulativeUsage.completionTokens,
-              totalTokens: cumulativeUsage.totalTokens,
-            }),
-          );
-
-          void recordChatUsage({
-            projectId: projetFacture,
-            provider: routedTurnProvider ?? 'unknown',
-            model: routedTurnModel ?? 'unknown',
-            inputTokens: cumulativeUsage.promptTokens,
-            outputTokens: cumulativeUsage.completionTokens,
-            finishReason: factureAbandon.finishReason,
-            cookieHeader: request.headers.get('Cookie') ?? undefined,
-            source: 'chat',
-          }).catch(() => undefined);
-        }
+        solderUsageConnu(code);
 
         /*
          * Signaler la panne au repli multi-fournisseur. La sonde d'un jeton de
@@ -2750,7 +2784,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * tour SUIVANT chez le fournisseur de repli au lieu de re-provoquer la
          * même erreur. Un abandon client n'est pas une panne fournisseur.
          */
-        if (!clientDisconnected && routedTurnProvider) {
+        if (!suiviDeChaine.delaiDepasse() && !clientDisconnected && routedTurnProvider) {
           const kind = classifyProviderFailure(error);
 
           /*
@@ -2783,7 +2817,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * If the error fired before the model resolved, there is nothing to attribute,
          * so the metric is skipped.
          */
-        if (projectId && !clientDisconnected && routedTurnProvider) {
+        if (projectId && !suiviDeChaine.delaiDepasse() && !clientDisconnected && routedTurnProvider) {
           void recordProviderMetric({
             projectId,
             provider: routedTurnProvider,

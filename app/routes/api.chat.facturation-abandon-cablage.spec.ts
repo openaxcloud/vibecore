@@ -37,7 +37,9 @@ describe('api.chat.ts — un tour abandonné est porté au registre', () => {
 
     expect(branche).toContain('if (factureAbandon.facturer) {');
     expect(branche).toContain('recordChatUsage({');
-    expect(branche).toContain('finishReason: factureAbandon.finishReason');
+    expect(branche).toContain(
+      "finishReason: code === 'CHAIN_DEADLINE' ? 'chain-deadline' : factureAbandon.finishReason",
+    );
   });
 
   it('l’abandon est reconnu au code de flux, pas à une panne fournisseur', () => {
