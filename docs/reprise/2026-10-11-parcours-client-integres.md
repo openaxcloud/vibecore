@@ -29,3 +29,12 @@ avec et sans destination : 6 cas verts, dont des fournisseurs disponibles.
 Retirer uniquement la destination du composant partagé rend 2 cas rouges ;
 restauration : les 16 cas des trois suites OAuth sont verts. Aucun fournisseur
 de production ni secret OAuth n’a été ajouté pour satisfaire un test.
+
+## Intégration de #716
+
+Après tous les contrôles verts au SHA 0f701269, fusion réelle de la main
+b7a8b4b3. Un seul conflit sur BUG_INVENTORY_LIVE.md, résolu par génération.
+Aucun conflit de code. Les 47 cas index/i18n/code mort/bloc mobile/OAuth passent,
+les types web et la construction repassent. La garde du bloc mobile conserve
+son empreinte A-34 documentée ; le classement i18n suit les composants actuels.
+Le registre des 71 points est rapproché de la fusion #716 et de l’ouverture #717.
