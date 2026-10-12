@@ -1,0 +1,158 @@
+[
+  {
+    "status": "passed",
+    "durationMs": 20948,
+    "firstRows": {
+      "at": 12192.145000000019,
+      "reason": "timer",
+      "rows": 12,
+      "pill": false,
+      "nodes": [
+        {
+          "id": 1,
+          "cls": "w-full h-auto",
+          "h": 599,
+          "sh": 1033,
+          "top": 431
+        }
+      ]
+    },
+    "firstPill": {
+      "at": 14048.949999999953,
+      "reason": "timer",
+      "rows": 12,
+      "pill": true,
+      "nodes": [
+        {
+          "id": 1,
+          "cls": "w-full h-auto",
+          "h": 599,
+          "sh": 1236,
+          "top": 0
+        }
+      ]
+    },
+    "errors": [],
+    "blocked": [
+      {
+        "host": "fonts.googleapis.com",
+        "path": "/css2",
+        "method": "GET"
+      },
+      {
+        "host": "fonts.googleapis.com",
+        "path": "/css2",
+        "method": "GET"
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/runtime-token",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "status": "passed",
+    "durationMs": 22320,
+    "firstRows": {
+      "at": 13598.555000000051,
+      "reason": "timer",
+      "rows": 12,
+      "pill": false,
+      "nodes": [
+        {
+          "id": 1,
+          "cls": "w-full h-auto",
+          "h": 599,
+          "sh": 1033,
+          "top": 431
+        }
+      ]
+    },
+    "firstPill": {
+      "at": 16127.530000000028,
+      "reason": "timer",
+      "rows": 12,
+      "pill": true,
+      "nodes": [
+        {
+          "id": 1,
+          "cls": "w-full h-auto",
+          "h": 599,
+          "sh": 1243,
+          "top": 0
+        }
+      ]
+    },
+    "errors": [],
+    "blocked": [
+      {
+        "host": "fonts.googleapis.com",
+        "path": "/css2",
+        "method": "GET"
+      },
+      {
+        "host": "fonts.googleapis.com",
+        "path": "/css2",
+        "method": "GET"
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/runtime-token",
+        "method": "GET"
+      }
+    ]
+  },
+  {
+    "status": "passed",
+    "durationMs": 21464,
+    "firstRows": {
+      "at": 12581.425000000163,
+      "reason": "timer",
+      "rows": 12,
+      "pill": false,
+      "nodes": [
+        {
+          "id": 1,
+          "cls": "w-full h-auto",
+          "h": 599,
+          "sh": 1033,
+          "top": 431
+        }
+      ]
+    },
+    "firstPill": {
+      "at": 14407.535000000033,
+      "reason": "timer",
+      "rows": 12,
+      "pill": true,
+      "nodes": [
+        {
+          "id": 1,
+          "cls": "w-full h-auto",
+          "h": 599,
+          "sh": 1236,
+          "top": 0
+        }
+      ]
+    },
+    "errors": [],
+    "blocked": [
+      {
+        "host": "fonts.googleapis.com",
+        "path": "/css2",
+        "method": "GET"
+      },
+      {
+        "host": "fonts.googleapis.com",
+        "path": "/css2",
+        "method": "GET"
+      },
+      {
+        "host": "127.0.0.1",
+        "path": "/api/runtime-token",
+        "method": "GET"
+      }
+    ]
+  }
+]

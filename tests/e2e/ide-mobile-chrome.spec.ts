@@ -2846,6 +2846,15 @@ test.describe('agent — la pastille « descendre » ne déborde sur aucun autre
 
     await ouvrirIde(page, request, { fil: true, long: true });
     await page.waitForLoadState('load');
+
+    /*
+     * Cinq échanges longs + les deux messages finaux de preparerUnProjet.
+     * Le chargement des messages est asynchrone : sans cette précondition,
+     * attendreLeFilStable peut accepter « aucune » et la remontée ne rien faire.
+     */
+    await expect(page.locator('.bolt-chat-message-row'), 'le fil préparé doit être entièrement rendu').toHaveCount(12, {
+      timeout: 20_000,
+    });
     await attendreLeFilStable(page);
 
     // Remonter le fil : la pastille n'existe que lorsqu'on n'est PAS en bas.
