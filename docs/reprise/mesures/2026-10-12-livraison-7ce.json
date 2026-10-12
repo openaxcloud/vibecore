@@ -1,0 +1,209 @@
+{
+  "headSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+  "run": 38203837782,
+  "conclusion": "success",
+  "artifacts": {
+    "manifestAndSbom": 11728351806,
+    "rollout": 11728451581,
+    "gate": 11726947732
+  },
+  "fullyTraceable": true,
+  "provenanceGaps": [],
+  "services": [
+    {
+      "service": "web",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:0b35d1d90c75ecab86f6709d4a68e5e6309f8ee84cd4659a37281a0853ce3cb2",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:0b35d1d90c75ecab86f6709d4a68e5e6309f8ee84cd4659a37281a0853ce3cb2",
+        "sha256:0b35d1d90c75ecab86f6709d4a68e5e6309f8ee84cd4659a37281a0853ce3cb2"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "admin",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:811e91f5f5502215837d2a7d1707ce68b89a8a7838e4107c29a24b83373b88a5",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:811e91f5f5502215837d2a7d1707ce68b89a8a7838e4107c29a24b83373b88a5",
+        "sha256:811e91f5f5502215837d2a7d1707ce68b89a8a7838e4107c29a24b83373b88a5"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "api",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:a605c105af03a9e617f510c9c45e65e5a0a9a44641be86b541217a44cb6637b7",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:a605c105af03a9e617f510c9c45e65e5a0a9a44641be86b541217a44cb6637b7",
+        "sha256:a605c105af03a9e617f510c9c45e65e5a0a9a44641be86b541217a44cb6637b7"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "worker",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:d66384ef0c1fe02118d9089359479594e947e17255189740fc26f46b526fa1b8",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:d66384ef0c1fe02118d9089359479594e947e17255189740fc26f46b526fa1b8"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "aiGateway",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:0eb5552c16041eb8edb2b0a2fe8fa1fb6bb07f721bab0f6842efa21be6d81a79",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:0eb5552c16041eb8edb2b0a2fe8fa1fb6bb07f721bab0f6842efa21be6d81a79",
+        "sha256:0eb5552c16041eb8edb2b0a2fe8fa1fb6bb07f721bab0f6842efa21be6d81a79"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "workspaceManager",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:bb9ac64464e76f780f58d756f49cbc4fd559a6d03337e0926d816f481ad5c28c",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:bb9ac64464e76f780f58d756f49cbc4fd559a6d03337e0926d816f481ad5c28c",
+        "sha256:bb9ac64464e76f780f58d756f49cbc4fd559a6d03337e0926d816f481ad5c28c"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "previewProxy",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:80081f38a497f488e1f4e287e40fb99e7844c244135c8e2ceea66d7cc568db72",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:80081f38a497f488e1f4e287e40fb99e7844c244135c8e2ceea66d7cc568db72",
+        "sha256:80081f38a497f488e1f4e287e40fb99e7844c244135c8e2ceea66d7cc568db72"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "screenshotter",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:eced7b101b123b7071b52792fb1dcef2dcf285c74c7266d60dda7cd26c3e1637",
+      "rebuilt": true,
+      "rolled": true,
+      "signatureVerified": true,
+      "observedDigests": [
+        "sha256:eced7b101b123b7071b52792fb1dcef2dcf285c74c7266d60dda7cd26c3e1637"
+      ],
+      "observedDigestMatches": true
+    },
+    {
+      "service": "workspaceAgent",
+      "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+      "digest": "sha256:d187574a2ea428e6e108fc90cb1ad447e68fb1cc41cf68d76ccb75719644f6d5",
+      "rebuilt": true,
+      "rolled": false,
+      "signatureVerified": true,
+      "observedDigests": [],
+      "observedDigestMatches": false
+    }
+  ],
+  "captureExit": {
+    "time": "2026-10-12T05:44:15.627Z",
+    "commandExitCode": 0,
+    "evidenceComplete": true
+  },
+  "screenshotter": [
+    {
+      "kind": "Deployment",
+      "name": "vibecore-vibecore-platform-screenshotter",
+      "status": {
+        "replicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "updatedReplicas": 1
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ],
+      "containers": []
+    },
+    {
+      "kind": "Pod",
+      "name": "vibecore-vibecore-platform-screenshotter-f549874c4-zkvrx",
+      "status": {
+        "phase": "Running"
+      },
+      "conditions": [
+        {
+          "type": "PodReadyToStartContainers",
+          "status": "True"
+        },
+        {
+          "type": "Initialized",
+          "status": "True"
+        },
+        {
+          "type": "Ready",
+          "status": "True"
+        },
+        {
+          "type": "ContainersReady",
+          "status": "True"
+        },
+        {
+          "type": "PodScheduled",
+          "status": "True"
+        }
+      ],
+      "containers": [
+        {
+          "status": {
+            "name": "screenshotter",
+            "ready": true,
+            "restartCount": 0
+          },
+          "state": {
+            "running": {
+              "startedAt": "2026-10-12T05:43:11Z"
+            }
+          },
+          "lastState": {}
+        }
+      ]
+    }
+  ],
+  "runningImageIdsArchived": true,
+  "runningImageIdsWorkflowVerdict": "success",
+  "runningImageIdsComparedAt": "2026-10-12T05:44:48Z",
+  "sha256": {
+    "release-manifest.json": "a110f40f0bf775cdcacc11ac1c5671dac3c11f1fcbed566e3bd00261f4aaa97a",
+    "rollout-status.jsonl": "d85ffc2312e1c940c6b0168c6c0db7db91c53d8246dc8a30663308019a45a522",
+    "running-imageids.json": "f6f9cef6f0f9a51620bc319d7df4b0b4510282e362cad8c21d760b6ac4f34433"
+  },
+  "scope": "Eight rolled services independently match their archived runtime digests. Nine rebuilt and signed references are fully traceable. WorkspaceAgent is configured for future workspaces, not proved running in existing ones. No authenticated customer journey, real screenshot rendering, purchase or purge was performed."
+}

@@ -1,0 +1,40 @@
+{
+  "pr": 722,
+  "headSha": "1180c7c4b03b1693365f47b2839572da99529c3e",
+  "mergeSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+  "successfulChecks": 26,
+  "failedChecks": 0,
+  "pendingChecks": 0,
+  "productionCi": {
+    "run": 38202279696,
+    "job": 114658063222,
+    "conclusion": "success",
+    "completedAt": "2026-10-12T04:25:53Z",
+    "suiteSummaries": [
+      "2026-10-12T04:05:12.4574392Z       Tests  20 passed (20)",
+      "2026-10-12T04:15:15.2559930Z       Tests  9555 passed | 3 skipped (9558)",
+      "2026-10-12T04:20:07.9626548Z       Tests  2393 passed | 23 skipped (2416)",
+      "2026-10-12T04:20:10.7014907Z       Tests  100 passed (100)",
+      "2026-10-12T04:20:27.9837280Z       Tests  114 passed (114)",
+      "2026-10-12T04:20:35.9614766Z       Tests  129 passed (129)",
+      "2026-10-12T04:20:49.0256587Z       Tests  55 passed (55)",
+      "2026-10-12T04:20:51.1567071Z       Tests  24 passed (24)",
+      "2026-10-12T04:20:55.1231139Z       Tests  124 passed (124)",
+      "2026-10-12T04:21:01.8889936Z       Tests  23 passed | 2 skipped (25)"
+    ],
+    "runtimeSmoke": [
+      "2026-10-12T04:21:01.8696481Z  ✓ src/runtime-startup.spec.ts (3 tests) 3510ms"
+    ]
+  },
+  "e2e": {
+    "run": 38202279738,
+    "gateJob": 114661935367,
+    "conclusion": "success",
+    "testsReported": 429,
+    "finalFailures": 0,
+    "passedOnRetry": 1,
+    "waiverDefinitions": 6,
+    "failuresCoveredByWaivers": 0
+  },
+  "scope": "Exact PR commit. Overlapping suites are not summed; three runtime smoke cases are included in the screenshotter's 23 passed cases. The merge commit and production delivery require their own checks and evidence."
+}

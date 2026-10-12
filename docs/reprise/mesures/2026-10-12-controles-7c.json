@@ -1,0 +1,71 @@
+{
+  "headSha": "7c24f8fc8f52a6457891a7245268e79ee9d60c4b",
+  "productionCi": {
+    "run": 38194840876,
+    "conclusion": "success",
+    "completedAt": "2026-10-12T02:33:29Z",
+    "suiteSummaries": [
+      {
+        "step": "Unit tests",
+        "time": "2026-10-12T02:23:03.6199036Z",
+        "summary": "9555 passed | 3 skipped (9558)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:27:54.0870255Z",
+        "summary": "2393 passed | 23 skipped (2416)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:27:56.7946689Z",
+        "summary": "100 passed (100)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:28:14.1523719Z",
+        "summary": "114 passed (114)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:28:22.0851181Z",
+        "summary": "129 passed (129)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:28:35.5745701Z",
+        "summary": "55 passed (55)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:28:37.7715302Z",
+        "summary": "24 passed (24)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:28:41.8797608Z",
+        "summary": "124 passed (124)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T02:28:46.0137506Z",
+        "summary": "20 passed | 2 skipped (22)"
+      }
+    ],
+    "logSha256": "ffd88105966b5d8dc4ac62bfc801159f655f2870d1aa201be4c26bdfb8465a9e"
+  },
+  "e2e": {
+    "run": 38194840924,
+    "conclusion": "success",
+    "completedAt": "2026-10-12T02:33:24Z",
+    "gateSummary": [
+      "E2E gate \u2014 waiver expires 2026-11-04 (24 day(s) left)",
+      "  tests reported : 429",
+      "  failing        : 0",
+      "  waived         : 6",
+      "  flaky (passed on retry): 3",
+      "\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04."
+    ],
+    "gateLogSha256": "311bb5bdd4c3b0189ec692463871894c89c75f19ad9695b9c6f7d7d81d7989a3"
+  },
+  "scope": "CI of the exact main commit. Overlapping suites are not summed; this does not prove authenticated production journeys or running imageIDs."
+}

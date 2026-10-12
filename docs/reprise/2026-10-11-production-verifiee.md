@@ -74,3 +74,15 @@ Le captureur et l’agent d’espace restent marqués non rollés : leurs nouvel
 Le [workflow 38186261396](https://github.com/openaxcloud/vibecore/actions/runs/38186261396) est réussi. La capture termine le 12 octobre à 01:34:31 UTC, sortie zéro et `evidenceComplete=true`. Les neuf références sont reconstruites depuis `b7a8b4b339628fd98fd0898b397cceb4e70fd71f`, avec neuf signatures vérifiées, `fullyTraceable=true` et aucune lacune de provenance. Sept services sont rollés. Le captureur et l’agent d’espace restent non rollés ; leurs références reconstruites ne prouvent pas qu’ils tournent.
 
 Mesure limitée et empreintes : `mesures/2026-10-12-livraison-b7.json`. L’installation distante à neuf et les parcours authentifiés restent non remesurés. Les lots #715 et #717 sont fusionnés après cette release, mais leur livraison n’est pas établie ici.
+
+## Livraison 7ce2aa9c et reprise du captureur
+
+Le [workflow 38203837782](https://github.com/openaxcloud/vibecore/actions/runs/38203837782) est réussi. Helm termine à 05:44:15 UTC ; la comparaison des imageIDs passe à 05:44:48 UTC. Les neuf références sont reconstruites depuis 7ce2aa9ceac014b2449d053e3991baeaea9f427d, signées et entièrement traçables. Huit services rollés correspondent à leurs digests réellement exécutés, dont le captureur. Cette fois les imageIDs bruts sont archivés dans l'artefact natif et leurs empreintes dans la mesure.
+
+Le captureur compte une réplique prête et mise à jour, avec un pod Running/ready et zéro redémarrage dans la capture finale. L’échec précédent de 7c24f8fc8f et son retour arrière restent consignés séparément. Le correctif #722 utilise le chargeur TypeScript déjà présent en production. Le workspaceAgent n’est pas rollé : aucune nouvelle preuve sur les espaces existants.
+
+Mesure : `mesures/2026-10-12-livraison-7ce.json`. Les lots #715/#717/#720/#722 sont ainsi livrés. Le rendu réel d'une capture de projet et les parcours authentifiés restent à mesurer. Aucun achat Stripe ni effacement client exécuté.
+
+L’audit public post-livraison couvre 72 combinaisons de 12 pages à 390/768/1440 px en clair et sombre. Sur 381 contrôles orange opaques : zéro sous 4,5:1, minimum 5,1784:1. Le détecteur français existant rend zéro résidu sur 72 paires anglais/français, avec six témoins positifs reconnus sur le DOM anglais réel des tarifs. Les quatre démonstrations retirées rendent 404 et les deux anciennes adresses de brochure mènent à la connexion.
+
+Un signal de débordement /ai-agent à 768 px clair est conservé : observé une fois, non reproduit sur huit mesures suivantes. Aucune cause ni correction n’est déclarée. Cet audit ne couvre pas tous les textes ni les parcours authentifiés. Mesure : `mesures/2026-10-12-audit-public-7ce.json`.

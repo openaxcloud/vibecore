@@ -1,0 +1,1669 @@
+{
+  "scope": "Read-only public routes; existing semantic collector and residue detector. No authenticated IDE or account journeys, SEO audit, or proof of current imageIDs.",
+  "auditSourceSha256": "2a53fc93f7f6e403e6b910b878ee42ed28fde9696eab858b9fa306dc8b3ec78d",
+  "detectorSourceSha256": "c2d50c0e572730bb7dfe4827226b3149bb57d1ee6408c9fe86b0a3d8990b8ffb",
+  "rows": [
+    {
+      "path": "/pricing",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:46:43.759Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 232,
+          "entriesSha256": "a8a72c53d73e3c1eceb6f3d5074343af73409d8698830f989a4dcf13391ac128"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 232,
+          "entriesSha256": "9261fc7d2c5ffcae245529ad9f190e990b6002e6a59142a7f3d66d42bd78ef9b"
+        }
+      },
+      "findings": [],
+      "positiveWitnessFindings": 96
+    },
+    {
+      "path": "/pricing",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:46:43.786Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 232,
+          "entriesSha256": "1f5771311927b5d6164f51317953b51f593ddec2e04a7c2ef45e89d8acb509c6"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 232,
+          "entriesSha256": "40d0c6401048f96a58b38450181b84e3cd7e20d530708635704cb18ad5f2715c"
+        }
+      },
+      "findings": [],
+      "positiveWitnessFindings": 96
+    },
+    {
+      "path": "/pricing",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:46:57.942Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 239,
+          "entriesSha256": "f98a458f01927af8d55631a53e7e6b96d4a8948c6497fe42b3378a2e92fbc233"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 239,
+          "entriesSha256": "a6216f4b2151b3658db0886250f9ede5b710827c1daa9748c2160b279396f765"
+        }
+      },
+      "findings": [],
+      "positiveWitnessFindings": 99
+    },
+    {
+      "path": "/pricing",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:46:53.882Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 239,
+          "entriesSha256": "e695296ec22b61612595ea0228c3e70c0352e79d823d5dfbaf0670dd077a2fba"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 239,
+          "entriesSha256": "6634d2fd02b65995f1778f4de15a4162ed70e38af9c5b38d6b61c17f94101b15"
+        }
+      },
+      "findings": [],
+      "positiveWitnessFindings": 99
+    },
+    {
+      "path": "/pricing",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:47:07.246Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 244,
+          "entriesSha256": "d005f9acf68b99eef63b50c6b70e7cb2fec1c941801844bd752557a96d5a7b47"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 244,
+          "entriesSha256": "cad9bc850ba03d228ee1d54c29a8bab46ce88705fe3b276b3e0618a02c4bf878"
+        }
+      },
+      "findings": [],
+      "positiveWitnessFindings": 100
+    },
+    {
+      "path": "/pricing",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:47:07.746Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 244,
+          "entriesSha256": "136cdc420f3fac4a7a193f1423b3b022e462c68918ac93cb82594b53d59f3e7d"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 244,
+          "entriesSha256": "39c7282bf7ad6860fcfe34dadc813b95af1fa07e1712ba5f339a149fa5b17505"
+        }
+      },
+      "findings": [],
+      "positiveWitnessFindings": 100
+    },
+    {
+      "path": "/partners",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:47:21.757Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 163,
+          "entriesSha256": "e4c3c5c2484e027f2b70fd687028c1db8a81966918546fa3884ad027b8013289"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 163,
+          "entriesSha256": "ddf7aa22d5e9905beb618cacc11ba9451f93a2449b66311ccfebad6101cb6392"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/partners",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:47:20.519Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 163,
+          "entriesSha256": "2fda98e4c2397daf90bde0219d26d53931e1df6cdb4934e91c12abf626dd8206"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 163,
+          "entriesSha256": "a398732b2be8e5d5172082eed1301c4b3b8670e1ddbd699eff1d94ec7cbea130"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/partners",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:47:37.082Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 170,
+          "entriesSha256": "ad2c8f90a3fe13075b15a82245f5c2511154f92132016c8d7f398cd40d8b3eaa"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 170,
+          "entriesSha256": "410fc5aef9a85d17d1c41b8faaa34f22edc33780a82485178dc337e3a26d1b85"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/partners",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:47:37.344Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 170,
+          "entriesSha256": "a323687df3830eac7e56a93aec121cb6b4dcc27601afd066399412b88652b828"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 170,
+          "entriesSha256": "cf686bf0d5e9d2b9700f1fd62782af1ca126e7981a068074b044b06cfdd1461c"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/partners",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:47:48.611Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 175,
+          "entriesSha256": "dfab5bab289890b6fb1b026892e1ef57651a50b5aba3e456813bbc4ac503f242"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 175,
+          "entriesSha256": "83276d033629279cc867c5293c6669e06c7c5043aec9acafa8482224a8be65cf"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/partners",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:47:50.420Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 175,
+          "entriesSha256": "c27a5705524d3f8bfdd609edc92236821805f693ec2108b5f97e372cc4d283c2"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 175,
+          "entriesSha256": "08e2e60a643d2370387654e42562d9e4c00f9e699f5b8187a40f3401a9584d0e"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/deployments",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:48:01.913Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 167,
+          "entriesSha256": "ca24b98643a3dc8364a57bb123d41883764dbed62be5821e26734d881260dcfa"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 167,
+          "entriesSha256": "bc7d9069d72abeba44c47905d620c6aabc457d4c11f15162728bce3187670729"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/deployments",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:48:02.244Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 167,
+          "entriesSha256": "c3a7bc1c839f1fe3ee8357d8ba8e969849928ddf3df08e554f16108f8305a235"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 167,
+          "entriesSha256": "e70e15b76bb246a0eb1c5495dd193bc4490b0de1619b8a971888efec8a7036c7"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/deployments",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:48:11.905Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 174,
+          "entriesSha256": "cc57a88eed945d4548a79d4eaa6e7dece6f9f4ba1c0fd45b47a4ebaa829826cf"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 174,
+          "entriesSha256": "f0c7c05ca84fadead88c19b0806a3f6d474af33b196304bc90cda0640d2ab08c"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/deployments",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:48:13.000Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 174,
+          "entriesSha256": "92949482cba4afd14f93c7ad2ad33870ca44e09bcd8d064027a58e941405c41a"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 174,
+          "entriesSha256": "85f264345792250f9194ff2ed5dc49dbd0f4788551f31c07563ce6eeb216224b"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/deployments",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:48:23.039Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 179,
+          "entriesSha256": "e155002d3e65db988f0c3378552a16f0fcabaadaebf53fd3465852350e7fa383"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 179,
+          "entriesSha256": "21edd4ebb2e26b36939323542997f03ca789e6b0dcebf9a196dcf02e0a309f81"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/deployments",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:48:23.260Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 179,
+          "entriesSha256": "1f26865ccdf8ee0503343aa590779404e9531eb542220b970e9226df5e4e41d4"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 179,
+          "entriesSha256": "ba2f9c03125b576526a8cb7bb28e3d9a2acf33d3af70b7a0a16047431bdb9b74"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/status",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:48:32.305Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 159,
+          "entriesSha256": "2ef667b1dae82a83893b417ad041c572b26cd1c70e5788a68506f9fb7c938f77"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 159,
+          "entriesSha256": "b23c95d594ee6ac779097480fe90cd379bc82d4f660fdbe2ec3cb47fabd5e695"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/status",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:48:35.302Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 159,
+          "entriesSha256": "039131a934e4fe705952fcec06feab3558bc8c0a7546efba4faaf1a20a05a18c"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 159,
+          "entriesSha256": "3793cc239172ac679e4b8bcda0b58188ead915ccd23ad1701daeb4259bfacb39"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/status",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:48:41.359Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 166,
+          "entriesSha256": "d2931333b492b7c7bdc28c0d538fc16a5b826e957d842cce9e4ffc8721713a19"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 166,
+          "entriesSha256": "be120a6998bc8c7066b38537d40df8e1dde43289bf99377cb5e866ad050a9e3c"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/status",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:48:45.852Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 166,
+          "entriesSha256": "3d1592ac30615ad52f7e567b79b73b5c2e4c0ff4b7e680f8e8d08b689c2af01f"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 166,
+          "entriesSha256": "09cf7dd3b461deb7d5fd269f57155a146d0a9526e18f135c7f9bc8c7c8e03ab1"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/status",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:48:53.509Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 171,
+          "entriesSha256": "ea48174e99b6a121b58ad95e033c2cd51a17560f172d70a671b106e99e5d8050"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 171,
+          "entriesSha256": "7888b7fa6cb340949140dbd38dcded5fbe00d0f3f85f163289cfc562ac2fb85e"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/status",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:48:57.105Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 171,
+          "entriesSha256": "a66acf5cc5b0d9345cd4426338e47e13a2ae81356664ff12ba31469701342d19"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 171,
+          "entriesSha256": "a6d00f41d7d16f3e3587a57b0108b06d6f43c64cdd3d07cb74a9bd5348d3bcc5"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/about",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:49:04.602Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 145,
+          "entriesSha256": "2b4f345495685781cd3e3b26747eddd000421338105a826a5ba89d9dc1c15657"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 145,
+          "entriesSha256": "5f7d0659f8dd22e0f7bb5c1b3d33790fa96ff9a6c8ff30b4451ea96164dfc9ec"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/about",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:49:07.541Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 145,
+          "entriesSha256": "535f49d7c1695bfae2a5b54701024c7a5bf6a7f3b539e537d6c03b05cfa93d39"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 145,
+          "entriesSha256": "7b8566edd719f010728950d8026cd7779ebaf7910d7d60aa963ba8566b578c74"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/about",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:49:13.531Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 152,
+          "entriesSha256": "97a2eba1e189c930e3f3d84da28019170453ffe67c50d74a279e34ccb73fc204"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 152,
+          "entriesSha256": "3294e87bf87fd1379d9134946b7c924b5610e23c60849c9f2885aed6b2f08b9e"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/about",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:49:16.682Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 152,
+          "entriesSha256": "4ed017d7c3a4a8e2b7aa915015015a211f3a12f1527f5b5d4d309134796ea32e"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 152,
+          "entriesSha256": "3ad336d8ead17191901a4a9a3e63d02c09b5742df262db6aa241f47c862da810"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/about",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:49:21.925Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 157,
+          "entriesSha256": "ae6225c00155a742db0b49f869f43e86f1aefc899d3f5c8f88acd4e816c6d13d"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 157,
+          "entriesSha256": "373d75582dd1ee1a1260bfc57953b15d2c231a46135672732e45047be06b5397"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/about",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:49:26.609Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 157,
+          "entriesSha256": "b3d96ca70a9f3b88e8780d6e339deb8d620ef8401598e63b409b92bf6e1a2382"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 157,
+          "entriesSha256": "883ab49c56246d30c3ce1bb3c2070998c1b720e29cb0a80def3f4f38093e7fe6"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/careers",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:49:31.656Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "75a2fbc8863689d24647645e0004e5819e0afaa9e827c18f79cc30757d4e8945"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "c4c6036efe76c76984769b277379b1dfb9f662acf7904e452b915c46e956154d"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/careers",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:49:36.017Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "ea3f7a487e9ec51b865d36d52e2fb8da78374d0cc756c2e9eafbee0a6f2fe4a8"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "064fcf1a155303b2687f0840969dd974048833929d4850f9a27b460b1862dc93"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/careers",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:49:41.041Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "2c67140b0f4d112bf0606059ac60c8823abce9f150b7ea659d0d5591d9adc36d"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "3bfa9feeee3ada94bb7f1bb24059244811cec98e817582a99efa51ebf335fa6f"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/careers",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:49:45.425Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "67802b4c95f0c49f0427ca25c46f9f48524afeeb3fb452c476a182bc4b2fd36b"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "338445859763e4032f4b65762a2c985fcfb634bef74261675539dd2a30ded45b"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/careers",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:49:50.656Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "f4cd173b9160669198453e59ccdc622a1b63bc0766cad938195b3239db314d97"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "88d667966d87eeb272962a2ff3acea0157f60fe795322679802a130b7a391bb8"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/careers",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:49:57.057Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "f1c12e70ab7cb5210c5a5a5a7b7a2078b97782a9e5ca5f003b8703a7d5d0088f"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "d59ce0991175b485f6137932d4b4a284375db054c85d3db60dee60fe1e77c154"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/contact",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:50:01.298Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 141,
+          "entriesSha256": "e107436fe562b923a397dea9a072fe8c6ab5790717821aa96f1847f9209c2c99"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 141,
+          "entriesSha256": "5c72d505d633e9745bf0d7a89c749b4525d70779b4a4bdb487d3c2e84adb4141"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/contact",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:50:06.501Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 141,
+          "entriesSha256": "67c2fca708274b8fab54898fa7dbf440abb7e5b6ccb86c8dbf76db294d0025d3"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 141,
+          "entriesSha256": "f6dc0ad2f5b2f22a4316d9c13a21b3fdb09bd3388ef19f651706748d9409e9ff"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/contact",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:50:11.129Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "1d8c970ae09b8ac87c772744a84ea2d0bcf19bc5c9c6370269b506c131f191fd"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "90311443ad63854edadac0b5ec8dc86380adc753ff22b9ea16d94a8caa5854e8"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/contact",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:50:15.735Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "62cbd2045efc32520cee24539fc09f137272f105ccbc7edb880e83137a815aeb"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "b85b892f80a83ed063fc0e93fd445dcc95e5a34403b1cc1bf8e4917a5f4b6278"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/contact",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:50:20.377Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 153,
+          "entriesSha256": "eaab0a33ce4034ced4f2f0a5a4bec14b5e345df5e28ba0fe985df0d8132de055"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 153,
+          "entriesSha256": "085d9b44f30791552c0b5eb77b5f59e6f8086db2656bb52043e85f6acf0f5558"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/contact",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:50:25.039Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 153,
+          "entriesSha256": "c16cb2a6edba341048511c6e8865e15fe9f2519c5e6f091382656277928d6e34"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 153,
+          "entriesSha256": "b2839c330856834753a622fa1cc612d4bacf9b7ecbba6776d7e8f36a8edba41d"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/mobile",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:50:30.028Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 136,
+          "entriesSha256": "d12a61bd7427c5151c40237a5e6d4b70dde669e5b69bb105d7c61306e41fe754"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 136,
+          "entriesSha256": "220b118b6414e3bbbda5146225657540e6691885d383bc1dfa5970f6415735a7"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/mobile",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:50:34.125Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 136,
+          "entriesSha256": "d1232c29e4bc3492ea5199bf5ed05f65fa7a52e44da5d285c3649d5e2d55d5ee"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 136,
+          "entriesSha256": "67c42f83503d51b6a696da21b6d40381907c9ed2dbad1d8fb1d137249ef7fd9b"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/mobile",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:50:39.390Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 143,
+          "entriesSha256": "47f28afac3aaa35b766e1dd8605ebe3d47ccf4c91bc1cc1aae00be2fd33d37ce"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 143,
+          "entriesSha256": "2a09425c6d400439385fc8be083aa581d810db8a191025f7952f1ad30ed2e8e8"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/mobile",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:50:43.882Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 143,
+          "entriesSha256": "3f3953dc4ee09ad3180b2f53f8c1444b2761d89b699172910befaee92bef9b8c"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 143,
+          "entriesSha256": "499c62085c529c7a2c96830a790e6f8c9bda76a56850211e709adacddc692010"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/mobile",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:50:48.773Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "9b64569a96b2e7302e5bd8f8458b826c2b40182201f8b77799068b16dae59f65"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "745c59d5151e2ec0abea04291e9ad89ef95e38e09a9f74f86eb695e355fe19e6"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/mobile",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:50:53.399Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "ac6294b29222f0b38e86f7696993bcbb3eb12e22a143969665f3cd5ffee67cf9"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 148,
+          "entriesSha256": "c65446bf9417a53c63a8a8ae86dd90f6e7b47671508e902e651ff7cac850c77d"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/desktop",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:50:58.309Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 169,
+          "entriesSha256": "38661ee87ba2fdc09edf21c86a61cb2747212aa028672b4e5d63bedb568c7eb0"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 169,
+          "entriesSha256": "75c72c3fe653ecc6f6eae252ba2a97243b3c8708333d4d34d032bbb65af98fce"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/desktop",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:51:02.587Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 169,
+          "entriesSha256": "7854c963e31cbe7b677e7303b0f40fdd70b7d06846b9b3c981e3c227b725b11a"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 169,
+          "entriesSha256": "38a5106f389ace5153c6b7792f689ddd8a5bf47cb705e9e3f11b685cef16be7f"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/desktop",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:51:08.142Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 176,
+          "entriesSha256": "8bdd7fbced2911a2f10a2079bccfc789f3d58cac4b8fe602edfa5126138a332f"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 176,
+          "entriesSha256": "b360a199bbc4654331c5ae3f53810f01133a2dd68a4f662579a89b3de1e238e6"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/desktop",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:51:12.407Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 176,
+          "entriesSha256": "0ba7f234395060e220a76af683333d630d66db912eb0eaccb2e71affb9db7edc"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 176,
+          "entriesSha256": "5f47872ec548c13cce1a8f55419ae17fd94c7a346205de5ea5facf5d7ae131da"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/desktop",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:51:18.593Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 181,
+          "entriesSha256": "1e880a0b92c0c5db718eb06b55d08caf41a3c7754e38a4e867ee4aff94e7f7e5"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 181,
+          "entriesSha256": "d71500afb193d51fc28bc5dee29b3f572e496648a8bb468f4f47f1d89481c87d"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/desktop",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:51:22.824Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 181,
+          "entriesSha256": "938bc64c90424b00b4349b643bb14e784bc0783215b467f185f89edfa74bc141"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 181,
+          "entriesSha256": "43d80ef8615e70ee8468a1afa8b6a7d465d4ec44742dd16d0387f57ddcd1e5d2"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:51:28.319Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "66783ea35ad5e6bea9d7219b4ececb807b9a6590803aa9282a4f3f3c9dd9cb89"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "0a27eac88242e911efbb0df9a216f724bf12752889f23d49a9794ee6fb9e963a"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:51:34.179Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "6267d78acee92179746906a4d20ea5e67e65bd0da472bf582c4f8a36a0c353c3"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 178,
+          "entriesSha256": "d0362c81d6b2186b20894703503ad6eb78eed1910833d0e0372093931c102251"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:51:38.429Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "39a7b26ac07fd7d06de98e472efed5f534cefb53ec5055608f49928a61885ec8"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "566f05c4b32ba9c364f72634bb81721b4659332d80a5cc6c15040cf1d3d61248"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:51:44.901Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "10087d65ed6bdcbc7195e269f1ed9d67b5a73f4bd74f0161cbeb78ed5cb6644b"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 185,
+          "entriesSha256": "ed7d6d5825d6ccc272edf3677f99cc5c3e5b7ce1d362b6442d0ad3aecaaab439"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:51:48.727Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "8690bcd010a0edbeb59b679704c300905c0e34bed04dc131359158dfbf903900"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "4bde83060a267e3fa3091fa4f4e309ee9376e060e58eec32b67ee81a499b22a3"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai-agent",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:51:59.033Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 210,
+          "entriesSha256": "f33be3739e44d045c25d346a55f77aaad77c70e49f8efcdfa5eaf0c80ed5c2a1"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 211,
+          "entriesSha256": "ab5538c5326f71d4b50ca53e73962483e1addd546d899a76bdcfed3f11fc416b"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:51:58.307Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "0cf2fc2df240cee58e916601d11ccebbbb0e0f8d90351be4ee401a0e79f179ef"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 190,
+          "entriesSha256": "45724aed2fd0549f5a88245139ecbdee2f0f7befe5916ce1c924fef626482f2a"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai-agent",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:52:09.096Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 210,
+          "entriesSha256": "f5ffddf176f74d5c418173c7706333e3fc72923777c9934cd6c13dbb03d73edf"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 211,
+          "entriesSha256": "e19caa355db4d79d4fdfe554f4d16b82b8274521588cd18ae05dfa034d707fee"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai-agent",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:52:09.739Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 217,
+          "entriesSha256": "af234d430e5dcd9a34cbac7ac6b9deed466c4729a43a476ed52682b0b768e85e"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 218,
+          "entriesSha256": "afbedf43747fc14d6c84873950f61072c8b2d55ddb6920edff7cf80af2a3dee4"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai-agent",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:52:18.792Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 217,
+          "entriesSha256": "a49239c9ce64e176d526fe6b7af6487b2d7624a932ce929c81183e14b47a3a87"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 218,
+          "entriesSha256": "c338d6403d707d58bc70919a8238ccfa749032a9bde53c5888d46328adfa8fd7"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai-agent",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:52:19.590Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 222,
+          "entriesSha256": "046d6c94ce06b81fc799855d1a96f4fa49d497821862440a0a2f44af87d1c91c"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 223,
+          "entriesSha256": "ed1a18d545ecba5126c2b828c7387330b134332216b8f4456e3903881afce666"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/ai-agent",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:52:28.894Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 222,
+          "entriesSha256": "057b3e0a562948a09215d5905d1d3f5c6e7e0e2421e5bd04929162bedbd595b8"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 223,
+          "entriesSha256": "0d2afb449deb5e8b10d53be2968e92f9d705273a5b8dd2e73cc976cd3414030d"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/bounties",
+      "width": 390,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:52:29.472Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 160,
+          "entriesSha256": "911709e4631b3ed435b141f31747ea3c63c3ba8c14e13b103d5254cbf18faac3"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 160,
+          "entriesSha256": "424db0a7950ededee141116cf8a635825c2084baf77d4ee0127cdb41d8b08141"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/bounties",
+      "width": 390,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:52:38.963Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 160,
+          "entriesSha256": "73ccff454be794ad0524ae255ec6c17f395b2a66005f51e2185df6a36ea8cb95"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 160,
+          "entriesSha256": "b168294cb7365d6b7a7e702f55f8fab9b486f155de55aba7f5be384a9df2883e"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/bounties",
+      "width": 768,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:52:39.829Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 10,
+          "entriesSha256": "76d2e45c4d3f52d41e51eeaa621f7e8087b2cce729df45175b160d3abc43f5ce"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 167,
+          "entriesSha256": "24222773b311866378832297035a2b653d1a0251892943951527a72ffaae09a8"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/bounties",
+      "width": 768,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:52:50.020Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 167,
+          "entriesSha256": "860ba51a4c8cae1bb5f4367ae82a66a82dab905b44f47671d670647ea0161e19"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 167,
+          "entriesSha256": "713758e9a3394ed3e2912f018312c8c19ce508371e59bd66f30c692747bbec30"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/bounties",
+      "width": 1440,
+      "theme": "light",
+      "timestamp": "2026-10-12T05:52:50.567Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "light",
+          "status": 200,
+          "entries": 172,
+          "entriesSha256": "6e5d75dffcf6643cc8113befc52554e37eaaee60fb423e504322bee1f693bb16"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "light",
+          "status": 200,
+          "entries": 172,
+          "entriesSha256": "cba43c75e401e2b622dc367896dc282a874f61b23187e863a01ac432fe998def"
+        }
+      },
+      "findings": []
+    },
+    {
+      "path": "/bounties",
+      "width": 1440,
+      "theme": "dark",
+      "timestamp": "2026-10-12T05:53:01.515Z",
+      "documents": {
+        "en": {
+          "language": "en",
+          "theme": "dark",
+          "status": 200,
+          "entries": 172,
+          "entriesSha256": "143ef8e99fa42f30b265f445d5c8dfa614608f54dccdbfd4a9ff4553f20ecfe0"
+        },
+        "fr": {
+          "language": "fr",
+          "theme": "dark",
+          "status": 200,
+          "entries": 172,
+          "entriesSha256": "aae245ec6f6e32a49ec28d771f56b7a17ab54e5ec093b825afb56d9aeea819eb"
+        }
+      },
+      "findings": []
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "headSha": "1f50ded87d6cba107a1cc9f8ed4920a102226447",
+  "pr": 718,
+  "draft": true,
+  "successfulChecks": 28,
+  "pendingChecks": 0,
+  "failedChecks": 0,
+  "productionCi": {
+    "run": 38197477247,
+    "conclusion": "success",
+    "suiteSummaries": [
+      {
+        "step": "Unit tests",
+        "time": "2026-10-12T03:03:00.6187004Z",
+        "summary": "9556 passed | 3 skipped (9559)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:06.8818187Z",
+        "summary": "2543 passed | 23 skipped (2566)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:11.3531293Z",
+        "summary": "145 passed (145)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:28.6486266Z",
+        "summary": "114 passed (114)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:36.4380182Z",
+        "summary": "129 passed (129)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:49.9147002Z",
+        "summary": "65 passed (65)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:51.9886561Z",
+        "summary": "24 passed (24)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:55.9907712Z",
+        "summary": "124 passed (124)"
+      },
+      {
+        "step": "Integration tests",
+        "time": "2026-10-12T03:08:59.9129384Z",
+        "summary": "20 passed | 2 skipped (22)"
+      }
+    ],
+    "logSha256": "b7af89de24224d173fee741b43d00903014c766389a43503a852c2064a8dac83"
+  },
+  "e2e": {
+    "run": 38197477388,
+    "conclusion": "success",
+    "gateSummary": [
+      "E2E gate \u2014 waiver expires 2026-11-04 (24 day(s) left)",
+      "  tests reported : 429",
+      "  failing        : 0",
+      "  waived         : 6",
+      "  flaky (passed on retry): 0",
+      "\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04."
+    ],
+    "gateLogSha256": "6ac1e0a6311cd39f46e8a3186169827c6ec23064a0eda697857f91cbf22d1c2a"
+  },
+  "scope": "Full CI of the exact draft head; overlapping suites are not summed. No real GCS/PVC account-erasure proof, durable upload reservation, commercial storage policy or provisioned GCP tenant isolation is claimed."
+}
