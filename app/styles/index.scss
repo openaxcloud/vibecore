@@ -17743,8 +17743,10 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-floating-pane {
   display: flex;
   flex-direction: column;
-  min-width: 280px;
-  min-height: 180px;
+  min-width: min(280px, 100%);
+  min-height: min(180px, 100%);
+  max-width: 100%;
+  max-height: 100%;
   overflow: hidden;
   border-radius: 10px;
   border: 1px solid var(--vc-ide-border-subtle);

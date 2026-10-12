@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-422 entrées.
+424 entrées.
 
 ## Sans section
 
@@ -502,6 +502,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-TOOLING-SHELL-QUOTE-001](docs/bugs/BUG-TOOLING-SHELL-QUOTE-001.md) — Le lockfile de main `0ca891a17ab8af30b545ede6f66d22271c283f59` résout `shell-quote@1.8.4` via la dépendance de développement racine `concurrently@8.2.2`. L’over — 📤 Dispatché : ☑ 12/10/2026 — lot local limité sur `security/shell-quote-20261012`. · 💻 Codé : ☐ — correction préparée localement ; ni poussée, ni PR, ni fusion sur main. · ✅ Testé live : ☐ — aucun déploiement ni contrôle production. Selon les inventaires transmis par le parent, les images servies
 - [BUG-IDE-ONGLET-GENERIQUE-DOUBLON-001](docs/bugs/BUG-IDE-ONGLET-GENERIQUE-DOUBLON-001.md) — Un clic sur un fichier de la bibliothèque laisse l'onglet éditeur générique initial ouvert et ajoute un onglet lié au fichier. Le premier emprunte le nom du doc — 📤 Dispatché : ☑ — audit local ciblé du 12 octobre 2026, branche `codex/audit-local-files-20261012`. · 💻 Codé : ☐ — correctif local validé sur son périmètre ; ni poussé ni fusionné sur main. · ✅ Testé live : ☐ — production non testée ; les mesures locales ne valent pas validation production.
 - [BUG-IDE-MONACO-CONTENU-INITIAL-001](docs/bugs/BUG-IDE-MONACO-CONTENU-INITIAL-001.md) — Sur une ouverture à froid, cliquer `audit.txt` dès que la bibliothèque est visible peut laisser Monaco afficher le contenu du README alors que l'onglet et le ch — 📤 Dispatché : ☑ — détecté et relu indépendamment pendant l'audit local du 12 octobre 2026. · 💻 Codé : ☐ — second correctif local validé, non poussé et non fusionné sur main. · ✅ Testé live : ☐ — reproduction locale uniquement, production non testée.
+- [BUG-IDE-VOLET-FLOTTANT-ROGNE-001](docs/bugs/BUG-IDE-VOLET-FLOTTANT-ROGNE-001.md) — Le volet flottant déborde du canevas central et son bord droit est masqué par la bibliothèque, y compris une partie de la commande de réancrage. Reproduit dans  — 📤 Dispatché : ☑ — tâche déléguée du 12 octobre 2026, branche `codex/floating-pane-viewport-20261012`. · 💻 Codé : ☐ — correctif local validé sur son périmètre, non poussé et non fusionné. · ✅ Testé live : ☐ — production non testée ; Save et preview hors périmètre validé.
+- [BUG-IDE-MOBILE-RETOUR-SELECTION-001](docs/bugs/BUG-IDE-MOBILE-RETOUR-SELECTION-001.md) — Après ouverture de `audit.txt` depuis l’IDE desktop, passage à 768 px, changement de langue en français, bouton retour au tableau de bord puis retour navigateur — 📤 Dispatché : ☑ — constat transmis au parent pendant l’audit du volet flottant. · 💻 Codé : ☐ — non corrigé ; cause non établie. Le cadre desktop est absent dans la vue mobile ; aucun lien causal démont · ✅ Testé live : ☐ — reproduction locale uniquement, production non testée.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
