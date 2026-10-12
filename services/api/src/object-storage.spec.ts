@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import {
   GcsObjectStorage,
@@ -69,6 +69,7 @@ class FakeStorage implements StorageLike {
       async setMetadata() {
         return undefined;
       },
+
       /*
        * Models the REAL GCS contract, which the previous fake did not: it
        * ignored `maxResults` and returned every object, so a caller capped at
@@ -81,9 +82,11 @@ class FakeStorage implements StorageLike {
         const map = self.buckets.get(name) ?? new Map<string, FakeObject>();
         const prefix = (query.prefix as string) || '';
         const delimiter = query.delimiter as string | undefined;
+
         const matched = [...map.values()]
           .filter((object) => object.name.startsWith(prefix))
           .sort((a, b) => a.name.localeCompare(b.name));
+
         const prefixes = new Set<string>();
         const collected: FakeObject[] = [];
 
@@ -113,11 +116,7 @@ class FakeStorage implements StorageLike {
         const files: FileLike[] = page.map((object) => self._file(name, object.name));
         const nextQuery = next && query.autoPaginate === false ? { ...query, pageToken: next } : null;
 
-        return [files, nextQuery, { prefixes: [...prefixes] }] as [
-          FileLike[],
-          unknown,
-          { prefixes?: string[] },
-        ];
+        return [files, nextQuery, { prefixes: [...prefixes] }] as [FileLike[], unknown, { prefixes?: string[] }];
       },
       file(fileName: string) {
         return self._file(name, fileName);
@@ -190,17 +189,17 @@ class FakeStorage implements StorageLike {
 /** Wraps a FakeStorage so one object refuses deletion, like a real IAM denial. */
 class ThrowingDeleteStorage implements StorageLike {
   constructor(
-    private readonly inner: FakeStorage,
-    private readonly failingKey: string,
+    private readonly _inner: FakeStorage,
+    private readonly _failingKey: string,
   ) {}
 
   get buckets() {
-    return this.inner.buckets;
+    return this._inner.buckets;
   }
 
   bucket(name: string): BucketLike {
-    const real = this.inner.bucket(name);
-    const failingKey = this.failingKey;
+    const real = this._inner.bucket(name);
+    const failingKey = this._failingKey;
 
     return {
       ...real,
@@ -322,11 +321,14 @@ describe('GcsObjectStorage', () => {
 
     const out = await svc.createUploadUrl(projectId, { key: 'a/b.bin', contentType: 'image/png' });
     expect(out.method).toBe('PUT');
-    // AUDX-021 — the size ceiling is now part of the signed contract, so the
-    // header set is deliberately larger than it was. Kept as an exact equality
-    // rather than a subset check: an upload URL must carry exactly the headers
-    // it was signed with, and a stray extra one is a signature mismatch waiting
-    // to happen.
+
+    /*
+     * AUDX-021 — the size ceiling is now part of the signed contract, so the
+     * header set is deliberately larger than it was. Kept as an exact equality
+     * rather than a subset check: an upload URL must carry exactly the headers
+     * it was signed with, and a stray extra one is a signature mismatch waiting
+     * to happen.
+     */
     expect(out.headers).toEqual({
       'Content-Type': 'image/png',
       'x-goog-content-length-range': `0,${OBJECT_UPLOAD_MAX_BYTES}`,
@@ -495,6 +497,7 @@ describe('AUDX-024 pagination beyond a single 1 000-object page', () => {
   it('follows the caller-supplied page token to the end', async () => {
     const storage = new FakeStorage();
     seedBig(storage, 2_100);
+
     const service = new GcsObjectStorage(storage);
 
     const first = await service.listObjects(project, { prefix: 'data/' });
@@ -503,6 +506,7 @@ describe('AUDX-024 pagination beyond a single 1 000-object page', () => {
 
     expect(second.objects).toHaveLength(1_000);
     expect(third.objects).toHaveLength(100);
+
     // Exhausted: no token means no more pages, which is how a caller knows it is done.
     expect(third.nextPageToken).toBeUndefined();
 
@@ -590,8 +594,10 @@ describe('AUDX-021 upload URL binds a size ceiling and an integrity check', () =
 
     const result = await new GcsObjectStorage(storage).createUploadUrl(project, { key: 'c.bin', contentMd5: md5 });
 
-    // GCS verifies Content-MD5 against the bytes it received and fails the PUT
-    // on mismatch — an integrity check the API never had.
+    /*
+     * GCS verifies Content-MD5 against the bytes it received and fails the PUT
+     * on mismatch — an integrity check the API never had.
+     */
     expect(storage.signed.at(-1)!.contentMd5).toBe(md5);
     expect(result.headers['Content-MD5']).toBe(md5);
   });

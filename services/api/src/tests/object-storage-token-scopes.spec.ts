@@ -1,5 +1,5 @@
-import { hashPassword } from '@vibecore/auth';
 import { signObjectStorageAccessToken } from '@e-code/sdk';
+import { hashPassword } from '@vibecore/auth';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { buildApiApp } from '../app.js';
@@ -108,6 +108,7 @@ afterEach(() => {
 
 async function setup() {
   const store = new TestApiStore();
+
   const app = await buildApiApp({
     store,
     emailProvider: new QuietEmailProvider(),
@@ -119,6 +120,7 @@ async function setup() {
     name: 'Scope',
     passwordHash: hashPassword('password123'),
   });
+
   const org = await store.createOrganization({ name: 'Scope Org', slug: 'scope-org', ownerUserId: user.id });
   const project = await store.createProject({ organizationId: org.id, name: 'P', slug: 'p' });
 
@@ -152,6 +154,7 @@ describe('AUDX-022 object-storage token scopes', () => {
     });
 
     expect(response.statusCode).toBe(403);
+
     // The backend must never have been reached.
     expect(calls).not.toContain('deletePrefix');
   });

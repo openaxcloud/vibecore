@@ -197,6 +197,24 @@ export type ProjectSnapshot = $Result.DefaultSelection<Prisma.$ProjectSnapshotPa
  */
 export type ProjectStorageObject = $Result.DefaultSelection<Prisma.$ProjectStorageObjectPayload>
 /**
+ * Model ProjectObjectStorageUsage
+ * AUDX-023 — measured usage of a project's REAL GCS bucket.
+ * 
+ * Object-storage metering used to sum `ProjectStorageObject.byteLength`, a
+ * table holding base64 archives inside PostgreSQL, written only by the
+ * snapshot/export path. The `/object-storage/*` routes write to GCS and never
+ * touch it, so every byte uploaded through a signed URL was invisible to
+ * billing AND to any quota — while the code claimed it summed "the REAL stored
+ * bytes".
+ * 
+ * This row is what the daily inventory writes after walking the bucket with
+ * `listAllObjects` (all pages — a single page stops at 1 000 objects, AUDX-024).
+ * `measuredAt` is carried explicitly because a quota decision taken on a stale
+ * measurement must be able to SAY that it is stale rather than pretend to be
+ * current.
+ */
+export type ProjectObjectStorageUsage = $Result.DefaultSelection<Prisma.$ProjectObjectStorageUsagePayload>
+/**
  * Model Deployment
  * 
  */
@@ -1581,6 +1599,16 @@ export class PrismaClient<
   get projectStorageObject(): Prisma.ProjectStorageObjectDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.projectObjectStorageUsage`: Exposes CRUD operations for the **ProjectObjectStorageUsage** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectObjectStorageUsages
+    * const projectObjectStorageUsages = await prisma.projectObjectStorageUsage.findMany()
+    * ```
+    */
+  get projectObjectStorageUsage(): Prisma.ProjectObjectStorageUsageDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.deployment`: Exposes CRUD operations for the **Deployment** model.
     * Example usage:
     * ```ts
@@ -2959,6 +2987,7 @@ export namespace Prisma {
     FileSnapshot: 'FileSnapshot',
     ProjectSnapshot: 'ProjectSnapshot',
     ProjectStorageObject: 'ProjectStorageObject',
+    ProjectObjectStorageUsage: 'ProjectObjectStorageUsage',
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
     ReleaseManifest: 'ReleaseManifest',
@@ -3065,7 +3094,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "projectObjectStorageUsage" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5714,6 +5743,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectStorageObjectCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectStorageObjectCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectObjectStorageUsage: {
+        payload: Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>
+        fields: Prisma.ProjectObjectStorageUsageFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectObjectStorageUsageFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectObjectStorageUsageFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectObjectStorageUsageFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectObjectStorageUsageFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          findMany: {
+            args: Prisma.ProjectObjectStorageUsageFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>[]
+          }
+          create: {
+            args: Prisma.ProjectObjectStorageUsageCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          createMany: {
+            args: Prisma.ProjectObjectStorageUsageCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectObjectStorageUsageCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectObjectStorageUsageDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          update: {
+            args: Prisma.ProjectObjectStorageUsageUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectObjectStorageUsageDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectObjectStorageUsageUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectObjectStorageUsageUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectObjectStorageUsageUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectObjectStorageUsagePayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectObjectStorageUsageAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectObjectStorageUsage>
+          }
+          groupBy: {
+            args: Prisma.ProjectObjectStorageUsageGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectObjectStorageUsageGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectObjectStorageUsageCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectObjectStorageUsageCountAggregateOutputType> | number
           }
         }
       }
@@ -12595,6 +12698,7 @@ export namespace Prisma {
     fileSnapshot?: FileSnapshotOmit
     projectSnapshot?: ProjectSnapshotOmit
     projectStorageObject?: ProjectStorageObjectOmit
+    projectObjectStorageUsage?: ProjectObjectStorageUsageOmit
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     releaseManifest?: ReleaseManifestOmit
@@ -27365,6 +27469,7 @@ export namespace Prisma {
     workspaces?: boolean | Project$workspacesArgs<ExtArgs>
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
+    objectStorageUsage?: boolean | Project$objectStorageUsageArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
@@ -27452,6 +27557,7 @@ export namespace Prisma {
     workspaces?: boolean | Project$workspacesArgs<ExtArgs>
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
+    objectStorageUsage?: boolean | Project$objectStorageUsageArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
@@ -27490,6 +27596,7 @@ export namespace Prisma {
       workspaces: Prisma.$WorkspacePayload<ExtArgs>[]
       snapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
       storageObjects: Prisma.$ProjectStorageObjectPayload<ExtArgs>[]
+      objectStorageUsage: Prisma.$ProjectObjectStorageUsagePayload<ExtArgs> | null
       deployments: Prisma.$DeploymentPayload<ExtArgs>[]
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       conversations: Prisma.$AiConversationPayload<ExtArgs>[]
@@ -27927,6 +28034,7 @@ export namespace Prisma {
     workspaces<T extends Project$workspacesArgs<ExtArgs> = {}>(args?: Subset<T, Project$workspacesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     snapshots<T extends Project$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     storageObjects<T extends Project$storageObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$storageObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectStorageObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    objectStorageUsage<T extends Project$objectStorageUsageArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageUsageArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     deployments<T extends Project$deploymentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$deploymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     conversations<T extends Project$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -28624,6 +28732,25 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectStorageObjectScalarFieldEnum | ProjectStorageObjectScalarFieldEnum[]
+  }
+
+  /**
+   * Project.objectStorageUsage
+   */
+  export type Project$objectStorageUsageArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    where?: ProjectObjectStorageUsageWhereInput
   }
 
   /**
@@ -57288,6 +57415,1094 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectStorageObjectInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectObjectStorageUsage
+   */
+
+  export type AggregateProjectObjectStorageUsage = {
+    _count: ProjectObjectStorageUsageCountAggregateOutputType | null
+    _avg: ProjectObjectStorageUsageAvgAggregateOutputType | null
+    _sum: ProjectObjectStorageUsageSumAggregateOutputType | null
+    _min: ProjectObjectStorageUsageMinAggregateOutputType | null
+    _max: ProjectObjectStorageUsageMaxAggregateOutputType | null
+  }
+
+  export type ProjectObjectStorageUsageAvgAggregateOutputType = {
+    bytes: number | null
+    objectCount: number | null
+  }
+
+  export type ProjectObjectStorageUsageSumAggregateOutputType = {
+    bytes: bigint | null
+    objectCount: number | null
+  }
+
+  export type ProjectObjectStorageUsageMinAggregateOutputType = {
+    projectId: string | null
+    bytes: bigint | null
+    objectCount: number | null
+    measuredAt: Date | null
+  }
+
+  export type ProjectObjectStorageUsageMaxAggregateOutputType = {
+    projectId: string | null
+    bytes: bigint | null
+    objectCount: number | null
+    measuredAt: Date | null
+  }
+
+  export type ProjectObjectStorageUsageCountAggregateOutputType = {
+    projectId: number
+    bytes: number
+    objectCount: number
+    measuredAt: number
+    _all: number
+  }
+
+
+  export type ProjectObjectStorageUsageAvgAggregateInputType = {
+    bytes?: true
+    objectCount?: true
+  }
+
+  export type ProjectObjectStorageUsageSumAggregateInputType = {
+    bytes?: true
+    objectCount?: true
+  }
+
+  export type ProjectObjectStorageUsageMinAggregateInputType = {
+    projectId?: true
+    bytes?: true
+    objectCount?: true
+    measuredAt?: true
+  }
+
+  export type ProjectObjectStorageUsageMaxAggregateInputType = {
+    projectId?: true
+    bytes?: true
+    objectCount?: true
+    measuredAt?: true
+  }
+
+  export type ProjectObjectStorageUsageCountAggregateInputType = {
+    projectId?: true
+    bytes?: true
+    objectCount?: true
+    measuredAt?: true
+    _all?: true
+  }
+
+  export type ProjectObjectStorageUsageAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectObjectStorageUsage to aggregate.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectObjectStorageUsages
+    **/
+    _count?: true | ProjectObjectStorageUsageCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProjectObjectStorageUsageAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProjectObjectStorageUsageSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectObjectStorageUsageMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectObjectStorageUsageMaxAggregateInputType
+  }
+
+  export type GetProjectObjectStorageUsageAggregateType<T extends ProjectObjectStorageUsageAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectObjectStorageUsage]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectObjectStorageUsage[P]>
+      : GetScalarType<T[P], AggregateProjectObjectStorageUsage[P]>
+  }
+
+
+
+
+  export type ProjectObjectStorageUsageGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectObjectStorageUsageWhereInput
+    orderBy?: ProjectObjectStorageUsageOrderByWithAggregationInput | ProjectObjectStorageUsageOrderByWithAggregationInput[]
+    by: ProjectObjectStorageUsageScalarFieldEnum[] | ProjectObjectStorageUsageScalarFieldEnum
+    having?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectObjectStorageUsageCountAggregateInputType | true
+    _avg?: ProjectObjectStorageUsageAvgAggregateInputType
+    _sum?: ProjectObjectStorageUsageSumAggregateInputType
+    _min?: ProjectObjectStorageUsageMinAggregateInputType
+    _max?: ProjectObjectStorageUsageMaxAggregateInputType
+  }
+
+  export type ProjectObjectStorageUsageGroupByOutputType = {
+    projectId: string
+    bytes: bigint
+    objectCount: number
+    measuredAt: Date
+    _count: ProjectObjectStorageUsageCountAggregateOutputType | null
+    _avg: ProjectObjectStorageUsageAvgAggregateOutputType | null
+    _sum: ProjectObjectStorageUsageSumAggregateOutputType | null
+    _min: ProjectObjectStorageUsageMinAggregateOutputType | null
+    _max: ProjectObjectStorageUsageMaxAggregateOutputType | null
+  }
+
+  type GetProjectObjectStorageUsageGroupByPayload<T extends ProjectObjectStorageUsageGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectObjectStorageUsageGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectObjectStorageUsageGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectObjectStorageUsageGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectObjectStorageUsageGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectObjectStorageUsageSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectObjectStorageUsage"]>
+
+  export type ProjectObjectStorageUsageSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectObjectStorageUsage"]>
+
+  export type ProjectObjectStorageUsageSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectObjectStorageUsage"]>
+
+  export type ProjectObjectStorageUsageSelectScalar = {
+    projectId?: boolean
+    bytes?: boolean
+    objectCount?: boolean
+    measuredAt?: boolean
+  }
+
+  export type ProjectObjectStorageUsageOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"projectId" | "bytes" | "objectCount" | "measuredAt", ExtArgs["result"]["projectObjectStorageUsage"]>
+  export type ProjectObjectStorageUsageInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectObjectStorageUsageIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectObjectStorageUsageIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectObjectStorageUsagePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectObjectStorageUsage"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      projectId: string
+      bytes: bigint
+      objectCount: number
+      measuredAt: Date
+    }, ExtArgs["result"]["projectObjectStorageUsage"]>
+    composites: {}
+  }
+
+  type ProjectObjectStorageUsageGetPayload<S extends boolean | null | undefined | ProjectObjectStorageUsageDefaultArgs> = $Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload, S>
+
+  type ProjectObjectStorageUsageCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectObjectStorageUsageFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectObjectStorageUsageCountAggregateInputType | true
+    }
+
+  export interface ProjectObjectStorageUsageDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectObjectStorageUsage'], meta: { name: 'ProjectObjectStorageUsage' } }
+    /**
+     * Find zero or one ProjectObjectStorageUsage that matches the filter.
+     * @param {ProjectObjectStorageUsageFindUniqueArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectObjectStorageUsageFindUniqueArgs>(args: SelectSubset<T, ProjectObjectStorageUsageFindUniqueArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectObjectStorageUsage that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectObjectStorageUsageFindUniqueOrThrowArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectObjectStorageUsageFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectObjectStorageUsageFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectObjectStorageUsage that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageFindFirstArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectObjectStorageUsageFindFirstArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageFindFirstArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectObjectStorageUsage that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageFindFirstOrThrowArgs} args - Arguments to find a ProjectObjectStorageUsage
+     * @example
+     * // Get one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectObjectStorageUsageFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectObjectStorageUsages that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectObjectStorageUsages
+     * const projectObjectStorageUsages = await prisma.projectObjectStorageUsage.findMany()
+     * 
+     * // Get first 10 ProjectObjectStorageUsages
+     * const projectObjectStorageUsages = await prisma.projectObjectStorageUsage.findMany({ take: 10 })
+     * 
+     * // Only select the `projectId`
+     * const projectObjectStorageUsageWithProjectIdOnly = await prisma.projectObjectStorageUsage.findMany({ select: { projectId: true } })
+     * 
+     */
+    findMany<T extends ProjectObjectStorageUsageFindManyArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageCreateArgs} args - Arguments to create a ProjectObjectStorageUsage.
+     * @example
+     * // Create one ProjectObjectStorageUsage
+     * const ProjectObjectStorageUsage = await prisma.projectObjectStorageUsage.create({
+     *   data: {
+     *     // ... data to create a ProjectObjectStorageUsage
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectObjectStorageUsageCreateArgs>(args: SelectSubset<T, ProjectObjectStorageUsageCreateArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectObjectStorageUsages.
+     * @param {ProjectObjectStorageUsageCreateManyArgs} args - Arguments to create many ProjectObjectStorageUsages.
+     * @example
+     * // Create many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectObjectStorageUsageCreateManyArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectObjectStorageUsages and returns the data saved in the database.
+     * @param {ProjectObjectStorageUsageCreateManyAndReturnArgs} args - Arguments to create many ProjectObjectStorageUsages.
+     * @example
+     * // Create many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectObjectStorageUsages and only return the `projectId`
+     * const projectObjectStorageUsageWithProjectIdOnly = await prisma.projectObjectStorageUsage.createManyAndReturn({
+     *   select: { projectId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectObjectStorageUsageCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageDeleteArgs} args - Arguments to delete one ProjectObjectStorageUsage.
+     * @example
+     * // Delete one ProjectObjectStorageUsage
+     * const ProjectObjectStorageUsage = await prisma.projectObjectStorageUsage.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectObjectStorageUsage
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectObjectStorageUsageDeleteArgs>(args: SelectSubset<T, ProjectObjectStorageUsageDeleteArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageUpdateArgs} args - Arguments to update one ProjectObjectStorageUsage.
+     * @example
+     * // Update one ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectObjectStorageUsageUpdateArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpdateArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectObjectStorageUsages.
+     * @param {ProjectObjectStorageUsageDeleteManyArgs} args - Arguments to filter ProjectObjectStorageUsages to delete.
+     * @example
+     * // Delete a few ProjectObjectStorageUsages
+     * const { count } = await prisma.projectObjectStorageUsage.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectObjectStorageUsageDeleteManyArgs>(args?: SelectSubset<T, ProjectObjectStorageUsageDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectObjectStorageUsages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectObjectStorageUsageUpdateManyArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectObjectStorageUsages and returns the data updated in the database.
+     * @param {ProjectObjectStorageUsageUpdateManyAndReturnArgs} args - Arguments to update many ProjectObjectStorageUsages.
+     * @example
+     * // Update many ProjectObjectStorageUsages
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectObjectStorageUsages and only return the `projectId`
+     * const projectObjectStorageUsageWithProjectIdOnly = await prisma.projectObjectStorageUsage.updateManyAndReturn({
+     *   select: { projectId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectObjectStorageUsageUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectObjectStorageUsage.
+     * @param {ProjectObjectStorageUsageUpsertArgs} args - Arguments to update or create a ProjectObjectStorageUsage.
+     * @example
+     * // Update or create a ProjectObjectStorageUsage
+     * const projectObjectStorageUsage = await prisma.projectObjectStorageUsage.upsert({
+     *   create: {
+     *     // ... data to create a ProjectObjectStorageUsage
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectObjectStorageUsage we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectObjectStorageUsageUpsertArgs>(args: SelectSubset<T, ProjectObjectStorageUsageUpsertArgs<ExtArgs>>): Prisma__ProjectObjectStorageUsageClient<$Result.GetResult<Prisma.$ProjectObjectStorageUsagePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectObjectStorageUsages.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageCountArgs} args - Arguments to filter ProjectObjectStorageUsages to count.
+     * @example
+     * // Count the number of ProjectObjectStorageUsages
+     * const count = await prisma.projectObjectStorageUsage.count({
+     *   where: {
+     *     // ... the filter for the ProjectObjectStorageUsages we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectObjectStorageUsageCountArgs>(
+      args?: Subset<T, ProjectObjectStorageUsageCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectObjectStorageUsageCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectObjectStorageUsage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectObjectStorageUsageAggregateArgs>(args: Subset<T, ProjectObjectStorageUsageAggregateArgs>): Prisma.PrismaPromise<GetProjectObjectStorageUsageAggregateType<T>>
+
+    /**
+     * Group by ProjectObjectStorageUsage.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectObjectStorageUsageGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectObjectStorageUsageGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectObjectStorageUsageGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectObjectStorageUsageGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectObjectStorageUsageGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectObjectStorageUsageGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectObjectStorageUsage model
+   */
+  readonly fields: ProjectObjectStorageUsageFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectObjectStorageUsage.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectObjectStorageUsageClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectObjectStorageUsage model
+   */
+  interface ProjectObjectStorageUsageFieldRefs {
+    readonly projectId: FieldRef<"ProjectObjectStorageUsage", 'String'>
+    readonly bytes: FieldRef<"ProjectObjectStorageUsage", 'BigInt'>
+    readonly objectCount: FieldRef<"ProjectObjectStorageUsage", 'Int'>
+    readonly measuredAt: FieldRef<"ProjectObjectStorageUsage", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectObjectStorageUsage findUnique
+   */
+  export type ProjectObjectStorageUsageFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage findUniqueOrThrow
+   */
+  export type ProjectObjectStorageUsageFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage findFirst
+   */
+  export type ProjectObjectStorageUsageFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectObjectStorageUsages.
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectObjectStorageUsages.
+     */
+    distinct?: ProjectObjectStorageUsageScalarFieldEnum | ProjectObjectStorageUsageScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectObjectStorageUsage findFirstOrThrow
+   */
+  export type ProjectObjectStorageUsageFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsage to fetch.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectObjectStorageUsages.
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectObjectStorageUsages.
+     */
+    distinct?: ProjectObjectStorageUsageScalarFieldEnum | ProjectObjectStorageUsageScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectObjectStorageUsage findMany
+   */
+  export type ProjectObjectStorageUsageFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectObjectStorageUsages to fetch.
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectObjectStorageUsages to fetch.
+     */
+    orderBy?: ProjectObjectStorageUsageOrderByWithRelationInput | ProjectObjectStorageUsageOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectObjectStorageUsages.
+     */
+    cursor?: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectObjectStorageUsages from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectObjectStorageUsages.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectObjectStorageUsages.
+     */
+    distinct?: ProjectObjectStorageUsageScalarFieldEnum | ProjectObjectStorageUsageScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectObjectStorageUsage create
+   */
+  export type ProjectObjectStorageUsageCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectObjectStorageUsage.
+     */
+    data: XOR<ProjectObjectStorageUsageCreateInput, ProjectObjectStorageUsageUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectObjectStorageUsage createMany
+   */
+  export type ProjectObjectStorageUsageCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectObjectStorageUsages.
+     */
+    data: ProjectObjectStorageUsageCreateManyInput | ProjectObjectStorageUsageCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectObjectStorageUsage createManyAndReturn
+   */
+  export type ProjectObjectStorageUsageCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectObjectStorageUsages.
+     */
+    data: ProjectObjectStorageUsageCreateManyInput | ProjectObjectStorageUsageCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectObjectStorageUsage update
+   */
+  export type ProjectObjectStorageUsageUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectObjectStorageUsage.
+     */
+    data: XOR<ProjectObjectStorageUsageUpdateInput, ProjectObjectStorageUsageUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectObjectStorageUsage to update.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage updateMany
+   */
+  export type ProjectObjectStorageUsageUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectObjectStorageUsages.
+     */
+    data: XOR<ProjectObjectStorageUsageUpdateManyMutationInput, ProjectObjectStorageUsageUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectObjectStorageUsages to update
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * Limit how many ProjectObjectStorageUsages to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectObjectStorageUsage updateManyAndReturn
+   */
+  export type ProjectObjectStorageUsageUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectObjectStorageUsages.
+     */
+    data: XOR<ProjectObjectStorageUsageUpdateManyMutationInput, ProjectObjectStorageUsageUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectObjectStorageUsages to update
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * Limit how many ProjectObjectStorageUsages to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectObjectStorageUsage upsert
+   */
+  export type ProjectObjectStorageUsageUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectObjectStorageUsage to update in case it exists.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+    /**
+     * In case the ProjectObjectStorageUsage found by the `where` argument doesn't exist, create a new ProjectObjectStorageUsage with this data.
+     */
+    create: XOR<ProjectObjectStorageUsageCreateInput, ProjectObjectStorageUsageUncheckedCreateInput>
+    /**
+     * In case the ProjectObjectStorageUsage was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectObjectStorageUsageUpdateInput, ProjectObjectStorageUsageUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectObjectStorageUsage delete
+   */
+  export type ProjectObjectStorageUsageDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectObjectStorageUsage to delete.
+     */
+    where: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
+  /**
+   * ProjectObjectStorageUsage deleteMany
+   */
+  export type ProjectObjectStorageUsageDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectObjectStorageUsages to delete
+     */
+    where?: ProjectObjectStorageUsageWhereInput
+    /**
+     * Limit how many ProjectObjectStorageUsages to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectObjectStorageUsage without action
+   */
+  export type ProjectObjectStorageUsageDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectObjectStorageUsage
+     */
+    select?: ProjectObjectStorageUsageSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectObjectStorageUsage
+     */
+    omit?: ProjectObjectStorageUsageOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectObjectStorageUsageInclude<ExtArgs> | null
   }
 
 
@@ -161595,6 +162810,16 @@ export namespace Prisma {
   export type ProjectStorageObjectScalarFieldEnum = (typeof ProjectStorageObjectScalarFieldEnum)[keyof typeof ProjectStorageObjectScalarFieldEnum]
 
 
+  export const ProjectObjectStorageUsageScalarFieldEnum: {
+    projectId: 'projectId',
+    bytes: 'bytes',
+    objectCount: 'objectCount',
+    measuredAt: 'measuredAt'
+  };
+
+  export type ProjectObjectStorageUsageScalarFieldEnum = (typeof ProjectObjectStorageUsageScalarFieldEnum)[keyof typeof ProjectObjectStorageUsageScalarFieldEnum]
+
+
   export const DeploymentScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -163204,6 +164429,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'BigInt'
+   */
+  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+  /**
+   * Reference to a field of type 'BigInt[]'
+   */
+  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
+    
+
+
+  /**
    * Reference to a field of type 'DeploymentStatus'
    */
   export type EnumDeploymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DeploymentStatus'>
@@ -163382,20 +164621,6 @@ export namespace Prisma {
    * Reference to a field of type 'DatabaseInstanceStatus[]'
    */
   export type ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DatabaseInstanceStatus[]'>
-    
-
-
-  /**
-   * Reference to a field of type 'BigInt'
-   */
-  export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
-    
-
-
-  /**
-   * Reference to a field of type 'BigInt[]'
-   */
-  export type ListBigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt[]'>
     
 
 
@@ -164376,6 +165601,7 @@ export namespace Prisma {
     workspaces?: WorkspaceListRelationFilter
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
+    objectStorageUsage?: XOR<ProjectObjectStorageUsageNullableScalarRelationFilter, ProjectObjectStorageUsageWhereInput> | null
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
@@ -164420,6 +165646,7 @@ export namespace Prisma {
     workspaces?: WorkspaceOrderByRelationAggregateInput
     snapshots?: ProjectSnapshotOrderByRelationAggregateInput
     storageObjects?: ProjectStorageObjectOrderByRelationAggregateInput
+    objectStorageUsage?: ProjectObjectStorageUsageOrderByWithRelationInput
     deployments?: DeploymentOrderByRelationAggregateInput
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
     conversations?: AiConversationOrderByRelationAggregateInput
@@ -164468,6 +165695,7 @@ export namespace Prisma {
     workspaces?: WorkspaceListRelationFilter
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
+    objectStorageUsage?: XOR<ProjectObjectStorageUsageNullableScalarRelationFilter, ProjectObjectStorageUsageWhereInput> | null
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
@@ -166471,6 +167699,58 @@ export namespace Prisma {
     byteLength?: IntWithAggregatesFilter<"ProjectStorageObject"> | number
     contentHash?: StringWithAggregatesFilter<"ProjectStorageObject"> | string
     createdAt?: DateTimeWithAggregatesFilter<"ProjectStorageObject"> | Date | string
+  }
+
+  export type ProjectObjectStorageUsageWhereInput = {
+    AND?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    OR?: ProjectObjectStorageUsageWhereInput[]
+    NOT?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    projectId?: StringFilter<"ProjectObjectStorageUsage"> | string
+    bytes?: BigIntFilter<"ProjectObjectStorageUsage"> | bigint | number
+    objectCount?: IntFilter<"ProjectObjectStorageUsage"> | number
+    measuredAt?: DateTimeFilter<"ProjectObjectStorageUsage"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type ProjectObjectStorageUsageOrderByWithRelationInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type ProjectObjectStorageUsageWhereUniqueInput = Prisma.AtLeast<{
+    projectId?: string
+    AND?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    OR?: ProjectObjectStorageUsageWhereInput[]
+    NOT?: ProjectObjectStorageUsageWhereInput | ProjectObjectStorageUsageWhereInput[]
+    bytes?: BigIntFilter<"ProjectObjectStorageUsage"> | bigint | number
+    objectCount?: IntFilter<"ProjectObjectStorageUsage"> | number
+    measuredAt?: DateTimeFilter<"ProjectObjectStorageUsage"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "projectId">
+
+  export type ProjectObjectStorageUsageOrderByWithAggregationInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+    _count?: ProjectObjectStorageUsageCountOrderByAggregateInput
+    _avg?: ProjectObjectStorageUsageAvgOrderByAggregateInput
+    _max?: ProjectObjectStorageUsageMaxOrderByAggregateInput
+    _min?: ProjectObjectStorageUsageMinOrderByAggregateInput
+    _sum?: ProjectObjectStorageUsageSumOrderByAggregateInput
+  }
+
+  export type ProjectObjectStorageUsageScalarWhereWithAggregatesInput = {
+    AND?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput | ProjectObjectStorageUsageScalarWhereWithAggregatesInput[]
+    OR?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput[]
+    NOT?: ProjectObjectStorageUsageScalarWhereWithAggregatesInput | ProjectObjectStorageUsageScalarWhereWithAggregatesInput[]
+    projectId?: StringWithAggregatesFilter<"ProjectObjectStorageUsage"> | string
+    bytes?: BigIntWithAggregatesFilter<"ProjectObjectStorageUsage"> | bigint | number
+    objectCount?: IntWithAggregatesFilter<"ProjectObjectStorageUsage"> | number
+    measuredAt?: DateTimeWithAggregatesFilter<"ProjectObjectStorageUsage"> | Date | string
   }
 
   export type DeploymentWhereInput = {
@@ -174893,6 +176173,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -174936,6 +176217,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -174979,6 +176261,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -175022,6 +176305,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -177093,6 +178377,54 @@ export namespace Prisma {
     byteLength?: IntFieldUpdateOperationsInput | number
     contentHash?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageCreateInput = {
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+    project: ProjectCreateNestedOneWithoutObjectStorageUsageInput
+  }
+
+  export type ProjectObjectStorageUsageUncheckedCreateInput = {
+    projectId: string
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageUpdateInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutObjectStorageUsageNestedInput
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageCreateManyInput = {
+    projectId: string
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageUpdateManyMutationInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateManyInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type DeploymentCreateInput = {
@@ -186559,6 +187891,11 @@ export namespace Prisma {
     none?: ProjectStorageObjectWhereInput
   }
 
+  export type ProjectObjectStorageUsageNullableScalarRelationFilter = {
+    is?: ProjectObjectStorageUsageWhereInput | null
+    isNot?: ProjectObjectStorageUsageWhereInput | null
+  }
+
   export type DeploymentListRelationFilter = {
     every?: DeploymentWhereInput
     some?: DeploymentWhereInput
@@ -187919,6 +189256,64 @@ export namespace Prisma {
 
   export type ProjectStorageObjectSumOrderByAggregateInput = {
     byteLength?: SortOrder
+  }
+
+  export type BigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type ProjectObjectStorageUsageCountOrderByAggregateInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageAvgOrderByAggregateInput = {
+    bytes?: SortOrder
+    objectCount?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageMaxOrderByAggregateInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageMinOrderByAggregateInput = {
+    projectId?: SortOrder
+    bytes?: SortOrder
+    objectCount?: SortOrder
+    measuredAt?: SortOrder
+  }
+
+  export type ProjectObjectStorageUsageSumOrderByAggregateInput = {
+    bytes?: SortOrder
+    objectCount?: SortOrder
+  }
+
+  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type EnumDeploymentStatusFilter<$PrismaModel = never> = {
@@ -191020,17 +192415,6 @@ export namespace Prisma {
     not?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
   }
 
-  export type BigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
-  }
-
   export type DatabaseSnapshotListRelationFilter = {
     every?: DatabaseSnapshotWhereInput
     some?: DatabaseSnapshotWhereInput
@@ -191119,22 +192503,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
-  }
-
-  export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type DatabaseInstanceScalarRelationFilter = {
@@ -195730,6 +197098,12 @@ export namespace Prisma {
     connect?: ProjectStorageObjectWhereUniqueInput | ProjectStorageObjectWhereUniqueInput[]
   }
 
+  export type ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
+  }
+
   export type DeploymentCreateNestedManyWithoutProjectInput = {
     create?: XOR<DeploymentCreateWithoutProjectInput, DeploymentUncheckedCreateWithoutProjectInput> | DeploymentCreateWithoutProjectInput[] | DeploymentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: DeploymentCreateOrConnectWithoutProjectInput | DeploymentCreateOrConnectWithoutProjectInput[]
@@ -195899,6 +197273,12 @@ export namespace Prisma {
     connectOrCreate?: ProjectStorageObjectCreateOrConnectWithoutProjectInput | ProjectStorageObjectCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectStorageObjectCreateManyProjectInputEnvelope
     connect?: ProjectStorageObjectWhereUniqueInput | ProjectStorageObjectWhereUniqueInput[]
+  }
+
+  export type ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
   }
 
   export type DeploymentUncheckedCreateNestedManyWithoutProjectInput = {
@@ -196148,6 +197528,16 @@ export namespace Prisma {
     update?: ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput | ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput | ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectStorageObjectScalarWhereInput | ProjectStorageObjectScalarWhereInput[]
+  }
+
+  export type ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    upsert?: ProjectObjectStorageUsageUpsertWithoutProjectInput
+    disconnect?: ProjectObjectStorageUsageWhereInput | boolean
+    delete?: ProjectObjectStorageUsageWhereInput | boolean
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
+    update?: XOR<XOR<ProjectObjectStorageUsageUpdateToOneWithWhereWithoutProjectInput, ProjectObjectStorageUsageUpdateWithoutProjectInput>, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
   }
 
   export type DeploymentUpdateManyWithoutProjectNestedInput = {
@@ -196490,6 +197880,16 @@ export namespace Prisma {
     update?: ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput | ProjectStorageObjectUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput | ProjectStorageObjectUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectStorageObjectScalarWhereInput | ProjectStorageObjectScalarWhereInput[]
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput = {
+    create?: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    connectOrCreate?: ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput
+    upsert?: ProjectObjectStorageUsageUpsertWithoutProjectInput
+    disconnect?: ProjectObjectStorageUsageWhereInput | boolean
+    delete?: ProjectObjectStorageUsageWhereInput | boolean
+    connect?: ProjectObjectStorageUsageWhereUniqueInput
+    update?: XOR<XOR<ProjectObjectStorageUsageUpdateToOneWithWhereWithoutProjectInput, ProjectObjectStorageUsageUpdateWithoutProjectInput>, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
   }
 
   export type DeploymentUncheckedUpdateManyWithoutProjectNestedInput = {
@@ -197512,6 +198912,28 @@ export namespace Prisma {
     delete?: ProjectWhereInput | boolean
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutStorageObjectsInput, ProjectUpdateWithoutStorageObjectsInput>, ProjectUncheckedUpdateWithoutStorageObjectsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutObjectStorageUsageInput = {
+    create?: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutObjectStorageUsageInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type BigIntFieldUpdateOperationsInput = {
+    set?: bigint | number
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type ProjectUpdateOneRequiredWithoutObjectStorageUsageNestedInput = {
+    create?: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutObjectStorageUsageInput
+    upsert?: ProjectUpsertWithoutObjectStorageUsageInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutObjectStorageUsageInput, ProjectUpdateWithoutObjectStorageUsageInput>, ProjectUncheckedUpdateWithoutObjectStorageUsageInput>
   }
 
   export type ProjectCreateNestedOneWithoutDeploymentsInput = {
@@ -199206,14 +200628,6 @@ export namespace Prisma {
     set?: $Enums.DatabaseInstanceStatus
   }
 
-  export type BigIntFieldUpdateOperationsInput = {
-    set?: bigint | number
-    increment?: bigint | number
-    decrement?: bigint | number
-    multiply?: bigint | number
-    divide?: bigint | number
-  }
-
   export type ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput = {
     create?: XOR<ProjectCreateWithoutDatabaseInstancesInput, ProjectUncheckedCreateWithoutDatabaseInstancesInput>
     connectOrCreate?: ProjectCreateOrConnectWithoutDatabaseInstancesInput
@@ -200009,6 +201423,33 @@ export namespace Prisma {
     _max?: NestedEnumWorkspaceStatusFilter<$PrismaModel>
   }
 
+  export type NestedBigIntFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
+  }
+
+  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedBigIntFilter<$PrismaModel>
+    _min?: NestedBigIntFilter<$PrismaModel>
+    _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
   export type NestedEnumDeploymentStatusFilter<$PrismaModel = never> = {
     equals?: $Enums.DeploymentStatus | EnumDeploymentStatusFieldRefInput<$PrismaModel>
     in?: $Enums.DeploymentStatus[] | ListEnumDeploymentStatusFieldRefInput<$PrismaModel>
@@ -200220,17 +201661,6 @@ export namespace Prisma {
     not?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel> | $Enums.DatabaseInstanceStatus
   }
 
-  export type NestedBigIntFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntFilter<$PrismaModel> | bigint | number
-  }
-
   export type NestedEnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.DatabaseInstanceStatus | EnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
     in?: $Enums.DatabaseInstanceStatus[] | ListEnumDatabaseInstanceStatusFieldRefInput<$PrismaModel>
@@ -200239,22 +201669,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseInstanceStatusFilter<$PrismaModel>
-  }
-
-  export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel>
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedBigIntFilter<$PrismaModel>
-    _min?: NestedBigIntFilter<$PrismaModel>
-    _max?: NestedBigIntFilter<$PrismaModel>
   }
 
   export type NestedEnumDatabaseRestoreStatusFilter<$PrismaModel = never> = {
@@ -203237,6 +204651,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -203279,6 +204694,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -206499,6 +207915,23 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectObjectStorageUsageCreateWithoutProjectInput = {
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput = {
+    bytes?: bigint | number
+    objectCount?: number
+    measuredAt: Date | string
+  }
+
+  export type ProjectObjectStorageUsageCreateOrConnectWithoutProjectInput = {
+    where: ProjectObjectStorageUsageWhereUniqueInput
+    create: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+  }
+
   export type DeploymentCreateWithoutProjectInput = {
     id?: string
     workspaceId?: string | null
@@ -207289,6 +208722,29 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ProjectStorageObject"> | Date | string
   }
 
+  export type ProjectObjectStorageUsageUpsertWithoutProjectInput = {
+    update: XOR<ProjectObjectStorageUsageUpdateWithoutProjectInput, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectObjectStorageUsageCreateWithoutProjectInput, ProjectObjectStorageUsageUncheckedCreateWithoutProjectInput>
+    where?: ProjectObjectStorageUsageWhereInput
+  }
+
+  export type ProjectObjectStorageUsageUpdateToOneWithWhereWithoutProjectInput = {
+    where?: ProjectObjectStorageUsageWhereInput
+    data: XOR<ProjectObjectStorageUsageUpdateWithoutProjectInput, ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectObjectStorageUsageUpdateWithoutProjectInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectObjectStorageUsageUncheckedUpdateWithoutProjectInput = {
+    bytes?: BigIntFieldUpdateOperationsInput | bigint | number
+    objectCount?: IntFieldUpdateOperationsInput | number
+    measuredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type DeploymentUpsertWithWhereUniqueWithoutProjectInput = {
     where: DeploymentWhereUniqueInput
     update: XOR<DeploymentUpdateWithoutProjectInput, DeploymentUncheckedUpdateWithoutProjectInput>
@@ -207685,6 +209141,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -207727,6 +209184,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -207785,6 +209243,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -207827,6 +209286,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -208269,6 +209729,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -208311,6 +209772,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -208369,6 +209831,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -208411,6 +209874,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -208647,6 +210111,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -208689,6 +210154,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -208953,6 +210419,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -208995,6 +210462,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209037,6 +210505,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209079,6 +210548,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209242,6 +210712,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209284,6 +210755,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209437,6 +210909,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209479,6 +210952,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209537,6 +211011,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209579,6 +211054,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209621,6 +211097,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209663,6 +211140,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209721,6 +211199,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209763,6 +211242,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209805,6 +211285,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -209847,6 +211328,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -209905,6 +211387,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -209947,6 +211430,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -209988,6 +211472,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210030,6 +211515,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210088,6 +211574,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210130,6 +211617,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210172,6 +211660,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210214,6 +211703,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210272,6 +211762,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210314,6 +211805,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210356,6 +211848,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210398,6 +211891,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210456,6 +211950,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210498,6 +211993,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210540,6 +212036,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210582,6 +212079,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -210745,6 +212243,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -210787,6 +212286,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -210940,6 +212440,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -210982,6 +212483,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -211145,6 +212647,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -211187,6 +212690,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -211341,6 +212845,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -211383,6 +212888,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -211546,6 +213052,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -211588,6 +213095,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -211741,6 +213249,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -211783,6 +213292,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -211946,6 +213456,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -211988,6 +213499,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -212141,6 +213653,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -212183,6 +213696,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -212346,6 +213860,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -212388,6 +213903,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -212540,6 +214056,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -212582,6 +214099,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -212729,6 +214247,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -212771,6 +214290,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -212908,6 +214428,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -212950,6 +214471,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -213195,6 +214717,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -213237,6 +214760,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -213742,6 +215266,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -213784,6 +215309,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -213885,6 +215411,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -213927,6 +215454,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -214017,6 +215545,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -214059,6 +215588,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -214222,6 +215752,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -214264,6 +215795,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -214417,6 +215949,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -214459,6 +215992,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -214517,6 +216051,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -214559,6 +216094,195 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectCreateWithoutObjectStorageUsageInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutObjectStorageUsageInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutObjectStorageUsageInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+  }
+
+  export type ProjectUpsertWithoutObjectStorageUsageInput = {
+    update: XOR<ProjectUpdateWithoutObjectStorageUsageInput, ProjectUncheckedUpdateWithoutObjectStorageUsageInput>
+    create: XOR<ProjectCreateWithoutObjectStorageUsageInput, ProjectUncheckedCreateWithoutObjectStorageUsageInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutObjectStorageUsageInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutObjectStorageUsageInput, ProjectUncheckedUpdateWithoutObjectStorageUsageInput>
+  }
+
+  export type ProjectUpdateWithoutObjectStorageUsageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutObjectStorageUsageInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -214602,6 +216326,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -214644,6 +216369,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -214717,6 +216443,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -214759,6 +216486,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -216752,6 +218480,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -216794,6 +218523,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -216985,6 +218715,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -217027,6 +218758,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -222999,6 +224731,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -223041,6 +224774,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -223257,6 +224991,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -223299,6 +225034,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -226302,6 +228038,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -226344,6 +228081,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -226470,6 +228208,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -226512,6 +228251,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -227345,6 +229085,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageCreateNestedOneWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -227387,6 +229128,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedCreateNestedOneWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -227550,6 +229292,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -227592,6 +229335,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -230177,6 +231921,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -230219,6 +231964,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageUsage?: ProjectObjectStorageUsageUncheckedUpdateOneWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
