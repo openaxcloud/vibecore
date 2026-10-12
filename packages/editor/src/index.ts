@@ -1003,6 +1003,7 @@ export function DesktopCodeEditor({
   onSave,
 }: EditorAdapterProps) {
   const copy = useEditorUiCopy();
+  const [editorVersion, setEditorVersion] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<MonacoTypes.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof import('monaco-editor/esm/vs/editor/editor.api') | null>(null);
@@ -1010,6 +1011,7 @@ export function DesktopCodeEditor({
   const onSaveRef = useRef(onSave);
   const valueRef = useRef(value);
   const filePathRef = useRef(filePath);
+  const languageRef = useRef(language);
   const projectFilesRef = useRef(projectFiles);
   const ownedWorkspaceModelsRef = useRef<Set<string>>(new Set());
   const envMaskDecorationsRef = useRef<string[]>([]);
@@ -1028,6 +1030,7 @@ export function DesktopCodeEditor({
     onSaveRef.current = onSave;
     valueRef.current = value;
     filePathRef.current = filePath;
+    languageRef.current = language;
     projectFilesRef.current = projectFiles;
   });
 
@@ -1079,9 +1082,9 @@ export function DesktopCodeEditor({
         monacoRef.current = monaco;
 
         const currentModel = monaco.editor.createModel(
-          value,
-          languageForPath(filePath, language),
-          modelUriForPath(monaco, filePath ?? 'untitled'),
+          valueRef.current,
+          languageForPath(filePathRef.current, languageRef.current),
+          modelUriForPath(monaco, filePathRef.current ?? 'untitled'),
         );
 
         monaco.editor.defineTheme('vibecore-vs-dark', {
@@ -1174,6 +1177,15 @@ export function DesktopCodeEditor({
         });
 
         editorRef.current = editor;
+
+        /*
+         * The selected document can change while the module is loading. Refs
+         * give the initial model its current identity; the version also reruns
+         * synchronization for options, workspace models and theme that changed
+         * before an editor existed. A later locale-driven remount must do this
+         * again, so a one-time ready boolean would not be sufficient.
+         */
+        setEditorVersion((version) => version + 1);
 
         const disposable = editor.onDidChangeModelContent(() => {
           if (isApplyingExternalRef.current) {
@@ -1378,11 +1390,11 @@ export function DesktopCodeEditor({
 
       ownedWorkspaceModelsRef.current = nextOwnedModelUris;
     }
-  }, [filePath, language, largeFile, minimapEnabled, projectFiles, readOnly, value]);
+  }, [editorVersion, filePath, language, largeFile, minimapEnabled, projectFiles, readOnly, value]);
 
   useEffect(() => {
     monacoRef.current?.editor.setTheme(theme === 'dark' ? 'vibecore-vs-dark' : 'vibecore-vs-light');
-  }, [theme]);
+  }, [editorVersion, theme]);
 
   useEffect(() => {
     const runEditorCommand = (event: Event) => {
