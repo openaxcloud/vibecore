@@ -28,3 +28,23 @@ Aucun défaut supplémentaire n’est reproduit ; aucun correctif produit ou ass
 Preuves temporaires dans cette session : `/tmp/ci730-evidence/e2e-after-results.json`, `default-observed.log`, `default-observed-results.json`, `build-default.log`, et `default-observed/identity-opening-a-stored--259ee--tab-without-duplicating-it/trace.zip` avec les captures. Harnais : `/tmp/files-audit-harness/ci730.config.ts`, `ci730-observe.config.ts`, `/tmp/ci730-tests/identity.spec.ts`. Ces chemins ne sont pas des artefacts GitHub et ne sont pas garantis après destruction de l’environnement.
 
 Relecture indépendante par `/root/review_pastille` : rapport, JSON, trace et log concordants ; aucune correction demandée. Serveurs locaux et trois conteneurs arrêtés à l’issue du diagnostic, volumes conservés.
+
+## Instrumentation proposée après demande du parent
+
+Nouvelle recherche dans les composants et stores : aucun réglage produit pour désactiver l’autosauvegarde n’a été trouvé. `BaseChat` appelle `scheduleFileAutosave` après l’édition ; le délai interne est 800 ms. Après succès de `FilesStore.saveFile`, `Workbench.saveFile` retire le chemin de `unsavedFiles`. Un échec conserve le brouillon. Une sauvegarde WebContainer réussie reste donc une hypothèse pertinente, sans reproduction ici ; aucun nouvel accès à `stackblitz.com`.
+
+Le delta est limité au test et à sa fixture de diagnostic :
+
+- les **21 lignes d’assertion**, les clics métier et les budgets **30 s / 5 s** restent identiques ; aucune manipulation du store ni faux résultat de sauvegarde ;
+- des jalons nomment navigation IDE, attente et contenu initial Monaco, édition, épinglage et retour au brouillon ;
+- en cas d’échec uniquement, `file-tab-failure-diagnostic` joint au maximum **128 événements**, **12 onglets** et **2 éditeurs** par état. L’ancien export de mémoire locale est retiré ;
+- DOM de la page principale : IDs, libellés connus exacts, `pinned`/`dirty`/`active`, visibilité, géométrie et hit-test central ; le contenu est réduit à quatre booléens de présence des sentinelles synthétiques ;
+- événements réseau : catégories runtime/écriture, méthode, statut ou échec, sans URL, query, en-tête ni corps ; console : événements classifiés uniquement, jamais le message brut. `File updated` ne donnant pas le chemin, son fichier est explicitement `unknown` ;
+- les trois entrées de configuration de build sont filtrées, et distinguées des observations navigateur. Elles ne sont pas présentées comme une lecture certaine de la configuration embarquée ;
+- le teardown conserve le dernier état DOM à l’échec puis effectue deux clics à blanc `trial`, limités chacun à **500 ms**. Ils peuvent faire défiler la page : ils décrivent l’actionnabilité **après** l’échec, sans prouver celle de l’instant initial. Ils n’augmentent pas le budget du test métier.
+
+Vérification de l’instrumentation dans Chromium réel sur une petite page HTML synthétique servie uniquement en loopback, sans pile applicative ni accès externe : succès sans pièce jointe ; échec d’assertion et timeout global avec pièce jointe ; page fermée avec dernier état conservé ; état synthétique épinglé/non-sale avec sentinelle intacte correctement distingué du sélecteur exact absent. Les échecs de ces sondes sont provoqués pour vérifier le teardown, **pas des échecs produit ni une reproduction de la cause CI**. Une fausse valeur secrète placée dans le DOM et les messages console est absente de toutes les pièces jointes. Les sorties JSON mesurent environ 3,6 Ko par échec simple. Preuves temporaires : `/tmp/ci730-diagnostic-check/{results,extra-results}.json` et harnais voisin.
+
+La revue indépendante a demandé puis vérifié la prise en compte des deux chemins synthétiques `/audit.txt` et `/home/project/audit.txt` pour les échecs d’autosauvegarde. L’instrumentation reste destinée à une exécution CI diagnostique à autoriser après relecture du delta ; elle ne corrige pas le rouge connu et n’a pas été poussée.
+
+Validation finale du delta : lint des deux fichiers TypeScript et `pnpm run typecheck` global réussis ; découverte Playwright canonique réussie (le test reste dans un seul fichier de spec). Revue indépendante finale favorable, avec vérification des JSON des sondes. Pas de reconstruction applicative : aucun code produit modifié. Pas de relance E2E produit dans le mode WebContainer bloqué. Le serveur HTTP de la sonde a été arrêté.

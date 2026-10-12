@@ -1,5 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 import JSZip from 'jszip';
+import { test } from './diagnostics/file-tab';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
@@ -9,6 +10,7 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   page,
   request,
   context,
+  fileTabDiagnostics,
 }, testInfo) => {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const email = `file-tabs-${suffix}@local.test`;
@@ -46,7 +48,7 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   await context.route(/\/api\/(runtime|runtime-token|chat)(\/|\?|$)/, (route) => route.abort('blockedbyclient'));
   await context.routeWebSocket('**/*', (socket) => socket.close());
 
-  // Keep this a local draft test: unsuccessful saves must not clear the draft.
+  // This blocks HTTP writes only; WebContainer filesystem writes are not intercepted.
   await context.route(/\/api\/projects\/[^/]+\/files(?:\/|\?|$)/, (route) =>
     route.request().method() === 'GET' ? route.continue() : route.abort('blockedbyclient'),
   );
@@ -55,7 +57,9 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   await page.locator('input[name=password]').fill('Password123!');
   await page.locator('button[type=submit]').click();
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  fileTabDiagnostics.mark('ide-navigation');
   await page.goto(`/projects/${projectId}/ide?panel=files`);
+  fileTabDiagnostics.mark('waiting-for-monaco');
 
   const file = (name: string) =>
     page.getByText(name, { exact: true }).and(page.locator('.bolt-file-tree-name')).filter({ visible: true });
@@ -65,19 +69,10 @@ test('opening a stored file binds the initial editor tab without duplicating it'
    * initialization race was observed and is recorded in the local audit.
    */
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('File tab identity audit');
+  fileTabDiagnostics.mark('monaco-initial-content-ready');
   await file('audit.txt').click();
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
   await page.screenshot({ path: testInfo.outputPath('first-file.png') });
-  await testInfo.attach('pane-memory', {
-    body: await page.evaluate(() =>
-      JSON.stringify(
-        Object.keys(localStorage)
-          .filter((key) => key.startsWith('vibecore.projectIdeMemory:'))
-          .map((key) => ({ key, ui: JSON.parse(localStorage.getItem(key) ?? '{}').ui })),
-      ),
-    ),
-    contentType: 'application/json',
-  });
 
   const documentTabs = page.getByRole('tab').filter({ hasText: 'audit.txt' });
   await expect(documentTabs).toHaveCount(1);
@@ -92,6 +87,7 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
   await page.locator('.monaco-editor .view-lines').click();
   await page.keyboard.press('ControlOrMeta+a');
+  fileTabDiagnostics.mark('editing-draft');
   await page.keyboard.insertText('UNSAVED-A-UNIQUE\n');
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
 
@@ -110,7 +106,10 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   expect(storageReads).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('unsaved-draft-return.png') });
 
+  fileTabDiagnostics.mark('pinning-draft');
   await documentTabs.locator('.bolt-project-tab-pin').click();
+
+  fileTabDiagnostics.mark('checking-pinned-draft');
 
   const pinnedFile = page.getByRole('tab', { name: 'Pinned tab: /audit.txt, unsaved changes', exact: true });
   await expect(pinnedFile).toHaveCount(1);
@@ -119,6 +118,7 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   await expect(page.getByRole('tab').filter({ hasText: 'other.txt' })).toHaveCount(1);
   await file('other.txt').click();
   await expect(page.getByRole('tab').filter({ hasText: 'other.txt' })).toHaveCount(1);
+  fileTabDiagnostics.mark('returning-to-pinned-draft');
   await pinnedFile.click();
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
   await page.screenshot({ path: testInfo.outputPath('pinned-file-preserved.png') });
