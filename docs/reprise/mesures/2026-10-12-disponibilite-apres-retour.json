@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-10-12T04:06:23.911417+00:00",
+  "pages": [
+    {
+      "page": "https://e-code.ai/",
+      "exit": 0,
+      "httpStatus": "200"
+    },
+    {
+      "page": "https://e-code.ai/pricing",
+      "exit": 0,
+      "httpStatus": "200"
+    },
+    {
+      "page": "https://app.e-code.ai/login",
+      "exit": 0,
+      "httpStatus": "200"
+    }
+  ],
+  "scope": "Read-only availability after failed deployment; no proof of source commit or authenticated journeys."
+}

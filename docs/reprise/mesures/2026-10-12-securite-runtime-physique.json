@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-10-12T04:56:15.381895+00:00",
+  "sourceSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+  "nodeVersion": "v24.19.0",
+  "physicalDependencyUnderNodeModules": true,
+  "results": [
+    {
+      "loader": "node",
+      "exit": 1,
+      "result": "{\"name\":\"Error\",\"code\":\"ERR_UNSUPPORTED_NODE_MODULES_TYPE_STRIPPING\"}"
+    },
+    {
+      "loader": "tsx",
+      "exit": 0,
+      "result": "SECURITY_MODULE_OK"
+    }
+  ],
+  "scope": "Local package import from a physical node_modules folder, without symlinks. No network request and no proof of production rendering."
+}

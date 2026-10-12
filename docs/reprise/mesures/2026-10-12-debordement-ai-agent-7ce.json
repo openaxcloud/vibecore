@@ -1,0 +1,214 @@
+[
+  {
+    "requestedTheme": "light",
+    "stage": "networkidle",
+    "time": "2026-10-12T05:55:56.553Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "light",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      },
+      {
+        "tag": "SPAN",
+        "cls": "bolt-route-loader-bar",
+        "id": "",
+        "right": 832.0758666992188,
+        "width": 322.546875,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "matrix(1, 0, 0, 1, 509.529, 0)",
+        "parentClass": "bolt-route-loader"
+      }
+    ]
+  },
+  {
+    "requestedTheme": "light",
+    "stage": "stable",
+    "time": "2026-10-12T05:55:59.087Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "light",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      }
+    ]
+  },
+  {
+    "requestedTheme": "light",
+    "stage": "networkidle",
+    "time": "2026-10-12T05:56:02.342Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "light",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      },
+      {
+        "tag": "SPAN",
+        "cls": "bolt-route-loader-bar",
+        "id": "",
+        "right": 1152.502197265625,
+        "width": 322.54681396484375,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "matrix(1, 0, 0, 1, 829.955, 0)",
+        "parentClass": "bolt-route-loader"
+      }
+    ]
+  },
+  {
+    "requestedTheme": "light",
+    "stage": "stable",
+    "time": "2026-10-12T05:56:04.874Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "light",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      }
+    ]
+  },
+  {
+    "requestedTheme": "light",
+    "stage": "networkidle",
+    "time": "2026-10-12T05:56:08.530Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "light",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      },
+      {
+        "tag": "SPAN",
+        "cls": "bolt-route-loader-bar",
+        "id": "",
+        "right": 921.1292724609375,
+        "width": 322.546875,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "matrix(1, 0, 0, 1, 598.582, 0)",
+        "parentClass": "bolt-route-loader"
+      }
+    ]
+  },
+  {
+    "requestedTheme": "light",
+    "stage": "stable",
+    "time": "2026-10-12T05:56:11.068Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "light",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      }
+    ]
+  },
+  {
+    "requestedTheme": "dark",
+    "stage": "networkidle",
+    "time": "2026-10-12T05:56:13.968Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "dark",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      },
+      {
+        "tag": "SPAN",
+        "cls": "bolt-route-loader-bar",
+        "id": "",
+        "right": 1031.1162109375,
+        "width": 322.54693603515625,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "matrix(1, 0, 0, 1, 708.569, 0)",
+        "parentClass": "bolt-route-loader"
+      }
+    ]
+  },
+  {
+    "requestedTheme": "dark",
+    "stage": "stable",
+    "time": "2026-10-12T05:56:16.497Z",
+    "width": 768,
+    "scrollWidth": 768,
+    "theme": "dark",
+    "elements": [
+      {
+        "tag": "DIV",
+        "cls": "absolute -z-10 -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl",
+        "id": "",
+        "right": 784,
+        "width": 256,
+        "position": "absolute",
+        "overflowX": "visible",
+        "transform": "none",
+        "parentClass": "relative"
+      }
+    ]
+  }
+]

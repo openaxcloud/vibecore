@@ -1,0 +1,37 @@
+{
+  "headSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+  "productionCi": {
+    "run": 38203837888,
+    "job": 114662839053,
+    "conclusion": "success",
+    "completedAt": "2026-10-12T04:44:56Z",
+    "suiteSummaries": [
+      "2026-10-12T04:28:15.0706990Z       Tests  20 passed (20)",
+      "2026-10-12T04:35:49.3859506Z       Tests  9555 passed | 3 skipped (9558)",
+      "2026-10-12T04:39:36.8656516Z       Tests  2393 passed | 23 skipped (2416)",
+      "2026-10-12T04:39:39.0143557Z       Tests  100 passed (100)",
+      "2026-10-12T04:39:55.8799075Z       Tests  114 passed (114)",
+      "2026-10-12T04:40:03.1261007Z       Tests  129 passed (129)",
+      "2026-10-12T04:40:13.9615342Z       Tests  55 passed (55)",
+      "2026-10-12T04:40:15.6783291Z       Tests  24 passed (24)",
+      "2026-10-12T04:40:19.2896594Z       Tests  124 passed (124)",
+      "2026-10-12T04:40:24.6739398Z       Tests  23 passed | 2 skipped (25)"
+    ],
+    "runtimeSmoke": [
+      "2026-10-12T04:40:24.6536197Z  ✓ src/runtime-startup.spec.ts (3 tests) 2884ms"
+    ]
+  },
+  "e2e": {
+    "run": 38203837853,
+    "gateJob": 114665881972,
+    "conclusion": "success",
+    "completedAt": "2026-10-12T04:42:01Z",
+    "testsReported": 429,
+    "finalFailures": 0,
+    "passedOnRetry": 0,
+    "waiverDefinitions": 6,
+    "failuresCoveredByWaivers": 0
+  },
+  "deploymentRun": 38203837782,
+  "scope": "Exact main commit CI. Overlapping suites are not summed; runtime smoke cases are included in the screenshotter summary. Deployment, running imageIDs and authenticated production journeys need separate evidence."
+}

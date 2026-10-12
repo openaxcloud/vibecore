@@ -1,0 +1,185 @@
+{
+  "headSha": "7ce2aa9ceac014b2449d053e3991baeaea9f427d",
+  "deliveryRun": 38203837782,
+  "contrast": {
+    "combinations": 72,
+    "routes": 12,
+    "widths": [
+      390,
+      768,
+      1440
+    ],
+    "themes": [
+      "light",
+      "dark"
+    ],
+    "controlsMeasured": 381,
+    "minimumRatio": 5.178415705888697,
+    "below45": 0,
+    "http200": 72,
+    "themeMatches": 72,
+    "initialHorizontalOverflowSignals": [
+      {
+        "path": "/ai-agent",
+        "width": 768,
+        "theme": "light",
+        "timestamp": "2026-10-12T05:48:44.600Z"
+      }
+    ]
+  },
+  "french": {
+    "pairs": 72,
+    "documents": 144,
+    "residueFindings": 0,
+    "errors": 0,
+    "positivePricingWitnesses": [
+      96,
+      96,
+      99,
+      99,
+      100,
+      100
+    ],
+    "auditSourceSha256": "2a53fc93f7f6e403e6b910b878ee42ed28fde9696eab858b9fa306dc8b3ec78d",
+    "detectorSourceSha256": "c2d50c0e572730bb7dfe4827226b3149bb57d1ee6408c9fe86b0a3d8990b8ffb"
+  },
+  "overflowFollowup": {
+    "snapshots": 8,
+    "reproductions": 0,
+    "cause": "not established",
+    "codeChange": false
+  },
+  "routeChecks": {
+    "timestamp": "2026-10-12T05:46:44.046296+00:00",
+    "sourceTestSha256": "8dbad074499c3c09512c01eef1eab0c6cb7f2462e8fe33627b22875580154825",
+    "rows": [
+      {
+        "path": "/pricing",
+        "expectedStatus": 200,
+        "purpose": "positive public witness",
+        "timestamp": "2026-10-12T05:46:41.871407+00:00",
+        "curlExit": 0,
+        "status": 200,
+        "finalPath": "/pricing",
+        "hopStatuses": [
+          200,
+          200
+        ],
+        "redirectPaths": [],
+        "held": true
+      },
+      {
+        "path": "/solartech-crm",
+        "expectedStatus": 404,
+        "purpose": "retired demonstration",
+        "timestamp": "2026-10-12T05:46:41.952278+00:00",
+        "curlExit": 0,
+        "status": 404,
+        "finalPath": "/solartech-crm",
+        "hopStatuses": [
+          200,
+          404
+        ],
+        "redirectPaths": [],
+        "held": true
+      },
+      {
+        "path": "/salesforcepro-crm",
+        "expectedStatus": 404,
+        "purpose": "retired demonstration",
+        "timestamp": "2026-10-12T05:46:41.968263+00:00",
+        "curlExit": 0,
+        "status": 404,
+        "finalPath": "/salesforcepro-crm",
+        "hopStatuses": [
+          200,
+          404
+        ],
+        "redirectPaths": [],
+        "held": true
+      },
+      {
+        "path": "/solartech-fortune500-store",
+        "expectedStatus": 404,
+        "purpose": "retired demonstration",
+        "timestamp": "2026-10-12T05:46:42.340254+00:00",
+        "curlExit": 0,
+        "status": 404,
+        "finalPath": "/solartech-fortune500-store",
+        "hopStatuses": [
+          200,
+          404
+        ],
+        "redirectPaths": [],
+        "held": true
+      },
+      {
+        "path": "/solartech-ai-chat",
+        "expectedStatus": 404,
+        "purpose": "retired demonstration",
+        "timestamp": "2026-10-12T05:46:42.397538+00:00",
+        "curlExit": 0,
+        "status": 404,
+        "finalPath": "/solartech-ai-chat",
+        "hopStatuses": [
+          200,
+          404
+        ],
+        "redirectPaths": [],
+        "held": true
+      },
+      {
+        "path": "/projects/qa-reprise-inexistant-20261012/preview",
+        "purpose": "anonymous arbitrary project preview",
+        "timestamp": "2026-10-12T05:46:43.467168+00:00",
+        "curlExit": 0,
+        "status": 200,
+        "finalPath": "/login",
+        "hopStatuses": [
+          200,
+          301,
+          302,
+          301,
+          200,
+          200
+        ],
+        "redirectPaths": [
+          "/projects/qa-reprise-inexistant-20261012/ide",
+          "/login",
+          "/login"
+        ],
+        "anonymousAccessBlocked": true
+      },
+      {
+        "path": "/editor/qa-reprise-inexistant-20261012",
+        "purpose": "anonymous arbitrary editor",
+        "timestamp": "2026-10-12T05:46:44.045886+00:00",
+        "curlExit": 0,
+        "status": 200,
+        "finalPath": "/login",
+        "hopStatuses": [
+          200,
+          301,
+          302,
+          301,
+          200,
+          200
+        ],
+        "redirectPaths": [
+          "/projects/qa-reprise-inexistant-20261012/ide",
+          "/login",
+          "/login"
+        ],
+        "anonymousAccessBlocked": true
+      }
+    ],
+    "scope": "Read-only HTTP checks after delivery, with a known positive route. Anonymous redirects or refusals do not prove authenticated project/editor journeys."
+  },
+  "sha256": {
+    "contraste-public-7ce.json": "0b5afb96aa616404e37fc2ae230534221b11b2c4fc4b9f7ce23a81e4d7da57a3",
+    "francais-public-7ce.json": "a97aebe836151395a7aa4fc0c22ab5d4ce191059853e6ec1c68b6757473f415d",
+    "debordement-ai-agent-7ce.json": "b7d3b3ece4a2c4e19cd65fb25ac619b36635cd80e4d8c63b47f8a93b1b4ee9b9",
+    "routes-publiques-7ce.json": "e3bc1bd469f53aff76996244bf4843c7ab33f43b7b99c33b097071bd041cc39b"
+  },
+  "scope": "Public read-only routes. Contrast covers visible opaque orange controls, not every text or control. French reuses the existing DOM collector and detector, with real English DOM as a positive witness. No authenticated journey, payment, account deletion or actual screenshot rendering. The initial overflow signal remains unclosed and was not reproduced."
+}

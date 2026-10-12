@@ -490,7 +490,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Sans section
 
-- [BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001](docs/bugs/BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001.md) — P1 — le captureur reconstruit ne démarre pas avec sa nouvelle dépendance de sécurité TypeScript. — 📤 Dispatché : Pris en charge le 12 octobre 2026 après le déploiement 38194840868. · 💻 Codé : ☐ Correctif préparé : utiliser `tsx dist/server.js` dans le package, le pipeline complet et le pipeline runtim · ✅ Testé live : ☐ Le déploiement de 7c24f8fc8f échoue dans Helm. Les captures montrent neuf redémarrages du nouveau captureur,
+- [BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001](docs/bugs/BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001.md) — P1 — le captureur reconstruit ne démarre pas avec sa nouvelle dépendance de sécurité TypeScript. — 📤 Dispatché : Pris en charge le 12 octobre 2026 après le déploiement 38194840868. · 💻 Codé : ☑ Fusionné par #722 à `7ce2aa9ceac014b2449d053e3991baeaea9f427d` après 26 contrôles verts : `tsx dist/server.j · ✅ Testé live : ☐ Vérification complète encore partielle : le démarrage est confirmé dans la livraison 38203837782 (pod Runnin
 
 ## Résidus non tabulaires — reportés mot pour mot
 
