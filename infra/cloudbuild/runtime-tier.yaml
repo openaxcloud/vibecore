@@ -186,7 +186,7 @@ steps:
       - --build-arg=BUILDKIT_INLINE_CACHE=1
       - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
       - --build-arg=PACKAGE_FILTER=@vibecore/screenshotter
-      - --build-arg=START_CMD=node dist/server.js
+      - --build-arg=START_CMD=tsx dist/server.js
       - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest

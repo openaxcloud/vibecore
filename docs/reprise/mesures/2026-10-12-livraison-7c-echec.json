@@ -1,0 +1,198 @@
+{
+  "headSha": "7c24f8fc8f52a6457891a7245268e79ee9d60c4b",
+  "run": 38194840868,
+  "conclusion": "failure",
+  "failedStep": "Helm upgrade (all services pinned by digest)",
+  "helmDiagnostic": "release vibecore failed, and has been rolled back due to atomic being set: context deadline exceeded",
+  "job": 114639567320,
+  "rolloutArtifact": 11725372005,
+  "manifestArtifact": 11725661664,
+  "captureExit": {
+    "time": "2026-10-12T03:55:12.323Z",
+    "commandExitCode": 1,
+    "evidenceComplete": true
+  },
+  "lastDeploymentStates": [
+    {
+      "name": "vibecore-vibecore-platform-admin",
+      "status": {
+        "replicas": 2,
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-ai-gateway",
+      "status": {
+        "replicas": 2,
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-api",
+      "status": {
+        "replicas": 2,
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-preview-proxy",
+      "status": {
+        "replicas": 2,
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-screenshotter",
+      "status": {
+        "replicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "updatedReplicas": 1
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-web",
+      "status": {
+        "replicas": 3,
+        "readyReplicas": 3,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "ReplicaSetUpdated"
+        }
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-worker",
+      "status": {
+        "replicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "updatedReplicas": 1
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ]
+    },
+    {
+      "name": "vibecore-vibecore-platform-workspace-manager",
+      "status": {
+        "replicas": 2,
+        "readyReplicas": 2,
+        "availableReplicas": 2,
+        "updatedReplicas": 2
+      },
+      "conditions": [
+        {
+          "type": "Available",
+          "status": "True",
+          "reason": "MinimumReplicasAvailable"
+        },
+        {
+          "type": "Progressing",
+          "status": "True",
+          "reason": "NewReplicaSetAvailable"
+        }
+      ]
+    }
+  ],
+  "screenshotter": {
+    "pod": "vibecore-vibecore-platform-screenshotter-75cff8bd46-n7fvb",
+    "firstCrashLoop": "2026-10-12T03:30:57.644Z",
+    "lastObservedRestartCount": 9,
+    "previousReplicaRemainedAvailable": true
+  },
+  "manifestFullyTraceable": true,
+  "runningImageIdsArchived": false,
+  "sha256": {
+    "release-manifest.json": "7da41c6d0f232d8634d9b8e183d909dd10220048164038ecb0c3ccedeee1c408",
+    "rollout-status.jsonl": "58770bca9b10c15c5e4eaa26d996e978f861b6e2883099ba81168b801fc0d8b8"
+  },
+  "scope": "Failed deployment with atomic rollback reported by Helm. The capture proves ready replicas after rollback, not their imageIDs or exact restored source. Local reproduction confirms plain-node module import failure; pod application logs were not captured."
+}

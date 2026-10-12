@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-416 entrées.
+417 entrées.
 
 ## Sans section
 
@@ -487,6 +487,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-QA1011-VERCEL-JETON-DANS-CONSOLE](docs/bugs/BUG-QA1011-VERCEL-JETON-DANS-CONSOLE.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-QA1011-MESSAGE-ACTIONS-CIBLE28](docs/bugs/BUG-QA1011-MESSAGE-ACTIONS-CIBLE28.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## Sans section
+
+- [BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001](docs/bugs/BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001.md) — P1 — le captureur reconstruit ne démarre pas avec sa nouvelle dépendance de sécurité TypeScript. — 📤 Dispatché : Pris en charge le 12 octobre 2026 après le déploiement 38194840868. · 💻 Codé : ☐ Correctif préparé : utiliser `tsx dist/server.js` dans le package, le pipeline complet et le pipeline runtim · ✅ Testé live : ☐ Le déploiement de 7c24f8fc8f échoue dans Helm. Les captures montrent neuf redémarrages du nouveau captureur,
 
 ## Résidus non tabulaires — reportés mot pour mot
 

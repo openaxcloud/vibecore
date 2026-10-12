@@ -197,10 +197,16 @@ La release #716 b7a8b4b3 est servie sur les sept services rollés à 01:34:31 UT
 
 La CI de #718 f29cfdc8 a réellement exécuté 9 552 tests unitaires réussis, trois ignorés et un échec : huit variables lues n’étaient pas documentées dans `.env.example`. Le correctif local ajoute ces définitions sans activer les fonctions ; les quatre cas du détecteur existant passent. Les conditions externes précédentes demeurent.
 
-## Relevé du 12 octobre — contrôles complets
+## Relevé du 12 octobre à 03:52 UTC — contrôles complets
 
 Sur main `7c24f8fc8f52a6457891a7245268e79ee9d60c4b`, les workflows CI 38194840876 et E2E 38194840924 sont réussis. Le navigateur rapporte 429 tests, zéro échec final et trois succès après nouvelle tentative. Les six dérogations définies n'ont couvert aucun échec final. Mesure : `mesures/2026-10-12-controles-7c.json`. La livraison 38194840868 est encore en cours au moment de ce relevé : cette CI ne prouve pas que les nouvelles images tournent.
 
 Le brouillon #718, tête `1f50ded87d6cba107a1cc9f8ed4920a102226447`, a passé ses 28 contrôles. Son workflow navigateur rapporte 429 tests, zéro échec et zéro nouvelle tentative. Mesure : `mesures/2026-10-12-services-ci-1f.json`. La transmission de l'identité lors du démarrage d'un espace et la classification des diagnostics de purge ont été corrigées avec contre-épreuves rouges puis suites restaurées vertes. Les suites qui se recoupent ne sont pas additionnées.
 
 Les réserves A-5/A-6/B-20 restent ouvertes : politique de quota et réservation concurrente durable, preuve GCS réelle, effacement PVC et périmètre complet, revue experte, isolation GCP. Le brouillon n'est ni fusionné ni activé. A-2 reste une opération Stripe et base de données. La protection de branche B-3 n'a pas été vérifiée (lecture refusée 403), l'installation distante à neuf B-12 et les parcours authentifiés ne sont pas rejoués.
+
+## Échec de livraison mesuré le 12 octobre à 03:55 UTC
+
+Le déploiement 38194840868 du commit 7c24f8fc8f a échoué dans Helm malgré une CI complète verte. Le nouveau captureur est observé en CrashLoopBackOff avec neuf redémarrages ; son précédent pod reste disponible et les sept autres services deviennent prêts. Helm rapporte un retour arrière atomique. La capture finale prouve des réplicas prêts, pas leurs versions exécutées, car la comparaison et l'archivage des imageIDs n'ont pas été atteints. Les lots #715/#717/#720 ne sont donc pas déclarés livrés par cette exécution.
+
+Mesure : `mesures/2026-10-12-livraison-7c-echec.json`. Reproduction locale : le même code compilé refuse l'import de sécurité avec `node` et l'accepte avec `tsx`. Correctif et test de démarrage dans `docs/bugs/BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001.md`. La cause exacte vue par le processus du pod n'est pas connue sans ses journaux applicatifs.
