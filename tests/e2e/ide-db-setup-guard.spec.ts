@@ -1,20 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 import { requireDatabaseSetup } from './helpers/ide-db-setup';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
-test('DB setup guard rejects a real refused preparation before opening the panel', async ({ request }) => {
-  // Real API authorization failure; no connection is provisioned or declared operational.
-  const response = await request.put(`${apiBaseUrl}/projects/db-setup-denied-fixture/env-vars`, {
-    data: { key: 'DATABASE_URL', value: 'postgresql://fixture.invalid/unused' },
-  });
-  expect(response.status()).toBe(401);
-  await expect(
-    requireDatabaseSetup(response, 'db-setup-denied-fixture', 'postgresql://fixture.invalid/unused'),
-  ).rejects.toThrow('Database setup PUT failed: HTTP 401');
-});
-
-test('DB setup guard verifies the persisted confirmation from the real API', async ({ request }) => {
+async function createFixture(request: APIRequestContext) {
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   const registration = await request.post(`${apiBaseUrl}/auth/register`, {
@@ -37,6 +26,29 @@ test('DB setup guard verifies the persisted confirmation from the real API', asy
   expect(creation.ok()).toBe(true);
 
   const projectId = (await creation.json()).project.id as string;
+
+  return { headers, projectId };
+}
+
+test('DB setup guard rejects a real refused preparation before opening the panel', async ({ request }) => {
+  const { headers, projectId } = await createFixture(request);
+  const logout = await request.post(`${apiBaseUrl}/auth/logout`, { headers });
+  expect(logout.status()).toBe(200);
+  expect((await logout.json()).revoked).toBe(true);
+
+  // Use the actual synthetic account's revoked token, never an anonymous or production credential.
+  const response = await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+    headers,
+    data: { key: 'DATABASE_URL', value: 'postgresql://fixture.invalid/unused' },
+  });
+  expect(response.status()).toBe(401);
+  await expect(requireDatabaseSetup(response, projectId, 'postgresql://fixture.invalid/unused')).rejects.toThrow(
+    'Database setup PUT failed: HTTP 401',
+  );
+});
+
+test('DB setup guard verifies the persisted confirmation from the real API', async ({ request }) => {
+  const { headers, projectId } = await createFixture(request);
 
   // Only exercise variable persistence. No schema/query/provisioning request is made.
   const value = 'postgresql://fixture.invalid/unused';

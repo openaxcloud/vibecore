@@ -53,9 +53,9 @@ Les marques horodatées n'attendent pas le DOM ; une seule observation peut êtr
 
 Validation du delta :
 
-- Une fixture locale bénigne a appelé le véritable PUT API sans authentification, obtenu401, puis laissé la garde échouer : rouge attendu `Database setup PUT failed: HTTP 401`, avant ouverture de panneau. Aucune base provisionnée ni service simulé opérationnel. Journal `/tmp/731-ci-evidence/red-final.log`.
+- La première fixture anonyme a été remplacée à la demande du parent : création réelle d’un compte/projet synthétique local, déconnexion HTTP200 avec `revoked=true`, puis véritable PUT utilisant ce même jeton désormais révoqué. Cette fixture a obtenu401, puis laissé la garde échouer : rouge attendu `Database setup PUT failed: HTTP 401`, avant ouverture de panneau. Aucune base provisionnée ni service simulé opérationnel. Journal `/tmp/731-ci-evidence/revoked-red.log`.
 - Le collecteur a réellement joint son JSON sur ce rouge. Un texte-canari du DOM et l'URI bénigne de fixture en sont absents. [Pièce jointe filtrée](mesures/731-ci-2026-10-12/refus-401-diagnostic.json). Les autres artefacts Playwright automatiques de cette fixture ne sont pas déclarés expurgés ni ajoutés au dépôt.
-- Deux tests réels de garde passent : refus401 ; création d'un projet synthétique, PUT200 confirmé puis refus de confirmations comparées à un mauvais projet ou une mauvaise valeur. Ils testent la persistance d'une variable, pas la disponibilité de la base qu'elle désigne. Aucun appel schéma/query/provisionnement.
+- Deux tests réels de garde passent (2,6s) : refus401 du jeton synthétique révoqué ; création d'un projet synthétique, PUT200 confirmé puis refus de confirmations comparées à un mauvais projet ou une mauvaise valeur. Ils testent la persistance d'une variable, pas la disponibilité de la base qu'elle désigne. Aucun appel schéma/query/provisionnement.
 - Typecheck strict des cinq fichiers TypeScript et lint ciblé réussis. Aucun build produit requis pour ce delta exclusivement test. Le parcours DB complet et le nouveau390 ne sont pas relancés ici : aucune reproduction historique supplémentaire n'est revendiquée.
 - Relecture indépendante après correction de trois réserves (marques desktop retirées, observation non bloquante, attachement protégé) : aucun blocage supplémentaire relevé. Limites de collecte conservées ci-dessus.
 
