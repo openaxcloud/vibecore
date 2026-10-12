@@ -190,3 +190,9 @@ preuves GCS/PVC et la provision multi-locataires restent ouverts.
 Les conditions externes demeurent : Stripe valide et prix annuel Pro ; quota commercial et réservation durable concurrente ; preuve GCS/PVC récente et réserves expertes de purge ; accès aux réglages de protection GitHub ; installation distante à neuf ; séparation GCP des locataires. Aucun drapeau de purge ou de protection locataire n’est activé par ces préparations.
 
 Registres de parité : la validation post-fusion de a8108ea7 a détecté trois références à des composants retirés par #716. Leurs entrées sources pointent désormais sur les composants actifs (`Inspector`/`Preview`, `DatabaseWorkbench`/`DatabaseStudio`) ; les vues et empreintes sont régénérées par les cinq générateurs existants. Validation complète verte, contre-épreuves rouges avec les anciennes références et avec le composant protégé retiré, puis restauration verte. Les statuts historiques CODED/PARTIAL/PROVEN sont conservés ; aucun parcours de production supplémentaire n’est déclaré mesuré.
+
+## Mesure suivante : 12 octobre à 01:54 UTC
+
+La release #716 b7a8b4b3 est servie sur les sept services rollés à 01:34:31 UTC ; les neuf références et signatures sont vérifiées, avec la limite captureur/agent d’espace décrite dans la preuve native. #715/#717 restent fusionnées sans livraison établie à ce relevé. L’E2E de a8108ea7 révèle une attente MCP manquante dans le contrôle mobile ; le correctif conserve les assertions et ne crée aucune exemption.
+
+La CI de #718 f29cfdc8 a réellement exécuté 9 552 tests unitaires réussis, trois ignorés et un échec : huit variables lues n’étaient pas documentées dans `.env.example`. Le correctif local ajoute ces définitions sans activer les fonctions ; les quatre cas du détecteur existant passent. Les conditions externes précédentes demeurent.

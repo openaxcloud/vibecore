@@ -14,6 +14,7 @@ interface BaseIconButtonProps {
   tooltipLocked?: boolean;
   role?: AriaRole;
   ariaExpanded?: boolean;
+  ariaBusy?: AriaAttributes['aria-busy'];
   ariaHasPopup?: AriaAttributes['aria-haspopup'];
   ariaPressed?: boolean;
   dataState?: string;
@@ -50,6 +51,7 @@ export const IconButton = memo(
         tooltipLocked,
         role,
         ariaExpanded,
+        ariaBusy,
         ariaHasPopup,
         ariaPressed,
         dataState,
@@ -73,6 +75,7 @@ export const IconButton = memo(
           title={title}
           aria-label={title ?? tooltip}
           aria-expanded={ariaExpanded}
+          aria-busy={ariaBusy}
           aria-haspopup={ariaHasPopup}
           aria-pressed={ariaPressed}
           data-state={dataState}
