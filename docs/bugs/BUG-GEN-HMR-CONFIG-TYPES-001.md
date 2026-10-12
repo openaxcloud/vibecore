@@ -42,3 +42,15 @@ API injecté, configs CommonJS, installation isolée des dépendances des gabari
 de galerie, runtime distant, aperçu et publication live. Les erreurs historiques
 « process sans types Node » et « MAX_HISTORY absent » ne sont pas établies comme
 défauts des gabarits actuels par cette vérification.
+
+## Suite locale CommonJS et galerie
+
+La [suite du 12 octobre](../reprise/2026-10-12-a37-commonjs-et-galerie.md)
+reproduit puis corrige la perte de réglages CommonJS async/promesse, le typage du
+wrapper et la découverte `.cjs`/`.cts`. Elle couvre aussi `export default` dans
+un `.cts` et les migrations. Elle succède aux réserves CommonJS du premier lot,
+sans modifier sa preuve ni déclarer de validation live. Les compilations réelles
+de galerie utilisent le graphe restauré, avec écarts de versions documentés :
+elles ne certifient pas les installations exactes. Les six diagnostics globaux
+sont archivés intégralement. A-37 et le typage complet du middleware API restent
+ouverts.

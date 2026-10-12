@@ -1,0 +1,978 @@
+{
+  "baseSha": "643b320e7b7ff668b40c42cbd784d70909dcc785",
+  "mode": "Offline compatibility probe: original snapshot files; existing root dependency graph; exact requested compiler where available. Version mismatches are explicit and results do not certify isolated installs.",
+  "nodeVersion": "v24.19.0",
+  "results": [
+    {
+      "id": "docs-copilot",
+      "contentHash": "4d2a8aef94df7da9dce14897bcb5245c731fd7f325a490743f4b41c432faaff1",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        },
+        {
+          "name": "vitest",
+          "requested": "3.2.6",
+          "restored": "3.2.6"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 33 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.59 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.36 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-BQC4HHvR.css  \u001b[39m\u001b[1m\u001b[2m 12.08 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  3.37 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-C1Ph_m3V.js   \u001b[39m\u001b[1m\u001b[2m158.60 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 51.47 kB\u001b[22m\n\u001b[32m✓ built in 643ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "neon-trivia-arena",
+      "contentHash": "45e616bd3d5d6d7bbc2e7fc5ae7f5e16157e8d6528eec9009d5f8a4946abc232",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 32 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.58 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.35 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-Pn5fTSd9.css  \u001b[39m\u001b[1m\u001b[2m 12.40 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  3.63 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-4B6yZato.js   \u001b[39m\u001b[1m\u001b[2m151.75 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 49.20 kB\u001b[22m\n\u001b[32m✓ built in 583ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "vendor-risk-review",
+      "contentHash": "e3def87057ea437cedce51c3b0a66226de2f64530481a76817926020a00e123d",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "express",
+          "requested": "^5.1.0",
+          "restored": "4.21.2"
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "sql.js",
+          "requested": "^1.13.0",
+          "restored": null
+        },
+        {
+          "name": "@types/express",
+          "requested": "^5.0.0",
+          "restored": null
+        },
+        {
+          "name": "@types/node",
+          "requested": "^24.0.0",
+          "restored": "25.9.9"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@types/sql.js",
+          "requested": "^1.4.9",
+          "restored": null
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "tsx",
+          "requested": "^4.20.0",
+          "restored": "4.21.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 1,
+        "signal": null,
+        "output": "server/db.ts(4,57): error TS2307: Cannot find module 'sql.js' or its corresponding type declarations.\nserver/main.ts(5,21): error TS7016: Could not find a declaration file for module 'express'. '<repository>/node_modules/.pnpm/express@4.21.2/node_modules/express/index.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/express` if it exists or add a new declaration (.d.ts) file containing `declare module 'express';`\nserver/main.ts(24,12): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/main.ts(24,21): error TS7006: Parameter '_response' implicitly has an 'any' type.\nserver/main.ts(24,32): error TS7006: Parameter 'next' implicitly has an 'any' type.\nserver/main.ts(39,14): error TS7006: Parameter '_request' implicitly has an 'any' type.\nserver/main.ts(39,24): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/main.ts(51,20): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/main.ts(51,29): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/main.ts(51,39): error TS7006: Parameter 'next' implicitly has an 'any' type.\nserver/routes.ts(1,53): error TS7016: Could not find a declaration file for module 'express'. '<repository>/node_modules/.pnpm/express@4.21.2/node_modules/express/index.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/express` if it exists or add a new declaration (.d.ts) file containing `declare module 'express';`\nserver/routes.ts(59,27): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(59,36): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(63,26): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(63,35): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(76,27): error TS7006: Parameter '_request' implicitly has an 'any' type.\nserver/routes.ts(76,37): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(81,27): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(81,36): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(88,31): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(88,40): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(100,28): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(100,37): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(122,43): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(122,52): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(151,39): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(151,48): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(177,40): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(177,49): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(195,39): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(195,48): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(226,25): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(226,34): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/routes.ts(233,32): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/routes.ts(233,41): error TS7006: Parameter 'response' implicitly has an 'any' type.\n"
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 41 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.54 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.34 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-BwpnBX93.css  \u001b[39m\u001b[1m\u001b[2m 11.65 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  3.13 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-CTwBnY7M.js   \u001b[39m\u001b[1m\u001b[2m171.95 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 54.25 kB\u001b[22m\n\u001b[32m✓ built in 690ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "field-service-inspector",
+      "contentHash": "c7ffa71c25b97409265c8d43cde87b4766f31351b2ae85b1a8d10376bfdabdbc",
+      "compilerVersion": "5.9.3",
+      "compilerUnavailable": null,
+      "buildScript": "expo export --platform web",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "@expo/metro-runtime",
+          "requested": "~6.1.2",
+          "restored": null
+        },
+        {
+          "name": "@react-native-async-storage/async-storage",
+          "requested": "2.2.0",
+          "restored": null
+        },
+        {
+          "name": "expo",
+          "requested": "~54.0.12",
+          "restored": null
+        },
+        {
+          "name": "expo-camera",
+          "requested": "~17.0.8",
+          "restored": null
+        },
+        {
+          "name": "react",
+          "requested": "19.1.0",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.1.0",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-native",
+          "requested": "0.81.5",
+          "restored": null
+        },
+        {
+          "name": "react-native-svg",
+          "requested": "15.12.1",
+          "restored": null
+        },
+        {
+          "name": "react-native-web",
+          "requested": "^0.21.0",
+          "restored": null
+        },
+        {
+          "name": "@types/react",
+          "requested": "~19.1.10",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "typescript",
+          "requested": "~5.9.2",
+          "restored": "5.9.3"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 2,
+        "signal": null,
+        "output": "tsconfig.json(2,14): error TS6053: File 'expo/tsconfig.base' not found.\ntsconfig.json(6,25): error TS5095: Option 'bundler' can only be used when 'module' is set to 'preserve' or to 'es2015' or later.\n"
+      },
+      "build": {
+        "unavailable": "Not executed: expo export --platform web; required toolchain absent from restored dependencies."
+      }
+    },
+    {
+      "id": "revenue-cohort-explorer",
+      "contentHash": "fb4a7624d0e41dfad8057d37fefaa0e55ad0147c71ad14545ef5d07d3ee3e0c6",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 39 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.41 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.29 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-Digj_55W.css  \u001b[39m\u001b[1m\u001b[2m  8.98 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  2.54 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-Chg0Exmf.js   \u001b[39m\u001b[1m\u001b[2m161.76 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 52.49 kB\u001b[22m\n\u001b[32m✓ built in 707ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "qbr-generator",
+      "contentHash": "dd62cb573d97a51b660169073a34bf246f6255ce9f52ad6cd1073c373193429c",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "express",
+          "requested": "5.2.1",
+          "restored": "4.21.2"
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/express",
+          "requested": "5.0.6",
+          "restored": null
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.10.1",
+          "restored": "25.9.9"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "tsx",
+          "requested": "4.23.1",
+          "restored": "4.21.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 1,
+        "signal": null,
+        "output": "server/main.ts(9,54): error TS7016: Could not find a declaration file for module 'express'. '<repository>/node_modules/.pnpm/express@4.21.2/node_modules/express/index.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/express` if it exists or add a new declaration (.d.ts) file containing `declare module 'express';`\nserver/main.ts(35,12): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/main.ts(35,21): error TS7006: Parameter '_response' implicitly has an 'any' type.\nserver/main.ts(35,32): error TS7006: Parameter 'next' implicitly has an 'any' type.\nserver/main.ts(47,14): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/main.ts(47,23): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/main.ts(47,33): error TS7006: Parameter 'next' implicitly has an 'any' type.\nserver/main.ts(63,20): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/main.ts(63,29): error TS7006: Parameter 'response' implicitly has an 'any' type.\nserver/main.ts(63,39): error TS7006: Parameter 'next' implicitly has an 'any' type.\nvite.config.ts(8,13): error TS2769: No overload matches this call.\n  The last overload gave the following error.\n    Type 'Plugin<any>[]' is not assignable to type 'PluginOption'.\n      Type 'Plugin<any>[]' is not assignable to type 'PluginOption[]'.\n        Type 'Plugin<any>' is not assignable to type 'PluginOption'.\n          Type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/index\").Plugin<any>' is not assignable to type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").Plugin<any>'.\n            Types of property 'apply' are incompatible.\n              Type '\"build\" | \"serve\" | ((this: void, config: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/index\").UserConfig, env: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@...' is not assignable to type '\"build\" | \"serve\" | ((this: void, config: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").UserConfig, env: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").ConfigEnv) => boolean) | undef...'.\n                Type '(this: void, config: UserConfig, env: ConfigEnv) => boolean' is not assignable to type '\"build\" | \"serve\" | ((this: void, config: UserConfig, env: ConfigEnv) => boolean) | undefined'.\n                  Type '(this: void, config: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/index\").UserConfig, env: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@...' is not assignable to type '(this: void, config: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").UserConfig, env: import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").ConfigEnv) => boolean'.\n                    Types of parameters 'config' and 'config' are incompatible.\n                      Type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").UserConfig' is not assignable to type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/index\").UserConfig'.\n                        Types of property 'plugins' are incompatible.\n                          Type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").PluginOption[] | undefined' is not assignable to type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/index\").PluginOption[] | undefined'.\n                            Type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").PluginOption[]' is not assignable to type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/index\").PluginOption[]'.\n                              Type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/index\").PluginOption' is not assignable to type 'import(\"<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/dist/node/index\").PluginOption'.\n                                Type 'PluginOption[]' is not assignable to type 'PluginOption'.\n"
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 38 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.64 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.40 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-DYKaOwN9.css  \u001b[39m\u001b[1m\u001b[2m 14.64 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  3.84 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-C8xoyxBq.js   \u001b[39m\u001b[1m\u001b[2m166.51 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 53.24 kB\u001b[22m\n\u001b[32m✓ built in 770ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "incident-postmortem-explainer",
+      "contentHash": "6f4705b4d1536b2218282b51c73329e8ea435414123a43e29f21466d243082a6",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 35 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.57 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.35 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-DBrFQOU6.css  \u001b[39m\u001b[1m\u001b[2m  7.95 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  2.41 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-6XylGtdr.js   \u001b[39m\u001b[1m\u001b[2m157.38 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 51.24 kB\u001b[22m\n\u001b[32m✓ built in 728ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "warehouse-layout-planner",
+      "contentHash": "d385f9b0abc890bb5e78ecd3bc5c6f96ccd09c6aef8d2dbacbcc824da1723cec",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "three",
+          "requested": "0.185.1",
+          "restored": null
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@types/three",
+          "requested": "0.185.1",
+          "restored": null
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 1,
+        "signal": null,
+        "output": "src/scene3d.ts(27,8): error TS2307: Cannot find module 'three' or its corresponding type declarations.\n"
+      },
+      "build": {
+        "exitCode": 1,
+        "signal": null,
+        "output": "src/scene3d.ts(27,8): error TS2307: Cannot find module 'three' or its corresponding type declarations.\n"
+      }
+    },
+    {
+      "id": "pipeline-crm",
+      "contentHash": "ed7050c1cf95a34b81415b7cb6c0659f0d7fd5789e108f87dbf0380b8ef883e2",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 42 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.55 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.35 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-BFAzaCxA.css  \u001b[39m\u001b[1m\u001b[2m 14.96 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  3.69 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-DS7ksjvU.js   \u001b[39m\u001b[1m\u001b[2m173.82 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 54.40 kB\u001b[22m\n\u001b[32m✓ built in 695ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "storefront",
+      "contentHash": "06cd1db705e1c6193046d99a2e2abd9de89460a96b6745a2a2abc391c61ece1c",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "@stripe/stripe-js",
+          "requested": "7.6.0",
+          "restored": null
+        },
+        {
+          "name": "express",
+          "requested": "4.21.2",
+          "restored": "4.21.2"
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "sql.js",
+          "requested": "1.13.0",
+          "restored": null
+        },
+        {
+          "name": "stripe",
+          "requested": "18.5.0",
+          "restored": null
+        },
+        {
+          "name": "@types/express",
+          "requested": "4.17.23",
+          "restored": null
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.3.0",
+          "restored": "25.9.9"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@types/sql.js",
+          "requested": "1.4.9",
+          "restored": null
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "tsx",
+          "requested": "4.20.6",
+          "restored": "4.21.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 1,
+        "signal": null,
+        "output": "server/db.ts(5,60): error TS2307: Cannot find module 'sql.js' or its corresponding type declarations.\nserver/main.ts(2,54): error TS7016: Could not find a declaration file for module 'express'. '<repository>/node_modules/.pnpm/express@4.21.2/node_modules/express/index.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/express` if it exists or add a new declaration (.d.ts) file containing `declare module 'express';`\nserver/main.ts(58,12): error TS7006: Parameter 'request' implicitly has an 'any' type.\nserver/main.ts(58,21): error TS7006: Parameter '_response' implicitly has an 'any' type.\nserver/main.ts(58,32): error TS7006: Parameter 'next' implicitly has an 'any' type.\nserver/stripe.ts(1,20): error TS2307: Cannot find module 'stripe' or its corresponding type declarations.\nsrc/pages/CheckoutPage.tsx(2,45): error TS2307: Cannot find module '@stripe/stripe-js' or its corresponding type declarations.\nsrc/pages/CheckoutPage.tsx(82,43): error TS2307: Cannot find module '@stripe/stripe-js/pure' or its corresponding type declarations.\n"
+      },
+      "build": {
+        "exitCode": 1,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 18 modules transformed.\n\u001b[31mx\u001b[39m Build failed in 120ms\n\u001b[31merror during build:\n\u001b[31m[vite]: Rollup failed to resolve import \"@stripe/stripe-js/pure\" from \"<project>/src/pages/CheckoutPage.tsx\".\nThis is most likely unintended because it can break your application at runtime.\nIf you do want to externalize this module explicitly add it to\n`build.rollupOptions.external`\u001b[31m\n    at viteWarn (file://<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:65855:17)\n    at onwarn (file://<repository>/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/dist/index.js:90:7)\n    at onRollupWarning (file://<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:65885:5)\n    at onwarn (file://<repository>/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:65550:7)\n    at file://<repository>/node_modules/.pnpm/rollup@4.64.5/node_modules/rollup/dist/es/shared/node-entry.js:21981:13\n    at Object.logger [as onLog] (file://<repository>/node_modules/.pnpm/rollup@4.64.5/node_modules/rollup/dist/es/shared/node-entry.js:23961:9)\n    at ModuleLoader.handleInvalidResolvedId (file://<repository>/node_modules/.pnpm/rollup@4.64.5/node_modules/rollup/dist/es/shared/node-entry.js:22706:26)\n    at ModuleLoader.resolveDynamicImport (file://<repository>/node_modules/.pnpm/rollup@4.64.5/node_modules/rollup/dist/es/shared/node-entry.js:22764:58)\n    at async file://<repository>/node_modules/.pnpm/rollup@4.64.5/node_modules/rollup/dist/es/shared/node-entry.js:22648:32\u001b[39m\n"
+      }
+    },
+    {
+      "id": "react-saas",
+      "contentHash": "5f03435ab75e8d36bc249989a67cd9c6d40544dda6e8a133316b8ff94784dbb7",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 31 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.40 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.28 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-DMSw_IyU.css  \u001b[39m\u001b[1m\u001b[2m  4.00 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  1.47 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-E46BI3i8.js   \u001b[39m\u001b[1m\u001b[2m146.46 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 47.19 kB\u001b[22m\n\u001b[32m✓ built in 674ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "next-dashboard",
+      "contentHash": "3a7ceed9619d798ccafe616250eec9522ef6a7aef2e129626a472c08ec14dd08",
+      "compilerVersion": "6.0.3",
+      "compilerUnavailable": null,
+      "buildScript": "next build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "next",
+          "requested": "16.2.10",
+          "restored": null
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.13.3",
+          "restored": "25.9.9"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "typescript",
+          "requested": "6.0.3",
+          "restored": "5.9.3"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 2,
+        "signal": null,
+        "output": "app/layout.tsx(1,31): error TS2307: Cannot find module 'next' or its corresponding type declarations.\napp/layout.tsx(2,8): error TS2882: Cannot find module or type declarations for side-effect import of './styles.css'.\nnext.config.ts(1,33): error TS2307: Cannot find module 'next' or its corresponding type declarations.\nnext.config.ts(2,19): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.\n"
+      },
+      "build": {
+        "unavailable": "Not executed: next build; required toolchain absent from restored dependencies."
+      }
+    },
+    {
+      "id": "fastify-api",
+      "contentHash": "6789e576a6205ef095a4ec1b96771251d87b6241d3a3ac99d9a5ed8587e2ab89",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": null,
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "fastify",
+          "requested": "5.10.0",
+          "restored": "5.8.5"
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.13.3",
+          "restored": "25.9.9"
+        },
+        {
+          "name": "tsx",
+          "requested": "4.23.1",
+          "restored": "4.21.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": null
+    },
+    {
+      "id": "ai-agent",
+      "contentHash": "ade6e6a2c561263364bfc4f14b9c73b5b7f12b19cb0e70edc2b3ab68c2a94682",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 31 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.41 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.28 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-Zt6edwYN.css  \u001b[39m\u001b[1m\u001b[2m  4.42 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  1.57 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-D0uNLEtn.js   \u001b[39m\u001b[1m\u001b[2m145.52 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 46.96 kB\u001b[22m\n\u001b[32m✓ built in 666ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "landing-page",
+      "contentHash": "ac89602bf2925fc6aa24a797ab1f661d214d5fb6090b5421785f8d9cd6e777ec",
+      "compilerVersion": null,
+      "compilerUnavailable": null,
+      "buildScript": "vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": null,
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 4 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m1.88 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 0.96 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-ByKeufcx.css  \u001b[39m\u001b[1m\u001b[2m3.66 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 1.43 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-BnKiT4Z8.js   \u001b[39m\u001b[1m\u001b[2m1.81 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 0.88 kB\u001b[22m\n\u001b[32m✓ built in 90ms\u001b[39m\n"
+      }
+    },
+    {
+      "id": "mobile-starter",
+      "contentHash": "f70041fbaf6288024740c9aed17bca34cb7106a8d7738bbb1f01bf6985c1acd8",
+      "compilerVersion": "7.0.2",
+      "compilerUnavailable": null,
+      "buildScript": "tsc -b && vite build",
+      "viteVersionUsed": "5.4.21",
+      "exactDependencyCertification": false,
+      "dependencyVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "restored": "18.3.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "restored": "18.3.23"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "restored": "18.3.7"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "restored": "4.7.0"
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "restored": "5.9.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "restored": "5.4.21"
+        }
+      ],
+      "typecheck": {
+        "exitCode": 0,
+        "signal": null,
+        "output": ""
+      },
+      "build": {
+        "exitCode": 0,
+        "signal": null,
+        "output": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 31 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.49 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  0.32 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[35mindex-CtVbIS6b.css  \u001b[39m\u001b[1m\u001b[2m  4.42 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  1.53 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[2massets/\u001b[22m\u001b[36mindex-5BKfVYAy.js   \u001b[39m\u001b[1m\u001b[2m145.67 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 47.03 kB\u001b[22m\n\u001b[32m✓ built in 660ms\u001b[39m\n"
+      }
+    }
+  ],
+  "measurement": {
+    "wallSeconds": 15.77,
+    "childMaxRssKiB": 305748,
+    "concurrency": 1,
+    "nodeHeapMiB": 1536,
+    "note": "Per-child maximum RSS, not total cgroup memory; Node heap flag does not cap native TypeScript 7 memory."
+  }
+}

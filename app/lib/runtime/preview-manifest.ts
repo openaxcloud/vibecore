@@ -338,6 +338,8 @@ function supplementalPreviewFiles(
     'vite.config.js',
     'vite.config.mjs',
     'vite.config.mts',
+    'vite.config.cjs',
+    'vite.config.cts',
   ]);
 
   /*
@@ -361,7 +363,7 @@ function supplementalPreviewFiles(
      * middleware when needed — without discarding the model's settings. Only
      * re-emit when the merge actually changed it.
      */
-    let ensured = ensureViteHmrConfig(files[viteConfigPath]);
+    let ensured = ensureViteHmrConfig(files[viteConfigPath], viteConfigPath);
 
     if (wireApiServe || ensured.includes(API_SERVE_MARKER)) {
       ensured = ensureViteApiServeConfig(ensured);

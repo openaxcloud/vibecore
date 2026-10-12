@@ -116,9 +116,9 @@ describe('ensureViteHmrConfig', () => {
     const out = ensureViteHmrConfig(cjs);
 
     // Wrapped as CJS (require + module.exports), NOT ESM import/export default.
-    expect(out).toContain("const { mergeConfig: __ecodeMergeConfig } = require('vite')");
+    expect(out).toContain("const __ecodeCjsVite = require('vite')");
     expect(out).toContain('const __ecodeUserConfig = defineConfig({');
-    expect(out).toContain('module.exports = typeof __ecodeUserConfig');
+    expect(out).toContain('module.exports = __ecodeCjsVite.defineConfig');
     expect(out).not.toContain('import { mergeConfig');
     expect(out).not.toContain('export default');
 
@@ -140,7 +140,7 @@ describe('ensureViteHmrConfig', () => {
     const out = ensureViteHmrConfig(cjs);
 
     expect(out).toContain('const __ecodeUserConfig = () => ({ server: { port: 4000 } })');
-    expect(out).toContain('(env) => __ecodeMergeConfig(__ecodeUserConfig(env), __ecodeHmrOverride)');
+    expect(out).toContain('__ecodeCjsVite.mergeConfig(await resolveConfig(env), __ecodeHmrOverride)');
     expect(out).toContain('port: 5173');
   });
 

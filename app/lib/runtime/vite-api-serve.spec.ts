@@ -109,7 +109,7 @@ describe('ensureViteApiServeConfig', () => {
     const wrapped = ensureViteApiServeConfig(`module.exports = { plugins: [] };\n`);
 
     expect(wrapped).toContain(API_SERVE_MARKER);
-    expect(wrapped).toContain('module.exports = typeof __ecodeApiUserConfig');
+    expect(wrapped).toContain('module.exports = async (env) =>');
     expect(wrapped).not.toContain('import {');
   });
 

@@ -304,10 +304,19 @@ const INJECTED_CJS_HEADER = `const { mergeConfig: __ecodeApiMergeConfig } = requ
 
 ${API_SERVE_PLUGIN_BLOCK}`;
 
-const INJECTED_CJS_FOOTER = `
+const LEGACY_CJS_FOOTER = `
 module.exports = typeof __ecodeApiUserConfig === 'function'
   ? (env) => __ecodeApiMergeConfig(__ecodeApiUserConfig(env), __ecodeApiServeOverride)
   : __ecodeApiMergeConfig(__ecodeApiUserConfig, __ecodeApiServeOverride);
+`;
+
+const INJECTED_CJS_FOOTER = `
+module.exports = async (env) => {
+  const resolveConfig = typeof __ecodeApiUserConfig === 'function'
+    ? __ecodeApiUserConfig
+    : (_env = env) => __ecodeApiUserConfig;
+  return __ecodeApiMergeConfig(await resolveConfig(env), __ecodeApiServeOverride);
+};
 `;
 
 /**
@@ -324,7 +333,11 @@ export function ensureViteApiServeConfig(source: string): string {
   }
 
   if (source.includes(API_SERVE_MARKER)) {
-    return source.replace(LEGACY_ESM_FOOTER.trim(), INJECTED_ESM_FOOTER.trim());
+    const upgraded = source.replace(LEGACY_ESM_FOOTER.trim(), INJECTED_ESM_FOOTER.trim());
+
+    return upgraded.includes(LEGACY_CJS_FOOTER.trim())
+      ? upgraded.replace(LEGACY_CJS_FOOTER.trim(), INJECTED_CJS_FOOTER.trim())
+      : upgraded;
   }
 
   const exportDefault = /(^|\n)\s*export\s+default\s+/;
