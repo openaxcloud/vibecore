@@ -17,7 +17,7 @@ counts:
   CODED: 68
   PARTIAL: 43
   NOT_STARTED: 37
-missingCodeRefTotal: 65
+missingCodeRefTotal: 64
 items:
   - itemId: P001
     itemType: SURFACE
@@ -924,15 +924,12 @@ items:
       - P063
     evidenceIds: []
     codeRefs: app/components/workbench/Inspector.tsx;
-      app/components/workbench/InspectorPanel.tsx;
-      app/components/workbench/Preview.tsx:628
+      app/components/workbench/Preview.tsx
     lastMeasuredAt: 2026-07-20T12:30:00Z
     measuredBy: agent-overlay-2026-07-20
     notes: Inspecteur d'élément câblé, localise source JSX; panneau lecture seule
     partialReason: Inspecteur d'élément câblé, localise source JSX; panneau lecture seule
     status: PARTIAL
-    missingCodeRefs:
-      - app/components/workbench/Preview.tsx:628
   - itemId: P064
     itemType: SURFACE
     codeCommit: f69a4b313e2e
@@ -1140,7 +1137,7 @@ items:
       - P077
     evidenceIds: []
     codeRefs: app/components/database/DatabaseStudio.tsx;
-      app/components/database/DatabasePanel.tsx
+      app/components/database/DatabaseWorkbench.tsx
     lastMeasuredAt: 2026-07-20T12:30:00Z
     measuredBy: agent-overlay-2026-07-20
     notes: Surface 'My Data' câblée aux routes DB réelles (zero mock)
@@ -1249,7 +1246,7 @@ items:
       - P085
     evidenceIds: []
     codeRefs: services/api/src/database-provisioner.ts;
-      app/components/database/DatabasePanel.tsx
+      app/components/database/DatabaseWorkbench.tsx
     lastMeasuredAt: 2026-07-20T12:30:00Z
     measuredBy: agent-overlay-2026-07-20
     notes: Provisioner dev/prod codé; split UI seulement si backend l'expose

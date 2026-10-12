@@ -61,3 +61,10 @@ exécuté pour ces mesures.
 Les workflows 38171920340 et 38175136988 sont réussis. Captures finales : 21:48:36 UTC et 22:09:08 UTC, sorties à zéro et evidenceComplete=true. #712 est donc livré dans le web reconstruit b0ddb2c9 ; sa reprise après fermeture reste à mesurer dans un parcours authentifié.
 
 Les deux manifestes déclarent fullyTraceable=false. Les sources manquantes des références réutilisées sont retrouvées par correspondance exacte des digests avec les manifestes antérieurs de livraisons réussies et signées, sans transformer cette reconstruction en preuve de conteneur exécuté. Sept services sont rollés ; screenshotter et workspaceAgent ne le sont pas. Les deux mesures JSON conservent séparément le manifeste natif, la preuve historique et cette limite. Aucun paiement ni effacement client exécuté.
+
+
+## Lot IDE #714 — release 83d1c63e
+
+Le [workflow 38181578340](https://github.com/openaxcloud/vibecore/actions/runs/38181578340) est réussi. La capture termine le 12 octobre à 00:30:58 UTC, sortie zéro et `evidenceComplete=true`. Le manifeste déclare neuf références reconstruites depuis `83d1c63e1c4d360ffd359378c74ab8fb2f6f3669`, `fullyTraceable=true`, sans lacune de provenance. Sept services sont rollés et ont passé la comparaison des imageIDs du workflow.
+
+Le captureur et l’agent d’espace restent marqués non rollés : leurs nouvelles références ne prouvent pas que ces conteneurs tournent. Ce workflow n’archive pas les imageIDs bruts. Le lot A-8/A-9/A-11/A-12/A-14/A-16/A-17/B-22/B-24 est livré dans le web reconstruit ; les parcours authentifiés correspondants ne sont pas remesurés en production. Mesure limitée et empreintes des deux artefacts : `mesures/2026-10-12-livraison-83.json`. Aucun paiement ni effacement client exécuté.
