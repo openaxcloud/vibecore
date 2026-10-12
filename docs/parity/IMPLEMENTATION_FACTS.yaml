@@ -784,7 +784,7 @@ items:
   surfaceIds:
   - P063
   evidenceIds: []
-  codeRefs: app/components/workbench/Inspector.tsx; app/components/workbench/InspectorPanel.tsx; app/components/workbench/Preview.tsx:628
+  codeRefs: app/components/workbench/Inspector.tsx; app/components/workbench/Preview.tsx
   lastMeasuredAt: '2026-07-20T12:30:00Z'
   measuredBy: agent-overlay-2026-07-20
   notes: Inspecteur d'élément câblé, localise source JSX; panneau lecture seule
@@ -963,7 +963,7 @@ items:
   surfaceIds:
   - P077
   evidenceIds: []
-  codeRefs: app/components/database/DatabaseStudio.tsx; app/components/database/DatabasePanel.tsx
+  codeRefs: app/components/database/DatabaseStudio.tsx; app/components/database/DatabaseWorkbench.tsx
   lastMeasuredAt: '2026-07-20T12:30:00Z'
   measuredBy: agent-overlay-2026-07-20
   notes: Surface 'My Data' câblée aux routes DB réelles (zero mock)
@@ -1061,7 +1061,7 @@ items:
   surfaceIds:
   - P085
   evidenceIds: []
-  codeRefs: services/api/src/database-provisioner.ts; app/components/database/DatabasePanel.tsx
+  codeRefs: services/api/src/database-provisioner.ts; app/components/database/DatabaseWorkbench.tsx
   lastMeasuredAt: '2026-07-20T12:30:00Z'
   measuredBy: agent-overlay-2026-07-20
   notes: Provisioner dev/prod codé; split UI seulement si backend l'expose
