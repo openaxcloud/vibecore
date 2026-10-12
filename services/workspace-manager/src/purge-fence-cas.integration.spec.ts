@@ -18,12 +18,11 @@
  * Requires DATABASE_URL pointing at a real Postgres with the schema applied; the
  * suite skips itself otherwise (same gate as prisma-store.spec.ts).
  */
+import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
-
-import { PrismaWorkspaceStore } from './prisma-store.js';
 import { WorkspaceManager, type WorkspaceRecord } from './manager.js';
+import { PrismaWorkspaceStore } from './prisma-store.js';
 
 async function connect(): Promise<DatabaseClient | undefined> {
   if (!process.env.DATABASE_URL) {
@@ -94,13 +93,13 @@ integrationDescribe('purge barrier release is an atomic compare-and-set (real Po
     managerB = new WorkspaceManager(storeB, noopK8s, noopEvents, 'token-secret');
 
     const server = await prismaA!.$queryRawUnsafe<Array<{ version: string }>>('SELECT version()');
+
     // Printed into the proof log so the reviewer sees which engine actually ran this.
     console.log(`[proof] server: ${server[0]?.version}`);
   });
 
   afterAll(async () => {
     if (createdIds.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (prismaA as any).workspaceRuntime.deleteMany({ where: { id: { in: createdIds } } });
     }
 
@@ -126,7 +125,6 @@ integrationDescribe('purge barrier release is an atomic compare-and-set (real Po
 
   /** Reads the row on a THIRD statement so assertions never trust a cached value. */
   async function readRow(id: string) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (prismaB as any).workspaceRuntime.findUnique({ where: { id } }) as Promise<{
       purgeFrozen: boolean;
       purgeFenceToken: string | null;
@@ -172,13 +170,13 @@ integrationDescribe('purge barrier release is an atomic compare-and-set (real Po
   class DelayedReleaseStore extends PrismaWorkspaceStore {
     constructor(
       prisma: DatabaseClient,
-      private readonly delay: () => Promise<void>,
+      private readonly _delay: () => Promise<void>,
     ) {
       super(prisma);
     }
 
     override async releasePurgeFence(workspaceId: string, fenceToken: string | undefined): Promise<boolean> {
-      await this.delay();
+      await this._delay();
 
       return super.releasePurgeFence(workspaceId, fenceToken);
     }
@@ -200,8 +198,10 @@ integrationDescribe('purge barrier release is an atomic compare-and-set (real Po
     const after = await readRow(id);
     console.log(`[proof] legacy → purgeFrozen=${after?.purgeFrozen} token=${after?.purgeFenceToken}`);
 
-    // The DEFECT the expert reported, reproduced on real PostgreSQL 16: expected
-    // purgeFrozen=true / owner-N1, observed purgeFrozen=false — barrier down mid-erasure.
+    /*
+     * The DEFECT the expert reported, reproduced on real PostgreSQL 16: expected
+     * purgeFrozen=true / owner-N1, observed purgeFrozen=false — barrier down mid-erasure.
+     */
     expect(after?.purgeFrozen).toBe(false);
     expect(after?.purgeFenceToken).toBeNull();
   });
@@ -213,14 +213,18 @@ integrationDescribe('purge barrier release is an atomic compare-and-set (real Po
     await managerA.freezeWorkspace(NS, id, 'owner-N0');
 
     let superseded = false;
+
     const delayedStore = new DelayedReleaseStore(prismaA!, async () => {
       if (superseded) {
         return;
       }
+
       superseded = true;
+
       // Same interleaving, same moment as the legacy test above.
       await managerB.freezeWorkspace(NS, id, 'owner-N1');
     });
+
     const delayedManager = new WorkspaceManager(delayedStore, noopK8s, noopEvents, 'token-secret');
 
     const result = await delayedManager.unfreezeWorkspace(id, 'owner-N0');
@@ -334,14 +338,14 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
   class RacingStore extends PrismaWorkspaceStore {
     constructor(
       prisma: DatabaseClient,
-      private readonly hook: () => Promise<void>,
+      private readonly _hook: () => Promise<void>,
     ) {
       super(prisma);
     }
 
     override async list(): Promise<WorkspaceRecord[]> {
       const rows = await super.list();
-      await this.hook();
+      await this._hook();
 
       return rows;
     }
@@ -367,6 +371,7 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
       agentTokenSecretName: `agent-token-${id}`,
       purgeFrozen: true,
       purgeFenceToken: 'owner-N0',
+
       // 48h old — comfortably past any grace window, so the sweep WILL target it.
       purgeFrozenAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
     });
@@ -376,8 +381,10 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
     const id = uniqueId('ws-reco-legacy');
     await seedStaleBarrier(id);
 
-    // Pre-fix body (manager.ts:1373-1396 @ 3bd148b4), inlined: scan, judge staleness on
-    // the SNAPSHOT, then update by id with no condition.
+    /*
+     * Pre-fix body (manager.ts:1373-1396 @ 3bd148b4), inlined: scan, judge staleness on
+     * the SNAPSHOT, then update by id with no condition.
+     */
     const cutoff = Date.now() - 60 * 60 * 1000;
     const rows = await storeA.list();
     const snapshot = rows.find((row) => row.id === id)!;
@@ -393,7 +400,6 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
       purgeFrozenAt: undefined,
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const after = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
     console.log(`[proof] legacy reconciler → purgeFrozen=${after?.purgeFrozen}`);
 
@@ -406,19 +412,22 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
     await seedStaleBarrier(id);
 
     let refrozen = false;
+
     const racingStore = new RacingStore(prismaA!, async () => {
       if (refrozen) {
         return;
       }
+
       refrozen = true;
+
       // Injected INSIDE the window between list() and the release.
       await managerB.freezeWorkspace('workspaces-test', id, 'owner-N1');
     });
+
     const racingManager = new WorkspaceManager(racingStore, noopK8s, noopEvents, 'token-secret');
 
     const { reconciled } = await racingManager.reconcileStaleWorkspaceFreezes(60 * 60 * 1000);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const after = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
     console.log(
       `[proof] cas reconciler → reconciled=${reconciled} purgeFrozen=${after?.purgeFrozen} token=${after?.purgeFenceToken}`,
@@ -458,7 +467,6 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
     const manager = new WorkspaceManager(storeA, noopK8s, noopEvents, 'token-secret');
     await manager.reconcileStaleWorkspaceFreezes(60 * 60 * 1000);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const after = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
     expect(after?.purgeFrozen).toBe(false);
   });
@@ -470,7 +478,6 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
     const manager = new WorkspaceManager(storeA, noopK8s, noopEvents, 'token-secret');
     const { reconciled } = await manager.reconcileStaleWorkspaceFreezes(60 * 60 * 1000);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const after = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
 
     expect(reconciled).toBeGreaterThanOrEqual(1);
@@ -487,6 +494,7 @@ integrationDescribe('stale-freeze reconciler is version-checked (real PostgreSQL
  */
 integrationDescribe('fence liveness is bound to a real PurgePlan lease', () => {
   let store: PrismaWorkspaceStore;
+
   const planIds: string[] = [];
 
   beforeAll(() => {
@@ -495,13 +503,11 @@ integrationDescribe('fence liveness is bound to a real PurgePlan lease', () => {
 
   afterAll(async () => {
     if (planIds.length > 0) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (prismaA as any).purgePlan.deleteMany({ where: { id: { in: planIds } } });
     }
   });
 
   async function createPlan(ownerToken: string, leaseExpiresAt: Date, status = 'ACTIVE') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const plan = await (prismaA as any).purgePlan.create({
       data: { userId: uniqueId('user'), ownerToken, leaseExpiresAt, status },
     });
@@ -569,23 +575,25 @@ integrationDescribe('fence liveness is bound to a real PurgePlan lease', () => {
     const manager = new WorkspaceManager(store, noopK8s, noopEvents, 'token-secret');
 
     const skipped = await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     let row = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
-    console.log(`[proof] longpurge alive → skippedLiveOwner=${skipped.skippedLiveOwner} purgeFrozen=${row?.purgeFrozen}`);
+    console.log(
+      `[proof] longpurge alive → skippedLiveOwner=${skipped.skippedLiveOwner} purgeFrozen=${row?.purgeFrozen}`,
+    );
 
     expect(skipped.skippedLiveOwner).toBeGreaterThanOrEqual(1);
     expect(row?.purgeFrozen).toBe(true);
     expect(row?.purgeFenceToken).toBe(token);
 
     // The purge dies: its lease lapses and the barrier becomes reclaimable.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     await (prismaA as any).purgePlan.update({
       where: { id: plan.id },
       data: { leaseExpiresAt: new Date(Date.now() - 60 * 1000) },
     });
 
     await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     row = await (prismaB as any).workspaceRuntime.findUnique({ where: { id } });
     console.log(`[proof] longpurge dead → purgeFrozen=${row?.purgeFrozen}`);
 
@@ -628,7 +636,6 @@ integrationDescribe('barrier reads fail CLOSED on a real database error', () => 
   });
 
   it('the read really does reject (the harness is not silently succeeding)', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await expect((deadPrisma as any).workspaceRuntime.findUnique({ where: { id: 'x' } })).rejects.toBeTruthy();
   });
 

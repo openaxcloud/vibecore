@@ -370,18 +370,7 @@ import {
   meterObjectStorage,
   meterWorkspaceCompute,
 } from './metering-service.js';
-import {
-  BUCKET_NOT_PROVISIONED,
-  guardObjectStorageWrites,
-  isObjectStorageEnabled,
-  OBJECT_UPLOAD_MAX_BYTES,
-  ObjectStorageError,
-  PROJECT_THUMBNAIL_KEY,
-  resolveDefaultObjectStorage,
-  type ObjectStorage,
-} from './object-storage.js';
 import { teardownProjectExternalResources } from './project-teardown.js';
-import { assertObjectStorageQuota } from './object-storage-quota.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   decodeFileContent,
@@ -497,6 +486,17 @@ import {
 import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
 import { decideWorkspaceSlot } from './workspace-slot.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { assertObjectStorageQuota } from './object-storage-quota.js';
+import {
+  BUCKET_NOT_PROVISIONED,
+  guardObjectStorageWrites,
+  isObjectStorageEnabled,
+  OBJECT_UPLOAD_MAX_BYTES,
+  ObjectStorageError,
+  PROJECT_THUMBNAIL_KEY,
+  resolveDefaultObjectStorage,
+  type ObjectStorage,
+} from './object-storage.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import {
@@ -39096,6 +39096,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply;
   });
+
   /*
    * P104: set a deployment's access mode. Owner-only. `password` protects the
    * deployment behind the /__access gate (hash stored, never the plaintext);

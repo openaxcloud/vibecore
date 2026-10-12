@@ -1,6 +1,6 @@
 import { signObjectStorageAccessToken } from '@e-code/sdk';
 import { hashPassword } from '@vibecore/auth';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
@@ -94,6 +94,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
+
   for (const key of ENV) {
     if (ORIGINAL[key] === undefined) {
       delete (process.env as Record<string, string | undefined>)[key];
@@ -137,6 +139,33 @@ async function setup() {
 const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
 
 describe('AUDX-020 upload-url route enforces the storage quota', () => {
+  it('keeps the purge refusal when storage freezes after the early check with quota enabled', async () => {
+    process.env.OBJECT_STORAGE_QUOTA_BYTES_PER_PROJECT = '1000';
+
+    const { app, store, project, token } = await setup();
+
+    const frozen = vi
+      .spyOn(store, 'isObjectStorageProjectPurgeFrozen')
+      .mockResolvedValueOnce(false)
+      .mockResolvedValue(true);
+    fakeStorage.liveBytes = 100;
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.id}/object-storage/objects/upload-url`,
+        headers: bearer(token),
+        payload: { key: 'frozen.bin', maxBytes: 100 },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(response.json().code).toBe('OBJECT_STORAGE_PURGE_FROZEN');
+      expect(frozen.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(signed).toHaveLength(0);
+    } finally {
+      await app.close();
+    }
+  });
+
   it.each(['upload', 'download'] as const)(
     'checks live bytes before signing %s even with a fresh low stored count',
     async (operation) => {

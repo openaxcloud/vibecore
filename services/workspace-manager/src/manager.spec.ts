@@ -259,7 +259,12 @@ describe('WorkspaceManager', () => {
 
   it('account-purge reserve #5: pvcExists is false ONLY on NotFound; a read error propagates (fail-closed)', async () => {
     const k8s = new TestWorkspaceK8sClient();
-    const manager = new WorkspaceManager(new TestWorkspaceStore(), k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    const manager = new WorkspaceManager(
+      new TestWorkspaceStore(),
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+    );
     await manager.startWorkspace(input);
 
     // Real PVC present.
@@ -288,6 +293,7 @@ describe('WorkspaceManager', () => {
     });
 
     await expect(manager.freezeWorkspace('workspaces', 'workspace_1')).rejects.toThrow(/WORKSPACE_FREEZE_INCOMPLETE/);
+
     // The barrier was NOT acquired → the row must not have been flipped to STOPPED.
     expect((await store.get('workspace_1'))!.status).not.toBe('STOPPED');
   });
@@ -303,8 +309,10 @@ describe('WorkspaceManager', () => {
     expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
     expect((await store.get('workspace_1'))!.purgeFenceToken).toBe('fence-plan-A');
 
-    // THE RACE: a start/restart after the freeze (the reprovision-after-zero-check-
-    // before-tombstone window) is REFUSED by the durable barrier.
+    /*
+     * THE RACE: a start/restart after the freeze (the reprovision-after-zero-check-
+     * before-tombstone window) is REFUSED by the durable barrier.
+     */
     await expect(manager.startWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
     await expect(manager.restartWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
 
@@ -331,7 +339,7 @@ describe('WorkspaceManager', () => {
     await expect(manager.startWorkspace(input)).rejects.toThrow(/WORKSPACE_PURGE_FROZEN/);
   });
 
-  it('account-purge P3 (R-P3-01): a freeze interleaved AFTER start\'s initial check but BEFORE its k8s creates recreates NOTHING (linearised re-check)', async () => {
+  it("account-purge P3 (R-P3-01): a freeze interleaved AFTER start's initial check but BEFORE its k8s creates recreates NOTHING (linearised re-check)", async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();
     const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
@@ -349,10 +357,12 @@ describe('WorkspaceManager', () => {
      * each irreversible create) must then see the barrier and refuse.
      */
     let raced = false;
+
     const realGet = k8s.get.bind(k8s);
     vi.spyOn(k8s, 'get').mockImplementation(async (kind: string, namespace: string, name: string) => {
       if (kind === 'PersistentVolumeClaim' && !raced) {
         raced = true;
+
         // The concurrent purge freeze lands here (interleaved mid-start).
         await manager.freezeWorkspace('workspaces', 'workspace_1', 'fence-race');
       }
@@ -365,14 +375,19 @@ describe('WorkspaceManager', () => {
 
     // The barrier is durable...
     expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
-    // ...and NOTHING was (re)created after the freeze: no live Pod/Service/Secret,
-    // and the events emitted by the raced start contain no apply of them.
+
+    /*
+     * ...and NOTHING was (re)created after the freeze: no live Pod/Service/Secret,
+     * and the events emitted by the raced start contain no apply of them.
+     */
     expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
     expect(k8s.objects.has('workspaces:Service:workspace-workspace_1')).toBe(false);
     expect(k8s.objects.has('workspaces:Secret:agent-token-workspace_1')).toBe(false);
+
     const eventsAfterFreeze = k8s.events.slice(eventsBeforeStart);
     const freezeDeleteIndex = eventsAfterFreeze.indexOf('delete:Pod:workspace-workspace_1');
     expect(freezeDeleteIndex).toBeGreaterThanOrEqual(0);
+
     // No apply of Pod/Service/Secret AFTER the freeze deleted them.
     expect(eventsAfterFreeze.slice(freezeDeleteIndex)).not.toContain('apply:Pod:workspace-workspace_1');
     expect(eventsAfterFreeze.slice(freezeDeleteIndex)).not.toContain('apply:Service:workspace-workspace_1');
@@ -401,7 +416,7 @@ describe('WorkspaceManager', () => {
     expect((await store.get('workspace_1'))!.purgeFrozen).toBe(false);
   });
 
-  it('account-purge P3 (R-P3-05, ABA): a DELAYED unfreeze from a prior attempt must NOT lift a newer attempt\'s barrier', async () => {
+  it("account-purge P3 (R-P3-05, ABA): a DELAYED unfreeze from a prior attempt must NOT lift a newer attempt's barrier", async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();
     const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
@@ -417,8 +432,10 @@ describe('WorkspaceManager', () => {
     await manager.freezeWorkspace('workspaces', 'workspace_1', 'owner-N1');
     expect((await store.get('workspace_1'))!.purgeFenceToken).toBe('owner-N1');
 
-    // THE ABA: a delayed/duplicate unfreeze from attempt N (token 'owner-N')
-    // arrives late — it must be a NO-OP against attempt N+1's barrier.
+    /*
+     * THE ABA: a delayed/duplicate unfreeze from attempt N (token 'owner-N')
+     * arrives late — it must be a NO-OP against attempt N+1's barrier.
+     */
     await manager.unfreezeWorkspace('workspace_1', 'owner-N');
     expect((await store.get('workspace_1'))!.purgeFrozen).toBe(true);
 
@@ -527,12 +544,7 @@ describe('WorkspaceManager', () => {
       }
     }
 
-    const manager = new WorkspaceManager(
-      new UnreadableStore(),
-      k8s,
-      new TestEventBus(),
-      'test-workspace-agent-secret',
-    );
+    const manager = new WorkspaceManager(new UnreadableStore(), k8s, new TestEventBus(), 'test-workspace-agent-secret');
 
     // Pre-fix this read was `.catch(() => undefined)` → "no barrier" → start proceeded.
     await expect(manager.startWorkspace(input)).rejects.toThrow('WORKSPACE_PURGE_BARRIER_UNVERIFIABLE');
@@ -650,8 +662,10 @@ describe('WorkspaceManager', () => {
       'secret',
     );
 
-    // Pre-fix this was `.catch(() => [])` → `{reconciled: 0}`, i.e. a broken reconciler
-    // was indistinguishable from a clean sweep and stayed broken silently.
+    /*
+     * Pre-fix this was `.catch(() => [])` → `{reconciled: 0}`, i.e. a broken reconciler
+     * was indistinguishable from a clean sweep and stayed broken silently.
+     */
     await expect(manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).rejects.toThrow(
       'connection terminated unexpectedly',
     );
@@ -676,6 +690,7 @@ describe('WorkspaceManager', () => {
 
     // The reconciler finds + lifts the orphan (no owner, no pointer) → recovered.
     expect(await manager.reconcileStaleWorkspaceFreezes(24 * 60 * 60 * 1000)).toMatchObject({ reconciled: 1 });
+
     const recovered = (await store.get('workspace_1'))!;
     expect(recovered.purgeFrozen).toBe(false);
     expect(recovered.purgeFenceToken).toBeUndefined();
@@ -1988,6 +2003,7 @@ describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
 
   it('reapIdleServerDeployments() gives a never-hit deployment its full window from creation', async () => {
     const k8s = new TestWorkspaceK8sClient();
+
     const manager = new WorkspaceManager(
       new TestWorkspaceStore(),
       k8s,

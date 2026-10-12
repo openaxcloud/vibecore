@@ -413,6 +413,7 @@ describe('GcsObjectStorage', () => {
 describe('guardObjectStorageWrites — account-purge freeze barrier (RR-08 #1)', () => {
   function tracking(): { storage: ObjectStorage; calls: string[] } {
     const calls: string[] = [];
+
     const record =
       <T>(name: string, value: T) =>
       async () => {
@@ -426,7 +427,13 @@ describe('guardObjectStorageWrites — account-purge freeze barrier (RR-08 #1)',
       bucketExists: record('bucketExists', true),
       listObjects: record('listObjects', { objects: [], folders: [] }),
       listAllObjects: record('listAllObjects', { objects: [], totalBytes: 0, pages: 1 }),
-      createUploadUrl: record('createUploadUrl', { url: 'u', method: 'PUT' as const, headers: {}, expiresAt: 'x', maxBytes: 1 }),
+      createUploadUrl: record('createUploadUrl', {
+        url: 'u',
+        method: 'PUT' as const,
+        headers: {},
+        expiresAt: 'x',
+        maxBytes: 1,
+      }),
       createDownloadUrl: record('createDownloadUrl', { url: 'd', expiresAt: 'y' }),
       putObject: record('putObject', { key: 'k', size: 1 }),
       moveObject: record('moveObject', { moved: true, key: 't' }),
@@ -471,7 +478,14 @@ describe('guardObjectStorageWrites — account-purge freeze barrier (RR-08 #1)',
     await guarded.ensureBucket('other');
     await guarded.createUploadUrl('other', { key: 'k' });
 
-    expect(calls).toEqual(['bucketExists', 'listObjects', 'deleteBucket', 'deleteObject', 'ensureBucket', 'createUploadUrl']);
+    expect(calls).toEqual([
+      'bucketExists',
+      'listObjects',
+      'deleteBucket',
+      'deleteObject',
+      'ensureBucket',
+      'createUploadUrl',
+    ]);
   });
 });
 
@@ -609,7 +623,8 @@ describe('AUDX-024 pagination beyond a single 1 000-object page', () => {
 
     const service = new GcsObjectStorage(new ThrowingDeleteStorage(storage, 'data/00007.bin'));
 
-    await expect(service.deletePrefix(project, { prefix: 'data/' })).rejects.toThrow(/permission denied/);  });
+    await expect(service.deletePrefix(project, { prefix: 'data/' })).rejects.toThrow(/permission denied/);
+  });
 });
 
 /* ------------- AUDX-021 — bornes de taille et intégrité à l'upload ------------ */

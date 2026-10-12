@@ -67,6 +67,7 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     ...(row.error ? { error: row.error } : {}),
     ...(row.lastMeteredAt ? { lastMeteredAt: row.lastMeteredAt.toISOString() } : {}),
     purgeFrozen: Boolean(row.purgeFrozen),
+
     /*
      * R-P3-06: distinguish NULL from '' — a truthiness test folded an empty-string
      * token into "no token". Harmless while the release was an unconditional update,
@@ -164,12 +165,15 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     if (Object.prototype.hasOwnProperty.call(patch, 'error')) {
       data.error = patch.error ?? null;
     }
+
     if (patch.purgeFrozen !== undefined) {
       data.purgeFrozen = patch.purgeFrozen;
     }
+
     if (Object.prototype.hasOwnProperty.call(patch, 'purgeFenceToken')) {
       data.purgeFenceToken = patch.purgeFenceToken ?? null;
     }
+
     if (Object.prototype.hasOwnProperty.call(patch, 'purgeFrozenAt')) {
       data.purgeFrozenAt = patch.purgeFrozenAt ? new Date(patch.purgeFrozenAt) : null;
     }

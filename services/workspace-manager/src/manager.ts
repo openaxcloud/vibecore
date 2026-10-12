@@ -133,10 +133,7 @@ export interface WorkspaceStore {
    * the scan and the write would be lifted on the strength of the OLD row's age.
    * A fresh freeze always changes both the token and purgeFrozenAt, so the CAS misses.
    */
-  releaseStalePurgeFence(
-    workspaceId: string,
-    observed: { fenceToken?: string; frozenAt?: string },
-  ): Promise<boolean>;
+  releaseStalePurgeFence(workspaceId: string, observed: { fenceToken?: string; frozenAt?: string }): Promise<boolean>;
 
   /*
    * RR-CODEX-14 v7 (R-P3-07): is this fence token still owned by a purge that is
@@ -647,9 +644,11 @@ export class WorkspaceManager {
   }
 
   async startWorkspace(input: StartWorkspaceInput) {
-    // RR-CODEX-14 (P3): the durable purge barrier is checked FIRST — a start can
-    // never (re)provision a runtime an in-flight account purge is erasing.
-    await this.assertNotPurgeFrozen(input.workspaceId);
+    /*
+     * RR-CODEX-14 (P3): the durable purge barrier is checked FIRST — a start can
+     * never (re)provision a runtime an in-flight account purge is erasing.
+     */
+    await this._assertNotPurgeFrozen(input.workspaceId);
 
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
@@ -789,7 +788,7 @@ export class WorkspaceManager {
        * on a runtime an in-flight purge already froze. After all creates, one FINAL
        * check catches a freeze that raced the creates and cleans up (below).
        */
-      await this.assertNotPurgeFrozen(input.workspaceId);
+      await this._assertNotPurgeFrozen(input.workspaceId);
 
       if (!existingPvc) {
         await this.k8s.apply(pvc);
@@ -801,7 +800,7 @@ export class WorkspaceManager {
        * root value here handed every tenant the key that signs for every OTHER
        * workspace.
        */
-      await this.assertNotPurgeFrozen(input.workspaceId);
+      await this._assertNotPurgeFrozen(input.workspaceId);
       await this.k8s.apply({
         ...workspaceAgentSecret(runtimeInput),
         stringData: {
@@ -821,9 +820,9 @@ export class WorkspaceManager {
        */
       const podExistedBeforeApply = Boolean(await this.k8s.getPod(input.namespace, record.podName).catch(() => null));
 
-      await this.assertNotPurgeFrozen(input.workspaceId);
+      await this._assertNotPurgeFrozen(input.workspaceId);
       await this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName);
-      await this.assertNotPurgeFrozen(input.workspaceId);
+      await this._assertNotPurgeFrozen(input.workspaceId);
       await this.k8s.apply(workspaceService(runtimeInput));
 
       /*
@@ -831,7 +830,7 @@ export class WorkspaceManager {
        * Secret/Pod/Service in the window around our last create. Re-check; if frozen,
        * revoke whatever we just (re)created and abort — no live Pod on a frozen runtime.
        */
-      if (await this.isPurgeFrozen(input.workspaceId)) {
+      if (await this._isPurgeFrozen(input.workspaceId)) {
         await Promise.allSettled([
           this.k8s.delete('Pod', input.namespace, record.podName),
           this.k8s.delete('Service', input.namespace, record.serviceName),
@@ -1359,8 +1358,9 @@ export class WorkspaceManager {
 
   async restartWorkspace(input: StartWorkspaceInput) {
     // RR-CODEX-14 (P3): refuse a frozen runtime BEFORE the stop mutation, too.
-    await this.assertNotPurgeFrozen(input.workspaceId);
+    await this._assertNotPurgeFrozen(input.workspaceId);
     await this.stopWorkspace(input.namespace, input.workspaceId).catch(() => undefined);
+
     return this.startWorkspace(input);
   }
 
@@ -1490,9 +1490,8 @@ export class WorkspaceManager {
       ['Pod', workspace.podName],
       ['Service', workspace.serviceName],
     ];
-    const results = await Promise.allSettled(
-      targets.map(([kind, name]) => this.k8s.delete(kind, namespace, name)),
-    );
+
+    const results = await Promise.allSettled(targets.map(([kind, name]) => this.k8s.delete(kind, namespace, name)));
 
     const failed = results
       .map((result, index) => ({ result, target: targets[index] }))
@@ -1507,6 +1506,7 @@ export class WorkspaceManager {
     }
 
     this.lastTouchAt.delete(workspaceId);
+
     /*
      * RR-CODEX-14 (P3, R-P3-02): mark the DURABLE barrier ONLY after every live write
      * path is provably revoked — and do NOT swallow a persistence failure. The freeze
@@ -1591,6 +1591,7 @@ export class WorkspaceManager {
      * job surfaces it and retries.
      */
     const rows = await this.store.list();
+
     let reconciled = 0;
     let skippedLiveOwner = 0;
     let failed = 0;
@@ -1661,7 +1662,7 @@ export class WorkspaceManager {
    * Pod/Secret/Service reprovision can never recreate a runtime an account purge is
    * erasing (the reprovision-after-zero-check-before-tombstone race).
    */
-  private async assertNotPurgeFrozen(workspaceId: string): Promise<void> {
+  private async _assertNotPurgeFrozen(workspaceId: string): Promise<void> {
     /*
      * R-P3-06 (expert reserve, PR #52): this read used to `.catch(() => undefined)`,
      * so a DB error was indistinguishable from "no barrier" and the guard failed OPEN
@@ -1693,7 +1694,7 @@ export class WorkspaceManager {
    * what it created and aborts rather than leaving a live Pod on a possibly-frozen
    * runtime. Never let a DB error read as "not frozen".
    */
-  private async isPurgeFrozen(workspaceId: string): Promise<boolean> {
+  private async _isPurgeFrozen(workspaceId: string): Promise<boolean> {
     try {
       const existing = await this.store.get(workspaceId);
 

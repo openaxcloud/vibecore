@@ -427,9 +427,7 @@ export async function triggerWorkspaceFreezeReconcile(jobData: Record<string, un
 
   const result = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
-  console.log(
-    JSON.stringify({ level: 'info', service: 'worker', event: 'workspace.freeze.reconcile', ...result }),
-  );
+  console.log(JSON.stringify({ level: 'info', service: 'worker', event: 'workspace.freeze.reconcile', ...result }));
 
   return result;
 }
@@ -446,11 +444,13 @@ export async function triggerWorkspaceFreezeReconcile(jobData: Record<string, un
  */
 export async function triggerAccountPurge(jobData: Record<string, unknown> = {}) {
   const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+
   if (!baseUrl) {
     throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger account.purge');
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+
   const body = {
     enabled: jobData.enabled as boolean | undefined,
     take: jobData.take as number | undefined,
@@ -473,6 +473,7 @@ export async function triggerAccountPurge(jobData: Record<string, unknown> = {})
   }
 
   const result = await response.json().catch(() => ({}));
+
   return result as Record<string, unknown>;
 }
 

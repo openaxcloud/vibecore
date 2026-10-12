@@ -240,6 +240,7 @@ type InternalAuthScheme = (request: { headers: Record<string, string | string[] 
 const INTERNAL_ROUTE_AUTH: ReadonlyArray<{ path: string; scheme: InternalAuthScheme }> = [
   // preview-proxy resolves agent base URLs with the preview secret it already holds.
   { path: '/internal/workspaces', scheme: (request) => requirePreviewProxyAuth(request) },
+
   // barrier reconciliation is control-plane: manager secret, no dev exemption.
   { path: '/internal/reconcile-workspace-freezes', scheme: (request) => requireControlPlaneAuth(request) },
 ];
@@ -324,12 +325,13 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const locale = workspaceManagerLocaleFromHeader(request.headers['accept-language']);
 
     if (error instanceof z.ZodError) {
-      return reply.code(400).send({
+      reply.code(400).send({
         statusCode: 400,
         error: workspaceManagerMessage('validationFailed', locale),
         message: workspaceManagerMessage('validationFailed', locale),
         code: 'VALIDATION_ERROR',
       });
+      return;
     }
 
     const typed = error as Error & {
@@ -349,12 +351,14 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       request.log.error({ err: error, code: typed.code }, 'workspace-manager request failed');
     }
 
-    return reply.code(statusCode).send({
+    reply.code(statusCode).send({
       statusCode,
       error: message,
       message,
       code: typed.code ?? 'WORKSPACE_MANAGER_ERROR',
     });
+
+    return;
   });
 
   app.addHook('onRequest', async (request, reply) => {
@@ -379,10 +383,11 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       const scheme = internalRouteAuthScheme(request.url);
 
       if (!scheme) {
-        return reply.code(503).send({
+        reply.code(503).send({
           error: workspaceManagerMessage('internalRouteUngated', 'en'),
           code: 'WORKSPACE_MANAGER_INTERNAL_ROUTE_UNGATED',
         });
+        return;
       }
 
       try {
@@ -392,7 +397,9 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
         const status = (error as { statusCode?: number })?.statusCode ?? 401;
         const code = (error as { code?: string })?.code ?? 'WORKSPACE_MANAGER_UNAUTHORIZED';
 
-        return reply.code(status).send({ error: (error as Error).message, code });
+        reply.code(status).send({ error: (error as Error).message, code });
+
+        return;
       }
 
       return;
@@ -402,10 +409,11 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
     if (!expected) {
       if (process.env.NODE_ENV === 'production') {
-        return reply.code(503).send({
+        reply.code(503).send({
           error: workspaceManagerMessage('managerNotConfigured', 'en'),
           code: 'WORKSPACE_MANAGER_NOT_CONFIGURED',
         });
+        return;
       }
 
       return; // dev/test convenience only
@@ -416,9 +424,10 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     const token = normalizeSharedSecret(value?.replace(/^Bearer\s+/i, ''));
 
     if (!token || !secretsMatch(token, expected)) {
-      return reply
+      reply
         .code(401)
         .send({ error: workspaceManagerMessage('managerUnauthorized', 'en'), code: 'WORKSPACE_MANAGER_UNAUTHORIZED' });
+      return;
     }
   });
 
@@ -581,15 +590,19 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.delete('/workspaces/:workspaceId', async (request) =>
     manager.deleteWorkspace(runtimeNamespace(), (request.params as any).workspaceId),
   );
+
   // Account-purge reserve #2: REAL PVC existence in Kubernetes (not the row status).
   app.get('/workspaces/:workspaceId/pvc-exists', async (request) => ({
     exists: await manager.pvcExists(runtimeNamespace(), (request.params as any).workspaceId),
   }));
+
   // Account-purge reserve #1: write barrier — revoke token + stop pod before erasure.
   app.post('/workspaces/:workspaceId/freeze', async (request, reply) => {
-    // RR-CODEX-14 (P3): the durable barrier carries the owning purge plan's fence token.
-    // R-P3-02: freezeWorkspace THROWS if the durable barrier isn't confirmed persisted
-    // → Fastify replies 5xx, never a 204 on an unconfirmed barrier.
+    /*
+     * RR-CODEX-14 (P3): the durable barrier carries the owning purge plan's fence token.
+     * R-P3-02: freezeWorkspace THROWS if the durable barrier isn't confirmed persisted
+     * → Fastify replies 5xx, never a 204 on an unconfirmed barrier.
+     */
     const fenceToken = (request.body as { fenceToken?: string } | undefined)?.fenceToken;
     await manager.freezeWorkspace(runtimeNamespace(), (request.params as any).workspaceId, fenceToken);
 
@@ -608,6 +621,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
     return reply.code(204).send();
   });
+
   /*
    * RR-CODEX-14 v5 (R-P3-04): make an orphaned workspace barrier RECOVERABLE — if an
    * attempt dies after freezing but before its unfreeze (crash / lost pointer), this
@@ -779,6 +793,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
    * the operator is installed (a missing CRD just makes apply fail).
    */
   const DB_ROLLBACK_NAMESPACE = 'project-databases';
+
   /*
    * Isolated tier applies Cluster + ScheduledBackup (+ on-demand Backup). Shared
    * (free) tier applies Pooler + Database CRDs on the shared cluster. All are

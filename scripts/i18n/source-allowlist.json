@@ -1521,6 +1521,69 @@
       "justification": "Operator diagnostics for the account-purge barrier (R-P3-06/07). app.setErrorHandler never serializes error.message: it maps to a catalogue key or falls back to the localized internalServerError/requestFailed copy, so these texts reach service logs only. The grace-floor guard is additionally unreachable over HTTP — the route validates graceMs with zod first and answers 400 with the localized reconcileGraceInvalid message. Naming the failing runtime, the bound and the underlying DB error verbatim is what makes a fail-closed refusal diagnosable.",
       "owner": "workspace-platform-and-i18n",
       "expiresOn": "2027-08-12"
+    },
+    {
+      "id": "recovery-purge-control-plane-1",
+      "path": "services/api/scripts/physical-purge-gcs-e2e.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:NEGATIVE FAILED: inert backend was allowed to certify \\(verified=\\{…\\}, bucketThere=\\{…\\}\\)|PHYSICAL_GCS_E2E_FAILED: verified=\\{…\\} bucketStillExists=\\{…\\} objectsAfter=\\{…\\}|inert backend must never delete|seed failed: expected \\{…\\} objects, found \\{…\\})$",
+      "justification": "Opt-in isolated GCS proof runner diagnostics and negative fixtures, emitted by the CLI only; never product copy.",
+      "owner": "account-data-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "recovery-purge-control-plane-2",
+      "path": "services/api/src/account-purge.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^(?:unspecified_retention)$",
+      "justification": "Stable machine reason code inside the versioned erasure proof. Missing reasons still prevent successful proof verification; this is not a display label.",
+      "owner": "account-data-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "recovery-purge-control-plane-3",
+      "path": "services/api/src/app.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:pvc existence check failed: \\{…\\}|workspace delete failed: \\{…\\}|workspace freeze failed for \\{…\\}: \\{…\\})$",
+      "justification": "Account purge control-plane adapter diagnostics from authenticated internal orchestration; the API public 5xx handler emits the localized generic message.",
+      "owner": "account-data-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "recovery-purge-control-plane-4",
+      "path": "services/api/src/capacity-policy.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^(?:shard project holds \\{…\\} services; ceiling is \\{…\\} of \\{…\\} \\(utilisation \\{…\\}\\))$",
+      "justification": "Pure capacity-model diagnostic with no production caller; public tenant refusals use tenant message keys, not this diagnostic.",
+      "owner": "account-data-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "recovery-purge-control-plane-5",
+      "path": "services/api/src/prisma-store.ts",
+      "rule": "*",
+      "textPattern": "^(?:ACCOUNT_PURGE_LEASE_LOST: lease lost during purge for \\{…\\} — aborting|ACCOUNT_PURGE_LEASE_LOST: lease no longer owned for \\{…\\} — aborting|ACCOUNT_PURGE_PHYSICAL_INCOMPLETE: physical storage not fully erased for \\{…\\}|ACCOUNT_PURGE_TOPOLOGY_DRIFT: storage topology changed during physical erasure for \\{…\\}|ACCOUNT_PURGE_VERIFICATION_FAILED: rows remaining after purge for \\{…\\}: \\{…\\}|MEMBERSHIP_FROZEN_FOR_PURGE: organization \\{…\\} membership is frozen during an account purge|PROJECT_FROZEN_FOR_PURGE: project \\{…\\} storage is frozen during an account purge|PURGE_ALREADY_ACTIVE: a purge plan for \\{…\\} is live or was renewed — refusing a second physical purge|append_only_redacted_never_deleted|financial_retention_7y_fail_closed|ledger_immutable_posted_entries_mig0078|retained_as_anchor_for_financial_records|retained_rows_detached_from_user|shared_organization_belongs_to_other_members|tombstone_carries_purgedAt|— refusing to finalize on a stale inventory \\(account re-queued\\))$",
+      "justification": "Purge lease/barrier diagnostics are logged and public 5xx handlers mask them; retention values are stable versioned proof reason codes, not display text.",
+      "owner": "account-data-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "recovery-purge-control-plane-6",
+      "path": "services/worker/src/index.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:API_INTERNAL_URL \\(or API_URL\\) is required to trigger account\\.purge|account\\.purge upstream failed: \\{…\\})$",
+      "justification": "Worker control-plane job failures are logged, not returned as product copy.",
+      "owner": "account-data-platform-and-i18n",
+      "expiresOn": "2027-01-12"
+    },
+    {
+      "id": "recovery-purge-control-plane-7",
+      "path": "services/workspace-manager/src/manager.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:WORKSPACE_FREEZE_INCOMPLETE: \\{…\\} revoke\\(s\\) failed for \\{…\\}:|WORKSPACE_FREEZE_PERSIST_FAILED: barrier not durable for \\{…\\}|WORKSPACE_FREEZE_PERSIST_FAILED: could not durably freeze \\{…\\}|WORKSPACE_PURGE_FROZEN: runtime \\{…\\} is frozen by an in-flight account purge — reprovision refused|WORKSPACE_PURGE_FROZEN: runtime \\{…\\} was frozen during provisioning — recreated objects revoked)$",
+      "justification": "Purge barrier diagnostics are logged; workspace manager error handler returns a localized generic message when no public message key exists.",
+      "owner": "account-data-platform-and-i18n",
+      "expiresOn": "2027-01-12"
     }
   ]
 }

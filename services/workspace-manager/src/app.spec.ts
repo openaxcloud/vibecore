@@ -102,6 +102,7 @@ class TestWorkspaceStore implements WorkspaceStore {
 
   /* R-P3-07: fence tokens whose purge plan still holds an unexpired lease. */
   readonly liveFenceTokens = new Set<string>();
+
   /* Set to simulate the lease lookup itself failing (must fail CLOSED). */
   livenessError: Error | undefined;
 
@@ -460,6 +461,7 @@ describe('workspace-manager app', () => {
 
     it('refuses an UNAUTHENTICATED call and leaves the barrier UP', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
 
       const res = await app.inject({
@@ -476,6 +478,7 @@ describe('workspace-manager app', () => {
 
     it('refuses a WRONG token and leaves the barrier UP', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
 
       const res = await app.inject({
@@ -496,6 +499,7 @@ describe('workspace-manager app', () => {
      */
     it('refuses when NO secret is configured, even outside production', async () => {
       delete process.env.WORKSPACE_MANAGER_SHARED_SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
 
       const res = await app.inject({
@@ -512,6 +516,7 @@ describe('workspace-manager app', () => {
 
     it('rejects graceMs:0 (400) even WITH a valid token — the barrier survives', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
 
       const res = await app.inject({
@@ -534,6 +539,7 @@ describe('workspace-manager app', () => {
      */
     it('carries the graceMs bounds as data, not as untranslatable copy', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { app } = frozenRuntimeApp();
 
       const res = await app.inject({
@@ -553,6 +559,7 @@ describe('workspace-manager app', () => {
 
     it('rejects a negative and a below-floor graceMs', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
 
       for (const graceMs of [-1, 1, 60_000, MIN_RECONCILE_GRACE_MS - 1]) {
@@ -578,6 +585,7 @@ describe('workspace-manager app', () => {
      */
     it('localises the refusal for a French client', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
 
       const res = await app.inject({
@@ -597,6 +605,7 @@ describe('workspace-manager app', () => {
 
     it('an internal route with NO declared scheme is refused, not exempted', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { app } = frozenRuntimeApp();
 
       // A lookalike must not inherit the real route's registry entry by prefix.
@@ -613,6 +622,7 @@ describe('workspace-manager app', () => {
 
     it('an AUTHENTICATED call with a valid window still works (the gate is not a wall)', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
 
       const res = await app.inject({
@@ -635,6 +645,7 @@ describe('workspace-manager app', () => {
      */
     it('does NOT lift a barrier whose purge is still ALIVE, however old it is', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
       runtime.store.liveFenceTokens.add('owner-live');
 
@@ -653,6 +664,7 @@ describe('workspace-manager app', () => {
 
     it('leaves the barrier UP when liveness cannot be determined (fail-closed)', async () => {
       process.env.WORKSPACE_MANAGER_SHARED_SECRET = SECRET;
+
       const { runtime, app } = frozenRuntimeApp();
       runtime.store.livenessError = new Error('connection terminated unexpectedly');
 

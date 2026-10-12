@@ -3,6 +3,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
+
     /*
      * Two suites now hit the SAME real WorkspaceRuntime table when DATABASE_URL is set
      * (prisma-store.spec.ts and purge-fence-cas.integration.spec.ts). prisma-store's

@@ -408,7 +408,6 @@ export class PrismaApiStore implements ApiStore {
     await Promise.all(clients.map((client) => client.$disconnect()));
   }
 
-
   async createUser(input: {
     email: string;
     name?: string;
@@ -4202,8 +4201,10 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    // BigInt -> number: a project bucket past 2^53 bytes (9 PB) is not a case
-    // this platform has; Number() staying exact below that is what matters.
+    /*
+     * BigInt -> number: a project bucket past 2^53 bytes (9 PB) is not a case
+     * this platform has; Number() staying exact below that is what matters.
+     */
     return { bytes: Number(row.bytes), objectCount: row.objectCount, measuredAt: row.measuredAt };
   }
 
