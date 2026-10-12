@@ -196,3 +196,9 @@ Registres de parité : la validation post-fusion de a8108ea7 a détecté trois r
 La release #716 b7a8b4b3 est servie sur les sept services rollés à 01:34:31 UTC ; les neuf références et signatures sont vérifiées, avec la limite captureur/agent d’espace décrite dans la preuve native. #715/#717 restent fusionnées sans livraison établie à ce relevé. L’E2E de a8108ea7 révèle une attente MCP manquante dans le contrôle mobile ; le correctif conserve les assertions et ne crée aucune exemption.
 
 La CI de #718 f29cfdc8 a réellement exécuté 9 552 tests unitaires réussis, trois ignorés et un échec : huit variables lues n’étaient pas documentées dans `.env.example`. Le correctif local ajoute ces définitions sans activer les fonctions ; les quatre cas du détecteur existant passent. Les conditions externes précédentes demeurent.
+
+## Échec de livraison mesuré le 12 octobre à 03:55 UTC
+
+Le déploiement 38194840868 du commit 7c24f8fc8f a échoué dans Helm malgré une CI complète verte. Le nouveau captureur est observé en CrashLoopBackOff avec neuf redémarrages ; son précédent pod reste disponible et les sept autres services deviennent prêts. Helm rapporte un retour arrière atomique. La capture finale prouve des réplicas prêts, pas leurs versions exécutées, car la comparaison et l'archivage des imageIDs n'ont pas été atteints. Les lots #715/#717/#720 ne sont donc pas déclarés livrés par cette exécution.
+
+Mesure : `mesures/2026-10-12-livraison-7c-echec.json`. Reproduction locale : le même code compilé refuse l'import de sécurité avec `node` et l'accepte avec `tsx`. Correctif et test de démarrage dans `docs/bugs/BUG-SCREENSHOTTER-RUNTIME-TYPESCRIPT-001.md`. La cause exacte vue par le processus du pod n'est pas connue sans ses journaux applicatifs.
