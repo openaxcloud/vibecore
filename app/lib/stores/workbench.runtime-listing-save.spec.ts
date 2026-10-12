@@ -231,4 +231,71 @@ describe('runtime listing against a newer successful save', () => {
     expect(store.currentDocument.get()?.value).toBe('NEW-RUNTIME');
     expect(store.filesCount).toBe(1);
   });
+
+  it('keeps a failed save rejected and dirty while the old listing completes', async () => {
+    const store = new WorkbenchStore();
+    runtimeFiles.set('audit.txt', 'ORIGINAL');
+    await store.loadRuntimeFiles();
+    store.setSelectedFile(path);
+
+    let release!: () => void;
+
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const snapshot = await runtimeAdapterMock.listFiles();
+    runtimeAdapterMock.listFiles.mockImplementationOnce(async () => {
+      await held;
+      return snapshot;
+    });
+
+    const refreshing = store.loadRuntimeFiles();
+    store.setCurrentDocumentContent('UNSAVED-DRAFT');
+    runtimeAdapterMock.writeFile.mockRejectedValueOnce(new Error('write refused'));
+    await expect(store.saveCurrentDocument()).rejects.toThrow('write refused');
+    expect(runtimeFiles.get('audit.txt')).toBe('ORIGINAL');
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    release();
+    await refreshing;
+    expect(store.files.get()[path]).toMatchObject({ content: 'ORIGINAL' });
+    expect(store.currentDocument.get()?.value).toBe('UNSAVED-DRAFT');
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+  });
+
+  it('does not carry project A files into B when A listing finishes late', async () => {
+    const store = new WorkbenchStore();
+    store.configureProject('listing-project-a');
+    runtimeFiles.set('audit.txt', 'PROJECT-A');
+    runtimeFiles.set('only-a.txt', 'ONLY-A');
+    await store.loadRuntimeFiles();
+
+    let release!: () => void;
+
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    const snapshot = await runtimeAdapterMock.listFiles();
+    runtimeAdapterMock.listFiles.mockImplementationOnce(async () => {
+      await held;
+      return snapshot;
+    });
+
+    const refreshingA = store.loadRuntimeFiles();
+    store.configureProject(undefined);
+    store.configureRuntime({ ...runtimeAdapterMock } as never);
+    store.configureProject('listing-project-b');
+    runtimeFiles.clear();
+    runtimeFiles.set('audit.txt', 'PROJECT-B');
+    runtimeFiles.set('only-b.txt', 'ONLY-B');
+    await store.loadRuntimeFiles();
+    release();
+    await refreshingA;
+    expect(store.files.get()[path]).toMatchObject({ content: 'PROJECT-B' });
+    expect(store.files.get()['/home/project/only-a.txt']).toBeUndefined();
+    expect(store.files.get()['/home/project/only-b.txt']).toMatchObject({ content: 'ONLY-B' });
+    expect(store.currentDocument.get()?.value).toBe('PROJECT-B');
+    expect(store.filesCount).toBe(2);
+  });
 });
