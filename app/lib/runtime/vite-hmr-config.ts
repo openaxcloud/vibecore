@@ -56,14 +56,34 @@ const OVERRIDE_BLOCK = `const ${MARKER} = {
 };
 `;
 
-const INJECTED_HEADER = `import { mergeConfig as __ecodeMergeConfig } from 'vite';
+const CONFIG_IMPORT = `import { defineConfig as __ecodeDefineConfig } from 'vite';`;
+
+const MERGE_IMPORT = `import { mergeConfig as __ecodeMergeConfig } from 'vite';`;
+
+const INJECTED_HEADER = `${MERGE_IMPORT}
+${CONFIG_IMPORT}
 
 ${OVERRIDE_BLOCK}`;
 
-const INJECTED_FOOTER = `
+const LEGACY_ESM_FOOTER = `
 export default typeof __ecodeUserConfig === 'function'
   ? (env) => __ecodeMergeConfig(__ecodeUserConfig(env), ${MARKER})
   : __ecodeMergeConfig(__ecodeUserConfig, ${MARKER});
+`;
+
+/*
+ * defineConfig contextualizes env in both JS and TS. Normalize the callable
+ * before invoking it: calling the function branch directly narrows object-only
+ * configs to never in TypeScript. The default argument keeps zero-arg configs
+ * callable with ConfigEnv without an any cast or a TS-only annotation.
+ */
+const INJECTED_FOOTER = `
+export default __ecodeDefineConfig(async (env) => {
+  const resolveConfig = typeof __ecodeUserConfig === 'function'
+    ? __ecodeUserConfig
+    : (_env = env) => __ecodeUserConfig;
+  return __ecodeMergeConfig(await resolveConfig(env), ${MARKER});
+});
 `;
 
 /*
@@ -74,14 +94,33 @@ export default typeof __ecodeUserConfig === 'function'
  * `module.exports =` wrap it equivalently, preserving the model's plugins/require
  * calls while layering the same env-gated 5173 pin on top.
  */
-const INJECTED_CJS_HEADER = `const { mergeConfig: __ecodeMergeConfig } = require('vite');
+const LEGACY_CJS_IMPORT = `const { mergeConfig: __ecodeMergeConfig } = require('vite');`;
 
-${OVERRIDE_BLOCK}`;
-
-const INJECTED_CJS_FOOTER = `
+const LEGACY_CJS_FOOTER = `
 module.exports = typeof __ecodeUserConfig === 'function'
   ? (env) => __ecodeMergeConfig(__ecodeUserConfig(env), ${MARKER})
   : __ecodeMergeConfig(__ecodeUserConfig, ${MARKER});
+`;
+
+/*
+ * The runtime remains CommonJS, including user require('vite') calls. Describe
+ * only the two APIs we use with their ESM declarations: Vite 5's require entry
+ * ships an untyped index.d.cts. Do not mix dynamic imports into this CJS bundle.
+ */
+const CJS_VITE_TYPE = `Pick<typeof import('vite', { with: { 'resolution-mode': 'import' } }), 'defineConfig' | 'mergeConfig'>`;
+
+function commonJsImport(typescript: boolean) {
+  return `/** @type {${CJS_VITE_TYPE}} */
+const __ecodeCjsVite${typescript ? `: ${CJS_VITE_TYPE}` : ''} = require('vite');`;
+}
+
+const INJECTED_CJS_FOOTER = `
+module.exports = __ecodeCjsVite.defineConfig(async (env) => {
+  const resolveConfig = typeof __ecodeUserConfig === 'function'
+    ? __ecodeUserConfig
+    : (_env = env) => __ecodeUserConfig;
+  return __ecodeCjsVite.mergeConfig(await resolveConfig(env), ${MARKER});
+});
 `;
 
 /*
@@ -110,7 +149,11 @@ export default defineConfig(${MARKER});
  * Before this fix (2) and (3) hit a no-op branch, so a model's own server.port
  * (e.g. 3000) survived while the preview proxy polled 5173 forever.
  */
-export function ensureViteHmrConfig(source: string): string {
+export function ensureViteHmrConfig(source: string, configPath = 'vite.config.js'): string {
+  const typescript = /\.(?:c|m)?ts$/.test(configPath);
+  const commonJsFile = /\.c[jt]s$/.test(configPath);
+  const commonJsDefaultFooter = INJECTED_CJS_FOOTER.replace('module.exports = ', 'export default ');
+
   if (!source) {
     return source;
   }
@@ -125,14 +168,42 @@ export function ensureViteHmrConfig(source: string): string {
      * existing env-gated override block so it aligns without a full, fragile
      * re-wrap. When the pin is already there it's current → no-op (idempotent).
      */
-    if (source.includes(PIN_MARKER)) {
-      return source;
+    let upgraded = source.includes(PIN_MARKER)
+      ? source
+      : source.replace(
+          /(process\.env\.VITE_HMR_CLIENT_PORT\s*\?\s*\{)/,
+          '$1\n          port: 5173,\n          strictPort: true,',
+        );
+
+    // Upgrade only our exact previous footer; do not rewrite user-authored code.
+    for (const prefix of ['export default ', 'const __ecodeApiUserConfig = ']) {
+      const previousFooters = commonJsFile ? [LEGACY_ESM_FOOTER, INJECTED_FOOTER] : [LEGACY_ESM_FOOTER];
+
+      for (const previous of previousFooters) {
+        const legacy = previous.trim().replace('export default ', prefix);
+
+        const replacement = (commonJsFile ? commonJsDefaultFooter : INJECTED_FOOTER)
+          .trim()
+          .replace('export default ', prefix);
+
+        if (upgraded.includes(legacy)) {
+          upgraded = commonJsFile
+            ? `${commonJsImport(typescript)}\n${upgraded.replace(legacy, replacement).replace(MERGE_IMPORT, '').replace(CONFIG_IMPORT, '')}`
+            : `${CONFIG_IMPORT}\n${upgraded.replace(legacy, replacement)}`;
+        }
+      }
     }
 
-    return source.replace(
-      /(process\.env\.VITE_HMR_CLIENT_PORT\s*\?\s*\{)/,
-      '$1\n          port: 5173,\n          strictPort: true,',
-    );
+    for (const prefix of ['module.exports = ', 'const __ecodeApiUserConfig = ']) {
+      const legacy = LEGACY_CJS_FOOTER.trim().replace('module.exports = ', prefix);
+      const replacement = INJECTED_CJS_FOOTER.trim().replace('module.exports = ', prefix);
+
+      if (upgraded.includes(legacy)) {
+        upgraded = upgraded.replace(legacy, replacement).replace(LEGACY_CJS_IMPORT, commonJsImport(typescript));
+      }
+    }
+
+    return upgraded;
   }
 
   /*
@@ -145,7 +216,9 @@ export function ensureViteHmrConfig(source: string): string {
   if (exportDefault.test(source)) {
     const rewritten = source.replace(exportDefault, (_match, prefix) => `${prefix}const __ecodeUserConfig = `);
 
-    return `${INJECTED_HEADER}\n${rewritten.trimEnd()}\n${INJECTED_FOOTER}`;
+    return commonJsFile
+      ? `${commonJsImport(typescript)}\n${OVERRIDE_BLOCK}\n${rewritten.trimEnd()}\n${commonJsDefaultFooter}`
+      : `${INJECTED_HEADER}\n${rewritten.trimEnd()}\n${INJECTED_FOOTER}`;
   }
 
   /*
@@ -160,7 +233,7 @@ export function ensureViteHmrConfig(source: string): string {
   if (moduleExports.test(source)) {
     const rewritten = source.replace(moduleExports, (_match, prefix) => `${prefix}const __ecodeUserConfig = `);
 
-    return `${INJECTED_CJS_HEADER}\n${rewritten.trimEnd()}\n${INJECTED_CJS_FOOTER}`;
+    return `${commonJsImport(typescript)}\n${OVERRIDE_BLOCK}\n${rewritten.trimEnd()}\n${INJECTED_CJS_FOOTER}`;
   }
 
   /*
@@ -169,5 +242,7 @@ export function ensureViteHmrConfig(source: string): string {
    * and the preview loops on unreachable 5173. Emit a deterministic minimal config
    * that carries the pin so 5173 is ALWAYS guaranteed.
    */
-  return FALLBACK_CONFIG;
+  return commonJsFile
+    ? `${commonJsImport(typescript)}\n${OVERRIDE_BLOCK}\nmodule.exports = __ecodeCjsVite.defineConfig(${MARKER});\n`
+    : FALLBACK_CONFIG;
 }

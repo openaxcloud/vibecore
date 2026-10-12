@@ -1,0 +1,38 @@
+
+ RUN  v3.2.6 /workspace/vibecore-offline-20261012
+
+ ❯ scripts/index-a-jour.spec.mjs (6 tests | 1 failed) 30ms
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > chaque fichier du dossier a exactement une ligne dans l’index 4ms
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > chaque ligne de l’index pointe vers un fichier qui existe 2ms
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > l’identifiant de l’index est celui du frontmatter du fichier 12ms
+   × l'index de l'inventaire ne diverge pas de docs/bugs/ > le compte annoncé en tête d’index est le compte réel 9ms
+     → expected 418 to be 419 // Object.is equality
+   ✓ la décision restée hors du tableau est conservée mot pour mot > figure dans l'index, à la ligne près 1ms
+   ✓ la décision restée hors du tableau est conservée mot pour mot > est annoncée comme un résidu, pas glissée dans la liste des entrées 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/index-a-jour.spec.mjs > l'index de l'inventaire ne diverge pas de docs/bugs/ > le compte annoncé en tête d’index est le compte réel
+AssertionError: expected 418 to be 419 // Object.is equality
+
+- Expected
++ Received
+
+- 419
++ 418
+
+ ❯ scripts/index-a-jour.spec.mjs:85:32
+     83|
+     84|     expect(annonce, "l'index n'annonce aucun compte").toBeTruthy();
+     85|     expect(Number(annonce[1])).toBe(fichiersDuDossier().length);
+       |                                ^
+     86|   });
+     87| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  12:21:23
+   Duration  2.43s (transform 1.32s, setup 24ms, collect 13ms, tests 30ms, environment 0ms, prepare 62ms)

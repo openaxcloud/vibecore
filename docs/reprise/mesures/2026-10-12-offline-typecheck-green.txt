@@ -1,0 +1,139 @@
+
+> vibecore@1.0.0 typecheck /workspace/vibecore-offline-20261012
+> node scripts/typecheck.mjs
+
+[typecheck] web app
+[typecheck] web app passed in 33.0s
+[typecheck] node scripts
+[typecheck] node scripts passed in 2.3s
+[typecheck] electron main
+[typecheck] electron main passed in 1.2s
+[typecheck] electron preload
+[typecheck] electron preload passed in 0.9s
+[typecheck] workspace packages
+Scope: 34 of 36 workspace projects
+
+> @vibecore/admin@ typecheck /workspace/vibecore-offline-20261012/apps/admin
+> tsc --noEmit
+
+
+> @vibecore/audit@ typecheck /workspace/vibecore-offline-20261012/packages/audit
+> tsc --noEmit
+
+
+> @vibecore/auth@ typecheck /workspace/vibecore-offline-20261012/packages/auth
+> tsc --noEmit
+
+
+> @vibecore/billing@ typecheck /workspace/vibecore-offline-20261012/packages/billing
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+
+
+> @vibecore/config@ typecheck /workspace/vibecore-offline-20261012/packages/config
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+
+
+> @vibecore/connector-sdk@ typecheck /workspace/vibecore-offline-20261012/packages/connector-sdk
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+
+
+> @vibecore/database@ typecheck /workspace/vibecore-offline-20261012/packages/database
+> tsc --noEmit
+
+
+> @vibecore/editor@ typecheck /workspace/vibecore-offline-20261012/packages/editor
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts src/index.spec.ts src/mobile-editor.spec.tsx src/monaco-editor-ambient.d.ts
+
+
+> @vibecore/k8s-client@ typecheck /workspace/vibecore-offline-20261012/packages/k8s-client
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+
+
+> @vibecore/observability@ typecheck /workspace/vibecore-offline-20261012/packages/observability
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+
+
+> @vibecore/quota@ typecheck /workspace/vibecore-offline-20261012/packages/quota
+> tsc --noEmit
+
+
+> @vibecore/rbac@ typecheck /workspace/vibecore-offline-20261012/packages/rbac
+> tsc --noEmit
+
+
+> @vibecore/runtime-contract@ typecheck /workspace/vibecore-offline-20261012/packages/runtime-contract
+> tsc --noEmit
+
+
+> @e-code/sdk@0.1.0 typecheck /workspace/vibecore-offline-20261012/packages/sdk
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+
+
+> @vibecore/security@ typecheck /workspace/vibecore-offline-20261012/packages/security
+> tsc --noEmit
+
+
+> @vibecore/shared@ typecheck /workspace/vibecore-offline-20261012/packages/shared
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+
+
+> @vibecore/template-catalog@ typecheck /workspace/vibecore-offline-20261012/packages/template-catalog
+> tsc --noEmit
+
+
+> @vibecore/ui@ typecheck /workspace/vibecore-offline-20261012/packages/ui
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts
+
+
+> @vibecore/workspace-sdk@ typecheck /workspace/vibecore-offline-20261012/packages/workspace-sdk
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+
+
+> @vibecore/preview-proxy@ typecheck /workspace/vibecore-offline-20261012/services/preview-proxy
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+
+
+> @vibecore/mobile@ typecheck /workspace/vibecore-offline-20261012/apps/mobile
+> tsc --noEmit
+
+
+> @vibecore/runtime-remote@ typecheck /workspace/vibecore-offline-20261012/packages/runtime-remote
+> tsc --noEmit
+
+
+> @vibecore/runtime-webcontainer@ typecheck /workspace/vibecore-offline-20261012/packages/runtime-webcontainer
+> tsc --noEmit
+
+
+> @vibecore/sandbox-runtime@ typecheck /workspace/vibecore-offline-20261012/packages/sandbox-runtime
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+
+
+> @vibecore/ai-gateway@ typecheck /workspace/vibecore-offline-20261012/services/ai-gateway
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts
+
+
+> @vibecore/api@ typecheck /workspace/vibecore-offline-20261012/services/api
+> tsc --noEmit -p tsconfig.json
+
+
+> @vibecore/connector-proxy@ typecheck /workspace/vibecore-offline-20261012/services/connector-proxy
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+
+
+> @vibecore/screenshotter@ typecheck /workspace/vibecore-offline-20261012/services/screenshotter
+> tsc --noEmit -p tsconfig.json
+
+
+> @vibecore/worker@ typecheck /workspace/vibecore-offline-20261012/services/worker
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts src/enqueue-cli.ts
+
+
+> @vibecore/workspace-agent@ typecheck /workspace/vibecore-offline-20261012/services/workspace-agent
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts
+
+
+> @vibecore/workspace-manager@ typecheck /workspace/vibecore-offline-20261012/services/workspace-manager
+> tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts
+
+[typecheck] workspace packages passed in 68.9s

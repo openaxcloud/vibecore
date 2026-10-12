@@ -1,0 +1,34 @@
+
+ RUN  v3.2.6 /workspace/vibecore-offline-20261012
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 18ms
+ ✓ app/lib/runtime/vite-hmr-config.compilation.spec.ts (12 tests) 14437ms
+   ✓ actual generated HMR config compilation > compiles and loads object preserving user settings and proxy HMR  1527ms
+   ✓ actual generated HMR config compilation > compiles and loads plain function preserving user settings and proxy HMR  1827ms
+   ✓ actual generated HMR config compilation > compiles and loads function preserving user settings and proxy HMR  2121ms
+   ✓ actual generated HMR config compilation > compiles and loads zero-argument function preserving user settings and proxy HMR  1672ms
+   ✓ actual generated HMR config compilation > compiles and loads async function preserving user settings and proxy HMR  1518ms
+   ✓ actual generated HMR config compilation > compiles and loads promise preserving user settings and proxy HMR  1701ms
+   ✓ actual generated HMR config compilation > upgrades an already pinned legacy config and compiles it  904ms
+   ✓ actual generated HMR config compilation > builds a coherent module graph and rejects a missing export  3130ms
+stderr | app/lib/runtime/vite-hmr-commonjs.spec.ts > CommonJS HMR real configuration > preserves user require through HMR and API
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ ✓ app/lib/runtime/vite-hmr-commonjs.spec.ts (18 tests) 6242ms
+   ✓ CommonJS HMR real configuration > compiles emitted CommonJS under strict checkJs: { base: '/kept/' }  726ms
+   ✓ CommonJS HMR real configuration > compiles emitted CommonJS under strict checkJs: () => ({ base: '/kept/' })  645ms
+   ✓ CommonJS HMR real configuration > compiles emitted CommonJS under strict checkJs: Promise.resolve({ base: '/kept/' })  653ms
+   ✓ CommonJS HMR real configuration > discovers, compiles and loads cjs module.exports = through manifest repair  666ms
+   ✓ CommonJS HMR real configuration > discovers, compiles and loads cts module.exports = through manifest repair  639ms
+   ✓ CommonJS HMR real configuration > discovers, compiles and loads cts export default through manifest repair  736ms
+   ✓ CommonJS HMR real configuration > compiles and loads a cts first-lot migration  696ms
+   ✓ CommonJS HMR real configuration > compiles and loads a cts legacy migration  632ms
+   ✓ CommonJS HMR real configuration > compiles and loads a cts fallback migration  678ms
+ ✓ app/lib/runtime/vite-api-serve.spec.ts (15 tests) 159ms
+ ✓ app/lib/runtime/preview-manifest.spec.ts (13 tests) 18ms
+ ✓ app/lib/runtime/vite-hmr-config.spec.ts (8 tests) 5ms
+
+ Test Files  6 passed (6)
+      Tests  72 passed (72)
+   Start at  12:23:56
+   Duration  24.41s (transform 1.29s, setup 72ms, collect 433ms, tests 20.88s, environment 1ms, prepare 357ms)

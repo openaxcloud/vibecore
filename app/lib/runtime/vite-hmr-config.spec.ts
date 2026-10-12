@@ -24,7 +24,7 @@ describe('ensureViteHmrConfig', () => {
 
     expect(out).toContain("import { mergeConfig as __ecodeMergeConfig } from 'vite'");
     expect(out).toContain('const __ecodeUserConfig = defineConfig({');
-    expect(out).toContain('__ecodeMergeConfig(__ecodeUserConfig, __ecodeHmrOverride)');
+    expect(out).toContain('__ecodeMergeConfig(await resolveConfig(env), __ecodeHmrOverride)');
 
     // The model's original settings are still present.
     expect(out).toContain('plugins: [react()]');
@@ -49,7 +49,7 @@ describe('ensureViteHmrConfig', () => {
     const out = ensureViteHmrConfig(FUNCTION_CONFIG);
 
     expect(out).toContain('const __ecodeUserConfig = defineConfig(({ mode }) =>');
-    expect(out).toContain('(env) => __ecodeMergeConfig(__ecodeUserConfig(env), __ecodeHmrOverride)');
+    expect(out).toContain('export default __ecodeDefineConfig(async (env) => {');
     expect(out).toContain('define: { __MODE__: JSON.stringify(mode) }');
   });
 
@@ -116,9 +116,9 @@ describe('ensureViteHmrConfig', () => {
     const out = ensureViteHmrConfig(cjs);
 
     // Wrapped as CJS (require + module.exports), NOT ESM import/export default.
-    expect(out).toContain("const { mergeConfig: __ecodeMergeConfig } = require('vite')");
+    expect(out).toContain("const __ecodeCjsVite = require('vite')");
     expect(out).toContain('const __ecodeUserConfig = defineConfig({');
-    expect(out).toContain('module.exports = typeof __ecodeUserConfig');
+    expect(out).toContain('module.exports = __ecodeCjsVite.defineConfig');
     expect(out).not.toContain('import { mergeConfig');
     expect(out).not.toContain('export default');
 
@@ -140,7 +140,7 @@ describe('ensureViteHmrConfig', () => {
     const out = ensureViteHmrConfig(cjs);
 
     expect(out).toContain('const __ecodeUserConfig = () => ({ server: { port: 4000 } })');
-    expect(out).toContain('(env) => __ecodeMergeConfig(__ecodeUserConfig(env), __ecodeHmrOverride)');
+    expect(out).toContain('__ecodeCjsVite.mergeConfig(await resolveConfig(env), __ecodeHmrOverride)');
     expect(out).toContain('port: 5173');
   });
 
