@@ -1,4 +1,10 @@
+---
+id: BUG-IDE-ONGLET-BROUILLON-PERDU-001
+---
+
 # BUG-IDE-ONGLET-BROUILLON-PERDU-001
+
+## Bug
 
 Signal transmis par la session parent : job GitHub `115041292778`, run `38318643274`, tête `9c07d3a13394050e7fedd3f7bfb759f663a1f7fe`, à 23:08:59 UTC le 12 octobre 2026. Au premier essai de `ide-file-tab-identity.spec.ts`, l’onglet épinglé est actif mais l’assertion ligne 161 reçoit `PERSISTENCE-ORIGINAL-20261012second line` au lieu de `UNSAVED-A-UNIQUE` pendant cinq secondes. Le retry passe en 13,4 s. La conclusion globale réussie ne clôt pas ce signal.
 
@@ -6,7 +12,17 @@ L’API GitHub confirme le SHA et l’état final réussi. Le téléchargement d
 
 Diagnostic local sur branche `codex/pinned-draft-loss-20261012`, base exacte de #731, distinct du lot mobile non poussé. Aucun allongement du délai et aucune suppression d’assertion. Cause CI non attribuée ; une course du listing est démontrée séparément ci-dessous.
 
-📤 Dispatché : ☑ · 💻 Codé : ☐ · ✅ Testé live : ☐
+## 📤 Dispatché
+
+☑ — diagnostic délégué et revue parent.
+
+## 💻 Codé
+
+☐ — correctif intégré à la branche #731, non fusionné sur main.
+
+## ✅ Testé live
+
+☐ — course démontrée sur stores locaux ; cause du signal CI non attribuée.
 
 ## Résultat du diagnostic local
 
@@ -31,3 +47,11 @@ Build final réussi (`build-final.log`). Aucun test navigateur supplémentaire r
 ## Complément demandé par le parent
 
 Huit contre-épreuves du listing passent après ajout des cas sauvegarde refusée et passage A→B. La promesse de sauvegarde refusée rejette, le runtime reste ORIGINAL et le document reste UNSAVED-DRAFT avec dirty=true après libération du listing. Au passage A→B, le provider est simulé par ses vrais appels configureProject/configureRuntime ; le listing A retenu ne réintroduit ni le contenu commun A ni only-a.txt dans B. Un listing ultérieur sans mutation concurrente adopte LATER-EXTERNAL-UPDATE dans les deux variantes de sauvegarde (texte et vide). Aucun nouveau changement produit. Journal : `/tmp/pinned-draft-evidence/additional-tests.log`.
+
+## Intégration dans #731
+
+Revue du snapshot : nanostores `map.setKey` remplace la map par copie ; les écritures de FilesStore remplacent les entrées. Les deux variantes de sauvegarde vérifient maintenant explicitement que map et entrée changent d’identité et que le snapshot retenu conserve ORIGINAL. Aucun chemin produit de mutation directe en place identifié.
+
+Le diagnostic E2E borné ajoute les lectures HTTP fichiers/archive aux signaux existants de sauvegarde et d’éditeur : événements limités à 128, aucun contenu, corps, URL ou identifiant de projet enregistré. L’assertion UNSAVED-A-UNIQUE et ses délais restent inchangés. La cause CI reste non attribuée.
+
+Validation d’intégration : 35 tests stores/éditeur réussis, six gardes d’index réussies après suppression du doublon manuel et régénération à 425 entrées ; lint, formatage et typage strict du diagnostic réussis. Aucun delta mobile intégré. Relecture indépendante favorable.

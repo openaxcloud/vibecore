@@ -131,11 +131,19 @@ describe('runtime listing against a newer successful save', () => {
       return snapshot;
     });
 
+    const filesBeforeListing = store.files.get();
+    const entryBeforeListing = filesBeforeListing[path];
     const refreshing = store.loadRuntimeFiles();
     store.setCurrentDocumentContent(saved);
     expect(store.unsavedFiles.get().has(path)).toBe(true);
     await store.saveCurrentDocument();
     expect(runtimeFiles.get('audit.txt')).toBe(saved);
+
+    // Real nanostores writes replace both map and entry; the held snapshot stays intact.
+    expect(store.files.get()).not.toBe(filesBeforeListing);
+    expect(store.files.get()[path]).not.toBe(entryBeforeListing);
+    expect(filesBeforeListing[path]).toBe(entryBeforeListing);
+    expect(entryBeforeListing).toMatchObject({ content: 'PERSISTENCE-ORIGINAL' });
     expect(store.unsavedFiles.get().has(path)).toBe(false);
     release();
     await refreshing;
