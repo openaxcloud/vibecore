@@ -41,9 +41,9 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   expect(imported.ok()).toBeTruthy();
 
   /*
-   * In remote mode, exercise persisted files with an unavailable runtime.
-   * The local audit builds VITE_RUNTIME_MODE=remote-kubernetes and configures
-   * no workspace manager; these aborts never substitute successful responses.
+   * Block remote runtime activity without substituting successful responses.
+   * A local WebContainer may still autosave: identity/content assertions must
+   * remain valid whether the edit is still dirty or has been saved.
    */
   await context.route(/\/api\/(runtime|runtime-token|chat)(\/|\?|$)/, (route) => route.abort('blockedbyclient'));
   await context.routeWebSocket('**/*', (socket) => socket.close());
@@ -65,10 +65,13 @@ test('opening a stored file binds the initial editor tab without duplicating it'
     page.getByText(name, { exact: true }).and(page.locator('.bolt-file-tree-name')).filter({ visible: true });
 
   /*
-   * Scope this regression to an initialized editor. A separate cold Monaco
-   * initialization race was observed and is recorded in the local audit.
+   * Cold CI loading took more than the default 5 s to render initial content.
+   * Wait for that content, with the 10 s readiness budget used by IDE checks;
+   * retain the overall 30 s test budget and fail if initialization stays stuck.
    */
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('File tab identity audit');
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('File tab identity audit', {
+    timeout: 10_000,
+  });
   fileTabDiagnostics.mark('monaco-initial-content-ready');
   await file('audit.txt').click();
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
@@ -85,11 +88,44 @@ test('opening a stored file binds the initial editor tab without duplicating it'
 
   await file('audit.txt').click();
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
+
+  const documentTabId = (await documentTabs.getAttribute('data-tab-id')) ?? '';
+  expect(documentTabId).not.toBe('');
+
+  const documentTab = page.getByTestId(`tab-${documentTabId}`);
+
   await page.locator('.monaco-editor .view-lines').click();
   await page.keyboard.press('ControlOrMeta+a');
   fileTabDiagnostics.mark('editing-draft');
-  await page.keyboard.insertText('UNSAVED-A-UNIQUE\n');
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
+
+  /*
+   * Observe the transient dirty state before typing; autosave may clear it
+   * before the next Playwright round trip. This reads DOM only, never the store.
+   */
+  const dirtyTransition = await documentTab.evaluateHandle((tab) => {
+    const state = { observed: false, disconnect: () => observer.disconnect() };
+
+    const observer = new MutationObserver((records) => {
+      state.observed ||=
+        tab.getAttribute('data-dirty') === 'true' || records.some((record) => record.oldValue === 'true');
+
+      if (state.observed) {
+        observer.disconnect();
+      }
+    });
+    observer.observe(tab, { attributes: true, attributeFilter: ['data-dirty'], attributeOldValue: true });
+
+    return state;
+  });
+
+  try {
+    await page.keyboard.insertText('UNSAVED-A-UNIQUE\n');
+    await expect.poll(() => dirtyTransition.evaluate((state) => state.observed)).toBe(true);
+  } finally {
+    await dirtyTransition.evaluate((state) => state.disconnect()).catch(() => undefined);
+    await dirtyTransition.dispose().catch(() => undefined);
+  }
+  await expect(page.locator('.monaco-editor .view-lines')).toHaveText('UNSAVED-A-UNIQUE');
 
   const storageReads: string[] = [];
   page.on('request', (request) => {
@@ -102,24 +138,26 @@ test('opening a stored file binds the initial editor tab without duplicating it'
   await file('other.txt').click();
   await expect(page.locator('.monaco-editor .view-lines')).toContainText('SECOND-DOCUMENT');
   await file('audit.txt').click();
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
+  await expect(page.locator('.monaco-editor .view-lines')).toHaveText('UNSAVED-A-UNIQUE');
   expect(storageReads).toEqual([]);
-  await page.screenshot({ path: testInfo.outputPath('unsaved-draft-return.png') });
+  await page.screenshot({ path: testInfo.outputPath('edited-content-return.png') });
 
   fileTabDiagnostics.mark('pinning-draft');
   await documentTabs.locator('.bolt-project-tab-pin').click();
 
   fileTabDiagnostics.mark('checking-pinned-draft');
 
-  const pinnedFile = page.getByRole('tab', { name: 'Pinned tab: /audit.txt, unsaved changes', exact: true });
-  await expect(pinnedFile).toHaveCount(1);
+  await expect(documentTabs).toHaveAttribute('data-tab-id', documentTabId);
+  await expect(documentTab).toHaveAttribute('data-pinned', 'true');
   await file('other.txt').click();
-  await expect(pinnedFile).toHaveCount(1);
+  await expect(documentTabs).toHaveAttribute('data-tab-id', documentTabId);
+  await expect(documentTab).toHaveAttribute('data-pinned', 'true');
   await expect(page.getByRole('tab').filter({ hasText: 'other.txt' })).toHaveCount(1);
   await file('other.txt').click();
   await expect(page.getByRole('tab').filter({ hasText: 'other.txt' })).toHaveCount(1);
   fileTabDiagnostics.mark('returning-to-pinned-draft');
-  await pinnedFile.click();
-  await expect(page.locator('.monaco-editor .view-lines')).toContainText('UNSAVED-A-UNIQUE');
+  await documentTab.click();
+  await expect(documentTab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.monaco-editor .view-lines')).toHaveText('UNSAVED-A-UNIQUE');
   await page.screenshot({ path: testInfo.outputPath('pinned-file-preserved.png') });
 });
