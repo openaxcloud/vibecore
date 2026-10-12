@@ -1741,7 +1741,7 @@ function MobileFeatureDemo({ copy, featureId }: { copy: RemainingProductCopy['mo
 
   return (
     <Panel dark className="bg-slate-950">
-      <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-xs leading-6 text-emerald-200">
+      <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 font-mono text-xs leading-6 text-bolt-elements-code-text">
         <code>
           {'import Workspace from "@ecode/mobile";\n'}
           {'const session = Workspace.resume("inventory-app");\n'}
