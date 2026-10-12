@@ -1,0 +1,106 @@
+{
+  "deployment": 38186261396,
+  "targetSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+  "conclusion": "success",
+  "manifestFullyTraceable": true,
+  "manifestProvenanceGaps": [],
+  "references": [
+    {
+      "service": "web",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:de031a9be6861b900eebe69950ca0cad27bc60113a26d8bb6a2d2104d998a679",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "admin",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:d1d899de3cd72a64ca61cbc51c117fb0552f94c1f510b05b2f46420e1f23485b",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "api",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:f2a4945bcf2f5ea303f8bbca68f8864d4c11dd8d9df18d40e9aee019514bc60f",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "worker",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:7c796e9dcc159bc6f87afaac1a262446139e303396f17d76873936993cd645d2",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "aiGateway",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:edb7e274aa7dd3612a12e83801b5abd8389921f355641cb99a1dbf950d2a91a7",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "workspaceManager",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:35fdd7151b11173d3a0c39312b5bb8d36a972c1bae4d2812c90e5dc51b566941",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "previewProxy",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:885e89d8e0dba98a161b1ceff33a38f287cb2b2b7394fbe4910e83f9da961a9b",
+      "rebuilt": true,
+      "rolled": true,
+      "provenanceKnown": true
+    },
+    {
+      "service": "screenshotter",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:22fdb8bf4d289f9173bf801cc6a09d0ee871792fe65c64b1938e566c584319fa",
+      "rebuilt": true,
+      "rolled": false,
+      "provenanceKnown": true
+    },
+    {
+      "service": "workspaceAgent",
+      "sourceSha": "b7a8b4b339628fd98fd0898b397cceb4e70fd71f",
+      "digest": "sha256:ceb0e0255ddd8b2b3b89b3c8763c13d8c2ba56e618f9cad69d887a2024ee5519",
+      "rebuilt": true,
+      "rolled": false,
+      "provenanceKnown": true
+    }
+  ],
+  "signaturesVerified": {
+    "web": true,
+    "admin": true,
+    "api": true,
+    "worker": true,
+    "aiGateway": true,
+    "workspaceManager": true,
+    "previewProxy": true,
+    "screenshotter": true,
+    "workspaceAgent": true
+  },
+  "rolloutCapture": {
+    "time": "2026-10-12T01:34:31.709Z",
+    "commandExitCode": 0,
+    "evidenceComplete": true
+  },
+  "artifacts": {
+    "manifest": 11721219267,
+    "rollout": 11722395235
+  },
+  "sha256": {
+    "manifest": "5edc8586d3ffa4dabf6ccb760bc7661b2dc88a40755dd2d92a3a9adb572e95fb",
+    "rollout": "e4d8e44d201149b8909a2c9cfad25aeb46ca73c7b40a440e292509e506a98a05"
+  },
+  "runningEvidenceLimit": "Seven rolled services passed workflow imageID comparison. Rebuilt screenshotter and workspaceAgent references do not prove those containers run; raw imageIDs were not archived by this workflow."
+}

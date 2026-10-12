@@ -1448,6 +1448,16 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
         const entree = menu.locator('.bolt-chatbox-tools-menu-item').nth(index);
         const texte = (await entree.textContent())?.trim().slice(0, 30) ?? `entrée ${index}`;
 
+        /*
+         * The MCP trigger remains disabled while its real initialization runs.
+         * Wait for that state to settle; a ready but disabled item still fails below.
+         */
+        if ((await entree.getAttribute('aria-busy')) === 'true') {
+          await expect(entree, 'l’initialisation du menu doit terminer').toHaveAttribute('aria-busy', 'false', {
+            timeout: 45_000,
+          });
+        }
+
         if (await entree.isDisabled()) {
           expect(texte, 'seule « Améliorer le prompt » peut être inerte à vide').toMatch(/Améliorer|Enhance/);
           await page.keyboard.press('Escape');

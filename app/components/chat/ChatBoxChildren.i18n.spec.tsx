@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { createInstance } from 'i18next';
 import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from 'react';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
@@ -78,7 +78,12 @@ function renderWithLanguage(language: 'en' | 'fr' | 'es', node: ReactNode) {
     initImmediate: false,
   });
 
-  return render(<I18nextProvider i18n={i18n}>{node}</I18nextProvider>);
+  const view = render(<I18nextProvider i18n={i18n}>{node}</I18nextProvider>);
+
+  return {
+    ...view,
+    rerender: (next: ReactNode) => view.rerender(<I18nextProvider i18n={i18n}>{next}</I18nextProvider>),
+  };
 }
 
 function interpolationTokens(value: string): string[] {
@@ -104,6 +109,38 @@ afterEach(() => {
 });
 
 describe('ChatBox child surfaces i18n', () => {
+  it.each(['en', 'fr'] as const)(
+    'exposes the real MCP loading state until initialization settles in %s',
+    async (language) => {
+      let finishInitialization!: () => void;
+
+      const initialization = new Promise<void>((resolve) => {
+        finishInitialization = resolve;
+      });
+      mocks.mcpState = { isInitialized: false, serverTools: {} };
+      mocks.initialize.mockReturnValue(initialization);
+
+      const copy = getChatBoxChildrenCopy(language);
+      const view = renderWithLanguage(language, <McpTools />);
+      const pending = screen.getByRole('button', { name: copy['chatBoxChildren.mcp.triggerInitializing'] });
+
+      expect(mocks.initialize).toHaveBeenCalledTimes(1);
+      expect((pending as HTMLButtonElement).disabled).toBe(true);
+      expect(pending.getAttribute('aria-busy')).toBe('true');
+
+      await act(async () => {
+        mocks.mcpState = { isInitialized: true, serverTools: {} };
+        finishInitialization();
+      });
+      view.rerender(<McpTools />);
+
+      const ready = screen.getByRole('button', { name: copy['chatBoxChildren.mcp.triggerAvailable'] });
+
+      expect((ready as HTMLButtonElement).disabled).toBe(false);
+      expect(ready.getAttribute('aria-busy')).toBe('false');
+    },
+  );
+
   it('keeps strict catalog parity, interpolation, safe errors, and English fallback', () => {
     expect(Object.keys(chatBoxChildrenFr).sort()).toEqual(Object.keys(chatBoxChildrenEn).sort());
 
@@ -235,6 +272,8 @@ describe('ChatBox child surfaces i18n', () => {
       name: 'Impossible d’initialiser les outils MCP — ouvrir pour plus de détails',
     });
 
+    expect((trigger as HTMLButtonElement).disabled).toBe(false);
+    expect(trigger.getAttribute('aria-busy')).toBe('false');
     fireEvent.click(trigger);
     expect(screen.getByRole('alert').textContent).toBe('Impossible d’initialiser les outils MCP. Réessayez.');
     expect(document.body.textContent).not.toContain('bearer=secret-value');
