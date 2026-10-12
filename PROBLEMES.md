@@ -11,6 +11,7 @@ Ce fichier n'est pas un second registre de statuts.
 - [A-37 : suite CommonJS et galerie](docs/reprise/2026-10-12-a37-commonjs-et-galerie.md) : compilations locales, versions restaurées et six diagnostics globaux exacts ; parcours live toujours ouvert.
 - [Typecheck : dérive des dépendances restaurées](docs/reprise/2026-10-12-typecheck-dependances.md) : attribution des six diagnostics par contre-épreuves ; restauration conforme au lockfile encore requise.
 - [A-37 : restauration hors ligne isolée](docs/reprise/2026-10-12-a37-restauration-offline.md) : typecheck global et 72 tests verts sur graphe revérifié ; correctifs de l'outillage d'audit, limites live inchangées.
+- [A-37 : prérequis des six échecs de galerie](docs/reprise/2026-10-12-a37-galerie-prerequis.md) : sources inchangées, dépendances requises absentes de la copie conforme ; aucun défaut intrinsèque établi ni compilation actuelle revendiquée.
 - [Bugs](BUG_INVENTORY_LIVE.md) : index dérivé des fiches dans `docs/bugs/`, jamais à modifier à la main.
 - [Programme design](DESIGN_PROGRAM_MASTER.md) et [audit design](DESIGN_AUDIT_LIVE.md) : exigences et preuves visuelles.
 - [Plan restant](PLAN_REMAINING_UNIFIED.md) et [parité Replit](REPLIT_PARITY.md) : plan fonctionnel et visuel.

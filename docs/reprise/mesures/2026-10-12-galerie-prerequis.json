@@ -1,0 +1,1530 @@
+{
+  "sourceCommit": "fa8ef74572886eebeceb0dd5422cbd9adf877f8b",
+  "repository": "/workspace/vibecore-offline-20261012",
+  "mode": "read-only snapshot and existing unpacked package inventory; no compiler or package manager executed",
+  "node": {
+    "version": "v24.19.0",
+    "executable": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node"
+  },
+  "semver": "7.7.4 (repository local)",
+  "results": [
+    {
+      "id": "vendor-risk-review",
+      "previousContentHash": "e3def87057ea437cedce51c3b0a66226de2f64530481a76817926020a00e123d",
+      "currentContentHash": "e3def87057ea437cedce51c3b0a66226de2f64530481a76817926020a00e123d",
+      "unchangedSnapshot": true,
+      "scripts": {
+        "dev": "tsx server/main.ts",
+        "build": "vite build",
+        "start": "NODE_ENV=production tsx server/main.ts",
+        "typecheck": "tsc --noEmit"
+      },
+      "configs": {
+        "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"useDefineForClassFields\": true,\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"Bundler\",\n    \"lib\": [\"ES2022\", \"DOM\", \"DOM.Iterable\"],\n    \"jsx\": \"react-jsx\",\n    \"types\": [\"node\", \"vite/client\"],\n    \"strict\": true,\n    \"noEmit\": true,\n    \"esModuleInterop\": true,\n    \"skipLibCheck\": true,\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"allowImportingTsExtensions\": true,\n    \"verbatimModuleSyntax\": false,\n    \"forceConsistentCasingInFileNames\": true,\n    \"noUnusedLocals\": true,\n    \"noUnusedParameters\": true,\n    \"noFallthroughCasesInSwitch\": true\n  },\n  \"include\": [\"src\", \"server\", \"shared\"]\n}\n",
+        "vite.config.ts": "import react from '@vitejs/plugin-react';\nimport { defineConfig } from 'vite';\n\nexport default defineConfig({\n  base: process.env.GALLERY_PREVIEW_BASE ?? '/',\n  plugins: [react()],\n  build: {\n    outDir: 'dist',\n    emptyOutDir: true,\n  },\n});\n"
+      },
+      "previousDiagnosticCodes": [
+        "TS2307",
+        "TS7016",
+        "TS7006"
+      ],
+      "dependencies": [
+        {
+          "name": "express",
+          "requested": "^5.1.0",
+          "available": [
+            {
+              "version": "4.21.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@4.21.2/node_modules/express/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.2.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@5.2.1/node_modules/express/package.json",
+              "satisfies": true
+            }
+          ],
+          "rootResolved": {
+            "version": "4.21.2",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@4.21.2/node_modules/express/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "sql.js",
+          "requested": "^1.13.0",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/express",
+          "requested": "^5.0.0",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/node",
+          "requested": "^24.0.0",
+          "available": [
+            {
+              "version": "24.12.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.12.2/node_modules/@types/node/package.json",
+              "satisfies": true
+            },
+            {
+              "version": "24.13.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.13.3/node_modules/@types/node/package.json",
+              "satisfies": true
+            },
+            {
+              "version": "25.6.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "25.9.9",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.9.9/node_modules/@types/node/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "25.6.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "available": [
+            {
+              "version": "18.3.23",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.23",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "available": [
+            {
+              "version": "18.3.7",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.7",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/sql.js",
+          "requested": "^1.4.9",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "available": [
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "4.7.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "tsx",
+          "requested": "^4.20.0",
+          "available": [
+            {
+              "version": "4.21.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/package.json",
+              "satisfies": true
+            }
+          ],
+          "rootResolved": {
+            "version": "4.21.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "available": [
+            {
+              "version": "5.8.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.9.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "6.0.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@6.0.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "7.0.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@7.0.2/node_modules/typescript/package.json",
+              "satisfies": true
+            }
+          ],
+          "rootResolved": {
+            "version": "5.8.3",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "available": [
+            {
+              "version": "5.4.19",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@24.13.3_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "8.0.10",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@8.0.10_@types+node@25.6.0_esbuild@0.27.7_jiti@2.6.1_sass-embedded@1.99.0_sass@1.99.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "5.4.21",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json"
+          },
+          "matchingVersionPresent": false
+        }
+      ],
+      "missingMatchingVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "sql.js",
+          "requested": "^1.13.0"
+        },
+        {
+          "name": "@types/express",
+          "requested": "^5.0.0"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3"
+        },
+        {
+          "name": "@types/sql.js",
+          "requested": "^1.4.9"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4"
+        }
+      ],
+      "currentCompilation": "not executed: required dependency versions missing; no substitution, linking or installation"
+    },
+    {
+      "id": "field-service-inspector",
+      "previousContentHash": "c7ffa71c25b97409265c8d43cde87b4766f31351b2ae85b1a8d10376bfdabdbc",
+      "currentContentHash": "c7ffa71c25b97409265c8d43cde87b4766f31351b2ae85b1a8d10376bfdabdbc",
+      "unchangedSnapshot": true,
+      "scripts": {
+        "dev": "expo start --web --port 5173",
+        "build": "expo export --platform web",
+        "start": "node server.mjs",
+        "typecheck": "tsc --noEmit"
+      },
+      "configs": {
+        "tsconfig.json": "{\n  \"extends\": \"expo/tsconfig.base\",\n  \"compilerOptions\": {\n    \"strict\": true,\n    \"jsx\": \"react-jsx\",\n    \"moduleResolution\": \"bundler\",\n    \"skipLibCheck\": true,\n    \"noEmit\": true\n  },\n  \"include\": [\"**/*.ts\", \"**/*.tsx\", \"expo-env.d.ts\"],\n  \"exclude\": [\"node_modules\", \"dist\"]\n}\n"
+      },
+      "previousDiagnosticCodes": [
+        "TS6053",
+        "TS5095"
+      ],
+      "dependencies": [
+        {
+          "name": "@expo/metro-runtime",
+          "requested": "~6.1.2",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@react-native-async-storage/async-storage",
+          "requested": "2.2.0",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "expo",
+          "requested": "~54.0.12",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "expo-camera",
+          "requested": "~17.0.8",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react",
+          "requested": "19.1.0",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.1.0",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-native",
+          "requested": "0.81.5",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-native-svg",
+          "requested": "15.12.1",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-native-web",
+          "requested": "^0.21.0",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react",
+          "requested": "~19.1.10",
+          "available": [
+            {
+              "version": "18.3.23",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.23",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "typescript",
+          "requested": "~5.9.2",
+          "available": [
+            {
+              "version": "5.8.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.9.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json",
+              "satisfies": true
+            },
+            {
+              "version": "6.0.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@6.0.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "7.0.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@7.0.2/node_modules/typescript/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "5.8.3",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json"
+          },
+          "matchingVersionPresent": true
+        }
+      ],
+      "missingMatchingVersions": [
+        {
+          "name": "@expo/metro-runtime",
+          "requested": "~6.1.2"
+        },
+        {
+          "name": "@react-native-async-storage/async-storage",
+          "requested": "2.2.0"
+        },
+        {
+          "name": "expo",
+          "requested": "~54.0.12"
+        },
+        {
+          "name": "expo-camera",
+          "requested": "~17.0.8"
+        },
+        {
+          "name": "react",
+          "requested": "19.1.0"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.1.0"
+        },
+        {
+          "name": "react-native",
+          "requested": "0.81.5"
+        },
+        {
+          "name": "react-native-svg",
+          "requested": "15.12.1"
+        },
+        {
+          "name": "react-native-web",
+          "requested": "^0.21.0"
+        },
+        {
+          "name": "@types/react",
+          "requested": "~19.1.10"
+        }
+      ],
+      "currentCompilation": "not executed: required dependency versions missing; no substitution, linking or installation"
+    },
+    {
+      "id": "qbr-generator",
+      "previousContentHash": "dd62cb573d97a51b660169073a34bf246f6255ce9f52ad6cd1073c373193429c",
+      "currentContentHash": "dd62cb573d97a51b660169073a34bf246f6255ce9f52ad6cd1073c373193429c",
+      "unchangedSnapshot": true,
+      "scripts": {
+        "dev": "tsx server/main.ts",
+        "build": "vite build",
+        "start": "NODE_ENV=production tsx server/main.ts",
+        "typecheck": "tsc --noEmit"
+      },
+      "configs": {
+        "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"useDefineForClassFields\": true,\n    \"module\": \"ESNext\",\n    \"lib\": [\"ES2022\", \"DOM\", \"DOM.Iterable\"],\n    \"skipLibCheck\": true,\n    \"moduleResolution\": \"Bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"esModuleInterop\": true,\n    \"allowSyntheticDefaultImports\": true,\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"jsx\": \"react-jsx\",\n    \"types\": [\"node\", \"vite/client\"],\n    \"noEmit\": true,\n    \"strict\": true,\n    \"noUnusedLocals\": true,\n    \"noUnusedParameters\": true,\n    \"noFallthroughCasesInSwitch\": true\n  },\n  \"include\": [\"src\", \"server\", \"vite.config.ts\"]\n}\n",
+        "vite.config.ts": "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\n// The Gallery mounts the built artifact under /gallery-apps/<id>/preview; the\n// backend strips that prefix at runtime so the same build serves at the root.\nexport default defineConfig({\n  base: process.env.GALLERY_PREVIEW_BASE ?? '/',\n  plugins: [react()],\n});\n"
+      },
+      "previousDiagnosticCodes": [
+        "TS7016",
+        "TS7006",
+        "TS2769"
+      ],
+      "dependencies": [
+        {
+          "name": "express",
+          "requested": "5.2.1",
+          "available": [
+            {
+              "version": "4.21.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@4.21.2/node_modules/express/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.2.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@5.2.1/node_modules/express/package.json",
+              "satisfies": true
+            }
+          ],
+          "rootResolved": {
+            "version": "4.21.2",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@4.21.2/node_modules/express/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/express",
+          "requested": "5.0.6",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.10.1",
+          "available": [
+            {
+              "version": "24.12.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.12.2/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "24.13.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.13.3/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "25.6.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "25.9.9",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.9.9/node_modules/@types/node/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "25.6.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "available": [
+            {
+              "version": "18.3.23",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.23",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "available": [
+            {
+              "version": "18.3.7",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.7",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "available": [
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "4.7.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "tsx",
+          "requested": "4.23.1",
+          "available": [
+            {
+              "version": "4.21.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "4.21.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "available": [
+            {
+              "version": "5.8.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.9.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "6.0.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@6.0.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "7.0.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@7.0.2/node_modules/typescript/package.json",
+              "satisfies": true
+            }
+          ],
+          "rootResolved": {
+            "version": "5.8.3",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "available": [
+            {
+              "version": "5.4.19",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@24.13.3_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "8.0.10",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@8.0.10_@types+node@25.6.0_esbuild@0.27.7_jiti@2.6.1_sass-embedded@1.99.0_sass@1.99.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "5.4.21",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json"
+          },
+          "matchingVersionPresent": false
+        }
+      ],
+      "missingMatchingVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "@types/express",
+          "requested": "5.0.6"
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.10.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3"
+        },
+        {
+          "name": "tsx",
+          "requested": "4.23.1"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4"
+        }
+      ],
+      "currentCompilation": "not executed: required dependency versions missing; no substitution, linking or installation"
+    },
+    {
+      "id": "warehouse-layout-planner",
+      "previousContentHash": "d385f9b0abc890bb5e78ecd3bc5c6f96ccd09c6aef8d2dbacbcc824da1723cec",
+      "currentContentHash": "d385f9b0abc890bb5e78ecd3bc5c6f96ccd09c6aef8d2dbacbcc824da1723cec",
+      "unchangedSnapshot": true,
+      "scripts": {
+        "dev": "vite --host 0.0.0.0",
+        "build": "tsc -b && vite build",
+        "typecheck": "tsc --noEmit"
+      },
+      "configs": {
+        "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"useDefineForClassFields\": true,\n    \"module\": \"ESNext\",\n    \"lib\": [\"ES2022\", \"DOM\", \"DOM.Iterable\"],\n    \"skipLibCheck\": true,\n    \"moduleResolution\": \"Bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"jsx\": \"react-jsx\",\n    \"types\": [\"vite/client\"],\n    \"noEmit\": true,\n    \"strict\": true,\n    \"noUnusedLocals\": true,\n    \"noUnusedParameters\": true\n  },\n  \"include\": [\"src\"]\n}\n",
+        "vite.config.ts": "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\nexport default defineConfig({\n  base: process.env.GALLERY_PREVIEW_BASE ?? '/',\n  plugins: [react()],\n});\n"
+      },
+      "previousDiagnosticCodes": [
+        "TS2307"
+      ],
+      "dependencies": [
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "three",
+          "requested": "0.185.1",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "available": [
+            {
+              "version": "18.3.23",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.23",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "available": [
+            {
+              "version": "18.3.7",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.7",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/three",
+          "requested": "0.185.1",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "available": [
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "4.7.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "available": [
+            {
+              "version": "5.8.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.9.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "6.0.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@6.0.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "7.0.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@7.0.2/node_modules/typescript/package.json",
+              "satisfies": true
+            }
+          ],
+          "rootResolved": {
+            "version": "5.8.3",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "available": [
+            {
+              "version": "5.4.19",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@24.13.3_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "8.0.10",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@8.0.10_@types+node@25.6.0_esbuild@0.27.7_jiti@2.6.1_sass-embedded@1.99.0_sass@1.99.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "5.4.21",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json"
+          },
+          "matchingVersionPresent": false
+        }
+      ],
+      "missingMatchingVersions": [
+        {
+          "name": "react",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "three",
+          "requested": "0.185.1"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3"
+        },
+        {
+          "name": "@types/three",
+          "requested": "0.185.1"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4"
+        }
+      ],
+      "currentCompilation": "not executed: required dependency versions missing; no substitution, linking or installation"
+    },
+    {
+      "id": "storefront",
+      "previousContentHash": "06cd1db705e1c6193046d99a2e2abd9de89460a96b6745a2a2abc391c61ece1c",
+      "currentContentHash": "06cd1db705e1c6193046d99a2e2abd9de89460a96b6745a2a2abc391c61ece1c",
+      "unchangedSnapshot": true,
+      "scripts": {
+        "dev": "tsx server/main.ts",
+        "build": "vite build",
+        "start": "NODE_ENV=production tsx server/main.ts",
+        "typecheck": "tsc --noEmit"
+      },
+      "configs": {
+        "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2022\",\n    \"useDefineForClassFields\": true,\n    \"module\": \"ESNext\",\n    \"lib\": [\"ES2022\", \"DOM\", \"DOM.Iterable\"],\n    \"skipLibCheck\": true,\n    \"moduleResolution\": \"Bundler\",\n    \"allowImportingTsExtensions\": true,\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"esModuleInterop\": true,\n    \"jsx\": \"react-jsx\",\n    \"types\": [\"node\", \"vite/client\"],\n    \"noEmit\": true,\n    \"strict\": true,\n    \"noUnusedLocals\": true,\n    \"noUnusedParameters\": true,\n    \"noFallthroughCasesInSwitch\": true\n  },\n  \"include\": [\"src\", \"server\"]\n}\n",
+        "vite.config.ts": "import { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\n// The Gallery preview harness builds each demo under a namespaced base path so\n// several published apps can be served side by side. Locally the base is '/'.\nexport default defineConfig({\n  base: process.env.GALLERY_PREVIEW_BASE ?? '/',\n  plugins: [react()],\n  build: {\n    outDir: 'dist',\n    emptyOutDir: true,\n  },\n});\n"
+      },
+      "previousDiagnosticCodes": [
+        "TS2307",
+        "TS7016",
+        "TS7006"
+      ],
+      "dependencies": [
+        {
+          "name": "@stripe/stripe-js",
+          "requested": "7.6.0",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "express",
+          "requested": "4.21.2",
+          "available": [
+            {
+              "version": "4.21.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@4.21.2/node_modules/express/package.json",
+              "satisfies": true
+            },
+            {
+              "version": "5.2.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@5.2.1/node_modules/express/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "4.21.2",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/express@4.21.2/node_modules/express/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "sql.js",
+          "requested": "1.13.0",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "stripe",
+          "requested": "18.5.0",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/express",
+          "requested": "4.17.23",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.3.0",
+          "available": [
+            {
+              "version": "24.12.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.12.2/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "24.13.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.13.3/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "25.6.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "25.9.9",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.9.9/node_modules/@types/node/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "25.6.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "available": [
+            {
+              "version": "18.3.23",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.23",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "available": [
+            {
+              "version": "18.3.7",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.7",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/sql.js",
+          "requested": "1.4.9",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3",
+          "available": [
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "4.7.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "4.7.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@vitejs+plugin-react@4.7.0_vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0_/node_modules/@vitejs/plugin-react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "tsx",
+          "requested": "4.20.6",
+          "available": [
+            {
+              "version": "4.21.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "4.21.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "typescript",
+          "requested": "7.0.2",
+          "available": [
+            {
+              "version": "5.8.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.9.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "6.0.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@6.0.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "7.0.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@7.0.2/node_modules/typescript/package.json",
+              "satisfies": true
+            }
+          ],
+          "rootResolved": {
+            "version": "5.8.3",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4",
+          "available": [
+            {
+              "version": "5.4.19",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.19_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@24.13.3_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.4.21",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.9.9/node_modules/vite/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "8.0.10",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@8.0.10_@types+node@25.6.0_esbuild@0.27.7_jiti@2.6.1_sass-embedded@1.99.0_sass@1.99.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "5.4.21",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json"
+          },
+          "matchingVersionPresent": false
+        }
+      ],
+      "missingMatchingVersions": [
+        {
+          "name": "@stripe/stripe-js",
+          "requested": "7.6.0"
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "sql.js",
+          "requested": "1.13.0"
+        },
+        {
+          "name": "stripe",
+          "requested": "18.5.0"
+        },
+        {
+          "name": "@types/express",
+          "requested": "4.17.23"
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.3.0"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3"
+        },
+        {
+          "name": "@types/sql.js",
+          "requested": "1.4.9"
+        },
+        {
+          "name": "@vitejs/plugin-react",
+          "requested": "6.0.3"
+        },
+        {
+          "name": "tsx",
+          "requested": "4.20.6"
+        },
+        {
+          "name": "vite",
+          "requested": "8.1.4"
+        }
+      ],
+      "currentCompilation": "not executed: required dependency versions missing; no substitution, linking or installation"
+    },
+    {
+      "id": "next-dashboard",
+      "previousContentHash": "3a7ceed9619d798ccafe616250eec9522ef6a7aef2e129626a472c08ec14dd08",
+      "currentContentHash": "3a7ceed9619d798ccafe616250eec9522ef6a7aef2e129626a472c08ec14dd08",
+      "unchangedSnapshot": true,
+      "scripts": {
+        "dev": "next dev -H 0.0.0.0",
+        "build": "next build",
+        "start": "node server.mjs",
+        "typecheck": "tsc --noEmit"
+      },
+      "configs": {
+        "next-env.d.ts": "/// <reference types=\"next\" />\n/// <reference types=\"next/image-types/global\" />\n",
+        "next.config.ts": "import type { NextConfig } from 'next';\nconst basePath = (process.env.GALLERY_PREVIEW_BASE ?? '').replace(/\\/$/, '');\nconst config: NextConfig = { output: 'export', basePath, assetPrefix: basePath || undefined };\nexport default config;\n",
+        "tsconfig.json": "{\n  \"compilerOptions\": {\n    \"target\": \"ES2017\",\n    \"lib\": [\n      \"dom\",\n      \"dom.iterable\",\n      \"esnext\"\n    ],\n    \"allowJs\": false,\n    \"skipLibCheck\": true,\n    \"strict\": true,\n    \"noEmit\": true,\n    \"esModuleInterop\": true,\n    \"module\": \"esnext\",\n    \"moduleResolution\": \"bundler\",\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"jsx\": \"react-jsx\",\n    \"incremental\": true,\n    \"plugins\": [\n      {\n        \"name\": \"next\"\n      }\n    ]\n  },\n  \"include\": [\n    \"next-env.d.ts\",\n    \"**/*.ts\",\n    \"**/*.tsx\",\n    \".next/types/**/*.ts\"\n  ],\n  \"exclude\": [\n    \"node_modules\"\n  ]\n}\n"
+      },
+      "previousDiagnosticCodes": [
+        "TS2307",
+        "TS2882",
+        "TS2591"
+      ],
+      "dependencies": [
+        {
+          "name": "next",
+          "requested": "16.2.10",
+          "available": [],
+          "rootResolved": null,
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react@18.3.1/node_modules/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7",
+          "available": [
+            {
+              "version": "18.3.1",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.1",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/node",
+          "requested": "24.13.3",
+          "available": [
+            {
+              "version": "24.12.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.12.2/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "24.13.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@24.13.3/node_modules/@types/node/package.json",
+              "satisfies": true
+            },
+            {
+              "version": "25.6.0",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "25.9.9",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.9.9/node_modules/@types/node/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "25.6.0",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json"
+          },
+          "matchingVersionPresent": true
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17",
+          "available": [
+            {
+              "version": "18.3.23",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.23",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react@18.3.23/node_modules/@types/react/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3",
+          "available": [
+            {
+              "version": "18.3.7",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "18.3.7",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+react-dom@18.3.7_@types+react@18.3.23/node_modules/@types/react-dom/package.json"
+          },
+          "matchingVersionPresent": false
+        },
+        {
+          "name": "typescript",
+          "requested": "6.0.3",
+          "available": [
+            {
+              "version": "5.8.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "5.9.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/package.json",
+              "satisfies": false
+            },
+            {
+              "version": "6.0.3",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@6.0.3/node_modules/typescript/package.json",
+              "satisfies": true
+            },
+            {
+              "version": "7.0.2",
+              "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@7.0.2/node_modules/typescript/package.json",
+              "satisfies": false
+            }
+          ],
+          "rootResolved": {
+            "version": "5.8.3",
+            "manifest": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json"
+          },
+          "matchingVersionPresent": true
+        }
+      ],
+      "missingMatchingVersions": [
+        {
+          "name": "next",
+          "requested": "16.2.10"
+        },
+        {
+          "name": "react",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "react-dom",
+          "requested": "19.2.7"
+        },
+        {
+          "name": "@types/react",
+          "requested": "19.2.17"
+        },
+        {
+          "name": "@types/react-dom",
+          "requested": "19.2.3"
+        }
+      ],
+      "currentCompilation": "not executed: required dependency versions missing; no substitution, linking or installation"
+    }
+  ]
+}

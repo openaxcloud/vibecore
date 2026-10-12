@@ -1,0 +1,23 @@
+{
+  "checked": 324,
+  "issues": [],
+  "critical": {
+    "typescript": {
+      "version": "5.8.3",
+      "path": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/typescript@5.8.3/node_modules/typescript/package.json"
+    },
+    "@types/node": {
+      "version": "25.6.0",
+      "path": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/@types+node@25.6.0/node_modules/@types/node/package.json"
+    },
+    "vite": {
+      "version": "5.4.21",
+      "path": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json"
+    },
+    "tsx": {
+      "version": "4.21.0",
+      "path": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/tsx@4.21.0/node_modules/tsx/package.json"
+    }
+  },
+  "pluginVite": "/workspace/vibecore-offline-20261012/node_modules/.pnpm/vite@5.4.21_@types+node@25.6.0_lightningcss@1.32.0_sass-embedded@1.99.0_sass@1.99.0/node_modules/vite/package.json"
+}
