@@ -83,6 +83,9 @@ docs/instructions/Roadmap.md
 !DESIGN_AUDIT_LIVE.md
 !DESIGN_CAPTURES.md
 !LAUNCH_READINESS.md
+# Shared inventory entry point and factual per-merge session journal.
+!/PROBLEMES.md
+!/SERVI-POUR-LES-SESSIONS.md
 .qodo
 .vibecore-audit/
 .rebuild/
