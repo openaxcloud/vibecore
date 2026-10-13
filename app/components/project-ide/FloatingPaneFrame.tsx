@@ -63,8 +63,8 @@ export function FloatingPaneFrame({
     const maxWidth = parent?.clientWidth ?? next.width;
     const maxHeight = parent?.clientHeight ?? next.height;
 
-    const width = Math.max(MIN_WIDTH, Math.min(next.width, maxWidth));
-    const height = Math.max(MIN_HEIGHT, Math.min(next.height, maxHeight));
+    const width = Math.min(maxWidth, Math.max(MIN_WIDTH, next.width));
+    const height = Math.min(maxHeight, Math.max(MIN_HEIGHT, next.height));
     const x = Math.max(0, Math.min(next.x, Math.max(0, maxWidth - width)));
     const y = Math.max(0, Math.min(next.y, Math.max(0, maxHeight - height)));
 
@@ -86,7 +86,19 @@ export function FloatingPaneFrame({
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
-        origin: bounds,
+
+        /*
+         * CSS can constrain persisted bounds after the canvas shrinks. Start
+         * from the displayed frame so the first pointer move does not jump.
+         */
+        origin: frameRef.current
+          ? {
+              x: frameRef.current.offsetLeft,
+              y: frameRef.current.offsetTop,
+              width: frameRef.current.offsetWidth,
+              height: frameRef.current.offsetHeight,
+            }
+          : bounds,
       };
       setDragging(true);
     },
@@ -142,8 +154,13 @@ export function FloatingPaneFrame({
       data-testid={`floating-pane-${paneId}`}
       style={{
         position: 'absolute',
-        left: `${bounds.x}px`,
-        top: `${bounds.y}px`,
+
+        /*
+         * Contain initial/restored bounds and react to canvas changes without
+         * overwriting the user's preferred geometry on every layout change.
+         */
+        left: `max(0px, min(${bounds.x}px, calc(100% - ${bounds.width}px)))`,
+        top: `max(0px, min(${bounds.y}px, calc(100% - ${bounds.height}px)))`,
         width: `${bounds.width}px`,
         height: `${bounds.height}px`,
         zIndex,

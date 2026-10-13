@@ -1,0 +1,146 @@
+{
+  "initial-1440-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 438.265625,
+      "y": 108,
+      "width": 720,
+      "height": 480
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 761.265625,
+      "height": 832
+    }
+  },
+  "library-expanded-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 397,
+      "y": 108,
+      "width": 682.28125,
+      "height": 480
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 682.28125,
+      "height": 832
+    }
+  },
+  "moved-to-edge-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 397,
+      "y": 388,
+      "width": 682,
+      "height": 480
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 682.28125,
+      "height": 832
+    }
+  },
+  "resized-to-edge-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 397,
+      "y": 36,
+      "width": 682,
+      "height": 832
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 682.28125,
+      "height": 832
+    }
+  },
+  "returned-1440-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 397,
+      "y": 36,
+      "width": 682,
+      "height": 832
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 682.28125,
+      "height": 832
+    }
+  },
+  "french-restored-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 397,
+      "y": 36,
+      "width": 682,
+      "height": 832
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 761.265625,
+      "height": 832
+    }
+  },
+  "navigation-restored-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 397,
+      "y": 36,
+      "width": 682,
+      "height": 832
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 761.265625,
+      "height": 832
+    }
+  },
+  "floated-again-geometry": {
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "frame": {
+      "x": 438.265625,
+      "y": 108,
+      "width": 720,
+      "height": 480
+    },
+    "canvas": {
+      "x": 397,
+      "y": 36,
+      "width": 761.265625,
+      "height": 832
+    }
+  }
+}

@@ -1,0 +1,263 @@
+import type { Locator, PlaywrightTestArgs } from '@playwright/test';
+import JSZip from 'jszip';
+import { expect, test } from './helpers/ide-failure-diagnostics';
+
+const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
+test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false, deviceScaleFactor: 1 });
+
+async function openFloatingFile({ page, request, context }: Pick<PlaywrightTestArgs, 'page' | 'request' | 'context'>) {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const email = `file-tabs-${suffix}@local.test`;
+
+  const registration = await request.post(`${apiBaseUrl}/auth/register`, {
+    data: { email, password: 'Password123!', name: 'File tab audit', organizationName: `File tabs ${suffix}` },
+  });
+  expect(registration.ok()).toBeTruthy();
+
+  const auth = await registration.json();
+  const headers = { authorization: `Bearer ${auth.token}` };
+
+  const creation = await request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+    headers,
+    data: { name: 'File tab identity audit' },
+  });
+  expect(creation.ok()).toBeTruthy();
+
+  const projectId = (await creation.json()).project.id as string;
+  const zip = new JSZip();
+  zip.file('audit.txt', 'PERSISTENCE-ORIGINAL-20261012\nsecond line\n');
+  zip.file('other.txt', 'SECOND-DOCUMENT\n');
+
+  const imported = await request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+    headers,
+    data: { zipBase64: await zip.generateAsync({ type: 'base64' }) },
+  });
+  expect(imported.ok()).toBeTruthy();
+
+  /*
+   * In remote mode, exercise persisted files with an unavailable runtime.
+   * The local audit builds VITE_RUNTIME_MODE=remote-kubernetes and configures
+   * no workspace manager; these aborts never substitute successful responses.
+   */
+  await context.route(/\/api\/(runtime|runtime-token|chat)(\/|\?|$)/, (route) => route.abort('blockedbyclient'));
+  await context.routeWebSocket('**/*', (socket) => socket.close());
+
+  // This geometry test reads imported files and does not exercise Save.
+  await context.route(/\/api\/projects\/[^/]+\/files(?:\/|\?|$)/, (route) =>
+    route.request().method() === 'GET' ? route.continue() : route.abort('blockedbyclient'),
+  );
+  await page.goto('/login');
+  await page.locator('input[name=email]').fill(email);
+  await page.locator('input[name=password]').fill('Password123!');
+  await page.locator('button[type=submit]').click();
+  await expect(page).not.toHaveURL(/\/login(?:\?|$)/);
+  await page.goto(`/projects/${projectId}/ide?panel=files`);
+
+  const file = (name: string) =>
+    page.getByText(name, { exact: true }).and(page.locator('.bolt-file-tree-name')).filter({ visible: true });
+
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('File tab identity audit', {
+    timeout: 10_000,
+  });
+  await file('audit.txt').click();
+  await expect(page.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012', {
+    timeout: 10_000,
+  });
+
+  const panes = page.locator('.bolt-project-pane-leaf');
+  await panes.first().getByTestId('tab-options').click();
+  await page.getByTestId('tab-options-split-right').click();
+  await expect(panes).toHaveCount(2);
+
+  const targetPaneId = await panes.last().getAttribute('data-pane-id');
+  expect(targetPaneId).toBeTruthy();
+
+  const target = page.locator(`.bolt-project-pane-leaf[data-pane-id="${targetPaneId}"]`);
+
+  await target.getByTestId('tab-options').click();
+  await page.getByTestId('tab-options-toggle-floating').click();
+
+  const floating = page.getByTestId(`floating-pane-${targetPaneId}`);
+  await expect(floating).toBeVisible();
+
+  return { projectId, targetPaneId, target, panes, floating, file };
+}
+
+test('floating pane stays reachable through resize, mobile menus, navigation and locale', async ({
+  page,
+  request,
+  context,
+}, testInfo) => {
+  test.setTimeout(90_000);
+
+  const { projectId, targetPaneId, target, panes, floating } = await openFloatingFile({ page, request, context });
+
+  const assertContained = async (label: string) => {
+    await expect(floating).toBeVisible();
+    await expect
+      .poll(
+        () =>
+          floating.evaluate((el) => {
+            const frame = el.getBoundingClientRect();
+            const parent = el.parentElement!.getBoundingClientRect();
+
+            return (
+              frame.left >= parent.left - 1 &&
+              frame.top >= parent.top - 1 &&
+              frame.right <= parent.right + 1 &&
+              frame.bottom <= parent.bottom + 1
+            );
+          }),
+        { message: label },
+      )
+      .toBe(true);
+    await floating.getByTestId(`dock-floating-pane-${targetPaneId}`).click({ trial: true });
+    await floating.getByTestId('tab-options').click();
+    await page.getByTestId('tab-options-close-pane').click({ trial: true });
+    await page.keyboard.press('Escape');
+    await expect(floating.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012', {
+      timeout: 10_000,
+    });
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+    const geometry = await floating.evaluate((el) => {
+      const rect = (node: Element) => {
+        const { x, y, width, height } = node.getBoundingClientRect();
+
+        return { x, y, width, height };
+      };
+
+      return { viewport: { width: innerWidth, height: innerHeight }, frame: rect(el), canvas: rect(el.parentElement!) };
+    });
+    await testInfo.attach(`${label}-geometry`, { body: JSON.stringify(geometry), contentType: 'application/json' });
+    await page.screenshot({ path: testInfo.outputPath(`${label}.png`) });
+  };
+  const drag = async (handle: Locator, dx: number, dy: number) => {
+    const box = await handle.boundingBox();
+    expect(box).not.toBeNull();
+
+    const x = box!.x + box!.width / 2;
+    const y = box!.y + box!.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + dx, y + dy, { steps: 8 });
+    await page.mouse.up();
+  };
+
+  await assertContained('initial-1440');
+
+  // Shrink the actual canvas without changing the viewport.
+  const canvas = page.locator('.bolt-project-main-panes');
+  const originalCanvasWidth = (await canvas.boundingBox())!.width;
+  await drag(page.locator('.bolt-project-panel-resize-handle').last(), -170, 0);
+  await expect.poll(async () => (await canvas.boundingBox())!.width).toBeLessThan(originalCanvasWidth - 50);
+  await assertContained('library-expanded');
+  await drag(floating.locator('.bolt-project-floating-pane-title'), 600, 500);
+  await assertContained('moved-to-edge');
+  await drag(floating.getByTestId(`resize-floating-pane-${targetPaneId}`), 500, 500);
+  await assertContained('resized-to-edge');
+
+  for (const width of [768, 390]) {
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByTestId('mobile-ide-header')).toBeVisible();
+    await expect(floating).toHaveCount(0);
+    await page.getByTestId('tab-editor').click();
+    await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10_000 });
+    await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible();
+    await page.getByTestId('mobile-more-menu-close').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`mobile-${width}.png`) });
+  }
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await assertContained('returned-1440');
+
+  // Use the supported locale URL: SSR and the actual translated controls change together.
+  await page.goto(`/projects/${projectId}/ide?panel=files&lang=fr`);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
+  await assertContained('french-restored');
+  await page.goto('/dashboard?lang=fr');
+  await expect(page).toHaveURL(/\/dashboard/);
+  await page.goBack();
+  await assertContained('navigation-restored');
+  await floating.getByTestId(`dock-floating-pane-${targetPaneId}`).click();
+  await expect(floating).toHaveCount(0);
+  await expect(panes).toHaveCount(2);
+  await expect(target.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012', {
+    timeout: 10_000,
+  });
+  await target.getByTestId('tab-options').click();
+  await page.getByTestId('tab-options-toggle-floating').click();
+  await assertContained('floated-again');
+  await floating.getByTestId('tab-options').click();
+  await page.getByTestId('tab-options-close-pane').click();
+  await expect(floating).toHaveCount(0);
+  await expect(panes).toHaveCount(1);
+});
+
+for (const width of [768, 390]) {
+  test(`existing mobile menu keeps the file reachable after locale and navigation at ${width}px`, async ({
+    page,
+    request,
+    context,
+    ideDiagnostics,
+  }, testInfo) => {
+    test.setTimeout(90_000);
+
+    const { file, floating } = await openFloatingFile({ page, request, context });
+    await page.setViewportSize({ width, height: 900 });
+    await expect(page.getByTestId('mobile-ide-header')).toBeVisible();
+    await expect(floating).toHaveCount(0);
+    ideDiagnostics.mark('before-editor-click');
+    await page.getByTestId('tab-editor').click();
+    ideDiagnostics.mark('after-editor-click');
+    await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10_000 });
+
+    const locale = 'fr';
+    const localized = new URL(page.url());
+    localized.searchParams.set('lang', locale);
+    await page.goto(localized.toString());
+    await expect(page.locator('html')).toHaveAttribute('lang', locale);
+    await expect(page.getByTestId('mobile-ide-header')).toBeVisible();
+
+    // Locale reload can also lose the selected file; test explicit reachability.
+    await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+    await page.getByTestId('mobile-more-menu-files').click();
+    ideDiagnostics.mark('before-file-click');
+    await file('audit.txt').click();
+    ideDiagnostics.mark('after-file-click');
+    ideDiagnostics.mark('before-editor-click');
+    await page.getByTestId('tab-editor').click();
+    ideDiagnostics.mark('after-editor-click');
+    await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10_000 });
+    await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`mobile-menu-${width}-${locale}.png`) });
+    await page.getByTestId('mobile-more-menu-close').click();
+    await page.getByTestId('button-back').click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    ideDiagnostics.mark('before-back');
+    await page.goBack();
+    ideDiagnostics.mark('after-back');
+    await expect(page.getByTestId('mobile-ide-header')).toBeVisible();
+
+    /*
+     * Verify that the document remains reachable through the existing menu.
+     * Automatic mobile selection restoration is a separate recorded failure.
+     */
+    await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+    await page.getByTestId('mobile-more-menu-files').click();
+    ideDiagnostics.mark('before-file-click');
+    await file('audit.txt').click();
+    ideDiagnostics.mark('after-file-click');
+    ideDiagnostics.mark('before-editor-click');
+    await page.getByTestId('tab-editor').click();
+    ideDiagnostics.mark('after-editor-click');
+    await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10_000 });
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.screenshot({ path: testInfo.outputPath(`mobile-navigation-${width}-${locale}.png`) });
+  });
+}

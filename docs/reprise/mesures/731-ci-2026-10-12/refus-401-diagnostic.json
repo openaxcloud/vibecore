@@ -1,0 +1,47 @@
+{
+  "samples": [
+    {
+      "label": "fixture-ready",
+      "elapsedMs": 50,
+      "state": {
+        "mobilePanel": "other",
+        "databaseTabActive": false,
+        "databaseMounted": true,
+        "databaseEmpty": false,
+        "databaseLoadFailed": false,
+        "databaseLoading": false,
+        "cards": 0,
+        "tables": 0,
+        "statuses": 0,
+        "alerts": 0,
+        "moreMenu": 0,
+        "tabSwitcher": 0,
+        "codeEditors": 0,
+        "editorTabs": []
+      },
+      "observedAtMs": 85
+    },
+    {
+      "label": "failure",
+      "elapsedMs": 684,
+      "state": {
+        "mobilePanel": "other",
+        "databaseTabActive": false,
+        "databaseMounted": true,
+        "databaseEmpty": false,
+        "databaseLoadFailed": false,
+        "databaseLoading": false,
+        "cards": 0,
+        "tables": 0,
+        "statuses": 0,
+        "alerts": 0,
+        "moreMenu": 0,
+        "tabSwitcher": 0,
+        "codeEditors": 0,
+        "editorTabs": []
+      },
+      "observedAtMs": 689
+    }
+  ],
+  "responses": []
+}
