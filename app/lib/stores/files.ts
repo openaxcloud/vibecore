@@ -291,8 +291,16 @@ export class FilesStore {
   }
 
   async reloadFromRuntime(rootPath = '.', options: { reparer?: boolean } = {}) {
+    const runtime = this.#runtime;
+    const filesBeforeListing = this.files.get();
+
     // `reparer` : rafraîchissement demandé par l'utilisateur → le runtime distant réconcilie d'abord (BUG-IDE-007).
-    const nodes = await this.#runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
+    const nodes = await runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
+
+    if (this.#runtime !== runtime) {
+      return;
+    }
+
     const nextFiles: FileMap = {};
 
     /*
@@ -313,8 +321,6 @@ export class FilesStore {
      * every file in production.
      */
     const currentFiles = this.files.get();
-
-    let fileCount = 0;
 
     const visit = (node: FileNode) => {
       const workbenchPath = this.#toWorkbenchPath(node.path).replace(/\/+$/g, '');
@@ -342,11 +348,27 @@ export class FilesStore {
           isBinary: node.encoding === 'base64' || node.encoding === 'binary',
         };
       }
-
-      fileCount++;
     };
 
     nodes.forEach(visit);
+
+    /*
+     * The listing may predate a save, create, delete or watcher update that
+     * completed while it was in flight. Keep those newer entries, including
+     * empty files and removals. A later listing with no concurrent mutation
+     * still adopts the runtime contents normally.
+     */
+    for (const path of new Set([...Object.keys(filesBeforeListing), ...Object.keys(currentFiles)])) {
+      if (filesBeforeListing[path] !== currentFiles[path]) {
+        if (currentFiles[path]) {
+          nextFiles[path] = currentFiles[path];
+        } else {
+          delete nextFiles[path];
+        }
+      }
+    }
+
+    const fileCount = Object.values(nextFiles).filter((entry) => entry?.type === 'file').length;
 
     /*
      * A full-tree resync must never let a PARTIAL listing (pod waking up /

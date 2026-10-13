@@ -1,0 +1,66 @@
+{
+  "head": "9c07d3a13394050e7fedd3f7bfb759f663a1f7fe",
+  "testsPassed": 5,
+  "workers": 1,
+  "retries": 0,
+  "timeoutMs": 30000,
+  "assertionTimeoutMs": 5000,
+  "causeCIEstablished": false,
+  "runs": [
+    {
+      "case": "ide-file-tab-identity-open-eec93--tab-without-duplicating-it",
+      "webcontainerBootstrap": [
+        {
+          "host": "stackblitz.com",
+          "status": -1,
+          "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+        }
+      ],
+      "pinnedDraftCapture": true
+    },
+    {
+      "case": "ide-file-tab-identity-open-eec93--tab-without-duplicating-it-repeat1",
+      "webcontainerBootstrap": [
+        {
+          "host": "stackblitz.com",
+          "status": -1,
+          "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+        }
+      ],
+      "pinnedDraftCapture": true
+    },
+    {
+      "case": "ide-file-tab-identity-open-eec93--tab-without-duplicating-it-repeat2",
+      "webcontainerBootstrap": [
+        {
+          "host": "stackblitz.com",
+          "status": -1,
+          "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+        }
+      ],
+      "pinnedDraftCapture": true
+    },
+    {
+      "case": "ide-file-tab-identity-open-eec93--tab-without-duplicating-it-repeat3",
+      "webcontainerBootstrap": [
+        {
+          "host": "stackblitz.com",
+          "status": -1,
+          "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+        }
+      ],
+      "pinnedDraftCapture": true
+    },
+    {
+      "case": "ide-file-tab-identity-open-eec93--tab-without-duplicating-it-repeat4",
+      "webcontainerBootstrap": [
+        {
+          "host": "stackblitz.com",
+          "status": -1,
+          "failure": "net::ERR_TUNNEL_CONNECTION_FAILED"
+        }
+      ],
+      "pinnedDraftCapture": true
+    }
+  ]
+}

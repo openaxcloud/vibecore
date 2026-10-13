@@ -1,5 +1,7 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import type { APIRequestContext, Page } from '@playwright/test';
 import JSZip from 'jszip';
+import { requireDatabaseSetup } from './helpers/ide-db-setup';
+import { expect, test } from './helpers/ide-failure-diagnostics';
 
 /**
  * Lot IDE-MOBILE-2026-09-06 — « fixe tous les panneaux, tout sans exception ».
@@ -3277,7 +3279,7 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
 test.describe('base de données — les tables portent leur nom et leur compte', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
-  test('la liste des tables n’est pas vide, et chaque ligne est nommée', async ({ page, request }) => {
+  test('la liste des tables n’est pas vide, et chaque ligne est nommée', async ({ page, request, ideDiagnostics }) => {
     test.setTimeout(180_000);
 
     const urlBase = process.env.DATABASE_URL;
@@ -3286,12 +3288,17 @@ test.describe('base de données — les tables portent leur nom et leur compte',
 
     const { token, projectId } = await ouvrirIde(page, request, { fil: false });
 
-    await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+    const preparation = await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
       headers: { authorization: `Bearer ${token}` },
       data: { key: 'DATABASE_URL', value: urlBase },
     });
 
+    await requireDatabaseSetup(preparation, projectId, urlBase!);
+    ideDiagnostics.mark('setup-confirmed');
     await ouvrirOutil(page, 'database');
+    await expect(page.getByTestId('tab-database')).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('heading', { name: /^(All databases|Toutes les bases de données)$/ })).toBeVisible();
+    ideDiagnostics.mark('database-panel-active');
 
     /*
      * On ATTEND la carte de la base avant de cliquer. Une première version

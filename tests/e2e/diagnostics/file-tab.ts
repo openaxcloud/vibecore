@@ -125,6 +125,10 @@ export const test = base.extend<{ fileTabDiagnostics: { mark: (phase: string) =>
           return 'remote-runtime-api';
         }
 
+        if (method === 'GET' && /^\/api\/projects\/[^/]+\/(files|export)(?:\/|$)/.test(parsed.pathname)) {
+          return 'project-file-hydration-read';
+        }
+
         if (method !== 'GET' && /^\/api\/projects\/[^/]+\/files(?:\/|$)/.test(parsed.pathname)) {
           return 'file-write-api';
         }
