@@ -340,22 +340,77 @@ test('a late project A memory response does not write its selection into project
   const finished = new Promise<void>((resolve) => {
     delivered = resolve;
   });
-  await context.route(`**/api/projects/${projectA}/ide-state`, async (route) => {
-    if (route.request().method() !== 'GET') {
-      await route.continue();
-      return;
-    }
 
-    const response = await route.fetch();
+  let deliveredResponses = 0;
+
+  await page.exposeFunction('__holdDecodedProjectMemory', async () => {
     requested();
     await held;
-
-    try {
-      await route.fulfill({ response });
-    } finally {
-      delivered();
-    }
+    deliveredResponses += 1;
+    delivered();
   });
+
+  /*
+   * Retain only the first real decoded GET response. Holding fetch itself can
+   * trigger its five-second abort and let this test pass without any delivery.
+   * The HTTP response, parsing errors and all later requests remain unchanged.
+   */
+  await page.addInitScript((projectId) => {
+    const originalFetch = window.fetch;
+    const observed = window as typeof window & { __lateProjectMemoryWrites: number };
+    const originalSetItem = Storage.prototype.setItem;
+
+    let released = false;
+    let reserved = false;
+    observed.__lateProjectMemoryWrites = 0;
+
+    Storage.prototype.setItem = function (key, value) {
+      originalSetItem.call(this, key, value);
+
+      if (released && this === localStorage && key === `vibecore.projectIdeMemory:${projectId}`) {
+        observed.__lateProjectMemoryWrites += 1;
+      }
+    };
+
+    window.fetch = async (...args) => {
+      const input = args[0];
+
+      const url = new URL(
+        typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
+        location.href,
+      );
+
+      const method = args[1]?.method ?? (input instanceof Request ? input.method : 'GET');
+
+      const retain =
+        !reserved &&
+        method.toUpperCase() === 'GET' &&
+        url.origin === location.origin &&
+        url.pathname === `/api/projects/${projectId}/ide-state`;
+
+      if (retain) {
+        reserved = true;
+      }
+
+      const response = await originalFetch.apply(window, args);
+
+      if (retain) {
+        const decode = response.json.bind(response);
+
+        response.json = async () => {
+          const payload = await decode();
+          await (
+            window as typeof window & { __holdDecodedProjectMemory: () => Promise<void> }
+          ).__holdDecodedProjectMemory();
+          released = true;
+
+          return payload;
+        };
+      }
+
+      return response;
+    };
+  }, projectA);
 
   const writesToB: Array<string | undefined> = [];
   page.on('request', (outgoing) => {
@@ -375,6 +430,14 @@ test('a late project A memory response does not write its selection into project
     await expect(page.locator('.cm-content')).toContainText('PROJECT-B-DOCUMENT', { timeout: 10000 });
     release();
     await finished;
+    expect(deliveredResponses).toBe(1);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => (window as typeof window & { __lateProjectMemoryWrites: number }).__lateProjectMemoryWrites,
+        ),
+      )
+      .toBeGreaterThan(0);
     await expect
       .poll(() =>
         page.evaluate(

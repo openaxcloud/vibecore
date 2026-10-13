@@ -1,0 +1,2281 @@
+{
+  "scope": "local diagnostic; no final validation",
+  "archiveCounterproof": {
+    "before": {
+      "passed": 17,
+      "failed": 4
+    },
+    "afterIncludingListing": {
+      "passed": 29,
+      "failed": 0
+    }
+  },
+  "lateResponse": {
+    "browserAbortUtcMs": 1791852599250,
+    "handlerReleaseUtcMs": 1791852600968,
+    "originalTestPassedDespiteAbort": true
+  },
+  "events": [
+    {
+      "stage": "document-start",
+      "at": 1791852558182,
+      "monotonic": 88.61999999731779
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852558190,
+      "monotonic": 95.98999999836087,
+      "cm": false,
+      "monaco": false
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852558811,
+      "monotonic": 717.410000000149,
+      "start": 573.7999999970198,
+      "duration": 137
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852562212,
+      "monotonic": 4118.39999999851,
+      "start": 3502.619999997318,
+      "duration": 588
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852562650,
+      "monotonic": 4556.230000000447,
+      "start": 4139.919999998063,
+      "duration": 184
+    },
+    {
+      "stage": "beforeunload",
+      "at": 1791852562952,
+      "monotonic": 4858.044999998063
+    },
+    {
+      "stage": "document-start",
+      "at": 1791852564008,
+      "monotonic": 1096.5799999982119
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852564027,
+      "monotonic": 1115.359999999404,
+      "cm": false,
+      "monaco": false
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852565011,
+      "monotonic": 2099.199999999255,
+      "start": 1768.8649999983609,
+      "duration": 300
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852567326,
+      "monotonic": 4414.294999998063,
+      "start": 3748.015000000596,
+      "duration": 652
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852567883,
+      "monotonic": 4971.79999999702,
+      "start": 4439.539999999106,
+      "duration": 524
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852568914,
+      "monotonic": 6002.364999998361
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852568925,
+      "monotonic": 6013.14999999851
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852568926,
+      "monotonic": 6014.704999998212
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852568926,
+      "monotonic": 6014.984999999404
+    },
+    {
+      "stage": "selection-clear",
+      "at": 1791852568946,
+      "monotonic": 6034.519999999553
+    },
+    {
+      "stage": "archive-request",
+      "at": 1791852568946,
+      "monotonic": 6035.070000000298
+    },
+    {
+      "stage": "archive-fetch-start",
+      "at": 1791852568947,
+      "monotonic": 6035.234999999404
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852569026,
+      "monotonic": 6114.75
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852569026,
+      "monotonic": 6114.959999997169
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852569191,
+      "monotonic": 6279.42499999702,
+      "start": 5550.554999999702,
+      "duration": 567
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852569191,
+      "monotonic": 6279.529999997467,
+      "start": 6122.114999998361,
+      "duration": 107
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852569314,
+      "monotonic": 6402.429999999702,
+      "status": 200
+    },
+    {
+      "stage": "archive-fetch-resolve",
+      "at": 1791852569350,
+      "monotonic": 6438.974999997765,
+      "status": 200
+    },
+    {
+      "stage": "archive-headers",
+      "at": 1791852569351,
+      "monotonic": 6439.099999997765
+    },
+    {
+      "stage": "archive-json",
+      "at": 1791852569421,
+      "monotonic": 6509.314999997616
+    },
+    {
+      "stage": "archive-decode-start",
+      "at": 1791852569421,
+      "monotonic": 6509.429999999702
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852569487,
+      "monotonic": 6575.945000000298
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852569547,
+      "monotonic": 6635.884999997914
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852569548,
+      "monotonic": 6636.114999998361
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852569548,
+      "monotonic": 6636.154999997467
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852569668,
+      "monotonic": 6756.25
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852569818,
+      "monotonic": 6906.989999998361
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852569819,
+      "monotonic": 6907.320000000298
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852569819,
+      "monotonic": 6907.419999998063
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852569919,
+      "monotonic": 7007.989999998361
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852569923,
+      "monotonic": 7011.234999999404,
+      "start": 6849.064999997616,
+      "duration": 107
+    },
+    {
+      "stage": "archive-decode-end",
+      "at": 1791852569980,
+      "monotonic": 7068.619999997318
+    },
+    {
+      "stage": "archive-files-applied",
+      "at": 1791852569981,
+      "monotonic": 7070.029999997467
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852569982,
+      "monotonic": 7070.119999997318
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852569982,
+      "monotonic": 7070.375
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852569982,
+      "monotonic": 7070.464999999851
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852570015,
+      "monotonic": 7103.910000000149
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852570016,
+      "monotonic": 7104.134999997914
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852570208,
+      "monotonic": 7296.379999998957,
+      "start": 7068.559999998659,
+      "duration": 109
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852571091,
+      "monotonic": 8179.114999998361,
+      "cm": false,
+      "monaco": true
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852571488,
+      "monotonic": 8576.730000000447,
+      "start": 7695.134999997914,
+      "duration": 488
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852571488,
+      "monotonic": 8576.829999998212,
+      "start": 8434.035000000149,
+      "duration": 113
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852571778,
+      "monotonic": 8866.25
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852571780,
+      "monotonic": 8868.195000000298
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852571958,
+      "monotonic": 9046.605000000447,
+      "start": 8850.04999999702,
+      "duration": 112
+    },
+    {
+      "stage": "beforeunload",
+      "at": 1791852573107,
+      "monotonic": 10195.599999997765
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852573121,
+      "monotonic": 10210.004999998957
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852573342,
+      "monotonic": 10430.875,
+      "status": 200
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852573753,
+      "monotonic": 10841.464999999851
+    },
+    {
+      "stage": "request-failed",
+      "at": 1791852573771,
+      "kind": "memory",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "stage": "memory-fetch-reject",
+      "at": 1791852573760,
+      "monotonic": 10848.309999998659,
+      "name": "TypeError"
+    },
+    {
+      "stage": "document-start",
+      "at": 1791852573786,
+      "monotonic": 671.4950000010431
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852573790,
+      "monotonic": 675.589999999851,
+      "cm": false,
+      "monaco": false
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852576713,
+      "monotonic": 3598.515000000596,
+      "start": 3363.615000002086,
+      "duration": 231
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852577416,
+      "monotonic": 4301.905000001192,
+      "start": 4079.165000002831,
+      "duration": 138
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852577861,
+      "monotonic": 4746.820000000298,
+      "start": 4634.740000002086,
+      "duration": 111
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852578375,
+      "monotonic": 5261.125
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852578381,
+      "monotonic": 5266.870000001043
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852578382,
+      "monotonic": 5267.175000000745
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852578382,
+      "monotonic": 5267.240000002086
+    },
+    {
+      "stage": "selection-clear",
+      "at": 1791852578386,
+      "monotonic": 5272.095000002533
+    },
+    {
+      "stage": "archive-request",
+      "at": 1791852578387,
+      "monotonic": 5272.330000001937
+    },
+    {
+      "stage": "archive-fetch-start",
+      "at": 1791852578387,
+      "monotonic": 5272.410000000149
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852578460,
+      "monotonic": 5345.870000001043
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852578460,
+      "monotonic": 5346.050000000745
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852578570,
+      "monotonic": 5455.45000000298,
+      "start": 4806.440000001341,
+      "duration": 545
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852578844,
+      "monotonic": 5729.945000000298
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852578845,
+      "monotonic": 5730.140000000596
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852578845,
+      "monotonic": 5730.190000001341
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852579074,
+      "monotonic": 5959.470000002533,
+      "status": 200
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852579449,
+      "monotonic": 6334.790000002831,
+      "start": 5690.955000001937,
+      "duration": 202
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852579449,
+      "monotonic": 6334.945000000298,
+      "start": 5960.32500000298,
+      "duration": 126
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852579449,
+      "monotonic": 6334.964999999851,
+      "start": 6117.790000002831,
+      "duration": 216
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852579552,
+      "monotonic": 6437.915000002831
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852579740,
+      "monotonic": 6625.185000002384
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852579740,
+      "monotonic": 6625.410000000149
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852579740,
+      "monotonic": 6625.445000000298
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852579880,
+      "monotonic": 6766.015000000596
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852579883,
+      "monotonic": 6768.35000000149,
+      "start": 6546.945000000298,
+      "duration": 177
+    },
+    {
+      "stage": "archive-fetch-resolve",
+      "at": 1791852580388,
+      "monotonic": 7273.675000000745,
+      "status": 200
+    },
+    {
+      "stage": "archive-headers",
+      "at": 1791852580388,
+      "monotonic": 7273.95000000298
+    },
+    {
+      "stage": "archive-json",
+      "at": 1791852580390,
+      "monotonic": 7275.235000003129
+    },
+    {
+      "stage": "archive-decode-start",
+      "at": 1791852580390,
+      "monotonic": 7275.35000000149
+    },
+    {
+      "stage": "archive-decode-end",
+      "at": 1791852580397,
+      "monotonic": 7282.320000000298
+    },
+    {
+      "stage": "archive-files-applied",
+      "at": 1791852580398,
+      "monotonic": 7283.365000002086
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852580398,
+      "monotonic": 7283.420000001788
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852580398,
+      "monotonic": 7283.720000002533
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852580398,
+      "monotonic": 7283.780000001192
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852580433,
+      "monotonic": 7318.920000001788
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852580433,
+      "monotonic": 7319.115000002086
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852580540,
+      "monotonic": 7425.745000001043,
+      "start": 7282.22500000149,
+      "duration": 101
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852580953,
+      "monotonic": 7838.720000002533,
+      "start": 7632.690000001341,
+      "duration": 182
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852581066,
+      "monotonic": 7951.175000000745,
+      "cm": false,
+      "monaco": true
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852581212,
+      "monotonic": 8097.755000002682,
+      "start": 7844.135000001639,
+      "duration": 108
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852581346,
+      "monotonic": 8231.435000002384
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852581347,
+      "monotonic": 8232.76000000164
+    },
+    {
+      "stage": "beforeunload",
+      "at": 1791852581534,
+      "monotonic": 8419.930000003427
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852581535,
+      "monotonic": 8420.25
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852581659,
+      "monotonic": 8544.685000002384,
+      "status": 200
+    },
+    {
+      "stage": "document-start",
+      "at": 1791852581849,
+      "monotonic": 316.53999999910593
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852581856,
+      "monotonic": 322.9349999986589,
+      "cm": false,
+      "monaco": false
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852583145,
+      "monotonic": 1612.594999998808,
+      "start": 1184.859999999404,
+      "duration": 413
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852583613,
+      "monotonic": 2080.529999997467,
+      "start": 1929.0999999977648,
+      "duration": 151
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852584460,
+      "monotonic": 2927.329999998212
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852584472,
+      "monotonic": 2939.489999998361
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852584472,
+      "monotonic": 2939.864999998361
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852584473,
+      "monotonic": 2939.964999999851
+    },
+    {
+      "stage": "selection-clear",
+      "at": 1791852584479,
+      "monotonic": 2946.675000000745
+    },
+    {
+      "stage": "archive-request",
+      "at": 1791852584480,
+      "monotonic": 2946.925000000745
+    },
+    {
+      "stage": "archive-fetch-start",
+      "at": 1791852584480,
+      "monotonic": 2947.029999997467
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852584845,
+      "monotonic": 3311.994999997318
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852584845,
+      "monotonic": 3312.300000000745
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852585680,
+      "monotonic": 4146.994999997318,
+      "start": 2097.009999997914,
+      "duration": 1221
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852585680,
+      "monotonic": 4147.230000000447,
+      "start": 3328.879999998957,
+      "duration": 153
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852585680,
+      "monotonic": 4147.324999999255,
+      "start": 3483.559999998659,
+      "duration": 471
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852585774,
+      "monotonic": 4241.035000000149,
+      "status": 200
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852585924,
+      "monotonic": 4391.265000000596
+    },
+    {
+      "stage": "archive-fetch-resolve",
+      "at": 1791852586418,
+      "monotonic": 4885.689999997616,
+      "status": 200
+    },
+    {
+      "stage": "archive-headers",
+      "at": 1791852586418,
+      "monotonic": 4885.864999998361
+    },
+    {
+      "stage": "archive-json",
+      "at": 1791852586495,
+      "monotonic": 4963.169999998063
+    },
+    {
+      "stage": "archive-decode-start",
+      "at": 1791852586497,
+      "monotonic": 4964.320000000298
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852586741,
+      "monotonic": 5208.52499999851,
+      "start": 5052.809999998659,
+      "duration": 132
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852587152,
+      "monotonic": 5619.344999998808
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852587152,
+      "monotonic": 5619.640000000596
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852587152,
+      "monotonic": 5619.689999997616
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852587398,
+      "monotonic": 5865.25
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852587697,
+      "monotonic": 6164.494999997318,
+      "start": 5286.679999999702,
+      "duration": 404
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852587697,
+      "monotonic": 6164.605000000447,
+      "start": 5767.724999997765,
+      "duration": 119
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852587697,
+      "monotonic": 6164.634999997914,
+      "start": 5904.594999998808,
+      "duration": 184
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852587879,
+      "monotonic": 6346.254999998957
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852587879,
+      "monotonic": 6346.454999998212
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852587879,
+      "monotonic": 6346.489999998361
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852588920,
+      "monotonic": 7387.779999997467
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852588928,
+      "monotonic": 7395.285000000149,
+      "start": 6253.800000000745,
+      "duration": 222
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852588928,
+      "monotonic": 7395.390000000596,
+      "start": 6476.464999999851,
+      "duration": 531
+    },
+    {
+      "stage": "archive-decode-end",
+      "at": 1791852589364,
+      "monotonic": 7831.779999997467
+    },
+    {
+      "stage": "archive-files-applied",
+      "at": 1791852589365,
+      "monotonic": 7832.629999998957
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852589365,
+      "monotonic": 7832.675000000745
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852589365,
+      "monotonic": 7832.739999998361
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852589365,
+      "monotonic": 7832.765000000596
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852589458,
+      "monotonic": 7925.394999999553
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852589458,
+      "monotonic": 7925.570000000298
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852589458,
+      "monotonic": 7925.599999997765
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852590262,
+      "monotonic": 8729.52499999851,
+      "start": 7831.724999997765,
+      "duration": 149
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852590262,
+      "monotonic": 8729.644999999553,
+      "start": 8043.754999998957,
+      "duration": 174
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852590262,
+      "monotonic": 8729.675000000745,
+      "start": 8233.429999999702,
+      "duration": 491
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852590639,
+      "monotonic": 9106.050000000745
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852590688,
+      "monotonic": 9155.464999999851
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852590856,
+      "monotonic": 9323.660000000149,
+      "start": 9080.269999999553,
+      "duration": 203
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852591485,
+      "monotonic": 9952.564999997616,
+      "cm": false,
+      "monaco": true
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852591577,
+      "monotonic": 10044.86499999836,
+      "start": 9677.214999999851,
+      "duration": 276
+    },
+    {
+      "stage": "beforeunload",
+      "at": 1791852591666,
+      "monotonic": 10133.519999999553
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852591666,
+      "monotonic": 10133.890000000596
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852591799,
+      "monotonic": 10266.23999999836,
+      "status": 200
+    },
+    {
+      "stage": "document-start",
+      "at": 1791852592366,
+      "monotonic": 704.625
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852592372,
+      "monotonic": 710.0950000025332,
+      "start": 489.4400000013411,
+      "duration": 217
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852592373,
+      "monotonic": 711.2550000026822,
+      "cm": false,
+      "monaco": false
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852592883,
+      "monotonic": 1220.75,
+      "start": 1069.585000000894,
+      "duration": 120
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852593810,
+      "monotonic": 2148.565000001341
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852593816,
+      "monotonic": 2154.420000001788
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852593817,
+      "monotonic": 2154.900000002235
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852593817,
+      "monotonic": 2155.0200000032783
+    },
+    {
+      "stage": "selection-clear",
+      "at": 1791852593821,
+      "monotonic": 2159.370000001043
+    },
+    {
+      "stage": "archive-request",
+      "at": 1791852593821,
+      "monotonic": 2159.605000000447
+    },
+    {
+      "stage": "archive-fetch-start",
+      "at": 1791852593822,
+      "monotonic": 2159.695000000298
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852593865,
+      "monotonic": 2203.265000000596
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852593865,
+      "monotonic": 2203.470000002533
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852593992,
+      "monotonic": 2330.220000002533,
+      "start": 1993.245000001043,
+      "duration": 216
+    },
+    {
+      "stage": "archive-fetch-resolve",
+      "at": 1791852594181,
+      "monotonic": 2519.300000000745,
+      "status": 200
+    },
+    {
+      "stage": "archive-headers",
+      "at": 1791852594181,
+      "monotonic": 2519.435000002384
+    },
+    {
+      "stage": "archive-json",
+      "at": 1791852594298,
+      "monotonic": 2635.705000001937
+    },
+    {
+      "stage": "archive-decode-start",
+      "at": 1791852594298,
+      "monotonic": 2635.865000002086
+    },
+    {
+      "stage": "popstate",
+      "at": 1791852594480,
+      "monotonic": 2818.605000000447
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852594629,
+      "monotonic": 2966.640000000596
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852594629,
+      "monotonic": 2967.065000001341
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852594629,
+      "monotonic": 2967.170000001788
+    },
+    {
+      "stage": "archive-decode-end",
+      "at": 1791852594680,
+      "monotonic": 3018.4850000031292
+    },
+    {
+      "stage": "archive-files-applied",
+      "at": 1791852594681,
+      "monotonic": 3019.410000000149
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852594681,
+      "monotonic": 3019.490000002086
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852594681,
+      "monotonic": 3019.60000000149
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852594682,
+      "monotonic": 3019.655000001192
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852594688,
+      "monotonic": 3025.9850000031292
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852594688,
+      "monotonic": 3026.115000002086
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852595531,
+      "monotonic": 3868.714999999851
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852595532,
+      "monotonic": 3869.775000002235
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852595552,
+      "monotonic": 3890.535000000149,
+      "cm": true,
+      "monaco": false
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852596193,
+      "monotonic": 4531.585000000894,
+      "start": 3628.780000001192,
+      "duration": 391
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852596194,
+      "monotonic": 4531.680000003427,
+      "start": 4021.165000002831,
+      "duration": 482
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852597199,
+      "monotonic": 5537.440000001341,
+      "start": 5304.70000000298,
+      "duration": 193
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852597892,
+      "monotonic": 6229.835000000894
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852598591,
+      "monotonic": 6928.835000000894
+    },
+    {
+      "stage": "selection-clear",
+      "at": 1791852598593,
+      "monotonic": 6931.089999999851
+    },
+    {
+      "stage": "archive-request",
+      "at": 1791852598593,
+      "monotonic": 6931.32500000298
+    },
+    {
+      "stage": "archive-fetch-start",
+      "at": 1791852598593,
+      "monotonic": 6931.385000001639
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852598686,
+      "monotonic": 7024.455000001937
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852598687,
+      "monotonic": 7025.085000000894
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852598687,
+      "monotonic": 7025.265000000596
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852598687,
+      "monotonic": 7025.35000000149
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852598877,
+      "monotonic": 7215.490000002086,
+      "cm": false,
+      "monaco": false
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852599081,
+      "monotonic": 7419.610000003129,
+      "status": 200
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852599250,
+      "monotonic": 7587.920000001788,
+      "start": 6923.400000002235,
+      "duration": 310
+    },
+    {
+      "stage": "memory-signal-abort",
+      "at": 1791852599250,
+      "monotonic": 7588.370000001043
+    },
+    {
+      "stage": "memory-fetch-reject",
+      "at": 1791852599250,
+      "monotonic": 7588.495000001043,
+      "name": "AbortError"
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852599319,
+      "monotonic": 7657.055000003427,
+      "status": 200
+    },
+    {
+      "stage": "request-failed",
+      "at": 1791852599377,
+      "kind": "memory",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "stage": "project-not-ready",
+      "at": 1791852599524,
+      "monotonic": 7861.770000003278
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852599524,
+      "monotonic": 7862.155000001192
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852599524,
+      "monotonic": 7862.20000000298
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852600048,
+      "monotonic": 8385.73500000313
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852600054,
+      "monotonic": 8392.085000000894
+    },
+    {
+      "stage": "project-ready",
+      "at": 1791852600054,
+      "monotonic": 8392.595000002533
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852600175,
+      "monotonic": 8513.405000001192,
+      "start": 7709.390000000596,
+      "duration": 311
+    },
+    {
+      "stage": "long-task",
+      "at": 1791852600176,
+      "monotonic": 8513.720000002533,
+      "start": 8127.205000001937,
+      "duration": 288
+    },
+    {
+      "stage": "archive-fetch-resolve",
+      "at": 1791852600759,
+      "monotonic": 9097.525000002235,
+      "status": 200
+    },
+    {
+      "stage": "archive-headers",
+      "at": 1791852600760,
+      "monotonic": 9097.650000002235
+    },
+    {
+      "stage": "archive-json",
+      "at": 1791852600762,
+      "monotonic": 9099.97500000149
+    },
+    {
+      "stage": "archive-decode-start",
+      "at": 1791852600762,
+      "monotonic": 9100.045000001788
+    },
+    {
+      "stage": "archive-decode-end",
+      "at": 1791852600772,
+      "monotonic": 9109.740000002086
+    },
+    {
+      "stage": "archive-files-applied",
+      "at": 1791852600774,
+      "monotonic": 9111.780000001192
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852600774,
+      "monotonic": 9112
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852600774,
+      "monotonic": 9112.295000001788
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852600774,
+      "monotonic": 9112.495000001043
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852600835,
+      "monotonic": 9173.425000000745
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852600835,
+      "monotonic": 9173.555000003427
+    },
+    {
+      "stage": "documents-start",
+      "at": 1791852600836,
+      "monotonic": 9173.625
+    },
+    {
+      "stage": "documents-end",
+      "at": 1791852600836,
+      "monotonic": 9173.685000002384
+    },
+    {
+      "stage": "selection-set",
+      "at": 1791852600836,
+      "monotonic": 9173.72500000149
+    },
+    {
+      "stage": "editor-dom",
+      "at": 1791852600860,
+      "monotonic": 9197.665000002831,
+      "cm": true,
+      "monaco": false
+    },
+    {
+      "stage": "memory-fetch-start",
+      "at": 1791852603359,
+      "monotonic": 11697.420000001788
+    },
+    {
+      "stage": "memory-fetch-resolve",
+      "at": 1791852603583,
+      "monotonic": 11921.430000003427,
+      "status": 200
+    }
+  ],
+  "readmePassages": [
+    {
+      "source": "cases-preserves-pending-au-f0414-EADME-explicit-choice-false",
+      "events": [
+        {
+          "stage": "document-start",
+          "at": 1791852783774,
+          "monotonic": 504.98000000044703
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852783785,
+          "monotonic": 516.3450000025332,
+          "cm": false,
+          "monaco": false
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852784157,
+          "monotonic": 888.605000000447,
+          "start": 615.214999999851,
+          "duration": 115
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852784157,
+          "monotonic": 888.7250000014901,
+          "start": 739.6750000007451,
+          "duration": 137
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852785741,
+          "monotonic": 2472.615000002086,
+          "start": 2292.484999999404,
+          "duration": 154
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852786222,
+          "monotonic": 2953.385000001639,
+          "start": 2795.589999999851,
+          "duration": 146
+        },
+        {
+          "stage": "memory-fetch-start",
+          "at": 1791852786423,
+          "monotonic": 3154.755000002682
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852786460,
+          "monotonic": 3191.540000002831
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852786460,
+          "monotonic": 3191.865000002086
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852786461,
+          "monotonic": 3191.925000000745
+        },
+        {
+          "stage": "selection-clear",
+          "at": 1791852786466,
+          "monotonic": 3197.315000001341
+        },
+        {
+          "stage": "archive-request",
+          "at": 1791852786466,
+          "monotonic": 3197.565000001341
+        },
+        {
+          "stage": "archive-fetch-start",
+          "at": 1791852786466,
+          "monotonic": 3197.760000001639
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852786508,
+          "monotonic": 3239.175000000745
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852786508,
+          "monotonic": 3239.480000000447
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852786600,
+          "monotonic": 3331.490000002086,
+          "start": 3055.495000001043,
+          "duration": 186
+        },
+        {
+          "stage": "memory-fetch-resolve",
+          "at": 1791852786883,
+          "monotonic": 3614.2000000029802,
+          "status": 200
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852786884,
+          "monotonic": 3615.115000002086,
+          "start": 3367.940000001341,
+          "duration": 143
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852786956,
+          "monotonic": 3687.320000000298
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852787072,
+          "monotonic": 3803.380000002682
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852787073,
+          "monotonic": 3804.47500000149
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852787073,
+          "monotonic": 3804.675000000745
+        },
+        {
+          "stage": "archive-fetch-resolve",
+          "at": 1791852787114,
+          "monotonic": 3845.830000001937,
+          "status": 200
+        },
+        {
+          "stage": "archive-headers",
+          "at": 1791852787115,
+          "monotonic": 3846.054999999702
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852787326,
+          "monotonic": 4057.205000001937
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852787329,
+          "monotonic": 4060.25
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852787330,
+          "monotonic": 4061.330000001937
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852787417,
+          "monotonic": 4148.120000001043,
+          "start": 3848.179999999702,
+          "duration": 222
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852787462,
+          "monotonic": 4193.230000000447
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852787462,
+          "monotonic": 4193.455000001937
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852787462,
+          "monotonic": 4193.530000001192
+        },
+        {
+          "stage": "archive-json",
+          "at": 1791852787571,
+          "monotonic": 4302.859999999404
+        },
+        {
+          "stage": "archive-decode-start",
+          "at": 1791852787572,
+          "monotonic": 4302.970000002533
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852787659,
+          "monotonic": 4390.780000001192
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852787660,
+          "monotonic": 4391.20000000298
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852787660,
+          "monotonic": 4391.714999999851
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852787664,
+          "monotonic": 4395.765000000596,
+          "start": 4154.035000000149,
+          "duration": 139
+        },
+        {
+          "stage": "archive-decode-end",
+          "at": 1791852787790,
+          "monotonic": 4521.230000000447
+        },
+        {
+          "stage": "archive-files-applied",
+          "at": 1791852787791,
+          "monotonic": 4521.970000002533
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852787791,
+          "monotonic": 4522.010000001639
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852787791,
+          "monotonic": 4522.120000001043
+        },
+        {
+          "stage": "selection-set",
+          "at": 1791852787791,
+          "monotonic": 4522.160000000149
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852787906,
+          "monotonic": 4637.780000001192
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852787908,
+          "monotonic": 4639.765000000596
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852787909,
+          "monotonic": 4640.455000001937
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852787909,
+          "monotonic": 4640.570000000298
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852787943,
+          "monotonic": 4674.855000000447,
+          "cm": true,
+          "monaco": false
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852787995,
+          "monotonic": 4726.019999999553,
+          "start": 4521.150000002235,
+          "duration": 160
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852788774,
+          "monotonic": 5505.390000000596,
+          "start": 5364.130000002682,
+          "duration": 136
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852789047,
+          "monotonic": 5778.280000001192,
+          "start": 5629.480000000447,
+          "duration": 133
+        },
+        {
+          "stage": "memory-fetch-start",
+          "at": 1791852790548,
+          "monotonic": 7279.195000000298
+        },
+        {
+          "stage": "memory-fetch-resolve",
+          "at": 1791852790584,
+          "monotonic": 7315.080000001937,
+          "status": 200
+        },
+        {
+          "stage": "beforeunload",
+          "at": 1791852790686,
+          "monotonic": 7417.300000000745
+        }
+      ]
+    },
+    {
+      "source": "cases-preserves-pending-au-f0414-EADME-explicit-choice-false-repeat1",
+      "events": [
+        {
+          "stage": "document-start",
+          "at": 1791852808136,
+          "monotonic": 601.4399999976158
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852808140,
+          "monotonic": 605.609999999404,
+          "start": 486.6849999986589,
+          "duration": 116
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852808141,
+          "monotonic": 606.785000000149,
+          "cm": false,
+          "monaco": false
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852808360,
+          "monotonic": 825.855000000447,
+          "start": 692.6549999974668,
+          "duration": 118
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852809387,
+          "monotonic": 1852.515000000596,
+          "start": 1630.059999998659,
+          "duration": 121
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852809504,
+          "monotonic": 1970.094999998808,
+          "start": 1852.925000000745,
+          "duration": 111
+        },
+        {
+          "stage": "memory-fetch-start",
+          "at": 1791852809898,
+          "monotonic": 2363.904999997467
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852809922,
+          "monotonic": 2387.509999997914
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852809922,
+          "monotonic": 2387.869999997318
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852809922,
+          "monotonic": 2387.989999998361
+        },
+        {
+          "stage": "selection-clear",
+          "at": 1791852809926,
+          "monotonic": 2391.754999998957
+        },
+        {
+          "stage": "archive-request",
+          "at": 1791852809926,
+          "monotonic": 2391.980000000447
+        },
+        {
+          "stage": "archive-fetch-start",
+          "at": 1791852809926,
+          "monotonic": 2392.039999999106
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852809952,
+          "monotonic": 2417.719999998808
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852809952,
+          "monotonic": 2417.879999998957
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852809997,
+          "monotonic": 2463.279999997467,
+          "start": 2292.579999998212,
+          "duration": 126
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852810567,
+          "monotonic": 3032.320000000298
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852810567,
+          "monotonic": 3032.684999998659
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852810567,
+          "monotonic": 3032.754999998957
+        },
+        {
+          "stage": "memory-fetch-resolve",
+          "at": 1791852810571,
+          "monotonic": 3036.984999999404,
+          "status": 200
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852810665,
+          "monotonic": 3130.844999998808
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852810696,
+          "monotonic": 3162.210000000894
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852810697,
+          "monotonic": 3162.445000000298
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852810697,
+          "monotonic": 3162.52499999851
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852810779,
+          "monotonic": 3245.254999998957
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852810780,
+          "monotonic": 3245.754999998957
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852810780,
+          "monotonic": 3246.094999998808
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852810962,
+          "monotonic": 3428.199999999255,
+          "start": 3250.134999997914,
+          "duration": 144
+        },
+        {
+          "stage": "archive-fetch-resolve",
+          "at": 1791852810987,
+          "monotonic": 3452.625,
+          "status": 200
+        },
+        {
+          "stage": "archive-headers",
+          "at": 1791852810987,
+          "monotonic": 3452.785000000149
+        },
+        {
+          "stage": "archive-json",
+          "at": 1791852811004,
+          "monotonic": 3470.175000000745
+        },
+        {
+          "stage": "archive-decode-start",
+          "at": 1791852811005,
+          "monotonic": 3470.699999999255
+        },
+        {
+          "stage": "archive-decode-end",
+          "at": 1791852811067,
+          "monotonic": 3532.839999999851
+        },
+        {
+          "stage": "archive-files-applied",
+          "at": 1791852811070,
+          "monotonic": 3536.234999999404
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852811071,
+          "monotonic": 3536.414999999106
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852811071,
+          "monotonic": 3536.539999999106
+        },
+        {
+          "stage": "selection-set",
+          "at": 1791852811071,
+          "monotonic": 3536.594999998808
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852811180,
+          "monotonic": 3646.140000000596
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852811182,
+          "monotonic": 3648.175000000745
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852811183,
+          "monotonic": 3648.364999998361
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852811183,
+          "monotonic": 3648.449999999255
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852811209,
+          "monotonic": 3675.02499999851,
+          "cm": true,
+          "monaco": false
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852811271,
+          "monotonic": 3736.949999999255,
+          "start": 3532.704999998212,
+          "duration": 148
+        },
+        {
+          "stage": "memory-fetch-start",
+          "at": 1791852813688,
+          "monotonic": 6154.320000000298
+        },
+        {
+          "stage": "memory-fetch-resolve",
+          "at": 1791852813768,
+          "monotonic": 6233.300000000745,
+          "status": 200
+        },
+        {
+          "stage": "beforeunload",
+          "at": 1791852813855,
+          "monotonic": 6320.925000000745
+        }
+      ]
+    },
+    {
+      "source": "cases-preserves-pending-au-f0414-EADME-explicit-choice-false-repeat2",
+      "events": [
+        {
+          "stage": "document-start",
+          "at": 1791852832237,
+          "monotonic": 609.4550000019372
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852832238,
+          "monotonic": 610.8150000013411,
+          "cm": false,
+          "monaco": false
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852832482,
+          "monotonic": 854.7749999985099,
+          "start": 734.9550000019372,
+          "duration": 115
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852833162,
+          "monotonic": 1534.835000000894,
+          "start": 1378.969999998808,
+          "duration": 140
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852833782,
+          "monotonic": 2154.144999999553,
+          "start": 1932.4899999983609,
+          "duration": 134
+        },
+        {
+          "stage": "memory-fetch-start",
+          "at": 1791852834292,
+          "monotonic": 2664.420000001788
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852834327,
+          "monotonic": 2699.080000001937
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852834327,
+          "monotonic": 2699.580000001937
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852834327,
+          "monotonic": 2699.714999999851
+        },
+        {
+          "stage": "selection-clear",
+          "at": 1791852834334,
+          "monotonic": 2706.605000000447
+        },
+        {
+          "stage": "archive-request",
+          "at": 1791852834334,
+          "monotonic": 2706.809999998659
+        },
+        {
+          "stage": "archive-fetch-start",
+          "at": 1791852834335,
+          "monotonic": 2707.089999999851
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852834388,
+          "monotonic": 2760.670000001788
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852834388,
+          "monotonic": 2760.955000001937
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852834562,
+          "monotonic": 2934.844999998808,
+          "start": 2598.27499999851,
+          "duration": 164
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852834562,
+          "monotonic": 2935.010000001639,
+          "start": 2802.10000000149,
+          "duration": 106
+        },
+        {
+          "stage": "memory-fetch-resolve",
+          "at": 1791852834639,
+          "monotonic": 3011.550000000745,
+          "status": 200
+        },
+        {
+          "stage": "archive-fetch-resolve",
+          "at": 1791852834661,
+          "monotonic": 3033.734999999404,
+          "status": 200
+        },
+        {
+          "stage": "archive-headers",
+          "at": 1791852834661,
+          "monotonic": 3033.879999998957
+        },
+        {
+          "stage": "archive-json",
+          "at": 1791852834720,
+          "monotonic": 3092.609999999404
+        },
+        {
+          "stage": "archive-decode-start",
+          "at": 1791852834720,
+          "monotonic": 3092.710000000894
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852834746,
+          "monotonic": 3118.815000001341
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852834940,
+          "monotonic": 3312.989999998361
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852834941,
+          "monotonic": 3314.004999998957
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852835020,
+          "monotonic": 3392.344999998808,
+          "start": 3118.690000001341,
+          "duration": 216
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852835110,
+          "monotonic": 3482.519999999553
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852835110,
+          "monotonic": 3482.769999999553
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852835110,
+          "monotonic": 3482.815000001341
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852835153,
+          "monotonic": 3525.695000000298
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852835153,
+          "monotonic": 3525.855000000447
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852835154,
+          "monotonic": 3526.065000001341
+        },
+        {
+          "stage": "archive-decode-end",
+          "at": 1791852835156,
+          "monotonic": 3528.144999999553
+        },
+        {
+          "stage": "archive-files-applied",
+          "at": 1791852835157,
+          "monotonic": 3529.035000000149
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852835157,
+          "monotonic": 3529.105000000447
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852835157,
+          "monotonic": 3529.265000000596
+        },
+        {
+          "stage": "selection-set",
+          "at": 1791852835157,
+          "monotonic": 3529.324999999255
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852835313,
+          "monotonic": 3685.765000000596
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852835314,
+          "monotonic": 3686.429999999702
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852835314,
+          "monotonic": 3686.574999999255
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852835314,
+          "monotonic": 3686.605000000447
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852835345,
+          "monotonic": 3717.109999999404,
+          "cm": true,
+          "monaco": false
+        },
+        {
+          "stage": "project-not-ready",
+          "at": 1791852835695,
+          "monotonic": 4067.89999999851
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852835696,
+          "monotonic": 4068.239999998361
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852835696,
+          "monotonic": 4068.320000000298
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852835712,
+          "monotonic": 4084.414999999106,
+          "cm": false,
+          "monaco": false
+        },
+        {
+          "stage": "archive-request",
+          "at": 1791852835713,
+          "monotonic": 4085.125
+        },
+        {
+          "stage": "archive-fetch-start",
+          "at": 1791852835713,
+          "monotonic": 4085.355000000447
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852835721,
+          "monotonic": 4093.934999998659,
+          "start": 3528.035000000149,
+          "duration": 201
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852835721,
+          "monotonic": 4094.010000001639,
+          "start": 3797.289999999106,
+          "duration": 288
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852835880,
+          "monotonic": 4252.949999999255
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852835881,
+          "monotonic": 4253.289999999106
+        },
+        {
+          "stage": "project-ready",
+          "at": 1791852835881,
+          "monotonic": 4253.730000000447
+        },
+        {
+          "stage": "editor-dom",
+          "at": 1791852835894,
+          "monotonic": 4266.614999998361,
+          "cm": true,
+          "monaco": false
+        },
+        {
+          "stage": "long-task",
+          "at": 1791852835987,
+          "monotonic": 4359.920000001788,
+          "start": 4113.75,
+          "duration": 155
+        },
+        {
+          "stage": "archive-fetch-resolve",
+          "at": 1791852836554,
+          "monotonic": 4926.644999999553,
+          "status": 200
+        },
+        {
+          "stage": "archive-headers",
+          "at": 1791852836554,
+          "monotonic": 4926.914999999106
+        },
+        {
+          "stage": "archive-json",
+          "at": 1791852836558,
+          "monotonic": 4930.769999999553
+        },
+        {
+          "stage": "archive-decode-start",
+          "at": 1791852836558,
+          "monotonic": 4930.855000000447
+        },
+        {
+          "stage": "archive-decode-end",
+          "at": 1791852836580,
+          "monotonic": 4952.609999999404
+        },
+        {
+          "stage": "archive-files-applied",
+          "at": 1791852836581,
+          "monotonic": 4953.690000001341
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852836581,
+          "monotonic": 4953.754999998957
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852836581,
+          "monotonic": 4953.830000001937
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852836613,
+          "monotonic": 4985.155000001192
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852836613,
+          "monotonic": 4985.385000001639
+        },
+        {
+          "stage": "documents-start",
+          "at": 1791852836613,
+          "monotonic": 4985.464999999851
+        },
+        {
+          "stage": "documents-end",
+          "at": 1791852836613,
+          "monotonic": 4985.504999998957
+        },
+        {
+          "stage": "memory-fetch-start",
+          "at": 1791852839172,
+          "monotonic": 7544.170000001788
+        },
+        {
+          "stage": "memory-fetch-resolve",
+          "at": 1791852839230,
+          "monotonic": 7602.414999999106,
+          "status": 200
+        },
+        {
+          "stage": "beforeunload",
+          "at": 1791852839326,
+          "monotonic": 7698.64999999851
+        }
+      ]
+    }
+  ],
+  "deliveryCounterproof": {
+    "retentionExtraMs": 5500,
+    "oldHarnessExpected": "active consumer",
+    "oldHarnessReceived": "net::ERR_ABORTED",
+    "raisesAssertionTimeout": false
+  }
+}

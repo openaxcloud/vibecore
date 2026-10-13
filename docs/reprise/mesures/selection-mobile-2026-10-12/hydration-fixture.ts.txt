@@ -1,0 +1,52 @@
+import { test as base } from '/workspace/vibecore/tests/e2e/diagnostics/mobile-navigation.ts';
+export const test = base.extend<{ localDiagnostics: void }>({
+  localDiagnostics: [async ({ context, page }, use, testInfo) => {
+    const events: unknown[] = [];
+    const add = (event: unknown) => { if(events.length < 800) events.push(event); };
+    await context.exposeBinding('__vibecoreLocalRecord', (_, event) => add(event));
+    await context.addInitScript(() => {
+      let count = 0;
+      const emit = (stage: string, extra: Record<string, unknown> = {}) => {
+        if(++count > 300) return;
+        void (window as any).__vibecoreLocalRecord({ stage, at: Date.now(), monotonic: performance.now(), ...extra });
+      };
+      (globalThis as any).__vibecoreLocalMark = (stage: string) => emit(stage);
+      emit('document-start');
+      new PerformanceObserver(list => {
+        for (const entry of list.getEntries()) {
+          if(entry.duration >= 100) emit('long-task', { start: entry.startTime, duration: entry.duration });
+        }
+      }).observe({ type: 'longtask', buffered: true });
+      let previous = '';
+      const observer = new MutationObserver(() => {
+        const cm = !!document.querySelector('.cm-content');
+        const monaco = !!document.querySelector('.monaco-editor .view-lines');
+        const next = `${cm}:${monaco}`;
+        if(next !== previous) { previous = next; emit('editor-dom', { cm, monaco }); }
+      });
+      observer.observe(document, { childList: true, subtree: true });
+      addEventListener('beforeunload', () => emit('beforeunload'));
+      addEventListener('popstate', () => emit('popstate'));
+      const originalFetch = window.fetch;
+      window.fetch = async (...args) => {
+        const input = args[0];
+        const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, location.href);
+        const kind = url.pathname.endsWith('/ide-state') ? 'memory' : url.pathname.endsWith('/export/zip') ? 'archive' : undefined;
+        if(kind) {
+          emit(`${kind}-fetch-start`);
+          args[1]?.signal?.addEventListener('abort', () => emit(`${kind}-signal-abort`), { once: true });
+        }
+        try { const result = await originalFetch.apply(window, args); if(kind) emit(`${kind}-fetch-resolve`, { status: result.status }); return result; }
+        catch(error) { if(kind) emit(`${kind}-fetch-reject`, { name: (error as Error).name }); throw error; }
+      };
+    });
+    page.on('requestfailed', req => {
+      const path = new URL(req.url()).pathname;
+      if(path.endsWith('/ide-state') || path.endsWith('/ide.data')) add({ stage:'request-failed', at:Date.now(), kind:path.endsWith('/ide-state')?'memory':'navigation', error:req.failure()?.errorText });
+    });
+    try { await use(); } finally {
+      const fs = await import('node:fs/promises');
+      await fs.writeFile(testInfo.outputPath('local-jalons.json'), JSON.stringify(events, null, 2));
+    }
+  }, { auto: true }],
+});
