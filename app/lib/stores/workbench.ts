@@ -281,17 +281,15 @@ function workspaceLogLines(event: CommandEvent | string) {
     });
 }
 
-/*
- * Portée MODULE et non instance : le magasin est un singleton, mais la clé est
- * l'identifiant de projet — ce qu'on mutualise, c'est un téléchargement pour un
- * projet donné, pas pour un objet donné.
- */
-const PROJECT_ARCHIVE_COOLDOWN_MS = 30_000;
-
-const projectStorageFilesInFlight = createSingleFlight<boolean>({ cooldownMs: PROJECT_ARCHIVE_COOLDOWN_MS });
-
 export class WorkbenchStore {
+  /*
+   * Hydration mutates this instance; share only its in-flight calls, never a
+   * completed result or another store's hydration success.
+   */
+  #projectStorageFilesInFlight = createSingleFlight<boolean>();
   #runtime: RuntimeAdapter = getRuntimeAdapter();
+  #projectStorageBinding = 0;
+  #projectStorageSaveVersions = new Map<string, number>();
   #previewsStore = new PreviewsStore(this.#runtime);
   #filesStore = new FilesStore(this.#runtime);
   #editorStore = new EditorStore(this.#filesStore);
@@ -585,6 +583,8 @@ export class WorkbenchStore {
       return;
     }
 
+    this.#projectStorageBinding++;
+    this.#projectStorageSaveVersions.clear();
     this.#runtime = runtime;
     this.#previewsStore.setRuntime(runtime);
     this.#filesStore.setRuntime(runtime);
@@ -621,6 +621,8 @@ export class WorkbenchStore {
     fileHistoryStore.configure(projectId);
 
     if (changed) {
+      this.#projectStorageBinding++;
+      this.#projectStorageSaveVersions.clear();
       this.#runtimeFilesLoadedProjectId = undefined;
       this.filesHydrated.set(false);
       this.#reloadedMessages.oublier();
@@ -814,10 +816,16 @@ export class WorkbenchStore {
       return false;
     }
 
-    return projectStorageFilesInFlight.run(projectId, () => this.#loadProjectStorageFilesUncoalesced(projectId));
+    const binding = this.#projectStorageBinding;
+
+    return this.#projectStorageFilesInFlight.run(`${projectId}:${binding}`, () =>
+      this.#loadProjectStorageFilesUncoalesced(projectId, binding),
+    );
   }
 
-  async #loadProjectStorageFilesUncoalesced(projectId: string) {
+  async #loadProjectStorageFilesUncoalesced(projectId: string, binding: number) {
+    const savesBeforeRequest = new Map(this.#projectStorageSaveVersions);
+
     const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/export/zip`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
@@ -829,7 +837,7 @@ export class WorkbenchStore {
 
     const payload = (await response.json()) as ProjectExportResponse;
 
-    if (this.#projectId !== projectId) {
+    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
       return false;
     }
 
@@ -841,7 +849,7 @@ export class WorkbenchStore {
 
     const files = await this.#projectStorageFilesFromArchive(archiveBase64);
 
-    if (this.#projectId !== projectId) {
+    if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
       return false;
     }
 
@@ -849,7 +857,17 @@ export class WorkbenchStore {
       return false;
     }
 
-    this.#filesStore.replaceWithProjectStorageFiles(files);
+    /*
+     * Only saves completed during this request outrank its archive snapshot.
+     * A later explicit reload must remain able to adopt another editor's update.
+     */
+    const concurrentSavedPaths = new Set(
+      [...this.#projectStorageSaveVersions]
+        .filter(([path, version]) => savesBeforeRequest.get(path) !== version)
+        .map(([path]) => path),
+    );
+
+    this.#filesStore.replaceWithProjectStorageFiles(files, concurrentSavedPaths);
     this.setDocuments(this.files.get());
     this.#runtimeFilesLoadedProjectId = projectId;
     this.#markFilesHydrated(projectId);
@@ -2419,7 +2437,12 @@ export class WorkbenchStore {
      * This is a more complex feature that would be implemented in a future update
      */
 
+    const binding = this.#projectStorageBinding;
     await this.#filesStore.saveFile(filePath, document.value, options);
+
+    if (binding === this.#projectStorageBinding) {
+      this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
+    }
 
     if (!this.#enregistrementsDeLAgent.has(filePath)) {
       this.#enregistrementsUtilisateur.set(filePath, ++this.#horloge);
@@ -2443,7 +2466,12 @@ export class WorkbenchStore {
       this.#editorStore.updateFile(filePath, content);
     }
 
+    const binding = this.#projectStorageBinding;
     await this.#filesStore.saveFile(filePath, content);
+
+    if (binding === this.#projectStorageBinding) {
+      this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
+    }
 
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
@@ -2468,7 +2496,12 @@ export class WorkbenchStore {
       this.#editorStore.updateFile(filePath, content);
     }
 
+    const binding = this.#projectStorageBinding;
     await this.#filesStore.saveFile(filePath, content);
+
+    if (binding === this.#projectStorageBinding) {
+      this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
+    }
 
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
@@ -3085,10 +3118,16 @@ export class WorkbenchStore {
   }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
+    const binding = this.#projectStorageBinding;
+
     try {
       const success = await this.#filesStore.createFile(filePath, content);
 
       if (success) {
+        if (binding === this.#projectStorageBinding) {
+          this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
+        }
+
         this.setSelectedFile(filePath);
 
         /*

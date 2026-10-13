@@ -169,6 +169,7 @@ import {
   useLayoutHandoffEffect,
 } from './ide-layout-handoff';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
+import { projectSelectionToPersist } from './project-selection-to-persist';
 import {
   chargementMemoireProjetEnEchec,
   demanderUnNouvelEssaiMemoireProjet,
@@ -279,14 +280,14 @@ import {
 } from '~/lib/persistence/projectIdeMemory';
 import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useNavigation, useSearchParams } from 'react-router';
 import {
   isMobileWorkbenchPanel,
   resolveMobileWorkbenchPanel,
   shouldMountMobileWorkbench,
   type MobileWorkbenchPanelId,
 } from '~/components/chat/mobile-workbench-keepalive';
-import { isRedundantPanelSearchParamUpdate, withPanelSearchParam } from '~/utils/project-ide-panel-url';
+import { isRedundantPanelNavigation, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
   IDE_AGENT_PANEL,
   ideMobileTarget,
@@ -2619,6 +2620,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
+    const panelNavigation = useNavigation();
+    const panelNavigationRef = useRef(panelNavigation);
+    panelNavigationRef.current = panelNavigation;
+
     const layout = useResponsiveLayout();
     const textDirection = useTextDirection();
 
@@ -4345,6 +4350,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const gardeDeRestauration = useRef(creerGardeDeRestauration());
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
+    const restoredProjectSelectionScope = useRef<{ projectId: string; workspaceId?: string } | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
 
@@ -4374,12 +4380,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * repartaient, initialIdePanels changeait d'identité, chaque panneau de
          * service se rechargeait et la Webview repartait dans sa boucle de
          * démarrage — le « re-clic recharge tout l'IDE » constaté en prod. La
-         * valeur est lue sur window.location (l'URL réellement affichée) pour
-         * ne pas dépendre de l'identité changeante de searchParams.
+         * comparaison tient aussi compte de la destination en cours : l'URL
+         * peut encore annoncer editor pendant le chargement vers files.
+         * Le ref garde ce callback stable pour les effets de synchronisation.
          */
         if (
           typeof window !== 'undefined' &&
-          isRedundantPanelSearchParamUpdate(new URLSearchParams(window.location.search), panel)
+          isRedundantPanelNavigation(window.location, panel, panelNavigationRef.current.location)
         ) {
           return;
         }
@@ -5068,6 +5075,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
       gardeDeRestauration.current.oublier();
+      restoredProjectSelectionScope.current = undefined;
       pendingProjectSelectedFile.current = undefined;
     }, [projectIdeMode, projectId]);
 
@@ -5670,6 +5678,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * jamais à l'entrée de l'opération.
            */
           gardeDeRestauration.current.reussir(projectId);
+          restoredProjectSelectionScope.current = { projectId, workspaceId: currentWorkspaceId };
         })
         .catch((error) => {
           console.error('Failed to restore project IDE state', error);
@@ -5941,6 +5950,54 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       workbenchStore.setShowWorkbench(true);
     }, [firstProjectFile, projectIdeMode, projectStateReady, selectedFile]);
 
+    const persistProjectFileSelection = useCallback(
+      (filePath: string | undefined) => {
+        const restoredScope = restoredProjectSelectionScope.current;
+
+        if (
+          !filePath ||
+          !projectIdeMode ||
+          !projectId ||
+          !projectStateReady ||
+          restoredScope?.projectId !== projectId ||
+          restoredScope.workspaceId !== currentWorkspaceId
+        ) {
+          return false;
+        }
+
+        void saveProjectIdeMemory(projectId, { ui: { selectedFile: filePath } }, currentWorkspaceId).catch((error) => {
+          console.error('Failed to persist selected project file', error);
+        });
+
+        return true;
+      },
+      [projectIdeMode, projectId, currentWorkspaceId, projectStateReady],
+    );
+
+    useEffect(() => {
+      // Automatic fallback selections must preserve the path still awaiting hydration.
+      persistProjectFileSelection(
+        projectSelectionToPersist(workbenchStore.selectedFile.get(), pendingProjectSelectedFile.current),
+      );
+    }, [persistProjectFileSelection, selectedFile]);
+
+    const onUserProjectFileSelect = useCallback(
+      (filePath: string) => {
+        if (projectFilesRef.current[filePath]?.type !== 'file') {
+          return;
+        }
+
+        /*
+         * A deliberate choice also counts when selectedFile already holds this path.
+         * Persist synchronously to local memory before navigation can cancel the layout timer.
+         */
+        if (persistProjectFileSelection(filePath)) {
+          pendingProjectSelectedFile.current = undefined;
+        }
+      },
+      [persistProjectFileSelection],
+    );
+
     useEffect(() => {
       if (!projectIdeMode || !projectId || !projectStateReady) {
         return undefined;
@@ -5964,7 +6021,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           projectId,
           {
             ui: {
-              selectedFile,
+              // Une sélection en attente des fichiers n'est pas une désélection.
+              selectedFile: projectSelectionToPersist(selectedFile, pendingProjectSelectedFile.current),
               currentView,
               rightPanelOpen,
               rightPanelMode,
@@ -6165,13 +6223,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const openProjectFile = useCallback(
       (filePath: string, options: { paneId?: string; preview?: boolean } = {}) => {
+        onUserProjectFileSelect(filePath);
+
         openWorkspacePanel('editor', {
           paneId: options.paneId,
           filePath,
           preview: options.preview,
         });
       },
-      [openWorkspacePanel],
+      [openWorkspacePanel, onUserProjectFileSelect],
     );
 
     useEffect(() => {
@@ -7788,7 +7848,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         data-testid="ide-agent-panel"
         dir={textDirection}
         aria-live={projectIdeMode ? 'polite' : undefined}
-        className={classNames(styles.Chat, 'flex h-full min-h-0 flex-col flex-grow', {
+        className={classNames(styles.Chat, 'h-full min-h-0 flex-col flex-grow', {
+          flex: !useMobileIde || mobilePanel === 'chat',
           'lg:min-w-[var(--chat-min-width)]': !projectIdeMode,
           'min-w-0 overflow-hidden bolt-project-agent-panel': projectIdeMode,
           hidden: useMobileIde && mobilePanel !== 'chat',
@@ -10430,6 +10491,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
                             })}
                             projectId={projectId}
+                            onUserFileSelect={onUserProjectFileSelect}
                             onMobilePanelChange={(panel) => {
                               if (panel === 'editor') {
                                 setMobileIdePanel('editor');

@@ -389,7 +389,7 @@ export class FilesStore {
     this.#loadLockedFiles();
   }
 
-  replaceWithProjectStorageFiles(files: ProjectStorageFile[]) {
+  replaceWithProjectStorageFiles(files: ProjectStorageFile[], preservePaths: ReadonlySet<string> = new Set()) {
     const nextFiles: FileMap = {};
 
     let fileCount = 0;
@@ -413,6 +413,23 @@ export class FilesStore {
         isBinary: file.isBinary,
       };
       fileCount++;
+    }
+
+    /*
+     * An archive is a snapshot, not authority over a later successful save.
+     * Explicit paths also preserve a deliberately saved empty file, without
+     * preserving empty placeholders from a contentless runtime listing.
+     */
+    for (const preservedPath of preservePaths) {
+      const current = this.files.get()[preservedPath];
+
+      if (current?.type === 'file' && !this.#deletedPaths.has(preservedPath)) {
+        if (!nextFiles[preservedPath]) {
+          fileCount++;
+        }
+
+        nextFiles[preservedPath] = current;
+      }
     }
 
     this.#size = fileCount;

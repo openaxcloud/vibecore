@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isRedundantPanelSearchParamUpdate, readPanelSearchParam, withPanelSearchParam } from './project-ide-panel-url';
+import {
+  isRedundantPanelNavigation,
+  isRedundantPanelSearchParamUpdate,
+  readPanelSearchParam,
+  withPanelSearchParam,
+} from './project-ide-panel-url';
 
 describe('project IDE panel URL helpers', () => {
   it('reads only supported panel params', () => {
@@ -42,5 +47,27 @@ describe('project IDE panel URL helpers', () => {
     expect(isRedundantPanelSearchParamUpdate(new URLSearchParams('panel=preview'), 'git')).toBe(false);
     expect(isRedundantPanelSearchParamUpdate(new URLSearchParams(''), 'preview')).toBe(false);
     expect(isRedundantPanelSearchParamUpdate(new URLSearchParams('panel=git'), undefined)).toBe(false);
+  });
+});
+
+describe('panel navigation while a loader is pending', () => {
+  const editor = { pathname: '/projects/a/ide', search: '?panel=editor' };
+  const files = { ...editor, search: '?panel=files' };
+
+  it('lets a file choice cancel the files navigation even while the URL still says editor', () => {
+    expect(isRedundantPanelNavigation(editor, 'editor', files)).toBe(false);
+  });
+
+  it('does not restart a navigation already targeting the requested panel', () => {
+    expect(isRedundantPanelNavigation(editor, 'files', files)).toBe(true);
+  });
+
+  it('keeps an idle re-click inert', () => {
+    expect(isRedundantPanelNavigation(editor, 'editor')).toBe(true);
+    expect(isRedundantPanelNavigation(editor, 'files')).toBe(false);
+  });
+
+  it('does not mistake a different project navigation for the current panel', () => {
+    expect(isRedundantPanelNavigation(editor, 'editor', { ...editor, pathname: '/projects/b/ide' })).toBe(false);
   });
 });

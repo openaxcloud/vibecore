@@ -37,3 +37,16 @@ export function withPanelSearchParam(searchParams: URLSearchParams, panel?: stri
 
   return nextParams;
 }
+
+/** Compare the requested panel with the navigation already in flight, if any. */
+export function isRedundantPanelNavigation(
+  current: { pathname: string; search: string },
+  panel: string | undefined,
+  pending?: { pathname: string; search: string },
+): boolean {
+  if (pending && pending.pathname !== current.pathname) {
+    return false;
+  }
+
+  return isRedundantPanelSearchParamUpdate(new URLSearchParams((pending ?? current).search), panel);
+}

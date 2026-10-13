@@ -181,10 +181,20 @@ describe('BaseChat strengthened-AST catalog', () => {
      *      de défilement et son ref DOM. Aucun texte, classe, en-tête, socle ou
      *      Terminal modifié. Le détecteur ide-mobile-chrome reste inchangé.
      *
+     *   6. Restauration de sélection mobile, demande du 12/10 : le choix explicite
+     *      dans l’arbre Workbench annule la sélection encore en attente. Tranche
+     *      comparée exactement à main dfd1d1f0 : un hunk, cinq lignes ajoutant
+     *      uniquement onUserFileSelect. Aucun texte, classe ni structure modifié.
+     *
+     *   7. Choix explicite du README déjà affiché, demande du 13/10 : comparée
+     *      à dc200e09, la tranche change uniquement le callback onUserFileSelect
+     *      en référence partagée onUserProjectFileSelect. Aucun markup, texte,
+     *      classe ni interaction du menu bas modifié.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('485fdb68189a244a05ff1c3f262225c4cf414544264c9dce592deab461f9192f');
+    expect(frozenHash).toBe('b7ba1b1557bd004ccd71a90315096ebfe701ca9ac1fe7662ad215b56f476e27b');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

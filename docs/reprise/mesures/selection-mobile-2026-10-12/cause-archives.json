@@ -1,0 +1,392 @@
+[
+  {
+    "label": "locale-settled",
+    "time": 1791842791012,
+    "url": "http://127.0.0.1:5173/projects/cmv5sx5tk00pku8mbf9re28d0/ide?panel=editor&lang=fr",
+    "selected": "/home/project/audit.txt",
+    "files": [
+      "/home/project/README.md",
+      "/home/project/audit.txt",
+      "/home/project/index.html",
+      "/home/project/other.txt",
+      "/home/project/package.json",
+      "/home/project/src/App.tsx",
+      "/home/project/src/main.tsx",
+      "/home/project/src/styles.css",
+      "/home/project/vite.config.ts"
+    ],
+    "memory": [
+      {
+        "key": "vibecore.projectIdeMemory:cmv5sx5tk00pku8mbf9re28d0",
+        "selected": "/home/project/audit.txt",
+        "updatedAt": "2026-10-12T22:06:30.757Z"
+      }
+    ],
+    "editor": "PERSISTENCE-ORIGINAL-20261012second line",
+    "calls": []
+  },
+  {
+    "label": "dashboard",
+    "time": 1791842792925,
+    "url": "http://127.0.0.1:5173/dashboard",
+    "selected": "/home/project/audit.txt",
+    "files": [
+      "/home/project/README.md",
+      "/home/project/audit.txt",
+      "/home/project/index.html",
+      "/home/project/other.txt",
+      "/home/project/package.json",
+      "/home/project/src/App.tsx",
+      "/home/project/src/main.tsx",
+      "/home/project/src/styles.css",
+      "/home/project/vite.config.ts"
+    ],
+    "memory": [
+      {
+        "key": "vibecore.projectIdeMemory:cmv5sx5tk00pku8mbf9re28d0",
+        "selected": "/home/project/audit.txt",
+        "updatedAt": "2026-10-12T22:06:30.757Z"
+      }
+    ],
+    "editor": null,
+    "calls": [
+      {
+        "method": "configureProject",
+        "stage": "call",
+        "time": 1791842792736,
+        "arg": null,
+        "files": [
+          "/home/project/README.md",
+          "/home/project/audit.txt",
+          "/home/project/index.html",
+          "/home/project/other.txt",
+          "/home/project/package.json",
+          "/home/project/src/App.tsx",
+          "/home/project/src/main.tsx",
+          "/home/project/src/styles.css",
+          "/home/project/vite.config.ts"
+        ],
+        "selected": "/home/project/audit.txt"
+      }
+    ]
+  },
+  {
+    "label": "back-mounted",
+    "time": 1791842794184,
+    "url": "http://127.0.0.1:5173/projects/cmv5sx5tk00pku8mbf9re28d0/ide?panel=editor&lang=fr",
+    "selected": null,
+    "files": [],
+    "memory": [
+      {
+        "key": "vibecore.projectIdeMemory:cmv5sx5tk00pku8mbf9re28d0",
+        "selected": "/home/project/audit.txt",
+        "updatedAt": "2026-10-12T22:06:30.757Z"
+      }
+    ],
+    "editor": null,
+    "calls": [
+      {
+        "method": "configureProject",
+        "stage": "call",
+        "time": 1791842792736,
+        "arg": null,
+        "files": [
+          "/home/project/README.md",
+          "/home/project/audit.txt",
+          "/home/project/index.html",
+          "/home/project/other.txt",
+          "/home/project/package.json",
+          "/home/project/src/App.tsx",
+          "/home/project/src/main.tsx",
+          "/home/project/src/styles.css",
+          "/home/project/vite.config.ts"
+        ],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "configureRuntime",
+        "stage": "call",
+        "time": 1791842793348,
+        "arg": null,
+        "files": [
+          "/home/project/README.md",
+          "/home/project/audit.txt",
+          "/home/project/index.html",
+          "/home/project/other.txt",
+          "/home/project/package.json",
+          "/home/project/src/App.tsx",
+          "/home/project/src/main.tsx",
+          "/home/project/src/styles.css",
+          "/home/project/vite.config.ts"
+        ],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "configureProject",
+        "stage": "call",
+        "time": 1791842793348,
+        "arg": "cmv5sx5tk00pku8mbf9re28d0",
+        "files": [],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "setSelectedFile",
+        "stage": "call",
+        "time": 1791842793349,
+        "arg": null,
+        "files": [],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842793349,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842793383,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842793383,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842793383,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842793485,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842793485,
+        "value": true,
+        "files": []
+      }
+    ]
+  },
+  {
+    "label": "back-settled",
+    "time": 1791842804413,
+    "url": "http://127.0.0.1:5173/projects/cmv5sx5tk00pku8mbf9re28d0/ide?panel=editor&lang=fr",
+    "selected": null,
+    "files": [],
+    "memory": [
+      {
+        "key": "vibecore.projectIdeMemory:cmv5sx5tk00pku8mbf9re28d0",
+        "updatedAt": "2026-10-12T22:06:34.585Z"
+      }
+    ],
+    "editor": null,
+    "calls": [
+      {
+        "method": "configureProject",
+        "stage": "call",
+        "time": 1791842792736,
+        "arg": null,
+        "files": [
+          "/home/project/README.md",
+          "/home/project/audit.txt",
+          "/home/project/index.html",
+          "/home/project/other.txt",
+          "/home/project/package.json",
+          "/home/project/src/App.tsx",
+          "/home/project/src/main.tsx",
+          "/home/project/src/styles.css",
+          "/home/project/vite.config.ts"
+        ],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "configureRuntime",
+        "stage": "call",
+        "time": 1791842793348,
+        "arg": null,
+        "files": [
+          "/home/project/README.md",
+          "/home/project/audit.txt",
+          "/home/project/index.html",
+          "/home/project/other.txt",
+          "/home/project/package.json",
+          "/home/project/src/App.tsx",
+          "/home/project/src/main.tsx",
+          "/home/project/src/styles.css",
+          "/home/project/vite.config.ts"
+        ],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "configureProject",
+        "stage": "call",
+        "time": 1791842793348,
+        "arg": "cmv5sx5tk00pku8mbf9re28d0",
+        "files": [],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "setSelectedFile",
+        "stage": "call",
+        "time": 1791842793349,
+        "arg": null,
+        "files": [],
+        "selected": "/home/project/audit.txt"
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842793349,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842793383,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842793383,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842793383,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842793485,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842793485,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842794971,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842794971,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842796472,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842796472,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842797971,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842797971,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842799471,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842799471,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842800971,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842800971,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842802471,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842802471,
+        "value": true,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "call",
+        "time": 1791842803985,
+        "arg": null,
+        "files": []
+      },
+      {
+        "method": "loadProjectStorageFiles",
+        "stage": "resolved",
+        "time": 1791842803985,
+        "value": true,
+        "files": []
+      }
+    ]
+  }
+]
