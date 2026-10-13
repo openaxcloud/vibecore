@@ -512,7 +512,9 @@ for (const explicitChoice of [false, true]) {
 for (const width of [390, 768]) {
   test(`explicit provisional README then immediate Back at ${width}`, async ({ page, request, context }, info) => {
     test.setTimeout(90000);
+
     const { projectId, file, replaceFixtureFiles } = await openPersistedFile({ page, request, context });
+
     const saved = () =>
       page.evaluate(
         (id) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${id}`) ?? '{}').ui?.selectedFile,
@@ -530,6 +532,7 @@ for (const width of [390, 768]) {
     await file('README.md').click();
     await page.getByTestId('button-back').click();
     await expect(page).toHaveURL(/\/dashboard/);
+
     const afterExit = await saved();
     await replaceFixtureFiles({
       'README.md': 'TEMPORARY-README',
@@ -561,12 +564,15 @@ for (const width of [390, 768]) {
     context,
   }, info) => {
     test.setTimeout(90000);
+
     const { projectId, file, createOtherProject, replaceFixtureFiles } = await openPersistedFile({
       page,
       request,
       context,
     });
+
     const projectB = await createOtherProject();
+
     const saved = (id: string) =>
       page.evaluate(
         (project) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${project}`) ?? '{}').ui?.selectedFile,
@@ -582,6 +588,7 @@ for (const width of [390, 768]) {
     await page.goto(`/projects/${projectId}/ide?panel=editor`);
     await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
     await expect.poll(() => saved(projectId)).toBe('/home/project/audit.txt');
+
     const writesToB: Array<string | undefined> = [];
     page.on('request', (outgoing) => {
       if (outgoing.method() === 'PUT' && new URL(outgoing.url()).pathname === `/api/projects/${projectB}/ide-state`) {
@@ -591,6 +598,7 @@ for (const width of [390, 768]) {
     await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
     await page.getByTestId('mobile-more-menu-files').click();
     await file('README.md').click();
+
     // Same-document navigation exercises the project scope guard without a page reload.
     await page.evaluate((id) => {
       history.pushState(history.state, '', `/projects/${id}/ide?panel=editor`);
@@ -611,5 +619,80 @@ for (const width of [390, 768]) {
     await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
     await expect.poll(() => saved(projectId)).toBe('/home/project/README.md');
     await page.screenshot({ path: info.outputPath('readme-after-project-switch.png') });
+  });
+}
+
+for (const width of [390, 768]) {
+  test(`file choice cancels a pending files navigation at ${width}`, async ({ page, request, context }, testInfo) => {
+    test.setTimeout(90000);
+
+    const { projectId, file } = await openPersistedFile({ page, request, context });
+    await page.setViewportSize({ width, height: 900 });
+    await page.getByTestId('tab-editor').click();
+    await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012');
+
+    let release!: () => void;
+    let reached!: () => void;
+
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const arrived = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    await page.route(
+      (url) => url.pathname === `/projects/${projectId}/ide.data` && url.searchParams.get('panel') === 'files',
+      async (route) => {
+        const response = await route.fetch();
+        reached();
+        await held;
+
+        if (route.request().failure()?.errorText === 'net::ERR_ABORTED') {
+          return;
+        }
+
+        await route.fulfill({ response }).catch((error) => {
+          if (route.request().failure()?.errorText !== 'net::ERR_ABORTED') {
+            throw error;
+          }
+        });
+      },
+    );
+
+    try {
+      await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+      await page.getByTestId('mobile-more-menu-files').click();
+      await arrived;
+      await file('other.txt').click();
+      release();
+
+      // Wait for router settlement after the gesture, never before the file choice.
+      await page.waitForFunction(() => {
+        const router = (
+          window as typeof window & {
+            __reactRouterDataRouter?: { state: { navigation: { state: string } } };
+          }
+        ).__reactRouterDataRouter;
+        return router?.state.navigation.state === 'idle';
+      });
+      await expect(page.locator('.cm-content')).toContainText('SECOND-DOCUMENT');
+      await expect(page).toHaveURL(/panel=editor/);
+
+      let reloads = 0;
+      page.on('request', (outgoing) => {
+        if (new URL(outgoing.url()).pathname === `/projects/${projectId}/ide.data`) {
+          reloads++;
+        }
+      });
+      await page.getByTestId('tab-editor').click();
+
+      // Bounded observation of a re-click that must not issue a loader request.
+      await page.waitForTimeout(250);
+      expect(reloads).toBe(0);
+      await expect(page.locator('.cm-content')).toContainText('SECOND-DOCUMENT');
+      await page.screenshot({ path: testInfo.outputPath('navigation-settled.png') });
+    } finally {
+      release();
+    }
   });
 }

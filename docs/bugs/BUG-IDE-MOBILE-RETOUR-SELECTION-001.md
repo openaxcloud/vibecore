@@ -12,7 +12,7 @@ Après ouverture de `audit.txt` depuis l’IDE desktop, passage à 768 px, chang
 
 ## 💻 Codé
 
-☐ — non corrigé ; cause non établie. Le cadre desktop est absent dans la vue mobile ; aucun lien causal démontré avec le correctif géométrique.
+☐ — correctifs locaux sur #732, non fusionnés sur main : persistance du choix explicite et course de navigation démontrées par contre-épreuves. Voir le rapport lié ; les autres limites restent distinctes. Aucun lien causal démontré avec le correctif géométrique.
 
 ## ✅ Testé live
 

@@ -280,14 +280,14 @@ import {
 } from '~/lib/persistence/projectIdeMemory';
 import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useNavigation, useSearchParams } from 'react-router';
 import {
   isMobileWorkbenchPanel,
   resolveMobileWorkbenchPanel,
   shouldMountMobileWorkbench,
   type MobileWorkbenchPanelId,
 } from '~/components/chat/mobile-workbench-keepalive';
-import { isRedundantPanelSearchParamUpdate, withPanelSearchParam } from '~/utils/project-ide-panel-url';
+import { isRedundantPanelNavigation, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
   IDE_AGENT_PANEL,
   ideMobileTarget,
@@ -2620,6 +2620,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
+    const panelNavigation = useNavigation();
+    const panelNavigationRef = useRef(panelNavigation);
+    panelNavigationRef.current = panelNavigation;
+
     const layout = useResponsiveLayout();
     const textDirection = useTextDirection();
 
@@ -4376,12 +4380,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * repartaient, initialIdePanels changeait d'identité, chaque panneau de
          * service se rechargeait et la Webview repartait dans sa boucle de
          * démarrage — le « re-clic recharge tout l'IDE » constaté en prod. La
-         * valeur est lue sur window.location (l'URL réellement affichée) pour
-         * ne pas dépendre de l'identité changeante de searchParams.
+         * comparaison tient aussi compte de la destination en cours : l'URL
+         * peut encore annoncer editor pendant le chargement vers files.
+         * Le ref garde ce callback stable pour les effets de synchronisation.
          */
         if (
           typeof window !== 'undefined' &&
-          isRedundantPanelSearchParamUpdate(new URLSearchParams(window.location.search), panel)
+          isRedundantPanelNavigation(window.location, panel, panelNavigationRef.current.location)
         ) {
           return;
         }
@@ -5982,8 +5987,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        // A deliberate choice also counts when selectedFile already holds this path.
-        // Persist synchronously to local memory before navigation can cancel the layout timer.
+        /*
+         * A deliberate choice also counts when selectedFile already holds this path.
+         * Persist synchronously to local memory before navigation can cancel the layout timer.
+         */
         if (persistProjectFileSelection(filePath)) {
           pendingProjectSelectedFile.current = undefined;
         }
