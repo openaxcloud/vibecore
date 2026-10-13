@@ -1,0 +1,198 @@
+[
+  {
+    "attempt": "original-agent-—-la-pastil-10888--le-fil-et-sur-rien-d’autre-repeat1",
+    "display": {
+      "kind": "agent-display-rules",
+      "class": "_Chat_15kx3_5 flex h-full min-h-0 flex-col flex-grow min-w-0 overflow-hidden bolt-project-agent-panel hidden",
+      "computed": "flex",
+      "rules": [
+        {
+          "selector": ".hidden, [data-theme=\"dark\"] .dark\\:hidden",
+          "display": "none",
+          "priority": ""
+        },
+        {
+          "selector": ".flex",
+          "display": "flex",
+          "priority": ""
+        }
+      ]
+    },
+    "preview": {
+      "t": 4764.994999997318,
+      "target": null,
+      "ancestors": [
+        {
+          "tag": "DIV",
+          "cls": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "w-full h-auto",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "_Chat_15kx3_5 flex h-full min-h-0 flex-col flex-grow min-w-0 overflow-hidden bolt-project-agent-panel hidden",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "MAIN",
+          "cls": "h-dvh pt-9",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "BODY",
+          "cls": "h-full w-full",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "HTML",
+          "cls": "light",
+          "display": "block",
+          "visibility": "visible"
+        }
+      ],
+      "pillCount": 1,
+      "panel": "preview",
+      "urlPanel": "preview",
+      "pill": {
+        "x": 324,
+        "y": 299.21875,
+        "w": 44,
+        "h": 44,
+        "display": "flex",
+        "visibility": "visible",
+        "hit": true
+      }
+    }
+  },
+  {
+    "attempt": "original-agent-—-la-pastil-10888--le-fil-et-sur-rien-d’autre",
+    "display": {
+      "kind": "agent-display-rules",
+      "class": "_Chat_15kx3_5 flex h-full min-h-0 flex-col flex-grow min-w-0 overflow-hidden bolt-project-agent-panel hidden",
+      "computed": "flex",
+      "rules": [
+        {
+          "selector": ".hidden, [data-theme=\"dark\"] .dark\\:hidden",
+          "display": "none",
+          "priority": ""
+        },
+        {
+          "selector": ".flex",
+          "display": "flex",
+          "priority": ""
+        }
+      ]
+    },
+    "preview": {
+      "t": 4995.519999995828,
+      "target": null,
+      "ancestors": [
+        {
+          "tag": "DIV",
+          "cls": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "w-full h-auto",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "_Chat_15kx3_5 flex h-full min-h-0 flex-col flex-grow min-w-0 overflow-hidden bolt-project-agent-panel hidden",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+          "display": "flex",
+          "visibility": "visible"
+        },
+        {
+          "tag": "MAIN",
+          "cls": "h-dvh pt-9",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "DIV",
+          "cls": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "BODY",
+          "cls": "h-full w-full",
+          "display": "block",
+          "visibility": "visible"
+        },
+        {
+          "tag": "HTML",
+          "cls": "light",
+          "display": "block",
+          "visibility": "visible"
+        }
+      ],
+      "pillCount": 1,
+      "panel": "preview",
+      "urlPanel": "preview",
+      "pill": {
+        "x": 324,
+        "y": 299.21875,
+        "w": 44,
+        "h": 44,
+        "display": "flex",
+        "visibility": "visible",
+        "hit": true
+      }
+    }
+  }
+]

@@ -7848,7 +7848,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         data-testid="ide-agent-panel"
         dir={textDirection}
         aria-live={projectIdeMode ? 'polite' : undefined}
-        className={classNames(styles.Chat, 'flex h-full min-h-0 flex-col flex-grow', {
+        className={classNames(styles.Chat, 'h-full min-h-0 flex-col flex-grow', {
+          flex: !useMobileIde || mobilePanel === 'chat',
           'lg:min-w-[var(--chat-min-width)]': !projectIdeMode,
           'min-w-0 overflow-hidden bolt-project-agent-panel': projectIdeMode,
           hidden: useMobileIde && mobilePanel !== 'chat',

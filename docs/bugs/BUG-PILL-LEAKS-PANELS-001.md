@@ -12,7 +12,9 @@ id: BUG-PILL-LEAKS-PANELS-001
 
 ## 💻 Codé
 
-☑ 08/09 — **REPRODUIT ET MESURÉ** à 390 (Chromium, build de production). Sur les panneaux **Aperçu ET Déploiements**, la pastille restait `display: flex`, `visibility: visible`, `opacity: 1`, à **[324, 708]** — et `elementFromPoint` en son centre la rendait : elle se peignait bien PAR-DESSUS le contenu de l'autre panneau. Position [324, 708] et non [173, 601] parce que la règle de centrage est portée par `[data-mobile-panel='chat']` : hors du fil, la marge de base la pousse au bord droit — exactement la capture d'Avi. Ampleur relevée : sur **164 éléments** du fil, elle était la **seule** à s'échapper. Mécanisme : le panneau actif est un calque `position: absolute; inset: 0` en `z-index: auto`, la pastille est `sticky` en `z-index: 20`, et toute la chaîne jusqu'à `body` est en `z-index: auto` — vingt bat zéro. Correctif au niveau de la RÈGLE (règle 7) et non du symptôme : `isolation: isolate` sur `.bolt-project-agent-scroll` en mobile — les `z-index` du fil ne sortent plus du fil, ni celui-ci ni aucun futur enfant surélevé. Après : **0 fuite sur 164**.
+☐ Réouvert le 13/10/2026 : collision `flex`/`hidden` reproduite pendant le chargement de Preview ; correction locale non poussée. [Rapport et contre-épreuves](../reprise/2026-10-13-pastille-preview.md).
+
+Historique 08/09 — **REPRODUIT ET MESURÉ** à 390 (Chromium, build de production). Sur les panneaux **Aperçu ET Déploiements**, la pastille restait `display: flex`, `visibility: visible`, `opacity: 1`, à **[324, 708]** — et `elementFromPoint` en son centre la rendait : elle se peignait bien PAR-DESSUS le contenu de l'autre panneau. Position [324, 708] et non [173, 601] parce que la règle de centrage est portée par `[data-mobile-panel='chat']` : hors du fil, la marge de base la pousse au bord droit — exactement la capture d'Avi. Ampleur relevée : sur **164 éléments** du fil, elle était la **seule** à s'échapper. Mécanisme : le panneau actif est un calque `position: absolute; inset: 0` en `z-index: auto`, la pastille est `sticky` en `z-index: 20`, et toute la chaîne jusqu'à `body` est en `z-index: auto` — vingt bat zéro. Correctif au niveau de la RÈGLE (règle 7) et non du symptôme : `isolation: isolate` sur `.bolt-project-agent-scroll` en mobile — les `z-index` du fil ne sortent plus du fil, ni celui-ci ni aucun futur enfant surélevé. Après : **0 fuite sur 164**.
 
 ## ✅ Testé live
 
@@ -23,4 +25,3 @@ id: BUG-PILL-LEAKS-PANELS-001
 ## Preuve
 
 contre-épreuve dans les DEUX sens : règle retirée → rouge en nommant le coupable (`SPAN.i-ph:arrow-down` peint sur le panneau `preview`) ; pastille supprimée → la moitié « elle se peint au-dessus du fil » rouge. Épinglé par `tests/e2e/ide-mobile-chrome.spec.ts` « elle se peint sur le fil, et sur rien d'autre »
-

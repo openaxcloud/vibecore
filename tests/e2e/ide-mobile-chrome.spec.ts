@@ -2916,6 +2916,101 @@ test.describe('agent — la pastille « descendre » ne déborde sur aucun autre
       ).toBe(false);
     }
   });
+
+  for (const width of [390, 768]) {
+    test(`le fil reste masqué pendant le chargement interrompu de Preview à ${width}px`, async ({ page, request }) => {
+      test.setTimeout(150_000);
+      await page.setViewportSize({ width, height: 844 });
+
+      let releaseWorkbench!: () => void;
+
+      const workbenchGate = new Promise<void>((resolve) => {
+        releaseWorkbench = resolve;
+      });
+
+      let workbenchRetained = false;
+
+      await page.route(/\/assets\/Workbench\.client-[^/]+\.js$/, async (route) => {
+        const response = await route.fetch();
+        workbenchRetained = true;
+        await workbenchGate;
+        await route.fulfill({ response });
+      });
+
+      const remonterLeFil = async () => {
+        await page.evaluate(() => {
+          const candidates = [...document.querySelectorAll<HTMLElement>('*')].filter(
+            (el) =>
+              /(auto|scroll)/.test(getComputedStyle(el).overflowY) &&
+              el.scrollHeight > el.clientHeight + 4 &&
+              el.querySelector('.bolt-chat-message-row'),
+          );
+
+          const scroller = candidates.find((el) => !candidates.some((child) => child !== el && el.contains(child)));
+
+          if (!scroller) {
+            throw new Error('The rendered transcript must have a scroll container');
+          }
+
+          scroller.scrollTop = 0;
+        });
+        await expect(page.locator('.bolt-agent-scroll-to-bottom')).toBeVisible({ timeout: 20_000 });
+      };
+
+      const agent = page.getByTestId('ide-agent-panel');
+
+      try {
+        await ouvrirIde(page, request, { fil: true, long: true });
+        await page.waitForLoadState('load');
+        await expect(page.locator('.bolt-chat-message-row')).toHaveCount(12, { timeout: 20_000 });
+        await attendreLeFilStable(page);
+        await remonterLeFil();
+        await ouvrirOutil(page, 'preview');
+        await expect.poll(() => workbenchRetained).toBe(true);
+        await page.waitForTimeout(1500);
+
+        await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'preview');
+
+        const paintedOnPreview = await page.evaluate(() => {
+          const pill = document.querySelector('.bolt-agent-scroll-to-bottom');
+
+          if (!pill) {
+            return false;
+          }
+
+          const rect = pill.getBoundingClientRect();
+          const hit = document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2);
+
+          return Boolean(hit && (hit === pill || pill.contains(hit)));
+        });
+        expect(paintedOnPreview, 'the Agent pill must not paint over the loading Preview').toBe(false);
+        await expect(agent).toHaveCSS('display', 'none');
+        await page.screenshot({ path: test.info().outputPath(`preview-loading-${width}.png`) });
+
+        // Interrupt loading through the real tab, without releasing the module yet.
+        await ouvrirOutil(page, 'agent');
+        await expect(agent).toHaveCSS('display', 'flex');
+        await expect(page.locator('.bolt-chat-message-row')).toHaveCount(12);
+        await attendreLeFilStable(page);
+        await remonterLeFil();
+        releaseWorkbench();
+
+        await ouvrirOutil(page, 'preview');
+        await expect(page.locator('.bolt-workbench-mobile > .fixed')).toBeVisible({ timeout: 20_000 });
+        await expect(agent).toHaveCSS('display', 'none');
+        await ouvrirOutil(page, 'git');
+        await expect(page.locator('.bolt-responsive-ide-mobile')).toHaveAttribute('data-mobile-panel', 'deploy');
+        await expect(agent).toHaveCSS('display', 'none');
+        await ouvrirOutil(page, 'agent');
+        await expect(agent).toHaveCSS('display', 'flex');
+        await attendreLeFilStable(page);
+        await remonterLeFil();
+        await page.screenshot({ path: test.info().outputPath(`agent-return-${width}.png`) });
+      } finally {
+        releaseWorkbench();
+      }
+    });
+  }
 });
 
 /*
