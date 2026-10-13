@@ -181,10 +181,15 @@ describe('BaseChat strengthened-AST catalog', () => {
      *      de défilement et son ref DOM. Aucun texte, classe, en-tête, socle ou
      *      Terminal modifié. Le détecteur ide-mobile-chrome reste inchangé.
      *
+     *   6. Restauration de sélection mobile, demande du 12/10 : le choix explicite
+     *      dans l’arbre Workbench annule la sélection encore en attente. Tranche
+     *      comparée exactement à main dfd1d1f0 : un hunk, cinq lignes ajoutant
+     *      uniquement onUserFileSelect. Aucun texte, classe ni structure modifié.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('485fdb68189a244a05ff1c3f262225c4cf414544264c9dce592deab461f9192f');
+    expect(frozenHash).toBe('2a8bf5c070d96ed83702f80cfb337a568d45ef242a802c00880edb6b141497dc');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

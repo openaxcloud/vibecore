@@ -232,40 +232,46 @@ describe('project storage hydration after returning to the IDE', () => {
     expect(store.currentDocument.get()?.value).toBe('my unsaved draft');
     expect(store.unsavedFiles.get().has(path)).toBe(true);
   });
-  it('does not replace a newer saved file with an archive delayed across rehydration', async () => {
-    const { store, projectId } = setup();
-    stubArchive(() => archive('old persisted content'));
-    await store.loadProjectStorageFiles();
-    store.configureProject(undefined);
-    store.configureRuntime({ ...runtimeAdapterMock } as never);
-    store.configureProject(projectId);
-    runtimeFiles.set(path, 'old persisted content');
-    await store.loadRuntimeFiles();
+  it.each(['new saved content', ''])(
+    'preserves a concurrent successful save over a delayed archive: %j',
+    async (content) => {
+      const { store, projectId } = setup();
+      stubArchive(() => archive('old persisted content'));
+      await store.loadProjectStorageFiles();
+      store.configureProject(undefined);
+      store.configureRuntime({ ...runtimeAdapterMock } as never);
+      store.configureProject(projectId);
+      runtimeFiles.set(path, 'old persisted content');
+      await store.loadRuntimeFiles();
 
-    let release!: () => void;
+      let release!: () => void;
 
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    stubArchive(async () => {
-      await gate;
-      return archive('old persisted content');
-    });
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      stubArchive(async () => {
+        await gate;
+        return archive('old persisted content');
+      });
 
-    const pending = store.loadProjectStorageFiles();
-    store.setSelectedFile(path);
-    store.setCurrentDocumentContent('new saved content');
-    await store.saveCurrentDocument();
-    expect(store.unsavedFiles.get().has(path)).toBe(false);
-    expect(store.files.get()[path]).toMatchObject({ content: 'new saved content' });
-    release();
-    await pending;
-    expect(store.files.get()[path]).toMatchObject({ content: 'new saved content' });
-    expect(store.currentDocument.get()?.value).toBe('new saved content');
-  });
+      store.setSelectedFile(path);
+      store.setCurrentDocumentContent('saved before request');
+      await store.saveCurrentDocument();
+
+      const pending = store.loadProjectStorageFiles();
+      store.setCurrentDocumentContent(content);
+      await store.saveCurrentDocument();
+      expect(store.unsavedFiles.get().has(path)).toBe(false);
+      expect(store.files.get()[path]).toMatchObject({ content });
+      release();
+      await pending;
+      expect(store.files.get()[path]).toMatchObject({ content });
+      expect(store.currentDocument.get()?.value).toBe(content);
+    },
+  );
 
   it.each(['new before request', ''])(
-    'preserves a successful save before the archive request, including empty content: %j',
+    'adopts a later external archive after a successful local save: %j',
     async (content) => {
       const { store, projectId } = setup();
       stubArchive(() => archive('old persisted content'));
@@ -278,9 +284,12 @@ describe('project storage hydration after returning to the IDE', () => {
       store.setSelectedFile(path);
       store.setCurrentDocumentContent(content);
       await store.saveCurrentDocument();
+      expect(store.unsavedFiles.get().has(path)).toBe(false);
+      expect(runtimeFiles.get('audit.txt')).toBe(content);
+      stubArchive(() => archive('later external content'));
       await store.loadProjectStorageFiles();
-      expect(store.currentDocument.get()?.value).toBe(content);
-      expect(store.files.get()[path]).toMatchObject({ content });
+      expect(store.currentDocument.get()?.value).toBe('later external content');
+      expect(store.files.get()[path]).toMatchObject({ content: 'later external content' });
     },
   );
 
