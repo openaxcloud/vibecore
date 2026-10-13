@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-422 entrées.
+424 entrées.
 
 ## Sans section
 
@@ -502,6 +502,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-TOOLING-SHELL-QUOTE-001](docs/bugs/BUG-TOOLING-SHELL-QUOTE-001.md) — Le lockfile de main `0ca891a17ab8af30b545ede6f66d22271c283f59` résout `shell-quote@1.8.4` via la dépendance de développement racine `concurrently@8.2.2`. L’over — 📤 Dispatché : ☑ 12/10/2026 — lot local limité sur `security/shell-quote-20261012`. · 💻 Codé : ☐ — correction préparée localement ; ni poussée, ni PR, ni fusion sur main. · ✅ Testé live : ☐ — aucun déploiement ni contrôle production. Selon les inventaires transmis par le parent, les images servies
 - [BUG-IDE-ONGLET-GENERIQUE-DOUBLON-001](docs/bugs/BUG-IDE-ONGLET-GENERIQUE-DOUBLON-001.md) — Un clic sur un fichier de la bibliothèque laisse l'onglet éditeur générique initial ouvert et ajoute un onglet lié au fichier. Le premier emprunte le nom du doc — 📤 Dispatché : ☑ — audit local ciblé du 12 octobre 2026, branche `codex/audit-local-files-20261012`. · 💻 Codé : ☐ — correctif local validé sur son périmètre ; ni poussé ni fusionné sur main. · ✅ Testé live : ☐ — production non testée ; les mesures locales ne valent pas validation production.
 - [BUG-IDE-MONACO-CONTENU-INITIAL-001](docs/bugs/BUG-IDE-MONACO-CONTENU-INITIAL-001.md) — Sur une ouverture à froid, cliquer `audit.txt` dès que la bibliothèque est visible peut laisser Monaco afficher le contenu du README alors que l'onglet et le ch — 📤 Dispatché : ☑ — détecté et relu indépendamment pendant l'audit local du 12 octobre 2026. · 💻 Codé : ☐ — second correctif local validé, non poussé et non fusionné sur main. · ✅ Testé live : ☐ — reproduction locale uniquement, production non testée.
+- [BUG-MOBILE-AGENT-POWER-POPOVER-INTERIEUR-001](docs/bugs/BUG-MOBILE-AGENT-POWER-POPOVER-INTERIEUR-001.md) — Popover Agent Power fermé après appui intérieur. — 📤 Dispatché : ☑ — signal consigné, investigation différée. · 💻 Codé : ☐ — aucune correction dans ce lot. · ✅ Testé live : ☐ — signal CI transmis ; aucune reproduction locale ni validation production.
+- [BUG-MOBILE-WEBVIEW-CROIX-DEBORDE-001](docs/bugs/BUG-MOBILE-WEBVIEW-CROIX-DEBORDE-001.md) — Croix Webview au-delà du viewport mobile. — 📤 Dispatché : ☑ — signal consigné, investigation différée. · 💻 Codé : ☐ — aucune correction dans ce lot. · ✅ Testé live : ☐ — signal CI transmis ; aucune reproduction locale ni validation production.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
