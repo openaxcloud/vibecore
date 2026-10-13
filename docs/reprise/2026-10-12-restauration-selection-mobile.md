@@ -43,7 +43,6 @@ Le nouveau test A → B retient une réponse GET réelle de A, navigue vers B da
 
 Relecture indépendante : correction du cache approuvée ; effet de sélection revu puis borné par le contexte restauré à la suite d'une réserve sur les transitions interprojets. Aucun push avant relecture du parent et livraison de #731.
 
-
 ## Contre-épreuves supplémentaires — risque des nouvelles hydratations
 
 Deux défauts supplémentaires ont été démontrés sur `9fd22be0` avant correction :
@@ -89,16 +88,16 @@ Le bouton `button-back` de BaseChat exécute `navigate('/dashboard')` : c’est 
 
 Horloge monotone de la trace, en millisecondes :
 
-| Observation | Instant |
-| --- | ---: |
-| Début du second clic Retour | 28190,602 |
-| Requête Dashboard `.data` | 28409,245 |
-| Fin HTTP Dashboard, statut 200 | 29883,477 |
+| Observation                                           |   Instant |
+| ----------------------------------------------------- | --------: |
+| Début du second clic Retour                           | 28190,602 |
+| Requête Dashboard `.data`                             | 28409,245 |
+| Fin HTTP Dashboard, statut 200                        | 29883,477 |
 | Image : IDE encore affiché, aucun fichier sélectionné | 32699,806 |
-| Dernière lecture d’URL IDE par l’assertion | 32910,708 |
-| Image : Dashboard affiché | 33594,409 |
-| Échec de l’assertion URL, délai inchangé de 5000 ms | 33687,416 |
-| Snapshot suivant : URL Dashboard | 34042,443 |
+| Dernière lecture d’URL IDE par l’assertion            | 32910,708 |
+| Image : Dashboard affiché                             | 33594,409 |
+| Échec de l’assertion URL, délai inchangé de 5000 ms   | 33687,416 |
+| Snapshot suivant : URL Dashboard                      | 34042,443 |
 
 Les deux images ont été inspectées : [IDE avant transition](captures/selection-mobile-2026-10-12/interruption-avant-dashboard-2026-10-13.jpeg), [Dashboard avant expiration](captures/selection-mobile-2026-10-12/interruption-dashboard-avant-timeout-2026-10-13.jpeg). Le rendu Dashboard arrive entre la dernière lecture d’URL et l’expiration de l’assertion. C’est compatible avec une navigation tardive dans la fenêtre entre deux échantillons, mais la trace originale ne donne ni l’instant exact du changement d’URL ni l’état interne du routeur. La libération de l’archive dans le finally ne peut pas être déclarée cause du déblocage : le Dashboard était déjà rendu avant l’échec. L’écart entre la fin HTTP et le rendu n’est pas expliqué par ces seuls éléments.
 
@@ -173,3 +172,17 @@ Autorisation du parent limitée à publier cette branche et ouvrir une seule PR 
 Une exécution finale des neuf scénarios : **9/9**, un worker, zéro retry, 2,3 minutes. Captures finales rechargement 390 et deux variantes README inspectées. Puis tests ciblés séparés : **166/166, 22 fichiers, aucun ignoré**, 58,39 s, Chromium système pour les contrastes. Typages, lint, formatage et build sans sondes validés précédemment sur le même code produit et E2E. Relecture indépendante complète favorable à la publication en brouillon, sans nouveau blocage de données identifié.
 
 Les rouges historiques restent consignés : ECONNRESET non attribué, apparition tardive README non expliquée, ainsi que l’intermittence du Retour antérieur. **WebContainer local indisponible** : les parcours utilisent le mode remote-kubernetes avec runtime indisponible et les fichiers synthétiques persistés via l’API locale ; aucune génération, démarrage de workspace utilisateur ou publication d’application n’est validé. Brouillons après remount et créations déjà engagées lors d’un rebind restent hors garantie. La PR brouillon ne constitue pas une validation globale ni une autorisation de fusion.
+
+## Choix explicite du README provisoire — 13 octobre 2026
+
+Sur l’arbre de PR `66616e33e55a1ee3ff75ac43caf20df3bf1762bb` (HEAD `dc200e09`), le choix explicite du README déjà affiché pendant l’attente d’audit.txt est perdu après Retour immédiat : mémoire locale et éditeur reviennent à audit.txt. Trois échecs comportementaux sur trois à 390 px ; à 768 px, un échec comportemental, un succès et un passage non concluant (éditeur absent au retour dans les 5 s, avant vérification du contenu). [Capture rouge 390](captures/selection-mobile-2026-10-12/readme-explicite-rouge-390.png), [capture rouge 768](captures/selection-mobile-2026-10-12/readme-explicite-rouge-768.png), inspectées réellement. Aucune perte de contenu démontrée.
+
+Cause concordante avec la relecture indépendante : annuler la ref de sélection en attente ne notifie pas une sélection déjà identique ; l’effet immédiat ne repart donc pas, et le départ annule la sauvegarde de disposition différée. Le correctif partage une fonction de persistance de sélection entre l’effet et les choix explicites desktop/mobile, avec les mêmes gardes de restauration projet/workspace. Les sélections automatiques utilisent toujours pending ?? selected. Aucun contenu de fichier n’est écrit. La tranche AST protégée change uniquement sa référence de callback ; menu bas et markup inchangés.
+
+Les deux scénarios rouges sont conservés dans le test durable, avec les mêmes délais et sans pause avant Retour ; une assertion finale vérifie aussi la valeur déjà enregistrée à la sortie. Deux parcours supplémentaires couvrent README explicite puis A→B→A et vérifient mémoire, contenu et PUT de B. Ils ne couvrent pas deux workspaces d’un même projet. Un choix avant restauration réussie reste ignoré par le garde. Les limites antérieures, dont les brouillons après remount et les opérations déjà engagées lors d’un rebind, restent nommées.
+
+Premier passage après correctif : 68/68 tests ciblés Vitest puis 6/6 de cohérence de l’index ; typecheck global et E2E strict, lint, formatage et build passent. Navigateur : 10/13 au premier passage, dont les quatre nouveaux cas verts. Les trois rouges sont distincts du cas README corrigé : deux restent dans Library après sélection d’other.txt (avant changement de langue), un échoue sur l’arrivée initiale de Monaco (avant interruption). La première capture Library a été inspectée. Typecheck global exécuté en parallèle de ce premier passage ; effet causal de cette charge non établi. Sans modification du build, des assertions ou des délais, les trois cas rejoués seuls passent 3/3 en 40,6 s. Ces verts ne clôturent pas les rouges intermittents ni n’en établissent la cause.
+
+Captures vertes du choix README inspectées : [390](captures/selection-mobile-2026-10-12/readme-explicite-vert-390.png), [768](captures/selection-mobile-2026-10-12/readme-explicite-vert-768.png). La relecture indépendante confirme le diff fonctionnel, la conservation des gardes et le seul changement de callback dans la tranche AST. Aucun push ni fusion.
+
+Dernier lot seul : **12/13** en 3,7 min, neuf anciens cas et les deux README/Retour verts ; A→B→A à 390 revient dans Library malgré sélection A correctement persistée et B intact. Capture inspectée. Quatre parcours instrumentés suivants passent sans clore le défaut. Une contre-épreuve contrôlée retenant la vraie réponse `ide.data?panel=files` reproduit ensuite la course : avant libération, `panel=editor` et SECOND-DOCUMENT visibles ; après libération, Library remplace l’éditeur. La déduplication consulte seulement l’URL affichée et ignore la navigation concurrente. Ce mécanisme est présent sur dc200e09 ; correction adjacente à traiter séparément, sans allonger les délais ni masquer ce rouge. Les preuves locales sont dans `/tmp/mobile-selection-evidence/readme-nav-retained/`. Le correctif README n’est donc pas présenté comme une validation complète du lot.

@@ -508,3 +508,108 @@ for (const explicitChoice of [false, true]) {
     await page.screenshot({ path: testInfo.outputPath('pending-selection-restored.png') });
   });
 }
+
+for (const width of [390, 768]) {
+  test(`explicit provisional README then immediate Back at ${width}`, async ({ page, request, context }, info) => {
+    test.setTimeout(90000);
+    const { projectId, file, replaceFixtureFiles } = await openPersistedFile({ page, request, context });
+    const saved = () =>
+      page.evaluate(
+        (id) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${id}`) ?? '{}').ui?.selectedFile,
+        projectId,
+      );
+    await expect.poll(saved).toBe('/home/project/audit.txt');
+    await page.goto('/dashboard');
+    await replaceFixtureFiles({ 'README.md': 'TEMPORARY-README', 'other.txt': 'SECOND-DOCUMENT' });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/projects/${projectId}/ide?panel=editor`);
+    await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    await expect.poll(saved).toBe('/home/project/audit.txt');
+    await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+    await page.getByTestId('mobile-more-menu-files').click();
+    await file('README.md').click();
+    await page.getByTestId('button-back').click();
+    await expect(page).toHaveURL(/\/dashboard/);
+    const afterExit = await saved();
+    await replaceFixtureFiles({
+      'README.md': 'TEMPORARY-README',
+      'other.txt': 'SECOND-DOCUMENT',
+      'audit.txt': 'PERSISTENCE-ORIGINAL-20261012',
+    });
+    await page.goBack();
+    await expect(page.locator('.cm-content')).toBeVisible();
+    await page.screenshot({ path: info.outputPath('after-return.png') });
+    await info.attach('selection-observation', {
+      body: JSON.stringify({
+        width,
+        afterExit,
+        afterReturn: await saved(),
+        content: await page.locator('.cm-content').textContent(),
+      }),
+      contentType: 'application/json',
+    });
+    await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    await expect.poll(saved).toBe('/home/project/README.md');
+    expect(afterExit, 'explicit choice is already persisted when leaving').toBe('/home/project/README.md');
+  });
+}
+
+for (const width of [390, 768]) {
+  test(`explicit provisional README stays in project A after switching to B at ${width}`, async ({
+    page,
+    request,
+    context,
+  }, info) => {
+    test.setTimeout(90000);
+    const { projectId, file, createOtherProject, replaceFixtureFiles } = await openPersistedFile({
+      page,
+      request,
+      context,
+    });
+    const projectB = await createOtherProject();
+    const saved = (id: string) =>
+      page.evaluate(
+        (project) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${project}`) ?? '{}').ui?.selectedFile,
+        id,
+      );
+    await expect.poll(() => saved(projectId)).toBe('/home/project/audit.txt');
+    await page.goto(`/projects/${projectB}/ide?panel=files`);
+    await file('project-b.txt').click();
+    await expect.poll(() => saved(projectB)).toBe('/home/project/project-b.txt');
+    await page.goto('/dashboard');
+    await replaceFixtureFiles({ 'README.md': 'TEMPORARY-README', 'other.txt': 'SECOND-DOCUMENT' });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(`/projects/${projectId}/ide?panel=editor`);
+    await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    await expect.poll(() => saved(projectId)).toBe('/home/project/audit.txt');
+    const writesToB: Array<string | undefined> = [];
+    page.on('request', (outgoing) => {
+      if (outgoing.method() === 'PUT' && new URL(outgoing.url()).pathname === `/api/projects/${projectB}/ide-state`) {
+        writesToB.push(outgoing.postDataJSON()?.state?.ui?.selectedFile);
+      }
+    });
+    await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+    await page.getByTestId('mobile-more-menu-files').click();
+    await file('README.md').click();
+    // Same-document navigation exercises the project scope guard without a page reload.
+    await page.evaluate((id) => {
+      history.pushState(history.state, '', `/projects/${id}/ide?panel=editor`);
+      window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+    }, projectB);
+    await expect(page.locator('.cm-content')).toContainText('PROJECT-B-DOCUMENT');
+    await expect.poll(() => saved(projectId)).toBe('/home/project/README.md');
+    await expect.poll(() => saved(projectB)).toBe('/home/project/project-b.txt');
+    await expect.poll(() => writesToB.filter(Boolean).length).toBeGreaterThan(0);
+    expect(writesToB.filter(Boolean)).not.toContain('/home/project/README.md');
+    expect(writesToB.filter(Boolean)).not.toContain('/home/project/audit.txt');
+    await replaceFixtureFiles({
+      'README.md': 'TEMPORARY-README',
+      'other.txt': 'SECOND-DOCUMENT',
+      'audit.txt': 'PERSISTENCE-ORIGINAL-20261012',
+    });
+    await page.goBack();
+    await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    await expect.poll(() => saved(projectId)).toBe('/home/project/README.md');
+    await page.screenshot({ path: info.outputPath('readme-after-project-switch.png') });
+  });
+}

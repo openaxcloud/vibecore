@@ -186,10 +186,15 @@ describe('BaseChat strengthened-AST catalog', () => {
      *      comparée exactement à main dfd1d1f0 : un hunk, cinq lignes ajoutant
      *      uniquement onUserFileSelect. Aucun texte, classe ni structure modifié.
      *
+     *   7. Choix explicite du README déjà affiché, demande du 13/10 : comparée
+     *      à dc200e09, la tranche change uniquement le callback onUserFileSelect
+     *      en référence partagée onUserProjectFileSelect. Aucun markup, texte,
+     *      classe ni interaction du menu bas modifié.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('2a8bf5c070d96ed83702f80cfb337a568d45ef242a802c00880edb6b141497dc');
+    expect(frozenHash).toBe('b7ba1b1557bd004ccd71a90315096ebfe701ca9ac1fe7662ad215b56f476e27b');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

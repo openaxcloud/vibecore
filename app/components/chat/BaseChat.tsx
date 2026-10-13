@@ -5945,33 +5945,51 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       workbenchStore.setShowWorkbench(true);
     }, [firstProjectFile, projectIdeMode, projectStateReady, selectedFile]);
 
-    useEffect(() => {
-      const restoredScope = restoredProjectSelectionScope.current;
+    const persistProjectFileSelection = useCallback(
+      (filePath: string | undefined) => {
+        const restoredScope = restoredProjectSelectionScope.current;
 
-      if (
-        !projectIdeMode ||
-        !projectId ||
-        !projectStateReady ||
-        restoredScope?.projectId !== projectId ||
-        restoredScope.workspaceId !== currentWorkspaceId
-      ) {
-        return;
-      }
+        if (
+          !filePath ||
+          !projectIdeMode ||
+          !projectId ||
+          !projectStateReady ||
+          restoredScope?.projectId !== projectId ||
+          restoredScope.workspaceId !== currentWorkspaceId
+        ) {
+          return false;
+        }
 
-      /*
-       * Une navigation peut annuler le délai de sauvegarde de la disposition.
-       * Conserver immédiatement la sélection ; la couche de persistance garde
-       * son regroupement réseau. Lire le store après les effets de restauration
-       * évite d'enregistrer une sélection provisoire du rendu précédent.
-       */
-      const filePath = projectSelectionToPersist(workbenchStore.selectedFile.get(), pendingProjectSelectedFile.current);
-
-      if (filePath) {
         void saveProjectIdeMemory(projectId, { ui: { selectedFile: filePath } }, currentWorkspaceId).catch((error) => {
           console.error('Failed to persist selected project file', error);
         });
-      }
-    }, [projectIdeMode, projectId, currentWorkspaceId, projectStateReady, selectedFile]);
+
+        return true;
+      },
+      [projectIdeMode, projectId, currentWorkspaceId, projectStateReady],
+    );
+
+    useEffect(() => {
+      // Automatic fallback selections must preserve the path still awaiting hydration.
+      persistProjectFileSelection(
+        projectSelectionToPersist(workbenchStore.selectedFile.get(), pendingProjectSelectedFile.current),
+      );
+    }, [persistProjectFileSelection, selectedFile]);
+
+    const onUserProjectFileSelect = useCallback(
+      (filePath: string) => {
+        if (projectFilesRef.current[filePath]?.type !== 'file') {
+          return;
+        }
+
+        // A deliberate choice also counts when selectedFile already holds this path.
+        // Persist synchronously to local memory before navigation can cancel the layout timer.
+        if (persistProjectFileSelection(filePath)) {
+          pendingProjectSelectedFile.current = undefined;
+        }
+      },
+      [persistProjectFileSelection],
+    );
 
     useEffect(() => {
       if (!projectIdeMode || !projectId || !projectStateReady) {
@@ -6198,10 +6216,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const openProjectFile = useCallback(
       (filePath: string, options: { paneId?: string; preview?: boolean } = {}) => {
-        // Opening an available file supersedes the older selection awaiting hydration.
-        if (projectFilesRef.current[filePath]?.type === 'file') {
-          pendingProjectSelectedFile.current = undefined;
-        }
+        onUserProjectFileSelect(filePath);
 
         openWorkspacePanel('editor', {
           paneId: options.paneId,
@@ -6209,7 +6224,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           preview: options.preview,
         });
       },
-      [openWorkspacePanel],
+      [openWorkspacePanel, onUserProjectFileSelect],
     );
 
     useEffect(() => {
@@ -10468,11 +10483,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
                             })}
                             projectId={projectId}
-                            onUserFileSelect={(filePath) => {
-                              if (projectFilesRef.current[filePath]?.type === 'file') {
-                                pendingProjectSelectedFile.current = undefined;
-                              }
-                            }}
+                            onUserFileSelect={onUserProjectFileSelect}
                             onMobilePanelChange={(panel) => {
                               if (panel === 'editor') {
                                 setMobileIdePanel('editor');
