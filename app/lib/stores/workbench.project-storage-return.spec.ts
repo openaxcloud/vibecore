@@ -187,6 +187,107 @@ describe('project storage hydration after returning to the IDE', () => {
     expect(store.currentDocument.get()?.value).toBe('saved document');
   });
 
+  it('hydrates both store instances sharing a project and binding during concurrent requests', async () => {
+    const { store: first, projectId } = setup();
+    const second = new WorkbenchStore();
+    second.configureProject(projectId);
+
+    let release!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    stubArchive(async () => {
+      await gate;
+      return archive('shared project archive');
+    });
+
+    const requests = [first.loadProjectStorageFiles(), second.loadProjectStorageFiles()];
+    release();
+    expect(await Promise.all(requests)).toEqual([true, true]);
+
+    for (const store of [first, second]) {
+      expect(store.files.get()[path]).toMatchObject({ content: 'shared project archive' });
+      expect(store.currentDocument.get()?.value).toBe('shared project archive');
+      expect(store.filesHydrated.get()).toBe(true);
+    }
+  });
+
+  it.each(['created during request', ''])(
+    'preserves a file created through the public API during archive hydration: %j',
+    async (content) => {
+      const { store } = setup();
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      stubArchive(async () => {
+        await gate;
+        return archive('existing archive file');
+      });
+
+      const pending = store.loadProjectStorageFiles();
+      const createdPath = '/home/project/created.txt';
+      expect(await store.createFile(createdPath, content)).toBe(true);
+
+      // The current createFile contract writes a space for an empty text input.
+      const writtenContent = content === '' ? ' ' : content;
+      expect(runtimeFiles.get('created.txt')).toBe(writtenContent);
+      expect(store.files.get()[createdPath]).toMatchObject({ content: writtenContent });
+      release();
+      expect(await pending).toBe(true);
+      expect(store.files.get()[createdPath]).toMatchObject({ content: writtenContent });
+      expect(store.files.get()[path]).toMatchObject({ content: 'existing archive file' });
+      store.setSelectedFile(createdPath);
+      expect(store.currentDocument.get()?.value).toBe(writtenContent);
+    },
+  );
+
+  it.each([false, true])(
+    'respects a public deletion during a delayed archive, with recreation=%s',
+    async (recreate) => {
+      const { store } = setup();
+      stubArchive(() => archive('old archived content'));
+      await store.loadProjectStorageFiles();
+
+      // Establish a runtime file through the same public path used by the IDE.
+      expect(await store.createFile(path, 'old archived content')).toBe(true);
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      stubArchive(async () => {
+        await gate;
+        return archive('old archived content');
+      });
+
+      const pending = store.loadProjectStorageFiles();
+      expect(await store.deleteFile(path)).toBe(true);
+      expect(runtimeFiles.has('audit.txt')).toBe(false);
+      expect(store.files.get()[path]).toBeUndefined();
+
+      if (recreate) {
+        expect(await store.createFile(path, 'recreated content')).toBe(true);
+        expect(runtimeFiles.get('audit.txt')).toBe('recreated content');
+      }
+
+      release();
+      await pending;
+
+      if (recreate) {
+        expect(store.files.get()[path]).toMatchObject({ content: 'recreated content' });
+        expect(store.currentDocument.get()?.value).toBe('recreated content');
+      } else {
+        expect(store.files.get()[path]).toBeUndefined();
+        expect(store.currentDocument.get()).toBeUndefined();
+      }
+    },
+  );
+
   it('retries an empty archive and an HTTP failure without caching either result', async () => {
     const { store } = setup();
     const downloads = stubArchive(() => archive());

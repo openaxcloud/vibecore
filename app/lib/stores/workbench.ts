@@ -281,19 +281,12 @@ function workspaceLogLines(event: CommandEvent | string) {
     });
 }
 
-/*
- * Portée MODULE et non instance : le magasin est un singleton, mais la clé est
- * l'identifiant de projet — ce qu'on mutualise, c'est un téléchargement pour un
- * projet donné, pas pour un objet donné.
- */
-/*
- * Le résultat est celui d'une hydratation, pas une archive réutilisable : un
- * rebind peut avoir vidé les fichiers depuis le succès précédent. Mutualiser
- * uniquement les appels en vol, sinon un retour rapide annonce un faux succès.
- */
-const projectStorageFilesInFlight = createSingleFlight<boolean>();
-
 export class WorkbenchStore {
+  /*
+   * Hydration mutates this instance; share only its in-flight calls, never a
+   * completed result or another store's hydration success.
+   */
+  #projectStorageFilesInFlight = createSingleFlight<boolean>();
   #runtime: RuntimeAdapter = getRuntimeAdapter();
   #projectStorageBinding = 0;
   #projectStorageSaveVersions = new Map<string, number>();
@@ -825,7 +818,7 @@ export class WorkbenchStore {
 
     const binding = this.#projectStorageBinding;
 
-    return projectStorageFilesInFlight.run(`${projectId}:${binding}`, () =>
+    return this.#projectStorageFilesInFlight.run(`${projectId}:${binding}`, () =>
       this.#loadProjectStorageFilesUncoalesced(projectId, binding),
     );
   }
@@ -3125,10 +3118,16 @@ export class WorkbenchStore {
   }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
+    const binding = this.#projectStorageBinding;
+
     try {
       const success = await this.#filesStore.createFile(filePath, content);
 
       if (success) {
+        if (binding === this.#projectStorageBinding) {
+          this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
+        }
+
         this.setSelectedFile(filePath);
 
         /*
