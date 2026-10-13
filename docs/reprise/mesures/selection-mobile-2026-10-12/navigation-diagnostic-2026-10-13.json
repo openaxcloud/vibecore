@@ -1,0 +1,2235 @@
+{
+  "productionCommit": "7496ce62f4b519b295b629a8c414262ae8957181",
+  "testChange": "Only bounded diagnostics and phase marks; assertions and timeouts unchanged",
+  "originalFailure": {
+    "clock": "Playwright trace monotonic milliseconds",
+    "secondBackClickStart": 28190.602,
+    "dashboardDataStart": 28409.245,
+    "dashboardDataEnd": 29883.477,
+    "dashboardStatus": 200,
+    "lastOldUrlObservation": 32910.708,
+    "ideVideoFrame": 32699.806,
+    "dashboardVideoFrame": 33594.409,
+    "assertionTimeoutEnd": 33687.416,
+    "dashboardUrlSnapshot": 34042.443,
+    "interpretation": "Late Dashboard rendering falls after the last URL poll and before assertion timeout. Exact URL-switch timestamp and router loading state were not recorded in the original red. No established causal attribution."
+  },
+  "runs": [
+    {
+      "group": "navigation-diagnostic",
+      "repeat": 1,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 8874,
+      "dashboardNavigationMs": 10213,
+      "navigationAfterMarkMs": 1339,
+      "archiveReleaseMs": 10889,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 7736,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7867,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7901,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 7928,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8117,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 8186,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 8187,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 8233,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 8403,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 8434,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 8656,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8806,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9016,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 10199,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 10213,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 10227,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 10348,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-diagnostic",
+      "repeat": 2,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 8859,
+      "dashboardNavigationMs": 9967,
+      "navigationAfterMarkMs": 1108,
+      "archiveReleaseMs": 10847,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 7951,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8030,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 8038,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 8046,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8160,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 8250,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 8253,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 8271,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 8448,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 8764,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8866,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8949,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9959,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9967,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 10102,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-diagnostic",
+      "repeat": 3,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 7620,
+      "dashboardNavigationMs": 9408,
+      "navigationAfterMarkMs": 1788,
+      "archiveReleaseMs": 9642,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 6612,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6681,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 6729,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 6867,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 6973,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 6973,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7033,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7271,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7449,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7582,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7727,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9395,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9408,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 9416,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9508,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-diagnostic",
+      "repeat": 4,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 7330,
+      "dashboardNavigationMs": 9684,
+      "navigationAfterMarkMs": 2354,
+      "archiveReleaseMs": 10340,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 6528,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6600,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 6611,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 6612,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6765,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 6765,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 6786,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 6900,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 6984,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7148,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7279,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7500,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9673,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9684,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 9796,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-diagnostic",
+      "repeat": 5,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 7427,
+      "dashboardNavigationMs": 9507,
+      "navigationAfterMarkMs": 2080,
+      "archiveReleaseMs": 10420,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 6652,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6728,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 6736,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 6746,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6860,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 6902,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 6903,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 6947,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7106,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7248,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7384,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7540,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9498,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9507,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 9630,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-cold-diagnostic",
+      "repeat": 1,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 7774,
+      "dashboardNavigationMs": 9825,
+      "navigationAfterMarkMs": 2051,
+      "archiveReleaseMs": 10804,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 6723,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6809,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6909,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 6923,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 7074,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 7074,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 7085,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 7201,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7351,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7530,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7699,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7754,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7900,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9817,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9825,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 9972,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-cold-diagnostic",
+      "repeat": 2,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 7554,
+      "dashboardNavigationMs": 9573,
+      "navigationAfterMarkMs": 2019,
+      "archiveReleaseMs": 10584,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 6764,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 6764,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 6774,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 6907,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 6908,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 6911,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 6997,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7143,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7163,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7418,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7515,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7653,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9560,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9573,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 9709,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-cold-diagnostic",
+      "repeat": 3,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 9672,
+      "dashboardNavigationMs": 10306,
+      "navigationAfterMarkMs": 634,
+      "archiveReleaseMs": 10847,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 8556,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8654,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 8671,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 8859,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 8888,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 8888,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 8966,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 9127,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9237,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9371,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9869,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 10294,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 10306,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 10434,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-cold-diagnostic",
+      "repeat": 4,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 8304,
+      "dashboardNavigationMs": 10160,
+      "navigationAfterMarkMs": 1856,
+      "archiveReleaseMs": 10361,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 7219,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7302,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7327,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 7478,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 7541,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7555,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 7556,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7652,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7862,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 8042,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 8202,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8276,
+          "phase": "archive-held",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8506,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 10150,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 10160,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 10287,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    },
+    {
+      "group": "navigation-cold-diagnostic",
+      "repeat": 5,
+      "status": "passed",
+      "dropped": 0,
+      "secondBackMs": 8441,
+      "dashboardNavigationMs": 9961,
+      "navigationAfterMarkMs": 1520,
+      "archiveReleaseMs": 10424,
+      "dashboardBeforeRelease": true,
+      "postSetupRedirects": [],
+      "observations": [
+        {
+          "ms": 7500,
+          "phase": "first-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 5,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 7604,
+          "phase": "first-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 7613,
+          "phase": "first-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 7791,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 1
+          }
+        },
+        {
+          "ms": 7836,
+          "phase": "history-back-to-ide",
+          "kind": "frame-navigation",
+          "route": "ide"
+        },
+        {
+          "ms": 7836,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "popstate",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 7927,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "loading",
+            "destination": "ide",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        },
+        {
+          "ms": 8173,
+          "phase": "history-back-to-ide",
+          "kind": "response",
+          "route": "ide",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 8264,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8406,
+          "phase": "history-back-to-ide",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 8584,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "ide",
+            "historyLength": 6,
+            "historyIndex": 1,
+            "ready": "complete",
+            "routerPath": "ide",
+            "navigation": "loading",
+            "destination": "dashboard",
+            "ideHeader": true,
+            "dashboardEnglishHeading": false,
+            "busyCount": 0
+          }
+        },
+        {
+          "ms": 9954,
+          "phase": "second-back",
+          "kind": "response",
+          "route": "dashboard",
+          "status": 200,
+          "redirectTarget": "none"
+        },
+        {
+          "ms": 9961,
+          "phase": "second-back",
+          "kind": "frame-navigation",
+          "route": "dashboard"
+        },
+        {
+          "ms": 10067,
+          "phase": "second-back",
+          "kind": "browser",
+          "state": {
+            "event": "sample",
+            "path": "dashboard",
+            "historyLength": 6,
+            "historyIndex": 2,
+            "ready": "complete",
+            "routerPath": "dashboard",
+            "navigation": "idle",
+            "destination": "none",
+            "ideHeader": false,
+            "dashboardEnglishHeading": true,
+            "busyCount": 2
+          }
+        }
+      ]
+    }
+  ]
+}

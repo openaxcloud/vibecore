@@ -1,5 +1,6 @@
-import { expect, test, type PlaywrightTestArgs } from '@playwright/test';
+import { expect, type PlaywrightTestArgs } from '@playwright/test';
 import JSZip from 'jszip';
+import { test } from './diagnostics/mobile-navigation.js';
 
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
@@ -200,6 +201,7 @@ test('restores the mobile file after leaving during archive hydration', async ({
   page,
   request,
   context,
+  mobileNavigationDiagnostics,
 }, testInfo) => {
   test.setTimeout(90_000);
 
@@ -214,6 +216,7 @@ test('restores the mobile file after leaving during archive hydration', async ({
       }, projectId),
     )
     .toBe('/home/project/audit.txt');
+  mobileNavigationDiagnostics.mark('first-back');
   await page.getByTestId('button-back').click();
   await expect(page).toHaveURL(/\/dashboard/);
 
@@ -237,19 +240,23 @@ test('restores the mobile file after leaving during archive hydration', async ({
     intercepted = true;
 
     const response = await route.fetch();
+    mobileNavigationDiagnostics.mark('archive-held');
     requested();
     await held;
     await route.fulfill({ response });
   });
 
   try {
+    mobileNavigationDiagnostics.mark('history-back-to-ide');
     await page.goBack();
     await started;
     await expect(page.getByTestId('mobile-ide-header')).toBeVisible();
+    mobileNavigationDiagnostics.mark('second-back');
     await page.getByTestId('button-back').click();
     await expect(page).toHaveURL(/\/dashboard/);
 
     const finished = page.waitForResponse((response) => response.url().endsWith(`/projects/${projectId}/export/zip`));
+    mobileNavigationDiagnostics.mark('release-archive');
     release();
     await finished;
     await page.goBack();
@@ -257,6 +264,7 @@ test('restores the mobile file after leaving during archive hydration', async ({
     await expect(page.locator('.cm-content')).toContainText('PERSISTENCE-ORIGINAL-20261012', { timeout: 10000 });
     await page.screenshot({ path: testInfo.outputPath('interruption-restored.png') });
   } finally {
+    mobileNavigationDiagnostics.mark('release-archive');
     release();
   }
 });

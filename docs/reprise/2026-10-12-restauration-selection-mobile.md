@@ -75,4 +75,43 @@ Le Set permanent est remplacé par des numéros de sauvegarde par chemin, compar
 
 Le callback Workbench ajouté précédemment faisait diverger l’empreinte mobile gelée. Comparaison exacte contre main `dfd1d1f0`, confirmée indépendamment : un seul hunk de cinq lignes `onUserFileSelect`, sans texte, classe ou structure JSX modifié. L’empreinte est rescellée avec cette justification dans le test existant ; les sept gardes AST passent. Les 18 E2E documentés plus haut portent sur `8bd73e74b`, avant cette révision de concurrence. Aucun push mobile.
 
-Contrôles de cette révision : typecheck web, lint, formatage et build passent. Trois parcours navigateur ciblés sur ce build : deux variantes README vertes (captures inspectées), interruption rouge sur l’attente URL `/dashboard` au second Retour pendant l’archive retenue, ligne 250. La capture après échec montre le Dashboard ; le diagnostic rapporte encore l’URL IDE pendant les cinq secondes de l’assertion. [Capture du rouge](captures/selection-mobile-2026-10-12/interruption-url-dashboard-2026-10-13.png). Deux répétitions isolées inchangées de l’interruption passent ensuite (49,5 s, un worker, zéro retry ; seconde capture inspectée). Ce rouge reste consigné et non attribué ; il interdit de présenter cette révision comme uniformément verte en navigateur. Aucun allongement de délai ni assertion modifiée. Journaux : `external-archive-browser.log`, `external-archive-interruption-repeat.log` sous `/tmp/mobile-selection-evidence`. Relecture indépendante favorable au code et à la comparaison d’empreinte. Aucun push mobile.
+Contrôles de cette révision : typecheck web, lint, formatage et build passent. Trois parcours navigateur ciblés sur ce build : deux variantes README vertes (captures inspectées), interruption rouge sur l’attente URL `/dashboard` au second Retour pendant l’archive retenue, ligne 250. La capture après échec montre le Dashboard ; la dernière lecture d’URL consignée rapporte encore l’IDE ; le détail temporel est précisé ci-dessous. [Capture du rouge](captures/selection-mobile-2026-10-12/interruption-url-dashboard-2026-10-13.png). Deux répétitions isolées inchangées de l’interruption passent ensuite (49,5 s, un worker, zéro retry ; seconde capture inspectée). Ce rouge reste consigné et non attribué ; il interdit de présenter cette révision comme uniformément verte en navigateur. Aucun allongement de délai ni assertion modifiée. Journaux : `external-archive-browser.log`, `external-archive-interruption-repeat.log` sous `/tmp/mobile-selection-evidence`. Relecture indépendante favorable au code et à la comparaison d’empreinte. Aucun push mobile.
+
+## Diagnostic du second Retour — 13 octobre 2026
+
+Aucun changement produit après `7496ce62f`. Le défaut de lenteur reste **non attribué et non clôturé**. Les répétitions vertes ne neutralisent pas le rouge original.
+
+### Historique attendu et observé
+
+Le bouton `button-back` de BaseChat exécute `navigate('/dashboard')` : c’est une nouvelle entrée, pas un Retour navigateur. Après le premier clic, `page.goBack()` revient à l’entrée IDE précédente. Le second clic ajoute Dashboard et remplace la branche suivante de l’historique. Les observations instrumentées suivent exactement IDE (index 1) → Dashboard (index 2) → POP IDE (index 1) → Dashboard (index 2). La longueur reste 6 au second clic car l’entrée suivante est abandonnée puis remplacée. Le dernier Retour navigateur revient ensuite à IDE. Aucune dérive d’historique ni redirection HTTP après le premier Retour n’a été observée dans ces passages.
+
+### Ce que montre réellement le rouge
+
+Horloge monotone de la trace, en millisecondes :
+
+| Observation | Instant |
+| --- | ---: |
+| Début du second clic Retour | 28190,602 |
+| Requête Dashboard `.data` | 28409,245 |
+| Fin HTTP Dashboard, statut 200 | 29883,477 |
+| Image : IDE encore affiché, aucun fichier sélectionné | 32699,806 |
+| Dernière lecture d’URL IDE par l’assertion | 32910,708 |
+| Image : Dashboard affiché | 33594,409 |
+| Échec de l’assertion URL, délai inchangé de 5000 ms | 33687,416 |
+| Snapshot suivant : URL Dashboard | 34042,443 |
+
+Les deux images ont été inspectées : [IDE avant transition](captures/selection-mobile-2026-10-12/interruption-avant-dashboard-2026-10-13.jpeg), [Dashboard avant expiration](captures/selection-mobile-2026-10-12/interruption-dashboard-avant-timeout-2026-10-13.jpeg). Le rendu Dashboard arrive entre la dernière lecture d’URL et l’expiration de l’assertion. C’est compatible avec une navigation tardive dans la fenêtre entre deux échantillons, mais la trace originale ne donne ni l’instant exact du changement d’URL ni l’état interne du routeur. La libération de l’archive dans le finally ne peut pas être déclarée cause du déblocage : le Dashboard était déjà rendu avant l’échec. L’écart entre la fin HTTP et le rendu n’est pas expliqué par ces seuls éléments.
+
+### Mesures ajoutées sans modifier le parcours
+
+La fixture optionnelle `mobileNavigationDiagnostics`, demandée seulement par ce scénario, collecte au maximum 160 événements Node et 120 émissions par document, pendant 90 secondes au plus. Elle lit catégories de routes, index/longueur d’historique, état de chargement du routeur, destination, disponibilité de l’en-tête IDE et du titre Dashboard anglais. Aucun contenu de fichier, URL, identifiant de projet, cookie, corps réseau ou secret n’est joint. L’attachement est protégé contre rejet et borné à deux secondes ; les assertions et délais du test sont inchangés. Les observations privées du routeur sont facultatives et restent purement diagnostiques.
+
+Dix passages instrumentés réussissent (deux séries de cinq, un worker, zéro retry ; le serveur web local a été redémarré avant la seconde série). Le routeur conserve IDE pendant `loading` vers Dashboard, puis passe à Dashboard/`idle` avant libération de l’archive dans les dix cas. Les délais du marqueur second Retour à la navigation vont de 634 à 2354 ms. Aucun événement éliminé par la borne Node, aucune redirection observée après l’entrée dans ce parcours. La capture du dernier passage a été inspectée. [Mesures classifiées](mesures/selection-mobile-2026-10-12/navigation-diagnostic-2026-10-13.json). Ces succès excluent un blocage systématique par l’archive, pas une course ou lenteur intermittente.
+
+### Preuves comportementales distinctes du hash
+
+Le rescellement AST certifie seulement les cinq lignes du callback dans la tranche gelée, pas le comportement. Celui-ci est vérifié par les parcours README (absence momentanée d’audit puis choix explicite d’other) et les vrais stores. Retirer temporairement la conservation des sauvegardes concurrentes sur la source actuelle fait échouer exactement les deux variantes texte/vide ; les 14 autres tests d’archive restent verts (`navigation-guard-counterproof.log`). Source restaurée à l’identique, 31 tests passent : 16 archive/runtime, 2 sélection, 7 AST, 6 index (`navigation-guards-green.log`). La contre-épreuve distincte du remplacement par une archive externe était rouge avec le Set permanent et verte avec les versions par requête.
+
+Lint, formatage et typage strict du diagnostic passent. Relecture indépendante : collecte limitée à ce seul cas et attachement protégé à la suite des réserves ; aucun changement d’assertion ou délai. Build produit inchangé depuis `7496ce62f`. Pas de push ni nouvelle PR.
+
+Les deux autres signaux transmis par le parent (popover Agent Power après appui intérieur, croix Webview à 406,0286 px dans 390 px) sont consignés séparément dans l’inventaire ; aucune investigation ni correction dans ce lot.
