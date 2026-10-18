@@ -1,0 +1,53 @@
+{
+  "sourceBase": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+  "scope": "AST-extracted unchanged production closures; in-memory fixtures; no HTTP/Stripe/PostgreSQL calls",
+  "observationTime": "2026-02-16T12:00:00.000Z",
+  "januaryUsage": {
+    "agentMessages": 1000,
+    "deployments": 50
+  },
+  "februaryUsage": {
+    "agentMessages": 0,
+    "deployments": 0
+  },
+  "results": [
+    {
+      "interval": "annual",
+      "subscribedPlan": "pro",
+      "subscriptionStatus": "ACTIVE",
+      "usagePeriodStart": "2026-01-15T00:00:00.000Z",
+      "quotas": [
+        {
+          "key": "ai.messages",
+          "allowed": false,
+          "statusCode": 429,
+          "used": 1000,
+          "limit": 1000
+        },
+        {
+          "key": "deployments.count",
+          "allowed": false,
+          "statusCode": 429,
+          "used": 50,
+          "limit": 50
+        }
+      ]
+    },
+    {
+      "interval": "monthly",
+      "subscribedPlan": "pro",
+      "subscriptionStatus": "ACTIVE",
+      "usagePeriodStart": "2026-02-15T00:00:00.000Z",
+      "quotas": [
+        {
+          "key": "ai.messages",
+          "allowed": true
+        },
+        {
+          "key": "deployments.count",
+          "allowed": true
+        }
+      ]
+    }
+  ]
+}
