@@ -94,6 +94,7 @@ export interface ProjectRecord {
   createdAt: string;
   updatedAt: string;
   deletedAt?: string;
+  runtimeDeletionPending?: boolean;
 
   /** Number of deployment records; drives the Deployed/Draft project filters. */
   deploymentCount?: number;
@@ -105,6 +106,9 @@ export interface WorkspaceRecord {
   name: string;
   status: 'PENDING' | 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED';
   runtimeMode: string;
+
+  /** Unconfirmed manager reserve calls; independent of UI lifecycle status. */
+  runtimeAdmissionRequests?: string[];
 
   /*
    * Filesystem path (relative to the project storage root) for this
@@ -1429,6 +1433,7 @@ export interface ApiStore {
   countProjects(organizationId: string): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;
+  prepareProjectDeletion(projectId: string, expectedOrganizationId: string): Promise<ProjectRecord>;
 
   /**
    * Permanently removes the project row (child relations cascade at the DB
@@ -1436,7 +1441,12 @@ export interface ApiStore {
    * softDeleteProject, which is the recoverable "Archive" state.
    */
   hardDeleteProject(projectId: string): Promise<ProjectRecord>;
-  transferProject(input: { projectId: string; targetOrganizationId: string }): Promise<ProjectRecord>;
+  transferProject(input: {
+    projectId: string;
+    targetOrganizationId: string;
+    expectedSourceOrganizationId?: string;
+    validateRuntimeOwnership?: (workspaces: WorkspaceRecord[]) => Promise<void>;
+  }): Promise<ProjectRecord>;
   duplicateProject(input: {
     projectId: string;
     name: string;
@@ -1885,12 +1895,14 @@ export interface ApiStore {
   }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;
+  beginWorkspaceAdmissionRequest(workspaceId: string, requestId: string, expectedOrganizationId: string): Promise<void>;
+  completeWorkspaceAdmissionRequest(workspaceId: string, requestId: string): Promise<void>;
 
   /*
    * Organization-scoped aggregate counts for quota usage — single queries that
    * avoid the per-project N+1 of listing every project then its children.
    */
-  countActiveWorkspaces(organizationId: string): Promise<number>;
+  countActiveWorkspaces(organizationId: string, excludedWorkspaceIds?: string[]): Promise<number>;
 
   /*
    * Active (PENDING/STARTING/RUNNING) workspace records for an org, oldest first.

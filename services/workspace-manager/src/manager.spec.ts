@@ -1148,7 +1148,7 @@ describe('resolveAgentBaseUrl — start-gate URL parity with app.ts agentBaseUrl
   });
 });
 
-describe('JsonWorkspaceStore corrupted registry handling', () => {
+describe('JsonWorkspaceStore persistence', () => {
   let dir: string;
   let filePath: string;
 
@@ -1180,6 +1180,55 @@ describe('JsonWorkspaceStore corrupted registry handling', () => {
     const store = new JsonWorkspaceStore(filePath);
 
     expect(await store.get('ws-keep')).toMatchObject({ id: 'ws-keep' });
+  });
+
+  it('timestamps creation and preserves that timestamp on reads', async () => {
+    const store = new JsonWorkspaceStore(filePath);
+    const { createdAt: _c, lastActiveAt: _l, ...input } = makeRecord('ws-new');
+    const before = Date.now();
+    const created = await store.create(input);
+    const timestamp = created.updatedAt;
+
+    expect(Date.parse(timestamp ?? '')).toBeGreaterThanOrEqual(before);
+    expect(Date.parse(timestamp ?? '')).toBeLessThanOrEqual(Date.now());
+    expect(await store.get(created.id)).toMatchObject({ updatedAt: timestamp });
+  });
+
+  it('timestamps a mutation without replacing creation or activity time', async () => {
+    const old = { ...makeRecord('ws-old'), updatedAt: '2026-07-04T00:00:00.000Z' };
+    await writeFile(filePath, JSON.stringify([old]));
+
+    const store = new JsonWorkspaceStore(filePath);
+
+    const updated = await store.update(old.id, { status: 'STARTING' });
+    expect(updated).toMatchObject({ createdAt: old.createdAt, lastActiveAt: old.lastActiveAt });
+    expect(Date.parse(updated.updatedAt)).toBeGreaterThan(Date.parse(old.updatedAt));
+    expect(await store.get(old.id)).toEqual(updated);
+  });
+
+  it('timestamps a successful metering claim but leaves a rejected claim unchanged', async () => {
+    const old = { ...makeRecord('ws-meter'), updatedAt: '2026-07-04T00:00:00.000Z' };
+    await writeFile(filePath, JSON.stringify([old]));
+
+    const store = new JsonWorkspaceStore(filePath);
+    const next = '2026-07-05T00:00:00.000Z';
+
+    expect(await store.claimMeterWindow(old.id, undefined, next)).toBe(true);
+
+    const claimed = (await store.get(old.id)) as typeof old;
+    expect(Date.parse(claimed.updatedAt)).toBeGreaterThan(Date.parse(old.updatedAt));
+    expect(await store.claimMeterWindow(old.id, undefined, next)).toBe(false);
+    expect(await store.get(old.id)).toEqual(claimed);
+  });
+
+  it('does not invent freshness for legacy rows without a timestamp', async () => {
+    const old = makeRecord('ws-legacy');
+    await writeFile(filePath, JSON.stringify([old]));
+
+    const store = new JsonWorkspaceStore(filePath);
+
+    expect(await store.get(old.id)).toEqual(old);
+    expect(await store.list()).toEqual([old]);
   });
 
   it('throws an actionable error on invalid JSON instead of a bare SyntaxError', async () => {

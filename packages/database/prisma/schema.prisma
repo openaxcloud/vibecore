@@ -271,6 +271,8 @@ model Project {
   thumbnailUrl           String?
   thumbnailUpdatedAt     DateTime?
   deletedAt              DateTime?
+  // Permanent teardown must finish before restore, transfer, or runtime admission.
+  runtimeDeletionPending Boolean @default(false)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -663,6 +665,8 @@ model Workspace {
   name             String
   status           WorkspaceStatus    @default(PENDING)
   runtimeMode      String
+  // Durable fence for manager reserve requests whose HTTP response is pending.
+  runtimeAdmissionRequests String[] @default([])
   // P2d dev/prod split: 'development' (the editable workspace) or 'production'
   // (the checkout created when a deployment is published). Existing rows
   // backfill to 'development'. Not unique — a project keeps multiple dev
@@ -1749,6 +1753,12 @@ model WorkspaceRuntime {
   // across manager restarts. Null until first metered.
   lastMeteredAt        DateTime?
   updatedAt            DateTime  @updatedAt
+  // Nullable means legacy/unknown, never an automatically releasable reservation.
+  // Kept separate from runtime status so old readers do not reinterpret new states.
+  admissionAttemptId   String?
+  admissionGeneration  String?
+  admissionState       String?
+  admissionReservedAt  DateTime?
 
   @@index([orgId])
   @@index([projectId])

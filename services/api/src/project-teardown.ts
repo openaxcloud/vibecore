@@ -136,7 +136,9 @@ export const PROJECT_EXTERNAL_RESOURCES: readonly ProjectExternalResource[] = [
          * namespace. On LÈVE plutôt que de tenter — supprimer le mauvais volume est
          * la seule faute pire que d'en laisser un.
          */
-        if (!/^ws-[a-z0-9]+$/.test(workspaceId)) {
+        // Both runtime ws-* IDs and Prisma's default cuid() are persisted by
+        // createWorkspace. Reject every other shape before calling the manager.
+        if (!/^(?:ws-[a-z0-9]+|c[a-z0-9]{24})$/.test(workspaceId)) {
           throw new Error(`${appPublicEnglish('TEARDOWN_WORKSPACE_ID_INVALID')} (${JSON.stringify(workspaceId)})`);
         }
 
@@ -219,11 +221,9 @@ export interface TeardownReport {
 /**
  * Démonte toutes les ressources externes d'un projet.
  *
- * ⚠️ Ne jette JAMAIS : la suppression demandée par l'utilisateur doit aboutir même
- * si GCS ou l'API Kubernetes hoquette. Mais chaque échec est CAPTURÉ et RENDU,
- * jamais avalé — c'est toute la différence avec le `.catch(() => {})` d'origine,
- * qui rendait un démontage raté indiscernable d'un démontage réussi. Un appelant
- * qui reçoit `complete: false` sait qu'il reste une orpheline, et laquelle.
+ * Ne jette pas : chaque échec est capturé et rendu. L'appelant doit conserver
+ * le projet fermé et ses poignées tant que complete=false, puis permettre une
+ * nouvelle tentative. Une réponse partielle ne vaut pas suppression achevée.
  *
  * Chaque ressource est tentée indépendamment : une base qui refuse de partir ne
  * doit pas empêcher le seau d'être supprimé.

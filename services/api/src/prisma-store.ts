@@ -1084,7 +1084,58 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async restoreProject(projectId: string) {
-    return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: null } }));
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{ runtimeDeletionPending: boolean }>
+      >`SELECT "runtimeDeletionPending" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
+
+      if (rows[0]?.runtimeDeletionPending) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
+          statusCode: 409,
+          code: 'PROJECT_DELETION_PENDING',
+        });
+      }
+
+      return mapProject(await tx.project.update({ where: { id: projectId }, data: { deletedAt: null } }));
+    });
+  }
+
+  async prepareProjectDeletion(projectId: string, expectedOrganizationId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const owners = await tx.$queryRaw<
+        Array<{ organizationId: string }>
+      >`SELECT "organizationId" FROM "Project" WHERE "id" = ${projectId} FOR UPDATE`;
+
+      if (owners[0]?.organizationId !== expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 409,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      const workspaces = await tx.workspace.findMany({
+        where: { projectId },
+        select: { runtimeAdmissionRequests: true },
+      });
+
+      if (workspaces.some((workspace) => workspace.runtimeAdmissionRequests.length)) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_RUNTIME_UNCONFIRMED')), {
+          statusCode: 409,
+          code: 'PROJECT_TRANSFER_RUNTIME_UNCONFIRMED',
+        });
+      }
+
+      /*
+       * Commit closure before any external deletion. It survives timeouts and
+       * partial teardown; restore and reserve share this row lock and refuse it.
+       */
+      return mapProject(
+        await tx.project.update({
+          where: { id: projectId },
+          data: { deletedAt: new Date(), runtimeDeletionPending: true },
+        }),
+      );
+    });
   }
 
   async hardDeleteProject(projectId: string) {
@@ -1093,7 +1144,12 @@ export class PrismaApiStore implements ApiStore {
     return mapProject(await this.prisma.project.delete({ where: { id: projectId } }));
   }
 
-  async transferProject(input: { projectId: string; targetOrganizationId: string }) {
+  async transferProject(input: {
+    projectId: string;
+    targetOrganizationId: string;
+    expectedSourceOrganizationId?: string;
+    validateRuntimeOwnership?: (workspaces: WorkspaceRecord[]) => Promise<void>;
+  }) {
     const current = assertFound(
       await this.prisma.project.findUnique({ where: { id: input.projectId }, select: { slug: true } }),
       'Project not found',
@@ -1114,6 +1170,40 @@ export class PrismaApiStore implements ApiStore {
 
       try {
         return await this.prisma.$transaction(async (tx) => {
+          /*
+           * Same row lock as beginWorkspaceAdmissionRequest. The ownership check,
+           * pending-call check, read-only manager probe, and final write all live
+           * in this transaction; an expired callback cannot mutate via a main pool.
+           */
+          const owners = await tx.$queryRaw<
+            Array<{ organizationId: string; runtimeDeletionPending: boolean }>
+          >`SELECT "organizationId", "runtimeDeletionPending" FROM "Project" WHERE "id" = ${input.projectId} FOR UPDATE`;
+
+          if (owners[0]?.runtimeDeletionPending) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
+              statusCode: 409,
+              code: 'PROJECT_DELETION_PENDING',
+            });
+          }
+
+          if (input.expectedSourceOrganizationId && owners[0]?.organizationId !== input.expectedSourceOrganizationId) {
+            throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+              statusCode: 409,
+              code: 'WORKSPACE_PROJECT_MISMATCH',
+            });
+          }
+
+          const workspaces = (await tx.workspace.findMany({ where: { projectId: input.projectId } })).map(mapWorkspace);
+
+          if (workspaces.some((workspace) => workspace.runtimeAdmissionRequests?.length)) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_RUNTIME_UNCONFIRMED')), {
+              statusCode: 409,
+              code: 'PROJECT_TRANSFER_RUNTIME_UNCONFIRMED',
+            });
+          }
+
+          await input.validateRuntimeOwnership?.(workspaces);
+
           /*
            * Revoke all explicit ProjectCollaborator grants on transfer. They were
            * issued to the SOURCE org's users; leaving them in place after the
@@ -2666,12 +2756,13 @@ export class PrismaApiStore implements ApiStore {
    */
   static readonly ACTIVE_WORKSPACE_FRESHNESS_MS = 6 * 60 * 60 * 1000;
 
-  async countActiveWorkspaces(organizationId: string) {
+  async countActiveWorkspaces(organizationId: string, excludedWorkspaceIds: string[] = []) {
     return this.prisma.workspace.count({
       where: {
         project: { organizationId, deletedAt: null },
         status: { in: ['PENDING', 'STARTING', 'RUNNING'] },
         updatedAt: { gte: new Date(Date.now() - PrismaApiStore.ACTIVE_WORKSPACE_FRESHNESS_MS) },
+        ...(excludedWorkspaceIds.length ? { id: { notIn: excludedWorkspaceIds } } : {}),
       },
     });
   }
@@ -6327,6 +6418,47 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async beginWorkspaceAdmissionRequest(
+    workspaceId: string,
+    requestId: string,
+    expectedOrganizationId: string,
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const workspace = await tx.workspace.findUniqueOrThrow({
+        where: { id: workspaceId },
+        select: { projectId: true },
+      });
+      const projects = await tx.$queryRaw<
+        Array<{ organizationId: string; deletedAt: Date | null; runtimeDeletionPending: boolean }>
+      >`SELECT "organizationId", "deletedAt", "runtimeDeletionPending" FROM "Project" WHERE "id" = ${workspace.projectId} FOR UPDATE`;
+
+      if (projects[0]?.deletedAt || projects[0]?.runtimeDeletionPending) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
+          statusCode: 409,
+          code: 'PROJECT_DELETION_PENDING',
+        });
+      }
+
+      if (projects[0]?.organizationId !== expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 409,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      await tx.workspace.update({
+        where: { id: workspaceId },
+        data: { runtimeAdmissionRequests: { push: requestId } },
+      });
+    });
+  }
+
+  async completeWorkspaceAdmissionRequest(workspaceId: string, requestId: string): Promise<void> {
+    // Remove only this confirmed call; a concurrent retry keeps its own marker.
+    await this.prisma
+      .$executeRaw`UPDATE "Workspace" SET "runtimeAdmissionRequests" = array_remove("runtimeAdmissionRequests", ${requestId}) WHERE "id" = ${workspaceId}`;
+  }
+
   async updateWorkspaceStatus(input: { workspaceId: string; status: WorkspaceRecord['status'] }) {
     return mapWorkspace(
       await this.prisma.workspace.update({ where: { id: input.workspaceId }, data: { status: input.status } }),
@@ -6606,6 +6738,7 @@ function mapProject(project: any): ProjectRecord {
     createdAt: toIso(project.createdAt)!,
     updatedAt: toIso(project.updatedAt)!,
     deletedAt: toIso(project.deletedAt),
+    runtimeDeletionPending: project.runtimeDeletionPending ?? false,
     ...(typeof project._count?.deployments === 'number' ? { deploymentCount: project._count.deployments } : {}),
   };
 }
@@ -6627,6 +6760,7 @@ function mapWorkspace(workspace: any): WorkspaceRecord {
     name: workspace.name,
     status: workspace.status,
     runtimeMode: workspace.runtimeMode,
+    runtimeAdmissionRequests: workspace.runtimeAdmissionRequests ?? [],
     gitPath: workspace.gitPath ?? undefined,
     gitRepositoryUrl: workspace.gitRepositoryUrl ?? undefined,
     environment: workspace.environment ?? undefined,

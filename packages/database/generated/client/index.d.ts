@@ -27134,6 +27134,7 @@ export namespace Prisma {
     thumbnailUrl: string | null
     thumbnailUpdatedAt: Date | null
     deletedAt: Date | null
+    runtimeDeletionPending: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -27152,6 +27153,7 @@ export namespace Prisma {
     thumbnailUrl: string | null
     thumbnailUpdatedAt: Date | null
     deletedAt: Date | null
+    runtimeDeletionPending: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -27170,6 +27172,7 @@ export namespace Prisma {
     thumbnailUrl: number
     thumbnailUpdatedAt: number
     deletedAt: number
+    runtimeDeletionPending: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -27190,6 +27193,7 @@ export namespace Prisma {
     thumbnailUrl?: true
     thumbnailUpdatedAt?: true
     deletedAt?: true
+    runtimeDeletionPending?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -27208,6 +27212,7 @@ export namespace Prisma {
     thumbnailUrl?: true
     thumbnailUpdatedAt?: true
     deletedAt?: true
+    runtimeDeletionPending?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -27226,6 +27231,7 @@ export namespace Prisma {
     thumbnailUrl?: true
     thumbnailUpdatedAt?: true
     deletedAt?: true
+    runtimeDeletionPending?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -27317,6 +27323,7 @@ export namespace Prisma {
     thumbnailUrl: string | null
     thumbnailUpdatedAt: Date | null
     deletedAt: Date | null
+    runtimeDeletionPending: boolean
     createdAt: Date
     updatedAt: Date
     _count: ProjectCountAggregateOutputType | null
@@ -27352,6 +27359,7 @@ export namespace Prisma {
     thumbnailUrl?: boolean
     thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
+    runtimeDeletionPending?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -27397,6 +27405,7 @@ export namespace Prisma {
     thumbnailUrl?: boolean
     thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
+    runtimeDeletionPending?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -27416,6 +27425,7 @@ export namespace Prisma {
     thumbnailUrl?: boolean
     thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
+    runtimeDeletionPending?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -27435,11 +27445,12 @@ export namespace Prisma {
     thumbnailUrl?: boolean
     thumbnailUpdatedAt?: boolean
     deletedAt?: boolean
+    runtimeDeletionPending?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "slug" | "description" | "sourceType" | "templateName" | "gitRepositoryUrl" | "gitDefaultBranch" | "persistentVolumeClaim" | "thumbnailUrl" | "thumbnailUpdatedAt" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+  export type ProjectOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "name" | "slug" | "description" | "sourceType" | "templateName" | "gitRepositoryUrl" | "gitDefaultBranch" | "persistentVolumeClaim" | "thumbnailUrl" | "thumbnailUpdatedAt" | "deletedAt" | "runtimeDeletionPending" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
   export type ProjectInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     environments?: boolean | Project$environmentsArgs<ExtArgs>
@@ -27520,6 +27531,7 @@ export namespace Prisma {
       thumbnailUrl: string | null
       thumbnailUpdatedAt: Date | null
       deletedAt: Date | null
+      runtimeDeletionPending: boolean
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["project"]>
@@ -27984,6 +27996,7 @@ export namespace Prisma {
     readonly thumbnailUrl: FieldRef<"Project", 'String'>
     readonly thumbnailUpdatedAt: FieldRef<"Project", 'DateTime'>
     readonly deletedAt: FieldRef<"Project", 'DateTime'>
+    readonly runtimeDeletionPending: FieldRef<"Project", 'Boolean'>
     readonly createdAt: FieldRef<"Project", 'DateTime'>
     readonly updatedAt: FieldRef<"Project", 'DateTime'>
   }
@@ -49204,6 +49217,7 @@ export namespace Prisma {
     name: number
     status: number
     runtimeMode: number
+    runtimeAdmissionRequests: number
     environment: number
     gitPath: number
     gitRepositoryUrl: number
@@ -49245,6 +49259,7 @@ export namespace Prisma {
     name?: true
     status?: true
     runtimeMode?: true
+    runtimeAdmissionRequests?: true
     environment?: true
     gitPath?: true
     gitRepositoryUrl?: true
@@ -49331,6 +49346,7 @@ export namespace Prisma {
     name: string
     status: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests: string[]
     environment: string
     gitPath: string | null
     gitRepositoryUrl: string | null
@@ -49361,6 +49377,7 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    runtimeAdmissionRequests?: boolean
     environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
@@ -49383,6 +49400,7 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    runtimeAdmissionRequests?: boolean
     environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
@@ -49397,6 +49415,7 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    runtimeAdmissionRequests?: boolean
     environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
@@ -49411,6 +49430,7 @@ export namespace Prisma {
     name?: boolean
     status?: boolean
     runtimeMode?: boolean
+    runtimeAdmissionRequests?: boolean
     environment?: boolean
     gitPath?: boolean
     gitRepositoryUrl?: boolean
@@ -49418,7 +49438,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "name" | "status" | "runtimeMode" | "environment" | "gitPath" | "gitRepositoryUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
+  export type WorkspaceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "name" | "status" | "runtimeMode" | "runtimeAdmissionRequests" | "environment" | "gitPath" | "gitRepositoryUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["workspace"]>
   export type WorkspaceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     sessions?: boolean | Workspace$sessionsArgs<ExtArgs>
@@ -49455,6 +49475,7 @@ export namespace Prisma {
       name: string
       status: $Enums.WorkspaceStatus
       runtimeMode: string
+      runtimeAdmissionRequests: string[]
       environment: string
       gitPath: string | null
       gitRepositoryUrl: string | null
@@ -49896,6 +49917,7 @@ export namespace Prisma {
     readonly name: FieldRef<"Workspace", 'String'>
     readonly status: FieldRef<"Workspace", 'WorkspaceStatus'>
     readonly runtimeMode: FieldRef<"Workspace", 'String'>
+    readonly runtimeAdmissionRequests: FieldRef<"Workspace", 'String[]'>
     readonly environment: FieldRef<"Workspace", 'String'>
     readonly gitPath: FieldRef<"Workspace", 'String'>
     readonly gitRepositoryUrl: FieldRef<"Workspace", 'String'>
@@ -111807,6 +111829,10 @@ export namespace Prisma {
     lastActiveAt: Date | null
     lastMeteredAt: Date | null
     updatedAt: Date | null
+    admissionAttemptId: string | null
+    admissionGeneration: string | null
+    admissionState: string | null
+    admissionReservedAt: Date | null
   }
 
   export type WorkspaceRuntimeMaxAggregateOutputType = {
@@ -111824,6 +111850,10 @@ export namespace Prisma {
     lastActiveAt: Date | null
     lastMeteredAt: Date | null
     updatedAt: Date | null
+    admissionAttemptId: string | null
+    admissionGeneration: string | null
+    admissionState: string | null
+    admissionReservedAt: Date | null
   }
 
   export type WorkspaceRuntimeCountAggregateOutputType = {
@@ -111842,6 +111872,10 @@ export namespace Prisma {
     lastActiveAt: number
     lastMeteredAt: number
     updatedAt: number
+    admissionAttemptId: number
+    admissionGeneration: number
+    admissionState: number
+    admissionReservedAt: number
     _all: number
   }
 
@@ -111861,6 +111895,10 @@ export namespace Prisma {
     lastActiveAt?: true
     lastMeteredAt?: true
     updatedAt?: true
+    admissionAttemptId?: true
+    admissionGeneration?: true
+    admissionState?: true
+    admissionReservedAt?: true
   }
 
   export type WorkspaceRuntimeMaxAggregateInputType = {
@@ -111878,6 +111916,10 @@ export namespace Prisma {
     lastActiveAt?: true
     lastMeteredAt?: true
     updatedAt?: true
+    admissionAttemptId?: true
+    admissionGeneration?: true
+    admissionState?: true
+    admissionReservedAt?: true
   }
 
   export type WorkspaceRuntimeCountAggregateInputType = {
@@ -111896,6 +111938,10 @@ export namespace Prisma {
     lastActiveAt?: true
     lastMeteredAt?: true
     updatedAt?: true
+    admissionAttemptId?: true
+    admissionGeneration?: true
+    admissionState?: true
+    admissionReservedAt?: true
     _all?: true
   }
 
@@ -111987,6 +112033,10 @@ export namespace Prisma {
     lastActiveAt: Date
     lastMeteredAt: Date | null
     updatedAt: Date
+    admissionAttemptId: string | null
+    admissionGeneration: string | null
+    admissionState: string | null
+    admissionReservedAt: Date | null
     _count: WorkspaceRuntimeCountAggregateOutputType | null
     _min: WorkspaceRuntimeMinAggregateOutputType | null
     _max: WorkspaceRuntimeMaxAggregateOutputType | null
@@ -112022,6 +112072,10 @@ export namespace Prisma {
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
     updatedAt?: boolean
+    admissionAttemptId?: boolean
+    admissionGeneration?: boolean
+    admissionState?: boolean
+    admissionReservedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
   export type WorkspaceRuntimeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -112040,6 +112094,10 @@ export namespace Prisma {
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
     updatedAt?: boolean
+    admissionAttemptId?: boolean
+    admissionGeneration?: boolean
+    admissionState?: boolean
+    admissionReservedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
   export type WorkspaceRuntimeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -112058,6 +112116,10 @@ export namespace Prisma {
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
     updatedAt?: boolean
+    admissionAttemptId?: boolean
+    admissionGeneration?: boolean
+    admissionState?: boolean
+    admissionReservedAt?: boolean
   }, ExtArgs["result"]["workspaceRuntime"]>
 
   export type WorkspaceRuntimeSelectScalar = {
@@ -112076,9 +112138,13 @@ export namespace Prisma {
     lastActiveAt?: boolean
     lastMeteredAt?: boolean
     updatedAt?: boolean
+    admissionAttemptId?: boolean
+    admissionGeneration?: boolean
+    admissionState?: boolean
+    admissionReservedAt?: boolean
   }
 
-  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "agentTokenScheme" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "updatedAt", ExtArgs["result"]["workspaceRuntime"]>
+  export type WorkspaceRuntimeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orgId" | "projectId" | "plan" | "status" | "pvcName" | "podName" | "serviceName" | "agentTokenSecretName" | "agentTokenScheme" | "error" | "createdAt" | "lastActiveAt" | "lastMeteredAt" | "updatedAt" | "admissionAttemptId" | "admissionGeneration" | "admissionState" | "admissionReservedAt", ExtArgs["result"]["workspaceRuntime"]>
 
   export type $WorkspaceRuntimePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "WorkspaceRuntime"
@@ -112099,6 +112165,10 @@ export namespace Prisma {
       lastActiveAt: Date
       lastMeteredAt: Date | null
       updatedAt: Date
+      admissionAttemptId: string | null
+      admissionGeneration: string | null
+      admissionState: string | null
+      admissionReservedAt: Date | null
     }, ExtArgs["result"]["workspaceRuntime"]>
     composites: {}
   }
@@ -112537,6 +112607,10 @@ export namespace Prisma {
     readonly lastActiveAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly lastMeteredAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
     readonly updatedAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
+    readonly admissionAttemptId: FieldRef<"WorkspaceRuntime", 'String'>
+    readonly admissionGeneration: FieldRef<"WorkspaceRuntime", 'String'>
+    readonly admissionState: FieldRef<"WorkspaceRuntime", 'String'>
+    readonly admissionReservedAt: FieldRef<"WorkspaceRuntime", 'DateTime'>
   }
     
 
@@ -161215,6 +161289,7 @@ export namespace Prisma {
     thumbnailUrl: 'thumbnailUrl',
     thumbnailUpdatedAt: 'thumbnailUpdatedAt',
     deletedAt: 'deletedAt',
+    runtimeDeletionPending: 'runtimeDeletionPending',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -161504,6 +161579,7 @@ export namespace Prisma {
     name: 'name',
     status: 'status',
     runtimeMode: 'runtimeMode',
+    runtimeAdmissionRequests: 'runtimeAdmissionRequests',
     environment: 'environment',
     gitPath: 'gitPath',
     gitRepositoryUrl: 'gitRepositoryUrl',
@@ -162315,7 +162391,11 @@ export namespace Prisma {
     createdAt: 'createdAt',
     lastActiveAt: 'lastActiveAt',
     lastMeteredAt: 'lastMeteredAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    admissionAttemptId: 'admissionAttemptId',
+    admissionGeneration: 'admissionGeneration',
+    admissionState: 'admissionState',
+    admissionReservedAt: 'admissionReservedAt'
   };
 
   export type WorkspaceRuntimeScalarFieldEnum = (typeof WorkspaceRuntimeScalarFieldEnum)[keyof typeof WorkspaceRuntimeScalarFieldEnum]
@@ -164363,6 +164443,7 @@ export namespace Prisma {
     thumbnailUrl?: StringNullableFilter<"Project"> | string | null
     thumbnailUpdatedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
+    runtimeDeletionPending?: BoolFilter<"Project"> | boolean
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
@@ -164407,6 +164488,7 @@ export namespace Prisma {
     thumbnailUrl?: SortOrderInput | SortOrder
     thumbnailUpdatedAt?: SortOrderInput | SortOrder
     deletedAt?: SortOrderInput | SortOrder
+    runtimeDeletionPending?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
@@ -164455,6 +164537,7 @@ export namespace Prisma {
     thumbnailUrl?: StringNullableFilter<"Project"> | string | null
     thumbnailUpdatedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
+    runtimeDeletionPending?: BoolFilter<"Project"> | boolean
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
@@ -164499,6 +164582,7 @@ export namespace Prisma {
     thumbnailUrl?: SortOrderInput | SortOrder
     thumbnailUpdatedAt?: SortOrderInput | SortOrder
     deletedAt?: SortOrderInput | SortOrder
+    runtimeDeletionPending?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ProjectCountOrderByAggregateInput
@@ -164523,6 +164607,7 @@ export namespace Prisma {
     thumbnailUrl?: StringNullableWithAggregatesFilter<"Project"> | string | null
     thumbnailUpdatedAt?: DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableWithAggregatesFilter<"Project"> | Date | string | null
+    runtimeDeletionPending?: BoolWithAggregatesFilter<"Project"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Project"> | Date | string
   }
@@ -165959,6 +166044,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
+    runtimeAdmissionRequests?: StringNullableListFilter<"Workspace">
     environment?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
@@ -165980,6 +166066,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    runtimeAdmissionRequests?: SortOrder
     environment?: SortOrder
     gitPath?: SortOrderInput | SortOrder
     gitRepositoryUrl?: SortOrderInput | SortOrder
@@ -166004,6 +166091,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
+    runtimeAdmissionRequests?: StringNullableListFilter<"Workspace">
     environment?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
@@ -166025,6 +166113,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    runtimeAdmissionRequests?: SortOrder
     environment?: SortOrder
     gitPath?: SortOrderInput | SortOrder
     gitRepositoryUrl?: SortOrderInput | SortOrder
@@ -166044,6 +166133,7 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusWithAggregatesFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringWithAggregatesFilter<"Workspace"> | string
+    runtimeAdmissionRequests?: StringNullableListFilter<"Workspace">
     environment?: StringWithAggregatesFilter<"Workspace"> | string
     gitPath?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableWithAggregatesFilter<"Workspace"> | string | null
@@ -170069,6 +170159,10 @@ export namespace Prisma {
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
+    admissionAttemptId?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    admissionGeneration?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    admissionState?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    admissionReservedAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
   }
 
   export type WorkspaceRuntimeOrderByWithRelationInput = {
@@ -170087,6 +170181,10 @@ export namespace Prisma {
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
+    admissionAttemptId?: SortOrderInput | SortOrder
+    admissionGeneration?: SortOrderInput | SortOrder
+    admissionState?: SortOrderInput | SortOrder
+    admissionReservedAt?: SortOrderInput | SortOrder
   }
 
   export type WorkspaceRuntimeWhereUniqueInput = Prisma.AtLeast<{
@@ -170108,6 +170206,10 @@ export namespace Prisma {
     lastActiveAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeFilter<"WorkspaceRuntime"> | Date | string
+    admissionAttemptId?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    admissionGeneration?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    admissionState?: StringNullableFilter<"WorkspaceRuntime"> | string | null
+    admissionReservedAt?: DateTimeNullableFilter<"WorkspaceRuntime"> | Date | string | null
   }, "id">
 
   export type WorkspaceRuntimeOrderByWithAggregationInput = {
@@ -170126,6 +170228,10 @@ export namespace Prisma {
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrderInput | SortOrder
     updatedAt?: SortOrder
+    admissionAttemptId?: SortOrderInput | SortOrder
+    admissionGeneration?: SortOrderInput | SortOrder
+    admissionState?: SortOrderInput | SortOrder
+    admissionReservedAt?: SortOrderInput | SortOrder
     _count?: WorkspaceRuntimeCountOrderByAggregateInput
     _max?: WorkspaceRuntimeMaxOrderByAggregateInput
     _min?: WorkspaceRuntimeMinOrderByAggregateInput
@@ -170150,6 +170256,10 @@ export namespace Prisma {
     lastActiveAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
     lastMeteredAt?: DateTimeNullableWithAggregatesFilter<"WorkspaceRuntime"> | Date | string | null
     updatedAt?: DateTimeWithAggregatesFilter<"WorkspaceRuntime"> | Date | string
+    admissionAttemptId?: StringNullableWithAggregatesFilter<"WorkspaceRuntime"> | string | null
+    admissionGeneration?: StringNullableWithAggregatesFilter<"WorkspaceRuntime"> | string | null
+    admissionState?: StringNullableWithAggregatesFilter<"WorkspaceRuntime"> | string | null
+    admissionReservedAt?: DateTimeNullableWithAggregatesFilter<"WorkspaceRuntime"> | Date | string | null
   }
 
   export type ConnectorCatalogWhereInput = {
@@ -174880,6 +174990,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -174924,6 +175035,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -174966,6 +175078,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -175010,6 +175123,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -175053,6 +175167,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -175070,6 +175185,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -175088,6 +175204,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -176549,6 +176666,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -176570,6 +176688,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -176589,6 +176708,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -176610,6 +176730,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -176630,6 +176751,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -176642,6 +176764,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -176655,6 +176778,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -181009,6 +181133,10 @@ export namespace Prisma {
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
     updatedAt?: Date | string
+    admissionAttemptId?: string | null
+    admissionGeneration?: string | null
+    admissionState?: string | null
+    admissionReservedAt?: Date | string | null
   }
 
   export type WorkspaceRuntimeUncheckedCreateInput = {
@@ -181027,6 +181155,10 @@ export namespace Prisma {
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
     updatedAt?: Date | string
+    admissionAttemptId?: string | null
+    admissionGeneration?: string | null
+    admissionState?: string | null
+    admissionReservedAt?: Date | string | null
   }
 
   export type WorkspaceRuntimeUpdateInput = {
@@ -181045,6 +181177,10 @@ export namespace Prisma {
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    admissionAttemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionState?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionReservedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type WorkspaceRuntimeUncheckedUpdateInput = {
@@ -181063,6 +181199,10 @@ export namespace Prisma {
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    admissionAttemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionState?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionReservedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type WorkspaceRuntimeCreateManyInput = {
@@ -181081,6 +181221,10 @@ export namespace Prisma {
     lastActiveAt?: Date | string
     lastMeteredAt?: Date | string | null
     updatedAt?: Date | string
+    admissionAttemptId?: string | null
+    admissionGeneration?: string | null
+    admissionState?: string | null
+    admissionReservedAt?: Date | string | null
   }
 
   export type WorkspaceRuntimeUpdateManyMutationInput = {
@@ -181099,6 +181243,10 @@ export namespace Prisma {
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    admissionAttemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionState?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionReservedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type WorkspaceRuntimeUncheckedUpdateManyInput = {
@@ -181117,6 +181265,10 @@ export namespace Prisma {
     lastActiveAt?: DateTimeFieldUpdateOperationsInput | Date | string
     lastMeteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    admissionAttemptId?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionGeneration?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionState?: NullableStringFieldUpdateOperationsInput | string | null
+    admissionReservedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ConnectorCatalogCreateInput = {
@@ -186673,6 +186825,7 @@ export namespace Prisma {
     thumbnailUrl?: SortOrder
     thumbnailUpdatedAt?: SortOrder
     deletedAt?: SortOrder
+    runtimeDeletionPending?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -186691,6 +186844,7 @@ export namespace Prisma {
     thumbnailUrl?: SortOrder
     thumbnailUpdatedAt?: SortOrder
     deletedAt?: SortOrder
+    runtimeDeletionPending?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -186709,6 +186863,7 @@ export namespace Prisma {
     thumbnailUrl?: SortOrder
     thumbnailUpdatedAt?: SortOrder
     deletedAt?: SortOrder
+    runtimeDeletionPending?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -187638,6 +187793,7 @@ export namespace Prisma {
     name?: SortOrder
     status?: SortOrder
     runtimeMode?: SortOrder
+    runtimeAdmissionRequests?: SortOrder
     environment?: SortOrder
     gitPath?: SortOrder
     gitRepositoryUrl?: SortOrder
@@ -189991,6 +190147,10 @@ export namespace Prisma {
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
     updatedAt?: SortOrder
+    admissionAttemptId?: SortOrder
+    admissionGeneration?: SortOrder
+    admissionState?: SortOrder
+    admissionReservedAt?: SortOrder
   }
 
   export type WorkspaceRuntimeMaxOrderByAggregateInput = {
@@ -190008,6 +190168,10 @@ export namespace Prisma {
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
     updatedAt?: SortOrder
+    admissionAttemptId?: SortOrder
+    admissionGeneration?: SortOrder
+    admissionState?: SortOrder
+    admissionReservedAt?: SortOrder
   }
 
   export type WorkspaceRuntimeMinOrderByAggregateInput = {
@@ -190025,6 +190189,10 @@ export namespace Prisma {
     lastActiveAt?: SortOrder
     lastMeteredAt?: SortOrder
     updatedAt?: SortOrder
+    admissionAttemptId?: SortOrder
+    admissionGeneration?: SortOrder
+    admissionState?: SortOrder
+    admissionReservedAt?: SortOrder
   }
 
   export type ConnectorCatalogCountOrderByAggregateInput = {
@@ -197094,6 +197262,10 @@ export namespace Prisma {
     update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutProjectTemplatesInput, OrganizationUpdateWithoutProjectTemplatesInput>, OrganizationUncheckedUpdateWithoutProjectTemplatesInput>
   }
 
+  export type WorkspaceCreateruntimeAdmissionRequestsInput = {
+    set: string[]
+  }
+
   export type ProjectCreateNestedOneWithoutWorkspacesInput = {
     create?: XOR<ProjectCreateWithoutWorkspacesInput, ProjectUncheckedCreateWithoutWorkspacesInput>
     connectOrCreate?: ProjectCreateOrConnectWithoutWorkspacesInput
@@ -197198,6 +197370,11 @@ export namespace Prisma {
 
   export type EnumWorkspaceStatusFieldUpdateOperationsInput = {
     set?: $Enums.WorkspaceStatus
+  }
+
+  export type WorkspaceUpdateruntimeAdmissionRequestsInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type ProjectUpdateOneRequiredWithoutWorkspacesNestedInput = {
@@ -203225,6 +203402,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
@@ -203267,6 +203445,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -204322,6 +204501,7 @@ export namespace Prisma {
     thumbnailUrl?: StringNullableFilter<"Project"> | string | null
     thumbnailUpdatedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
     deletedAt?: DateTimeNullableFilter<"Project"> | Date | string | null
+    runtimeDeletionPending?: BoolFilter<"Project"> | boolean
     createdAt?: DateTimeFilter<"Project"> | Date | string
     updatedAt?: DateTimeFilter<"Project"> | Date | string
   }
@@ -206390,6 +206570,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -206409,6 +206590,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -207236,6 +207418,7 @@ export namespace Prisma {
     name?: StringFilter<"Workspace"> | string
     status?: EnumWorkspaceStatusFilter<"Workspace"> | $Enums.WorkspaceStatus
     runtimeMode?: StringFilter<"Workspace"> | string
+    runtimeAdmissionRequests?: StringNullableListFilter<"Workspace">
     environment?: StringFilter<"Workspace"> | string
     gitPath?: StringNullableFilter<"Workspace"> | string | null
     gitRepositoryUrl?: StringNullableFilter<"Workspace"> | string | null
@@ -207672,6 +207855,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -207715,6 +207899,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -207772,6 +207957,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -207815,6 +208001,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -208256,6 +208443,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -208299,6 +208487,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -208356,6 +208545,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -208399,6 +208589,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -208634,6 +208825,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -208677,6 +208869,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -208940,6 +209133,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -208983,6 +209177,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -209024,6 +209219,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -209067,6 +209263,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -209229,6 +209426,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -209272,6 +209470,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -209424,6 +209623,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -209467,6 +209667,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -209524,6 +209725,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -209567,6 +209769,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -209608,6 +209811,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -209651,6 +209855,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -209708,6 +209913,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -209751,6 +209957,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -209792,6 +209999,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -209835,6 +210043,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -209892,6 +210101,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -209935,6 +210145,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -209976,6 +210187,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -210019,6 +210231,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
@@ -210076,6 +210289,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -210119,6 +210333,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
@@ -210160,6 +210375,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -210203,6 +210419,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -210260,6 +210477,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -210303,6 +210521,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -210344,6 +210563,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -210387,6 +210607,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -210444,6 +210665,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -210487,6 +210709,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -210528,6 +210751,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -210571,6 +210795,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -210733,6 +210958,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -210776,6 +211002,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -210928,6 +211155,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -210971,6 +211199,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -211133,6 +211362,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -211176,6 +211406,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -211328,6 +211559,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -211371,6 +211603,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -211533,6 +211766,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -211576,6 +211810,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -211728,6 +211963,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -211771,6 +212007,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -211933,6 +212170,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -211976,6 +212214,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -212128,6 +212367,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -212171,6 +212411,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -212333,6 +212574,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -212376,6 +212618,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -212528,6 +212771,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -212571,6 +212815,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -212717,6 +212962,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -212760,6 +213006,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -212896,6 +213143,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -212939,6 +213187,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -213183,6 +213432,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -213226,6 +213476,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -213445,6 +213696,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213465,6 +213717,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213499,6 +213752,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213519,6 +213773,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213537,6 +213792,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213557,6 +213813,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213591,6 +213848,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213611,6 +213869,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213629,6 +213888,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213649,6 +213909,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213683,6 +213944,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213703,6 +213965,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213729,6 +213992,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -213772,6 +214036,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -213810,6 +214075,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213830,6 +214096,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -213872,6 +214139,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -213915,6 +214183,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -213959,6 +214228,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -213979,6 +214249,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -214005,6 +214276,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -214048,6 +214320,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -214210,6 +214483,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -214253,6 +214527,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -214405,6 +214680,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -214448,6 +214724,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -214505,6 +214782,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -214548,6 +214826,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -214589,6 +214868,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -214632,6 +214912,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -214704,6 +214985,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -214747,6 +215029,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -216739,6 +217022,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -216782,6 +217066,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -216972,6 +217257,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -217015,6 +217301,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -222986,6 +223273,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -223029,6 +223317,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -223244,6 +223533,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -223287,6 +223577,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -226289,6 +226580,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -226332,6 +226624,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -226457,6 +226750,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -226500,6 +226794,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -227333,6 +227628,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutProjectsInput
@@ -227376,6 +227672,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
@@ -227538,6 +227835,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
@@ -227581,6 +227879,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -228065,6 +228364,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -228085,6 +228385,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -228119,6 +228420,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -228139,6 +228441,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -228157,6 +228460,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -228177,6 +228481,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -228211,6 +228516,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -228231,6 +228537,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -228249,6 +228556,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -228269,6 +228577,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -228303,6 +228612,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -228323,6 +228633,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -229808,6 +230119,7 @@ export namespace Prisma {
     thumbnailUrl?: string | null
     thumbnailUpdatedAt?: Date | string | null
     deletedAt?: Date | string | null
+    runtimeDeletionPending?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -230165,6 +230477,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
@@ -230207,6 +230520,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
@@ -230249,6 +230563,7 @@ export namespace Prisma {
     thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
     thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    runtimeDeletionPending?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -231382,6 +231697,7 @@ export namespace Prisma {
     name: string
     status?: $Enums.WorkspaceStatus
     runtimeMode: string
+    runtimeAdmissionRequests?: WorkspaceCreateruntimeAdmissionRequestsInput | string[]
     environment?: string
     gitPath?: string | null
     gitRepositoryUrl?: string | null
@@ -231804,6 +232120,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -231823,6 +232140,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
@@ -231842,6 +232160,7 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     status?: EnumWorkspaceStatusFieldUpdateOperationsInput | $Enums.WorkspaceStatus
     runtimeMode?: StringFieldUpdateOperationsInput | string
+    runtimeAdmissionRequests?: WorkspaceUpdateruntimeAdmissionRequestsInput | string[]
     environment?: StringFieldUpdateOperationsInput | string
     gitPath?: NullableStringFieldUpdateOperationsInput | string | null
     gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null

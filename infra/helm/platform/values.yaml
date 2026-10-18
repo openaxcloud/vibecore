@@ -159,6 +159,8 @@ platformEnv:
     # defaults to localhost and every AI chat completion 500s.
     aiGatewayUrl: 'http://vibecore-vibecore-platform-ai-gateway.vibecore.svc:3030'
     workspaceRuntimeNamespace: 'workspaces'
+    workspaceAdmissionV2QuotaEnabled: 'false'
+    workspaceAdmissionV2Enabled: 'false'
     workspaceStorageClass: 'workspace-standard-rwo'
     workspaceAgentImage: 'us-central1-docker.pkg.dev/PROJECT/vibecore/workspace-agent:sha-staging'
     # Host-based preview must point at the host ROOT (no '/p/<ws>/<port>/' path

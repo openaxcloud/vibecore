@@ -1618,6 +1618,10 @@ jobs:
           # "1" + values.schema.json; the post-deploy step below verifies the
           # flag actually reached the running api pods.
           SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
+          # Admission phase 1: deploy quota readers everywhere before authorizing
+          # new reservations. --reuse-values otherwise ignores values-prod.yaml.
+          SETS+=( --set-string "platformEnv.runtime.workspaceAdmissionV2QuotaEnabled=true" )
+          SETS+=( --set-string "platformEnv.runtime.workspaceAdmissionV2Enabled=false" )
           # GRÂCE LONGUE (#647) — SANS CETTE LIGNE, LA GRÂCE N'ARRIVE JAMAIS.
           #
           # Mesuré en production le 2026-10-11 à 04:41 UTC, juste après que #647 ait
@@ -1773,6 +1777,7 @@ jobs:
           helm get values "${HELM_RELEASE}" --namespace "${HELM_NAMESPACE}" -o json > /tmp/protections-release.json
           kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" -o json > /tmp/protections-configmap.json
           node scripts/release-gate/verifier-protections-production.mjs /tmp/protections-release.json /tmp/protections-configmap.json
+          node scripts/release-gate/verify-workspace-admission-phase.mjs /tmp/protections-configmap.json
           for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
               -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"

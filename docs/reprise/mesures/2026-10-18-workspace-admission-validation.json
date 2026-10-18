@@ -1,0 +1,431 @@
+{
+  "recordedAtUtc": "2026-10-18T18:27:54.845531+00:00",
+  "baseSha": "44a8e01bc1010732cb5862c346071e4411d0511d",
+  "branch": "codex/workspace-admission-20261018",
+  "scope": "isolated local validation, not production; phase-one rollout only",
+  "environment": {
+    "postgres": "16.15",
+    "localDatabaseOnly": true,
+    "migrationsApplied": 100,
+    "databaseMemoryLimitBytes": 536870912,
+    "databaseCpuLimit": 1,
+    "workspaceMemoryLimitBytes": 17179869184,
+    "memoryBeforeIsolatedManagerSuiteBytes": 2565738496,
+    "paidCloudResourcesCreated": false,
+    "customerRowsTouched": false
+  },
+  "results": {
+    "beforeCoordinatedFix": {
+      "failedAssertions": 2,
+      "observedPods": 2,
+      "expectedPods": 1
+    },
+    "managerFullSuite": {
+      "passed": 144,
+      "skipped": 0,
+      "files": 9,
+      "durationSeconds": 41.29,
+      "kubernetes": "local instrumented client",
+      "httpAndPrisma": "production implementations",
+      "beforeStyleOnlyCommit": true
+    },
+    "managerPostStyle": {
+      "passed": 98,
+      "skipped": 0,
+      "scope": "admission, manager and HTTP app tests"
+    },
+    "apiTargeted": {
+      "runs": [
+        {
+          "passed": 34,
+          "files": 6,
+          "skipped": 0
+        },
+        {
+          "passed": 15,
+          "files": 3,
+          "skipped": 0
+        }
+      ],
+      "distinctTests": 44,
+      "postgresTransferAndDeletionTestsIncluded": 10,
+      "note": "five tests overlap between the two runs"
+    },
+    "rolloutGuards": {
+      "passed": 5
+    },
+    "apiTypecheck": {
+      "exitCode": 0
+    },
+    "apiBuild": {
+      "exitCode": 0
+    },
+    "managerTypecheck": {
+      "exitCode": 0
+    },
+    "managerBuild": {
+      "exitCode": 0
+    },
+    "newRootFilesLintDiagnostics": 0,
+    "apiLintDifferential": {
+      "app.ts": {
+        "before": 338,
+        "after": 338
+      },
+      "prisma-store.ts": {
+        "before": 62,
+        "after": 62
+      },
+      "store.ts": {
+        "before": 111,
+        "after": 111
+      },
+      "test-api-store.ts": {
+        "before": 11,
+        "after": 11
+      },
+      "added": 0
+    },
+    "managerLintDifferential": {
+      "added": 0,
+      "remainingHistoricalErrors": 74,
+      "remainingHistoricalWarnings": 7,
+      "newAdmissionFilesDiagnostics": 0
+    },
+    "ciAssetsValidation": {
+      "ok": true
+    },
+    "deployGateWiring": {
+      "ok": true
+    },
+    "requiredChecksSelftest": {
+      "passed": 14
+    },
+    "gitleaksAfterEvidenceReformat": {
+      "version": "8.21.2",
+      "findings": 0,
+      "configUnchanged": true,
+      "scope": "complete git archive scanned from its own root, same checked-in ignore file as CI"
+    },
+    "i18nAfterCatalogCorrection": {
+      "exitCode": 0,
+      "residualHistoricalFindings": 21,
+      "newDebt": 0
+    },
+    "postCatalogManagerTests": {
+      "passed": 25,
+      "skipped": 0
+    },
+    "postCatalogTypecheck": {
+      "apiChangedModulesExitCode": 0,
+      "managerExitCode": 0
+    },
+    "adminRestartAuditReviewRegression": {
+      "reviewUrl": "https://github.com/openaxcloud/vibecore/pull/735#discussion_r4308106518",
+      "beforeFailed": 3,
+      "afterPassed": 3,
+      "skipped": 0,
+      "cases": [
+        "legacy STARTING remains STARTING",
+        "V2 overlapping PROVISIONING remains STARTING",
+        "V2 stale RUNNING response audits the persisted FAILED state"
+      ],
+      "scope": "isolated API and local HTTP contract fixture; no Kubernetes or live agent",
+      "apiTypecheckExitCode": 0,
+      "apiBuildExitCode": 0,
+      "appLintAddedDiagnostics": 0,
+      "newTestLintDiagnostics": 0,
+      "memoryBeforeTestsBytes": 3045269504
+    },
+    "environmentExampleAndPhaseGuards": {
+      "passed": 9,
+      "skipped": 0,
+      "files": 2,
+      "environmentExampleTests": 4,
+      "phaseTestsAlreadyReported": 5,
+      "ciFailureRun": "https://github.com/openaxcloud/vibecore/actions/runs/39152764996"
+    },
+    "managerFinalAfterV1RaceFix": {
+      "passed": 152,
+      "skipped": 0,
+      "files": 9,
+      "durationSeconds": 69.11,
+      "admissionTestsIncluded": 31,
+      "newAdmissionTestsIncluded": 8,
+      "initialReproductionFailed": 3,
+      "initialReproductionPassed": 3,
+      "initialReproductionTests": 6,
+      "postgres": "isolated local QA only",
+      "kubernetes": "local instrumented client",
+      "typecheckExitCode": 0,
+      "buildExitCode": 0,
+      "addedLintDiagnostics": 0,
+      "memoryMeasuredBeforeSuite": true
+    }
+  },
+  "correctedValidationFailures": [
+    "Parallel PostgreSQL suites hit connection and setup timeouts; isolated full manager rerun passed without increasing test deadlines.",
+    "HTTP deletion exposed Prisma CUID rejection in the teardown guard; guard and refusal cases corrected.",
+    "Node service typecheck rejected global BodyInit in a new test; changed to RequestInit[body], final typecheck passed.",
+    "First PR CI found four SHA-256 evidence values shaped like generic API keys; path/digest records preserve hashes without adding scanner exceptions.",
+    "First PR CI found four hardcoded error messages; moved them to existing English/French catalogs, no baseline change.",
+    "PR CI 39152764996 on 6ea9070ac failed the environment-example completeness guard: two admission flags were undocumented. Added explicit false defaults to .env.example; four environment guards and five phase-one rollout guards pass locally. No gate relaxed.",
+    "Independent review found a V1 stop/delete/restart race with the first V2 reservation, even after old binary drainage. Three deterministic regressions failed before the fix. Validate and use the same present legacy record; reserve never promotes legacy rows and lifecycle deletion retains them. Final 152-test manager suite passes, including eight new admission cases. Activation still requires a separate reviewed release and operator/live evidence."
+  ],
+  "rollout": {
+    "quotaReader": "true",
+    "createReservations": "false",
+    "helmLiveConfigMapVerificationWired": true,
+    "localHelmRender": "blocked: official Helm download refused by proxy HTTP 403",
+    "ciHelmRender": {
+      "runId": 39152067249,
+      "headSha": "99855e3bd906ceb66178e52803aac789441c1264",
+      "step": "From-scratch installation contracts (rendering and isolated commands)",
+      "conclusion": "success",
+      "overallRun": "failure at later i18n guard, corrected locally"
+    }
+  },
+  "knownLimits": [
+    "Production HTTP CONNECT 403, no origin response; no operator cluster credentials.",
+    "No signup-to-agent-to-publish or Safari/mobile live evidence.",
+    "Legacy runtimes remain legacy; inventory and drain required before activation.",
+    "Uncertain reservations and pending requests require operator reconciliation, no forced release.",
+    "Preexisting agent health timeout can still continue to RUNNING; separately recorded.",
+    "Late stop response can still overwrite API display status, while V2 pod/generation/quota remain protected."
+  ],
+  "sourceSha256": [
+    {
+      "path": ".github/workflows/deploy-main.yml",
+      "sha256": "f9fc4c1bde1b61395dd37d5acdd3d9154d3e8a00ef2cd76ed5c61928e920b4aa"
+    },
+    {
+      "path": "infra/helm/platform/templates/configmap.yaml",
+      "sha256": "586239cb7044adf5ca89358c6e0bc18a7bbab8c7f5ea33e6f906654d29d400d1"
+    },
+    {
+      "path": "infra/helm/platform/values-prod.yaml",
+      "sha256": "d3c3fcc0e972160c34c4333e57620dd33f7f81bf8275e431daa4d9dbbb26f5eb"
+    },
+    {
+      "path": "infra/helm/platform/values.yaml",
+      "sha256": "2fa9c2e7f11a6e3b5abe85cc2fdc500e3d03438d8cbe960c6783335e9e9cca95"
+    },
+    {
+      "path": "packages/database/generated/client/index.d.ts",
+      "sha256": "15d159a834769d79478a180179c624a213230ea4ff6a2180eece787cef4ade96"
+    },
+    {
+      "path": "packages/database/generated/client/package.json",
+      "sha256": "adb98b13b1106f04e6bce58e6be50a635755b5b4fa08ea5c77115be7f8d8e406"
+    },
+    {
+      "path": "packages/database/generated/client/schema.prisma",
+      "sha256": "630b26a689f1f9e80ab2a77dbb737ab2aba5a87242f14592d2854ee2310a10fb"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0087_workspace_admission/migration.sql",
+      "sha256": "df27fef9d60abf9066570f6bc913b039293e9b98479f257b9a63b332aa381ed9"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0088_workspace_admission_attempt/migration.sql",
+      "sha256": "70bfc808292d0729e952bedceda419cd3e1dad621bf5ec4293d9afe9ae7d3752"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0089_workspace_admission_requests/migration.sql",
+      "sha256": "c1c8a20c6c3eb3411a9f433fa37606bc42fd8417316fb7c4af2cc542bd67e9e3"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0090_project_runtime_deletion/migration.sql",
+      "sha256": "e16342f196bbc6d9a095727bdb137ac8657ac1d22c236ff70f9ebaf9af55cd07"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "sha256": "25e7ec2dcf9daff1a0c19d7dba5a31dab73cea08d88cbd0a02eb4497b7402bf3"
+    },
+    {
+      "path": "scripts/release-gate/verify-workspace-admission-phase.mjs",
+      "sha256": "7fa314949ca06a0d5ecf96f961b8ffd7f499cc8d1d7d69215abac5facf155b00"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "9eef7943c3bf0804e6a2b89ac18d7b2486c45b58dc250bf9429c972764362d64"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "731b4e35db6e560fbf9bebbff12a23f35c6f5c0069163842777f34fa51f1f03b"
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "8e03620953966eb27706db103ce18f30c0466fe533629d837434b732ccc7446f"
+    },
+    {
+      "path": "services/api/src/project-teardown.ts",
+      "sha256": "0a43a336f4347d3c84bd70c7f36e522200480837fb7829853dbc4e5a2f6b9113"
+    },
+    {
+      "path": "services/api/src/store.ts",
+      "sha256": "5794078d37a17265c0df5a73a9e21468e2e3019aaadbcfc6650c54757aa41649"
+    },
+    {
+      "path": "services/api/src/tests/admin-suppression-definitive.spec.ts",
+      "sha256": "2f3e05c9a271d85dbd415b8d4fccfee67103e28d9a9303e0ac047038d09b2e43"
+    },
+    {
+      "path": "services/api/src/tests/project-orphan-resources.spec.ts",
+      "sha256": "a45879c364ed0f4b24de5d780ef7e69403c92c1c34c331a1572016b7cc9c0dd0"
+    },
+    {
+      "path": "services/api/src/tests/test-api-store.ts",
+      "sha256": "487c00709cf1be959bf39f40ad0727cabb07d42f3299fabed35e5ce16fdc3043"
+    },
+    {
+      "path": "services/api/src/tests/workspace-admission-client.spec.ts",
+      "sha256": "fc6635d67f66e96d867e59ea9a14640ba8864b06cd715bcec5ffa9a0bcb7f6d0"
+    },
+    {
+      "path": "services/api/src/tests/workspace-admission-transfer.spec.ts",
+      "sha256": "f6f3654e7e2dfbfc7010fae3f9005fedd05cdb9ac0b9da556a0b431aafc77fa5"
+    },
+    {
+      "path": "services/api/src/workspace-admission.ts",
+      "sha256": "c85bb48448a1a947ecba13781d3340efdb36fd28dd58077618c50f6fe6d4ee46"
+    },
+    {
+      "path": "services/workspace-manager/src/admission.spec.ts",
+      "sha256": "04f1fb622b6a6042cef1615e70481f23d50e0d78410b4fc47d6e014504ac526c"
+    },
+    {
+      "path": "services/workspace-manager/src/admission.ts",
+      "sha256": "a9ed501081fb466216fbbe86101a8c1f8012833cc96e1cdf7001005be202ebcb"
+    },
+    {
+      "path": "services/workspace-manager/src/app.ts",
+      "sha256": "ce169bf4e022ec86ddd338c5851c1edc0b9ce168ff3f229fcc571e19364a7e85"
+    },
+    {
+      "path": "services/workspace-manager/src/manager.spec.ts",
+      "sha256": "95473fe34f24547a189eea7c68262ba3daba90557d5c29d0bfe7b6c631d8d3cf"
+    },
+    {
+      "path": "services/workspace-manager/src/manager.ts",
+      "sha256": "5e0c6d0baa74a42c641064019fafbe0d923bac46699f66a004b342fb30a3e40b"
+    },
+    {
+      "path": "services/workspace-manager/src/prisma-store.spec.ts",
+      "sha256": "41578de566c63cb0fb5eb2a2f3198f4852bc974027605aadc820f9ebfd57c049"
+    },
+    {
+      "path": "services/workspace-manager/src/prisma-store.ts",
+      "sha256": "d88f8a7546beade4fc5a97392aec4014c79b1e51ada74c0799b89942343c5f22"
+    },
+    {
+      "path": "services/workspace-manager/src/public-i18n.ts",
+      "sha256": "30a1eb87349f33d48e1511034ec9995e06b1cac8da1dfddd6f24d8f89939a2b9"
+    },
+    {
+      "path": "services/workspace-manager/src/quota-admission-race.spec.ts",
+      "sha256": "79be051ac21967b5c0285a7f726fd0642c43ff7ea9730be661848592c8387ca2"
+    },
+    {
+      "path": "tests/guards/workspace-admission-rollout.spec.ts",
+      "sha256": "426205c318060c897732055b2a735ef91514e2e0de9c89fbed52e09d1fbd3e19"
+    },
+    {
+      "path": "services/api/src/tests/admin-workspace-restart-audit.spec.ts",
+      "sha256": "944085b34847e9b2065d296ba64521f9e22eb49d48ab9b4b90bff0e1bcdec2aa"
+    },
+    {
+      "path": ".env.example",
+      "sha256": "8dee3402788a1c1f89f972bbf7942dc32c802c887cd18f3ef7faa6f2d726435c"
+    }
+  ],
+  "localLogSha256": [
+    {
+      "path": "/tmp/vibecore-quota-race-before.log",
+      "sha256": "18d855edd140db825ba97c15fdf3bbece13b5de2c9b5af6ac8e7d845945cdb4e"
+    },
+    {
+      "path": "/tmp/vibecore-admission-manager-isolated-final.log",
+      "sha256": "3370d5f60cbd428c3f210bb004fa41620518ab1b9908512a02bdf5f520390fb8"
+    },
+    {
+      "path": "/tmp/vibecore-admission-api-validation.log",
+      "sha256": "7355be213274bb9109dec5ff587d6ebcc3a62a9dc18ae32cca5ec687b9c249d1"
+    },
+    {
+      "path": "/tmp/vibecore-admission-api-last-regressions.log",
+      "sha256": "00570b690fb402c3eb7f350f62a553181d79c72e13d3786fb50a3a8ca002a534"
+    },
+    {
+      "path": "/tmp/vibecore-admission-rollout-tests.log",
+      "sha256": "ea2d236b21f8e3d3c3a73b1980d683e23afdcb2ffd45db972088f5d3392217d5"
+    },
+    {
+      "path": "/tmp/vibecore-admission-api-typecheck-final.log",
+      "sha256": "111d130256a71daaacee3deef7781ccf3d2f52b02bdbe10faf68bce2aee2d49f"
+    },
+    {
+      "path": "/tmp/vibecore-admission-api-build-final.log",
+      "sha256": "e7f4f77f2650e6df549aa7cf9b77b70c88f5faa4f20a9e0736b14eb5602f1e9e"
+    },
+    {
+      "path": "/tmp/vibecore-manager-style-tests.log",
+      "sha256": "a7719353abf3054b20cee3f7294854f9afa38a745f90ad4bf708a8395b891f2d"
+    },
+    {
+      "path": "/tmp/vibecore-manager-style-typecheck.log",
+      "sha256": "b549595afef1d6ff12b9c2a0c085228ec1bb5a474b3bde81d31c0a6d75899bb5"
+    },
+    {
+      "path": "/tmp/vibecore-manager-style-build.log",
+      "sha256": "79f40221432e82899834e0dc638811e4059ff2e4bec58960a2390954ef83c4f1"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-before.log",
+      "sha256": "711828268a18226bff96cf15c4f5a9335fb50f10c64e951ebca6ed4011d2bf1e"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-after.log",
+      "sha256": "4ddb40e6c723b60728cd17a9bd2b4e5a1ea83cc868c5edcb9bb2401919b79a66"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-typecheck.log",
+      "sha256": "111d130256a71daaacee3deef7781ccf3d2f52b02bdbe10faf68bce2aee2d49f"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-build.log",
+      "sha256": "e7f4f77f2650e6df549aa7cf9b77b70c88f5faa4f20a9e0736b14eb5602f1e9e"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-env-guard.log",
+      "sha256": "9cef60cc3f7ddaa7533fc8c1fcf5e896a1ce53715f67c6024b9c1acac44e3396"
+    },
+    {
+      "path": "/tmp/vibecore-v1-race-before.log",
+      "sha256": "1d162c9979116faa312e964cad60388d3c905ca9464a061df4bc66d8397394a6"
+    },
+    {
+      "path": "/tmp/vibecore-v1-race-manager-final.log",
+      "sha256": "26a8973f88ce5a53fd636a6aae144e50b4b9ad149a58a2fae1efbb1be98614a9"
+    },
+    {
+      "path": "/tmp/vibecore-v1-race-typecheck.log",
+      "sha256": "b549595afef1d6ff12b9c2a0c085228ec1bb5a474b3bde81d31c0a6d75899bb5"
+    },
+    {
+      "path": "/tmp/vibecore-v1-race-build.log",
+      "sha256": "79f40221432e82899834e0dc638811e4059ff2e4bec58960a2390954ef83c4f1"
+    },
+    {
+      "path": "/tmp/vibecore-v1-race-eslint-report.json",
+      "sha256": "0a456147cff092e0cb05c5a069fcb72c69b669dba5820abb956bdc58122fc519"
+    },
+    {
+      "path": "/tmp/vibecore-v1-race-prettier.log",
+      "sha256": "17aa973d3f004560237d9a95171210b0671deff23d61628eecf7322ff5938f20"
+    }
+  ],
+  "merged": false,
+  "deployed": false,
+  "productionFunctionalProof": false
+}

@@ -864,11 +864,46 @@ export class TestApiStore implements ApiStore {
   }
 
   async restoreProject(projectId: string) {
-    const project = await this.updateProject({ projectId });
-    project.deletedAt = undefined;
-    project.updatedAt = now();
+    return this.withSerializedMutation(`project-owner:${projectId}`, async () => {
+      const project = await this.updateProject({ projectId });
 
-    return project;
+      if (project.runtimeDeletionPending) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
+          statusCode: 409,
+          code: 'PROJECT_DELETION_PENDING',
+        });
+      }
+
+      project.deletedAt = undefined;
+      project.updatedAt = now();
+
+      return project;
+    });
+  }
+
+  async prepareProjectDeletion(projectId: string, expectedOrganizationId: string) {
+    return this.withSerializedMutation(`project-owner:${projectId}`, async () => {
+      const project = await this.updateProject({ projectId });
+
+      if (project.organizationId !== expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 409,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      if ((await this.listWorkspaces(projectId)).some((workspace) => workspace.runtimeAdmissionRequests?.length)) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_RUNTIME_UNCONFIRMED')), {
+          statusCode: 409,
+          code: 'PROJECT_TRANSFER_RUNTIME_UNCONFIRMED',
+        });
+      }
+
+      project.deletedAt = now();
+      project.runtimeDeletionPending = true;
+
+      return project;
+    });
   }
 
   async hardDeleteProject(projectId: string) {
@@ -878,12 +913,44 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
-  async transferProject(input: { projectId: string; targetOrganizationId: string }) {
-    const project = await this.updateProject({ projectId: input.projectId });
-    project.organizationId = input.targetOrganizationId;
-    project.updatedAt = now();
+  async transferProject(input: {
+    projectId: string;
+    targetOrganizationId: string;
+    expectedSourceOrganizationId?: string;
+    validateRuntimeOwnership?: (workspaces: WorkspaceRecord[]) => Promise<void>;
+  }) {
+    return this.withSerializedMutation(`project-owner:${input.projectId}`, async () => {
+      const project = await this.updateProject({ projectId: input.projectId });
 
-    return project;
+      if (input.expectedSourceOrganizationId && project.organizationId !== input.expectedSourceOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 409,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      if (project.runtimeDeletionPending) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
+          statusCode: 409,
+          code: 'PROJECT_DELETION_PENDING',
+        });
+      }
+
+      const workspaces = await this.listWorkspaces(input.projectId);
+
+      if (workspaces.some((workspace) => workspace.runtimeAdmissionRequests?.length)) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_RUNTIME_UNCONFIRMED')), {
+          statusCode: 409,
+          code: 'PROJECT_TRANSFER_RUNTIME_UNCONFIRMED',
+        });
+      }
+
+      await input.validateRuntimeOwnership?.(workspaces);
+      project.organizationId = input.targetOrganizationId;
+      project.updatedAt = now();
+
+      return project;
+    });
   }
 
   async duplicateProject(input: { projectId: string; name: string; slug: string; organizationId?: string }) {
@@ -1654,11 +1721,13 @@ export class TestApiStore implements ApiStore {
     );
   }
 
-  async countActiveWorkspaces(organizationId: string) {
+  async countActiveWorkspaces(organizationId: string, excludedWorkspaceIds: string[] = []) {
     const projectIds = this.#orgProjectIds(organizationId);
     return [...this.workspaces.values()].filter(
       (workspace) =>
-        projectIds.has(workspace.projectId) && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
+        projectIds.has(workspace.projectId) &&
+        !excludedWorkspaceIds.includes(workspace.id) &&
+        ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
     ).length;
   }
 
@@ -5036,6 +5105,48 @@ export class TestApiStore implements ApiStore {
 
   async listAdminAiCosts() {
     return [...this.aiCostLedger.values()];
+  }
+
+  async beginWorkspaceAdmissionRequest(
+    workspaceId: string,
+    requestId: string,
+    expectedOrganizationId: string,
+  ): Promise<void> {
+    const workspace = this.workspaces.get(workspaceId);
+
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+
+    await this.withSerializedMutation(`project-owner:${workspace.projectId}`, async () => {
+      const project = this.projects.get(workspace.projectId);
+
+      if (project?.organizationId !== expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 409,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      if (project.deletedAt || project.runtimeDeletionPending) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
+          statusCode: 409,
+          code: 'PROJECT_DELETION_PENDING',
+        });
+      }
+
+      workspace.runtimeAdmissionRequests = [...(workspace.runtimeAdmissionRequests ?? []), requestId];
+    });
+  }
+
+  async completeWorkspaceAdmissionRequest(workspaceId: string, requestId: string): Promise<void> {
+    const workspace = this.workspaces.get(workspaceId);
+
+    if (!workspace) {
+      throw new Error('Workspace not found');
+    }
+
+    workspace.runtimeAdmissionRequests = workspace.runtimeAdmissionRequests?.filter((id) => id !== requestId);
   }
 
   async updateWorkspaceStatus(input: { workspaceId: string; status: WorkspaceRecord['status'] }) {

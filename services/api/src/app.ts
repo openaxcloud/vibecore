@@ -504,6 +504,7 @@ import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from
 import { redactUrlCredentials } from './log-redaction.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
+import { WorkspaceAdmissionClient, type WorkspaceAdmission } from './workspace-admission.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -15289,6 +15290,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return (await readJsonBody(response)) as T;
   };
 
+  const workspaceAdmissions = new WorkspaceAdmissionClient(store, managerRequest);
+
+  const workspaceStopConfirmedGone = (error: unknown) =>
+    workspaceAdmissions.quotaEnabled
+      ? (error as { managerStatus?: number } | undefined)?.managerStatus === 404
+      : isRuntimeWorkspaceGone(error);
+
+  const deleteAdmittedWorkspace = async (workspaceId: string) => {
+    const managed = await workspaceAdmissions.get(workspaceId);
+
+    if (!managed?.admission) {
+      await deleteWorkspaceViaManager(workspaceId);
+
+      return;
+    }
+
+    await managerRequest(`/v2/workspaces/${encodeURIComponent(workspaceId)}`, {
+      method: 'DELETE',
+      body: JSON.stringify({ generation: managed.admission.generation }),
+    });
+  };
+
   const agentToken = async (workspaceId: string) => {
     const result = await managerRequest<{ token: string }>(`/workspaces/${workspaceId}/agent-token`);
     return result.token;
@@ -15553,22 +15576,131 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * simple lecture sur l'onglet d'un autre projet donnait un second espace actif
    * à un compte gratuit).
    */
-  const reserverUnCreneauActif = async (request: any, organizationId: string | undefined, workspaceId: string) => {
-    const existant = await store.getWorkspace(workspaceId);
-    const dejaCompte = !!existant && ['PENDING', 'STARTING', 'RUNNING'].includes(existant.status as string);
-
-    if (!organizationId || dejaCompte) {
-      return false;
+  const reserverUnCreneauActif = async (
+    request: any,
+    organizationId: string | undefined,
+    workspaceId: string,
+    options: { projectId?: string; plan?: string; create?: () => Promise<WorkspaceRecord> } = {},
+  ): Promise<{ newlyReserved: boolean; admission?: WorkspaceAdmission; workspace?: WorkspaceRecord }> => {
+    if (!organizationId) {
+      return { newlyReserved: false, workspace: await options.create?.() };
     }
 
-    await store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
-      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
-      await ensureQuota(request, organizationId, 'workspaces.active');
-      await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
-    });
+    /*
+     * Every reopen takes the same database lock as reconciliation. Never send
+     * start from this callback: an expired transaction can outlive its callback.
+     */
+    return store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+      const existing = await store.getWorkspace(workspaceId);
 
-    // Vrai quand un créneau vient d'être pris : l'appelant le rend (FAILED) si le démarrage échoue pour de bon.
-    return true;
+      if (existing && options.projectId && existing.projectId !== options.projectId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 403,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      const projectId = options.projectId ?? existing?.projectId;
+      const currentProject = projectId ? await store.getProject(projectId) : undefined;
+
+      if (currentProject?.organizationId !== organizationId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 409,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      if (currentProject.deletedAt || currentProject.runtimeDeletionPending) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
+          statusCode: 409,
+          code: 'PROJECT_DELETION_PENDING',
+        });
+      }
+
+      const manager = workspaceAdmissions.enabled ? await workspaceAdmissions.get(workspaceId) : undefined;
+      await reconcileOrphanedActiveWorkspaces(organizationId, workspaceId);
+
+      const held = manager?.admission && manager.admission.state !== 'RELEASED';
+
+      const countedByApi =
+        existing &&
+        (await store.countActiveWorkspaces(organizationId)) >
+          (await store.countActiveWorkspaces(organizationId, [workspaceId]));
+
+      const counted = !!held || !!countedByApi;
+      invalidateQuotaUsageCache(request, organizationId, 'workspaces.active');
+
+      if (!counted) {
+        await ensureQuota(request, organizationId, 'workspaces.active');
+      } else if (
+        workspaceAdmissions.enabled &&
+        (!manager || manager.admission?.state === 'RESERVED' || manager.admission?.state === 'RELEASED')
+      ) {
+        /*
+         * RESERVED may be an orphaned prepare from an expired lock callback.
+         * Its existence is not evidence that quota was successfully committed.
+         */
+        await ensureQuota(request, organizationId, 'workspaces.active', 0);
+      }
+
+      const workspace = existing ?? (await options.create?.());
+
+      if (!workspace) {
+        throw new Error(appPublicEnglish('WORKSPACE_NOT_FOUND'));
+      }
+
+      /*
+       * Persist the pending attempt before HTTP: a callback whose SQL lock
+       * expires must still be visible to transfer/reconciliation guards.
+       */
+      if (!['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status)) {
+        await store.updateWorkspaceStatus({ workspaceId, status: 'STARTING' });
+      }
+
+      const admissionRequestId = workspaceAdmissions.enabled ? randomUUID() : undefined;
+
+      if (admissionRequestId) {
+        await store.beginWorkspaceAdmissionRequest(workspaceId, admissionRequestId, organizationId);
+      }
+
+      const reserved = await workspaceAdmissions.reserve({
+        workspaceId,
+        orgId: organizationId,
+        projectId: options.projectId ?? workspace.projectId,
+        plan: options.plan ?? 'free',
+      });
+
+      if (admissionRequestId) {
+        await store.completeWorkspaceAdmissionRequest(workspaceId, admissionRequestId);
+      }
+
+      return { newlyReserved: !counted, admission: reserved?.admission, workspace };
+    });
+  };
+
+  const setReservedWorkspaceStatus = async (
+    organizationId: string | undefined,
+    workspaceId: string,
+    admission: WorkspaceAdmission | undefined,
+    status: WorkspaceRecord['status'],
+  ) => {
+    if (!admission || !organizationId) {
+      return store.updateWorkspaceStatus({ workspaceId, status });
+    }
+
+    return store.withSerializedMutation(`workspaces:${organizationId}`, async () => {
+      const current = await workspaceAdmissions.get(workspaceId);
+
+      if (current?.admission?.generation !== admission.generation) {
+        return store.getWorkspace(workspaceId);
+      }
+
+      // A late success cannot resurrect a released generation in the API table.
+      const observedStatus =
+        current.admission.state === 'RELEASED' ? 'STOPPED' : (current.status as WorkspaceRecord['status']);
+
+      return store.updateWorkspaceStatus({ workspaceId, status: observedStatus });
+    });
   };
 
   const provisionWorkspaceOnDemand = async (
@@ -15593,7 +15725,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const state = organisation ? await billingState(organisation) : undefined;
 
-    await reserverUnCreneauActif(request, organisation, authorized.workspaceId);
+    const reservation = await reserverUnCreneauActif(request, organisation, authorized.workspaceId, {
+      projectId: authorized.projectId,
+      plan: workspaceResourceContract(state, true).plan,
+    });
 
     /*
      * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
@@ -15608,9 +15743,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * le sondage de `/health` observe l'arrivée du pod — mais on l'expose au
      * retour pour que l'appelant qui veut connaître l'issue puisse l'attendre.
      */
-    const demarrageDemande = managerRequest('/workspaces/start', {
+    const demarrageDemande = managerRequest(reservation.admission ? '/v2/workspaces/start' : '/workspaces/start', {
       method: 'POST',
       body: JSON.stringify({
+        admissionGeneration: reservation.admission?.generation,
         namespace: runtimeNamespace(),
         orgId: authorized.organizationId ?? 'unknown-org',
         projectId: authorized.projectId,
@@ -15637,9 +15773,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
     });
 
-    await store
-      .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' })
-      .catch(() => undefined);
+    await setReservedWorkspaceStatus(organisation, authorized.workspaceId, reservation.admission, 'STARTING');
 
     emitLifecycle(authorized.workspaceId, 'STARTING', 'provision');
 
@@ -15955,9 +16089,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           for (const espace of espaces) {
             try {
               // Arrêt, pas suppression : le pod part, le volume et ses fichiers restent.
-              await managerRequest(`/workspaces/${encodeURIComponent(espace.workspaceId)}/stop`, { method: 'POST' });
+              await workspaceAdmissions.stop(espace.workspaceId, cible.organizationId);
             } catch (error) {
-              if (!isRuntimeWorkspaceGone(error)) {
+              if (!workspaceStopConfirmedGone(error)) {
                 throw error;
               }
             }
@@ -17509,7 +17643,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Single aggregate query instead of listing every project then its
        * workspaces (was O(projects) DB round-trips per usage snapshot).
        */
-      return store.countActiveWorkspaces(organizationId);
+      return workspaceAdmissions.count(organizationId);
     }
 
     if (key === 'team.members') {
@@ -18075,7 +18209,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const reconcileOrphanedActiveWorkspaces = async (organizationId: string, skipWorkspaceId: string): Promise<void> => {
     const active = await store.listActiveWorkspaces(organizationId).catch(() => []);
-    const stale = active.filter((workspace) => workspace.id !== skipWorkspaceId);
+    const held = await workspaceAdmissions.held(organizationId);
+
+    const stale = [...new Map([...active, ...held].map((workspace) => [workspace.id, workspace])).values()].filter(
+      (workspace) => workspace.id !== skipWorkspaceId,
+    );
 
     if (stale.length === 0) {
       return;
@@ -18084,8 +18222,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await Promise.all(
       stale.map(async (workspace) => {
         let shouldStop = false;
+        let hasAdmission = 'admission' in workspace && !!workspace.admission;
 
         try {
+          const admitted = await workspaceAdmissions.get(workspace.id);
+
+          if (admitted?.admission) {
+            hasAdmission = true;
+            shouldStop =
+              admitted.admission.state === 'RELEASED' ||
+              (await workspaceAdmissions.release(admitted, WORKSPACE_PROVISION_DEADLINE_MS));
+
+            if (shouldStop) {
+              await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' });
+            }
+
+            return;
+          }
+
+          if (hasAdmission) {
+            return;
+          }
+
           const managerWorkspace = await managerRequest<{ status?: string; updatedAt?: string }>(
             `/workspaces/${encodeURIComponent(workspace.id)}`,
           );
@@ -18115,7 +18273,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * 2026-09-28 : manager coupé → la seule ligne vivante passait STOPPED et
            * le quota était contourné. Seul un 404 du manager dit « disparu ».
            */
-          shouldStop = (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
+          shouldStop = !hasAdmission && (error as { managerStatus?: number } | undefined)?.managerStatus === 404;
         }
 
         if (shouldStop) {
@@ -18177,54 +18335,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const existingWorkspace = await store.getWorkspace(workspaceId);
 
-    /*
-     * Quota-gate on whether the record currently COUNTS as active, not on mere
-     * existence. countActiveWorkspaces counts only PENDING/STARTING/RUNNING, so a
-     * STOPPED/FAILED record is not yet in the live count — reopening it adds one
-     * and must be checked. (Reopening an already-running workspace stays free, so
-     * we don't double-charge a user reopening their own live IDE.)
-     */
-    const countsAsActive =
-      !!existingWorkspace && ['PENDING', 'STARTING', 'RUNNING'].includes(existingWorkspace.status as string);
+    const reservation = await reserverUnCreneauActif(request, authorized.organizationId, workspaceId, {
+      projectId: project.id,
+      plan: workspaceResourceContract(state).plan,
+      create: () => ensureRuntimeWorkspaceRecord(workspaceId, project),
+    });
 
-    /*
-     * Serialize the quota check + the record transition that makes this workspace
-     * count as active, so two concurrent reopens for the same org can't both pass
-     * ensureQuota via TOCTOU and exceed workspaces.active. The slow manager start
-     * (HTTP) stays OUTSIDE the advisory-lock transaction. When the workspace is
-     * already active (reopening a live IDE), no quota is consumed — just create
-     * the record.
-     */
-    const orgIdForQuota = authorized.organizationId;
-
-    const workspaceRecord =
-      orgIdForQuota && !countsAsActive
-        ? await store.withSerializedMutation(`workspaces:${orgIdForQuota}`, async () => {
-            /*
-             * Free any slot held by a record whose pod the GC already reaped
-             * (see reconcileOrphanedActiveWorkspaces) so the quota reflects what
-             * is actually running, not stale RUNNING rows. Runs inside the lock
-             * so the freed slot is visible to this same ensureQuota.
-             */
-            await reconcileOrphanedActiveWorkspaces(orgIdForQuota, workspaceId);
-            await ensureQuota(request, orgIdForQuota, 'workspaces.active');
-
-            const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
-
-            /*
-             * Claim the active slot INSIDE the lock. A brand-new record is created
-             * as PENDING (a counted state), but reopening an existing STOPPED/FAILED
-             * workspace returns it unchanged — without flipping it to a counted
-             * state here, concurrent reopens all pass the same ensureQuota and
-             * exceed workspaces.active (the reconcile below moves it to RUNNING/FAILED).
-             */
-            if (!['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
-              await store.updateWorkspaceStatus({ workspaceId: record.id, status: 'STARTING' });
-            }
-
-            return record;
-          })
-        : await ensureRuntimeWorkspaceRecord(workspaceId, project);
+    const workspaceRecord = reservation.workspace ?? (await ensureRuntimeWorkspaceRecord(workspaceId, project));
     authorized.workspaceId = workspaceRecord.id;
 
     /*
@@ -18250,28 +18367,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let managerWorkspace: any;
 
     try {
-      managerWorkspace = await managerRequest<any>('/workspaces/start', {
-        method: 'POST',
-        headers: { 'accept-language': transactionalLocaleForRequest(request) },
-        body: JSON.stringify({
-          namespace: runtimeNamespace(),
-          orgId: authorized.organizationId ?? 'unknown-org',
-          projectId: authorized.projectId,
-          workspaceId: authorized.workspaceId,
-          userId: request.currentUser?.id,
-          image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          ...workspaceResourceContract(state),
-          env,
-          allowedSecretKeys,
-          allowedSecrets,
-          nixStorePvcName: nixStorePvcForProject(authorized.projectId),
-          objectStorage: buildWorkspaceObjectStorage({
+      managerWorkspace = await managerRequest<any>(
+        reservation.admission ? '/v2/workspaces/start' : '/workspaces/start',
+        {
+          method: 'POST',
+          headers: { 'accept-language': transactionalLocaleForRequest(request) },
+          body: JSON.stringify({
+            admissionGeneration: reservation.admission?.generation,
+            namespace: runtimeNamespace(),
+            orgId: authorized.organizationId ?? 'unknown-org',
             projectId: authorized.projectId,
-            userId: request.currentUser?.id,
             workspaceId: authorized.workspaceId,
+            userId: request.currentUser?.id,
+            image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+            ...workspaceResourceContract(state),
+            env,
+            allowedSecretKeys,
+            allowedSecrets,
+            nixStorePvcName: nixStorePvcForProject(authorized.projectId),
+            objectStorage: buildWorkspaceObjectStorage({
+              projectId: authorized.projectId,
+              userId: request.currentUser?.id,
+              workspaceId: authorized.workspaceId,
+            }),
           }),
-        }),
-      });
+        },
+      );
     } catch (error) {
       /*
        * Cold-start root cause: the manager's start blocks on pod readiness
@@ -18305,9 +18426,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         (errorCode === 'WORKSPACE_MANAGER_REQUEST_FAILED' && (managerStatus === undefined || managerStatus >= 500));
 
       if (!transientProvisioning) {
-        await store
-          .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
-          .catch(() => undefined);
+        await setReservedWorkspaceStatus(
+          authorized.organizationId,
+          authorized.workspaceId,
+          reservation.admission,
+          'FAILED',
+        ).catch(() => undefined);
         throw error;
       }
 
@@ -18356,17 +18480,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      *    locked them out of starting any project until they manually hit /stop.
      */
     if (startFailed) {
-      await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
-        .catch(() => undefined);
+      await setReservedWorkspaceStatus(
+        authorized.organizationId,
+        authorized.workspaceId,
+        reservation.admission,
+        'FAILED',
+      ).catch(() => undefined);
 
       if (diagnosticsDb) {
         void captureStopDiagnostics(authorized.workspaceId, 'start.failed', 'FAILED');
       }
+    } else if (managerWorkspace?.status === 'STARTING' && reservation.admission) {
+      await setReservedWorkspaceStatus(
+        authorized.organizationId,
+        authorized.workspaceId,
+        reservation.admission,
+        'STARTING',
+      );
+      return runtimeSession(authorized.workspaceId, 'starting', { provisioning: true, managerWorkspace });
     } else if (managerWorkspace?.status !== 'STOPPED') {
-      await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
-        .catch(() => undefined);
+      await setReservedWorkspaceStatus(
+        authorized.organizationId,
+        authorized.workspaceId,
+        reservation.admission,
+        'RUNNING',
+      ).catch(() => undefined);
 
       emitLifecycle(authorized.workspaceId, 'RUNNING', 'agent.reachable');
 
@@ -18401,7 +18539,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     try {
-      await managerRequest(`/workspaces/${authorized.workspaceId}/stop`, { method: 'POST' });
+      await workspaceAdmissions.stop(authorized.workspaceId, authorized.organizationId);
     } catch (error) {
       /*
        * A workspace the manager has already reclaimed (or never started — e.g.
@@ -18410,7 +18548,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * quota with no way for the user to free it. Treat "gone" as a no-op and
        * still reconcile our own record below; rethrow genuine faults.
        */
-      if (!isRuntimeWorkspaceGone(error)) {
+      if (!workspaceStopConfirmedGone(error)) {
         throw error;
       }
     }
@@ -18451,7 +18589,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Serialize the check to avoid TOCTOU; the slow manager restart stays outside
      * the lock. A restart of an already-active workspace consumes nothing.
      */
-    const creneauReserve = await reserverUnCreneauActif(request, authorized.organizationId, authorized.workspaceId);
 
     /*
      * Resolve the org's plan + resource entitlements exactly like the start
@@ -18460,6 +18597,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * starved free-tier CPU/RAM.
      */
     const state = authorized.organizationId ? await billingState(authorized.organizationId) : undefined;
+
+    const reservation = await reserverUnCreneauActif(request, authorized.organizationId, authorized.workspaceId, {
+      projectId: authorized.projectId,
+      plan: workspaceResourceContract(state).plan,
+    });
 
     const [projectEnvVars, projectSecrets] = await Promise.all([
       store.listProjectEnvVars(authorized.projectId),
@@ -18473,27 +18615,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let managerWorkspace: any;
 
     try {
-      managerWorkspace = await managerRequest<any>(`/workspaces/${authorized.workspaceId}/restart`, {
-        method: 'POST',
-        headers: { 'accept-language': transactionalLocaleForRequest(request) },
-        body: JSON.stringify({
-          namespace: runtimeNamespace(),
-          orgId: authorized.organizationId ?? 'unknown-org',
-          projectId: authorized.projectId,
-          workspaceId: authorized.workspaceId,
-          userId: request.currentUser?.id,
-          image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          ...workspaceResourceContract(state),
-          env,
-          allowedSecretKeys,
-          allowedSecrets,
-          objectStorage: buildWorkspaceObjectStorage({
+      managerWorkspace = await managerRequest<any>(
+        `${reservation.admission ? '/v2' : ''}/workspaces/${authorized.workspaceId}/restart`,
+        {
+          method: 'POST',
+          headers: { 'accept-language': transactionalLocaleForRequest(request) },
+          body: JSON.stringify({
+            admissionGeneration: reservation.admission?.generation,
+            namespace: runtimeNamespace(),
+            orgId: authorized.organizationId ?? 'unknown-org',
             projectId: authorized.projectId,
-            userId: request.currentUser?.id,
             workspaceId: authorized.workspaceId,
+            userId: request.currentUser?.id,
+            image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+            ...workspaceResourceContract(state),
+            env,
+            allowedSecretKeys,
+            allowedSecrets,
+            objectStorage: buildWorkspaceObjectStorage({
+              projectId: authorized.projectId,
+              userId: request.currentUser?.id,
+              workspaceId: authorized.workspaceId,
+            }),
           }),
-        }),
-      });
+        },
+      );
     } catch (restartError) {
       /*
        * Same cold-start race as /start: the manager's restart (stop→start) blocks on
@@ -18531,10 +18677,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * (flipped to STARTING), reset to FAILED so the slot isn't leaked (a stuck
        * STARTING would count against workspaces.active forever), then rethrow.
        */
-      if (creneauReserve) {
-        await store
-          .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
-          .catch(() => undefined);
+      if (reservation.newlyReserved || reservation.admission) {
+        await setReservedWorkspaceStatus(
+          authorized.organizationId,
+          authorized.workspaceId,
+          reservation.admission,
+          'FAILED',
+        ).catch(() => undefined);
       }
 
       throw restartError;
@@ -18555,13 +18704,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * showing a running workspace as stopped in usage dashboards.
      */
     if (managerWorkspace?.status === 'FAILED') {
-      await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'FAILED' })
-        .catch(() => undefined);
+      await setReservedWorkspaceStatus(
+        authorized.organizationId,
+        authorized.workspaceId,
+        reservation.admission,
+        'FAILED',
+      ).catch(() => undefined);
+    } else if (managerWorkspace?.status === 'STARTING' && reservation.admission) {
+      await setReservedWorkspaceStatus(
+        authorized.organizationId,
+        authorized.workspaceId,
+        reservation.admission,
+        'STARTING',
+      );
+      return runtimeSession(authorized.workspaceId, 'starting', { provisioning: true, managerWorkspace });
     } else {
-      await store
-        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
-        .catch(() => undefined);
+      await setReservedWorkspaceStatus(
+        authorized.organizationId,
+        authorized.workspaceId,
+        reservation.admission,
+        'RUNNING',
+      ).catch(() => undefined);
 
       // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
       reconciliationUneFois.oublier(authorized.workspaceId);
@@ -26608,14 +26771,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
      * démonter avant de supprimer.
      */
+    await store.prepareProjectDeletion(project.id, project.organizationId);
+
     const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+
+    if (workspaceAdmissions.quotaEnabled) {
+      for (const workspaceId of workspaceIds) {
+        const managed = await workspaceAdmissions.get(workspaceId);
+
+        if (managed?.admission) {
+          await workspaceAdmissions.stop(workspaceId);
+        }
+      }
+    }
+
     const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
 
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
-        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterWorkspace: options.demonterWorkspace ?? deleteAdmittedWorkspace,
         demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
         supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
@@ -26627,6 +26803,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         deploymentIds,
       },
     );
+
+    if (!teardown.complete) {
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'project.hard_delete_incomplete',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: { externalTeardown: { complete: false, outcomes: teardown.outcomes } },
+      });
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_TEARDOWN_INCOMPLETE')), {
+        statusCode: 502,
+        code: 'PROJECT_TEARDOWN_INCOMPLETE',
+        publicMessage: appPublicEnglish('PROJECT_TEARDOWN_INCOMPLETE'),
+        details: { failed: teardown.failed },
+      });
+    }
 
     const deleted = await store.hardDeleteProject(project.id);
 
@@ -26652,13 +26844,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       },
     });
-
-    if (!teardown.complete) {
-      request.log?.error?.(
-        { projectId: project.id, failed: teardown.failed, outcomes: teardown.outcomes },
-        'project hard delete left external resources behind',
-      );
-    }
 
     return { project: deleted, externalTeardown: { complete: teardown.complete, failed: teardown.failed } };
   });
@@ -26693,6 +26878,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.transferProject({
         projectId: project.id,
         targetOrganizationId: body.targetOrganizationId,
+        expectedSourceOrganizationId: project.organizationId,
+        validateRuntimeOwnership: workspaceAdmissions.quotaEnabled
+          ? async (workspaces) => {
+              for (const workspace of workspaces) {
+                const runtime = await workspaceAdmissions.get(workspace.id);
+
+                if (runtime?.admission && runtime.admission.state !== 'RELEASED') {
+                  throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_RUNTIME_ACTIVE')), {
+                    statusCode: 409,
+                    code: 'PROJECT_TRANSFER_RUNTIME_ACTIVE',
+                  });
+                }
+              }
+            }
+          : undefined,
       });
     });
     await store.recordProjectActivity({
@@ -31167,14 +31367,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
      * démonter avant de supprimer.
      */
+    await store.prepareProjectDeletion(project.id, project.organizationId);
+
     const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+
+    if (workspaceAdmissions.quotaEnabled) {
+      for (const workspaceId of workspaceIds) {
+        const managed = await workspaceAdmissions.get(workspaceId);
+
+        if (managed?.admission) {
+          await workspaceAdmissions.stop(workspaceId);
+        }
+      }
+    }
+
     const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
 
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
-        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterWorkspace: options.demonterWorkspace ?? deleteAdmittedWorkspace,
         demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
         supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
@@ -31186,6 +31399,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         deploymentIds,
       },
     );
+
+    if (!teardown.complete) {
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'project.hard_delete_incomplete',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: { externalTeardown: { complete: false, outcomes: teardown.outcomes } },
+      });
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_TEARDOWN_INCOMPLETE')), {
+        statusCode: 502,
+        code: 'PROJECT_TEARDOWN_INCOMPLETE',
+        publicMessage: appPublicEnglish('PROJECT_TEARDOWN_INCOMPLETE'),
+        details: { failed: teardown.failed },
+      });
+    }
 
     await store.hardDeleteProject(project.id);
 
@@ -31361,9 +31590,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(adminWorkspaceParams, request.params);
 
     try {
-      await managerRequest(`/workspaces/${workspaceId}/stop`, { method: 'POST' });
+      await workspaceAdmissions.stop(workspaceId);
     } catch (error) {
-      if (!isRuntimeWorkspaceGone(error)) {
+      if (!workspaceStopConfirmedGone(error)) {
         throw error;
       }
     }
@@ -33991,9 +34220,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * no-op; rethrow genuine manager faults.
      */
     try {
-      await managerRequest(`/workspaces/${workspaceId}/stop`, { method: 'POST' });
+      await workspaceAdmissions.stop(workspaceId);
     } catch (error) {
-      if (!isRuntimeWorkspaceGone(error)) {
+      if (!workspaceStopConfirmedGone(error)) {
         throw error;
       }
     }
@@ -34027,6 +34256,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const orgId = project?.organizationId;
     const state = orgId ? await billingState(orgId) : undefined;
 
+    const reservation = await reserverUnCreneauActif(request, orgId, workspaceId, {
+      projectId: record.projectId,
+      plan: workspaceResourceContract(state).plan,
+    });
+
     const [projectEnvVars, projectSecrets] = await Promise.all([
       store.listProjectEnvVars(record.projectId),
       store.listProjectSecrets(record.projectId),
@@ -34039,30 +34273,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let managerWorkspace: { status?: string } | undefined;
 
     try {
-      managerWorkspace = await managerRequest<{ status?: string }>(`/workspaces/${workspaceId}/restart`, {
-        method: 'POST',
-        body: JSON.stringify({
-          namespace: runtimeNamespace(),
-          orgId: orgId ?? 'unknown-org',
-          projectId: record.projectId,
-          workspaceId,
-          image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          ...workspaceResourceContract(state),
-          env,
-          allowedSecretKeys,
-          allowedSecrets,
-        }),
-      });
+      managerWorkspace = await managerRequest<{ status?: string }>(
+        `${reservation.admission ? '/v2' : ''}/workspaces/${workspaceId}/restart`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            admissionGeneration: reservation.admission?.generation,
+            namespace: runtimeNamespace(),
+            orgId: orgId ?? 'unknown-org',
+            projectId: record.projectId,
+            workspaceId,
+            image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
+            ...workspaceResourceContract(state),
+            env,
+            allowedSecretKeys,
+            allowedSecrets,
+          }),
+        },
+      );
     } catch (restartError) {
-      await store.updateWorkspaceStatus({ workspaceId, status: 'FAILED' }).catch(() => undefined);
+      await setReservedWorkspaceStatus(orgId, workspaceId, reservation.admission, 'FAILED').catch(() => undefined);
       throw restartError;
     }
 
     const status =
-      managerWorkspace?.status === 'FAILED' ? 'FAILED' : managerWorkspace?.status === 'STOPPED' ? 'STOPPED' : 'RUNNING';
+      managerWorkspace?.status === 'FAILED'
+        ? 'FAILED'
+        : managerWorkspace?.status === 'STOPPED'
+          ? 'STOPPED'
+          : managerWorkspace?.status === 'STARTING'
+            ? 'STARTING'
+            : 'RUNNING';
 
-    const workspace = await store.updateWorkspaceStatus({ workspaceId, status });
-    await recordAdminAction(request, store, { action: 'admin.workspace.restart', metadata: { workspaceId, status } });
+    const workspace = await setReservedWorkspaceStatus(orgId, workspaceId, reservation.admission, status);
+    await recordAdminAction(request, store, {
+      action: 'admin.workspace.restart',
+      metadata: { workspaceId, status: workspace?.status ?? null },
+    });
 
     return { workspace };
   });
@@ -34079,10 +34326,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * allocated) while reporting deleted:true. Treat an already-gone workspace as
      * success; rethrow genuine manager faults so the admin sees the failure.
      */
+    const managed = await workspaceAdmissions.get(workspaceId);
+
+    if (managed?.admission) {
+      const workspace = await store.getWorkspace(workspaceId);
+      const project = workspace ? await store.getProject(workspace.projectId) : undefined;
+
+      if (!project?.runtimeDeletionPending || workspace?.runtimeAdmissionRequests?.length) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_RUNTIME_UNCONFIRMED')), {
+          statusCode: 409,
+          code: 'PROJECT_TRANSFER_RUNTIME_UNCONFIRMED',
+        });
+      }
+
+      await workspaceAdmissions.stop(workspaceId);
+    }
+
     try {
-      await managerRequest(`/workspaces/${workspaceId}`, { method: 'DELETE' });
+      await deleteAdmittedWorkspace(workspaceId);
     } catch (error) {
-      if (!isRuntimeWorkspaceGone(error)) {
+      if (!workspaceStopConfirmedGone(error)) {
         throw error;
       }
     }

@@ -251,6 +251,9 @@ data:
   WORKSPACE_RUNTIME_NAMESPACE: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
   WORKSPACE_STORAGE_CLASS: {{ .Values.platformEnv.runtime.workspaceStorageClass | quote }}
   WORKSPACE_AGENT_IMAGE: {{ .Values.platformEnv.runtime.workspaceAgentImage | quote }}
+  # Roll quota readers out before permitting any generation-based reservations.
+  WORKSPACE_ADMISSION_V2_QUOTA_ENABLED: {{ .Values.platformEnv.runtime.workspaceAdmissionV2QuotaEnabled | default "false" | quote }}
+  WORKSPACE_ADMISSION_V2_ENABLED: {{ .Values.platformEnv.runtime.workspaceAdmissionV2Enabled | default "false" | quote }}
   PREVIEW_URL_TEMPLATE: {{ .Values.platformEnv.runtime.previewUrlTemplate | quote }}
   # Base preview domain (e.g. preview.e-code.ai). The preview-proxy uses it to
   # recognize per-preview hosts `<workspaceId>-<port>.<PREVIEW_DOMAIN>` and serve

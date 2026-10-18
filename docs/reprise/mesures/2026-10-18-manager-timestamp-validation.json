@@ -1,0 +1,133 @@
+{
+  "recordedAtUtc": "2026-10-18T17:00:03.283576+00:00",
+  "baseSha": "615b3fcfb59c0c42cd211536ed2b2675fe72fa5f",
+  "workingTree": "uncommitted targeted fix and regression tests; source hashes below",
+  "environment": {
+    "node": "v24.19.0",
+    "pnpm": "9.14.4",
+    "memoryLimitBytes": 17179869184,
+    "memoryMeasuredBeforeBroadSuitesBytes": 3105206272,
+    "postgres": "16.15",
+    "database": "isolated local Docker database vibecore_qa on loopback port 55439",
+    "databaseMemoryLimitBytes": 536870912,
+    "databaseCpuLimit": 1,
+    "migrationsApplied": 96,
+    "image": "pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b"
+  },
+  "sourceSha256": {
+    "services/workspace-manager/src/manager.ts": "7659b0597ed23a195c360b88fc5ecb71f73526c22cb944f0fc70364b341c25c8",
+    "services/workspace-manager/src/prisma-store.ts": "55cdc9dd1985927ac1d3bed870bca1f39f9e0610d7d514f211ae198fad5aecb7",
+    "services/workspace-manager/src/manager.spec.ts": "95473fe34f24547a189eea7c68262ba3daba90557d5c29d0bfe7b6c631d8d3cf",
+    "services/workspace-manager/src/prisma-store.spec.ts": "7a0135f28062742f9da1e6086fca2d51adb0137f88d896c06c0925ffd36ee156",
+    "services/api/src/workspace-slot.ts": "763f8e0493fa87b635f268344fb3ae0e67c9f049f7b4643a7bdd47dc10156cb7"
+  },
+  "results": {
+    "beforeFixNewCases": {
+      "failed": 6,
+      "passed": 1,
+      "filteredOut": 66
+    },
+    "afterFixNewCases": {
+      "passed": 7,
+      "filteredOut": 66
+    },
+    "managerFullSuite": {
+      "files": 7,
+      "passed": 107,
+      "skipped": 0,
+      "realPostgres": true
+    },
+    "apiNeighbors": {
+      "files": 5,
+      "passed": 30,
+      "skipped": 0
+    },
+    "consumerCounterproof": {
+      "mutation": "temporarily replace bounded stale STARTING release with keep",
+      "failed": 1,
+      "passed": 2,
+      "filteredOut": 7,
+      "expectedFailure": "STARTING older than 10 minutes",
+      "consumerRestoredByteForByte": true
+    },
+    "finalPrismaSuite": {
+      "passed": 10,
+      "skipped": 0,
+      "note": "strengthens fixture by keeping createdAt and lastActiveAt distinct from updatedAt"
+    },
+    "typecheck": {
+      "package": "@vibecore/workspace-manager",
+      "exitCode": 0
+    },
+    "build": {
+      "package": "@vibecore/workspace-manager",
+      "exitCode": 0
+    },
+    "lintDifferential": [
+      {
+        "file": "services/workspace-manager/src/manager.ts",
+        "baselineDiagnostics": 18,
+        "finalDiagnostics": 18,
+        "added": []
+      },
+      {
+        "file": "services/workspace-manager/src/prisma-store.ts",
+        "baselineDiagnostics": 18,
+        "finalDiagnostics": 18,
+        "added": []
+      },
+      {
+        "file": "services/workspace-manager/src/manager.spec.ts",
+        "baselineDiagnostics": 25,
+        "finalDiagnostics": 25,
+        "added": []
+      },
+      {
+        "file": "services/workspace-manager/src/prisma-store.spec.ts",
+        "baselineDiagnostics": 16,
+        "finalDiagnostics": 11,
+        "added": []
+      }
+    ],
+    "indexGuard": {
+      "passed": 6
+    }
+  },
+  "commands": {
+    "managerSuite": "pnpm --filter @vibecore/workspace-manager exec vitest run --config vitest.config.ts --maxWorkers=1 --no-file-parallelism",
+    "targetedNewCases": "pnpm --filter @vibecore/workspace-manager exec vitest run --config vitest.config.ts src/prisma-store.spec.ts src/manager.spec.ts --maxWorkers=1 --no-file-parallelism -t 'timestamps|preserves the database timestamp|does not invent freshness'",
+    "apiNeighbors": "pnpm --filter @vibecore/api exec vitest run --config vitest.config.ts src/workspace-slot.spec.ts src/tests/reconciliation-manager-injoignable.spec.ts src/tests/provision-respecte-le-quota.spec.ts src/tests/lecture-declenche-provisionnement.spec.ts src/tests/workspace-provision-resources.spec.ts --maxWorkers=1 --no-file-parallelism",
+    "finalPrisma": "pnpm --filter @vibecore/workspace-manager exec vitest run --config vitest.config.ts src/prisma-store.spec.ts --maxWorkers=1 --no-file-parallelism",
+    "typecheck": "pnpm --filter @vibecore/workspace-manager typecheck",
+    "build": "pnpm --filter @vibecore/workspace-manager build",
+    "index": "node_modules/.bin/vitest run scripts/index-a-jour.spec.mjs --maxWorkers=1 --no-file-parallelism",
+    "environmentNote": "Pinned pnpm shim prepended to PATH. DATABASE_URL set only to the isolated local QA database for manager tests. No production connection."
+  },
+  "limits": [
+    "No Kubernetes workspace or cloud resource created by these tests.",
+    "No customer data or subscription changed.",
+    "No live functional production verification; existing proxy refusal respected.",
+    "updatedAt is mutation time, not a dedicated provisioning-start lease; active heartbeats may refresh it.",
+    "The 10-minute API policy and existing six-hour active-count freshness are unchanged.",
+    "No code changes to starter/core mapping or concurrent-start protection.",
+    "Counts overlap; focused tests are included in the full suite.",
+    "First pnpm test invocation rejected runner flags before executing tests; corrected pnpm exec invocation used for reported results."
+  ],
+  "review": {
+    "recordedAtUtc": "2026-10-18T17:07:51.691699+00:00",
+    "reviewer": "independent read-only agent review_workspace_timestamp",
+    "verdict": "P1: do not merge or deploy 638c1d652 alone",
+    "mergeAttempted": false,
+    "deploymentAttempted": false,
+    "findings": [
+      "A manager crash after pod creation but before RUNNING persistence can leave a live pod behind a stale STARTING; exposing updatedAt makes the 10-minute API slot release possible while GC waits 24 hours by default.",
+      "A podExists=false observation is insufficient: an already-counted workspace reopen bypasses the organization lock and can create a pod after the observation while another project claims the released slot."
+    ],
+    "requiredProtection": [
+      "Shared exclusion or fenced reservation generation covering every reopen and slot release across replicas.",
+      "A renewed reservation must not be invalidated by an older observation.",
+      "A delayed start must not create a pod after its reservation is released without reacquiring admission."
+    ],
+    "testLimit": "Current passing tests prove timestamp transport and the existing decision, not strict admission against live or concurrently starting Kubernetes pods."
+  }
+}

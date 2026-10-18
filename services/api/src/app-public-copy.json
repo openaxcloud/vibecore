@@ -1,4 +1,16 @@
 {
+  "WORKSPACE_MANAGER_INVALID_ADMISSION_RESPONSE": {
+    "en": "The workspace manager returned an invalid admission response.",
+    "fr": "Le gestionnaire d’espaces de travail a renvoyé une réponse de réservation invalide."
+  },
+  "PROJECT_DELETION_PENDING": {
+    "en": "Permanent deletion is in progress. This project cannot be reopened or transferred.",
+    "fr": "La suppression définitive est en cours. Ce projet ne peut plus être rouvert ni transféré."
+  },
+  "PROJECT_TEARDOWN_INCOMPLETE": {
+    "en": "Some resources could not be removed. The project is retained for a safe retry.",
+    "fr": "Certaines ressources n’ont pas pu être supprimées. Le projet est conservé pour une nouvelle tentative sûre."
+  },
   "GENERIC_REQUEST_FAILED": {
     "en": "The request could not be completed. Please try again.",
     "fr": "La requête n’a pas pu aboutir. Veuillez réessayer."
@@ -242,6 +254,14 @@
   "WORKSPACE_PROJECT_MISMATCH": {
     "en": "Workspace does not belong to this project",
     "fr": "Cet espace de travail n’appartient pas à ce projet."
+  },
+  "PROJECT_TRANSFER_RUNTIME_ACTIVE": {
+    "en": "Stop this project's workspaces before transferring it.",
+    "fr": "Arrêtez les espaces de travail de ce projet avant de le transférer."
+  },
+  "PROJECT_TRANSFER_RUNTIME_UNCONFIRMED": {
+    "en": "A workspace request has an unconfirmed outcome. Its resources must be verified before transferring this project.",
+    "fr": "L’issue d’une demande d’espace de travail reste inconnue. Ses ressources doivent être vérifiées avant de transférer ce projet."
   },
   "GIT_INITIAL_COMMIT_MESSAGE": {
     "en": "chore: initial scaffold",

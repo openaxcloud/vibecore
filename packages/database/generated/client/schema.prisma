@@ -271,6 +271,8 @@ model Project {
   thumbnailUrl           String?
   thumbnailUpdatedAt     DateTime?
   deletedAt              DateTime?
+  // Permanent teardown must finish before restore, transfer, or runtime admission.
+  runtimeDeletionPending Boolean                 @default(false)
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -658,39 +660,41 @@ model ProjectTemplate {
 }
 
 model Workspace {
-  id               String                    @id @default(cuid())
-  projectId        String
-  name             String
-  status           WorkspaceStatus           @default(PENDING)
-  runtimeMode      String
+  id                       String                    @id @default(cuid())
+  projectId                String
+  name                     String
+  status                   WorkspaceStatus           @default(PENDING)
+  runtimeMode              String
+  // Durable fence for manager reserve requests whose HTTP response is pending.
+  runtimeAdmissionRequests String[]                  @default([])
   // P2d dev/prod split: 'development' (the editable workspace) or 'production'
   // (the checkout created when a deployment is published). Existing rows
   // backfill to 'development'. Not unique — a project keeps multiple dev
   // workspaces (primary + secondary agent-run checkouts); the prod checkout
   // is the single workspace with environment='production'.
-  environment      String                    @default("development")
+  environment              String                    @default("development")
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace
   // is created so each branch / agent run can have its own checkout
   // without colliding with other workspaces of the same project.
-  gitPath          String?
+  gitPath                  String?
   // Remote URL for this workspace's git working tree. Workspaces can point
   // at different remotes (e.g. an agent run targets a personal fork while
   // the primary workspace tracks the upstream project), so we store the
   // remote here instead of falling back to Project.gitRepositoryUrl for
   // every workspace. Nullable: a fresh workspace inherits the project-level
   // remote until the user explicitly configures one.
-  gitRepositoryUrl String?
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
-  project          Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sessions         WorkspaceSession[]
-  ports            WorkspacePort[]
-  snapshots        FileSnapshot[]
-  ideState         WorkspaceIdeState?
-  readinessBeacons PreviewReadinessBeacon[]
-  lifecycleEvents  WorkspaceLifecycleEvent[]
-  postMortems      WorkspacePostMortem[]
+  gitRepositoryUrl         String?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  project                  Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sessions                 WorkspaceSession[]
+  ports                    WorkspacePort[]
+  snapshots                FileSnapshot[]
+  ideState                 WorkspaceIdeState?
+  readinessBeacons         PreviewReadinessBeacon[]
+  lifecycleEvents          WorkspaceLifecycleEvent[]
+  postMortems              WorkspacePostMortem[]
 
   @@index([projectId])
 }
@@ -1749,6 +1753,12 @@ model WorkspaceRuntime {
   // across manager restarts. Null until first metered.
   lastMeteredAt        DateTime?
   updatedAt            DateTime  @updatedAt
+  // Nullable means legacy/unknown, never an automatically releasable reservation.
+  // Kept separate from runtime status so old readers do not reinterpret new states.
+  admissionAttemptId   String?
+  admissionGeneration  String?
+  admissionState       String?
+  admissionReservedAt  DateTime?
 
   @@index([orgId])
   @@index([projectId])
