@@ -200,6 +200,7 @@ COPY --from=prod-deps --chown=node:node /app/package.json /app/package.json
 # conteneur meurt au demarrage sur ERR_MODULE_NOT_FOUND. Les trois COPY ci-dessus
 # etaient suffisants tant que le lanceur vivait dans node_modules.
 COPY --from=prod-deps --chown=node:node /app/server.mjs /app/server.mjs
+COPY --from=prod-deps --chown=node:node /app/legacy-marketing-entry.mjs /app/legacy-marketing-entry.mjs
 
 # CVE-2026-59873 — `tar` CRITIQUE (bombe gzip) dans le node-tar EMBARQUÉ PAR npm.
 #

@@ -10,6 +10,7 @@ import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { cataloguesI18nPlugin } from './build-config/catalogues-i18n-plugin';
 import { manualChunks } from './build-config/manual-chunks';
+import { redirectLegacyMarketingEntry } from './legacy-marketing-entry.mjs';
 
 /*
  * BUG-PERF-I18N-RACINE-001 — les fichiers de setup vitest des catalogues i18n.
@@ -216,6 +217,15 @@ export default defineConfig((config) => {
       },
     },
     plugins: [
+      {
+        name: 'retire-legacy-marketing-entry',
+        configureServer(server) {
+          server.middlewares.use(redirectLegacyMarketingEntry);
+        },
+        configurePreviewServer(server) {
+          server.middlewares.use(redirectLegacyMarketingEntry);
+        },
+      },
       katexModernFontsPlugin(),
       cataloguesI18nPlugin(),
       nodePolyfills({

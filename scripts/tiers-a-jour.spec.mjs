@@ -89,6 +89,12 @@ describe('la carte des tiers reste alignée sur le déploiement', () => {
     expect(SERVICES_PAR_TIER.runtime).toContain('screenshotter');
   });
 
+  it('garde les entrées web servies dans le périmètre de la sonde', () => {
+    expect(CHEMINS_PAR_TIER.web).toEqual(
+      expect.arrayContaining(['legacy-marketing-entry.mjs', 'server.mjs', 'public/']),
+    );
+  });
+
   it('CONTRE-ÉPREUVE — un chemin inventé n’est PAS dans le workflow', () => {
     expect(/chemin-qui-n-existe-pas\//u.test(WORKFLOW)).toBe(false);
   });

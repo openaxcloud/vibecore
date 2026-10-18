@@ -20,11 +20,16 @@ describe('status public route', () => {
      */
     expect(metadata).toEqual([
       { title: 'System Status — E-Code' },
-      { name: 'description', content: 'Check the live status, uptime and recent incidents for E-Code services.' },
+      {
+        name: 'description',
+        content:
+          'Public service status for E-Code. Live telemetry and verified incident history are currently unavailable.',
+      },
       { property: 'og:title', content: 'System Status — E-Code' },
       {
         property: 'og:description',
-        content: 'Check the live status, uptime and recent incidents for E-Code services.',
+        content:
+          'Public service status for E-Code. Live telemetry and verified incident history are currently unavailable.',
       },
       { property: 'og:type', content: 'website' },
       { property: 'og:site_name', content: 'E-Code' },
@@ -37,7 +42,8 @@ describe('status public route', () => {
       { name: 'twitter:title', content: 'System Status — E-Code' },
       {
         name: 'twitter:description',
-        content: 'Check the live status, uptime and recent incidents for E-Code services.',
+        content:
+          'Public service status for E-Code. Live telemetry and verified incident history are currently unavailable.',
       },
       { name: 'twitter:image', content: 'https://e-code.ai/social_preview_index.jpg' },
       { name: 'twitter:image:alt', content: 'E-Code system status and service availability' },

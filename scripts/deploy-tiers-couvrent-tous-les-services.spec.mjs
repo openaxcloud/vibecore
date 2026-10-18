@@ -168,6 +168,20 @@ describe('AUDX-173 — mécanisme 1 : la détection reconnaît le chemin de l’
   });
 });
 
+describe('entrées web de production dans un changement mixte', () => {
+  it.each(['legacy-marketing-entry.mjs', 'server.mjs', 'public/_redirects'])(
+    'reconstruit le web pour %s même si le runtime change aussi',
+    (path) => {
+      const sorties = detecterLesEtages([path, 'services/api/src/app.ts']);
+
+      expect(sorties.web).toBe('true');
+      expect(sorties.runtime).toBe('true');
+      expect(sorties.admin).toBe('false');
+      expect(sorties.wsagent).toBe('false');
+    },
+  );
+});
+
 describe('AUDX-173 — mécanisme 2 : la table déploie ce qui est construit', () => {
   it('l’admin a un étage et elle est roulée', () => {
     const admin = tableDesServices().find((s) => s.cle === 'admin');

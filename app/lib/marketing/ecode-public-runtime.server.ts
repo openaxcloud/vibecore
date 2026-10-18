@@ -2,24 +2,11 @@ import { data as json, type LoaderFunctionArgs } from 'react-router';
 
 import rawPublicRuntimeCatalog from './ecode-public-runtime.catalog.json' with { type: 'json' };
 import { listEcodeTemplates } from './ecode-template-catalog.server';
+import { getMarketingExactStatusDesktopCopy } from '~/lib/i18n/catalogs/marketing-exact-status-desktop';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 type RuntimeProcess = {
   env?: Record<string, string | undefined>;
-  memoryUsage?: () => { rss: number; heapTotal: number; heapUsed: number; external: number; arrayBuffers: number };
-  uptime?: () => number;
-};
-
-type PublicServiceStatus = {
-  id: string;
-  name: string;
-  category: 'core' | 'features' | 'infrastructure';
-  status: 'operational' | 'degraded' | 'partial' | 'down';
-  uptime: number;
-  responseTime: number;
-  lastChecked: string;
-  description: string;
-  affectedRegions: string[];
 };
 
 type PublicRuntimeLocale = 'en' | 'fr';
@@ -107,47 +94,39 @@ function runtimeEnv() {
   return runtimeProcess()?.env ?? {};
 }
 
-function runtimeUptime() {
-  return Math.floor(runtimeProcess()?.uptime?.() ?? 0);
-}
-
-function memoryPercentage() {
-  const memory = runtimeProcess()?.memoryUsage?.();
-
-  if (!memory || memory.heapTotal <= 0) {
-    return 0;
-  }
-
-  return Math.round((memory.heapUsed / memory.heapTotal) * 1000) / 10;
-}
-
-function withLastChecked(service: Omit<PublicServiceStatus, 'lastChecked'>): PublicServiceStatus {
+// This public adapter has no observation source. A request time is not a check time.
+function unavailableTelemetry(locale: PublicRuntimeLocale) {
   return {
-    ...service,
-    lastChecked: new Date().toISOString(),
+    code: 'PUBLIC_TELEMETRY_UNAVAILABLE' as const,
+    status: 'unknown' as const,
+    telemetryAvailable: false as const,
+    observedAt: null,
+    message: getMarketingExactStatusDesktopCopy(locale).exactStatus.telemetry.message,
   };
 }
 
-const publicStatusRuntime = [
-  { id: 'editor', category: 'core', status: 'operational', uptime: 99.99, responseTime: 120 },
-  { id: 'ai-agent', category: 'features', status: 'operational', uptime: 99.95, responseTime: 450 },
-  { id: 'deployments', category: 'infrastructure', status: 'operational', uptime: 99.99, responseTime: 80 },
-  { id: 'database', category: 'infrastructure', status: 'operational', uptime: 99.99, responseTime: 45 },
-  { id: 'collaboration', category: 'features', status: 'operational', uptime: 99.98, responseTime: 95 },
-  { id: 'api', category: 'core', status: 'operational', uptime: 99.99, responseTime: 60 },
+const publicStatusServicesCatalog = [
+  { id: 'editor', category: 'core' },
+  { id: 'ai-agent', category: 'features' },
+  { id: 'deployments', category: 'infrastructure' },
+  { id: 'database', category: 'infrastructure' },
+  { id: 'collaboration', category: 'features' },
+  { id: 'api', category: 'core' },
 ] as const;
 
-function publicStatusServices(locale: PublicRuntimeLocale): PublicServiceStatus[] {
+function publicStatusServices(locale: PublicRuntimeLocale) {
   const copy = publicRuntimeCatalog[locale].statusServices;
 
-  return publicStatusRuntime.map((service) =>
-    withLastChecked({
-      ...service,
-      name: copy[service.id].name,
-      description: copy[service.id].description,
-      affectedRegions: [],
-    }),
-  );
+  return publicStatusServicesCatalog.map((service) => ({
+    ...service,
+    ...unavailableTelemetry(locale),
+    name: copy[service.id].name,
+    description: copy[service.id].description,
+    uptime: null,
+    responseTime: null,
+    lastChecked: null,
+    affectedRegions: null,
+  }));
 }
 
 export function ecodeRagStatsLoader(args?: PublicRuntimeLoaderArgs) {
@@ -252,114 +231,72 @@ export function ecodeAboutLoader(args?: PublicRuntimeLoaderArgs) {
 }
 
 export function ecodeMonitoringHealthLoader(args?: PublicRuntimeLoaderArgs) {
-  const heapPercentage = memoryPercentage();
-  const uptime = runtimeUptime();
-  const { headers } = publicRuntimeContext(args);
+  const { locale, headers } = publicRuntimeContext(args);
 
-  return json(
-    {
-      status: heapPercentage >= 90 ? 'degraded' : 'healthy',
-      metrics: {
-        system: {
-          cpu: { usage: 0, loadAverage: [] },
-          memory: { used: heapPercentage, total: 100, percentage: heapPercentage },
-          uptime,
-        },
-        api: {
-          requestCount: 0,
-          errorCount: 0,
-          averageLatency: 0,
-          p95Latency: 0,
-          p99Latency: 0,
-        },
-        websocket: {
-          activeConnections: 0,
-          totalMessages: 0,
-          messageRate: 0,
-        },
-        timestamp: Date.now(),
-      },
-      checks: {
-        memory: heapPercentage < 90,
-        cpu: true,
-        errorRate: true,
-      },
-    },
-    { headers },
-  );
+  return json({ ...unavailableTelemetry(locale), metrics: null, checks: null }, { status: 503, headers });
 }
 
 export function ecodeStatusServicesLoader(args?: PublicRuntimeLoaderArgs) {
   const { locale, headers } = publicRuntimeContext(args);
 
-  return json(publicStatusServices(locale), { headers });
+  return json(publicStatusServices(locale), { status: 503, headers });
 }
 
 export function ecodeStatusIncidentsLoader(args?: PublicRuntimeLoaderArgs) {
-  const { headers } = publicRuntimeContext(args);
+  const { locale, headers } = publicRuntimeContext(args);
 
-  return json([], { headers });
+  return json({ ...unavailableTelemetry(locale), incidents: null }, { status: 503, headers });
 }
 
 export function ecodeStatusMaintenanceLoader(args?: PublicRuntimeLoaderArgs) {
-  const { headers } = publicRuntimeContext(args);
+  const { locale, headers } = publicRuntimeContext(args);
 
-  return json([], { headers });
+  return json({ ...unavailableTelemetry(locale), maintenance: null }, { status: 503, headers });
 }
 
 export function ecodeStatusMetricsLoader(args?: PublicRuntimeLoaderArgs) {
   const { locale, headers } = publicRuntimeContext(args);
-  const services = publicStatusServices(locale);
-  const uptime30d = services.reduce((sum, service) => sum + service.uptime, 0) / services.length;
 
   return json(
     {
-      uptime: uptime30d,
-      uptime24h: 100,
-      uptime7d: 99.99,
-      uptime30d,
-      response_time: Math.round(services.reduce((sum, service) => sum + service.responseTime, 0) / services.length),
-      active_incidents: 0,
-      services_operational: services.length,
-      total_services: services.length,
+      ...unavailableTelemetry(locale),
+      uptime: null,
+      uptime24h: null,
+      uptime7d: null,
+      uptime30d: null,
+      response_time: null,
+      active_incidents: null,
+      services_operational: null,
+      total_services: publicStatusServicesCatalog.length,
     },
-    { headers },
+    { status: 503, headers },
   );
 }
 
 export function ecodeStatusUptimeLoader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-  const range = url.searchParams.get('range') || '24h';
-  const { headers } = publicRuntimeContext({ request });
+  const range = new URL(request.url).searchParams.get('range') || '24h';
+  const { locale, headers } = publicRuntimeContext({ request });
 
-  return json(
-    {
-      uptime: 99.99,
-      metrics: [
-        { timestamp: new Date(Date.now() - 60 * 60 * 1000).toISOString(), value: 99.99 },
-        { timestamp: new Date().toISOString(), value: 99.99 },
-      ],
-      range,
-    },
-    { headers },
-  );
+  return json({ ...unavailableTelemetry(locale), uptime: null, metrics: null, range }, { status: 503, headers });
 }
 
 export function ecodePolyglotHealthLoader(args?: PublicRuntimeLoaderArgs) {
-  const { headers } = publicRuntimeContext(args);
+  const { locale, headers } = publicRuntimeContext(args);
 
   return json(
     {
-      status: 'healthy',
-      services: [
-        { service: 'typescript', status: 'healthy', lastCheck: new Date().toISOString(), responseTime: 30 },
-        { service: 'python-ml', status: 'healthy', lastCheck: new Date().toISOString(), responseTime: 45 },
-      ],
-      timestamp: new Date().toISOString(),
+      ...unavailableTelemetry(locale),
+      services: ['typescript', 'python-ml'].map((service) => ({
+        service,
+        status: 'unknown',
+        lastCheck: null,
+        responseTime: null,
+      })),
+      timestamp: null,
       architecture: 'polyglot',
       languages: ['TypeScript', 'Python'],
     },
-    { headers },
+    { status: 503, headers },
   );
 }
 
@@ -394,18 +331,11 @@ export function ecodePolyglotCapabilitiesLoader(args?: PublicRuntimeLoaderArgs) 
 }
 
 export function ecodePolyglotBenchmarkLoader(args?: PublicRuntimeLoaderArgs) {
-  const { headers } = publicRuntimeContext(args);
+  const { locale, headers } = publicRuntimeContext(args);
 
   return json(
-    {
-      fastest: { service: 'typescript', responseTime: 30, status: 'healthy' },
-      results: [
-        { service: 'typescript', responseTime: 30, status: 'healthy' },
-        { service: 'python-ml', responseTime: 45, status: 'healthy' },
-      ],
-      timestamp: new Date().toISOString(),
-    },
-    { headers },
+    { ...unavailableTelemetry(locale), fastest: null, results: null, timestamp: null },
+    { status: 503, headers },
   );
 }
 
