@@ -1,0 +1,351 @@
+{
+  "merge": {
+    "changed_files": 10,
+    "headSha": "d024efa3e2f21ef7dc50a2405d90c8c07d20069b",
+    "html_url": "https://github.com/openaxcloud/vibecore/pull/733",
+    "merge_commit_sha": "615b3fcfb59c0c42cd211536ed2b2675fe72fa5f",
+    "merged": true,
+    "merged_at": "2026-10-18T15:32:55Z",
+    "number": 733
+  },
+  "files": [
+    {
+      "filename": "BUG_INVENTORY_LIVE.md",
+      "status": "modified"
+    },
+    {
+      "filename": "PROBLEMES.md",
+      "status": "modified"
+    },
+    {
+      "filename": "SERVI-POUR-LES-SESSIONS.md",
+      "status": "modified"
+    },
+    {
+      "filename": "docs/bugs/BUG-WORKSPACE-PROVISION-RESOURCES-001.md",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/2026-10-18-commercialisation.md",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/2026-10-18-pr732.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/2026-10-18-readiness.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/2026-10-18-resources-validation.json",
+      "status": "added"
+    },
+    {
+      "filename": "services/api/src/app.ts",
+      "status": "modified"
+    },
+    {
+      "filename": "services/api/src/tests/workspace-provision-resources.spec.ts",
+      "status": "added"
+    }
+  ],
+  "premergeChecks": {
+    "headRefOid": "d024efa3e2f21ef7dc50a2405d90c8c07d20069b",
+    "mergeStateStatus": "CLEAN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:21:02Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487748/job/117710772558",
+        "name": "Quality Analysis",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:33Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487642/job/117710772290",
+        "name": "Audit français — pertinence",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:30:43Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487721/job/117710772168",
+        "name": "Quality Gates",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:30:13Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487732/job/117710772526",
+        "name": "Install, test, build, scan",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Production CI"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:35Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487657/job/117710772958",
+        "name": "Perimetre des changements",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:19:45Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487626/job/117710772203",
+        "name": "CodeQL Analysis (javascript)",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:21Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487635/job/117710772748",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:19:37Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139958831/job/117712161021",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-18T15:19:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:20:53Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487626/job/117710772066",
+        "name": "CodeQL Analysis (typescript)",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:33Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487642/job/117710837363",
+        "name": "Playwright ${{ matrix.project }}",
+        "startedAt": "2026-10-18T15:13:34Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:15Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487721/job/117710773667",
+        "name": "Security Review Required",
+        "startedAt": "2026-10-18T15:13:15Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:16:17Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487748/job/117710772353",
+        "name": "Accessibility Tests",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:31:57Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487657/job/117710844861",
+        "name": "E2E tranche 1/4",
+        "startedAt": "2026-10-18T15:13:38Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:16:55Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487626/job/117710772265",
+        "name": "Dependency Vulnerability Scan",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:24:23Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487657/job/117710844801",
+        "name": "E2E tranche 2/4",
+        "startedAt": "2026-10-18T15:13:37Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:23:49Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487657/job/117710844827",
+        "name": "E2E tranche 3/4",
+        "startedAt": "2026-10-18T15:13:37Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:20:31Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487657/job/117710844872",
+        "name": "E2E tranche 4/4",
+        "startedAt": "2026-10-18T15:13:38Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:17:43Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487748/job/117710772640",
+        "name": "Performance Audit",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:39Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487642/job/117710836739",
+        "name": "Audit français — verdict",
+        "startedAt": "2026-10-18T15:13:35Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:30:55Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487721/job/117714666739",
+        "name": "Release Validation",
+        "startedAt": "2026-10-18T15:30:45Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:20:02Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487657/job/117710844837",
+        "name": "Canari iOS WebKit (non bloquant)",
+        "startedAt": "2026-10-18T15:13:38Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:14:12Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487626/job/117710771963",
+        "name": "Secrets Detection",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:36Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487748/job/117710772515",
+        "name": "PR Size Check",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:32:17Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487657/job/117714951533",
+        "name": "Playwright local stack",
+        "startedAt": "2026-10-18T15:32:00Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T15:13:50Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39139487626/job/117710772256",
+        "name": "Secret scan (gitleaks, blocking)",
+        "startedAt": "2026-10-18T15:13:17Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      }
+    ]
+  },
+  "deploymentRun": "https://github.com/openaxcloud/vibecore/actions/runs/39140979431",
+  "deploymentStatus": "success",
+  "localExtraValidation": {
+    "rootLint": {
+      "exitCode": 0,
+      "errors": 0,
+      "existingWarnings": 51
+    },
+    "typecheck": {
+      "web": "passed",
+      "nodeScripts": "passed",
+      "electronMain": "passed",
+      "electronPreload": "passed",
+      "workspacePackagesPnpm9": "passed",
+      "firstWorkspaceSubprocessPnpm11": "failed due environment CLI version; rerun with pinned pnpm passed"
+    },
+    "backupDryRun": {
+      "ok": true,
+      "archiveFormat": "vibecore.project-backup.v1",
+      "algorithm": "aes-256-gcm",
+      "keySource": "ephemeral-local-dry-run-key",
+      "restoredFiles": 4,
+      "sourceManifestHash": "7573f62c6d9fe544c31b48b2f947cae28195cb1b9938789ab06cdf57fc51ebe8",
+      "restoredManifestHash": "7573f62c6d9fe544c31b48b2f947cae28195cb1b9938789ab06cdf57fc51ebe8",
+      "encryptedBytes": 1664,
+      "tamperRejected": true
+    }
+  },
+  "independentReviewRelayedByParent": {
+    "reviewedAtUtc": "2026-10-18T15:40:00Z",
+    "blockingRegressionIdentified": false,
+    "limits": [
+      "No new direct admin restart test",
+      "RUNNING tested only for billing outage",
+      "No actual PVC or concurrent pods exercised",
+      "Read-trigger billing failure keeps existing background logging and 425 response",
+      "Manager still rejects starter/core; preexisting billing migration remains open"
+    ]
+  },
+  "deploymentCompletedAtUtc": "2026-10-18T16:35:44Z",
+  "deploymentEvidence": "2026-10-18-deployment-615b3fcfb5.json",
+  "functionalProductionJourneyVerified": false
+}

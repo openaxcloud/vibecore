@@ -1,0 +1,56 @@
+{
+  "sourceRun": "https://github.com/openaxcloud/vibecore/actions/runs/39139487732",
+  "sourceJob": 117710772526,
+  "headSha": "d024efa3e2f21ef7dc50a2405d90c8c07d20069b",
+  "observedSummary": [
+    "2026-10-18T15:30:10.0591786Z 242 vulnerabilities found",
+    "2026-10-18T15:30:10.0591963Z Severity: 28 low | 118 moderate | 92 high | 4 critical",
+    "2026-10-18T15:30:10.1895143Z ##[warning]pnpm audit reported vulnerabilities (advisory — see Security Analysis workflow)"
+  ],
+  "severityCounts": {
+    "low": 28,
+    "moderate": 118,
+    "high": 92,
+    "critical": 4,
+    "total": 242
+  },
+  "scope": "pnpm audit across workspace, including development dependencies; advisory step, not a deployed-image exploitability assessment",
+  "criticalItems": [
+    {
+      "package": "@capacitor/ios",
+      "version": "8.3.1",
+      "path": "apps/mobile",
+      "advisory": "https://github.com/advisories/GHSA-rvm3-566m-v7fv"
+    },
+    {
+      "package": "@capacitor/android",
+      "version": "8.3.1",
+      "path": "apps/mobile",
+      "advisory": "https://github.com/advisories/GHSA-rvm3-566m-v7fv"
+    },
+    {
+      "package": "tinypool",
+      "version": "1.1.1",
+      "path": "vitest@3.2.6",
+      "advisory": "https://github.com/advisories/GHSA-5gmw-xhrv-c9v3"
+    },
+    {
+      "package": "tinypool",
+      "version": "1.1.1",
+      "path": "vitest@3.2.6",
+      "advisory": "https://github.com/advisories/GHSA-85c8-ppgw-ccpr"
+    }
+  ],
+  "currentRepositoryEvidence": [
+    "infra/docker/deps.Dockerfile excludes @vibecore/mobile from server dependency install",
+    "apps/admin/package.json places vitest in devDependencies after prior fix #679",
+    "pnpm why -r tinypool --prod --json reports no dependency path in current install",
+    "PR CI: image-web-sans-paquets-mobiles guard 4 passed; admin-dependances-production guard 1 passed"
+  ],
+  "limits": [
+    "Do not infer contents of currently deployed images from these repository guards alone",
+    "Critical CI/tooling advisories are not harmless merely because they are development dependencies",
+    "High and moderate advisories require further runtime/SBOM/reachability triage",
+    "No dependency override or security-gate change made by this task"
+  ]
+}

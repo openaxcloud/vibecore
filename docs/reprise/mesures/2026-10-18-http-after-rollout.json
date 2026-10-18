@@ -1,0 +1,27 @@
+{
+  "checkedAtUtc": "2026-10-18T16:38:27.756011+00:00",
+  "phase": "after successful deployment run 39140979431",
+  "results": [
+    {
+      "url": "https://e-code.ai",
+      "method": "HEAD",
+      "exitCode": 56,
+      "httpCode": "000",
+      "error": "curl: (56) CONNECT tunnel failed, response 403"
+    },
+    {
+      "url": "https://app.e-code.ai",
+      "method": "HEAD",
+      "exitCode": 56,
+      "httpCode": "000",
+      "error": "curl: (56) CONNECT tunnel failed, response 403"
+    },
+    {
+      "url": "https://api.e-code.ai/health",
+      "method": "HEAD",
+      "exitCode": 56,
+      "httpCode": "000",
+      "error": "curl: (56) CONNECT tunnel failed, response 403"
+    }
+  ]
+}

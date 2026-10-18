@@ -4,6 +4,14 @@
 des défauts de code reproduits et des preuves indispensables manquantes, pas
 une affirmation que tous les parcours échouent en production.
 
+Mise à jour finale : [#733](https://github.com/openaxcloud/vibecore/pull/733)
+fusionnée à 15:32:55 UTC dans `main` sous
+`615b3fcfb59c0c42cd211536ed2b2675fe72fa5f`. Les 23 contrôles de PR réussis
+et deux sauts conditionnels ont précédé la fusion ; CI et E2E du commit
+fusionné réussies. La [livraison](https://github.com/openaxcloud/vibecore/actions/runs/39140979431)
+a réussi à **16:35:44 UTC**. Les états ci-dessous distinguent cette livraison
+du relevé initial et de la preuve fonctionnelle live toujours manquante.
+
 ## État actuel et accès
 
 Relevé GitHub et local commencé à 14:41 UTC. Main et checkout initial propre :
@@ -84,6 +92,84 @@ app.ts conserve les écarts de format préexistants hors du correctif.
 Les [mesures de validation](mesures/2026-10-18-resources-validation.json)
 conservent les commandes, les versions et les empreintes des sources testées.
 
+Contre-revue indépendante transmise par le parent à 15:40 UTC : aucun défaut
+bloquant introduit identifié. Limites conservées : aucun nouveau cas direct
+sur le redémarrage administrateur ; état RUNNING couvert uniquement pour
+la panne de facturation ; ni PVC réel ni concurrence de pods exercés. Sur
+le chemin de lecture, la panne de facturation reste journalisée en
+arrière-plan et la réponse 425 existante est conservée. La protection contre
+un démarrage gratuit implicite ne constitue donc pas une nouvelle preuve
+de qualité de restitution de cette erreur à l’utilisateur.
+
+## Livraison du correctif et limites de preuve
+
+Le runtime a été reconstruit de 15:56:48 à 16:24:37 UTC. Web, admin et
+workspace-agent n’ont pas été reconstruits. Scan des digests réussi à
+16:28:30, signatures vérifiées, manifeste validé, Helm terminé à 16:34:48,
+rollout vérifié à 16:35:06 et comparaison des imageIDs réussie à 16:35:32.
+Aucun rollback exécuté. Les sondes de bascule d’activation SEC-8/SEC-9 sont
+sautées dans ce run ; elles ne constituent pas une validation fonctionnelle
+supplémentaire. Les [mesures](mesures/2026-10-18-deployment-615b3fcfb5.json)
+conservent les étapes exactes et identifiants des trois artefacts.
+
+La lecture des logs du job de livraison échoue (`Transport closed`) alors
+que les journaux CI sont lisibles. L’archive est référencée mais sa copie
+locale échoue aussi par les deux routes essayées. Le contenu intégral du
+manifeste et les valeurs brutes des imageIDs ne sont donc pas attestés
+par lecture directe dans cette session. La comparaison réussie est attestée
+par le résultat du workflow. Les annotations conservent `sourceSha: null`
+pour web/admin/workspaceAgent repris. Le SHA de main ne doit pas être
+présenté comme le SHA directement lu sur les deux domaines web.
+
+Le contrôle des valeurs Helm, effectué **avant** l’upgrade, signale cinq
+écarts : web utilise 256Mi/768Mi (demande/limite mémoire) en production
+contre 384Mi/1Gi dans le fichier ; screenshotter 1Gi/2Gi contre 512Mi/1Gi ; `maxReplicas` absent
+des valeurs stockées contre 2 dans le fichier. Ce garde est consultatif :
+il ne prouve ni une panne ni que baisser la mémoire serait correct.
+L’origine des réglages doit être tranchée avec l’exploitation ; aucune
+valeur de dimensionnement n’a été forcée par cette session.
+
+À [16:38:27 UTC après livraison](mesures/2026-10-18-http-after-rollout.json),
+`e-code.ai`, `app.e-code.ai` et `api.e-code.ai/health` restent refusés par le
+proxy (`CONNECT 403`, code HTTP de l’origine absent). La version réellement
+retournée par ces domaines et le parcours utilisateur demeurent non vérifiés.
+Les [comptages CI de main](mesures/2026-10-18-main-ci-counts.json) confirment
+les neuf nouveaux cas dans les 2 402 tests API passés (23 sauts) ; ces chiffres
+ne s’ajoutent pas aux tests locaux qui en sont un sous-ensemble.
+
+## Dépendances vulnérables : portée à distinguer
+
+Le journal de CI de #733 rapporte 242 alertes `pnpm audit` : 28 basses,
+118 modérées, 92 élevées et 4 critiques. Cette étape est consultative et
+inclut les dépendances de développement ; ce décompte ne mesure pas les
+failles exploitables du service déployé. Le [tri initial](mesures/2026-10-18-dependency-audit-triage.json)
+conserve les références et les limites de preuve.
+
+Deux alertes critiques concernent [Capacitor natif iOS/Android](https://github.com/advisories/GHSA-rvm3-566m-v7fv),
+les deux autres [Tinypool via Vitest](https://github.com/advisories/GHSA-5gmw-xhrv-c9v3)
+et [ses options d’exécution](https://github.com/advisories/GHSA-85c8-ppgw-ccpr).
+Le Dockerfile des dépendances serveur exclut le mobile ; le manifeste admin
+actuel place Vitest en développement. Les gardes de ces contrats passent
+en CI et `pnpm why -r tinypool --prod --json` ne rapporte aucun chemin de
+production dans l’installation locale. Ces constats ne remplacent pas le
+SBOM des images effectivement servies. Les risques de la chaîne de tests et
+le tri des alertes élevées restent ouverts ; aucun override de dépendance ni
+assouplissement de contrôle n’a été ajouté ici.
+
+## Limite de diagnostic Cloud Build
+
+Le job de livraison `117720182233` a commencé `Build runtime tier` à
+15:56:48 UTC. Pendant son exécution, le téléchargement de ses logs GitHub
+répond `404 BlobNotFound` ; le statut actif ne prouve pas une progression
+interne. Aucun connecteur GCP, exécutable `gcloud`/`kubectl`, variable
+d’identité GCP, fichier ADC standard ou kubeconfig n’est disponible dans
+ce workspace. Seule la présence de ces configurations a été examinée,
+aucun secret affiché. Le workflow n’exporte `RUNTIME_BUILD_ID` qu’après le
+retour de `gcloud builds submit`. Une lecture Cloud Build directe exige
+donc un accès opérateur supplémentaire. La construction a ensuite réussi
+à 16:24:37 UTC sans être annulée ; la limite d’accès reste pertinente pour
+les diagnostics opérateur et les essais live futurs.
+
 ## Dépendances externes et travaux reportables
 
 Pour lever les réserves : accès réseau aux deux domaines, compte QA isolé,
@@ -92,6 +178,35 @@ Stripe en mode test pour le parcours financier, environnement de restauration
 autorisé et appareil Safari réel. Créer un runtime ou un restore facturé et
 déclencher un paiement réel exigent un accord précis ; aucune de ces actions
 n'a été effectuée.
+
+Accès concret requis pour reprendre les essais :
+
+- Un environnement de navigateur autorisé à joindre en HTTPS `e-code.ai`,
+  `app.e-code.ai` et `api.e-code.ai`, puis les hôtes de preview/publication
+  réellement retournés par l'application, avec WebSocket/WSS. Le proxy de ce
+  workspace refuse actuellement la connexion aux trois premiers hôtes avant
+  toute réponse de l'origine. Aucun accès par IP, proxy alternatif ou autre
+  contournement de ce refus n'est utilisé.
+- Une identité QA dédiée, une boîte de réception de test pour la vérification
+  d'inscription, une organisation sans données client et une seconde identité
+  dans une organisation distincte pour les essais d'isolation. Les identifiants
+  et sessions doivent être fournis par le mécanisme sécurisé de l'environnement,
+  jamais dans le chat ou les preuves commitées. Un compte préexistant ne prouve
+  pas à lui seul que l'inscription neuve fonctionne.
+- Un plafond de dépenses et une autorisation explicite avant tout appel IA,
+  workspace ou restauration facturé ; Stripe doit être en mode test pour les
+  essais de souscription et de webhooks. Aucun abonnement client ne sert de
+  support à ces essais.
+- Pour l'exploitation, accès en lecture aux logs Cloud Build, au manifeste de
+  release et aux imageIDs du cluster `vibecore-prod-app` du projet
+  `vibecore-495216`. L'exercice de restauration nécessite un périmètre séparé
+  explicitement autorisé ; une lecture opérateur seule ne l'autorise pas.
+
+L'intégration de ce bilan n'exige aucune livraison applicative : tous ses
+fichiers correspondent aux filtres `**/*.md` ou `docs/**` de
+`.github/workflows/deploy-main.yml`. Aucun dispatch manuel de déploiement ne
+doit être lancé pour cette seule PR documentaire. Les contrôles de fusion
+habituels restent requis.
 
 Peuvent être reportés **si exclus de l'offre annoncée** : applications natives
 et desktop, SSO Enterprise, connecteurs secondaires, parité exhaustive des
