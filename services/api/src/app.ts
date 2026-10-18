@@ -15587,6 +15587,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const organisation =
       authorized.organizationId ?? (await store.getProject(authorized.projectId))?.organizationId ?? undefined;
 
+    /*
+     * Resolve billing before claiming a slot: a failed lookup must not start a
+     * paid workspace with free defaults or leave a new STARTING reservation.
+     */
+    const state = organisation ? await billingState(organisation) : undefined;
+
     await reserverUnCreneauActif(request, organisation, authorized.workspaceId);
 
     /*
@@ -15611,7 +15617,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         workspaceId: authorized.workspaceId,
         userId: request.currentUser?.id,
         image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-        plan: process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+        ...workspaceResourceContract(state, true),
         env,
         allowedSecretKeys,
         allowedSecrets,
@@ -17433,6 +17439,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   /*
+   * All four provisioning paths use the same resources for manager-supported
+   * plans. Preserve the existing automatic-start behavior for starter/core:
+   * the manager rejects those names, and mapping them also changes metering.
+   * Their explicit-start/metering migration is a separate billing change.
+   */
+  const workspaceResourceContract = (
+    state: Awaited<ReturnType<typeof billingState>> | undefined,
+    automaticStart = false,
+  ) => {
+    const resourceState = automaticStart && ['starter', 'core'].includes(state?.plan.key ?? '') ? undefined : state;
+
+    return {
+      plan: resourceState?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
+      resourceLimits: resourceState
+        ? {
+            cpuMillicores: resourceState.limits['workspace.cpuMillicores'],
+            ramMb: resourceState.limits['workspace.ramMb'],
+            storageGb: resourceState.limits['storage.gb'],
+          }
+        : undefined,
+    };
+  };
+
+  /*
    * Rolling window for the terminals.concurrent gauge (see computeUsageForQuota).
    * Long enough that a genuinely-open terminal stays counted through a normal
    * working session, short enough that a leaked +1 (lost socket-close) self-heals
@@ -18230,14 +18260,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceId: authorized.workspaceId,
           userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
-            ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
-              }
-            : undefined,
+          ...workspaceResourceContract(state),
           env,
           allowedSecretKeys,
           allowedSecrets,
@@ -18460,14 +18483,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceId: authorized.workspaceId,
           userId: request.currentUser?.id,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
-            ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
-              }
-            : undefined,
+          ...workspaceResourceContract(state),
           env,
           allowedSecretKeys,
           allowedSecrets,
@@ -34031,14 +34047,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectId: record.projectId,
           workspaceId,
           image: process.env.WORKSPACE_AGENT_IMAGE ?? 'vibecore/workspace-agent:2026.04.0',
-          plan: state?.plan.key ?? process.env.WORKSPACE_DEFAULT_PLAN ?? 'free',
-          resourceLimits: state
-            ? {
-                cpuMillicores: state.limits['workspace.cpuMillicores'],
-                ramMb: state.limits['workspace.ramMb'],
-                storageGb: state.limits['storage.gb'],
-              }
-            : undefined,
+          ...workspaceResourceContract(state),
           env,
           allowedSecretKeys,
           allowedSecrets,
