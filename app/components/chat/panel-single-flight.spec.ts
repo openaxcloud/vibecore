@@ -23,11 +23,14 @@ import { describe, expect, it } from 'vitest';
  * faute de pouvoir monter trois instances de BaseChat dans un test unitaire.
  */
 const SOURCE = readFileSync(join(__dirname, 'BaseChat.tsx'), 'utf8');
+const TRANSPORT = readFileSync(join(__dirname, '../../lib/ide/panel-request.ts'), 'utf8');
 
 describe('chargement des panneaux — appels en vol mutualisés', () => {
   it('le module importe bien l’utilitaire de mise en commun', () => {
     expect(SOURCE, "BaseChat.tsx n'a pas été lu : le test ne mesure rien").toContain('const loadPanel');
-    expect(SOURCE).toContain("from '~/lib/ide/single-flight'");
+    expect(SOURCE).toContain("from '~/lib/ide/panel-request'");
+    expect(TRANSPORT).toContain("from './single-flight'");
+    expect(TRANSPORT).toContain('return flights.run(');
   });
 
   it('la mise en commun est de portée MODULE, pas d’instance', () => {
@@ -38,7 +41,7 @@ describe('chargement des panneaux — appels en vol mutualisés', () => {
      * colonne 0. Déclarée dans un composant, elle serait recréée à chaque
      * montage et ne coordonnerait rien.
      */
-    const ligne = SOURCE.split('\n').find((l) => l.includes('createSingleFlight<{ status: number'));
+    const ligne = SOURCE.split('\n').find((l) => l.includes('createPanelRequest<{ status: number'));
     expect(ligne, 'déclaration introuvable').toBeTruthy();
     expect(ligne!.startsWith('const '), `déclaration indentée, donc pas de portée module : ${ligne}`).toBe(true);
   });
