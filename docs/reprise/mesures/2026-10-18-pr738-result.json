@@ -52,5 +52,34 @@
       "sha256": "63332141895e410e1725c5efd4d7509b3c570916fe5f6f83dcfe41fab6aba9a9"
     }
   ],
-  "calendarOracleCases": 5520
+  "calendarOracleCases": 5520,
+  "ciRun": 39166828546,
+  "e2eRun": 39166828547,
+  "ci": {
+    "run": 39166828546,
+    "job": 117791408881,
+    "status": "success",
+    "rootPassed": 9714,
+    "rootSkipped": 4,
+    "apiPassed": 2453,
+    "apiSkipped": 23,
+    "managerPassed": 152,
+    "agentPassed": 114,
+    "builds": "success",
+    "auditVulnerabilities": 242,
+    "auditCritical": 4
+  },
+  "e2e": {
+    "run": 39166828547,
+    "verdictJob": 117795359976,
+    "summaryAtUtc": "2026-10-18T21:30:48Z",
+    "reported": 453,
+    "failing": 0,
+    "flaky": 0,
+    "unchangedWaivers": 6,
+    "specsExpected": 73,
+    "specsSeen": 73,
+    "runAttempt": 1
+  },
+  "rebase": "Preparing on merged737 c4211323345cc8e0688a191337a04af9e3b2fab9; these green checks apply only to old head c33c913b5"
 }

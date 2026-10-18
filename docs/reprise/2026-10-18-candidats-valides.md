@@ -1,6 +1,6 @@
 # Correctifs validés en branches — 18 octobre 2026
 
-Ces candidats sont sauvegardés à distance et restent hors de main. La restauration est dans la PR #737, tête `80c38626a1873cd4b7538d6a1d01ea649e81388e`, base `b827b12255d423ffb96143c39c1d2a3917ffc5e2`. Le candidat CI reste sans PR, sur `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`. Aucun n’est fusionné ou déployé ; ils ne changent pas le verdict commercial.
+La restauration a été fusionnée par #737 à 21:36:26 UTC dans `c4211323345cc8e0688a191337a04af9e3b2fab9`, après les contrôles de la tête `80c38626a1873cd4b7538d6a1d01ea649e81388e`. La livraison de ce nouveau commit reste en cours. Le candidat CI reste sans PR et hors de main, sur `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`. Ces corrections ne changent pas le verdict commercial.
 
 | Candidat | Défaut établi et portée du correctif | Validation après rebase | Limite restante |
 | --- | --- | --- | --- |

@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 21:13 UTC
+## Dernier état vérifié — 21:38 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -33,9 +33,9 @@ La CI du commit fusionné a réussi : 9 656 tests racine passent (4 sauts),
 Son audit dépendances reste un avertissement : 242 alertes, dont 4 critiques.
 L'E2E de main a réussi à 20:36:25 UTC sans relance du workflow : 453 tests
 rapportés, zéro échec persistant, cinq instabilités passées avec les retries
-préexistants, six exemptions inchangées et 73/73 fichiers. Le déploiement a franchi la porte du SHA exact et ses contrôles préalables. La construction runtime a réussi à 21:06:01 UTC ; la construction web a commencé à cette heure. Aucun rollout ni ConfigMap live n’est encore attesté.
+préexistants, six exemptions inchangées et 73/73 fichiers. Le [déploiement](mesures/2026-10-18-deployment-c6439da735.json) a réussi à **21:35:00 UTC**. Runtime, web, agent et admin ont été reconstruits ; scan des digests et signatures acceptés. Helm : 21:28:13–21:34:17 ; rollout : 21:34:17–21:34:30 ; comparaison des imageIDs : 21:34:30–21:34:50. Le contrôle bloquant du ConfigMap réel fait partie de cette étape réussie. Ses valeurs brutes, le manifeste et les journaux détaillés restent inaccessibles ici ; cette preuve indirecte est distinguée d’une lecture opérateur. Les trois domaines publics restent refusés par le proxy après livraison, à 21:35:50 UTC.
 **V2 reste désactivé** : cette fusion n'autorise pas son activation. La dernière
-livraison réussie attestée reste #733. Aucun nouveau parcours en production
+livraison réussie attestée est désormais #735. Aucun nouveau parcours en production
 n'est prouvé.
 
 [#736](https://github.com/openaxcloud/vibecore/pull/736), tête `c4300e60dd`,
@@ -43,7 +43,7 @@ a été rebasée sur le commit fusionné de #735 ; aucun conflit restant. Sa CI 
 passage couvre 453 cas, zéro échec et zéro instabilité, avec six exemptions
 existantes et 73/73 fichiers. Le canari WebKit a échoué avant tests sur le
 port Docker occupé ; sa seule reprise ciblée a réussi : 17 tests passent, trois sauts préexistants
-subsistent. La PR a été fusionnée à **20:54:14 UTC** dans `b827b12255d423ffb96143c39c1d2a3917ffc5e2`, après 32 contrôles réussis et deux sauts conditionnels. La CI de ce commit a réussi à 21:09:23 UTC : 9 714 tests racine (4 sauts), 2 418 API (23 sauts), 152 manager, 114 agent et builds verts. Les E2E restent en cours ; le canari WebKit a réussi avec 17 tests et trois sauts existants. Sa livraison attend derrière #735, qui reste active sans annulation. Aucun déploiement réussi de ce changement ni résultat public live n'est encore établi.
+subsistent. La PR a été fusionnée à **20:54:14 UTC** dans `b827b12255d423ffb96143c39c1d2a3917ffc5e2`, après 32 contrôles réussis et deux sauts conditionnels. La CI de ce commit a réussi à 21:09:23 UTC : 9 714 tests racine (4 sauts), 2 418 API (23 sauts), 152 manager, 114 agent et builds verts. Le canari WebKit a réussi avec 17 tests et trois sauts existants. **Les E2E de main ont échoué** : 453 tests rapportés, un échec persistant (titre du panneau des tables absent sur trois essais), cinq instabilités, six exemptions et 73/73 fichiers. La livraison a été refusée par sa barrière à **21:35:38 UTC**, avant build et rollout. Aucune relance identique demandée. [Diagnostic, limites et capture inaccessible](2026-10-18-main736-mobile-diagnostic.md). Aucun déploiement réussi de ce changement ni résultat public live n'est encore établi.
 [Preuves de cette tête](mesures/2026-10-18-pr736-result.json). Sur l'ancienne tête `646ad466ae`, CI et audit EN/FR
 ont réussi, ce dernier après reprise ciblée du démarrage Docker tablette ;
 l'E2E comptait toujours un échec persistant (liste des tables), une instabilité,
@@ -70,13 +70,13 @@ de connexion n'est incluse. Ceci prouve un mécanisme possible, pas la cause
 ni une lenteur constatée en CI. Les processus locaux possédés sont arrêtés ;
 quatre zombies réadoptés par PID1 ne sont pas des serveurs actifs.
 
-Le correctif de restauration est désormais en [PR #737](https://github.com/openaxcloud/vibecore/pull/737), tête `80c38626a` sur main `b827b122`. Il refuse
+Le correctif de restauration [#737](https://github.com/openaxcloud/vibecore/pull/737), tête `80c38626a`, a été **fusionné à 21:36:26 UTC** dans `c4211323345cc8e0688a191337a04af9e3b2fab9`, après 24 contrôles terminés (22 succès, deux sauts). La CI de PR passe : 9 714 tests racine, 2 428 API, 152 manager, 121 agent ; E2E : 453 rapportés, zéro échec persistant, une instabilité, six exemptions, 73/73 fichiers. La CI, les E2E et la livraison du nouveau commit commencent ; aucun déploiement de #737 n’est encore revendiqué. Il refuse
 une création/restauration d'instantané sans archive au lieu d'annoncer un
 succès sans fichiers restaurés. Ses validations après rebase passent : API 27/27, agent 121/121,
 index 6/6, typecheck API complet et aucun diagnostic lint ajouté. Il ne fournit pas une sauvegarde durable : la restauration DB et
 la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
-Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Les [deux candidats validés](2026-10-18-candidats-valides.md) restent hors de main ; le second corrige les collisions de ports CI et reste sans PR. La correction des quotas annuels est en [PR #738](https://github.com/openaxcloud/vibecore/pull/738), tête `c33c913b5` : 68/68 tests API, 16/16 contrôles d’index, typecheck/build API réussis, aucun nouveau diagnostic lint. Les contrôles financiers restent identiques ; les tests utilisent Fastify `inject`, un store mémoire et un webhook signé localement. [Preuves et limites](mesures/2026-10-18-pr738-result.json). Exactement deux nouvelles PR sont ouvertes, #737 et #738 ; aucune fusion ni livraison de ces deux correctifs.
+Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Le second des [deux candidats validés](2026-10-18-candidats-valides.md), qui corrige les collisions de ports CI, reste hors de main et sans PR. La correction des quotas annuels est en [PR #738](https://github.com/openaxcloud/vibecore/pull/738), tête `c33c913b5` : 68/68 tests API, 16/16 contrôles d’index, typecheck/build API réussis, aucun nouveau diagnostic lint. Les contrôles financiers restent identiques ; les tests utilisent Fastify `inject`, un store mémoire et un webhook signé localement. [Preuves et limites](mesures/2026-10-18-pr738-result.json). Sa première CI passe : 2 453 tests API ; E2E 453 rapportés, zéro échec et zéro instabilité. Ces résultats portent sur `c33c913b5` ; son rebase sur #737 est en préparation et sera validé séparément. #738 reste ouverte et non livrée ; #737 est fusionnée mais non livrée.
 La [relecture de la restauration sur main actuel](2026-10-18-restore-current-main.md)
 confirme les défauts distincts avec des références au commit `c6439da`.
 
@@ -94,22 +94,31 @@ sans modification d'index relève trois conflits, dont un modify/delete sur
 des tests lisent encore ses sources. Aucun nettoyage ancien n'est repris ni
 fusionné. #414 vise une branche de travail, pas directement main.
 
+La livraison continue utilise `group: deploy-production-continuous` et
+`cancel-in-progress: false`, sans `queue: max`. La [documentation GitHub
+vérifiée le 18 octobre](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+précise que la configuration par défaut ne conserve qu’une exécution en
+attente ; une nouvelle arrivée peut la remplacer. Cette attente a préservé le démarrage de #736 après #735. Sa barrière a
+ensuite refusé le commit rouge ; #737 a été fusionnée seulement après ce
+verdict terminal. Les fusions suivantes doivent préserver la livraison active.
+Aucun contrôle de livraison n’est contourné.
+
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 21:13 UTC
+## Les cinq conditions de lancement — état vérifié à 21:38 UTC
 
-Main est `b827b12255d423ffb96143c39c1d2a3917ffc5e2` après #736.
-La dernière livraison terminée reste #733, `615b3fcfb5` ; #735 construit
-ses images, #736 attend son tour. Les contrôles locaux et CI ci-dessous
+Main est `c4211323345cc8e0688a191337a04af9e3b2fab9` après #737.
+La dernière livraison terminée est #735, `c6439da55` ; #736 a été
+refusée par sa barrière, et #737 attend les contrôles de son commit exact. Les contrôles locaux et CI ci-dessous
 ne remplacent pas un parcours réel sur la version servie.
 
 | Condition indispensable | Code, tests et intégration établis | Preuve de clôture encore nécessaire |
 | --- | --- | --- |
 | Compte neuf → génération → exécution → sauvegarde → publication → URL utilisée | Parcours et composants présents. Le [tri des 18 échecs runtime](2026-10-18-runtime-triage.md) distingue 7 dérives d'assertion, 4 prérequis runtime manquants, 5 parcours mobiles et 2 défauts d'interface non attribués. Aucun parcours runtime réussi établi. | Compte QA neuf et boîte mail autorisés ; génération réelle avec budget explicite ; exécution et écriture puis réouverture ; URL publiée utilisée depuis une session extérieure. |
-| Démarrage et consommation conformes au forfait | #733 fusionnée et livrée. #735 fusionnée ; CI/E2E du commit réussies, livraison en cours. Protocole d'admission coordonnée et barrières de suppression présents ; réservations V2 désactivées dans la livraison. | ConfigMap réel avec lecteur activé et réservations désactivées, CPU/RAM/stockage effectivement attribués, quota concurrent observé. Inventaire/réconciliation legacy et drainage avant toute activation V2. |
+| Démarrage et consommation conformes au forfait | #733 fusionnée et livrée. #735 fusionnée et livraison réussie ; garde bloquante du ConfigMap live passée, valeurs brutes non lues ici. Protocole d'admission coordonnée et barrières de suppression présents ; réservations V2 désactivées dans la livraison. | Lecture opérateur du ConfigMap en complément de la garde CI réussie (lecteur activé, réservations désactivées), CPU/RAM/stockage effectivement attribués, quota concurrent observé. Inventaire/réconciliation legacy et drainage avant toute activation V2. |
 | Paiements, catalogue mensuel/annuel et droits | Route `/pricing` actuelle, clés Pro/Team, prix et transmission du choix annuel cohérents par code. **Défaut reproduit : les quotas annoncés par mois restent consommés pendant toute la période annuelle Stripe.** [Contre-épreuve locale](mesures/2026-10-18-billing-annual-period.json) : après consommation en janvier, refus 429 en février avec zéro consommation du mois ; témoin mensuel accepté. Correctif en PR #738, tests locaux verts. | Correction intégrée et validée du quota annuel. Stripe TEST autorisé : mensuel/annuel, webhook signé/idempotent, droits après confirmation, refus/annulation et changement de formule. Aucun paiement ni changement client sans accord précis. |
-| Isolation et restauration réelle | API locale avec PostgreSQL : 8 lectures autorisées et 8 accès inter-organisations refusés, écriture croisée refusée et contenu propriétaire conservé. Faux succès des snapshots runtime reproduit ; correctif en branche, pas encore intégré. Corruption des octets binaires lors de la synchronisation vers un vrai agent local reproduite ; correction en validation. Défauts PITR distincts [confirmés sur main](2026-10-18-restore-current-main.md). | Refus croisés réseau/GCS/PVC sur deux organisations QA ; suppression/retry ; restauration isolée PostgreSQL/GCS/PVC avec intégrité, convergence et durée mesurées. Les archives projet ne prouvent pas une sauvegarde complète du runtime. |
-| Mobile et Safari, erreurs honnêtes | #736 fusionnée : faux indicateurs de disponibilité remplacés par un état inconnu ; livraison attendue. CI de PR : 453 E2E rapportés, zéro échec et zéro instabilité, six exemptions ; WebKit ciblé 17 succès/3 sauts. Six captures Chromium EN/FR inspectées. Rejeu local ordonné : 44/45 ; bouton de journaux sur deux lignes à 390 px en français, capture inspectée. | Parcours critique authentifié sur petits écrans et Safari HTTPS, idéalement appareil physique : clavier, navigation, reconnexion, sauvegarde et publication. Vérification des erreurs et de la version réellement servie après rollout. |
+| Isolation et restauration réelle | API locale avec PostgreSQL : 8 lectures autorisées et 8 accès inter-organisations refusés, écriture croisée refusée et contenu propriétaire conservé. Faux succès des snapshots runtime et corruption des octets binaires reproduits ; corrections fusionnées dans #737, non encore livrées. Défauts PITR distincts [confirmés sur main](2026-10-18-restore-current-main.md). | Refus croisés réseau/GCS/PVC sur deux organisations QA ; suppression/retry ; restauration isolée PostgreSQL/GCS/PVC avec intégrité, convergence et durée mesurées. Les archives projet ne prouvent pas une sauvegarde complète du runtime. |
+| Mobile et Safari, erreurs honnêtes | #736 fusionnée : faux indicateurs de disponibilité remplacés par un état inconnu ; livraison refusée après un échec persistant des E2E de main. Cause du panneau DB non établie. CI de PR : 453 E2E rapportés, zéro échec et zéro instabilité, six exemptions ; WebKit ciblé 17 succès/3 sauts. Six captures Chromium EN/FR inspectées. Rejeu local ordonné : 44/45 ; bouton de journaux sur deux lignes à 390 px en français, capture inspectée. | Parcours critique authentifié sur petits écrans et Safari HTTPS, idéalement appareil physique : clavier, navigation, reconnexion, sauvegarde et publication. Vérification des erreurs et de la version réellement servie après rollout. |
 
 La preuve du défaut annuel utilise des closures de production extraites par
 AST et des fixtures mémoire, sans requête Stripe, HTTP ou PostgreSQL.

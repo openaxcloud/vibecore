@@ -680,7 +680,7 @@
     "e2e": 39161995315,
     "deployment": 39161995312
   },
-  "deploymentStatusAtRecord": "in progress; no success claimed",
+  "deploymentStatusAtRecord": "completed success 2026-10-18T21:35:00Z",
   "phase": "Preparatory only: WORKSPACE_ADMISSION_V2_QUOTA_ENABLED=true, WORKSPACE_ADMISSION_V2_ENABLED=false. No V2 activation.",
   "phaseProof": {
     "expectedConfig": {
@@ -690,7 +690,8 @@
     "sourceGuard": "scripts/release-gate/verify-workspace-admission-phase.mjs",
     "liveConfigMapReadStep": "Verify rollout",
     "observedLive": false,
-    "status": "Release gate still waiting exact-commit CI/E2E at20:20UTC; no live flag evidence claimed."
+    "status": "The exact-SHA blocking Verify rollout step read the live ConfigMap and passed the phase guard at 21:34:30Z. Raw ConfigMap and log text remain unreadable here; indirect CI evidence, not an independent operator read.",
+    "blockingLiveGuardSucceeded": true
   },
   "mainCi": {
     "runId": 39161995399,
@@ -744,21 +745,24 @@
     "notProductionProof": true
   },
   "deployment": {
-    "runId": 39161995312,
-    "head": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
-    "status": "in_progress",
-    "stageObserved": "preflight; exactSHArequiredgate passed",
-    "livePhaseObserved": false
+    "id": 39161995312,
+    "head_sha": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "status": "completed",
+    "conclusion": "success",
+    "updated_at": "2026-10-18T21:35:00Z",
+    "run_attempt": 1
   },
-  "deploymentProgressAtUtc": "2026-10-18T21:06:01Z",
+  "deploymentProgressAtUtc": "2026-10-18T21:38:09.747051+00:00",
   "runtimeBuild": {
     "status": "success",
     "startedAtUtc": "2026-10-18T20:38:12Z",
     "finishedAtUtc": "2026-10-18T21:06:01Z"
   },
   "webBuild": {
-    "status": "in_progress",
-    "startedAtUtc": "2026-10-18T21:06:01Z"
+    "status": "success",
+    "startedAtUtc": "2026-10-18T21:06:01Z",
+    "finishedAtUtc": "2026-10-18T21:14:28Z"
   },
-  "liveAdmissionFlagsProven": false
+  "liveAdmissionFlagsProven": "indirectly by successful blocking live ConfigMap guard; raw values not retrieved",
+  "deployed": true
 }

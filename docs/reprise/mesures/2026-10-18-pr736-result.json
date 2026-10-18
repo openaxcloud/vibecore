@@ -4,7 +4,7 @@
   "base": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
   "merged": true,
   "deployed": false,
-  "checkedAtUtc": "2026-10-18T20:54:11.749225+00:00",
+  "checkedAtUtc": "2026-10-18T21:38:09.747051+00:00",
   "ci": {
     "run": 39162667809,
     "job": 117779055177,
@@ -473,9 +473,9 @@
   "mainCiRun": 39165426811,
   "mainE2eRun": 39165426875,
   "deploymentRun": 39165426842,
-  "deploymentStatus": "pending behind active735; no cancellation observed",
+  "deploymentStatus": "failure; blocking release gate refused exact commit for failing Production E2E at21:35:38Z; no build or rollout",
   "previousDeploymentRun": 39161995312,
-  "previousDeploymentStatus": "in_progress runtime CloudBuild",
+  "previousDeploymentStatus": "success21:35:00Z",
   "mainWebkit": {
     "job": 117787338599,
     "status": "success",
@@ -501,5 +501,41 @@
       "total": 242,
       "critical": 4
     }
+  },
+  "mainE2e": {
+    "run": 39165426875,
+    "runAttempt": 1,
+    "verdictJob": 117794779887,
+    "status": "failure",
+    "summaryAtUtc": "2026-10-18T21:28:07Z",
+    "reported": 453,
+    "failing": 1,
+    "flaky": 5,
+    "unchangedWaivers": 6,
+    "specsExpected": 73,
+    "specsSeen": 73,
+    "persistentFailure": "ide-mobile-chrome.spec.ts:3377 database tables heading absent at3395 in all3attempts",
+    "shard1": {
+      "job": 117787338696,
+      "passed": 135,
+      "failing": 1,
+      "flaky": 4,
+      "skipped": 6,
+      "durationMinutes": 28.2
+    },
+    "rootCauseEstablished": false,
+    "identicalRerunRequested": false,
+    "diagnosticLimits": "mobilePanel deploy is intended for database; all database DOM flags depend on missing heading; responses[] observes browser responses only, not request starts/failures or server/APIRequestContext traffic",
+    "capture": {
+      "artifactId": 12150884675,
+      "inspected": false,
+      "blocked": "Normal signed archive materialization blocked by proxy CONNECT403; no bypass"
+    }
+  },
+  "deploymentGate": {
+    "job": 117796443451,
+    "refusedAtUtc": "2026-10-18T21:35:38Z",
+    "reason": "Production E2E concluded failure",
+    "buildAndRolloutSkipped": true
   }
 }
