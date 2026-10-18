@@ -1,0 +1,39 @@
+{
+  "headSha": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+  "runUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310054",
+  "jobUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310054/job/117754240691",
+  "source": "Decoded complete job logs through the authenticated GitHub connector",
+  "root": {
+    "passed": 9656,
+    "skipped": 4,
+    "filesPassed": 1268,
+    "filesSkipped": 2
+  },
+  "api": {
+    "passed": 2418,
+    "skipped": 23,
+    "filesPassed": 290,
+    "filesSkipped": 4
+  },
+  "manager": {
+    "passed": 152,
+    "skipped": 0,
+    "files": 9
+  },
+  "workspaceAgent": {
+    "passed": 114
+  },
+  "aiGateway": {
+    "passed": 129
+  },
+  "worker": {
+    "passed": 55
+  },
+  "specific": [
+    "✓ src/tests/workspace-admission-transfer.spec.ts (10 tests) 3396ms",
+    "✓ src/tests/admin-workspace-restart-audit.spec.ts (3 tests) 1091ms",
+    "✓ src/quota-admission-race.spec.ts (8 tests) 10846ms"
+  ],
+  "productionFunctionalProof": false,
+  "note": "Do not add local targeted counts to these CI totals: they overlap."
+}

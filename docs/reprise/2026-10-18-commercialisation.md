@@ -19,6 +19,49 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
+## Les cinq conditions de lancement — reprise à 19:13 UTC
+
+Cette liste reste le critère de sortie. La correction de ressources #733 et
+la livraison préparatoire proposée dans #735 n'y substituent pas un verdict CI.
+À ce relevé, main est `44a8e01bc1` ; la dernière livraison réussie reste
+`615b3fcfb5`. #735, tête `1d2755086`, n'est ni fusionnée ni déployée.
+
+| Condition indispensable | Code, tests et intégration établis | Preuve de clôture encore nécessaire |
+| --- | --- | --- |
+| Compte neuf → génération → exécution → sauvegarde → publication → URL utilisée | Parcours et composants présents. Le [tri des 18 échecs runtime](2026-10-18-runtime-triage.md) relève 7 dérives d'assertion vérifiées, 4 attentes de runtime sur un banc sans runtime, 5 parcours mobiles et 2 défauts d'interface encore non attribués. Aucun succès runtime. | Compte QA neuf et boîte mail autorisés ; génération réelle avec budget explicite ; état réel du serveur et de l'agent ; écriture puis réouverture ; URL publiée utilisée depuis une session extérieure. |
+| Démarrage conforme au forfait | #733 fusionnée et livrée ; contrat local/API des forfaits historiques couvert. #735 ajoute admission coordonnée et barrières de suppression ; CI de sa tête : 2 418 tests API passés, 23 sauts ; 152 tests manager passés. Dernière tranche E2E encore en cours. | CPU/RAM/stockage effectivement attribués et quota concurrent observés dans le cluster. Inventaire et réconciliation des lignes legacy, drainage et essais live avant activation V2. Les nouveaux noms de forfait demandent une migration coordonnée. |
+| Paiements et catalogue Stripe mensuel/annuel, droits après paiement | Routes, catalogue et tests isolés présents ; le workflow navigateur porte explicitement des billing mock flows. Aucun paiement réel ou de test Stripe effectué ici. | Inventaire autorisé du catalogue et des abonnements existants ; Stripe TEST, mensuel/annuel, webhook signé et idempotent, droits après confirmation, refus/annulation et changement de formule. Aucun paiement ni changement client sans accord précis. |
+| Isolation, quotas, suppression, restauration réelle | Tests locaux d'admission et suppression conservant les références en cas d'incertitude. #718/#414/#79/#52 restent brouillons non intégrés. Le dry-run de sauvegarde local porte sur quatre fichiers temporaires. | Deux organisations QA distinctes ; refus croisés API/jetons/réseau/GCS/PVC ; dépassement de quota ; suppression et retry contrôlés ; restauration PostgreSQL/GCS/PVC isolée, intégrité et temps mesurés. |
+| Mobile et Safari | #735 : audit EN/FR sur 390/768/1024/1440 vert ; tablette réellement relancée et réussie à 19:01:37 UTC. Canari WebKit vert. Les nouvelles captures ne sont pas inspectées ici, leur transfert local restant refusé. | Parcours critique authentifié sur petits écrans et Safari HTTPS, idéalement appareil physique, avec captures inspectées ; clavier, navigation, reconnexion, sauvegarde et publication. Chromium avec profil iPhone ne vaut pas Safari. |
+
+Les [comptages CI de #735](mesures/2026-10-18-pr735-ci-counts.json) proviennent
+du journal complet du job, désormais lisible par le connecteur GitHub. Ils ne
+s'ajoutent pas aux tests locaux qui les recoupent. Les quatre audits EN/FR
+utilisent une pile CI locale ; leur succès ne prouve pas la production.
+
+Accès restant bloquant : HTTPS des domaines publics refusé par le proxy
+(`CONNECT 403`, aucun code HTTP origine), pas d'accès opérateur GCP/Kubernetes,
+pas de comptes QA/mailbox ni Stripe utilisables ici. Les logs du job de livraison
+#733 restent illisibles (`Transport closed`) ; les captures référencées par
+GitHub ne peuvent pas être copiées localement (`CONNECT 403`). Ces refus ne
+prouvent aucune panne des domaines. Aucune tentative de contournement effectuée.
+
+Une nouvelle anomalie de code est vérifiée : les loaders `api.status.*` et
+`api.polyglot.health/benchmark` retournent des états sains, latences et uptime
+constants sans télémétrie ; la page `/status` présente aussi tous les services
+opérationnels et un historique vide comme calme. Son exposition effective live
+n'est pas vérifiée. Une correction indépendante est en préparation ; elle
+n'est pas fusionnée ni livrée. Le lancement exige des états inconnus honnêtes
+lorsqu'aucune mesure n'existe, puis une vraie source d'exploitation.
+
+À reporter seulement si exclus explicitement de l'offre : natif/desktop,
+SSO Enterprise, connecteurs secondaires, parité visuelle exhaustive et
+optimisation de durée CI. Les cinq conditions ci-dessus ne sont pas reportables
+dans une déclaration de lancement complet. Aucun délai global fiable n'est
+annoncé : les accès, les résultats live et les dépendances Stripe/restauration
+ne sont pas encore établis ; la mesure de collisions sur 24 h reste une durée
+d'observation minimale documentée, pas une validation déjà obtenue.
+
 ## État actuel et accès
 
 Relevé GitHub et local commencé à 14:41 UTC. Main et checkout initial propre :
