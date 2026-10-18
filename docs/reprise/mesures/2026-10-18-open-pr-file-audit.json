@@ -1,0 +1,4207 @@
+{
+  "observedAtUtc": "2026-10-18T20:02:59.829591+00:00",
+  "repository": "openaxcloud/vibecore",
+  "scope": "Current GitHub PR diffs, not approval of historical code. No remote branch edited. Derived files must be regenerated if integrated.",
+  "pullRequests": [
+    {
+      "number": 736,
+      "head": "646ad466ae6c523dbfab4dda974f0f9478a9d53c",
+      "base": "44a8e01bc1010732cb5862c346071e4411d0511d",
+      "state": "open",
+      "draft": false,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 22,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/deploy-main.yml",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "Dockerfile",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/ecode-exact/pages/StatusPage.tsx",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 93,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/i18n/catalogs/marketing-exact-status-desktop.spec.tsx",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts",
+          "status": "modified",
+          "additions": 56,
+          "deletions": 43,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/marketing/ecode-public-runtime.server.ts",
+          "status": "modified",
+          "additions": 59,
+          "deletions": 129,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/routes/api.ecode-public-runtime.spec.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 10,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/routes/api.public-telemetry.spec.ts",
+          "status": "added",
+          "additions": 90,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/routes/status.spec.ts",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-PUBLIC-TELEMETRY-INVENTED-001.md",
+          "status": "added",
+          "additions": 64,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "functions/[[path]].ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "functions/legacy-marketing-entry.spec.ts",
+          "status": "added",
+          "additions": 22,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "legacy-marketing-entry.mjs",
+          "status": "added",
+          "additions": 53,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "legacy-marketing-entry.spec.mjs",
+          "status": "added",
+          "additions": 151,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "public/_redirects",
+          "status": "added",
+          "additions": 6,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/check-public-status-local.mjs",
+          "status": "added",
+          "additions": 157,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/deploy-tiers-couvrent-tous-les-services.spec.mjs",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/tiers-a-jour.mjs",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/tiers-a-jour.spec.mjs",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "server.mjs",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "vite.config.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 735,
+      "head": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+      "base": "44a8e01bc1010732cb5862c346071e4411d0511d",
+      "state": "open",
+      "draft": false,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 48,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".env.example",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": ".github/workflows/deploy-main.yml",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "SERVI-POUR-LES-SESSIONS.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-WORKSPACE-AGENT-READY-001.md",
+          "status": "added",
+          "additions": 32,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-WORKSPACE-MANAGER-TIMESTAMP-001.md",
+          "status": "added",
+          "additions": 103,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/2026-10-18-commercialisation.md",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/2026-10-18-workspace-admission.md",
+          "status": "added",
+          "additions": 123,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/mesures/2026-10-18-manager-timestamp-validation.json",
+          "status": "added",
+          "additions": 133,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/mesures/2026-10-18-pr734-result.json",
+          "status": "added",
+          "additions": 278,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/mesures/2026-10-18-workspace-admission-validation.json",
+          "status": "added",
+          "additions": 431,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/configmap.yaml",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/values-prod.yaml",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/values.yaml",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/edge.js",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 5,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index-browser.js",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.d.ts",
+          "status": "modified",
+          "additions": 323,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.js",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 5,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/package.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/schema.prisma",
+          "status": "modified",
+          "additions": 28,
+          "deletions": 18,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0087_workspace_admission/migration.sql",
+          "status": "added",
+          "additions": 15,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0088_workspace_admission_attempt/migration.sql",
+          "status": "added",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0089_workspace_admission_requests/migration.sql",
+          "status": "added",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0090_project_runtime_deletion/migration.sql",
+          "status": "added",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/schema.prisma",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/release-gate/verify-workspace-admission-phase.mjs",
+          "status": "added",
+          "additions": 31,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app-public-copy.json",
+          "status": "modified",
+          "additions": 20,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 424,
+          "deletions": 161,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/prisma-store.ts",
+          "status": "modified",
+          "additions": 137,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/project-teardown.ts",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 6,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/store.ts",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/admin-suppression-definitive.spec.ts",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/admin-workspace-restart-audit.spec.ts",
+          "status": "added",
+          "additions": 107,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/project-orphan-resources.spec.ts",
+          "status": "modified",
+          "additions": 59,
+          "deletions": 14,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/test-api-store.ts",
+          "status": "modified",
+          "additions": 122,
+          "deletions": 11,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/workspace-admission-client.spec.ts",
+          "status": "added",
+          "additions": 48,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/workspace-admission-transfer.spec.ts",
+          "status": "added",
+          "additions": 414,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/workspace-admission.ts",
+          "status": "added",
+          "additions": 135,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/admission.spec.ts",
+          "status": "added",
+          "additions": 589,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/admission.ts",
+          "status": "added",
+          "additions": 118,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/app.ts",
+          "status": "modified",
+          "additions": 101,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/manager.spec.ts",
+          "status": "modified",
+          "additions": 50,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/manager.ts",
+          "status": "modified",
+          "additions": 549,
+          "deletions": 48,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/prisma-store.spec.ts",
+          "status": "modified",
+          "additions": 183,
+          "deletions": 7,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/prisma-store.ts",
+          "status": "modified",
+          "additions": 134,
+          "deletions": 41,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/public-i18n.ts",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/quota-admission-race.spec.ts",
+          "status": "added",
+          "additions": 473,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/guards/workspace-admission-rollout.spec.ts",
+          "status": "added",
+          "additions": 55,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 718,
+      "head": "1f50ded87d6cba107a1cc9f8ed4920a102226447",
+      "base": "7c24f8fc8f52a6457891a7245268e79ee9d60c4b",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 93,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".env.example",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": ".github/actions/preparer-pile-e2e/action.yml",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-GARDES-LOCATAIRES-CONTRATS-ABSENTS.md",
+          "status": "added",
+          "additions": 16,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-PURGE-PHYSIQUE-PRODUCTION-NON-PROUVEE.md",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-22-account-purge-worker/JOURNAL.md",
+          "status": "added",
+          "additions": 101,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-22-account-purge-worker/README.md",
+          "status": "added",
+          "additions": 92,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-22-account-purge-worker/proof-sample.json",
+          "status": "added",
+          "additions": 196,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/README.md",
+          "status": "added",
+          "additions": 296,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/gcs-SHA256SUMS",
+          "status": "added",
+          "additions": 1,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/gcs-proof.json",
+          "status": "added",
+          "additions": 46,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/k8s-SHA256SUMS",
+          "status": "added",
+          "additions": 1,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/k8s-proof.json",
+          "status": "added",
+          "additions": 22,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/INDEX.md",
+          "status": "added",
+          "additions": 67,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/README.md",
+          "status": "added",
+          "additions": 273,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/pg16-interleaving-run.txt",
+          "status": "added",
+          "additions": 67,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/pg16-statement-log.txt",
+          "status": "added",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/r-p3-07-auth-red-green.txt",
+          "status": "added",
+          "additions": 19,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/r-p5-01-lease-renewal.md",
+          "status": "added",
+          "additions": 175,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/parity/DOCUMENT_MANIFEST.yaml",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/parity/MULTI_TENANT_GUARDRAILS_CONTRACT.md",
+          "status": "added",
+          "additions": 259,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/parity/incoming/EVIDENCE_PR52_8e3caa34.md",
+          "status": "added",
+          "additions": 36396,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/2026-10-11-gardes-locataires.md",
+          "status": "added",
+          "additions": 54,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/2026-10-11-purge-reprise.md",
+          "status": "added",
+          "additions": 60,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/2026-10-11-stockage-mesure.md",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/reprise/2026-10-12-services-integres.md",
+          "status": "modified",
+          "additions": 19,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/configmap.yaml",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/cronjobs.yaml",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/edge.js",
+          "status": "modified",
+          "additions": 43,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index-browser.js",
+          "status": "modified",
+          "additions": 39,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.d.ts",
+          "status": "modified",
+          "additions": 21465,
+          "deletions": 15472,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.js",
+          "status": "modified",
+          "additions": 43,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/package.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/schema.prisma",
+          "status": "modified",
+          "additions": 92,
+          "deletions": 7,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0083_purge_plan_ownership/migration.sql",
+          "status": "added",
+          "additions": 32,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0084_purge_plan_lease_singleton/migration.sql",
+          "status": "added",
+          "additions": 8,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0085_project_object_storage_usage/migration.sql",
+          "status": "added",
+          "additions": 45,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0085_purge_receipt/migration.sql",
+          "status": "added",
+          "additions": 9,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0086_workspace_purge_barrier/migration.sql",
+          "status": "added",
+          "additions": 3,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0087_workspace_purge_frozen_at/migration.sql",
+          "status": "added",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/schema.prisma",
+          "status": "modified",
+          "additions": 85,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/observability/src/declared-metrics.spec.ts",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/observability/src/index.ts",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/sdk/src/index.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/sdk/src/token-raisons-autorisees.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/sdk/src/token-scopes.spec.ts",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/sdk/src/token.ts",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/security/src/index.ts",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/i18n/source-allowlist.json",
+          "status": "modified",
+          "additions": 81,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/scripts/physical-purge-gcs-e2e.ts",
+          "status": "added",
+          "additions": 195,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/scripts/physical-purge-k8s-e2e.sh",
+          "status": "added",
+          "additions": 131,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/account-purge.ts",
+          "status": "added",
+          "additions": 163,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/account-storage-purge.ts",
+          "status": "added",
+          "additions": 325,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app-public-copy.json",
+          "status": "modified",
+          "additions": 40,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 1126,
+          "deletions": 141,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/capacity-policy.spec.ts",
+          "status": "modified",
+          "additions": 66,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/capacity-policy.ts",
+          "status": "modified",
+          "additions": 138,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/metering-service.ts",
+          "status": "modified",
+          "additions": 124,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage-inventory.spec.ts",
+          "status": "added",
+          "additions": 189,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage-quota.spec.ts",
+          "status": "added",
+          "additions": 185,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage-quota.ts",
+          "status": "added",
+          "additions": 163,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage.spec.ts",
+          "status": "modified",
+          "additions": 105,
+          "deletions": 18,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage.ts",
+          "status": "modified",
+          "additions": 65,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/prisma-store.ts",
+          "status": "modified",
+          "additions": 1297,
+          "deletions": 21,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/store.ts",
+          "status": "modified",
+          "additions": 57,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/strike-system.ts",
+          "status": "modified",
+          "additions": 39,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tenant-guardrails.spec.ts",
+          "status": "added",
+          "additions": 634,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tenant-guardrails.ts",
+          "status": "added",
+          "additions": 740,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/account-purge-db.spec.ts",
+          "status": "added",
+          "additions": 1749,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/account-purge-routes.spec.ts",
+          "status": "added",
+          "additions": 446,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/account-storage-purge.spec.ts",
+          "status": "added",
+          "additions": 300,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/app-public-copy.spec.ts",
+          "status": "modified",
+          "additions": 21,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/lecture-declenche-provisionnement.spec.ts",
+          "status": "modified",
+          "additions": 38,
+          "deletions": 12,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/object-storage-purge-freeze.spec.ts",
+          "status": "added",
+          "additions": 206,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/object-storage-quota-route.spec.ts",
+          "status": "added",
+          "additions": 348,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/object-storage-token-scopes.spec.ts",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/strike-system.spec.ts",
+          "status": "modified",
+          "additions": 23,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/tenant-guardrails-db.spec.ts",
+          "status": "added",
+          "additions": 203,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/tenant-guardrails-routes.spec.ts",
+          "status": "added",
+          "additions": 576,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/test-api-store.ts",
+          "status": "modified",
+          "additions": 523,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/vitest.config.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/vitest.setup.ts",
+          "status": "added",
+          "additions": 7,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/worker/src/index.ts",
+          "status": "modified",
+          "additions": 106,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/worker/src/workspace-freeze-reconcile.spec.ts",
+          "status": "added",
+          "additions": 132,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/app.spec.ts",
+          "status": "modified",
+          "additions": 321,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/app.ts",
+          "status": "modified",
+          "additions": 188,
+          "deletions": 12,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/manager.spec.ts",
+          "status": "modified",
+          "additions": 499,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/manager.ts",
+          "status": "modified",
+          "additions": 475,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/prisma-store.ts",
+          "status": "modified",
+          "additions": 115,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/public-i18n.ts",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/purge-fence-cas.integration.spec.ts",
+          "status": "added",
+          "additions": 670,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/vitest.config.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/guards/e2e-tenant-rollout.spec.ts",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 708,
+      "head": "99d1969fe6a418b03d96e3563154e434fef011c1",
+      "base": "c7a6fa5025c18419988173179f8f30044d0253b3",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 2,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 102,
+          "deletions": 27,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/un-seul-gabarit-par-espace.spec.ts",
+          "status": "added",
+          "additions": 322,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 669,
+      "head": "d816fa0cd3b067cd2728b723f6984c2944ef7f28",
+      "base": "5416e0c1189e1e1d044ae67a8077f2ebcf1e9085",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 4,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/deploy-main.yml",
+          "status": "modified",
+          "additions": 56,
+          "deletions": 9,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-DEPLOY-BASE-DES-TIERS-PERIMEE-001.md",
+          "status": "added",
+          "additions": 107,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/guards/base-du-dernier-deploiement.spec.ts",
+          "status": "added",
+          "additions": 255,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 668,
+      "head": "4f1ca154245ef008024cfe1c51f4ffddfea0043f",
+      "base": "81a4e8c5d5e378bcfc7db74219b77ad3e7337f52",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 2,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-I18N-APERCU-TERME-INTERDIT-001.md",
+          "status": "added",
+          "additions": 84,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 666,
+      "head": "337e907d4a8804c5330aba1c862f025e01b55e25",
+      "base": "5416e0c1189e1e1d044ae67a8077f2ebcf1e9085",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 2,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "app/lib/stores/workbench.propositions-sans-flot.spec.ts",
+          "status": "added",
+          "additions": 283,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/stores/workbench.ts",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 649,
+      "head": "952e2891ceac41132d1706e4afa72aad92e3c51c",
+      "base": "da5d0ef546777667d7a3a6d2b60279fde54ede3c",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 5,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "app/lib/i18n/catalogs/upgrade.ts",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/routes/upgrade.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 23,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/billing/src/index.ts",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 10,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/billing/src/plafonds.ts",
+          "status": "added",
+          "additions": 33,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/paiement-projets-illimites.spec.ts",
+          "status": "added",
+          "additions": 51,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 648,
+      "head": "d35d38e3b9ded1f55e2dca4122f950c80441eb27",
+      "base": "b5744045648486b298aef4169dfbf2c561e20eaf",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 3,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/actions/preparer-pile-e2e/action.yml",
+          "status": "modified",
+          "additions": 49,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/guards/cache-navigateurs.spec.ts",
+          "status": "added",
+          "additions": 145,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 637,
+      "head": "fa523cca752186055a22c125e137fdda1c4bb32a",
+      "base": "5416e0c1189e1e1d044ae67a8077f2ebcf1e9085",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 8,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/deploy-main.yml",
+          "status": "modified",
+          "additions": 17,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "CLAUDE.md",
+          "status": "modified",
+          "additions": 260,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-DEPLOY-ADMIN-NON-RECONSTRUIT-001.md",
+          "status": "added",
+          "additions": 41,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-DEPLOY-SURVEILLANCE-TIERS-001.md",
+          "status": "added",
+          "additions": 35,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-REDIS-CHUTE-AU-BANC-001.md",
+          "status": "added",
+          "additions": 34,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/DETTE-CI-ACTION-COMPOSITE-001.md",
+          "status": "added",
+          "additions": 52,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/guards/deploiement-docs-saute.spec.ts",
+          "status": "added",
+          "additions": 121,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 632,
+      "head": "63f3c493f2c3f9efb530d08bbcb69154ead5c016",
+      "base": "aa828bec8ff89d34ae352287f4b281a7cadd9d00",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 4,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "scripts/declenche-un-deploiement.mjs",
+          "status": "added",
+          "additions": 108,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/declenche-un-deploiement.spec.mjs",
+          "status": "added",
+          "additions": 91,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/tiers-a-jour.mjs",
+          "status": "added",
+          "additions": 154,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/tiers-a-jour.spec.mjs",
+          "status": "added",
+          "additions": 118,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 607,
+      "head": "402431aee604c77812aace1299b1e479d44fd6b7",
+      "base": "112ff6a90fdedee59452991e4907fc220cbfa1a2",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 1,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "infra/helm/platform/values-prod.yaml",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 606,
+      "head": "8b7b3a484336e8b1e798638877ff826fdb64150a",
+      "base": "f729ced43c21005a522f32e8078ff6c7b6039c0a",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 2,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".env.example",
+          "status": "modified",
+          "additions": 780,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/env-example-complet.spec.mjs",
+          "status": "added",
+          "additions": 134,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 560,
+      "head": "06b75bf0369e3cecad60fbb2c70f72c79359a4c6",
+      "base": "bf1f06a0baa35d73d1b176174450ddbb9f03c896",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 3,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "app/components/chat/AgentPowerControls.tsx",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/agent-power-boites-non-ecrasables.spec.tsx",
+          "status": "added",
+          "additions": 115,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/agent-composer-panel-viewport.spec.ts",
+          "status": "modified",
+          "additions": 98,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 559,
+      "head": "904ba56b4b4aafbdc8dc6996ebc7e3208514731a",
+      "base": "c7a6fa5025c18419988173179f8f30044d0253b3",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 55,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/e2e.yml",
+          "status": "modified",
+          "additions": 43,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 6,
+          "previous_filename": null
+        },
+        {
+          "filename": "CLAUDE.md",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/BaseChat.tsx",
+          "status": "modified",
+          "additions": 78,
+          "deletions": 5,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ide-layout-handoff.spec.ts",
+          "status": "added",
+          "additions": 46,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ide-layout-handoff.ts",
+          "status": "added",
+          "additions": 89,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/workbench/FileTree.spec.tsx",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/workbench/FileTree.tsx",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/stores/files.reload-content.spec.ts",
+          "status": "modified",
+          "additions": 40,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/stores/files.ts",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/stores/workbench.ts",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/routes/projects.$projectId.collaborators.tsx",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 7,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/routes/projects.$projectId.env.tsx",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/styles/index.scss",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-A11Y-PANNEAU-GARE-001.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-BUILD-003.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-CI-007.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-CI-009.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-IDE-007.md",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-IDE-SPLIT-EFFACE-001.md",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-AUDIT-LOGS-NO-PAGINATION-001.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-CI-NO-MOBILE-COVERAGE-001.md",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-GUARD-BLIND-001.md",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-MOBILE-CLIP-001.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-MOBILE-CLIP-002.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-MOBILE-CLIP-003.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-MOBILE-CLIP-004.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-QA-THUMBNAIL-404-CAPTURE-001.md",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "electron/build-sans-course-publicdir.spec.ts",
+          "status": "added",
+          "additions": 57,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/runtime-contract/src/index.ts",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/runtime-remote/src/index.ts",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/garde-debordement-metrique-honnete.spec.mjs",
+          "status": "added",
+          "additions": 51,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/garde-deploy-admin-tier.spec.mjs",
+          "status": "added",
+          "additions": 73,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/garde-e2e-projet-mobile.spec.mjs",
+          "status": "added",
+          "additions": 86,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 65,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/reconciliation-une-fois.spec.ts",
+          "status": "modified",
+          "additions": 43,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/reconciliation-une-fois.ts",
+          "status": "modified",
+          "additions": 31,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/actualiser-repare-le-pod.spec.ts",
+          "status": "added",
+          "additions": 280,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/auth-theme.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/collaborateurs-1024-fr.spec.ts",
+          "status": "added",
+          "additions": 87,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/dashboard.spec.ts",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/ecode-marketing-content.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/i18n-french-live.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/ide-mobile-chrome.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/ide-split-sur-coquille.spec.ts",
+          "status": "added",
+          "additions": 113,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/mobile-device-matrix.spec.ts",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/public-homepage.spec.ts",
+          "status": "modified",
+          "additions": 3,
+          "deletions": 7,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/responsive-ide.spec.ts",
+          "status": "modified",
+          "additions": 121,
+          "deletions": 99,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/rpl-ide-live-proof.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/rpl-ide-panels-proof.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/solution-app-builder.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/solution-declines.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/solution-responsive-quality.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/ui-details.spec.ts",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 5,
+          "previous_filename": null
+        },
+        {
+          "filename": "tests/e2e/user-area-navigation.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 448,
+      "head": "af567e8bd2eed09b81673dd9c3cba3a0c4e5cefc",
+      "base": "bf1f06a0baa35d73d1b176174450ddbb9f03c896",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 2,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/e2e.yml",
+          "status": "modified",
+          "additions": 95,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/release-gate/garde-e2e-perimetre.spec.mjs",
+          "status": "added",
+          "additions": 62,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 424,
+      "head": "ea8b72ca0eca8c3120acd59463a66e17c89cd299",
+      "base": "6f65885c6f20c9ba2fb788424f18cf1b33a35a10",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 6,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "app/components/chat/AgentPowerControls.tsx",
+          "status": "modified",
+          "additions": 216,
+          "deletions": 124,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ChatBox.toolbar.spec.tsx",
+          "status": "modified",
+          "additions": 31,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ChatControls.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 16,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/agent-mode-sheet-hierarchy.spec.tsx",
+          "status": "added",
+          "additions": 122,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/i18n/catalogs/chat-controls.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/styles/index.scss",
+          "status": "modified",
+          "additions": 299,
+          "deletions": 6,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 414,
+      "head": "130c29f58ccff7146d5c0fdd08c7dc6f57d81888",
+      "base": "a2e1ddc791c847313070daa2ef00dee9dcb3ab33",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 17,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "packages/database/generated/client/edge.js",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index-browser.js",
+          "status": "modified",
+          "additions": 8,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.d.ts",
+          "status": "modified",
+          "additions": 2007,
+          "deletions": 261,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.js",
+          "status": "modified",
+          "additions": 12,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/package.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/schema.prisma",
+          "status": "modified",
+          "additions": 32,
+          "deletions": 7,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0085_project_object_storage_usage/migration.sql",
+          "status": "added",
+          "additions": 45,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/schema.prisma",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 51,
+          "deletions": 8,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/metering-service.ts",
+          "status": "modified",
+          "additions": 123,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage-inventory.spec.ts",
+          "status": "added",
+          "additions": 180,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage-quota.spec.ts",
+          "status": "added",
+          "additions": 178,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage-quota.ts",
+          "status": "added",
+          "additions": 154,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/prisma-store.ts",
+          "status": "modified",
+          "additions": 35,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/store.ts",
+          "status": "modified",
+          "additions": 26,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/object-storage-quota-route.spec.ts",
+          "status": "added",
+          "additions": 219,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/test-api-store.ts",
+          "status": "modified",
+          "additions": 26,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "fix/audx-021-upload-limits"
+    },
+    {
+      "number": 366,
+      "head": "67e9a984b7a7785a56e41b421a0d319115f50e27",
+      "base": "45038413a2993327a915072d2d3cbb0992ddbc42",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 17,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/electron.yml",
+          "status": "modified",
+          "additions": 22,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "BUG_INVENTORY_LIVE.md",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-ADMIN-002.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-AGENT-009.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-AI-001.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-AI-002.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-AI-003.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-CI-003-b.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-CI-004-b.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-IDE-PANEL-RESOLUTION-001.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-REL-002.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-REL-003.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-RUNTIME-COLD-START-001.md",
+          "status": "added",
+          "additions": 20,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-RUNTIME-STATUS-DRIFT-001.md",
+          "status": "added",
+          "additions": 20,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-THEME-011.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/bugs/BUG-THEME-012.md",
+          "status": "added",
+          "additions": 24,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/ar-protect/garde-concurrence-workflows.spec.mjs",
+          "status": "added",
+          "additions": 46,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 352,
+      "head": "464f8c4f83c513bcfec84bc2d0ae250ed8946059",
+      "base": "f3366da34763c4c9efaa5dbc87416211cb9bf5d9",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 4,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/e2e.yml",
+          "status": "modified",
+          "additions": 41,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": ".github/workflows/electron.yml",
+          "status": "modified",
+          "additions": 29,
+          "deletions": 7,
+          "previous_filename": null
+        },
+        {
+          "filename": ".github/workflows/terraform.yml",
+          "status": "modified",
+          "additions": 53,
+          "deletions": 14,
+          "previous_filename": null
+        },
+        {
+          "filename": "CLAUDE.md",
+          "status": "modified",
+          "additions": 26,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 324,
+      "head": "96954a87457a04bf883267b827d6591df75e4a5c",
+      "base": "bf1f06a0baa35d73d1b176174450ddbb9f03c896",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 43,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "app/components/@settings/tabs/SettingsStatusSurfaces.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 58,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/@settings/tabs/github/components/GitHubProgressiveLoader.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 340,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/@settings/tabs/netlify/format-published.spec.ts",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 32,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/@settings/tabs/netlify/format-published.ts",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 29,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/BaseChat.tsx",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ChatControls.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 59,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ChatResiduals.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/DicussMode.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 22,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ModelSelector.spec.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 190,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/ModelSelector.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 1071,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/PresenceAvatars.spec.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 78,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/PresenceAvatars.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 119,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/chat/modelList.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/database/DatabasePanel.format.spec.ts",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 14,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/database/DatabasePanel.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 291,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/dead-components.spec.ts",
+          "status": "added",
+          "additions": 147,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/deploy/ComputeTierPreview.i18n.spec.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 70,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/deploy/ComputeTierPreview.spec.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 50,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/deploy/ComputeTierPreview.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 279,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/deploy/DeployRemainingComponents.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 31,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/deploy/DeploymentTypeSelector.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 107,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/deploy/cron-expression.spec.ts",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 53,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/deploy/cron-expression.ts",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 186,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/EcodeExactLegalPages.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 101,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/ecode-exact/marketing-ux-audit.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 6,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/ecode-exact/pages/LegalArticle.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 64,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/ecode-exact/pages/Pricing.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 1015,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/ecode-exact/pages/pricing-comparison.spec.ts",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 75,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/ecode-exact/pages/pricing-comparison.ts",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 81,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/ecode-public-theme.spec.ts",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/marketing/starter-pricing-card.spec.ts",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 20,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/project-ide/panel-uniformization-lot4.spec.tsx",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/typography-closed-scale.spec.ts",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/ui/Separator.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 22,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/ui/SettingsButton.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 55,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/ui/SharedUiResidual.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 6,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/ui/Slider.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 73,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/workbench/InspectorPanel.i18n.spec.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 64,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/components/workbench/InspectorPanel.tsx",
+          "status": "removed",
+          "additions": 0,
+          "deletions": 211,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/i18n/catalogs/client-ast-residual.spec.tsx",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 15,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/i18n/catalogs/marketing-exact-legal-blog.spec.tsx",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 48,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/lib/i18n/surfaces.ts",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "app/routes/pricing.i18n.spec.tsx",
+          "status": "modified",
+          "additions": 0,
+          "deletions": 6,
+          "previous_filename": null
+        }
+      ],
+      "removed": [
+        "app/components/@settings/tabs/github/components/GitHubProgressiveLoader.tsx",
+        "app/components/@settings/tabs/netlify/format-published.spec.ts",
+        "app/components/@settings/tabs/netlify/format-published.ts",
+        "app/components/chat/DicussMode.tsx",
+        "app/components/chat/ModelSelector.spec.tsx",
+        "app/components/chat/ModelSelector.tsx",
+        "app/components/chat/PresenceAvatars.spec.tsx",
+        "app/components/chat/PresenceAvatars.tsx",
+        "app/components/database/DatabasePanel.format.spec.ts",
+        "app/components/database/DatabasePanel.tsx",
+        "app/components/deploy/ComputeTierPreview.i18n.spec.tsx",
+        "app/components/deploy/ComputeTierPreview.spec.tsx",
+        "app/components/deploy/ComputeTierPreview.tsx",
+        "app/components/deploy/DeploymentTypeSelector.tsx",
+        "app/components/deploy/cron-expression.spec.ts",
+        "app/components/deploy/cron-expression.ts",
+        "app/components/marketing/EcodeExactLegalPages.tsx",
+        "app/components/marketing/ecode-exact/pages/LegalArticle.tsx",
+        "app/components/marketing/ecode-exact/pages/Pricing.tsx",
+        "app/components/marketing/ecode-exact/pages/pricing-comparison.spec.ts",
+        "app/components/marketing/ecode-exact/pages/pricing-comparison.ts",
+        "app/components/ui/Separator.tsx",
+        "app/components/ui/SettingsButton.tsx",
+        "app/components/ui/Slider.tsx",
+        "app/components/workbench/InspectorPanel.i18n.spec.tsx",
+        "app/components/workbench/InspectorPanel.tsx"
+      ],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 125,
+      "head": "1e14d78e2fede444177bdb3e21cfd65c9cd69b13",
+      "base": "f4f604f4ca24ca8c397617819226eb30378c0b4a",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 135,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": ".github/workflows/ar-protect-images.yml",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": ".github/workflows/deploy-main.yml",
+          "status": "modified",
+          "additions": 48,
+          "deletions": 7,
+          "previous_filename": null
+        },
+        {
+          "filename": ".github/workflows/deploy-prod.yml",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": ".github/workflows/deploy-staging.yml",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/CI_WAIVER_PR125.md",
+          "status": "added",
+          "additions": 333,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/CONTRE_AUDIT_82603D55.md",
+          "status": "added",
+          "additions": 238,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/CONTRE_AUDIT_82ED5E5F.md",
+          "status": "added",
+          "additions": 160,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/CONTRE_AUDIT_AFAA6441.md",
+          "status": "added",
+          "additions": 244,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/DOSSIER_PR125.md",
+          "status": "added",
+          "additions": 162,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/P0_CONTEXTE_EPINGLE.md",
+          "status": "added",
+          "additions": 147,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/P0_FUITE_COOKIE_ET_ROUTAGE.md",
+          "status": "added",
+          "additions": 138,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/PREVIEW_TENANT_GATE_DOORS.md",
+          "status": "added",
+          "additions": 230,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/TEST_ENV_RUNBOOK.md",
+          "status": "added",
+          "additions": 505,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/1-json-valide-apres-rebase-tip.txt",
+          "status": "added",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/1-json-valide-mais-inconnu-AVEC-fix.txt",
+          "status": "added",
+          "additions": 3,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/1-json-valide-mais-inconnu-SANS-fix.txt",
+          "status": "added",
+          "additions": 22,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/2-identite-apres-rebase-tip.txt",
+          "status": "added",
+          "additions": 29,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/2-identite-autoritative-AVEC-fix.txt",
+          "status": "added",
+          "additions": 29,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/2-identite-autoritative-SANS-fix.txt",
+          "status": "added",
+          "additions": 33,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/gate1-complet.txt",
+          "status": "added",
+          "additions": 98,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/lint-origin-main-seul.txt",
+          "status": "added",
+          "additions": 88,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/live-4-portes-1c68880b39.txt",
+          "status": "added",
+          "additions": 63,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/live-4-portes-693ff5c8b5.txt",
+          "status": "added",
+          "additions": 63,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/live-4-portes-passe-de-mise-au-point.txt",
+          "status": "added",
+          "additions": 68,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/live-images-registre-1c68880b39.txt",
+          "status": "added",
+          "additions": 16,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-82603d55/live-images-registre-693ff5c8b5.txt",
+          "status": "added",
+          "additions": 16,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/1-port-access-fail-closed-AVEC-fix.txt",
+          "status": "added",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/1-port-access-fail-closed-SANS-fix.txt",
+          "status": "added",
+          "additions": 20,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/2-redaction-secrets-logs.txt",
+          "status": "added",
+          "additions": 6,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/3-etat-terraform-AVEC-fix.txt",
+          "status": "added",
+          "additions": 34,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/3-etat-terraform-SANS-fix.txt",
+          "status": "added",
+          "additions": 19,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/4-enveloppe-ci-helm.txt",
+          "status": "added",
+          "additions": 21,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/gate1-complet.txt",
+          "status": "added",
+          "additions": 58,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/live-4-portes-82603d55f7.txt",
+          "status": "added",
+          "additions": 58,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/live-etat-audit-avant-bascule.txt",
+          "status": "added",
+          "additions": 14,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/live-images-registre.txt",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/live-publications-AVANT.txt",
+          "status": "added",
+          "additions": 3,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/reserve-teardown-AVEC-fix.txt",
+          "status": "added",
+          "additions": 33,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/reserve-teardown-SANS-fix.txt",
+          "status": "added",
+          "additions": 26,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/reserve-vignettes-capture-chromium.png",
+          "status": "added",
+          "additions": 0,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/reserve-vignettes-publications-AVEC-fix.txt",
+          "status": "added",
+          "additions": 20,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/contre-audit-afaa6441/reserve-vignettes-publications-SANS-fix.txt",
+          "status": "added",
+          "additions": 18,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-2-fuite-cookie/leak-SANS-fix.txt",
+          "status": "added",
+          "additions": 26,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-3-routage-screenshotter/chromium-APRES.txt",
+          "status": "added",
+          "additions": 13,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-3-routage-screenshotter/chromium-LEGACY.txt",
+          "status": "added",
+          "additions": 11,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-3-routage-screenshotter/live-routage-chemin.txt",
+          "status": "added",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-3-routage-screenshotter/repro-chromium-AVANT.txt",
+          "status": "added",
+          "additions": 8,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-3-routage-screenshotter/vignette-reelle.png",
+          "status": "added",
+          "additions": 0,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-contexte-epingle/live-NEGATIF.txt",
+          "status": "added",
+          "additions": 28,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-contexte-epingle/live-POSITIF.txt",
+          "status": "added",
+          "additions": 31,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-contexte-epingle/prod-APRES.txt",
+          "status": "added",
+          "additions": 16,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-contexte-epingle/prod-AVANT.txt",
+          "status": "added",
+          "additions": 9,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-contexte-epingle/regression-AVEC-fix.txt",
+          "status": "added",
+          "additions": 20,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/p0-contexte-epingle/regression-SANS-fix.txt",
+          "status": "added",
+          "additions": 29,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-5626c7be71/checks-ci-tete-22bf9bb170.txt",
+          "status": "added",
+          "additions": 23,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-5626c7be71/deploiement-isole-et-digests.txt",
+          "status": "added",
+          "additions": 53,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-5626c7be71/e2e-4e-echantillon-identique-a-main.txt",
+          "status": "added",
+          "additions": 16,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-5626c7be71/inventaire-images-registre.txt",
+          "status": "added",
+          "additions": 12,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-5626c7be71/live-4-portes.txt",
+          "status": "added",
+          "additions": 68,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-5626c7be71/rouge-herite-i18n-database-provisioner.txt",
+          "status": "added",
+          "additions": 37,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-82ed5e5fa9/attribution-ci-mesuree-sur-main.txt",
+          "status": "added",
+          "additions": 23,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-82ed5e5fa9/bissection-e2e-dashboard-816.txt",
+          "status": "added",
+          "additions": 34,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-82ed5e5fa9/deploiement-isole-et-digests.txt",
+          "status": "added",
+          "additions": 59,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-82ed5e5fa9/inventaire-images-registre.txt",
+          "status": "added",
+          "additions": 12,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-82ed5e5fa9/live-4-portes.txt",
+          "status": "added",
+          "additions": 68,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-8909d09541/deploiement-isole-et-digests.txt",
+          "status": "added",
+          "additions": 56,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-8909d09541/e2e-vert-via-tolerance-bornee.txt",
+          "status": "added",
+          "additions": 32,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-8909d09541/inventaire-images-registre.txt",
+          "status": "added",
+          "additions": 12,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-8909d09541/live-4-portes.txt",
+          "status": "added",
+          "additions": 68,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-8909d09541/prediction-digests-verifiee.txt",
+          "status": "added",
+          "additions": 22,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-cb662e7b7e/checks-ci-tete-8431430c67.txt",
+          "status": "added",
+          "additions": 23,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-cb662e7b7e/deploiement-isole-et-digests.txt",
+          "status": "added",
+          "additions": 56,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-cb662e7b7e/inventaire-images-registre.txt",
+          "status": "added",
+          "additions": 12,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-cb662e7b7e/journal-echantillons-dashboard-816.txt",
+          "status": "added",
+          "additions": 14,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-cb662e7b7e/live-4-portes.txt",
+          "status": "added",
+          "additions": 68,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-cb662e7b7e/portes-apres-changements-preview-de-main.txt",
+          "status": "added",
+          "additions": 17,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-f2805edd03/checks-ci-tete-a2ebbc0049.txt",
+          "status": "added",
+          "additions": 23,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-f2805edd03/deploiement-isole-et-digests.txt",
+          "status": "added",
+          "additions": 59,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-f2805edd03/inventaire-images-registre.txt",
+          "status": "added",
+          "additions": 12,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/audit/preuves/release-isolee-f2805edd03/live-4-portes.txt",
+          "status": "added",
+          "additions": 68,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/cloudbuild/deps-only.yaml",
+          "status": "added",
+          "additions": 55,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/cloudbuild/single-service.yaml",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/cloudbuild/single-web.yaml",
+          "status": "modified",
+          "additions": 28,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/cloudbuild/workspace-agent.yaml",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/docker/node-service.Dockerfile",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/configmap.yaml",
+          "status": "modified",
+          "additions": 83,
+          "deletions": 5,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/ingress.yaml",
+          "status": "modified",
+          "additions": 6,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/migrations-job.yaml",
+          "status": "modified",
+          "additions": 34,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/networkpolicy.yaml",
+          "status": "modified",
+          "additions": 79,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/values-audit-test.yaml",
+          "status": "added",
+          "additions": 210,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/values-prod.yaml",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/values.yaml",
+          "status": "modified",
+          "additions": 32,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/kubernetes/ingress-nginx/namespace.yaml",
+          "status": "added",
+          "additions": 33,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/scripts/validate.mjs",
+          "status": "modified",
+          "additions": 108,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/terraform/envs/audit-test/.gitignore",
+          "status": "added",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/terraform/envs/audit-test/main.tf",
+          "status": "added",
+          "additions": 316,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/terraform/envs/audit-test/outputs.tf",
+          "status": "added",
+          "additions": 69,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/terraform/envs/audit-test/variables.tf",
+          "status": "added",
+          "additions": 41,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/terraform/envs/audit-test/versions.tf",
+          "status": "added",
+          "additions": 25,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/terraform/modules/gke-workspaces/main.tf",
+          "status": "modified",
+          "additions": 13,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/access-sheet.sh",
+          "status": "added",
+          "additions": 138,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/addons.sh",
+          "status": "added",
+          "additions": 129,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/check-pinned-context.mjs",
+          "status": "added",
+          "additions": 117,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/deploy-isolated.sh",
+          "status": "added",
+          "additions": 361,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/down.sh",
+          "status": "added",
+          "additions": 177,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/lib.sh",
+          "status": "added",
+          "additions": 381,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/manifests/in-cluster-doubles.yaml",
+          "status": "added",
+          "additions": 93,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/mint-secrets.sh",
+          "status": "added",
+          "additions": 91,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/render-values.sh",
+          "status": "added",
+          "additions": 36,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/schedule-teardown.sh",
+          "status": "added",
+          "additions": 55,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/test-pinned-context.sh",
+          "status": "added",
+          "additions": 284,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/audit-env/test-teardown-verification.sh",
+          "status": "added",
+          "additions": 134,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/ci/check-workflow-pinned-context.mjs",
+          "status": "added",
+          "additions": 111,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/ci/cluster.sh",
+          "status": "added",
+          "additions": 177,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/ci/test-cluster-wrapper.sh",
+          "status": "added",
+          "additions": 245,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/i18n/source-allowlist.json",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/proofs/replay-preview-doors.sh",
+          "status": "added",
+          "additions": 419,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/proofs/screenshotter-routing-chromium.mjs",
+          "status": "added",
+          "additions": 258,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 136,
+          "deletions": 21,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/preview-tenant-token.ts",
+          "status": "added",
+          "additions": 55,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/app-public-copy.spec.ts",
+          "status": "modified",
+          "additions": 14,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/preview-port-access-failclosed.spec.ts",
+          "status": "added",
+          "additions": 226,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/thumbnail-capture.ts",
+          "status": "modified",
+          "additions": 15,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/preview-proxy/src/app.spec.ts",
+          "status": "modified",
+          "additions": 117,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/preview-proxy/src/app.ts",
+          "status": "modified",
+          "additions": 290,
+          "deletions": 22,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/preview-proxy/src/deploy-path-routing.spec.ts",
+          "status": "added",
+          "additions": 162,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/preview-proxy/src/preview-ws-proxy.spec.ts",
+          "status": "modified",
+          "additions": 124,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/preview-proxy/src/preview-ws-proxy.ts",
+          "status": "modified",
+          "additions": 38,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/preview-proxy/src/public-i18n.ts",
+          "status": "modified",
+          "additions": 7,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/preview-proxy/src/server-deploy-header-leak.spec.ts",
+          "status": "added",
+          "additions": 125,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/screenshotter/src/app.ts",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 3,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/screenshotter/src/browser.ts",
+          "status": "modified",
+          "additions": 81,
+          "deletions": 12,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/screenshotter/src/preview-proxy-path.spec.ts",
+          "status": "added",
+          "additions": 132,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/screenshotter/src/preview-proxy-path.ts",
+          "status": "added",
+          "additions": 78,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/screenshotter/src/server.ts",
+          "status": "modified",
+          "additions": 39,
+          "deletions": 1,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 79,
+      "head": "0b59b19e49e8bdf3d2dc6a4039358179757b8241",
+      "base": "bf1f06a0baa35d73d1b176174450ddbb9f03c896",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 10,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "docs/parity/MULTI_TENANT_GUARDRAILS_CONTRACT.md",
+          "status": "added",
+          "additions": 188,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/configmap.yaml",
+          "status": "modified",
+          "additions": 11,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/observability/src/index.ts",
+          "status": "modified",
+          "additions": 5,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/security/src/index.ts",
+          "status": "modified",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 532,
+          "deletions": 82,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/capacity-policy.spec.ts",
+          "status": "modified",
+          "additions": 61,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/capacity-policy.ts",
+          "status": "modified",
+          "additions": 134,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tenant-guardrails.spec.ts",
+          "status": "added",
+          "additions": 451,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tenant-guardrails.ts",
+          "status": "added",
+          "additions": 483,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/tenant-guardrails-routes.spec.ts",
+          "status": "added",
+          "additions": 164,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    },
+    {
+      "number": 52,
+      "head": "ed281463e3740fd245718c41f0d39cafbb98a580",
+      "base": "b73afa78e58135403e18e9edaeaa91684f6a42da",
+      "state": "open",
+      "draft": true,
+      "headStableDuringRead": true,
+      "reportedChangedFiles": 54,
+      "countMatches": true,
+      "files": [
+        {
+          "filename": "docs/deploy-evidence/2026-07-22-account-purge-worker/JOURNAL.md",
+          "status": "added",
+          "additions": 101,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-22-account-purge-worker/README.md",
+          "status": "added",
+          "additions": 92,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-22-account-purge-worker/proof-sample.json",
+          "status": "added",
+          "additions": 196,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/README.md",
+          "status": "added",
+          "additions": 296,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/gcs-SHA256SUMS",
+          "status": "added",
+          "additions": 1,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/gcs-proof.json",
+          "status": "added",
+          "additions": 46,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/k8s-SHA256SUMS",
+          "status": "added",
+          "additions": 1,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-07-23-physical-purge-e2e/k8s-proof.json",
+          "status": "added",
+          "additions": 22,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/INDEX.md",
+          "status": "added",
+          "additions": 67,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/README.md",
+          "status": "added",
+          "additions": 273,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/pg16-interleaving-run.txt",
+          "status": "added",
+          "additions": 67,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/pg16-statement-log.txt",
+          "status": "added",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/r-p3-07-auth-red-green.txt",
+          "status": "added",
+          "additions": 19,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/deploy-evidence/2026-08-07-purge-fence-cas/r-p5-01-lease-renewal.md",
+          "status": "added",
+          "additions": 175,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "docs/parity/incoming/EVIDENCE_PR52_8e3caa34.md",
+          "status": "added",
+          "additions": 36396,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "infra/helm/platform/templates/cronjobs.yaml",
+          "status": "modified",
+          "additions": 10,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/edge.js",
+          "status": "modified",
+          "additions": 35,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index-browser.js",
+          "status": "modified",
+          "additions": 31,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.d.ts",
+          "status": "modified",
+          "additions": 4451,
+          "deletions": 204,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/index.js",
+          "status": "modified",
+          "additions": 35,
+          "deletions": 4,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/package.json",
+          "status": "modified",
+          "additions": 1,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/generated/client/schema.prisma",
+          "status": "modified",
+          "additions": 60,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0083_purge_plan_ownership/migration.sql",
+          "status": "added",
+          "additions": 32,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0084_purge_plan_lease_singleton/migration.sql",
+          "status": "added",
+          "additions": 8,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0085_purge_receipt/migration.sql",
+          "status": "added",
+          "additions": 9,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0086_workspace_purge_barrier/migration.sql",
+          "status": "added",
+          "additions": 3,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/migrations/0087_workspace_purge_frozen_at/migration.sql",
+          "status": "added",
+          "additions": 2,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "packages/database/prisma/schema.prisma",
+          "status": "modified",
+          "additions": 60,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "scripts/i18n/source-allowlist.json",
+          "status": "modified",
+          "additions": 18,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/scripts/physical-purge-gcs-e2e.ts",
+          "status": "added",
+          "additions": 179,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/scripts/physical-purge-k8s-e2e.sh",
+          "status": "added",
+          "additions": 131,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/account-purge.ts",
+          "status": "added",
+          "additions": 158,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/account-storage-purge.ts",
+          "status": "added",
+          "additions": 305,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app-public-copy.json",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/app.ts",
+          "status": "modified",
+          "additions": 445,
+          "deletions": 14,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage.spec.ts",
+          "status": "modified",
+          "additions": 68,
+          "deletions": 2,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/object-storage.ts",
+          "status": "modified",
+          "additions": 63,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/prisma-store.ts",
+          "status": "modified",
+          "additions": 1137,
+          "deletions": 20,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/store.ts",
+          "status": "modified",
+          "additions": 25,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/account-purge-db.spec.ts",
+          "status": "added",
+          "additions": 1594,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/account-purge-routes.spec.ts",
+          "status": "added",
+          "additions": 414,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/account-storage-purge.spec.ts",
+          "status": "added",
+          "additions": 284,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/object-storage-purge-freeze.spec.ts",
+          "status": "added",
+          "additions": 201,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/api/src/tests/test-api-store.ts",
+          "status": "modified",
+          "additions": 446,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/worker/src/index.ts",
+          "status": "modified",
+          "additions": 105,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/worker/src/workspace-freeze-reconcile.spec.ts",
+          "status": "added",
+          "additions": 132,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/app.spec.ts",
+          "status": "modified",
+          "additions": 309,
+          "deletions": 1,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/app.ts",
+          "status": "modified",
+          "additions": 169,
+          "deletions": 8,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/manager.spec.ts",
+          "status": "modified",
+          "additions": 483,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/manager.ts",
+          "status": "modified",
+          "additions": 474,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/prisma-store.ts",
+          "status": "modified",
+          "additions": 111,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/public-i18n.ts",
+          "status": "modified",
+          "additions": 4,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/src/purge-fence-cas.integration.spec.ts",
+          "status": "added",
+          "additions": 663,
+          "deletions": 0,
+          "previous_filename": null
+        },
+        {
+          "filename": "services/workspace-manager/vitest.config.ts",
+          "status": "modified",
+          "additions": 9,
+          "deletions": 0,
+          "previous_filename": null
+        }
+      ],
+      "removed": [],
+      "renamed": [],
+      "baseRefName": "main"
+    }
+  ],
+  "supplement324": {
+    "main": "44a8e01bc1010732cb5862c346071e4411d0511d",
+    "removedInPrDiff": 26,
+    "alreadyAbsentFromMain": 21,
+    "stillPresentInMain": [
+      "app/components/deploy/cron-expression.spec.ts",
+      "app/components/deploy/cron-expression.ts",
+      "app/components/marketing/ecode-exact/pages/Pricing.tsx",
+      "app/components/marketing/ecode-exact/pages/pricing-comparison.spec.ts",
+      "app/components/marketing/ecode-exact/pages/pricing-comparison.ts"
+    ],
+    "mergeTreeOnly": true,
+    "mergeConflicts": [
+      "app/components/dead-components.spec.ts",
+      "app/components/marketing/ecode-exact/pages/Pricing.tsx",
+      "app/lib/i18n/catalogs/marketing-exact-legal-blog.spec.tsx"
+    ],
+    "note": "No branch or index changed, no cleanup merged. Pricing.tsx is not the currently routed pricing page; current tests read these historical files, so these are not established production feature removals."
+  }
+}

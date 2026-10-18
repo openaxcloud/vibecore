@@ -1,0 +1,70 @@
+{
+  "head": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+  "environment": "local API and PostgreSQL16.15; two disposable QA organizations; no workspace, cloud service or payment",
+  "origin": "http://127.0.0.1:3301",
+  "cases": [
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId/files",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId/env-vars",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId/secrets",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId/databases",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId/ide-state",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId/workspaces",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    },
+    {
+      "method": "GET",
+      "pathTemplate": "/projects/:projectId/snapshots",
+      "ownerStatus": 200,
+      "otherOrganizationStatus": 404,
+      "markerDisclosed": false
+    }
+  ],
+  "crossOrganizationWriteStatus": 404,
+  "ownerStateUnchanged": true,
+  "anonymousReadStatus": 401,
+  "runtimeProvisioned": false,
+  "paidProviderCalled": false,
+  "completedAtUtc": "2026-10-18T19:47:07Z",
+  "limits": ["Not production", "Does not test pod/PVC/network isolation or backup restore"]
+}

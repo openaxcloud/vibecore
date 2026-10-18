@@ -1,0 +1,629 @@
+{
+  "checkedAtUtc": "2026-10-18T21:36:57.887293+00:00",
+  "run": {
+    "id": 39161995312,
+    "head_sha": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "status": "completed",
+    "conclusion": "success",
+    "updated_at": "2026-10-18T21:35:00Z",
+    "run_attempt": 1
+  },
+  "jobs": [
+    {
+      "id": 117777049322,
+      "name": "Resolve target commit (exact SHA)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-18T20:09:12Z",
+      "completed_at": "2026-10-18T20:09:33Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:09:13Z",
+          "completed_at": "2026-10-18T20:09:13Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:09:13Z",
+          "completed_at": "2026-10-18T20:09:30Z"
+        },
+        {
+          "name": "Assert this workflow graph is main's, not a side branch's",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:09:30Z",
+          "completed_at": "2026-10-18T20:09:30Z"
+        },
+        {
+          "name": "Resolve and bind target SHA",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:09:30Z",
+          "completed_at": "2026-10-18T20:09:30Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T20:09:30Z",
+          "completed_at": "2026-10-18T20:09:30Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T20:09:30Z",
+          "completed_at": "2026-10-18T20:09:30Z"
+        }
+      ]
+    },
+    {
+      "id": 117777132765,
+      "name": "Release gate — required checks green for THIS commit (blocking)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-18T20:09:35Z",
+      "completed_at": "2026-10-18T20:36:44Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:09:36Z",
+          "completed_at": "2026-10-18T20:09:37Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:09:37Z",
+          "completed_at": "2026-10-18T20:09:41Z"
+        },
+        {
+          "name": "Assert checkout is exactly the target commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:09:41Z",
+          "completed_at": "2026-10-18T20:09:42Z"
+        },
+        {
+          "name": "Assert every required workflow file exists at the pinned path",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:09:42Z",
+          "completed_at": "2026-10-18T20:09:42Z"
+        },
+        {
+          "name": "Self-test the gate engine before trusting it",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:09:42Z",
+          "completed_at": "2026-10-18T20:09:44Z"
+        },
+        {
+          "name": "Verify required checks are green for this exact commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:09:44Z",
+          "completed_at": "2026-10-18T20:36:42Z"
+        },
+        {
+          "name": "Upload gate verdict",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:36:42Z",
+          "completed_at": "2026-10-18T20:36:43Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T20:36:43Z",
+          "completed_at": "2026-10-18T20:36:43Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T20:36:43Z",
+          "completed_at": "2026-10-18T20:36:43Z"
+        }
+      ]
+    },
+    {
+      "id": 117783306411,
+      "name": "Preflight gates (secrets + pipeline policy, blocking)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-18T20:36:46Z",
+      "completed_at": "2026-10-18T20:37:19Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:36:47Z",
+          "completed_at": "2026-10-18T20:36:48Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:36:48Z",
+          "completed_at": "2026-10-18T20:36:55Z"
+        },
+        {
+          "name": "Assert checkout is exactly the target commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:36:55Z",
+          "completed_at": "2026-10-18T20:36:55Z"
+        },
+        {
+          "name": "Install gitleaks",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:36:55Z",
+          "completed_at": "2026-10-18T20:36:56Z"
+        },
+        {
+          "name": "Secret scan (blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:36:56Z",
+          "completed_at": "2026-10-18T20:37:13Z"
+        },
+        {
+          "name": "Pipeline policy — image signing must still be wired",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:37:13Z",
+          "completed_at": "2026-10-18T20:37:18Z"
+        },
+        {
+          "name": "Pipeline policy — the exact-SHA release gate must still be wired",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:37:18Z",
+          "completed_at": "2026-10-18T20:37:18Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T20:37:18Z",
+          "completed_at": "2026-10-18T20:37:18Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T20:37:18Z",
+          "completed_at": "2026-10-18T20:37:18Z"
+        }
+      ]
+    },
+    {
+      "id": 117783435608,
+      "name": "Build tiers sequentially, then helm upgrade by digest",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-10-18T20:37:23Z",
+      "completed_at": "2026-10-18T21:34:59Z",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-18T20:37:24Z",
+          "completed_at": "2026-10-18T20:37:27Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-18T20:37:27Z",
+          "completed_at": "2026-10-18T20:37:43Z"
+        },
+        {
+          "name": "Assert checkout is exactly the gated commit",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-18T20:37:43Z",
+          "completed_at": "2026-10-18T20:37:43Z"
+        },
+        {
+          "name": "Detect changed tiers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-18T20:37:43Z",
+          "completed_at": "2026-10-18T20:37:48Z"
+        },
+        {
+          "name": "Authenticate to Google Cloud (Workload Identity Federation)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-18T20:37:48Z",
+          "completed_at": "2026-10-18T20:37:48Z"
+        },
+        {
+          "name": "Set up Cloud SDK",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-18T20:37:48Z",
+          "completed_at": "2026-10-18T20:38:12Z"
+        },
+        {
+          "name": "Build runtime tier (Cloud Build)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-18T20:38:12Z",
+          "completed_at": "2026-10-18T21:06:01Z"
+        },
+        {
+          "name": "Build web tier (Cloud Build)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-18T21:06:01Z",
+          "completed_at": "2026-10-18T21:14:28Z"
+        },
+        {
+          "name": "Build workspace-agent (Cloud Build)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-18T21:14:28Z",
+          "completed_at": "2026-10-18T21:17:12Z"
+        },
+        {
+          "name": "Build admin tier (Cloud Build)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-18T21:17:12Z",
+          "completed_at": "2026-10-18T21:23:51Z"
+        },
+        {
+          "name": "Set up Helm",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-18T21:23:51Z",
+          "completed_at": "2026-10-18T21:23:51Z"
+        },
+        {
+          "name": "Get cluster credentials via Connect Gateway",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-18T21:23:51Z",
+          "completed_at": "2026-10-18T21:24:16Z"
+        },
+        {
+          "name": "Assert every rebuilt tier has a traceable build id",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-18T21:24:16Z",
+          "completed_at": "2026-10-18T21:24:16Z"
+        },
+        {
+          "name": "Resolve immutable image digests for every service",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-18T21:24:16Z",
+          "completed_at": "2026-10-18T21:24:42Z"
+        },
+        {
+          "name": "Install Trivy and cosign",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-18T21:24:42Z",
+          "completed_at": "2026-10-18T21:24:45Z"
+        },
+        {
+          "name": "Alerte sur les exceptions de securite proches de l'echeance",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-18T21:24:45Z",
+          "completed_at": "2026-10-18T21:24:45Z"
+        },
+        {
+          "name": "Vulnerability gate + SBOM on the exact digests (blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-18T21:24:45Z",
+          "completed_at": "2026-10-18T21:27:33Z"
+        },
+        {
+          "name": "Verify image signatures (cosign, blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-10-18T21:27:33Z",
+          "completed_at": "2026-10-18T21:27:58Z"
+        },
+        {
+          "name": "Re-verify required checks are STILL green (last point before rollout)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-10-18T21:27:58Z",
+          "completed_at": "2026-10-18T21:28:02Z"
+        },
+        {
+          "name": "Build release manifest (blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 20,
+          "started_at": "2026-10-18T21:28:02Z",
+          "completed_at": "2026-10-18T21:28:02Z"
+        },
+        {
+          "name": "Helm render test — rollback flag (blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-10-18T21:28:02Z",
+          "completed_at": "2026-10-18T21:28:02Z"
+        },
+        {
+          "name": "Helm render test — screenshotter (blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 22,
+          "started_at": "2026-10-18T21:28:02Z",
+          "completed_at": "2026-10-18T21:28:02Z"
+        },
+        {
+          "name": "Helm render test — password-activation interlock (blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 23,
+          "started_at": "2026-10-18T21:28:02Z",
+          "completed_at": "2026-10-18T21:28:03Z"
+        },
+        {
+          "name": "Helm render test — production protections (blocking)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 24,
+          "started_at": "2026-10-18T21:28:03Z",
+          "completed_at": "2026-10-18T21:28:03Z"
+        },
+        {
+          "name": "Refresh Google Cloud credentials before the rollout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-18T21:28:03Z",
+          "completed_at": "2026-10-18T21:28:03Z"
+        },
+        {
+          "name": "Get cluster credentials via Connect Gateway",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-18T21:28:03Z",
+          "completed_at": "2026-10-18T21:28:07Z"
+        },
+        {
+          "name": "Record current release revision (for rollback)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-18T21:28:07Z",
+          "completed_at": "2026-10-18T21:28:11Z"
+        },
+        {
+          "name": "Detect password-activation cutover (SEC-8)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 28,
+          "started_at": "2026-10-18T21:28:11Z",
+          "completed_at": "2026-10-18T21:28:13Z"
+        },
+        {
+          "name": "Helm upgrade (all services pinned by digest)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 29,
+          "started_at": "2026-10-18T21:28:13Z",
+          "completed_at": "2026-10-18T21:34:17Z"
+        },
+        {
+          "name": "Verify rollout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 30,
+          "started_at": "2026-10-18T21:34:17Z",
+          "completed_at": "2026-10-18T21:34:30Z"
+        },
+        {
+          "name": "Verify running imageIDs match the release manifest",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 31,
+          "started_at": "2026-10-18T21:34:30Z",
+          "completed_at": "2026-10-18T21:34:50Z"
+        },
+        {
+          "name": "Runtime probe — deployed api refuses activation in phase 1 (SEC-9)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 32,
+          "started_at": "2026-10-18T21:34:50Z",
+          "completed_at": "2026-10-18T21:34:50Z"
+        },
+        {
+          "name": "Drain barrier — outlast the legacy public max-age (SEC-8)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 33,
+          "started_at": "2026-10-18T21:34:50Z",
+          "completed_at": "2026-10-18T21:34:50Z"
+        },
+        {
+          "name": "Phase 2 — arm password activation (SEC-8)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 34,
+          "started_at": "2026-10-18T21:34:50Z",
+          "completed_at": "2026-10-18T21:34:50Z"
+        },
+        {
+          "name": "Verify rollback flag survived the upgrade (D2)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 35,
+          "started_at": "2026-10-18T21:34:50Z",
+          "completed_at": "2026-10-18T21:34:50Z"
+        },
+        {
+          "name": "Roll back to the previous revision (post-check failure)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 36,
+          "started_at": "2026-10-18T21:34:50Z",
+          "completed_at": "2026-10-18T21:34:50Z"
+        },
+        {
+          "name": "Upload rollout status evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 37,
+          "started_at": "2026-10-18T21:34:50Z",
+          "completed_at": "2026-10-18T21:34:52Z"
+        },
+        {
+          "name": "Upload release manifest and SBOMs",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 38,
+          "started_at": "2026-10-18T21:34:52Z",
+          "completed_at": "2026-10-18T21:34:53Z"
+        },
+        {
+          "name": "Verify the activation interlock state (SEC-8)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 39,
+          "started_at": "2026-10-18T21:34:53Z",
+          "completed_at": "2026-10-18T21:34:54Z"
+        },
+        {
+          "name": "Notify result",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 40,
+          "started_at": "2026-10-18T21:34:54Z",
+          "completed_at": "2026-10-18T21:34:54Z"
+        },
+        {
+          "name": "Post Refresh Google Cloud credentials before the rollout",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 78,
+          "started_at": "2026-10-18T21:34:54Z",
+          "completed_at": "2026-10-18T21:34:54Z"
+        },
+        {
+          "name": "Post Authenticate to Google Cloud (Workload Identity Federation)",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 79,
+          "started_at": "2026-10-18T21:34:54Z",
+          "completed_at": "2026-10-18T21:34:54Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 80,
+          "started_at": "2026-10-18T21:34:54Z",
+          "completed_at": "2026-10-18T21:34:54Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 81,
+          "started_at": "2026-10-18T21:34:54Z",
+          "completed_at": "2026-10-18T21:34:55Z"
+        }
+      ]
+    }
+  ],
+  "logRead": {
+    "connector": "Transport closed",
+    "cli": "normal redirect download blocked by proxy",
+    "rawConfigMapRead": false,
+    "rawImageIdsRead": false
+  },
+  "guardEvidence": "Verify rollout succeeded; at exact deployed SHA this blocking step reads the live ConfigMap and executes verify-workspace-admission-phase.mjs under set -euo pipefail",
+  "publicHttp": {
+    "checkedAtUtc": "2026-10-18T21:35:50.994319+00:00",
+    "deploymentRun": 39161995312,
+    "checks": [
+      {
+        "domain": "e-code.ai",
+        "curlExit": 56,
+        "originHttpStatus": "000",
+        "proxyConnect403": true
+      },
+      {
+        "domain": "app.e-code.ai",
+        "curlExit": 56,
+        "originHttpStatus": "000",
+        "proxyConnect403": true
+      },
+      {
+        "domain": "api.e-code.ai",
+        "curlExit": 56,
+        "originHttpStatus": "000",
+        "proxyConnect403": true
+      }
+    ],
+    "bypassAttempted": false
+  }
+}

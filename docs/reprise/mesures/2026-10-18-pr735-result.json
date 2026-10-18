@@ -1,0 +1,768 @@
+{
+  "merge": {
+    "number": 735,
+    "state": "closed",
+    "merged": true,
+    "merged_at": "2026-10-18T20:09:07Z",
+    "merge_commit_sha": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "changed_files": 48,
+    "head": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+    "base": "44a8e01bc1010732cb5862c346071e4411d0511d",
+    "merged_by": "openaxcloud"
+  },
+  "checksBeforeMerge": {
+    "headRefOid": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+    "mergeStateStatus": "CLEAN",
+    "mergeable": "MERGEABLE",
+    "number": 735,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:35:34Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310028/job/117754240638",
+        "name": "Quality Analysis",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:28:53Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310030/job/117758379766",
+        "name": "Audit français — pertinence",
+        "startedAt": "2026-10-18T18:28:33Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:51:37Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310072/job/117754240467",
+        "name": "Quality Gates",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:51:32Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310054/job/117754240691",
+        "name": "Install, test, build, scan",
+        "startedAt": "2026-10-18T18:28:33Z",
+        "status": "COMPLETED",
+        "workflowName": "Production CI"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:29:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117771420524",
+        "name": "Perimetre des changements",
+        "startedAt": "2026-10-18T18:29:07Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:36:58Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310019/job/117754240316",
+        "name": "CodeQL Analysis (javascript)",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:28:36Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154308110/job/117754235899",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-18T18:28:31Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:28:39Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154313872/job/117754252982",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-18T18:28:35Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T19:38:39Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39159695274/job/117770204382",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-18T19:38:35Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:37:19Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310019/job/117754240363",
+        "name": "CodeQL Analysis (typescript)",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:28:30Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310072/job/117754241418",
+        "name": "Security Review Required",
+        "startedAt": "2026-10-18T18:28:31Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:31:50Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310028/job/117754240932",
+        "name": "Accessibility Tests",
+        "startedAt": "2026-10-18T18:28:37Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:38:58Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310030/job/117758344272",
+        "name": "Playwright desktop-1440",
+        "startedAt": "2026-10-18T18:28:55Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T20:06:34Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117771399663",
+        "name": "E2E tranche 1/4",
+        "startedAt": "2026-10-18T19:43:56Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:31:56Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310019/job/117754240136",
+        "name": "Dependency Vulnerability Scan",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:41:39Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310030/job/117758344740",
+        "name": "Playwright desktop-1024",
+        "startedAt": "2026-10-18T18:28:55Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:42:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117771434699",
+        "name": "E2E tranche 2/4",
+        "startedAt": "2026-10-18T18:29:29Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T19:01:37Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310030/job/117758343305",
+        "name": "Playwright tablet-768",
+        "startedAt": "2026-10-18T18:46:27Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:39:51Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117771400850",
+        "name": "E2E tranche 3/4",
+        "startedAt": "2026-10-18T18:29:29Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:45:16Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310030/job/117758344626",
+        "name": "Playwright mobile-390",
+        "startedAt": "2026-10-18T18:28:54Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:35:51Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117771429362",
+        "name": "E2E tranche 4/4",
+        "startedAt": "2026-10-18T18:29:29Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:32:43Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310028/job/117754240944",
+        "name": "Performance Audit",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T19:01:44Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310030/job/117761723066",
+        "name": "Audit français — verdict",
+        "startedAt": "2026-10-18T19:01:40Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:51:48Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310072/job/117759512138",
+        "name": "Release Validation",
+        "startedAt": "2026-10-18T18:51:39Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:36:02Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117771401310",
+        "name": "Canari iOS WebKit (non bloquant)",
+        "startedAt": "2026-10-18T18:29:29Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:29:28Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310019/job/117754240227",
+        "name": "Secrets Detection",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:28:50Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310028/job/117754240833",
+        "name": "PR Size Check",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T20:06:49Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117776465679",
+        "name": "Playwright local stack",
+        "startedAt": "2026-10-18T20:06:36Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-18T18:29:00Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39154310019/job/117754240192",
+        "name": "Secret scan (gitleaks, blocking)",
+        "startedAt": "2026-10-18T18:28:32Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      }
+    ]
+  },
+  "files": {
+    "pr": 735,
+    "headSha": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+    "totalChangedFiles": 48,
+    "productionAndDeliveryFiles": [
+      ".github/workflows/deploy-main.yml",
+      "infra/helm/platform/templates/configmap.yaml",
+      "infra/helm/platform/values-prod.yaml",
+      "infra/helm/platform/values.yaml",
+      "packages/database/generated/client/edge.js",
+      "packages/database/generated/client/index-browser.js",
+      "packages/database/generated/client/index.d.ts",
+      "packages/database/generated/client/index.js",
+      "packages/database/generated/client/package.json",
+      "packages/database/generated/client/schema.prisma",
+      "packages/database/prisma/migrations/0087_workspace_admission/migration.sql",
+      "packages/database/prisma/migrations/0088_workspace_admission_attempt/migration.sql",
+      "packages/database/prisma/migrations/0089_workspace_admission_requests/migration.sql",
+      "packages/database/prisma/migrations/0090_project_runtime_deletion/migration.sql",
+      "packages/database/prisma/schema.prisma",
+      "scripts/release-gate/verify-workspace-admission-phase.mjs",
+      "services/api/src/app-public-copy.json",
+      "services/api/src/app.ts",
+      "services/api/src/prisma-store.ts",
+      "services/api/src/project-teardown.ts",
+      "services/api/src/store.ts",
+      "services/api/src/workspace-admission.ts",
+      "services/workspace-manager/src/admission.ts",
+      "services/workspace-manager/src/app.ts",
+      "services/workspace-manager/src/manager.ts",
+      "services/workspace-manager/src/prisma-store.ts",
+      "services/workspace-manager/src/public-i18n.ts"
+    ],
+    "deletedFiles": [],
+    "files": [
+      {
+        "additions": 4,
+        "deletions": 0,
+        "filename": ".env.example",
+        "status": "modified"
+      },
+      {
+        "additions": 5,
+        "deletions": 0,
+        "filename": ".github/workflows/deploy-main.yml",
+        "status": "modified"
+      },
+      {
+        "additions": 3,
+        "deletions": 1,
+        "filename": "BUG_INVENTORY_LIVE.md",
+        "status": "modified"
+      },
+      {
+        "additions": 2,
+        "deletions": 0,
+        "filename": "SERVI-POUR-LES-SESSIONS.md",
+        "status": "modified"
+      },
+      {
+        "additions": 32,
+        "deletions": 0,
+        "filename": "docs/bugs/BUG-WORKSPACE-AGENT-READY-001.md",
+        "status": "added"
+      },
+      {
+        "additions": 103,
+        "deletions": 0,
+        "filename": "docs/bugs/BUG-WORKSPACE-MANAGER-TIMESTAMP-001.md",
+        "status": "added"
+      },
+      {
+        "additions": 7,
+        "deletions": 0,
+        "filename": "docs/reprise/2026-10-18-commercialisation.md",
+        "status": "modified"
+      },
+      {
+        "additions": 123,
+        "deletions": 0,
+        "filename": "docs/reprise/2026-10-18-workspace-admission.md",
+        "status": "added"
+      },
+      {
+        "additions": 133,
+        "deletions": 0,
+        "filename": "docs/reprise/mesures/2026-10-18-manager-timestamp-validation.json",
+        "status": "added"
+      },
+      {
+        "additions": 278,
+        "deletions": 0,
+        "filename": "docs/reprise/mesures/2026-10-18-pr734-result.json",
+        "status": "added"
+      },
+      {
+        "additions": 431,
+        "deletions": 0,
+        "filename": "docs/reprise/mesures/2026-10-18-workspace-admission-validation.json",
+        "status": "added"
+      },
+      {
+        "additions": 3,
+        "deletions": 0,
+        "filename": "infra/helm/platform/templates/configmap.yaml",
+        "status": "modified"
+      },
+      {
+        "additions": 4,
+        "deletions": 0,
+        "filename": "infra/helm/platform/values-prod.yaml",
+        "status": "modified"
+      },
+      {
+        "additions": 2,
+        "deletions": 0,
+        "filename": "infra/helm/platform/values.yaml",
+        "status": "modified"
+      },
+      {
+        "additions": 11,
+        "deletions": 5,
+        "filename": "packages/database/generated/client/edge.js",
+        "status": "modified"
+      },
+      {
+        "additions": 7,
+        "deletions": 1,
+        "filename": "packages/database/generated/client/index-browser.js",
+        "status": "modified"
+      },
+      {
+        "additions": 323,
+        "deletions": 4,
+        "filename": "packages/database/generated/client/index.d.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 11,
+        "deletions": 5,
+        "filename": "packages/database/generated/client/index.js",
+        "status": "modified"
+      },
+      {
+        "additions": 1,
+        "deletions": 1,
+        "filename": "packages/database/generated/client/package.json",
+        "status": "modified"
+      },
+      {
+        "additions": 28,
+        "deletions": 18,
+        "filename": "packages/database/generated/client/schema.prisma",
+        "status": "modified"
+      },
+      {
+        "additions": 15,
+        "deletions": 0,
+        "filename": "packages/database/prisma/migrations/0087_workspace_admission/migration.sql",
+        "status": "added"
+      },
+      {
+        "additions": 4,
+        "deletions": 0,
+        "filename": "packages/database/prisma/migrations/0088_workspace_admission_attempt/migration.sql",
+        "status": "added"
+      },
+      {
+        "additions": 2,
+        "deletions": 0,
+        "filename": "packages/database/prisma/migrations/0089_workspace_admission_requests/migration.sql",
+        "status": "added"
+      },
+      {
+        "additions": 2,
+        "deletions": 0,
+        "filename": "packages/database/prisma/migrations/0090_project_runtime_deletion/migration.sql",
+        "status": "added"
+      },
+      {
+        "additions": 10,
+        "deletions": 0,
+        "filename": "packages/database/prisma/schema.prisma",
+        "status": "modified"
+      },
+      {
+        "additions": 31,
+        "deletions": 0,
+        "filename": "scripts/release-gate/verify-workspace-admission-phase.mjs",
+        "status": "added"
+      },
+      {
+        "additions": 20,
+        "deletions": 0,
+        "filename": "services/api/src/app-public-copy.json",
+        "status": "modified"
+      },
+      {
+        "additions": 424,
+        "deletions": 161,
+        "filename": "services/api/src/app.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 137,
+        "deletions": 3,
+        "filename": "services/api/src/prisma-store.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 6,
+        "deletions": 6,
+        "filename": "services/api/src/project-teardown.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 14,
+        "deletions": 2,
+        "filename": "services/api/src/store.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 8,
+        "deletions": 4,
+        "filename": "services/api/src/tests/admin-suppression-definitive.spec.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 107,
+        "deletions": 0,
+        "filename": "services/api/src/tests/admin-workspace-restart-audit.spec.ts",
+        "status": "added"
+      },
+      {
+        "additions": 59,
+        "deletions": 14,
+        "filename": "services/api/src/tests/project-orphan-resources.spec.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 122,
+        "deletions": 11,
+        "filename": "services/api/src/tests/test-api-store.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 48,
+        "deletions": 0,
+        "filename": "services/api/src/tests/workspace-admission-client.spec.ts",
+        "status": "added"
+      },
+      {
+        "additions": 414,
+        "deletions": 0,
+        "filename": "services/api/src/tests/workspace-admission-transfer.spec.ts",
+        "status": "added"
+      },
+      {
+        "additions": 135,
+        "deletions": 0,
+        "filename": "services/api/src/workspace-admission.ts",
+        "status": "added"
+      },
+      {
+        "additions": 589,
+        "deletions": 0,
+        "filename": "services/workspace-manager/src/admission.spec.ts",
+        "status": "added"
+      },
+      {
+        "additions": 118,
+        "deletions": 0,
+        "filename": "services/workspace-manager/src/admission.ts",
+        "status": "added"
+      },
+      {
+        "additions": 101,
+        "deletions": 1,
+        "filename": "services/workspace-manager/src/app.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 50,
+        "deletions": 1,
+        "filename": "services/workspace-manager/src/manager.spec.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 549,
+        "deletions": 48,
+        "filename": "services/workspace-manager/src/manager.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 183,
+        "deletions": 7,
+        "filename": "services/workspace-manager/src/prisma-store.spec.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 134,
+        "deletions": 41,
+        "filename": "services/workspace-manager/src/prisma-store.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 4,
+        "deletions": 0,
+        "filename": "services/workspace-manager/src/public-i18n.ts",
+        "status": "modified"
+      },
+      {
+        "additions": 473,
+        "deletions": 0,
+        "filename": "services/workspace-manager/src/quota-admission-race.spec.ts",
+        "status": "added"
+      },
+      {
+        "additions": 55,
+        "deletions": 0,
+        "filename": "tests/guards/workspace-admission-rollout.spec.ts",
+        "status": "added"
+      }
+    ]
+  },
+  "e2e": {
+    "run": 39154310039,
+    "attempt": 2,
+    "verdictJob": 117776465679,
+    "completedAtUtc": "2026-10-18T20:06:49Z",
+    "reportedTests": 453,
+    "expectedSpecs": 73,
+    "observedSpecs": 73,
+    "persistentFailures": 0,
+    "flaky": 2,
+    "existingWaivers": 6,
+    "waiverChanged": false,
+    "priorAttemptFailures": 3,
+    "rootCauseOfPriorAttempt": "not established",
+    "retriedShard": {
+      "job": 117771399663,
+      "passed": 139,
+      "flaky": 1,
+      "skipped": 6,
+      "durationMinutes": 18.1,
+      "databaseListAttempts": [
+        {
+          "attempt": 0,
+          "status": "failed",
+          "durationSeconds": 16.2
+        },
+        {
+          "attempt": 1,
+          "status": "failed",
+          "durationSeconds": 17.3
+        },
+        {
+          "attempt": 2,
+          "status": "passed",
+          "durationSeconds": 26.7
+        }
+      ],
+      "streamingPassedSeconds": 16.6,
+      "myDataPassedSeconds": 29.1
+    }
+  },
+  "mainRuns": {
+    "ci": 39161995399,
+    "e2e": 39161995315,
+    "deployment": 39161995312
+  },
+  "deploymentStatusAtRecord": "completed success 2026-10-18T21:35:00Z",
+  "phase": "Preparatory only: WORKSPACE_ADMISSION_V2_QUOTA_ENABLED=true, WORKSPACE_ADMISSION_V2_ENABLED=false. No V2 activation.",
+  "phaseProof": {
+    "expectedConfig": {
+      "WORKSPACE_ADMISSION_V2_QUOTA_ENABLED": "true",
+      "WORKSPACE_ADMISSION_V2_ENABLED": "false"
+    },
+    "sourceGuard": "scripts/release-gate/verify-workspace-admission-phase.mjs",
+    "liveConfigMapReadStep": "Verify rollout",
+    "observedLive": false,
+    "status": "The exact-SHA blocking Verify rollout step read the live ConfigMap and passed the phase guard at 21:34:30Z. Raw ConfigMap and log text remain unreadable here; indirect CI evidence, not an independent operator read.",
+    "blockingLiveGuardSucceeded": true
+  },
+  "mainCi": {
+    "runId": 39161995399,
+    "jobId": 117777049161,
+    "head": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "status": "success",
+    "scope": "CI tests/build only, not production functional proof",
+    "tests": {
+      "root": {
+        "passed": 9656,
+        "skipped": 4
+      },
+      "api": {
+        "passed": 2418,
+        "skipped": 23
+      },
+      "workspaceManager": {
+        "passed": 152
+      },
+      "workspaceAgent": {
+        "passed": 114
+      }
+    },
+    "dependencyAudit": {
+      "status": "advisory/nonblocking",
+      "total": 242,
+      "critical": 4,
+      "securityAcceptance": false
+    }
+  },
+  "mainE2e": {
+    "runId": 39161995315,
+    "jobId": 117783167568,
+    "status": "success",
+    "completedAtUtc": "2026-10-18T20:36:25Z",
+    "runAttempt": 1,
+    "reported": 453,
+    "failing": 0,
+    "flaky": 5,
+    "unchangedWaivers": 6,
+    "specFilesExpected": 73,
+    "specFilesSeen": 73,
+    "shard1": {
+      "jobId": 117777113688,
+      "passed": 136,
+      "flaky": 4,
+      "skipped": 6,
+      "durationMinutes": 21.6,
+      "threePreviouslyFailingCases": "stream18.4s,DBtables20.9s,MyData21.1s; firstattemptpass"
+    },
+    "notProductionProof": true
+  },
+  "deployment": {
+    "id": 39161995312,
+    "head_sha": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "status": "completed",
+    "conclusion": "success",
+    "updated_at": "2026-10-18T21:35:00Z",
+    "run_attempt": 1
+  },
+  "deploymentProgressAtUtc": "2026-10-18T21:38:09.747051+00:00",
+  "runtimeBuild": {
+    "status": "success",
+    "startedAtUtc": "2026-10-18T20:38:12Z",
+    "finishedAtUtc": "2026-10-18T21:06:01Z"
+  },
+  "webBuild": {
+    "status": "success",
+    "startedAtUtc": "2026-10-18T21:06:01Z",
+    "finishedAtUtc": "2026-10-18T21:14:28Z"
+  },
+  "liveAdmissionFlagsProven": "indirectly by successful blocking live ConfigMap guard; raw values not retrieved",
+  "deployed": true
+}

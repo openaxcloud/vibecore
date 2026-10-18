@@ -1,0 +1,541 @@
+{
+  "pr": 736,
+  "head": "c4300e60dd00ce0fc3aa47c291213611170e987b",
+  "base": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+  "merged": true,
+  "deployed": false,
+  "checkedAtUtc": "2026-10-18T21:38:09.747051+00:00",
+  "ci": {
+    "run": 39162667809,
+    "job": 117779055177,
+    "status": "success",
+    "rootTestsPassed": 9714,
+    "rootTestsSkipped": 4,
+    "apiTestsPassed": 2418,
+    "apiTestsSkipped": 23,
+    "builds": "success"
+  },
+  "e2e": {
+    "run": 39162667823,
+    "evidenceAttempt": 1,
+    "verdictJob": 117783927770,
+    "verdictAtUtc": "2026-10-18T20:39:45Z",
+    "reported": 453,
+    "failing": 0,
+    "flaky": 0,
+    "unchangedWaivers": 6,
+    "specsExpected": 73,
+    "specsSeen": 73,
+    "shard1": {
+      "job": 117779843094,
+      "passed": 140,
+      "skipped": 6,
+      "durationMinutes": 11.9,
+      "streamSeconds": 14.2,
+      "databaseTablesSeconds": 13.4,
+      "myDataSeconds": 12.2
+    },
+    "oldFailuresCauseEstablished": false
+  },
+  "french": {
+    "run": 39162667784,
+    "status": "success",
+    "completedAtUtc": "2026-10-18T20:36:57Z",
+    "formats": [
+      1440,
+      1024,
+      768,
+      390
+    ],
+    "newCiScreenshotsInspected": false
+  },
+  "webkit": {
+    "firstJob": 117779843055,
+    "firstResult": "failed before tests: Docker55432 bind collision twice",
+    "targetedRetryJob": 117784108851,
+    "retryAccepted": true,
+    "retryStatus": "success",
+    "physicalSafariProof": false,
+    "passed": 17,
+    "preexistingSkipped": 3,
+    "testDurationMinutes": 1.5,
+    "testSummaryAtUtc": "2026-10-18T20:46:24Z"
+  },
+  "local": {
+    "lastRebaseTestsPassed": 103,
+    "files": 6,
+    "sixChromiumCapturesInspected": true,
+    "realApiCalls503": 18,
+    "actualPublishedAppGeneration": false
+  },
+  "productionAndDeliveryFiles": [
+    ".github/workflows/deploy-main.yml",
+    "Dockerfile",
+    "app/components/marketing/ecode-exact/pages/StatusPage.tsx",
+    "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts",
+    "app/lib/marketing/ecode-public-runtime.server.ts",
+    "functions/[[path]].ts",
+    "legacy-marketing-entry.mjs",
+    "public/_redirects",
+    "scripts/tiers-a-jour.mjs",
+    "server.mjs",
+    "vite.config.ts"
+  ],
+  "limits": [
+    "No direct production HTTPS access: normal proxyCONNECT403; originstatusabsent",
+    "No physicalSafari or Cloudflareedge proof",
+    "No actual telemetry source added",
+    "Legacybrowserindexcache1hour notpurged",
+    "Other staticmarketingclaims outside scope"
+  ],
+  "mergedAtUtc": "2026-10-18T20:54:14Z",
+  "mergeSha": "b827b12255d423ffb96143c39c1d2a3917ffc5e2",
+  "checksBeforeMerge": [
+    {
+      "name": "Validate PR Title",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:47:42Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39164921726/job/117785744459"
+    },
+    {
+      "name": "Validate PR Title",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:46:22Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39164821634/job/117785444645"
+    },
+    {
+      "name": "Release Validation",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:41:54Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667778/job/117784422066"
+    },
+    {
+      "name": "E2E tranche 2/4",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:33:04Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667823/job/117784148582"
+    },
+    {
+      "name": "E2E tranche 4/4",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:31:41Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667823/job/117784147970"
+    },
+    {
+      "name": "Playwright local stack",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:39:48Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667823/job/117784110829"
+    },
+    {
+      "name": "E2E tranche 3/4",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:32:53Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667823/job/117784110438"
+    },
+    {
+      "name": "E2E tranche 1/4",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:39:32Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667823/job/117784110406"
+    },
+    {
+      "name": "Perimetre des changements",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:21:27Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667823/job/117784109771"
+    },
+    {
+      "name": "Canari iOS WebKit (non bloquant)",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:46:26Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667823/job/117784108851"
+    },
+    {
+      "name": "Audit français — verdict",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:36:56Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667784/job/117783327085"
+    },
+    {
+      "name": "Draft desktop release",
+      "status": "completed",
+      "conclusion": "skipped",
+      "completedAt": "2026-10-18T20:34:00Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667898/job/117782688268"
+    },
+    {
+      "name": "Validate PR Title",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:23:38Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162936133/job/117779851053"
+    },
+    {
+      "name": "Playwright mobile-390",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:34:33Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667784/job/117779137957"
+    },
+    {
+      "name": "Playwright desktop-1024",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:30:36Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667784/job/117779137956"
+    },
+    {
+      "name": "Playwright tablet-768",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:36:50Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667784/job/117779137941"
+    },
+    {
+      "name": "Playwright desktop-1440",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:31:49Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667784/job/117779137908"
+    },
+    {
+      "name": "Security Review Required",
+      "status": "completed",
+      "conclusion": "skipped",
+      "completedAt": "2026-10-18T20:18:00Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667778/job/117779056422"
+    },
+    {
+      "name": "macos desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:32:58Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667898/job/117779055970"
+    },
+    {
+      "name": "linux desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:33:59Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667898/job/117779055830"
+    },
+    {
+      "name": "windows desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:32:44Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667898/job/117779055659"
+    },
+    {
+      "name": "Performance Audit",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:25:20Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667810/job/117779055394"
+    },
+    {
+      "name": "Quality Analysis",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:23:12Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667810/job/117779055340"
+    },
+    {
+      "name": "Accessibility Tests",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:22:36Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667810/job/117779055325"
+    },
+    {
+      "name": "PR Size Check",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:19:51Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667810/job/117779055263"
+    },
+    {
+      "name": "Secret scan (gitleaks, blocking)",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:18:41Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667801/job/117779055245"
+    },
+    {
+      "name": "CodeQL Analysis (javascript)",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:23:33Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667801/job/117779055230"
+    },
+    {
+      "name": "Audit français — pertinence",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:18:21Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667784/job/117779055226"
+    },
+    {
+      "name": "Quality Gates",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:41:42Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667778/job/117779055179"
+    },
+    {
+      "name": "Install, test, build, scan",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:41:21Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667809/job/117779055177"
+    },
+    {
+      "name": "Secrets Detection",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:19:07Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667801/job/117779055124"
+    },
+    {
+      "name": "CodeQL Analysis (typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:26:05Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667801/job/117779055106"
+    },
+    {
+      "name": "Dependency Vulnerability Scan",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:21:29Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162667801/job/117779055030"
+    },
+    {
+      "name": "Validate PR Title",
+      "status": "completed",
+      "conclusion": "success",
+      "completedAt": "2026-10-18T20:18:06Z",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39162665847/job/117779049331"
+    }
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/deploy-main.yml",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "BUG_INVENTORY_LIVE.md",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 1
+    },
+    {
+      "path": "Dockerfile",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 0
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/StatusPage.tsx",
+      "status": "modified",
+      "additions": 20,
+      "deletions": 93
+    },
+    {
+      "path": "app/lib/i18n/catalogs/marketing-exact-status-desktop.spec.tsx",
+      "status": "modified",
+      "additions": 22,
+      "deletions": 4
+    },
+    {
+      "path": "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts",
+      "status": "modified",
+      "additions": 56,
+      "deletions": 43
+    },
+    {
+      "path": "app/lib/marketing/ecode-public-runtime.server.ts",
+      "status": "modified",
+      "additions": 59,
+      "deletions": 129
+    },
+    {
+      "path": "app/routes/api.ecode-public-runtime.spec.ts",
+      "status": "modified",
+      "additions": 10,
+      "deletions": 10
+    },
+    {
+      "path": "app/routes/api.public-telemetry.spec.ts",
+      "status": "added",
+      "additions": 90,
+      "deletions": 0
+    },
+    {
+      "path": "app/routes/status.spec.ts",
+      "status": "modified",
+      "additions": 9,
+      "deletions": 3
+    },
+    {
+      "path": "docs/bugs/BUG-PUBLIC-TELEMETRY-INVENTED-001.md",
+      "status": "added",
+      "additions": 64,
+      "deletions": 0
+    },
+    {
+      "path": "functions/[[path]].ts",
+      "status": "modified",
+      "additions": 10,
+      "deletions": 0
+    },
+    {
+      "path": "functions/legacy-marketing-entry.spec.ts",
+      "status": "added",
+      "additions": 22,
+      "deletions": 0
+    },
+    {
+      "path": "legacy-marketing-entry.mjs",
+      "status": "added",
+      "additions": 53,
+      "deletions": 0
+    },
+    {
+      "path": "legacy-marketing-entry.spec.mjs",
+      "status": "added",
+      "additions": 151,
+      "deletions": 0
+    },
+    {
+      "path": "public/_redirects",
+      "status": "added",
+      "additions": 6,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/check-public-status-local.mjs",
+      "status": "added",
+      "additions": 157,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/deploy-tiers-couvrent-tous-les-services.spec.mjs",
+      "status": "modified",
+      "additions": 14,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/tiers-a-jour.mjs",
+      "status": "modified",
+      "additions": 11,
+      "deletions": 1
+    },
+    {
+      "path": "scripts/tiers-a-jour.spec.mjs",
+      "status": "modified",
+      "additions": 6,
+      "deletions": 0
+    },
+    {
+      "path": "server.mjs",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 0
+    },
+    {
+      "path": "tests/e2e/helpers/ide-failure-diagnostics.ts",
+      "status": "modified",
+      "additions": 8,
+      "deletions": 1
+    },
+    {
+      "path": "vite.config.ts",
+      "status": "modified",
+      "additions": 10,
+      "deletions": 0
+    }
+  ],
+  "mainCiRun": 39165426811,
+  "mainE2eRun": 39165426875,
+  "deploymentRun": 39165426842,
+  "deploymentStatus": "failure; blocking release gate refused exact commit for failing Production E2E at21:35:38Z; no build or rollout",
+  "previousDeploymentRun": 39161995312,
+  "previousDeploymentStatus": "success21:35:00Z",
+  "mainWebkit": {
+    "job": 117787338599,
+    "status": "success",
+    "passed": 17,
+    "preexistingSkipped": 3,
+    "summaryAtUtc": "2026-10-18T21:01:16Z",
+    "physicalSafariProof": false
+  },
+  "mainCi": {
+    "run": 39165426811,
+    "job": 117787251244,
+    "status": "success",
+    "completedAtUtc": "2026-10-18T21:09:23Z",
+    "rootPassed": 9714,
+    "rootSkipped": 4,
+    "apiPassed": 2418,
+    "apiSkipped": 23,
+    "managerPassed": 152,
+    "agentPassed": 114,
+    "builds": "success",
+    "dependencyAudit": {
+      "advisoryOnly": true,
+      "total": 242,
+      "critical": 4
+    }
+  },
+  "mainE2e": {
+    "run": 39165426875,
+    "runAttempt": 1,
+    "verdictJob": 117794779887,
+    "status": "failure",
+    "summaryAtUtc": "2026-10-18T21:28:07Z",
+    "reported": 453,
+    "failing": 1,
+    "flaky": 5,
+    "unchangedWaivers": 6,
+    "specsExpected": 73,
+    "specsSeen": 73,
+    "persistentFailure": "ide-mobile-chrome.spec.ts:3377 database tables heading absent at3395 in all3attempts",
+    "shard1": {
+      "job": 117787338696,
+      "passed": 135,
+      "failing": 1,
+      "flaky": 4,
+      "skipped": 6,
+      "durationMinutes": 28.2
+    },
+    "rootCauseEstablished": false,
+    "identicalRerunRequested": false,
+    "diagnosticLimits": "mobilePanel deploy is intended for database; all database DOM flags depend on missing heading; responses[] observes browser responses only, not request starts/failures or server/APIRequestContext traffic",
+    "capture": {
+      "artifactId": 12150884675,
+      "inspected": false,
+      "blocked": "Normal signed archive materialization blocked by proxy CONNECT403; no bypass"
+    }
+  },
+  "deploymentGate": {
+    "job": 117796443451,
+    "refusedAtUtc": "2026-10-18T21:35:38Z",
+    "reason": "Production E2E concluded failure",
+    "buildAndRolloutSkipped": true
+  }
+}

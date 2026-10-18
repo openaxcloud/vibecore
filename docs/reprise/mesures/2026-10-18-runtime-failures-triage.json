@@ -1,0 +1,323 @@
+{
+  "observedAtUtc": "2026-10-18T19:13:37Z",
+  "run": {
+    "id": 39097365302,
+    "jobId": 117586475206,
+    "url": "https://github.com/openaxcloud/vibecore/actions/runs/39097365302/job/117586475206",
+    "headSha": "3f6acb9cfb9d0b6647cea8fc8c0080fe5d55d7f9",
+    "createdAtUtc": "2026-10-18T04:31:01Z",
+    "completedAtUtc": "2026-10-18T05:34:49Z",
+    "workflowConclusion": "success",
+    "testOutcome": {
+      "failed": 18,
+      "passed": 0
+    },
+    "continueOnError": true
+  },
+  "scope": {
+    "origin": "http://127.0.0.1:5173",
+    "browser": "Chromium",
+    "productionHttp": false,
+    "workspaceRuntimeProvisioned": false,
+    "paidResourceOrPaymentTriggeredByThisReview": false,
+    "rerunByThisReview": false
+  },
+  "sourceConsistency": {
+    "comparedTo": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+    "unchangedPaths": ["app", "tests/e2e", ".github/workflows/e2e-runtime.yml"]
+  },
+  "groups": {
+    "prerequis_runtime_absent": {
+      "count": 4,
+      "cases": [1, 11, 12, 15]
+    },
+    "assertion_obsolete_verifiee": {
+      "count": 7,
+      "cases": [2, 4, 5, 13, 14, 16, 17]
+    },
+    "parcours_mobile_non_concluant": {
+      "count": 5,
+      "cases": [6, 7, 8, 9, 10]
+    },
+    "interface_a_reproduire": {
+      "count": 2,
+      "cases": [3, 18]
+    }
+  },
+  "cases": [
+    {
+      "id": 1,
+      "test": "tests/e2e/critical-paths.spec.ts:48:1 › critical path: preview iframe loads imported app content @runtime",
+      "classification": "prerequis_runtime_absent",
+      "finding": "Le contrôle Workspace: running n'apparaît pas. Le workflow ne lance ni workspace-manager, ni Pod, ni agent de workspace ; le journal ne prouve pas une panne de production.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 2,
+      "test": "tests/e2e/dashboard.spec.ts:378:1 › private templates create a project instead of opening the public gallery @runtime",
+      "classification": "assertion_obsolete_verifiee",
+      "finding": "Le titre partiel Templates correspond à h1 Templates et h2 Workspace templates ; violation stricte observée sur les trois tentatives.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('heading', { name: 'Templates' })",
+        "Expected: visible",
+        "Error: strict mode violation: getByRole('heading', { name: 'Templates' }) resolved to 2 elements:",
+        "- waiting for getByRole('heading', { name: 'Templates' })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 3,
+      "test": "tests/e2e/dashboard.spec.ts:1596:1 › IDE project services open as in-place panels instead of legacy project pages @runtime",
+      "classification": "interface_a_reproduire",
+      "finding": "La palette est ouverte, mais le helper ne trouve aucun bouton dont le texte correspond à Deployments. DOM/capture et contrat du menu à reproduire avant attribution.",
+      "failureExcerpts": [
+        "Error: Tool menu item /Deployments/ should exist",
+        "Received: false",
+        "Error: Tool menu item /Deployments/ should exist",
+        "Received: false",
+        "Error: Tool menu item /Deployments/ should exist",
+        "Received: false"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 4,
+      "test": "tests/e2e/dashboard.spec.ts:2057:1 › edit file workflow surfaces editor, files, terminal and preview affordances @runtime",
+      "classification": "assertion_obsolete_verifiee",
+      "finding": "Le test attend un lien Running|Building|Stopped|Crashed, alors que le contrôle workspace de BaseChat est un bouton.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('link', { name: /Running|Building|Stopped|Crashed/ })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByRole('link', { name: /Running|Building|Stopped|Crashed/ })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 5,
+      "test": "tests/e2e/dashboard.spec.ts:2104:1 › reopens project IDE with persisted agent memory and panel state @runtime",
+      "classification": "assertion_obsolete_verifiee",
+      "finding": "Le test attend un lien Running, alors que le contrôle workspace de BaseChat est un bouton. L'écriture initiale ide-state reçoit une réponse positive ; la vérification de la persistance après réouverture n'est pas atteinte.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('link', { name: 'Running' })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByRole('link', { name: 'Running' })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 6,
+      "test": "tests/e2e/mobile-device-matrix.spec.ts:329:5 › compact IDE shell device matrix › renders every compact IDE panel full-screen on iphone-se with a nonblank preview @runtime",
+      "classification": "parcours_mobile_non_concluant",
+      "finding": "Selon la tentative : tab-preview devient invisible au clic ou ancien placeholder agent absent. Pas de preuve de preview utilisable.",
+      "failureExcerpts": [
+        "Error: locator.click: Element is not visible",
+        "- waiting for getByTestId('mobile-bottom-navigation').getByTestId('tab-preview')",
+        "Error: iphone-se agent input",
+        "expect(locator).toBeVisible() failed",
+        "Locator: getByPlaceholder(/Describe what you want the agent to build/i)",
+        "Expected: visible"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 7,
+      "test": "tests/e2e/mobile-device-matrix.spec.ts:329:5 › compact IDE shell device matrix › renders every compact IDE panel full-screen on iphone-pro-max with a nonblank preview @runtime",
+      "classification": "parcours_mobile_non_concluant",
+      "finding": "Selon la tentative : URL reste panel=agent après preview, ancien placeholder absent, ou tab-preview invisible.",
+      "failureExcerpts": [
+        "Error: preview should update the compact IDE panel URL",
+        "Expected: \"preview\"",
+        "Received: \"agent\"",
+        "Error: iphone-pro-max agent input",
+        "expect(locator).toBeVisible() failed",
+        "Locator: getByPlaceholder(/Describe what you want the agent to build/i)"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 8,
+      "test": "tests/e2e/mobile-device-matrix.spec.ts:329:5 › compact IDE shell device matrix › renders every compact IDE panel full-screen on android-landscape with a nonblank preview @runtime › android-landscape preview",
+      "classification": "parcours_mobile_non_concluant",
+      "finding": "Selon la tentative : URL reste panel=agent après preview, ou tab-preview invisible. L'origine de la transition reste à reproduire.",
+      "failureExcerpts": [
+        "Error: preview should update the compact IDE panel URL",
+        "Expected: \"preview\"",
+        "Received: \"agent\"",
+        "Error: locator.click: Element is not visible",
+        "- waiting for getByTestId('mobile-bottom-navigation').getByTestId('tab-preview')",
+        "Error: preview should update the compact IDE panel URL"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 9,
+      "test": "tests/e2e/mobile-device-matrix.spec.ts:329:5 › compact IDE shell device matrix › renders every compact IDE panel full-screen on ipad-mini-portrait with a nonblank preview @runtime",
+      "classification": "parcours_mobile_non_concluant",
+      "finding": "Selon la tentative : ancien placeholder agent absent, ou tab-preview invisible.",
+      "failureExcerpts": [
+        "Error: ipad-mini-portrait agent input",
+        "expect(locator).toBeVisible() failed",
+        "Locator: getByPlaceholder(/Describe what you want the agent to build/i)",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByPlaceholder(/Describe what you want the agent to build/i)"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 10,
+      "test": "tests/e2e/mobile-device-matrix.spec.ts:329:5 › compact IDE shell device matrix › renders every compact IDE panel full-screen on ipad-landscape with a nonblank preview @runtime",
+      "classification": "parcours_mobile_non_concluant",
+      "finding": "Selon la tentative : tab-preview invisible, ou ancien placeholder agent absent.",
+      "failureExcerpts": [
+        "Error: locator.click: Element is not visible",
+        "- waiting for getByTestId('mobile-bottom-navigation').getByTestId('tab-preview')",
+        "Error: ipad-landscape agent input",
+        "expect(locator).toBeVisible() failed",
+        "Locator: getByPlaceholder(/Describe what you want the agent to build/i)",
+        "Expected: visible"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 11,
+      "test": "tests/e2e/preview-runtime.spec.ts:100:1 › project preview boots a real app and renders inside the webview @runtime",
+      "classification": "prerequis_runtime_absent",
+      "finding": "L'attente du workspace RUNNING échoue avant la preuve de rendu. Le banc ne provisionne pas de runtime.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 12,
+      "test": "tests/e2e/preview-runtime.spec.ts:143:1 › project preview boots a package-script Vite app and renders inside the webview @runtime",
+      "classification": "prerequis_runtime_absent",
+      "finding": "L'attente du workspace RUNNING échoue avant la preuve du script Vite. Le banc ne provisionne pas de runtime.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 13,
+      "test": "tests/e2e/preview-runtime.spec.ts:199:1 › template-created project boots and renders the generated app in preview @runtime",
+      "classification": "assertion_obsolete_verifiee",
+      "finding": "Le test exige /projects/<id>/ide, mais la réponse réelle utilise /@organisation/projet conformément à projectIdePath. Le projet est créé ; son exécution n'est pas prouvée.",
+      "failureExcerpts": [
+        "Error: expect(page).toHaveURL(expected) failed",
+        "Error: expect(page).toHaveURL(expected) failed",
+        "Error: expect(page).toHaveURL(expected) failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 14,
+      "test": "tests/e2e/preview-runtime.spec.ts:226:1 › AI-created project starts the agent with a valid default model @runtime",
+      "classification": "assertion_obsolete_verifiee",
+      "finding": "Le test attend agent-provider-dropdown et agent-model-dropdown sur la création ; ces identifiants n'existent plus dans app. Il échoue avant la génération IA.",
+      "failureExcerpts": [
+        "Error: expect(locator).toContainText(expected) failed",
+        "Locator: getByTestId('agent-provider-dropdown').getByRole('combobox', { name: 'AI provider' })",
+        "Error: element(s) not found",
+        "- waiting for getByTestId('agent-provider-dropdown').getByRole('combobox', { name: 'AI provider' })",
+        "Error: expect(locator).toContainText(expected) failed",
+        "Locator: getByTestId('agent-provider-dropdown').getByRole('combobox', { name: 'AI provider' })"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 15,
+      "test": "tests/e2e/preview-runtime.spec.ts:251:1 › preview window options stay readable and interactive in light theme @runtime",
+      "classification": "prerequis_runtime_absent",
+      "finding": "L'attente du workspace RUNNING échoue avant la vérification des options de preview. Le banc ne provisionne pas de runtime.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByRole('button', { name: /Workspace:\\s*running/i })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 16,
+      "test": "tests/e2e/responsive-ide.spec.ts:850:3 › responsive IDE shell › desktop keeps the full IDE workspace available @runtime",
+      "classification": "assertion_obsolete_verifiee",
+      "finding": "Le sélecteur du dock attend aria-label commençant par Files ; BaseChat utilise le libellé anglais Library et fournit data-testid=ide-dock-files.",
+      "failureExcerpts": [
+        "Test timeout of 120000ms exceeded.",
+        "Error: locator.hover: Test timeout of 120000ms exceeded.",
+        "- waiting for locator('.bolt-project-ide-rail-item[aria-label^=\"Files\"]')",
+        "Test timeout of 120000ms exceeded.",
+        "Error: locator.hover: Test timeout of 120000ms exceeded.",
+        "- waiting for locator('.bolt-project-ide-rail-item[aria-label^=\"Files\"]')"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 17,
+      "test": "tests/e2e/responsive-ide.spec.ts:936:3 › responsive IDE shell › desktop can collapse and restore the right preview panel @runtime",
+      "classification": "assertion_obsolete_verifiee",
+      "finding": "Même sélecteur Files devenu Library, lors de la réouverture finale via le dock, après les bascules déjà exécutées. Le scénario complet reste en échec.",
+      "failureExcerpts": [
+        "Test timeout of 120000ms exceeded.",
+        "Error: locator.click: Test timeout of 120000ms exceeded.",
+        "- waiting for locator('.bolt-project-ide-rail-item[aria-label^=\"Files\"]')",
+        "Test timeout of 120000ms exceeded.",
+        "Error: locator.click: Test timeout of 120000ms exceeded.",
+        "- waiting for locator('.bolt-project-ide-rail-item[aria-label^=\"Files\"]')"
+      ],
+      "resolved": false
+    },
+    {
+      "id": 18,
+      "test": "tests/e2e/responsive-ide.spec.ts:969:3 › responsive IDE shell › desktop opens terminal as a workspace panel from the panel URL @runtime",
+      "classification": "interface_a_reproduire",
+      "finding": "L'onglet Terminal n'apparaît pas. Nécessite reproduction du chargement/panneau ; le journal ne permet pas de conclure à un simple renommage.",
+      "failureExcerpts": [
+        "Error: expect(locator).toBeVisible() failed",
+        "Locator: getByRole('tab', { name: /Terminal/ })",
+        "Expected: visible",
+        "Error: element(s) not found",
+        "- waiting for getByRole('tab', { name: /Terminal/ })",
+        "Error: expect(locator).toBeVisible() failed"
+      ],
+      "resolved": false
+    }
+  ],
+  "limits": [
+    "Les sept assertions obsolètes ne sont pas sept tests réparés ni sept fonctionnalités validées.",
+    "La cause racine produit de onze scénarios reste non établie ; l'absence de runtime et la dérive d'assertions peuvent coexister.",
+    "Les cinq cas mobiles utilisent Chromium avec profils mobiles, pas Safari physique.",
+    "Aucun paiement, génération IA payante, runtime cloud ou donnée client n'a été déclenché par ce tri.",
+    "Les captures du run n'ont pas été inspectées dans cette session ; leur transfert local est bloqué par le proxy."
+  ]
+}

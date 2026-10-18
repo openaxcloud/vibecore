@@ -1,0 +1,80 @@
+{
+  "head": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+  "stats": {
+    "startTime": "2026-10-18T19:42:03.861Z",
+    "duration": 57155.148,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2691,
+      "title": "un tour streamé ne recrée pas le markdown des messages déjà affichés",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 21856,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3377,
+      "title": "la liste des tables n’est pas vide, et chaque ligne est nommée",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 12721,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3461,
+      "title": "le rail liste les tables, les en-têtes portent leur type, la page est annoncée",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 17928,
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "buildExitCode": 0,
+  "node": "24.19.0",
+  "chromium": "154.0.8037.57",
+  "postgresql": "16.15",
+  "redisConfigured": false,
+  "cloudWorkspaceManagerConfigured": false,
+  "paidProviderConfigured": false,
+  "testStreamingFixture": "Existing in-page ReadableStream from repository test, not a real model generation",
+  "mainControl": {
+    "head": "615b3fcfb59c0c42cd211536ed2b2675fe72fa5f",
+    "run": 39140979442,
+    "job": 117715252899,
+    "sameTestsPassedSeconds": [12.4, 9.7, 9.7]
+  },
+  "diagnosticRerun": {
+    "run": 39154310039,
+    "attempt": 2,
+    "job": 117771399663,
+    "startedAtUtc": "2026-10-18T19:43:56Z",
+    "reason": "Same three tests passed locally without retries and on main; original CI causes remain unknown",
+    "status": "in_progress"
+  },
+  "limits": [
+    "Local API/PostgreSQL/browser, not production",
+    "Node and browser versions differ from CI",
+    "No full-shard ordering or Redis reproduction",
+    "Does not erase attempt1 CI failure"
+  ]
+}
