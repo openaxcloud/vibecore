@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-430 entrées.
+432 entrées.
 
 ## Sans section
 
@@ -516,7 +516,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Reprise commerciale du 2026-10-18 — preuves de sauvegarde et restauration
 
-- [BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001](docs/bugs/BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001.md) — La restauration d’un instantané runtime par identifiant annonçait un succès sans restaurer de fichier. — 📤 Dispatché : 2026-10-18 — correctif borné demandé après audit en lecture seule, dans `codex/snapshot-restore-contract-20261 · 💻 Codé : Candidat local rebasé sur `main` `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a` après fusion de #735 ; ce correcti · ✅ Testé live : Non. Aucun appel cloud, aucun paiement, aucune donnée client et aucune restauration en production. Le contrôle
+- [BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001](docs/bugs/BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001.md) — La restauration d’un instantané runtime par identifiant annonçait un succès sans restaurer de fichier. — 📤 Dispatché : 2026-10-18 — correctif borné demandé après audit en lecture seule, dans `codex/snapshot-restore-contract-20261 · 💻 Codé : Candidat local rebasé sur `main` `b827b12255d423ffb96143c39c1d2a3917ffc5e2` après fusion de #735 et #736 ; ce · ✅ Testé live : Non. Aucun appel cloud, aucun paiement, aucune donnée client et aucune restauration en production. Le contrôle
+- [BUG-SNAPSHOT-AGENT-ENCODING-001](docs/bugs/BUG-SNAPSHOT-AGENT-ENCODING-001.md) — Une restauration de projet corrompait les fichiers binaires du workspace actif. — 📤 Dispatché : 2026-10-18 — tranche supplémentaire autorisée sur `codex/snapshot-restore-contract-20261018`, après le commit · 💻 Codé : Candidat local rebasé sur `main` `b827b12255d423ffb96143c39c1d2a3917ffc5e2`, non fusionné et non déployé. Les · ✅ Testé live : Non en production. Vérification locale sur trois vrais serveurs HTTP : API, gestionnaire de jetons et agent, a
 
 ## Résidus non tabulaires — reportés mot pour mot
 

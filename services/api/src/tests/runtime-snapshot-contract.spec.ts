@@ -58,7 +58,7 @@ describe('runtime snapshot API refuses missing archive capabilities', () => {
     vi.stubEnv('PROJECT_STORAGE_DIR', root);
     vi.stubEnv('WORKSPACE_MANAGER_URL', `http://127.0.0.1:${address.port}`);
     vi.stubEnv('DB_ROLLBACK_ENABLED', 'false');
-    vi.stubEnv('WORKSPACE_ADMISSION_QUOTA_ENABLED', 'false');
+    vi.stubEnv('WORKSPACE_ADMISSION_V2_QUOTA_ENABLED', 'false');
     vi.stubEnv('WORKSPACE_ADMISSION_V2_ENABLED', 'false');
     app = await buildApiApp({ store, projectStorage });
 

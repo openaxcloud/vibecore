@@ -16506,7 +16506,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const syncRestoredFilesToWorkspace = async (
     workspaceId: string,
-    restoredFiles: ReadonlyArray<{ path: string; content: string }>,
+    restoredFiles: ReadonlyArray<Pick<ProjectFile, 'path' | 'content' | 'encoding'>>,
   ): Promise<void> => {
     try {
       let livePaths: string[] = [];
@@ -16528,7 +16528,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       for (const file of plan.writes) {
         await agentRequest(workspaceId, '/files/write', {
           method: 'POST',
-          body: JSON.stringify({ path: file.path, content: file.content }),
+          body: JSON.stringify({ path: file.path, content: file.content, encoding: file.encoding }),
         }).catch(() => undefined);
       }
 
