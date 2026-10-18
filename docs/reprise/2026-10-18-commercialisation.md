@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 20:26 UTC
+## Dernier état vérifié — 20:37 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -28,7 +28,14 @@ Le verdict E2E de la tentative 2 couvre 453 tests et 73/73 fichiers : zéro
 échec, deux instabilités et six exemptions préexistantes inchangées. Le premier
 rouge reste conservé ; son origine n'est pas établie. [Preuves et fichiers exacts](mesures/2026-10-18-pr735-result.json).
 
-La CI, l'E2E et le déploiement du commit fusionné sont encore en cours.
+La CI du commit fusionné a réussi : 9 656 tests racine passent (4 sauts),
+2 418 API (23 sauts), 152 manager et 114 agent. Les builds passent.
+Son audit dépendances reste un avertissement : 242 alertes, dont 4 critiques.
+L'E2E de main a réussi à 20:36:25 UTC sans relance du workflow : 453 tests
+rapportés, zéro échec persistant, cinq instabilités passées avec les retries
+préexistants, six exemptions inchangées et 73/73 fichiers. Le déploiement a
+franchi la porte du SHA exact et passe ses contrôles préalables ; aucun
+rollout ni ConfigMap live n'est encore attesté.
 **V2 reste désactivé** : cette fusion n'autorise pas son activation. La dernière
 livraison réussie attestée reste #733. Aucun nouveau parcours en production
 n'est prouvé.
@@ -61,10 +68,10 @@ de connexion n'est incluse. Ceci prouve un mécanisme possible, pas la cause
 ni une lenteur constatée en CI. Les processus locaux possédés sont arrêtés ;
 quatre zombies réadoptés par PID1 ne sont pas des serveurs actifs.
 
-Le correctif runtime `855f2240f`, encore local et sans PR, refuse désormais
+Le correctif runtime `6f766f76e`, rebasé sur `c6439da` et encore local sans PR, refuse désormais
 une création/restauration d'instantané sans archive au lieu d'annoncer un
-succès sans fichiers restaurés. Sa suite agent complète passe 121/121 tests,
-sans saut. Il ne fournit pas une sauvegarde durable : la restauration DB et
+succès sans fichiers restaurés. Ses validations après rebase passent : API 27/27, agent 121/121,
+index 6/6, typecheck API complet et aucun diagnostic lint ajouté. Il ne fournit pas une sauvegarde durable : la restauration DB et
 la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
 

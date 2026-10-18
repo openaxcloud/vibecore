@@ -691,5 +691,63 @@
     "liveConfigMapReadStep": "Verify rollout",
     "observedLive": false,
     "status": "Release gate still waiting exact-commit CI/E2E at20:20UTC; no live flag evidence claimed."
+  },
+  "mainCi": {
+    "runId": 39161995399,
+    "jobId": 117777049161,
+    "head": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "status": "success",
+    "scope": "CI tests/build only, not production functional proof",
+    "tests": {
+      "root": {
+        "passed": 9656,
+        "skipped": 4
+      },
+      "api": {
+        "passed": 2418,
+        "skipped": 23
+      },
+      "workspaceManager": {
+        "passed": 152
+      },
+      "workspaceAgent": {
+        "passed": 114
+      }
+    },
+    "dependencyAudit": {
+      "status": "advisory/nonblocking",
+      "total": 242,
+      "critical": 4,
+      "securityAcceptance": false
+    }
+  },
+  "mainE2e": {
+    "runId": 39161995315,
+    "jobId": 117783167568,
+    "status": "success",
+    "completedAtUtc": "2026-10-18T20:36:25Z",
+    "runAttempt": 1,
+    "reported": 453,
+    "failing": 0,
+    "flaky": 5,
+    "unchangedWaivers": 6,
+    "specFilesExpected": 73,
+    "specFilesSeen": 73,
+    "shard1": {
+      "jobId": 117777113688,
+      "passed": 136,
+      "flaky": 4,
+      "skipped": 6,
+      "durationMinutes": 21.6,
+      "threePreviouslyFailingCases": "stream18.4s,DBtables20.9s,MyData21.1s; firstattemptpass"
+    },
+    "notProductionProof": true
+  },
+  "deployment": {
+    "runId": 39161995312,
+    "head": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "status": "in_progress",
+    "stageObserved": "preflight; exactSHArequiredgate passed",
+    "livePhaseObserved": false
   }
 }

@@ -586,5 +586,10 @@
     "preserved": true,
     "causeObserved": "ERR_NETWORK_CHANGED on11loopback JS assets during parallel Docker network creation/deletion; stopped onlyowned Playwright group; excluded from successful test counts"
   },
-  "cleanup": "Owned API/web/browser process groups stopped; preexisting QA PostgreSQL unchanged"
+  "cleanup": "Owned API/web/browser process groups stopped; preexisting QA PostgreSQL unchanged",
+  "sameTreeAsMergedMain": {
+    "commit": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "tree": "1ce206d80ded6d18dd04de083cadeea3c6f5b9ce",
+    "identical": true
+  }
 }
