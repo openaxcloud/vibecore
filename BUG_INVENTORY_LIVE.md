@@ -510,7 +510,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-18 — Vérification avant commercialisation
 
 - [BUG-WORKSPACE-PROVISION-RESOURCES-001](docs/bugs/BUG-WORKSPACE-PROVISION-RESOURCES-001.md) — Le démarrage automatique envoyait au workspace-manager le forfait par défaut sans les ressources de l’abonnement. Les démarrages — 📤 Dispatché : ☑ Reprise ciblée du contrat de ressources de #708 le 18 octobre 2026. · 💻 Codé : ☑ Fusionné par #733 le 18 octobre 2026 à 15:32:55 UTC, commit · ✅ Testé live : ☐ Accès HTTP aux deux domaines refusé par le proxy de l'environnement.
-- [BUG-WORKSPACE-MANAGER-TIMESTAMP-001](docs/bugs/BUG-WORKSPACE-MANAGER-TIMESTAMP-001.md) — Le stockage Prisma du workspace-manager retire `updatedAt` de sa réponse, — 📤 Dispatché : ☑ Reprise du 18 octobre 2026, après vérification de #708. Sa garde supposait · 💻 Codé : ☐ Correction locale, pas encore fusionnée. Le champ PostgreSQL existant est · ✅ Testé live : ☐ Aucun parcours live ni pod réel vérifié. Le proxy refuse l'accès aux domaines
+- [BUG-WORKSPACE-MANAGER-TIMESTAMP-001](docs/bugs/BUG-WORKSPACE-MANAGER-TIMESTAMP-001.md) — Le stockage Prisma du workspace-manager retire `updatedAt` de sa réponse, — 📤 Dispatché : ☑ Reprise du 18 octobre 2026, après vérification de #708. Sa garde supposait · 💻 Codé : ☐ Livraison bloquée par contre-revue P1 : ne pas fusionner le correctif seul. · ✅ Testé live : ☐ Aucun parcours live ni pod réel vérifié. Le proxy refuse l'accès aux domaines
 
 ## Résidus non tabulaires — reportés mot pour mot
 

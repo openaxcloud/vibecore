@@ -112,5 +112,22 @@
     "No code changes to starter/core mapping or concurrent-start protection.",
     "Counts overlap; focused tests are included in the full suite.",
     "First pnpm test invocation rejected runner flags before executing tests; corrected pnpm exec invocation used for reported results."
-  ]
+  ],
+  "review": {
+    "recordedAtUtc": "2026-10-18T17:07:51.691699+00:00",
+    "reviewer": "independent read-only agent review_workspace_timestamp",
+    "verdict": "P1: do not merge or deploy 638c1d652 alone",
+    "mergeAttempted": false,
+    "deploymentAttempted": false,
+    "findings": [
+      "A manager crash after pod creation but before RUNNING persistence can leave a live pod behind a stale STARTING; exposing updatedAt makes the 10-minute API slot release possible while GC waits 24 hours by default.",
+      "A podExists=false observation is insufficient: an already-counted workspace reopen bypasses the organization lock and can create a pod after the observation while another project claims the released slot."
+    ],
+    "requiredProtection": [
+      "Shared exclusion or fenced reservation generation covering every reopen and slot release across replicas.",
+      "A renewed reservation must not be invalidated by an older observation.",
+      "A delayed start must not create a pod after its reservation is released without reacquiring admission."
+    ],
+    "testLimit": "Current passing tests prove timestamp transport and the existing decision, not strict admission against live or concurrently starting Kubernetes pods."
+  }
 }
