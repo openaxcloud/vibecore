@@ -1,0 +1,91 @@
+{
+  "pr": 736,
+  "head": "c4300e60dd00ce0fc3aa47c291213611170e987b",
+  "base": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+  "merged": false,
+  "deployed": false,
+  "checkedAtUtc": "2026-10-18T20:47:31.900243+00:00",
+  "ci": {
+    "run": 39162667809,
+    "job": 117779055177,
+    "status": "success",
+    "rootTestsPassed": 9714,
+    "rootTestsSkipped": 4,
+    "apiTestsPassed": 2418,
+    "apiTestsSkipped": 23,
+    "builds": "success"
+  },
+  "e2e": {
+    "run": 39162667823,
+    "evidenceAttempt": 1,
+    "verdictJob": 117783927770,
+    "verdictAtUtc": "2026-10-18T20:39:45Z",
+    "reported": 453,
+    "failing": 0,
+    "flaky": 0,
+    "unchangedWaivers": 6,
+    "specsExpected": 73,
+    "specsSeen": 73,
+    "shard1": {
+      "job": 117779843094,
+      "passed": 140,
+      "skipped": 6,
+      "durationMinutes": 11.9,
+      "streamSeconds": 14.2,
+      "databaseTablesSeconds": 13.4,
+      "myDataSeconds": 12.2
+    },
+    "oldFailuresCauseEstablished": false
+  },
+  "french": {
+    "run": 39162667784,
+    "status": "success",
+    "completedAtUtc": "2026-10-18T20:36:57Z",
+    "formats": [
+      1440,
+      1024,
+      768,
+      390
+    ],
+    "newCiScreenshotsInspected": false
+  },
+  "webkit": {
+    "firstJob": 117779843055,
+    "firstResult": "failed before tests: Docker55432 bind collision twice",
+    "targetedRetryJob": 117784108851,
+    "retryAccepted": true,
+    "retryStatus": "success",
+    "physicalSafariProof": false,
+    "passed": 17,
+    "preexistingSkipped": 3,
+    "testDurationMinutes": 1.5,
+    "testSummaryAtUtc": "2026-10-18T20:46:24Z"
+  },
+  "local": {
+    "lastRebaseTestsPassed": 103,
+    "files": 6,
+    "sixChromiumCapturesInspected": true,
+    "realApiCalls503": 18,
+    "actualPublishedAppGeneration": false
+  },
+  "productionAndDeliveryFiles": [
+    ".github/workflows/deploy-main.yml",
+    "Dockerfile",
+    "app/components/marketing/ecode-exact/pages/StatusPage.tsx",
+    "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts",
+    "app/lib/marketing/ecode-public-runtime.server.ts",
+    "functions/[[path]].ts",
+    "legacy-marketing-entry.mjs",
+    "public/_redirects",
+    "scripts/tiers-a-jour.mjs",
+    "server.mjs",
+    "vite.config.ts"
+  ],
+  "limits": [
+    "No direct production HTTPS access: normal proxyCONNECT403; originstatusabsent",
+    "No physicalSafari or Cloudflareedge proof",
+    "No actual telemetry source added",
+    "Legacybrowserindexcache1hour notpurged",
+    "Other staticmarketingclaims outside scope"
+  ]
+}

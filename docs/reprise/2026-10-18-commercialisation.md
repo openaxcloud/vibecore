@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 20:37 UTC
+## Dernier état vérifié — 20:47 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -41,8 +41,12 @@ livraison réussie attestée reste #733. Aucun nouveau parcours en production
 n'est prouvé.
 
 [#736](https://github.com/openaxcloud/vibecore/pull/736), tête `c4300e60dd`,
-a été rebasée sur le commit fusionné de #735 ; aucun conflit restant. Ses
-contrôles sont en cours. Sur l'ancienne tête `646ad466ae`, CI et audit EN/FR
+a été rebasée sur le commit fusionné de #735 ; aucun conflit restant. Sa CI et ses quatre audits EN/FR sont verts. Le verdict E2E du premier
+passage couvre 453 cas, zéro échec et zéro instabilité, avec six exemptions
+existantes et 73/73 fichiers. Le canari WebKit a échoué avant tests sur le
+port Docker occupé ; sa seule reprise ciblée a réussi : 17 tests passent, trois sauts préexistants
+subsistent. La PR est fusionnable ; elle attend la fin du rollout #735.
+[Preuves de cette tête](mesures/2026-10-18-pr736-result.json). Sur l'ancienne tête `646ad466ae`, CI et audit EN/FR
 ont réussi, ce dernier après reprise ciblée du démarrage Docker tablette ;
 l'E2E comptait toujours un échec persistant (liste des tables), une instabilité,
 six exemptions existantes et les 73 fichiers attendus. Ces résultats ne sont
@@ -68,12 +72,14 @@ de connexion n'est incluse. Ceci prouve un mécanisme possible, pas la cause
 ni une lenteur constatée en CI. Les processus locaux possédés sont arrêtés ;
 quatre zombies réadoptés par PID1 ne sont pas des serveurs actifs.
 
-Le correctif runtime `6f766f76e`, rebasé sur `c6439da` et encore local sans PR, refuse désormais
+Le correctif runtime `6f766f76e`, rebasé sur `c6439da` sauvegardé en branche distante sans PR, refuse désormais
 une création/restauration d'instantané sans archive au lieu d'annoncer un
 succès sans fichiers restaurés. Ses validations après rebase passent : API 27/27, agent 121/121,
 index 6/6, typecheck API complet et aucun diagnostic lint ajouté. Il ne fournit pas une sauvegarde durable : la restauration DB et
 la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
+Les [deux candidats validés en branches](2026-10-18-candidats-valides.md)
+restent hors de main ; le second corrige les collisions de ports CI.
 
 Les [quatre alertes critiques](2026-10-18-security-triage.md) sont qualifiées
 partiellement : deux résultats Capacitor natif et deux advisories Tinypool
