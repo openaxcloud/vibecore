@@ -150,10 +150,6 @@ jobs:
     env:
       CI: true
       HUSKY: 0
-      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
-      REDIS_URL: redis://127.0.0.1:56379
-      POSTGRES_PORT: 55432
-      REDIS_PORT: 56379
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_BASE_URL: http://127.0.0.1:3001
@@ -305,6 +301,12 @@ jobs:
             /tmp/vibecore-web.log
           if-no-files-found: ignore
 
+      - name: Clean up this job's dependencies
+        if: always() && env.VIBECORE_CI_DEPENDENCIES_STATE != ''
+        run: |
+          node scripts/ci-local-dependencies.mjs diagnostics
+          node scripts/ci-local-dependencies.mjs cleanup
+
   # ═══════════════════════════════════════════════════════════════════════════
   # LE VERDICT. Ce job — et lui seul — porte le nom que la protection de branche
   # exige. Le renommer, ou le supprimer, ferait attendre à GitHub un contrôle
@@ -334,10 +336,6 @@ jobs:
     env:
       CI: true
       HUSKY: 0
-      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
-      REDIS_URL: redis://127.0.0.1:56379
-      POSTGRES_PORT: 55432
-      REDIS_PORT: 56379
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_BASE_URL: http://127.0.0.1:3001
@@ -389,6 +387,12 @@ jobs:
             echo "❌ Canari iOS (WebKit iPhone) : ROUGE (sortie $code) — non bloquant, mais à regarder." >> "$GITHUB_STEP_SUMMARY"
           fi
           exit 0
+
+      - name: Clean up this job's dependencies
+        if: always() && env.VIBECORE_CI_DEPENDENCIES_STATE != ''
+        run: |
+          node scripts/ci-local-dependencies.mjs diagnostics
+          node scripts/ci-local-dependencies.mjs cleanup
 
   verdict:
     name: Playwright local stack

@@ -83,8 +83,10 @@ function etapesRun(chemin: string): string[] {
 
   parcourir(document.toJS());
 
-  /* Les actions locales appelées sont parcourues à leur tour : c'est ce que le
-   * workflow exécute, même si le code n'habite plus dans son fichier. */
+  /*
+   * Les actions locales appelées sont parcourues à leur tour : c'est ce que le
+   * workflow exécute, même si le code n'habite plus dans son fichier.
+   */
   for (const action of actionsLocales) {
     const candidats = [join(RACINE, action, 'action.yml'), join(RACINE, action, 'action.yaml')];
     const trouve = candidats.find((c) => existsSync(c));
@@ -134,7 +136,7 @@ describe('BUG-CI-008 — la pile E2E se remet d’un amont qui hoquette', () => 
   });
 
   it.each(WORKFLOWS)('%s attend la SANTÉ de la pile et lui laisse une seconde tentative', (chemin) => {
-    const etape = etapesRun(chemin).find((run) => run.includes('docker compose') && run.includes('up -d'));
+    const etape = etapesRun(chemin).find((run) => run.includes('node scripts/ci-local-dependencies.mjs start'));
 
     expect(etape, 'aucune étape ne démarre la pile').toBeDefined();
 
@@ -143,16 +145,18 @@ describe('BUG-CI-008 — la pile E2E se remet d’un amont qui hoquette', () => 
      * l'OUVERTURE DU PORT, or postgres ouvre son port avant d'accepter des
      * requêtes et répond `FATAL: the database system is starting up`.
      */
-    expect(etape).toContain('--wait');
-
-    /* La seconde tentative, avec un volume propre — et seulement en cas d'échec. */
-    expect(etape).toContain('down -v');
-    expect((etape!.match(/up -d --wait/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    /*
+     * The startup moved into a shared executable. Its real command sequence,
+     * health wait and bounded retry are exercised by ci-local-dependencies.spec.mjs.
+     * Keep checking all callers here, so an inline fixed-port copy cannot return.
+     */
+    expect(etape?.trim()).toBe('node scripts/ci-local-dependencies.mjs start');
+    expect(etapesRun(chemin).some((run) => run.includes('docker compose') && run.includes('up -d'))).toBe(false);
   });
 });
 
 /*
- * L'AUTRE MOITIÉ (règle 6). L'assertion `--wait` ci-dessus ne garantit quelque
+ * L'AUTRE MOITIÉ (règle 6). La commande `--wait` exécutée par le helper ne garantit quelque
  * chose que si les services déclarent un healthcheck : sans lui, `--wait`
  * n'attend que « running » et l'assertion passerait à vide. Les deux moitiés
  * doivent donc rougir ensemble, et vivre dans le même fichier.

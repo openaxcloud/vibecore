@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-429 entrées.
+430 entrées.
 
 ## Sans section
 
@@ -512,6 +512,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-WORKSPACE-PROVISION-RESOURCES-001](docs/bugs/BUG-WORKSPACE-PROVISION-RESOURCES-001.md) — Le démarrage automatique envoyait au workspace-manager le forfait par défaut sans les ressources de l’abonnement. Les démarrages — 📤 Dispatché : ☑ Reprise ciblée du contrat de ressources de #708 le 18 octobre 2026. · 💻 Codé : ☑ Fusionné par #733 le 18 octobre 2026 à 15:32:55 UTC, commit · ✅ Testé live : ☐ Accès HTTP aux deux domaines refusé par le proxy de l'environnement.
 - [BUG-WORKSPACE-MANAGER-TIMESTAMP-001](docs/bugs/BUG-WORKSPACE-MANAGER-TIMESTAMP-001.md) — Le stockage Prisma du workspace-manager retire `updatedAt` de sa réponse, — 📤 Dispatché : ☑ Reprise du 18 octobre 2026, après vérification de #708. Sa garde supposait · 💻 Codé : ☐ Le correctif d'horodatage seul reste interdit de livraison. Une correction · ✅ Testé live : ☐ Aucun parcours live ni pod réel vérifié. Le proxy refuse l'accès aux domaines
 - [BUG-WORKSPACE-AGENT-READY-001](docs/bugs/BUG-WORKSPACE-AGENT-READY-001.md) — `WorkspaceManager.waitForAgentReachable` tente la santé HTTP de l'agent pendant — 📤 Dispatché : ☑ Relevé pendant la contre-revue du protocole d'admission du 18 octobre. · 💻 Codé : ☐ Non corrigé. Un simple rejet dans le chemin legacy ferait passer la ligne · ✅ Testé live : ☐ Accès HTTP/cluster indisponible dans cet environnement. Les tests d'admission
+- [BUG-CI-DEPENDENCY-PORT-COLLISION-001](docs/bugs/BUG-CI-DEPENDENCY-PORT-COLLISION-001.md) — P1 — L'audit FR tablette de #736 (run 39160221264, job 117771846343) échoue avant migrations, API et Playwright : Docker refuse deux fois `0.0.0.0:55432` à 19:4 — 📤 Dispatché : ☑ — 18/10/2026, correction CI isolée autorisée. · 💻 Codé : ☐ — travail local, ni fusion ni push sur main. · ✅ Testé live : ☐ — aucune exécution du correctif sur GitHub ni preuve de production.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

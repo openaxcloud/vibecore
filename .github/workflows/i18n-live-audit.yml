@@ -65,10 +65,6 @@ jobs:
     env:
       CI: true
       HUSKY: 0
-      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
-      REDIS_URL: redis://127.0.0.1:56379
-      POSTGRES_PORT: 55432
-      REDIS_PORT: 56379
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_BASE_URL: http://127.0.0.1:3001
@@ -146,42 +142,11 @@ jobs:
       # requêtes, et répond `FATAL: the database system is starting up`. La
       # migration partait alors dans le vide et rendait la CI rouge au hasard.
       - name: Start local dependencies
-        run: |
-          trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
-          touch .env
-          # Une seconde tentative sur la pile de DÉPENDANCES, pour la même raison
-          # que l'API : contention du runner, jamais un test retenté.
-          if ! docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit; then
-            echo '::warning::Les dépendances ne sont pas devenues saines ; on repart proprement pour une seconde et dernière tentative.'
-            docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis mailpit || true
-            docker compose --env-file .env -f docker-compose.dev.yml down -v || true
-            docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
-          fi
-          wait_for_tcp() {
-            local host="$1"
-            local port="$2"
-            local service="$3"
-
-            for _ in {1..180}; do
-              if (exec 3<>"/dev/tcp/${host}/${port}") 2>/dev/null; then
-                exec 3>&-
-                exec 3<&-
-                return 0
-              fi
-
-              sleep 1
-            done
-
-            echo "Timed out waiting for ${service} on ${host}:${port}" >&2
-            return 1
-          }
-          wait_for_tcp 127.0.0.1 55432 postgres
-          wait_for_tcp 127.0.0.1 56379 redis
-          wait_for_tcp 127.0.0.1 8025 mailpit
+        run: node scripts/ci-local-dependencies.mjs start
 
       - name: Prepare database
         run: |
-          trap 'echo "::group::Container state"; docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres; echo "::endgroup::"' ERR
+          trap 'node scripts/ci-local-dependencies.mjs diagnostics' ERR
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
 
@@ -238,8 +203,7 @@ jobs:
           done
 
           echo '::group::État des conteneurs'
-          docker compose --env-file .env -f docker-compose.dev.yml ps || true
-          docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis || true
+          node scripts/ci-local-dependencies.mjs diagnostics
           echo '::endgroup::'
           echo '::error::L API n a pas servi /health apres 2 tentatives — voir les logs ci-dessus.'
           exit 1
@@ -312,8 +276,7 @@ jobs:
       - name: Collect local stack diagnostics
         if: always()
         run: |
-          docker compose --env-file .env -f docker-compose.dev.yml ps > /tmp/vibecore-i18n-dependencies-${{ matrix.project }}.log 2>&1 || true
-          docker compose --env-file .env -f docker-compose.dev.yml logs --no-color postgres redis mailpit >> /tmp/vibecore-i18n-dependencies-${{ matrix.project }}.log 2>&1 || true
+          node scripts/ci-local-dependencies.mjs diagnostics > /tmp/vibecore-i18n-dependencies-${{ matrix.project }}.log 2>&1
 
       - name: Upload i18n audit proof
         if: always()
@@ -335,6 +298,11 @@ jobs:
             /tmp/vibecore-i18n-dependencies-${{ matrix.project }}.log
           if-no-files-found: error
           retention-days: 14
+
+      - name: Clean up this job's dependencies
+        if: always() && env.VIBECORE_CI_DEPENDENCIES_STATE != ''
+        run: |
+          node scripts/ci-local-dependencies.mjs cleanup
 
   verdict:
     name: Audit français — verdict
