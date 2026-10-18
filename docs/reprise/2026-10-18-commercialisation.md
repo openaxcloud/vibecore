@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 20:12 UTC
+## Dernier état vérifié — 20:26 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -33,13 +33,30 @@ La CI, l'E2E et le déploiement du commit fusionné sont encore en cours.
 livraison réussie attestée reste #733. Aucun nouveau parcours en production
 n'est prouvé.
 
-[#736](https://github.com/openaxcloud/vibecore/pull/736), tête `646ad466ae`,
-reste ouverte : sa CI est verte, son premier verdict E2E compte un échec
-persistant (liste des tables du panneau Base de données), une instabilité,
-six exemptions existantes et les 73 fichiers attendus. Son audit tablette a
-échoué avant tests sur le port Docker 55432 occupé ; la reprise ciblée a
-franchi le démarrage et l'audit réel est en cours. Aucun seuil ni aucune
-exemption ne change. Le diagnostic du panneau se poursuit.
+[#736](https://github.com/openaxcloud/vibecore/pull/736), tête `c4300e60dd`,
+a été rebasée sur le commit fusionné de #735 ; aucun conflit restant. Ses
+contrôles sont en cours. Sur l'ancienne tête `646ad466ae`, CI et audit EN/FR
+ont réussi, ce dernier après reprise ciblée du démarrage Docker tablette ;
+l'E2E comptait toujours un échec persistant (liste des tables), une instabilité,
+six exemptions existantes et les 73 fichiers attendus. Ces résultats ne sont
+pas attribués à la nouvelle tête. Celle-ci ajoute aux journaux uniquement les
+métadonnées de diagnostic déjà collectées en cas d'échec, sans contenu de
+requête, URL, secret ou texte DOM. Aucun seuil, retry ni exemption ne change.
+
+Le [rejeu local ordonné des 45 cas mobiles](mesures/2026-10-18-pr735-mobile-ordered-local.json)
+sur la tête exacte de #735 termine à 20:25:46 UTC : **44 passent, un échoue**,
+sans retry. Streaming et les deux cas de base de données passent au premier
+essai. Le défaut distinct observé et [inspecté sur capture](captures/2026-10-18-publication-fr390-failure.png)
+est le bouton « Voir les journaux » sur deux lignes dans l'état de publication
+en échec à 390 px en français. Ce résultat ne prouve ni une génération réelle,
+ni une publication accessible, ni Safari, ni la cause des instabilités CI.
+
+Le correctif runtime `855f2240f`, encore local et sans PR, refuse désormais
+une création/restauration d'instantané sans archive au lieu d'annoncer un
+succès sans fichiers restaurés. Sa suite agent complète passe 121/121 tests,
+sans saut. Il ne fournit pas une sauvegarde durable : la restauration DB et
+la convergence du Pod restent à établir ; des défauts distincts de contrat
+ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
 
 Les [quatre alertes critiques](2026-10-18-security-triage.md) sont qualifiées
 partiellement : deux résultats Capacitor natif et deux advisories Tinypool

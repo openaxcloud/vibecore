@@ -1,0 +1,590 @@
+{
+  "head": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+  "scope": "local existing unmodified45test mobile Chromium suite; excludes @runtime; no production/model/payment proof",
+  "startedAtUtc": "2026-10-18T20:12:40.714474+00:00",
+  "finishedAtUtc": "2026-10-18T20:25:46.338418+00:00",
+  "stats": {
+    "startTime": "2026-10-18T20:13:06.739Z",
+    "duration": 756707.3400000001,
+    "expected": 44,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "retries": 0,
+  "workers": 1,
+  "testExitCode": 1,
+  "environment": {
+    "node": "24.19.0",
+    "chromium": "154.0.8037.57",
+    "postgres": "16.15",
+    "realApi": true,
+    "realWebBuild": true,
+    "redis": false,
+    "workspaceManager": false,
+    "aiKeys": false,
+    "paymentKeys": false
+  },
+  "resources": {
+    "samples": 76,
+    "peakObservedMemoryBytes": 10436521984,
+    "allApiHealth200": true,
+    "apiHealthMaxMs": 1128.13,
+    "apiHealthMedianMs": 30.705,
+    "performanceEquivalenceToCI": false
+  },
+  "tests": [
+    {
+      "line": 290,
+      "title": "barre du bas : l’onglet actif est entièrement visible dans sa bande",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 14986,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 320,
+      "title": "état de départ de l’Agent : chaque action entière, la puce du composeur entière",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12782,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 348,
+      "title": "Journaux : trois rangées, actions en icônes accessibles, statut et niveaux entiers",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 23858,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 390,
+      "title": "feuille « + » : titres 13 px, descriptions 12 px entières, une colonne",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 20843,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 432,
+      "title": "Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 14935,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 493,
+      "title": "Webview : barre d’adresse compacte, journaux à 12 px sans débordement",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 14268,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 548,
+      "title": "fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10892,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 632,
+      "title": "Paramètres, Variables, Éditeur : bande d’onglets compacte, boutons deux par rangée, pastille Historique visible",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13609,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 738,
+      "title": "menu contextuel d’un message : une barre d’icônes de 44 px, chaque action nommée ; Sécurité : une paire par ligne",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 19574,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 845,
+      "title": "Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12251,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 898,
+      "title": "Déploiements « Gérer » : les actions d’un déploiement se partagent la ligne",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10286,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 961,
+      "title": "Intégrations : icônes visibles ; Extensions : pastilles de domaine entières",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12180,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1008,
+      "title": "zone de saisie : les menus « Agent » et « Économique » se rendent hors du composeur, visibles à l’écran",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11005,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1106,
+      "title": "zone de saisie : la feuille prend l’écran sur téléphone, et s’arrête à 760 px centrée sur tablette",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 17111,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1175,
+      "title": "fil de l’agent : en remontant, le texte garde sa largeur et la pastille « descendre » est centrée au-dessus de la zone de saisie",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 15532,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1261,
+      "title": "menu contextuel sur le dernier message : la barre reste au-dessus de la zone de saisie, et le fil ne bouge pas",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 22508,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1364,
+      "title": "zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — téléphone 390",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 32937,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1364,
+      "title": "zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — tablette 820",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 25507,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1585,
+      "title": "Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 15897,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1668,
+      "title": "sélecteur d’onglets : les raccourcis du bas sont plus petits que les onglets, et tous de même taille",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13063,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1708,
+      "title": "sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème light",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 22968,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1708,
+      "title": "sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème dark",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 16343,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1794,
+      "title": "dictée vocale : l’appui dit qu’on écoute, garde le texte tapé, et l’interface se remet au repos quand le moteur s’arrête seul",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12251,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1868,
+      "title": "panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11953,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1925,
+      "title": "barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 430 px",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13234,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1925,
+      "title": "barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 390 px",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11605,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 1967,
+      "title": "panneau Agent, état de départ : la carte « Agent prêt » se pose sous l’en-tête, sans bande vide",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10404,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2003,
+      "title": "fil de l’agent : le premier message se pose sous l’en-tête, sans bande morte et sans être rogné",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12704,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2057,
+      "title": "menu d’un message : un seul à la fois, posé au-dessus de la ligne, fermé au défilement",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 18048,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2117,
+      "title": "fin de tour à la Replit : « Worked for » et « Checkpoint made » sous la réponse, au-dessus de la zone de saisie ; retour arrière ; « Changes » ouvre le commit",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 22992,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2293,
+      "title": "onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12593,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2466,
+      "title": "zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10381,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2538,
+      "title": "appui long près du bord droit : le menu et ses libellés français restent dans l’écran, sans infobulle",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10088,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2581,
+      "title": "« Effacer l’historique » ouvre une conversation neuve, et elle le reste au rechargement",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 25539,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2691,
+      "title": "un tour streamé ne recrée pas le markdown des messages déjà affichés",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 18579,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2846,
+      "title": "elle se peint sur le fil, et sur rien d’autre",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 15559,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2921,
+      "title": "le fil reste masqué pendant le chargement interrompu de Preview à 390px",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 20912,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 2921,
+      "title": "le fil reste masqué pendant le chargement interrompu de Preview à 768px",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 24387,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 3042,
+      "title": "le bloc se rend aux bonnes tailles, sans rien déborder",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 10039,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 3042,
+      "title": "le bloc se rend aux bonnes tailles, sans rien déborder",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13828,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 3141,
+      "title": "titres et boutons tiennent sur une ligne à 390 px",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 23416,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 3241,
+      "title": "les gabarits portent un prix calculé, et les gestes sont ceux qui existent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 15191,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 3306,
+      "title": "depuis n’importe quel panneau, la demande bascule sur le panneau Agent",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 19978,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 3377,
+      "title": "la liste des tables n’est pas vide, et chaque ligne est nommée",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 17605,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "line": 3461,
+      "title": "le rail liste les tables, les en-têtes portent leur type, la page est annoncée",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 18382,
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "failure": {
+    "line": 3141,
+    "assertionLine": 3226,
+    "observed": "Voir les journaux spans2lines at390px in real failed static deployment UI",
+    "screenshotInspected": true,
+    "causeOfCIFlakesEstablished": false
+  },
+  "priorInterruptedAttempt": {
+    "preserved": true,
+    "causeObserved": "ERR_NETWORK_CHANGED on11loopback JS assets during parallel Docker network creation/deletion; stopped onlyowned Playwright group; excluded from successful test counts"
+  },
+  "cleanup": "Owned API/web/browser process groups stopped; preexisting QA PostgreSQL unchanged"
+}
