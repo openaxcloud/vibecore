@@ -1,0 +1,210 @@
+{
+  "pages": [
+    {
+      "language": "en",
+      "width": 1440,
+      "status": 200,
+      "bounds": {
+        "viewport": 1440,
+        "content": 1440
+      },
+      "subscriptionOpened": true,
+      "submitted": false
+    },
+    {
+      "language": "en",
+      "width": 768,
+      "status": 200,
+      "bounds": {
+        "viewport": 768,
+        "content": 768
+      },
+      "subscriptionOpened": true,
+      "submitted": false
+    },
+    {
+      "language": "en",
+      "width": 390,
+      "status": 200,
+      "bounds": {
+        "viewport": 390,
+        "content": 390
+      },
+      "subscriptionOpened": true,
+      "submitted": false
+    },
+    {
+      "language": "fr",
+      "width": 1440,
+      "status": 200,
+      "bounds": {
+        "viewport": 1440,
+        "content": 1440
+      },
+      "subscriptionOpened": true,
+      "submitted": false
+    },
+    {
+      "language": "fr",
+      "width": 768,
+      "status": 200,
+      "bounds": {
+        "viewport": 768,
+        "content": 768
+      },
+      "subscriptionOpened": true,
+      "submitted": false
+    },
+    {
+      "language": "fr",
+      "width": 390,
+      "status": 200,
+      "bounds": {
+        "viewport": 390,
+        "content": 390
+      },
+      "subscriptionOpened": true,
+      "submitted": false
+    }
+  ],
+  "api": [
+    {
+      "path": "status",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "status/services",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "status/incidents",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "status/maintenance",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "status/metrics",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "status/uptime",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "monitoring/health",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "polyglot/health",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "polyglot/benchmark",
+      "language": "en",
+      "status": 503
+    },
+    {
+      "path": "status",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "status/services",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "status/incidents",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "status/maintenance",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "status/metrics",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "status/uptime",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "monitoring/health",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "polyglot/health",
+      "language": "fr",
+      "status": 503
+    },
+    {
+      "path": "polyglot/benchmark",
+      "language": "fr",
+      "status": 503
+    }
+  ],
+  "redirects": [
+    {
+      "path": "/ecode-static",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "//ecode-static/index.html",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "///ecode-static/",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "/ecode-static/",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "/ecode-static/index.html",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "/ecode-static%2f.%2findex.html",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "/ecode-static%2f..%2fecode-static%2findex.html",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "/ecode-static/index",
+      "status": 302,
+      "location": "/?lang=fr"
+    },
+    {
+      "path": "/%65code-static/index%2Ehtml",
+      "status": 302,
+      "location": "/?lang=fr"
+    }
+  ],
+  "blockedExternalRequests": 12
+}

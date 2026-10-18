@@ -295,3 +295,41 @@ le verdict central juger leurs rapports. [Mesure détaillée](mesures/2026-10-18
 L'audit français, y compris la tablette réellement rejouée, est vert depuis
 19:01:44 UTC. Cela ne lève pas le blocage E2E. **#735 n'est ni fusionnée ni
 déployée** ; aucune ligne de fusion n'est ajoutée au journal pour cette PR.
+
+### Actualisation à 19:48 UTC : contre-épreuves locales et PR indépendante
+
+Les trois tests E2E concernés passent sur le build officiel du SHA exact de
+#735, sans réessai : **3/3 en 57,2 s**. Les mêmes tests étaient également
+verts sur main après #733 (12,4 s, 9,7 s, 9,7 s). La reproduction locale emploie
+Node 24, Chromium 154 et PostgreSQL 16.15, sans Redis ni manager cloud ; elle
+ne reproduit donc pas toute la pile ni l'ordre de la tranche CI. Le streaming
+est la fixture instrumentée du test existant, pas une génération de modèle.
+La cause du premier verdict rouge reste inconnue. Une seule relance ciblée
+de sa tranche, même code et mêmes règles, a commencé à 19:43:56 UTC : job
+`117771399663`, tentative 2 du run `39154310039`. Aucun résultat de cette
+relance n'est encore revendiqué. [Contre-épreuves](mesures/2026-10-18-pr735-local-e2e.json).
+
+Sur l'API et PostgreSQL locaux, deux organisations QA distinctes donnent
+**huit lectures propriétaire HTTP 200 et huit lectures croisées HTTP 404**
+(projet, fichiers, variables, secrets, bases, état IDE, workspaces, snapshots).
+L'écriture croisée de l'état IDE rend 404 ; la relecture propriétaire confirme
+son état intact. La lecture anonyme rend 401. Aucun workspace, paiement ni
+service cloud n'est provisionné. Cette mesure ne prouve pas l'isolation des
+pods, PVC, réseaux ou de la production. [Preuve locale](mesures/2026-10-18-local-isolation.json).
+
+La [PR #736](https://github.com/openaxcloud/vibecore/pull/736), tête
+`646ad466ae6c523dbfab4dda974f0f9478a9d53c`, est indépendante de #735 et fondée
+sur main `44a8e01bc`. Elle retire les métriques/statuts fictifs des neuf API
+publiques, annonce une télémétrie indisponible et ferme l'entrée statique
+héritée sans modifier ses assets dérivés. Elle n'est ni fusionnée ni déployée.
+146 tests avant rebase et 103 après réussissent ; build/typecheck/i18n et
+captures précèdent le rebase, avec 19 fichiers source/tests identiques et
+patch workflow identique. La CI du commit final reste requise. Contre-revue
+indépendante sans P0/P1 restant dans ce périmètre.
+
+Captures du serveur local inspectées : [bureau EN](captures/statut-public-2026-10-18/en-1440.png),
+[téléphone FR](captures/statut-public-2026-10-18/fr-390-viewport.png), et
+[mesures des six pages EN/FR](captures/statut-public-2026-10-18/evidence.json).
+Le formulaire a été ouvert sans être envoyé. Aucun de ces fichiers n'est
+une capture de production ou une preuve Safari ; l'ancien cache d'une heure
+n'est pas purgé et l'edge Cloudflare reste non vérifié.
