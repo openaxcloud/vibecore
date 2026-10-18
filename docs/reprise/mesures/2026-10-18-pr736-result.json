@@ -475,5 +475,31 @@
   "deploymentRun": 39165426842,
   "deploymentStatus": "pending behind active735; no cancellation observed",
   "previousDeploymentRun": 39161995312,
-  "previousDeploymentStatus": "in_progress runtime CloudBuild"
+  "previousDeploymentStatus": "in_progress runtime CloudBuild",
+  "mainWebkit": {
+    "job": 117787338599,
+    "status": "success",
+    "passed": 17,
+    "preexistingSkipped": 3,
+    "summaryAtUtc": "2026-10-18T21:01:16Z",
+    "physicalSafariProof": false
+  },
+  "mainCi": {
+    "run": 39165426811,
+    "job": 117787251244,
+    "status": "success",
+    "completedAtUtc": "2026-10-18T21:09:23Z",
+    "rootPassed": 9714,
+    "rootSkipped": 4,
+    "apiPassed": 2418,
+    "apiSkipped": 23,
+    "managerPassed": 152,
+    "agentPassed": 114,
+    "builds": "success",
+    "dependencyAudit": {
+      "advisoryOnly": true,
+      "total": 242,
+      "critical": 4
+    }
+  }
 }

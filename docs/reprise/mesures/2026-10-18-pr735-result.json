@@ -749,5 +749,16 @@
     "status": "in_progress",
     "stageObserved": "preflight; exactSHArequiredgate passed",
     "livePhaseObserved": false
-  }
+  },
+  "deploymentProgressAtUtc": "2026-10-18T21:06:01Z",
+  "runtimeBuild": {
+    "status": "success",
+    "startedAtUtc": "2026-10-18T20:38:12Z",
+    "finishedAtUtc": "2026-10-18T21:06:01Z"
+  },
+  "webBuild": {
+    "status": "in_progress",
+    "startedAtUtc": "2026-10-18T21:06:01Z"
+  },
+  "liveAdmissionFlagsProven": false
 }

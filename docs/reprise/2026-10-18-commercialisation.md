@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 20:58 UTC
+## Dernier état vérifié — 21:13 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -33,9 +33,7 @@ La CI du commit fusionné a réussi : 9 656 tests racine passent (4 sauts),
 Son audit dépendances reste un avertissement : 242 alertes, dont 4 critiques.
 L'E2E de main a réussi à 20:36:25 UTC sans relance du workflow : 453 tests
 rapportés, zéro échec persistant, cinq instabilités passées avec les retries
-préexistants, six exemptions inchangées et 73/73 fichiers. Le déploiement a
-franchi la porte du SHA exact et passe ses contrôles préalables ; aucun
-rollout ni ConfigMap live n'est encore attesté.
+préexistants, six exemptions inchangées et 73/73 fichiers. Le déploiement a franchi la porte du SHA exact et ses contrôles préalables. La construction runtime a réussi à 21:06:01 UTC ; la construction web a commencé à cette heure. Aucun rollout ni ConfigMap live n’est encore attesté.
 **V2 reste désactivé** : cette fusion n'autorise pas son activation. La dernière
 livraison réussie attestée reste #733. Aucun nouveau parcours en production
 n'est prouvé.
@@ -45,7 +43,7 @@ a été rebasée sur le commit fusionné de #735 ; aucun conflit restant. Sa CI 
 passage couvre 453 cas, zéro échec et zéro instabilité, avec six exemptions
 existantes et 73/73 fichiers. Le canari WebKit a échoué avant tests sur le
 port Docker occupé ; sa seule reprise ciblée a réussi : 17 tests passent, trois sauts préexistants
-subsistent. La PR a été fusionnée à **20:54:14 UTC** dans `b827b12255d423ffb96143c39c1d2a3917ffc5e2`, après 32 contrôles réussis et deux sauts conditionnels. La CI et les E2E de ce commit sont en cours ; sa livraison attend derrière #735, qui reste active sans annulation. Aucun déploiement réussi de ce changement ni résultat public live n'est encore établi.
+subsistent. La PR a été fusionnée à **20:54:14 UTC** dans `b827b12255d423ffb96143c39c1d2a3917ffc5e2`, après 32 contrôles réussis et deux sauts conditionnels. La CI de ce commit a réussi à 21:09:23 UTC : 9 714 tests racine (4 sauts), 2 418 API (23 sauts), 152 manager, 114 agent et builds verts. Les E2E restent en cours ; le canari WebKit a réussi avec 17 tests et trois sauts existants. Sa livraison attend derrière #735, qui reste active sans annulation. Aucun déploiement réussi de ce changement ni résultat public live n'est encore établi.
 [Preuves de cette tête](mesures/2026-10-18-pr736-result.json). Sur l'ancienne tête `646ad466ae`, CI et audit EN/FR
 ont réussi, ce dernier après reprise ciblée du démarrage Docker tablette ;
 l'E2E comptait toujours un échec persistant (liste des tables), une instabilité,
@@ -78,7 +76,7 @@ succès sans fichiers restaurés. Ses validations après rebase passent : API 27
 index 6/6, typecheck API complet et aucun diagnostic lint ajouté. Il ne fournit pas une sauvegarde durable : la restauration DB et
 la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
-Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Les [deux candidats validés](2026-10-18-candidats-valides.md) restent hors de main ; le second corrige les collisions de ports CI et reste sans PR. La correction des quotas annuels est préparée séparément ; au plus deux nouvelles PR seront ouvertes simultanément.
+Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Les [deux candidats validés](2026-10-18-candidats-valides.md) restent hors de main ; le second corrige les collisions de ports CI et reste sans PR. La correction des quotas annuels est en [PR #738](https://github.com/openaxcloud/vibecore/pull/738), tête `c33c913b5` : 68/68 tests API, 16/16 contrôles d’index, typecheck/build API réussis, aucun nouveau diagnostic lint. Les contrôles financiers restent identiques ; les tests utilisent Fastify `inject`, un store mémoire et un webhook signé localement. [Preuves et limites](mesures/2026-10-18-pr738-result.json). Exactement deux nouvelles PR sont ouvertes, #737 et #738 ; aucune fusion ni livraison de ces deux correctifs.
 La [relecture de la restauration sur main actuel](2026-10-18-restore-current-main.md)
 confirme les défauts distincts avec des références au commit `c6439da`.
 
@@ -98,7 +96,7 @@ fusionné. #414 vise une branche de travail, pas directement main.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 21:00 UTC
+## Les cinq conditions de lancement — état vérifié à 21:13 UTC
 
 Main est `b827b12255d423ffb96143c39c1d2a3917ffc5e2` après #736.
 La dernière livraison terminée reste #733, `615b3fcfb5` ; #735 construit
@@ -109,7 +107,7 @@ ne remplacent pas un parcours réel sur la version servie.
 | --- | --- | --- |
 | Compte neuf → génération → exécution → sauvegarde → publication → URL utilisée | Parcours et composants présents. Le [tri des 18 échecs runtime](2026-10-18-runtime-triage.md) distingue 7 dérives d'assertion, 4 prérequis runtime manquants, 5 parcours mobiles et 2 défauts d'interface non attribués. Aucun parcours runtime réussi établi. | Compte QA neuf et boîte mail autorisés ; génération réelle avec budget explicite ; exécution et écriture puis réouverture ; URL publiée utilisée depuis une session extérieure. |
 | Démarrage et consommation conformes au forfait | #733 fusionnée et livrée. #735 fusionnée ; CI/E2E du commit réussies, livraison en cours. Protocole d'admission coordonnée et barrières de suppression présents ; réservations V2 désactivées dans la livraison. | ConfigMap réel avec lecteur activé et réservations désactivées, CPU/RAM/stockage effectivement attribués, quota concurrent observé. Inventaire/réconciliation legacy et drainage avant toute activation V2. |
-| Paiements, catalogue mensuel/annuel et droits | Route `/pricing` actuelle, clés Pro/Team, prix et transmission du choix annuel cohérents par code. **Défaut reproduit : les quotas annoncés par mois restent consommés pendant toute la période annuelle Stripe.** [Contre-épreuve locale](mesures/2026-10-18-billing-annual-period.json) : après consommation en janvier, refus 429 en février avec zéro consommation du mois ; témoin mensuel accepté. Correctif en préparation. | Correction intégrée et validée du quota annuel. Stripe TEST autorisé : mensuel/annuel, webhook signé/idempotent, droits après confirmation, refus/annulation et changement de formule. Aucun paiement ni changement client sans accord précis. |
+| Paiements, catalogue mensuel/annuel et droits | Route `/pricing` actuelle, clés Pro/Team, prix et transmission du choix annuel cohérents par code. **Défaut reproduit : les quotas annoncés par mois restent consommés pendant toute la période annuelle Stripe.** [Contre-épreuve locale](mesures/2026-10-18-billing-annual-period.json) : après consommation en janvier, refus 429 en février avec zéro consommation du mois ; témoin mensuel accepté. Correctif en PR #738, tests locaux verts. | Correction intégrée et validée du quota annuel. Stripe TEST autorisé : mensuel/annuel, webhook signé/idempotent, droits après confirmation, refus/annulation et changement de formule. Aucun paiement ni changement client sans accord précis. |
 | Isolation et restauration réelle | API locale avec PostgreSQL : 8 lectures autorisées et 8 accès inter-organisations refusés, écriture croisée refusée et contenu propriétaire conservé. Faux succès des snapshots runtime reproduit ; correctif en branche, pas encore intégré. Corruption des octets binaires lors de la synchronisation vers un vrai agent local reproduite ; correction en validation. Défauts PITR distincts [confirmés sur main](2026-10-18-restore-current-main.md). | Refus croisés réseau/GCS/PVC sur deux organisations QA ; suppression/retry ; restauration isolée PostgreSQL/GCS/PVC avec intégrité, convergence et durée mesurées. Les archives projet ne prouvent pas une sauvegarde complète du runtime. |
 | Mobile et Safari, erreurs honnêtes | #736 fusionnée : faux indicateurs de disponibilité remplacés par un état inconnu ; livraison attendue. CI de PR : 453 E2E rapportés, zéro échec et zéro instabilité, six exemptions ; WebKit ciblé 17 succès/3 sauts. Six captures Chromium EN/FR inspectées. Rejeu local ordonné : 44/45 ; bouton de journaux sur deux lignes à 390 px en français, capture inspectée. | Parcours critique authentifié sur petits écrans et Safari HTTPS, idéalement appareil physique : clavier, navigation, reconnexion, sauvegarde et publication. Vérification des erreurs et de la version réellement servie après rollout. |
 

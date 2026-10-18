@@ -1,0 +1,56 @@
+{
+  "number": 738,
+  "html_url": "https://github.com/openaxcloud/vibecore/pull/738",
+  "state": "open",
+  "created_at": "2026-10-18T21:12:52Z",
+  "head": "c33c913b53bd99c78d06116e96b74bbd96a5ac4c",
+  "base": "b827b12255d423ffb96143c39c1d2a3917ffc5e2",
+  "merged": false,
+  "deployed": false,
+  "productionFiles": [
+    "services/api/src/app.ts",
+    "services/api/src/usage-period.ts"
+  ],
+  "review": "Root and independent review on exact head; no P0/P1/P2 found in scoped fix; financial resolver preserved",
+  "localValidation": {
+    "apiPassed": 68,
+    "indexPassed": 16,
+    "typecheckExit": 0,
+    "buildExit": 0,
+    "newLintDiagnostics": 0,
+    "gitleaksLeaks": 0,
+    "actualStripeOrProductionPaymentProven": false
+  },
+  "evidenceScope": "Real Fastify handlers via app.inject and in-memory store; locally signed webhook; no networkHTTP, Stripe, PostgreSQL, customer data or production proof",
+  "files": [
+    {
+      "path": "BUG_INVENTORY_LIVE.md",
+      "sha256": "a7fb4737665dba267f695fc6a4c90a1d24bfcbe28d2df8b0369e3f9dd0131df6"
+    },
+    {
+      "path": "docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md",
+      "sha256": "6ca59948cb7962683a41ceb46f7af40cceeaf147a75fdbafbf8b181a17d7d861"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "d7451b60504b1ecfb23de4654ccee450f7c75a9e23b0c3fb138923c9f0fa6640"
+    },
+    {
+      "path": "services/api/src/quota-deploiements-par-periode.spec.ts",
+      "sha256": "47e7ce4d908d6440c35563b20774cb47b890dcc5cff61dfc1307e1a5e9fd698d"
+    },
+    {
+      "path": "services/api/src/tests/annual-monthly-quota.spec.ts",
+      "sha256": "1352da309fa4466d7a635d3f56454da6146bcee7cd73b2c1bcc86b95f1241467"
+    },
+    {
+      "path": "services/api/src/usage-period.spec.ts",
+      "sha256": "d7f728045b50bd43f61e49db542a297935658fb5d01a74a9f1f06bc9b9afbeae"
+    },
+    {
+      "path": "services/api/src/usage-period.ts",
+      "sha256": "63332141895e410e1725c5efd4d7509b3c570916fe5f6f83dcfe41fab6aba9a9"
+    }
+  ],
+  "calendarOracleCases": 5520
+}

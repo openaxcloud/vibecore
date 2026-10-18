@@ -20,5 +20,5 @@
   "ciRun": 39166121299,
   "e2eRun": 39166121300,
   "frenchAuditRun": 39166121289,
-  "frenchAuditNote": "workflow succeeded; scope and whether browser jobs ran not yet inspected"
+  "frenchAuditNote": "pertinence/verdict success; Playwright browser audit skipped by changed-file scope, not a new four-format proof"
 }
