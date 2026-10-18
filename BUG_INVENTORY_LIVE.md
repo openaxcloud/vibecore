@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-433 entrées.
+435 entrées.
 
 ## Sans section
 
@@ -523,6 +523,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Reprise commerciale du 2026-10-18 — stabilité des panneaux IDE
 
 - [BUG-IDE-PANEL-RETRY-PENDING-001](docs/bugs/BUG-IDE-PANEL-RETRY-PENDING-001.md) — P2 — le bouton Réessayer d'un panneau encore en chargement ne fait rien. — 📤 Dispatché : Correctif de récupération autorisé par la session parent, isolé du chantier · 💻 Codé : Correctif local sur `codex/panel-retry-recovery-20261018`, base `c42113233`. · ✅ Testé live : ❌ Pas de preuve en production, Safari ou parcours IDE complet pour ce correctif.
+
+## 2026-10-18 — Vérification avant commercialisation
+
+- [BUG-IDE-PALETTE-HANDOFF-001](docs/bugs/BUG-IDE-PALETTE-HANDOFF-001.md) — P2 — La palette « Add tab » ouverte pendant le chargement initial de l'IDE disparaît lorsque `PendingComposerShell` est remplacé par le Chat définitif. L'ouvert — 📤 Dispatché : 📤 Pris en charge le 18/10/2026, correction isolée de la durée de vie de la palette. · 💻 Codé : ☐ Candidat local sur branche dédiée ; pas encore fusionné sur main. · ✅ Testé live : ☐ Aucun déploiement ni contrôle en production. Les preuves locales ne sont pas une attribution de l'échec CI.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

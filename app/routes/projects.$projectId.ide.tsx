@@ -38,11 +38,12 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { useLoaderData, useSearchParams } from 'react-router';
 import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
+import { IdePaletteProvider } from '~/components/chat/IdePaletteState';
 import { PendingComposerShell } from '~/components/chat/PendingComposerShell';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -91,6 +92,7 @@ export const loader = async ({ request, params, context }: LoaderFunctionArgs) =
 
 export default function ProjectIdeRoute() {
   const { i18n } = useTranslation();
+  const [searchParams] = useSearchParams();
   const copy = getProjectIdeCopy(i18n.resolvedLanguage ?? i18n.language);
 
   const {
@@ -147,27 +149,29 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <main className="h-dvh pt-9">
-            <ClientOnly fallback={optimisticShell}>
-              {() => (
-                <ZoneErrorBoundary
-                  zone="editor"
-                  title={copy['projectIde.boundaryTitle']}
-                  boundaryId={`project:${projectId}:ide`}
-                >
-                  <Suspense fallback={optimisticShell}>
-                    <ProjectIdeChat
-                      forceWorkbench
-                      projectIdeMode
-                      projectId={projectId}
-                      projectUrl={projectUrl}
-                      initialIdePanels={initialIdePanels}
-                    />
-                  </Suspense>
-                </ZoneErrorBoundary>
-              )}
-            </ClientOnly>
-          </main>
+          <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
+            <main className="h-dvh pt-9">
+              <ClientOnly fallback={optimisticShell}>
+                {() => (
+                  <ZoneErrorBoundary
+                    zone="editor"
+                    title={copy['projectIde.boundaryTitle']}
+                    boundaryId={`project:${projectId}:ide`}
+                  >
+                    <Suspense fallback={optimisticShell}>
+                      <ProjectIdeChat
+                        forceWorkbench
+                        projectIdeMode
+                        projectId={projectId}
+                        projectUrl={projectUrl}
+                        initialIdePanels={initialIdePanels}
+                      />
+                    </Suspense>
+                  </ZoneErrorBoundary>
+                )}
+              </ClientOnly>
+            </main>
+          </IdePaletteProvider>
         </div>
       </ProjectWorkspaceProvider>
     </CurrentWorkspaceProvider>

@@ -162,6 +162,7 @@ import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
+import { useIdePalette, useRetainIdePalettes } from './IdePaletteState';
 import {
   deposerDisposition,
   lireDispositionTransmise,
@@ -3792,6 +3793,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const floatingPanesRef = useRef(floatingPanes);
     floatingPanesRef.current = floatingPanes;
+
+    const palettePaneIds = useMemo(
+      () => [...flattenPaneLeafIds(paneTree), ...floatingPanes.map((floating) => floating.pane.id)],
+      [paneTree, floatingPanes],
+    );
+    useRetainIdePalettes(palettePaneIds);
 
     /** RPL-IDE-001.1 — last layout signature applied, to skip redundant cross-tab echoes. */
     const projectEditorWindowSyncRef = useRef<string>('');
@@ -13614,9 +13621,8 @@ function IdeTabBar({
   onOpenFile?: (filePath: string, preview: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const { open, query: toolQuery, openPalette, closePalette, setQuery: setToolQuery } = useIdePalette(paneId);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [toolQuery, setToolQuery] = useState('');
 
   /**
    * RPL-IDE-001.4 — insertion slot under the pointer during a tab drag, drawn as
@@ -13680,20 +13686,21 @@ function IdeTabBar({
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
 
-  const closeToolMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
-    setOpen(false);
-    setToolQuery('');
+  const closeToolMenu = useCallback(
+    (options: { restoreFocus?: boolean } = {}) => {
+      closePalette();
 
-    if (options.restoreFocus) {
-      window.requestAnimationFrame(() => addTabButtonRef.current?.focus());
-    }
-  }, []);
+      if (options.restoreFocus) {
+        window.requestAnimationFrame(() => addTabButtonRef.current?.focus());
+      }
+    },
+    [closePalette],
+  );
 
   const openToolMenu = useCallback(() => {
     setActionsOpen(false);
-    setToolQuery('');
-    setOpen(true);
-  }, []);
+    openPalette();
+  }, [openPalette]);
 
   /*
    * RPL-IDE-001.6 — the menu is portalled to <body> and positioned from the
