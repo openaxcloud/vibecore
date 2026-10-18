@@ -149,3 +149,21 @@ passent ; WebKit compte 17 succès et trois sauts existants. Aucune nouvelle
 métadonnée d’échec DB n’est produite : la cause historique reste inconnue.
 La première tête reste refusée par le typage et les téléchargements Desktop ;
 la correction de typage `88d683c4d` doit passer ses propres contrôles.
+
+
+## Blocage Desktop distinct — 23:37 UTC
+
+Sur `133c8ecc0`, le typage complet passe en CI. Le téléchargement Electron
+reproduit toutefois le HTTP 504 du miroir npmmirror sur Linux et Windows ;
+macOS est encore en build à ce relevé. Ce miroir imposé depuis 2025 est
+retiré du YAML pour revenir à la source officielle prévue par le résolveur.
+Les métadonnées de la release confirment les trois archives exactes. Le
+reste du YAML est comparé égal, les builds locaux main/preload, le smoke
+test existant et six contrôles d’index passent.
+[Preuve et limite cryptographique](mesures/2026-10-18-desktop-mirror.json).
+
+Cette correction de configuration reste dans #740. Son push remplace la
+tête dont la CI et les E2E sont encore en cours ; aucun résultat terminal
+vert n’est attribué à ces exécutions incomplètes. La nouvelle tête doit
+passer tous les contrôles requis. Le résultat complet de `f2af72cb4` reste
+conservé séparément. Le packaging officiel n’est pas encore prouvé.
