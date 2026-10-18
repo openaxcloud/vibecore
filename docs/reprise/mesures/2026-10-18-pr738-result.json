@@ -96,5 +96,19 @@
   "previousValidatedHead": "c33c913b53bd99c78d06116e96b74bbd96a5ac4c",
   "filesShaScope": "Hashes above belong to pre-rebase c33 head; rebase comparison establishes unchanged billing patch, inherited737 app changes and regenerated index.",
   "currentCiRun": 39168776656,
-  "currentE2eRun": 39168776661
+  "currentE2eRun": 39168776661,
+  "localPostgresProof": {
+    "sha": "bee26fd28dad0dfe59bed093684ecd0c0d295440",
+    "file": "2026-10-18-annual-quota-postgres-local.json",
+    "appliedMigrations": 100,
+    "currentQuotaBefore": 0,
+    "checkQuotaBefore": 200,
+    "currentQuotaAfter": 1000,
+    "checkQuotaAfter": 429,
+    "financialPeriodUnchanged": true,
+    "oldAnnualAggregate": 1000,
+    "oldHandlerReexecuted": false,
+    "cleanupConfirmed": true,
+    "actualStripeOrProductionPaymentProven": false
+  }
 }

@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 21:38 UTC
+## Dernier état vérifié — 21:48 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -76,7 +76,7 @@ succès sans fichiers restaurés. Ses validations après rebase passent : API 27
 index 6/6, typecheck API complet et aucun diagnostic lint ajouté. Il ne fournit pas une sauvegarde durable : la restauration DB et
 la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
-Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Le second des [deux candidats validés](2026-10-18-candidats-valides.md), qui corrige les collisions de ports CI, reste hors de main et sans PR. La correction des quotas annuels est en [PR #738](https://github.com/openaxcloud/vibecore/pull/738), tête initiale `c33c913b5` : 68/68 tests API, 16/16 contrôles d’index, typecheck/build API réussis, aucun nouveau diagnostic lint. Les contrôles financiers restent identiques ; les tests utilisent Fastify `inject`, un store mémoire et un webhook signé localement. [Preuves et limites](mesures/2026-10-18-pr738-result.json). Sa première CI passe : 2 453 tests API ; E2E 453 rapportés, zéro échec et zéro instabilité. Ces résultats portent sur `c33c913b5`. Le rebase sur #737 a produit `bee26fd28` : correctif billing identique, modifications #737 conservées, index régénéré officiellement à 433 entrées, 68 tests API et six contrôles d’index réussis, gitleaks sans fuite. Les CI du nouveau SHA ont démarré et restent distinctes des résultats précédents. #738 reste ouverte et non livrée ; #737 est fusionnée mais non livrée.
+Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Le second des [deux candidats validés](2026-10-18-candidats-valides.md), qui corrige les collisions de ports CI, reste hors de main et sans PR. La correction des quotas annuels est en [PR #738](https://github.com/openaxcloud/vibecore/pull/738), tête initiale `c33c913b5` : 68/68 tests API, 16/16 contrôles d’index, typecheck/build API réussis, aucun nouveau diagnostic lint. Les contrôles financiers restent identiques. Aux tests Fastify `inject` sur store mémoire s’ajoute une [contre-épreuve Prisma/PostgreSQL réelle et locale](mesures/2026-10-18-annual-quota-postgres-local.json) sur `bee26fd2` : 100 migrations dans une base temporaire dédiée, usage précédent exclu (0, autorisé 200), plafond courant atteint (1 000, refus 429), dates annuelles/PAYG/plafond personnel préservés. L’ancienne borne annuelle reproduit le refus via l’agrégation PG et `assertQuota`, sans réexécuter l’ancien handler. Webhook synthétique signé, zéro appel Stripe/cloud ; base supprimée et absence vérifiée. [Preuves et limites](mesures/2026-10-18-pr738-result.json). Sa première CI passe : 2 453 tests API ; E2E 453 rapportés, zéro échec et zéro instabilité. Ces résultats portent sur `c33c913b5`. Le rebase sur #737 a produit `bee26fd28` : correctif billing identique, modifications #737 conservées, index régénéré officiellement à 433 entrées, 68 tests API et six contrôles d’index réussis, gitleaks sans fuite. Les CI du nouveau SHA ont démarré et restent distinctes des résultats précédents. #738 reste ouverte et non livrée ; #737 est fusionnée mais non livrée.
 La [relecture de la restauration sur main actuel](2026-10-18-restore-current-main.md)
 confirme les défauts distincts avec des références au commit `c6439da`.
 
@@ -105,7 +105,7 @@ Aucun contrôle de livraison n’est contourné.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 21:38 UTC
+## Les cinq conditions de lancement — état vérifié à 21:48 UTC
 
 Main est `c4211323345cc8e0688a191337a04af9e3b2fab9` après #737.
 La dernière livraison terminée est #735, `c6439da55` ; #736 a été

@@ -1,0 +1,182 @@
+{
+  "sha": "a78c77665665354f9d9ffd31edeafb56ab811544",
+  "base": "c4211323345cc8e0688a191337a04af9e3b2fab9",
+  "branch": "codex/ide-failure-diagnostics-20261018",
+  "scope": "Diagnostic test helpers and documentation only; no product correction or CI-cause attribution",
+  "files": {
+    "BUG_INVENTORY_LIVE.md": "aeb6407386b0eaf51cb1cdb7c6cd68c960e032724c7d35dc8ba1074a52fa17b7",
+    "docs/bugs/BUG-E2E-IDE-DIAGNOSTIC-BLIND-001.md": "919341025f6b77e01f9bdf43374c70182d7ccd7b3e7ef76e5e9d0fe3a563b5a2",
+    "scripts/ide-failure-metadata.spec.ts": "9aa86222bdd05ae85270d92c7ec8e754f8b3b954039dc481d1ee410d09527ee6",
+    "tests/e2e/helpers/ide-failure-diagnostics.ts": "66d44022f06486b85d959682a566ac7deac24ba189f876f330327d755496bed2",
+    "tests/e2e/helpers/ide-failure-metadata.ts": "6c32d400abea9653262abc090da4435e5e8ca7d17b927ed03e7b49238e5e675b",
+    "tests/e2e/ide-mobile-chrome.spec.ts": "7f0cc8b289bea0a6d1dbbb36bc3cb4160eb87f14cd92b4ecf20205c251081b13"
+  },
+  "tests": {
+    "regressionBefore": {
+      "failed": 2
+    },
+    "afterRebase": {
+      "passed": 34,
+      "failed": 0,
+      "skipped": 0
+    },
+    "playwrightList": 45,
+    "playwrightExecuted": 0,
+    "typecheck": "passed; strict targeted four TypeScript files",
+    "compile": "passed; same four files emitted as JavaScript",
+    "eslint": "four files, zero diagnostics",
+    "browser": "Compiled helper, actual loopback HTTP and system Chromium; fixture DOM; six observations passed"
+  },
+  "limits": [
+    "CI browser artifact inaccessible through proxy CONNECT403, not bypassed",
+    "Underlying application failure cause unknown",
+    "No SQL, Docker, AI provider or production request",
+    "No assertion, timeout, retry, waiver or CI-control change",
+    "No full production build for test-only change"
+  ],
+  "security": {
+    "staged": "passed",
+    "exportedTree": "passed",
+    "treeFindings": 0,
+    "rules": "Repository .gitleaks.toml and .gitleaksignore unchanged; relative --source . as in CI",
+    "initialScanLimit": "Absolute export source changed historical ignore fingerprints; four known July pricing capture entries were reported, corrected by running relative to export root"
+  },
+  "delivery": {
+    "pushed": true,
+    "remoteHeadVerified": "a78c77665665354f9d9ffd31edeafb56ab811544",
+    "pullRequestCreated": false,
+    "merged": false,
+    "deployed": false,
+    "worktreeClean": true
+  },
+  "browserEvidence": {
+    "dom": {
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseMounted": true,
+      "databaseVisible": true,
+      "databaseOuterBusy": true,
+      "databaseHeadingPresent": false,
+      "databaseHeadingVisible": false,
+      "databasePanelInUrl": false,
+      "databaseEmpty": false,
+      "databaseLoadFailed": false,
+      "databaseInnerLoading": false,
+      "cards": 0,
+      "tables": 0,
+      "statuses": 0,
+      "alerts": 0,
+      "moreMenu": 0,
+      "tabSwitcher": 0,
+      "codeEditors": 0,
+      "editorTabs": []
+    },
+    "awaiting": {
+      "responses": [],
+      "requests": [
+        {
+          "id": 1,
+          "kind": "database-panel",
+          "method": "GET",
+          "startedAtMs": 20,
+          "state": "awaiting-response"
+        }
+      ],
+      "pendingRequests": [
+        {
+          "id": 1,
+          "kind": "database-panel",
+          "state": "awaiting-response",
+          "ageMs": 3
+        }
+      ],
+      "droppedRequests": 0
+    },
+    "receiving": {
+      "responses": [
+        {
+          "kind": "database-panel",
+          "status": 200,
+          "elapsedMs": 34
+        }
+      ],
+      "requests": [
+        {
+          "id": 1,
+          "kind": "database-panel",
+          "method": "GET",
+          "startedAtMs": 20,
+          "state": "receiving-body",
+          "status": 200,
+          "responseAtMs": 34
+        }
+      ],
+      "pendingRequests": [
+        {
+          "id": 1,
+          "kind": "database-panel",
+          "state": "receiving-body",
+          "ageMs": 23
+        }
+      ],
+      "droppedRequests": 0
+    },
+    "finished": {
+      "responses": [
+        {
+          "kind": "database-panel",
+          "status": 200,
+          "elapsedMs": 34
+        }
+      ],
+      "requests": [
+        {
+          "id": 1,
+          "kind": "database-panel",
+          "method": "GET",
+          "startedAtMs": 20,
+          "state": "finished",
+          "status": 200,
+          "responseAtMs": 34,
+          "finishedAtMs": 48
+        }
+      ],
+      "pendingRequests": [],
+      "droppedRequests": 0
+    },
+    "failed": {
+      "responses": [
+        {
+          "kind": "database-panel",
+          "status": 200,
+          "elapsedMs": 34
+        }
+      ],
+      "requests": [
+        {
+          "id": 1,
+          "kind": "database-panel",
+          "method": "GET",
+          "startedAtMs": 20,
+          "state": "finished",
+          "status": 200,
+          "responseAtMs": 34,
+          "finishedAtMs": 48
+        },
+        {
+          "id": 2,
+          "kind": "database-panel",
+          "method": "GET",
+          "startedAtMs": 62,
+          "state": "failed",
+          "failureCode": "ERR_ABORTED",
+          "failedAtMs": 75
+        }
+      ],
+      "pendingRequests": [],
+      "droppedRequests": 0
+    },
+    "listenersRemoved": true,
+    "scope": "Diagnostic helper only; local HTTP fixture, system Chromium; no application or CI-cause attribution"
+  }
+}

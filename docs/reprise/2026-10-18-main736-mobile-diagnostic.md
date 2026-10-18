@@ -52,9 +52,20 @@ octets. Le connecteur fournit bien sa référence de fichier, mais sa
 matérialisation normale échoue au proxy avec `CONNECT 403`. La capture CI
 actuelle n'a donc pas été inspectée. Aucun proxy ni contrôle n'a été contourné.
 
-La modification de diagnostic en préparation vise à observer le conteneur DB
+Le [candidat de diagnostic publié](https://github.com/openaxcloud/vibecore/tree/codex/ide-failure-diagnostics-20261018),
+commit `a78c77665665354f9d9ffd31edeafb56ab811544` sur `c4211323`, observe le conteneur DB
 indépendamment du titre, son état `aria-busy`, le début et la fin des
 requêtes ainsi que les échecs et les demandes encore pendantes, sans URL,
 contenu, identifiant projet ni secret. Aucune assertion, durée maximale,
 tentative ou exemption n'est assouplie. Un résultat vert ultérieur ne
 sera pas présenté comme une correction de cette cause encore inconnue.
+
+[Validation de cette branche](mesures/2026-10-18-mobile-db-diagnostic-candidate.json) :
+les deux contre-exemples sont rouges avant correction, puis 18 tests du
+collecteur et 16 tests d’index passent. Typage strict, émission JavaScript et
+lint ciblés réussis ; 45 scénarios Playwright chargés via `--list`, non exécutés.
+Chromium et un vrai serveur HTTP loopback confirment attente des headers,
+corps partiel, fin et annulation, avec un DOM de fixture : cette preuve porte
+sur le helper isolé. Gitleaks staged et arbre exporté propres, règles
+existantes inchangées. Aucune PR supplémentaire ouverte ; #738 et #739
+occupent les deux créneaux. Cause du défaut produit toujours inconnue.
