@@ -44,21 +44,33 @@ localement ; le serveur agent de test n'est pas une application générée. Les
 comptages de pods dans ces tests ne sont donc pas des mesures du cluster.
 Les preuves détaillées et empreintes figurent dans le
 [relevé de validation](mesures/2026-10-18-workspace-admission-validation.json).
-Suite manager : 144 succès, zéro saut ; puis 98 tests après corrections de
-style. API : 44 tests distincts ciblés, dont dix courses PostgreSQL. Typecheck
-et build API/manager réussis, cinq gardes de livraison réussies. Aucun nouveau
-diagnostic lint ; dette historique explicitement conservée.
+Suite manager finale : 152 succès dans neuf fichiers, zéro saut, dont 31 cas
+d’admission. API : 44 tests distincts ciblés, dont dix courses PostgreSQL, puis
+trois régressions supplémentaires sur l’audit administrateur. Typecheck et build
+API/manager réussis ; quatre gardes des variables d’environnement et cinq gardes
+de livraison réussies. Aucun nouveau diagnostic lint ; dette historique
+explicitement conservée.
 
 Les cas couvrent notamment pod vivant avec STARTING ancien, réouverture
 concurrente, start déjà envoyé puis invalidé, erreur de lecture Kubernetes,
 inactivité API de sept heures, expiration réelle d'une transaction advisory,
-transfert concurrent et suppression. La contre-revue n'a pas relevé de nouveau
-P1 dans ce contrat local ; elle ne vaut pas validation de production. Une revue
-GitHub a ensuite relevé un P2 dans l'audit du redémarrage administrateur : une
+transfert concurrent et suppression. Une revue GitHub a relevé un P2 dans
+l'audit du redémarrage administrateur : une
 réponse STARTING était consignée RUNNING. Trois régressions isolées reproduisent
 le défaut, puis passent avec l'audit aligné sur l'état effectivement retenu, y
 compris lorsqu'une réponse RUNNING est devenue obsolète. Ces tests additionnels
 utilisent un serveur HTTP local, sans pod réel.
+
+Une autre contre-revue a reproduit un P1 sur la première réservation : un appel
+V1 ayant d'abord lu une absence pouvait ensuite charger la nouvelle admission
+V2 et supprimer son pod, voire son PVC. Le refus final de restart arrivait
+alors après la suppression. Le candidat valide désormais la ligne effectivement
+utilisée par stop/delete et propage le refus de protocole dans restart. Ce
+contrôle repose sur l'invariant vérifié du stockage : une ligne legacy n'est
+pas convertie en V2 et les suppressions conservent la ligne runtime. Huit cas
+supplémentaires avec deux managers et deux stores sur le même fichier couvrent
+ces courses et invariants ; trois échouaient avant correction. Kubernetes reste
+instrumenté dans ces tests. Leur réussite n'atteste pas le cluster.
 
 Les anciennes lignes sans génération restent legacy. Leur limite de comptage
 API de six heures et leurs démarrages sans jeton ne sont pas transformés en
@@ -78,6 +90,9 @@ ajouté. Leur inventaire et leur réconciliation réelle restent nécessaires.
    encore en vol. `rollout status` et la comparaison des imageIDs du seul
    ReplicaSet courant ne prouvent pas ce drainage. Inventorier et traiter les
    runtimes legacy dans une intervention autorisée, sans suppression implicite.
+   Le drainage seul ne suffit pas : même les nouvelles API peuvent choisir V1
+   après une lecture V2 absente. Le correctif de cette course et ses régressions
+   doivent être validés sur le SHA effectivement livré avant toute activation.
 3. Activer la création de réservations dans une livraison séparée, avec preuve
    du parcours réel et des cas de reprise. Ne pas revenir à des binaires qui
    ignorent les admissions tant que des réservations V2 existent. Désactiver

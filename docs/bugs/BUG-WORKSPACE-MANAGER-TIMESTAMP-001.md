@@ -30,6 +30,15 @@ pour ne pas activer le consommateur ancien. Quatre migrations additives ;
 aucun forfait modifié. Voir le [contrat et les phases de livraison](../reprise/2026-10-18-workspace-admission.md).
 Ni fusion ni activation de ce protocole ne sont attestées à ce stade.
 
+Contre-revue de #735 : une course de première réservation permettait à
+stop/delete V1 de charger une admission V2 après une première lecture absente,
+puis d'en supprimer les ressources sans génération. Restart pouvait refuser
+l'appel après avoir déjà supprimé le pod. Trois régressions reproduisent ce
+P1 ; le candidat valide la ligne effectivement utilisée et conserve les lignes
+legacy sans conversion implicite. Le drainage des anciens binaires ne suffit
+pas à lui seul : les nouvelles API peuvent encore choisir V1 après une lecture
+absente. Le SHA livré doit inclure ce correctif et sa validation avant activation.
+
 ## ✅ Testé live
 
 ☐ Aucun parcours live ni pod réel vérifié. Le proxy refuse l'accès aux domaines
