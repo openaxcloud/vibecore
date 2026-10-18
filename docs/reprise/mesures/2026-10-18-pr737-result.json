@@ -1,0 +1,24 @@
+{
+  "number": 737,
+  "html_url": "https://github.com/openaxcloud/vibecore/pull/737",
+  "state": "open",
+  "created_at": "2026-10-18T21:03:31Z",
+  "head": "80c38626a1873cd4b7538d6a1d01ea649e81388e",
+  "base": "b827b12255d423ffb96143c39c1d2a3917ffc5e2",
+  "review": "No P0/P1 found in this bounded correction; durable runtime backup and best-effort convergence remain explicitly unresolved",
+  "merged": false,
+  "deployed": false,
+  "localValidation": {
+    "apiPassedAfterRebase": 27,
+    "indexPassedAfterRebase": 6,
+    "agentPassedBeforeIdenticalRebase": 121,
+    "apiTypecheck": "success before identical production rebase",
+    "newLintDiagnostics": 0,
+    "runtimeBackupImplemented": false,
+    "realProductionRestoreProven": false
+  },
+  "ciRun": 39166121299,
+  "e2eRun": 39166121300,
+  "frenchAuditRun": 39166121289,
+  "frenchAuditNote": "workflow succeeded; scope and whether browser jobs ran not yet inspected"
+}

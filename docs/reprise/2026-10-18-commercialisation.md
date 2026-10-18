@@ -72,14 +72,13 @@ de connexion n'est incluse. Ceci prouve un mécanisme possible, pas la cause
 ni une lenteur constatée en CI. Les processus locaux possédés sont arrêtés ;
 quatre zombies réadoptés par PID1 ne sont pas des serveurs actifs.
 
-Le correctif runtime `6f766f76e`, rebasé sur `c6439da` sauvegardé en branche distante sans PR, refuse désormais
+Le correctif de restauration est désormais en [PR #737](https://github.com/openaxcloud/vibecore/pull/737), tête `80c38626a` sur main `b827b122`. Il refuse
 une création/restauration d'instantané sans archive au lieu d'annoncer un
 succès sans fichiers restaurés. Ses validations après rebase passent : API 27/27, agent 121/121,
 index 6/6, typecheck API complet et aucun diagnostic lint ajouté. Il ne fournit pas une sauvegarde durable : la restauration DB et
 la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
-Les [deux candidats validés en branches](2026-10-18-candidats-valides.md)
-restent hors de main ; le second corrige les collisions de ports CI.
+Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Les [deux candidats validés](2026-10-18-candidats-valides.md) restent hors de main ; le second corrige les collisions de ports CI et reste sans PR. La correction des quotas annuels est préparée séparément ; au plus deux nouvelles PR seront ouvertes simultanément.
 La [relecture de la restauration sur main actuel](2026-10-18-restore-current-main.md)
 confirme les défauts distincts avec des références au commit `c6439da`.
 
