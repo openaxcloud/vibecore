@@ -80,7 +80,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
   });
 
   for (const scenario of [
-    { status: 'STARTING' as const, ageMinutes: 11, decision: 'free' },
+    { status: 'STARTING' as const, ageMinutes: 11, decision: 'keep' },
     { status: 'STARTING' as const, ageMinutes: 9, decision: 'keep' },
     { status: 'RUNNING' as const, ageMinutes: 11, decision: 'keep' },
   ]) {
@@ -113,19 +113,135 @@ integrationDescribe('PrismaWorkspaceStore', () => {
 
         const response = await app.inject({
           method: 'GET',
-          url: `/workspaces/${record.id}`,
+          url: `/v2/workspaces/${record.id}`,
           headers: secret ? { authorization: `Bearer ${secret}` } : {},
         });
         expect(response.statusCode).toBe(200);
 
         const state = response.json();
         expect(state.updatedAt).toBe(updatedAt.toISOString());
-        expect(decideWorkspaceSlot(state, { now, deadlineMs: 10 * 60_000 })).toBe(scenario.decision);
+        expect(state.admission).toBeUndefined();
+        const legacy = await app.inject({
+          method: 'GET',
+          url: `/workspaces/${record.id}`,
+          headers: secret ? { authorization: `Bearer ${secret}` } : {},
+        });
+        expect(legacy.json().updatedAt).toBeUndefined();
+        expect(decideWorkspaceSlot(legacy.json(), { now, deadlineMs: 10 * 60_000 })).toBe(scenario.decision);
       } finally {
         await app.close();
       }
     });
   }
+
+  it('reserves atomically across stores and only one claim/release CAS wins', async () => {
+    const id = uniqueId('admission-race');
+    createdIds.push(id);
+    const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
+    const peer = new PrismaWorkspaceStore(prisma!);
+    const [a, b] = await Promise.all([store.reserveAdmission(input), peer.reserveAdmission(input)]);
+    expect(a.admission).toEqual(b.admission);
+    const outcomes = await Promise.all([
+      store.compareAdmission(id, a.admission!, { ...a.admission!, state: 'PROVISIONING' }),
+      peer.compareAdmission(id, b.admission!, { ...b.admission!, state: 'RELEASED' }),
+    ]);
+    expect(outcomes.filter(Boolean)).toHaveLength(1);
+  });
+
+  it('does not accept a late result or claim for a released generation', async () => {
+    const id = uniqueId('admission-generation');
+    createdIds.push(id);
+    const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
+    const first = await store.reserveAdmission(input);
+    expect(await store.compareAdmission(id, first.admission!, { ...first.admission!, state: 'RELEASED' })).toBe(true);
+    const next = await store.reserveAdmission(input);
+    expect(next.admission!.generation).not.toBe(first.admission!.generation);
+    expect(
+      await store.compareAdmission(
+        id,
+        first.admission!,
+        { ...first.admission!, state: 'ACTIVE' },
+        { status: 'RUNNING' },
+      ),
+    ).toBe(false);
+    expect((await store.get(id))?.admission).toEqual(next.admission);
+    expect((await store.get(id))?.status).toBe('STARTING');
+  });
+
+  it('keeps held admissions even for FAILED runtime rows, scoped by organization', async () => {
+    const id = uniqueId('admission-list');
+    createdIds.push(id);
+    const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
+    const record = await store.reserveAdmission(input);
+    await store.compareAdmission(
+      id,
+      record.admission!,
+      { ...record.admission!, state: 'PROVISIONING' },
+      { status: 'FAILED' },
+    );
+    expect((await store.listAdmissions(input.orgId)).map((row) => row.id)).toEqual([id]);
+    expect(await store.listAdmissions(uniqueId('other-org'))).toEqual([]);
+  });
+
+  it('CAS refuses a GC decision after an activity mutation', async () => {
+    const id = uniqueId('admission-activity');
+    createdIds.push(id);
+    const record = await store.reserveAdmission({
+      workspaceId: id,
+      projectId: uniqueId('project'),
+      orgId: uniqueId('org'),
+      plan: 'free',
+    });
+    await store.update(id, { lastActiveAt: new Date(Date.parse(record.lastActiveAt) + 60_000).toISOString() });
+    expect(
+      await store.compareAdmission(
+        id,
+        record.admission!,
+        { ...record.admission!, state: 'STOPPING' },
+        {},
+        { lastActiveAt: record.lastActiveAt },
+      ),
+    ).toBe(false);
+  });
+
+  it('fences results by attempt as well as generation and state', async () => {
+    const id = uniqueId('admission-attempt');
+    createdIds.push(id);
+    const record = await store.reserveAdmission({
+      workspaceId: id,
+      projectId: uniqueId('project'),
+      orgId: uniqueId('org'),
+      plan: 'free',
+    });
+    const first = { ...record.admission!, state: 'PROVISIONING' as const, attemptId: 'attempt-1' };
+    const second = { ...first, attemptId: 'attempt-2' };
+    expect(await store.compareAdmission(id, record.admission!, first)).toBe(true);
+    expect(await store.compareAdmission(id, first, second)).toBe(true);
+    expect(await store.compareAdmission(id, first, { ...first, state: 'ACTIVE' })).toBe(false);
+    expect((await store.get(id))?.admission).toEqual(second);
+  });
+
+  it('adopts a released runtime under an exact previous owner guard', async () => {
+    const id = uniqueId('admission-owner');
+    createdIds.push(id);
+    const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
+    const record = await store.reserveAdmission(input);
+    const released = { ...record.admission!, state: 'RELEASED' as const };
+    expect(await store.compareAdmission(id, record.admission!, released)).toBe(true);
+    expect(
+      await store.compareAdmission(
+        id,
+        released,
+        record.admission!,
+        {},
+        { orgId: 'incorrect-owner', projectId: input.projectId },
+      ),
+    ).toBe(false);
+    const adopted = await store.reserveAdmission({ ...input, orgId: uniqueId('new-org') });
+    expect(adopted.orgId).not.toBe(input.orgId);
+    expect(adopted.admission?.generation).not.toBe(record.admission?.generation);
+    expect(await store.listAdmissions(input.orgId)).toEqual([]);
+  });
 
   it('applies a partial patch via update and updates lastActiveAt only when set', async () => {
     const created = await createRecord();

@@ -1,5 +1,14 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { dirname, resolve } from 'node:path';
+import {
+  admissionUnavailable,
+  assertWorkspaceOwner,
+  reserveInStore,
+  type ReserveWorkspaceInput,
+  type AdmissionGuard,
+  type WorkspaceAdmission,
+} from './admission.js';
 import {
   activeNixGeneration,
   assertNixGenerationUsable,
@@ -62,10 +71,11 @@ export interface WorkspaceRecord {
   lastActiveAt: string;
 
   /*
-   * Persisted mutation time used by the API's bounded STARTING quota grace.
-   * Legacy JSON records may lack it; reads must not invent a fresh timestamp.
+   * Persisted mutation time exposed by v2 for observations, never sufficient
+   * evidence to release compute. Legacy JSON records may lack it.
    */
   updatedAt?: string;
+  admission?: WorkspaceAdmission;
 
   /*
    * Last time this runtime's active compute was metered to billing (P4). The GC
@@ -77,6 +87,15 @@ export interface WorkspaceRecord {
 }
 
 export interface WorkspaceStore {
+  reserveAdmission(input: ReserveWorkspaceInput): Promise<WorkspaceRecord>;
+  compareAdmission(
+    workspaceId: string,
+    expected: WorkspaceAdmission,
+    next: WorkspaceAdmission,
+    patch?: Partial<WorkspaceRecord>,
+    guard?: AdmissionGuard,
+  ): Promise<boolean>;
+  listAdmissions(orgId: string): Promise<WorkspaceRecord[]>;
   create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>): Promise<WorkspaceRecord>;
   update(workspaceId: string, patch: Partial<WorkspaceRecord>): Promise<WorkspaceRecord>;
   get(workspaceId: string): Promise<WorkspaceRecord | undefined>;
@@ -113,47 +132,108 @@ export interface EventBus {
 }
 
 export class JsonWorkspaceStore implements WorkspaceStore {
+  // JSON is a local single-process store. Serialize every writer, also across
+  // instances referring to the same path, so admission CAS cannot lose updates.
+  private static readonly writers = new Map<string, Promise<unknown>>();
+
+  private async serialize<T>(fn: () => Promise<T>): Promise<T> {
+    const key = resolve(this.filePath);
+    const previous = JsonWorkspaceStore.writers.get(key) ?? Promise.resolve();
+    const run = previous.then(fn, fn);
+    const settled = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    JsonWorkspaceStore.writers.set(key, settled);
+    try {
+      return await run;
+    } finally {
+      if (JsonWorkspaceStore.writers.get(key) === settled) JsonWorkspaceStore.writers.delete(key);
+    }
+  }
+
+  reserveAdmission(input: ReserveWorkspaceInput) {
+    return reserveInStore(this, input);
+  }
+
+  async compareAdmission(
+    workspaceId: string,
+    expected: WorkspaceAdmission,
+    next: WorkspaceAdmission,
+    patch: Partial<WorkspaceRecord> = {},
+    guard?: AdmissionGuard,
+  ) {
+    return this.serialize(async () => {
+      const workspaces = await this.read();
+      const existing = workspaces.get(workspaceId);
+      if (
+        existing?.admission?.generation !== expected.generation ||
+        existing.admission.state !== expected.state ||
+        existing.admission.attemptId !== expected.attemptId ||
+        (guard?.lastActiveAt !== undefined && existing.lastActiveAt !== guard.lastActiveAt) ||
+        (guard?.orgId !== undefined && existing.orgId !== guard.orgId) ||
+        (guard?.projectId !== undefined && existing.projectId !== guard.projectId)
+      )
+        return false;
+      workspaces.set(workspaceId, { ...existing, ...patch, admission: next, updatedAt: new Date().toISOString() });
+      await this.write(workspaces);
+      return true;
+    });
+  }
+
+  async listAdmissions(orgId: string) {
+    return (await this.list()).filter(
+      (record) => record.orgId === orgId && record.admission && record.admission.state !== 'RELEASED',
+    );
+  }
   constructor(
     readonly filePath = process.env.WORKSPACE_MANAGER_STORE_PATH ?? '.vibecore/workspace-manager/workspaces.json',
   ) {}
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
-    const now = new Date().toISOString();
-    const record = { ...input, createdAt: now, lastActiveAt: now, updatedAt: now };
-    const workspaces = await this.read();
-    workspaces.set(record.id, record);
-    await this.write(workspaces);
+    return this.serialize(async () => {
+      const now = new Date().toISOString();
+      const record = { ...input, createdAt: now, lastActiveAt: now, updatedAt: now };
+      const workspaces = await this.read();
+      if (workspaces.has(record.id)) throw Object.assign(new Error('Workspace already exists'), { code: 'P2002' });
+      workspaces.set(record.id, record);
+      await this.write(workspaces);
 
-    return record;
+      return record;
+    });
   }
 
   async update(workspaceId: string, patch: Partial<WorkspaceRecord>) {
-    const workspaces = await this.read();
-    const existing = workspaces.get(workspaceId);
+    return this.serialize(async () => {
+      const workspaces = await this.read();
+      const existing = workspaces.get(workspaceId);
 
-    if (!existing) {
-      throw workspaceManagerError('workspaceNotFound', { code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
-    }
+      if (!existing) {
+        throw workspaceManagerError('workspaceNotFound', { code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
+      }
 
-    const updated = { ...existing, ...patch, updatedAt: new Date().toISOString() };
-    workspaces.set(workspaceId, updated);
-    await this.write(workspaces);
+      const updated = { ...existing, ...patch, updatedAt: new Date().toISOString() };
+      workspaces.set(workspaceId, updated);
+      await this.write(workspaces);
 
-    return updated;
+      return updated;
+    });
   }
 
   async claimMeterWindow(workspaceId: string, expected: string | undefined, next: string) {
-    const workspaces = await this.read();
-    const existing = workspaces.get(workspaceId);
+    return this.serialize(async () => {
+      const workspaces = await this.read();
+      const existing = workspaces.get(workspaceId);
 
-    if (!existing || (existing.lastMeteredAt ?? undefined) !== (expected ?? undefined)) {
-      return false;
-    }
+      if (!existing || (existing.lastMeteredAt ?? undefined) !== (expected ?? undefined)) {
+        return false;
+      }
 
-    workspaces.set(workspaceId, { ...existing, lastMeteredAt: next, updatedAt: new Date().toISOString() });
-    await this.write(workspaces);
+      workspaces.set(workspaceId, { ...existing, lastMeteredAt: next, updatedAt: new Date().toISOString() });
+      await this.write(workspaces);
 
-    return true;
+      return true;
+    });
   }
 
   async get(workspaceId: string) {
@@ -217,7 +297,9 @@ export class JsonWorkspaceStore implements WorkspaceStore {
 
   private async write(workspaces: Map<string, WorkspaceRecord>) {
     await mkdir(dirname(this.filePath), { recursive: true });
-    await writeFile(this.filePath, JSON.stringify([...workspaces.values()], null, 2));
+    const temporary = `${this.filePath}.${randomUUID()}.tmp`;
+    await writeFile(temporary, JSON.stringify([...workspaces.values()], null, 2));
+    await rename(temporary, this.filePath);
   }
 }
 
@@ -529,7 +611,229 @@ export class WorkspaceManager {
     return undefined;
   }
 
+  private async assertLegacyWorkspace(workspaceId: string) {
+    if ((await this.store.get(workspaceId))?.admission) {
+      throw admissionUnavailable('WORKSPACE_ADMISSION_PROTOCOL_REQUIRED');
+    }
+  }
+
   async startWorkspace(input: StartWorkspaceInput) {
+    await this.assertLegacyWorkspace(input.workspaceId);
+    return this.provisionWorkspace(input);
+  }
+
+  private async admissionRecord(workspaceId: string, generation: string) {
+    const record = await this.store.get(workspaceId);
+    if (!record?.admission || record.admission.generation !== generation) {
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+    }
+    return record as WorkspaceRecord & { admission: WorkspaceAdmission };
+  }
+
+  async releaseWorkspaceAdmission(namespace: string, workspaceId: string, generation: string, deadlineMs: number) {
+    const record = await this.admissionRecord(workspaceId, generation);
+    const age = Date.now() - Date.parse(record.admission.reservedAt);
+    if (record.admission.state !== 'RESERVED' || !Number.isFinite(age) || age < deadlineMs) {
+      return { released: false, workspace: record };
+    }
+    // An existing/terminating pod is still compute. Errors propagate, never absence.
+    if (await this.k8s.getPod(namespace, record.podName)) return { released: false, workspace: record };
+    const released = await this.store.compareAdmission(
+      record.id,
+      record.admission,
+      { ...record.admission, state: 'RELEASED' },
+      { status: 'STOPPED' },
+    );
+    return { released, workspace: await this.store.get(record.id) };
+  }
+
+  async startAdmittedWorkspace(input: StartWorkspaceInput & { admissionGeneration: string }, restart = false) {
+    const record = await this.admissionRecord(input.workspaceId, input.admissionGeneration);
+    assertWorkspaceOwner(record, input);
+    if (record.admission.state === 'PROVISIONING') {
+      if (record.status === 'FAILED')
+        throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_UNCERTAIN'), { statusCode: 409 });
+      return { ...record, status: 'STARTING' as const };
+    }
+    if (record.admission.state === 'RELEASED')
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+    if (record.admission.state === 'STOPPING')
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_IN_PROGRESS'), { statusCode: 409 });
+    const attempt: WorkspaceAdmission = { ...record.admission, state: 'PROVISIONING', attemptId: randomUUID() };
+    const claimed = await this.store.compareAdmission(record.id, record.admission, attempt, { status: 'STARTING' });
+    if (!claimed) {
+      const current = await this.admissionRecord(record.id, input.admissionGeneration);
+      if (current.admission.state === 'PROVISIONING' && current.status !== 'FAILED')
+        return { ...current, status: 'STARTING' as const };
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+    }
+    const mutation = { uncertain: false };
+    try {
+      if (record.admission.state === 'ACTIVE') {
+        await this.#meterRuntimeOnStop(record);
+        if (restart) {
+          mutation.uncertain = true;
+          await this.k8s.delete('Pod', input.namespace, record.podName);
+          if (await this.k8s.getPod(input.namespace, record.podName)) throw admissionUnavailable();
+          mutation.uncertain = false;
+        }
+      }
+      return await this.provisionWorkspace(input, attempt, mutation);
+    } catch (error) {
+      // A stale result must neither delete resources nor overwrite its successor.
+      const current = await this.admissionRecord(record.id, input.admissionGeneration);
+      if (current.admission.state !== 'PROVISIONING' || current.admission.attemptId !== attempt.attemptId) throw error;
+      let safelyStopped = false;
+      if (!mutation.uncertain) {
+        try {
+          await this.k8s.delete('Pod', input.namespace, record.podName);
+          await this.k8s.delete('Service', input.namespace, record.serviceName);
+          safelyStopped = !(await this.k8s.getPod(input.namespace, record.podName));
+        } catch {
+          /* The generation remains held after an uncertain cleanup. */
+        }
+      }
+      const publicKey = (error as WorkspaceManagerPublicError | undefined)?.publicMessageKey ?? 'workspaceStartFailed';
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          service: 'workspace-manager',
+          event: 'workspace.admission.start.failed',
+          workspaceId: record.id,
+          generation: attempt.generation,
+          attemptId: attempt.attemptId,
+          mutationUncertain: mutation.uncertain,
+          cleanupConfirmed: safelyStopped,
+          reason: publicKey,
+        }),
+      );
+      const failed = { status: 'FAILED' as const, error: workspaceManagerMessage(publicKey, 'en') };
+      if (
+        !(await this.store.compareAdmission(
+          record.id,
+          attempt,
+          { ...attempt, state: safelyStopped ? 'RELEASED' : 'PROVISIONING' },
+          failed,
+        ))
+      ) {
+        throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+      }
+      const result = await this.admissionRecord(record.id, input.admissionGeneration);
+      void this.publish(result, 'workspace.failed').catch(() => {});
+      return result;
+    }
+  }
+
+  async stopAdmittedWorkspace(namespace: string, workspaceId: string, generation: string, guard?: AdmissionGuard) {
+    const record = await this.admissionRecord(workspaceId, generation);
+    if (guard?.lastActiveAt !== undefined && record.lastActiveAt !== guard.lastActiveAt) return record;
+    if (record.admission.state === 'RELEASED') return record;
+    if (record.admission.state === 'RESERVED') {
+      const result = await this.releaseWorkspaceAdmission(namespace, workspaceId, generation, 0);
+      if (!result.released) throw admissionUnavailable();
+      return result.workspace;
+    }
+    if (record.admission.state !== 'ACTIVE') {
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_IN_PROGRESS'), { statusCode: 409 });
+    }
+    const stopping: WorkspaceAdmission = { ...record.admission, state: 'STOPPING', attemptId: randomUUID() };
+    if (!(await this.store.compareAdmission(record.id, record.admission, stopping, {}, guard))) {
+      if (guard) return this.store.get(record.id);
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_IN_PROGRESS'), { statusCode: 409 });
+    }
+    await this.#meterRuntimeOnStop(record);
+    await this.k8s.delete('Pod', namespace, record.podName);
+    if (await this.k8s.getPod(namespace, record.podName)) throw admissionUnavailable();
+    if (
+      !(await this.store.compareAdmission(
+        record.id,
+        stopping,
+        { ...stopping, state: 'RELEASED' },
+        { status: 'STOPPED' },
+      ))
+    ) {
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+    }
+    this.lastTouchAt.delete(workspaceId);
+    const result = await this.admissionRecord(workspaceId, generation);
+    void this.publish(result, 'workspace.stopped').catch(() => {});
+    return result;
+  }
+
+  async deleteAdmittedWorkspace(namespace: string, workspaceId: string, generation: string) {
+    const record = await this.admissionRecord(workspaceId, generation);
+    if (record.admission.state !== 'RELEASED')
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_IN_PROGRESS'), { statusCode: 409 });
+    if (await this.k8s.getPod(namespace, record.podName)) throw admissionUnavailable();
+    const deleting: WorkspaceAdmission = { ...record.admission, state: 'STOPPING', attemptId: randomUUID() };
+    if (!(await this.store.compareAdmission(record.id, record.admission, deleting)))
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+
+    // Only the explicitly requested permanent-delete endpoint may remove data.
+    // The API must close the project and fence all pending reservations first.
+    // Any uncertain delete remains STOPPING for operator reconciliation; it must
+    // never permit a new start to race a delayed PVC/Pod deletion.
+    const resources = [
+      ['Service', record.serviceName],
+      ['Secret', record.agentTokenSecretName ?? `agent-token-${workspaceId}`],
+      ['PersistentVolumeClaim', record.pvcName],
+    ] as const;
+    await this.k8s.delete('Pod', namespace, record.podName);
+    if (await this.k8s.getPod(namespace, record.podName)) throw admissionUnavailable();
+    for (const [kind, name] of resources) {
+      await this.k8s.delete(kind, namespace, name);
+      if (await this.k8s.get(kind, namespace, name)) throw admissionUnavailable();
+    }
+    if (
+      !(await this.store.compareAdmission(
+        record.id,
+        deleting,
+        { ...deleting, state: 'RELEASED' },
+        { status: 'DELETED' },
+      ))
+    )
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+    this.lastTouchAt.delete(workspaceId);
+    const result = await this.admissionRecord(workspaceId, generation);
+    void this.publish(result, 'workspace.deleted').catch(() => {});
+    return result;
+  }
+
+  private async updateProvision(
+    workspaceId: string,
+    patch: Partial<WorkspaceRecord>,
+    attempt?: WorkspaceAdmission,
+    active = false,
+  ) {
+    if (!attempt) return this.store.update(workspaceId, patch);
+    if (
+      !(await this.store.compareAdmission(
+        workspaceId,
+        attempt,
+        { ...attempt, state: active ? 'ACTIVE' : 'PROVISIONING' },
+        patch,
+      ))
+    ) {
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+    }
+    const current = await this.admissionRecord(workspaceId, attempt.generation);
+    if (current.admission.attemptId !== attempt.attemptId)
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
+    return current;
+  }
+
+  private async provisionWorkspace(
+    input: StartWorkspaceInput,
+    attempt?: WorkspaceAdmission,
+    mutation?: { uncertain: boolean },
+  ) {
+    const generation = attempt?.generation;
+    const apply = async (object: Parameters<WorkspaceK8sClient['apply']>[0]) => {
+      if (mutation) mutation.uncertain = true;
+      const result = await this.k8s.apply(object);
+      if (mutation) mutation.uncertain = false;
+      return result;
+    };
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
     const allowedSecrets = input.allowedSecrets ?? {};
@@ -585,6 +889,9 @@ export class WorkspaceManager {
      * is provisioned below. This also makes restartWorkspace (stop→start) work.
      */
     const existing = await this.store.get(input.workspaceId);
+    if (!generation && existing?.admission) throw admissionUnavailable('WORKSPACE_ADMISSION_PROTOCOL_REQUIRED');
+    if (generation && !existing)
+      throw Object.assign(admissionUnavailable('WORKSPACE_ADMISSION_STALE'), { statusCode: 409 });
 
     /*
      * Reopening a workspace that is still RUNNING (the api always POSTs
@@ -619,7 +926,7 @@ export class WorkspaceManager {
     let record;
 
     if (existing) {
-      record = await this.store.update(input.workspaceId, resetUpdate);
+      record = await this.updateProvision(input.workspaceId, resetUpdate, attempt);
     } else {
       try {
         record = await this.store.create(baseRecord);
@@ -632,7 +939,8 @@ export class WorkspaceManager {
          * fall back to the reset update instead of crashing.
          */
         if ((error as { code?: string } | undefined)?.code === 'P2002') {
-          record = await this.store.update(input.workspaceId, resetUpdate);
+          if (!generation) await this.assertLegacyWorkspace(input.workspaceId);
+          record = await this.updateProvision(input.workspaceId, resetUpdate, attempt);
         } else {
           throw error;
         }
@@ -661,7 +969,7 @@ export class WorkspaceManager {
       const existingPvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '');
 
       if (!existingPvc) {
-        await this.k8s.apply(pvc);
+        await apply(pvc);
       }
 
       /*
@@ -670,7 +978,7 @@ export class WorkspaceManager {
        * root value here handed every tenant the key that signs for every OTHER
        * workspace.
        */
-      await this.k8s.apply({
+      await apply({
         ...workspaceAgentSecret(runtimeInput),
         stringData: {
           tokenSecret: deriveWorkspaceAgentSecret(this.tokenSecret, input.workspaceId),
@@ -689,8 +997,10 @@ export class WorkspaceManager {
        */
       const podExistedBeforeApply = Boolean(await this.k8s.getPod(input.namespace, record.podName).catch(() => null));
 
+      if (mutation) mutation.uncertain = true;
       await this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName);
-      await this.k8s.apply(workspaceService(runtimeInput));
+      if (mutation) mutation.uncertain = false;
+      await apply(workspaceService(runtimeInput));
       await this.waitForReadiness(input.namespace, record.podName);
 
       /*
@@ -706,17 +1016,22 @@ export class WorkspaceManager {
        */
       await this.waitForAgentReachable(input.workspaceId, input.namespace);
 
-      const running = await this.store.update(input.workspaceId, {
-        status: 'RUNNING',
-        lastActiveAt: new Date().toISOString(),
+      const running = await this.updateProvision(
+        input.workspaceId,
+        {
+          status: 'RUNNING',
+          lastActiveAt: new Date().toISOString(),
 
-        /*
-         * Only advance the scheme when THIS call created the pod: a reused pod
-         * still holds the older secret. Never moves backwards — a pod that was
-         * already 'derived-v1' and got reused keeps that scheme.
-         */
-        ...(podExistedBeforeApply ? {} : { agentTokenScheme: AGENT_TOKEN_SCHEME_DERIVED_V1 }),
-      });
+          /*
+           * Only advance the scheme when THIS call created the pod: a reused pod
+           * still holds the older secret. Never moves backwards — a pod that was
+           * already 'derived-v1' and got reused keeps that scheme.
+           */
+          ...(podExistedBeforeApply ? {} : { agentTokenScheme: AGENT_TOKEN_SCHEME_DERIVED_V1 }),
+        },
+        attempt,
+        true,
+      );
 
       if (!podExistedBeforeApply) {
         this.#derivedSchemeWorkspaces.add(input.workspaceId);
@@ -732,6 +1047,7 @@ export class WorkspaceManager {
 
       return running;
     } catch (error) {
+      if (attempt) throw error;
       /*
        * Surface the actual provisioning failure to stdout. Previously the only
        * trace of a failed start was the `workspace.failed` event (which carries
@@ -776,10 +1092,14 @@ export class WorkspaceManager {
       ]);
 
       const publicKey = (error as WorkspaceManagerPublicError | undefined)?.publicMessageKey ?? 'workspaceStartFailed';
-      const failed = await this.store.update(input.workspaceId, {
-        status: 'FAILED',
-        error: workspaceManagerMessage(publicKey, 'en'),
-      });
+      const failed = await this.updateProvision(
+        input.workspaceId,
+        {
+          status: 'FAILED',
+          error: workspaceManagerMessage(publicKey, 'en'),
+        },
+        attempt,
+      );
 
       await this.publish(failed, 'workspace.failed');
 
@@ -1150,6 +1470,7 @@ export class WorkspaceManager {
   }
 
   async stopWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
+    await this.assertLegacyWorkspace(workspaceId);
     const workspace = await this.requireWorkspace(workspaceId);
 
     /*
@@ -1194,11 +1515,13 @@ export class WorkspaceManager {
   }
 
   async restartWorkspace(input: StartWorkspaceInput) {
+    await this.assertLegacyWorkspace(input.workspaceId);
     await this.stopWorkspace(input.namespace, input.workspaceId).catch(() => undefined);
     return this.startWorkspace(input);
   }
 
   async deleteWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
+    await this.assertLegacyWorkspace(workspaceId);
     const workspace = await this.requireWorkspace(workspaceId);
 
     /*
@@ -1282,6 +1605,18 @@ export class WorkspaceManager {
         const workspace = await this.store.get(snapshot.id);
 
         if (!workspace) {
+          continue;
+        }
+
+        if (workspace.admission) {
+          if (workspace.admission.state !== 'ACTIVE') continue;
+          const pod = await this.k8s.getPod(namespace, workspace.podName);
+          const idle = now - new Date(workspace.lastActiveAt).getTime() > inactiveMs;
+          if (!pod || (idle && !(await this.isAgentBusy(workspace.id, namespace)))) {
+            await this.stopAdmittedWorkspace(namespace, workspace.id, workspace.admission.generation, {
+              lastActiveAt: workspace.lastActiveAt,
+            });
+          }
           continue;
         }
 

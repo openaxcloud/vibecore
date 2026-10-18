@@ -1,6 +1,14 @@
 import type { DatabaseClient } from '@vibecore/database';
 import type { WorkspacePlan } from '@vibecore/k8s-client';
 
+import {
+  admissionUnavailable,
+  reserveInStore,
+  type ReserveWorkspaceInput,
+  type AdmissionGuard,
+  type WorkspaceAdmission,
+} from './admission.js';
+
 import type { WorkspaceRecord, WorkspaceStatus, WorkspaceStore } from './manager.js';
 
 const KNOWN_PLANS: ReadonlySet<WorkspacePlan> = new Set(['free', 'pro', 'team', 'enterprise']);
@@ -45,10 +53,35 @@ interface PrismaRuntimeRow {
   createdAt: Date;
   lastActiveAt: Date;
   updatedAt: Date;
+  admissionAttemptId: string | null;
+  admissionGeneration: string | null;
+  admissionState: string | null;
+  admissionReservedAt: Date | null;
   lastMeteredAt: Date | null;
 }
 
 function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
+  let admission: WorkspaceAdmission | undefined;
+  if (
+    row.admissionGeneration != null ||
+    row.admissionState != null ||
+    row.admissionReservedAt != null ||
+    row.admissionAttemptId != null
+  ) {
+    if (
+      !row.admissionGeneration ||
+      !row.admissionReservedAt ||
+      !['RESERVED', 'PROVISIONING', 'ACTIVE', 'STOPPING', 'RELEASED'].includes(row.admissionState ?? '')
+    ) {
+      throw admissionUnavailable('WORKSPACE_ADMISSION_INVALID');
+    }
+    admission = {
+      generation: row.admissionGeneration,
+      ...(row.admissionAttemptId ? { attemptId: row.admissionAttemptId } : {}),
+      state: row.admissionState as WorkspaceAdmission['state'],
+      reservedAt: row.admissionReservedAt.toISOString(),
+    };
+  }
   return {
     id: row.id,
     orgId: row.orgId,
@@ -63,9 +96,54 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     createdAt: row.createdAt.toISOString(),
     lastActiveAt: row.lastActiveAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
+    ...(admission ? { admission } : {}),
     ...(row.error ? { error: row.error } : {}),
     ...(row.lastMeteredAt ? { lastMeteredAt: row.lastMeteredAt.toISOString() } : {}),
   };
+}
+
+function recordPatch(patch: Partial<WorkspaceRecord>): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+
+  if (patch.orgId !== undefined) {
+    data.orgId = patch.orgId;
+  }
+  if (patch.projectId !== undefined) {
+    data.projectId = patch.projectId;
+  }
+  if (patch.plan !== undefined) {
+    data.plan = patch.plan;
+  }
+  if (patch.status !== undefined) {
+    data.status = patch.status;
+  }
+  if (patch.pvcName !== undefined) {
+    data.pvcName = patch.pvcName;
+  }
+  if (patch.podName !== undefined) {
+    data.podName = patch.podName;
+  }
+  if (patch.serviceName !== undefined) {
+    data.serviceName = patch.serviceName;
+  }
+  if (patch.agentTokenScheme !== undefined) {
+    data.agentTokenScheme = patch.agentTokenScheme;
+  }
+
+  if (patch.agentTokenSecretName !== undefined) {
+    data.agentTokenSecretName = patch.agentTokenSecretName;
+  }
+  if (patch.lastActiveAt !== undefined) {
+    data.lastActiveAt = new Date(patch.lastActiveAt);
+  }
+  if (patch.lastMeteredAt !== undefined) {
+    data.lastMeteredAt = new Date(patch.lastMeteredAt);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'error')) {
+    data.error = patch.error ?? null;
+  }
+
+  return data;
 }
 
 /**
@@ -81,11 +159,51 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
  *   - update is a single UPDATE … RETURNING; if the row is gone (DELETED was
  *     reaped by GC) we throw the same "Workspace not found" the JSON store
  *     would have thrown
- *   - we explicitly never read-then-write the same record; concurrent
- *     update calls compose via column-level merges in the patch
+ *   - admission transitions compare generation, state, attempt and optional
+ *     guards atomically; ordinary updates compose via column-level patches
  */
 export class PrismaWorkspaceStore implements WorkspaceStore {
   constructor(private readonly prisma: DatabaseClient) {}
+
+  reserveAdmission(input: ReserveWorkspaceInput) {
+    return reserveInStore(this, input);
+  }
+
+  async compareAdmission(
+    workspaceId: string,
+    expected: WorkspaceAdmission,
+    next: WorkspaceAdmission,
+    patch: Partial<WorkspaceRecord> = {},
+    guard?: AdmissionGuard,
+  ): Promise<boolean> {
+    const result = await this.prisma.workspaceRuntime.updateMany({
+      where: {
+        id: workspaceId,
+        admissionGeneration: expected.generation,
+        admissionState: expected.state,
+        admissionAttemptId: expected.attemptId ?? null,
+        ...(guard?.lastActiveAt !== undefined ? { lastActiveAt: new Date(guard.lastActiveAt) } : {}),
+        ...(guard?.orgId !== undefined ? { orgId: guard.orgId } : {}),
+        ...(guard?.projectId !== undefined ? { projectId: guard.projectId } : {}),
+      },
+      data: {
+        ...recordPatch(patch),
+        admissionGeneration: next.generation,
+        admissionAttemptId: next.attemptId ?? null,
+        admissionState: next.state,
+        admissionReservedAt: new Date(next.reservedAt),
+      },
+    });
+    return result.count === 1;
+  }
+
+  async listAdmissions(orgId: string): Promise<WorkspaceRecord[]> {
+    const rows = await this.prisma.workspaceRuntime.findMany({
+      where: { orgId, admissionGeneration: { not: null }, admissionState: { not: 'RELEASED' } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return rows.map((row) => rowToRecord(row as PrismaRuntimeRow));
+  }
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>): Promise<WorkspaceRecord> {
     const now = new Date();
@@ -104,51 +222,21 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         error: input.error ?? null,
         createdAt: now,
         lastActiveAt: now,
+        ...(input.admission
+          ? {
+              admissionGeneration: input.admission.generation,
+              admissionAttemptId: input.admission.attemptId ?? null,
+              admissionState: input.admission.state,
+              admissionReservedAt: new Date(input.admission.reservedAt),
+            }
+          : {}),
       },
     })) as PrismaRuntimeRow;
     return rowToRecord(created);
   }
 
   async update(workspaceId: string, patch: Partial<WorkspaceRecord>): Promise<WorkspaceRecord> {
-    const data: Record<string, unknown> = {};
-
-    if (patch.orgId !== undefined) {
-      data.orgId = patch.orgId;
-    }
-    if (patch.projectId !== undefined) {
-      data.projectId = patch.projectId;
-    }
-    if (patch.plan !== undefined) {
-      data.plan = patch.plan;
-    }
-    if (patch.status !== undefined) {
-      data.status = patch.status;
-    }
-    if (patch.pvcName !== undefined) {
-      data.pvcName = patch.pvcName;
-    }
-    if (patch.podName !== undefined) {
-      data.podName = patch.podName;
-    }
-    if (patch.serviceName !== undefined) {
-      data.serviceName = patch.serviceName;
-    }
-    if (patch.agentTokenScheme !== undefined) {
-      data.agentTokenScheme = patch.agentTokenScheme;
-    }
-
-    if (patch.agentTokenSecretName !== undefined) {
-      data.agentTokenSecretName = patch.agentTokenSecretName;
-    }
-    if (patch.lastActiveAt !== undefined) {
-      data.lastActiveAt = new Date(patch.lastActiveAt);
-    }
-    if (patch.lastMeteredAt !== undefined) {
-      data.lastMeteredAt = new Date(patch.lastMeteredAt);
-    }
-    if (Object.prototype.hasOwnProperty.call(patch, 'error')) {
-      data.error = patch.error ?? null;
-    }
+    const data = recordPatch(patch);
 
     try {
       const updated = (await this.prisma.workspaceRuntime.update({
