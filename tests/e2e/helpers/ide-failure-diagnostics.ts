@@ -150,9 +150,16 @@ export const test = base.extend<{ ideDiagnostics: Diagnostics }>({
             await bounded(pendingSample);
           }
 
+          /*
+           * Keep the same bounded, secret-free evidence readable when an artifact
+           * cannot be downloaded. No URLs, bodies, headers or DOM text are logged.
+           */
+          const metadata = JSON.stringify({ samples, responses });
+          console.error(`IDE_FAILURE_METADATA ${metadata}`);
+
           await bounded(
             testInfo.attach('ide-failure-metadata', {
-              body: JSON.stringify({ samples, responses }),
+              body: metadata,
               contentType: 'application/json',
             }),
           );
