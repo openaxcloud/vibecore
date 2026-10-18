@@ -44,6 +44,7 @@ interface PrismaRuntimeRow {
   error: string | null;
   createdAt: Date;
   lastActiveAt: Date;
+  updatedAt: Date;
   lastMeteredAt: Date | null;
 }
 
@@ -61,6 +62,7 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     agentTokenScheme: row.agentTokenScheme ?? undefined,
     createdAt: row.createdAt.toISOString(),
     lastActiveAt: row.lastActiveAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
     ...(row.error ? { error: row.error } : {}),
     ...(row.lastMeteredAt ? { lastMeteredAt: row.lastMeteredAt.toISOString() } : {}),
   };
