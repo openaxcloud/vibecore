@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 22:57 UTC
+## Dernier état vérifié — 23:02 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -108,13 +108,17 @@ défaut est reproduit : le bouton Réessayer ne relance aucune requête lorsque
 la première reste en attente. Son correctif conserve les consommateurs et
 remplace la tentative HTTP, avec contre-épreuves et tests loopback verts.
 [Preuves et limites des deux corrections](2026-10-18-ide-recovery-defects.md).
-Les deux candidats et le diagnostic sont en cours de validation intégrée
-sur `43eef614`, sans assouplissement des contrôles. Aucun n’est déployé.
+Les deux candidats et le diagnostic sont validés localement sur une branche
+issue de `43eef614`, sans assouplissement des contrôles : 88 tests ciblés,
+typage web/tests, build client/SSR, puis deux cas Chromium sans retry
+sur le lot `6365455b6`, captures inspectées et nettoyage QA réussi.
+[Preuve intégrée](mesures/2026-10-18-ide-recovery-integrated.json).
+Aucun de ces changements n’est encore fusionné ou déployé.
 La validation intégrée a ensuite identifié un défaut du lecteur de styles
 du test : trois des six observations supplémentaires lisent un ancien nœud
 détaché (rayon vide), alors que le menu courant est connecté avec `12px`
-au même instant. Ce rouge local est attribué et consigné ; une lecture
-atomique est en préparation. L’ancien rouge CI et la panne DB ne sont
+au même instant. Ce rouge local est attribué et consigné ; la lecture
+atomique passe désormais ses contre-épreuves de CSS incorrect et de menu absent. L’ancien rouge CI et la panne DB ne sont
 pas réattribués sans preuve.
 
 Le [diagnostic DB instrumenté](https://github.com/openaxcloud/vibecore/actions/runs/39170180476)
@@ -156,7 +160,7 @@ Aucun contrôle de livraison n’est contourné.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 22:57 UTC
+## Les cinq conditions de lancement — état vérifié à 23:02 UTC
 
 Main est `43eef614ec3c56d8b7642f105b140e938f6868ef` après la fusion
 documentaire #739 à 22:32:21 UTC : 33 fichiers, aucun de production.

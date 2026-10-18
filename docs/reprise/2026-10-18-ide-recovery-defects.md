@@ -70,7 +70,7 @@ possédé et ports locaux fermés. Ce n’est pas une relance jusqu’au vert.
 La sélection du nœud par `Locator.evaluate` et son évaluation passent par
 deux appels Playwright distincts ; le remplacement de coque peut intervenir
 entre eux. Une lecture atomique, qui sélectionne et mesure le menu courant
-dans le même callback navigateur, est en préparation. Les assertions de
+dans le même callback navigateur, est désormais validée localement. Les assertions de
 style restent identiques ; un menu absent ou un vrai CSS incorrect doivent
 toujours être détectés. Cette preuve attribue le rouge **local** observé,
 pas les anciennes exécutions CI dont les captures restent inaccessibles.
@@ -95,3 +95,22 @@ inchangées et 73/73 fichiers. Les deux cas DB passent au premier essai.
 [Résultat exact](mesures/2026-10-18-mobile-db-diagnostic-full-result.json) :
 aucune métadonnée d’échec DB n’est obtenue, et la cause reste inconnue.
 Ce run précède les corrections UI ; son résultat ne prouve pas leur effet.
+
+## Validation du lot intégré — 23:00 UTC
+
+Sur `6365455b6`, avec les quatre sources produit identiques au build de
+`93e7e3d8`, les deux cas Chromium passent sans retry : styles historiques
+16,2 s, handoff et contre-épreuves 27,9 s (49,4 s au total). Le lecteur
+observe bien `13px` après la mutation locale puis `12px` après restauration ;
+il rejette le menu absent après Escape. Les captures avant/après sont inspectées.
+Les trois projets ont reçu DELETE 200, le wrapper termine avec code 0,
+zéro processus actif possédé et ports 3301/3173 fermés.
+
+[Preuve intégrée et empreintes](mesures/2026-10-18-ide-recovery-integrated.json) :
+88 tests ciblés distincts passent (72 + 16 générateur), six contrôles d’index
+rejoués après régénération, typage web TS 5.8.3, typage ciblé des tests,
+build client/SSR et aucun nouveau diagnostic lint. Le fichier dashboard
+conserve ses six erreurs et un avertissement historiques ; nouveaux fichiers
+sans diagnostic. Le build n’est pas rejoué après la seule correction des
+tests : ses entrées produit sont comparées octet pour octet.
+Aucune cause CI ou validation production n’est ajoutée par ces succès locaux.

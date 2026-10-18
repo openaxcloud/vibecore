@@ -23,7 +23,7 @@ Le scénario réel de handoff conserve un handle avant de libérer une vraie ré
 
 ## ✅ Testé live
 
-☐ Aucun déploiement ni contrôle en production. Les validations du correctif navigateur sont encore à exécuter par le parent, qui possède le cycle de vie des services QA.
+☐ Aucun déploiement ni contrôle en production. Le lot local `6365455b6` passe ses deux cas Chromium sans retry (49,4 s), y compris styles `13px`/`12px`, ancien nœud détaché et menu absent. Les trois projets QA ont reçu DELETE 200 ; nettoyage et wrapper terminent avec code 0. [Preuve intégrée](../reprise/mesures/2026-10-18-ide-recovery-integrated.json).
 
 ## Preuve
 
@@ -33,4 +33,4 @@ Le scénario réel de handoff conserve un handle avant de libérer une vraie ré
 - La nouvelle régression n'utilise ni faux contenu HTTP ni fixture JSX. Le contre-cas CSS modifie uniquement le DOM local de cette identité QA jetable.
 - Typage ciblé des trois fichiers de test/helper avec TypeScript 5.8.3 du dépôt : code 0, zéro diagnostic. ESLint : zéro diagnostic pour le helper et le scénario handoff ; le fichier dashboard conserve ses six erreurs et un avertissement historiques, sans ajout. Il ne s'agit pas d'un lint global propre.
 
-Limites : preuve Chromium locale ; aucune attribution nouvelle de CI, aucune preuve Safari, mobile ou production. Aucun build produit nécessaire pour cette correction exclusivement dans les tests ; le navigateur doit utiliser le même build produit que les observations.
+Limites : preuve Chromium locale ; aucune attribution nouvelle de CI, aucune preuve Safari, mobile ou production. Aucun build produit nécessaire pour cette correction exclusivement dans les tests ; le navigateur a utilisé le même build produit que les observations, avec entrées comparées octet pour octet.
