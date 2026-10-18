@@ -34297,10 +34297,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const status =
-      managerWorkspace?.status === 'FAILED' ? 'FAILED' : managerWorkspace?.status === 'STOPPED' ? 'STOPPED' : 'RUNNING';
+      managerWorkspace?.status === 'FAILED'
+        ? 'FAILED'
+        : managerWorkspace?.status === 'STOPPED'
+          ? 'STOPPED'
+          : managerWorkspace?.status === 'STARTING'
+            ? 'STARTING'
+            : 'RUNNING';
 
     const workspace = await setReservedWorkspaceStatus(orgId, workspaceId, reservation.admission, status);
-    await recordAdminAction(request, store, { action: 'admin.workspace.restart', metadata: { workspaceId, status } });
+    await recordAdminAction(request, store, {
+      action: 'admin.workspace.restart',
+      metadata: { workspaceId, status: workspace?.status ?? null },
+    });
 
     return { workspace };
   });

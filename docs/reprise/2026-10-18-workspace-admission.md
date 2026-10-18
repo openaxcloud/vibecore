@@ -1,6 +1,6 @@
 # Admission coordonnée des workspaces — 18 octobre 2026
 
-État : candidat local validé, non fusionné et non activé. Branche
+État : candidat validé localement dans [#735](https://github.com/openaxcloud/vibecore/pull/735), non fusionné et non activé. Branche
 `codex/workspace-admission-20261018`. La production
 attestée par la dernière livraison GitHub reste celle de #733. Ce document ne
 certifie aucun parcours utilisateur live.
@@ -53,7 +53,12 @@ Les cas couvrent notamment pod vivant avec STARTING ancien, réouverture
 concurrente, start déjà envoyé puis invalidé, erreur de lecture Kubernetes,
 inactivité API de sept heures, expiration réelle d'une transaction advisory,
 transfert concurrent et suppression. La contre-revue n'a pas relevé de nouveau
-P1 dans ce contrat local ; elle ne vaut pas validation de production.
+P1 dans ce contrat local ; elle ne vaut pas validation de production. Une revue
+GitHub a ensuite relevé un P2 dans l'audit du redémarrage administrateur : une
+réponse STARTING était consignée RUNNING. Trois régressions isolées reproduisent
+le défaut, puis passent avec l'audit aligné sur l'état effectivement retenu, y
+compris lorsqu'une réponse RUNNING est devenue obsolète. Ces tests additionnels
+utilisent un serveur HTTP local, sans pod réel.
 
 Les anciennes lignes sans génération restent legacy. Leur limite de comptage
 API de six heures et leurs démarrages sans jeton ne sont pas transformés en

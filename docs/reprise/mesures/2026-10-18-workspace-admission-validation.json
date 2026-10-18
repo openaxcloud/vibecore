@@ -1,5 +1,5 @@
 {
-  "recordedAtUtc": "2026-10-18T18:08:03.402878+00:00",
+  "recordedAtUtc": "2026-10-18T18:19:03.913861+00:00",
   "baseSha": "44a8e01bc1010732cb5862c346071e4411d0511d",
   "branch": "codex/workspace-admission-20261018",
   "scope": "isolated local validation, not production; phase-one rollout only",
@@ -119,6 +119,23 @@
     "postCatalogTypecheck": {
       "apiChangedModulesExitCode": 0,
       "managerExitCode": 0
+    },
+    "adminRestartAuditReviewRegression": {
+      "reviewUrl": "https://github.com/openaxcloud/vibecore/pull/735#discussion_r4308106518",
+      "beforeFailed": 3,
+      "afterPassed": 3,
+      "skipped": 0,
+      "cases": [
+        "legacy STARTING remains STARTING",
+        "V2 overlapping PROVISIONING remains STARTING",
+        "V2 stale RUNNING response audits the persisted FAILED state"
+      ],
+      "scope": "isolated API and local HTTP contract fixture; no Kubernetes or live agent",
+      "apiTypecheckExitCode": 0,
+      "apiBuildExitCode": 0,
+      "appLintAddedDiagnostics": 0,
+      "newTestLintDiagnostics": 0,
+      "memoryBeforeTestsBytes": 3045269504
     }
   },
   "correctedValidationFailures": [
@@ -208,7 +225,7 @@
     },
     {
       "path": "services/api/src/app.ts",
-      "sha256": "0b82cc46420b62d50c532c79f35b4fdc7250f476810d8290b74cbdeafcf7c9a2"
+      "sha256": "731b4e35db6e560fbf9bebbff12a23f35c6f5c0069163842777f34fa51f1f03b"
     },
     {
       "path": "services/api/src/prisma-store.ts",
@@ -285,6 +302,10 @@
     {
       "path": "tests/guards/workspace-admission-rollout.spec.ts",
       "sha256": "426205c318060c897732055b2a735ef91514e2e0de9c89fbed52e09d1fbd3e19"
+    },
+    {
+      "path": "services/api/src/tests/admin-workspace-restart-audit.spec.ts",
+      "sha256": "944085b34847e9b2065d296ba64521f9e22eb49d48ab9b4b90bff0e1bcdec2aa"
     }
   ],
   "localLogSha256": [
@@ -327,6 +348,22 @@
     {
       "path": "/tmp/vibecore-manager-style-build.log",
       "sha256": "79f40221432e82899834e0dc638811e4059ff2e4bec58960a2390954ef83c4f1"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-before.log",
+      "sha256": "711828268a18226bff96cf15c4f5a9335fb50f10c64e951ebca6ed4011d2bf1e"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-after.log",
+      "sha256": "4ddb40e6c723b60728cd17a9bd2b4e5a1ea83cc868c5edcb9bb2401919b79a66"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-typecheck.log",
+      "sha256": "111d130256a71daaacee3deef7781ccf3d2f52b02bdbe10faf68bce2aee2d49f"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-admin-audit-build.log",
+      "sha256": "e7f4f77f2650e6df549aa7cf9b77b70c88f5faa4f20a9e0736b14eb5602f1e9e"
     }
   ],
   "merged": false,
