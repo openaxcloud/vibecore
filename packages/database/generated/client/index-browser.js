@@ -229,6 +229,7 @@ exports.Prisma.ProjectScalarFieldEnum = {
   thumbnailUrl: 'thumbnailUrl',
   thumbnailUpdatedAt: 'thumbnailUpdatedAt',
   deletedAt: 'deletedAt',
+  runtimeDeletionPending: 'runtimeDeletionPending',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -461,6 +462,7 @@ exports.Prisma.WorkspaceScalarFieldEnum = {
   name: 'name',
   status: 'status',
   runtimeMode: 'runtimeMode',
+  runtimeAdmissionRequests: 'runtimeAdmissionRequests',
   environment: 'environment',
   gitPath: 'gitPath',
   gitRepositoryUrl: 'gitRepositoryUrl',
@@ -1104,7 +1106,11 @@ exports.Prisma.WorkspaceRuntimeScalarFieldEnum = {
   createdAt: 'createdAt',
   lastActiveAt: 'lastActiveAt',
   lastMeteredAt: 'lastMeteredAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  admissionAttemptId: 'admissionAttemptId',
+  admissionGeneration: 'admissionGeneration',
+  admissionState: 'admissionState',
+  admissionReservedAt: 'admissionReservedAt'
 };
 
 exports.Prisma.ConnectorCatalogScalarFieldEnum = {

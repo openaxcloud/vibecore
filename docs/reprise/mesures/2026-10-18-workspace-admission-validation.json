@@ -1,0 +1,174 @@
+{
+  "recordedAtUtc": "2026-10-18T17:58:51.116288+00:00",
+  "baseSha": "44a8e01bc1010732cb5862c346071e4411d0511d",
+  "branch": "codex/workspace-admission-20261018",
+  "scope": "isolated local validation, not production; phase-one rollout only",
+  "environment": {
+    "postgres": "16.15",
+    "localDatabaseOnly": true,
+    "migrationsApplied": 100,
+    "databaseMemoryLimitBytes": 536870912,
+    "databaseCpuLimit": 1,
+    "workspaceMemoryLimitBytes": 17179869184,
+    "memoryBeforeIsolatedManagerSuiteBytes": 2565738496,
+    "paidCloudResourcesCreated": false,
+    "customerRowsTouched": false
+  },
+  "results": {
+    "beforeCoordinatedFix": {
+      "failedAssertions": 2,
+      "observedPods": 2,
+      "expectedPods": 1
+    },
+    "managerFullSuite": {
+      "passed": 144,
+      "skipped": 0,
+      "files": 9,
+      "durationSeconds": 41.29,
+      "kubernetes": "local instrumented client",
+      "httpAndPrisma": "production implementations",
+      "beforeStyleOnlyCommit": true
+    },
+    "managerPostStyle": {
+      "passed": 98,
+      "skipped": 0,
+      "scope": "admission, manager and HTTP app tests"
+    },
+    "apiTargeted": {
+      "runs": [
+        {
+          "passed": 34,
+          "files": 6,
+          "skipped": 0
+        },
+        {
+          "passed": 15,
+          "files": 3,
+          "skipped": 0
+        }
+      ],
+      "distinctTests": 44,
+      "postgresTransferAndDeletionTestsIncluded": 10,
+      "note": "five tests overlap between the two runs"
+    },
+    "rolloutGuards": {
+      "passed": 5
+    },
+    "apiTypecheck": {
+      "exitCode": 0
+    },
+    "apiBuild": {
+      "exitCode": 0
+    },
+    "managerTypecheck": {
+      "exitCode": 0
+    },
+    "managerBuild": {
+      "exitCode": 0
+    },
+    "newRootFilesLintDiagnostics": 0,
+    "apiLintDifferential": {
+      "app.ts": {
+        "before": 338,
+        "after": 338
+      },
+      "prisma-store.ts": {
+        "before": 62,
+        "after": 62
+      },
+      "store.ts": {
+        "before": 111,
+        "after": 111
+      },
+      "test-api-store.ts": {
+        "before": 11,
+        "after": 11
+      },
+      "added": 0
+    },
+    "managerLintDifferential": {
+      "added": 0,
+      "remainingHistoricalErrors": 74,
+      "remainingHistoricalWarnings": 7,
+      "newAdmissionFilesDiagnostics": 0
+    },
+    "ciAssetsValidation": {
+      "ok": true
+    },
+    "deployGateWiring": {
+      "ok": true
+    },
+    "requiredChecksSelftest": {
+      "passed": 14
+    }
+  },
+  "correctedValidationFailures": [
+    "Parallel PostgreSQL suites hit connection and setup timeouts; isolated full manager rerun passed without increasing test deadlines.",
+    "HTTP deletion exposed Prisma CUID rejection in the teardown guard; guard and refusal cases corrected.",
+    "Node service typecheck rejected global BodyInit in a new test; changed to RequestInit[body], final typecheck passed."
+  ],
+  "rollout": {
+    "quotaReader": "true",
+    "createReservations": "false",
+    "helmLiveConfigMapVerificationWired": true,
+    "localHelmRender": "blocked: official Helm download refused by proxy HTTP 403; required CI rendering not yet run"
+  },
+  "knownLimits": [
+    "Production HTTP CONNECT 403, no origin response; no operator cluster credentials.",
+    "No signup-to-agent-to-publish or Safari/mobile live evidence.",
+    "Legacy runtimes remain legacy; inventory and drain required before activation.",
+    "Uncertain reservations and pending requests require operator reconciliation, no forced release.",
+    "Preexisting agent health timeout can still continue to RUNNING; separately recorded.",
+    "Late stop response can still overwrite API display status, while V2 pod/generation/quota remain protected."
+  ],
+  "sourceSha256": {
+    ".github/workflows/deploy-main.yml": "f9fc4c1bde1b61395dd37d5acdd3d9154d3e8a00ef2cd76ed5c61928e920b4aa",
+    "infra/helm/platform/templates/configmap.yaml": "586239cb7044adf5ca89358c6e0bc18a7bbab8c7f5ea33e6f906654d29d400d1",
+    "infra/helm/platform/values-prod.yaml": "d3c3fcc0e972160c34c4333e57620dd33f7f81bf8275e431daa4d9dbbb26f5eb",
+    "infra/helm/platform/values.yaml": "2fa9c2e7f11a6e3b5abe85cc2fdc500e3d03438d8cbe960c6783335e9e9cca95",
+    "packages/database/generated/client/index.d.ts": "15d159a834769d79478a180179c624a213230ea4ff6a2180eece787cef4ade96",
+    "packages/database/generated/client/package.json": "adb98b13b1106f04e6bce58e6be50a635755b5b4fa08ea5c77115be7f8d8e406",
+    "packages/database/generated/client/schema.prisma": "630b26a689f1f9e80ab2a77dbb737ab2aba5a87242f14592d2854ee2310a10fb",
+    "packages/database/prisma/migrations/0087_workspace_admission/migration.sql": "df27fef9d60abf9066570f6bc913b039293e9b98479f257b9a63b332aa381ed9",
+    "packages/database/prisma/migrations/0088_workspace_admission_attempt/migration.sql": "70bfc808292d0729e952bedceda419cd3e1dad621bf5ec4293d9afe9ae7d3752",
+    "packages/database/prisma/migrations/0089_workspace_admission_requests/migration.sql": "c1c8a20c6c3eb3411a9f433fa37606bc42fd8417316fb7c4af2cc542bd67e9e3",
+    "packages/database/prisma/migrations/0090_project_runtime_deletion/migration.sql": "e16342f196bbc6d9a095727bdb137ac8657ac1d22c236ff70f9ebaf9af55cd07",
+    "packages/database/prisma/schema.prisma": "25e7ec2dcf9daff1a0c19d7dba5a31dab73cea08d88cbd0a02eb4497b7402bf3",
+    "scripts/release-gate/verify-workspace-admission-phase.mjs": "7fa314949ca06a0d5ecf96f961b8ffd7f499cc8d1d7d69215abac5facf155b00",
+    "services/api/src/app-public-copy.json": "9598b792330a53a77b7daa87b818ac5551f9c506970be225c7aea9a153d30830",
+    "services/api/src/app.ts": "90a241dd7b1def3c7bad9b3dd278bc1bce9ce30b958e93948ee576d6c26d8f23",
+    "services/api/src/prisma-store.ts": "8e03620953966eb27706db103ce18f30c0466fe533629d837434b732ccc7446f",
+    "services/api/src/project-teardown.ts": "0a43a336f4347d3c84bd70c7f36e522200480837fb7829853dbc4e5a2f6b9113",
+    "services/api/src/store.ts": "5794078d37a17265c0df5a73a9e21468e2e3019aaadbcfc6650c54757aa41649",
+    "services/api/src/tests/admin-suppression-definitive.spec.ts": "2f3e05c9a271d85dbd415b8d4fccfee67103e28d9a9303e0ac047038d09b2e43",
+    "services/api/src/tests/project-orphan-resources.spec.ts": "a45879c364ed0f4b24de5d780ef7e69403c92c1c34c331a1572016b7cc9c0dd0",
+    "services/api/src/tests/test-api-store.ts": "487c00709cf1be959bf39f40ad0727cabb07d42f3299fabed35e5ce16fdc3043",
+    "services/api/src/tests/workspace-admission-client.spec.ts": "fc6635d67f66e96d867e59ea9a14640ba8864b06cd715bcec5ffa9a0bcb7f6d0",
+    "services/api/src/tests/workspace-admission-transfer.spec.ts": "f6f3654e7e2dfbfc7010fae3f9005fedd05cdb9ac0b9da556a0b431aafc77fa5",
+    "services/api/src/workspace-admission.ts": "650a5484e172153982bd5079855fe2219c773e252ec0d375bd1771b240a47e95",
+    "services/workspace-manager/src/admission.spec.ts": "5744ae11af999ac9ac09140e19f940431cedee8e2bf4f8739064d7f507ae95ba",
+    "services/workspace-manager/src/admission.ts": "3e1f2f983fad12432886b946048283b29320a09327c078c0cf25b128e8f0dc6a",
+    "services/workspace-manager/src/app.ts": "ce169bf4e022ec86ddd338c5851c1edc0b9ce168ff3f229fcc571e19364a7e85",
+    "services/workspace-manager/src/manager.spec.ts": "95473fe34f24547a189eea7c68262ba3daba90557d5c29d0bfe7b6c631d8d3cf",
+    "services/workspace-manager/src/manager.ts": "c4239e9d19fef7687014eba6a07b9fcd357aaeec626e049f922daf07c3eef0b3",
+    "services/workspace-manager/src/prisma-store.spec.ts": "41578de566c63cb0fb5eb2a2f3198f4852bc974027605aadc820f9ebfd57c049",
+    "services/workspace-manager/src/prisma-store.ts": "d88f8a7546beade4fc5a97392aec4014c79b1e51ada74c0799b89942343c5f22",
+    "services/workspace-manager/src/quota-admission-race.spec.ts": "79be051ac21967b5c0285a7f726fd0642c43ff7ea9730be661848592c8387ca2",
+    "tests/guards/workspace-admission-rollout.spec.ts": "426205c318060c897732055b2a735ef91514e2e0de9c89fbed52e09d1fbd3e19"
+  },
+  "localLogSha256": {
+    "/tmp/vibecore-quota-race-before.log": "18d855edd140db825ba97c15fdf3bbece13b5de2c9b5af6ac8e7d845945cdb4e",
+    "/tmp/vibecore-admission-manager-isolated-final.log": "3370d5f60cbd428c3f210bb004fa41620518ab1b9908512a02bdf5f520390fb8",
+    "/tmp/vibecore-admission-api-validation.log": "7355be213274bb9109dec5ff587d6ebcc3a62a9dc18ae32cca5ec687b9c249d1",
+    "/tmp/vibecore-admission-api-last-regressions.log": "00570b690fb402c3eb7f350f62a553181d79c72e13d3786fb50a3a8ca002a534",
+    "/tmp/vibecore-admission-rollout-tests.log": "ea2d236b21f8e3d3c3a73b1980d683e23afdcb2ffd45db972088f5d3392217d5",
+    "/tmp/vibecore-admission-api-typecheck-final.log": "111d130256a71daaacee3deef7781ccf3d2f52b02bdbe10faf68bce2aee2d49f",
+    "/tmp/vibecore-admission-api-build-final.log": "e7f4f77f2650e6df549aa7cf9b77b70c88f5faa4f20a9e0736b14eb5602f1e9e",
+    "/tmp/vibecore-manager-style-tests.log": "a7719353abf3054b20cee3f7294854f9afa38a745f90ad4bf708a8395b891f2d",
+    "/tmp/vibecore-manager-style-typecheck.log": "b549595afef1d6ff12b9c2a0c085228ec1bb5a474b3bde81d31c0a6d75899bb5",
+    "/tmp/vibecore-manager-style-build.log": "79f40221432e82899834e0dc638811e4059ff2e4bec58960a2390954ef83c4f1"
+  },
+  "merged": false,
+  "deployed": false,
+  "productionFunctionalProof": false
+}

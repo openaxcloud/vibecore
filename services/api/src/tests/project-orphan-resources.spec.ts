@@ -1,7 +1,9 @@
 import { hashPassword } from '@vibecore/auth';
 import { describe, expect, it } from 'vitest';
 
+// eslint-disable-next-line no-restricted-imports -- Service tests use NodeNext imports, not the web app alias.
 import { buildApiApp } from '../app.js';
+// eslint-disable-next-line no-restricted-imports -- Service tests use NodeNext imports, not the web app alias.
 import type { EmailProvider } from '../email.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -18,7 +20,9 @@ import { TestApiStore } from './test-api-store.js';
  * sollicité, le seau reste, le PVC reste.
  */
 class QuietEmailProvider implements EmailProvider {
-  async send() {}
+  async send() {
+    return;
+  }
 }
 
 function recorder() {
@@ -129,18 +133,15 @@ describe('AUDX-171 project hard delete tears down external resources', () => {
     }
   });
 
-  it('deletes the project even when a resource refuses to go, and NAMES the survivor', async () => {
-    /*
-     * L'utilisateur a demandé une suppression : elle doit aboutir même si
-     * Kubernetes ou GCS hoquette. Mais l'échec ne doit pas être avalé — le
-     * `.catch(() => {})` d'origine rendait un démontage raté indiscernable d'un
-     * démontage réussi, ce qui est exactement pourquoi les orphelines ont été
-     * découvertes à la main des mois plus tard.
-     */
+  it('retains project handles and refuses restore after partial teardown, then permits retry', async () => {
+    let unavailable = true;
+
     const { app, store, project, auth } = await setup({
       databaseProvisioner: {
         async teardown() {
-          throw new Error('kubernetes API unavailable');
+          if (unavailable) {
+            throw new Error('isolated teardown unavailable');
+          }
         },
       } as never,
     });
@@ -152,11 +153,25 @@ describe('AUDX-171 project hard delete tears down external resources', () => {
       payload: { confirmName: 'Doomed' },
     });
 
-    expect(response.statusCode).toBe(200);
-    expect(await store.getProject(project.id)).toBeUndefined();
+    expect(response.statusCode, response.body).toBe(502);
+    expect(response.json().code).toBe('PROJECT_TEARDOWN_INCOMPLETE');
+    expect(await store.getProject(project.id)).toMatchObject({ runtimeDeletionPending: true });
+    expect((await store.getProject(project.id))?.deletedAt).toBeTruthy();
 
-    // La ressource survivante est NOMMÉE, donc réconciliable.
-    expect(response.json().externalTeardown).toMatchObject({ complete: false, failed: ['database'] });
+    const restore = await app.inject({ method: 'POST', url: `/projects/${project.id}/restore`, headers: auth });
+    expect(restore.statusCode, restore.body).toBe(409);
+    expect(restore.json().code).toBe('PROJECT_DELETION_PENDING');
+    unavailable = false;
+
+    const retry = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${project.id}/permanent`,
+      headers: auth,
+      payload: { confirmName: 'Doomed' },
+    });
+    expect(retry.statusCode, retry.body).toBe(200);
+    expect(await store.getProject(project.id)).toBeUndefined();
+    await app.close();
   });
 
   it('records the teardown outcome in the durable audit trail', async () => {
@@ -218,6 +233,36 @@ describe('AUDX-171 inventaire des ressources externes', () => {
     const report = await teardownProjectExternalResources({}, { id: 'p1', organizationId: 'o1' });
     expect(report.complete).toBe(true);
     expect(report.outcomes).toHaveLength(5);
+  });
+
+  it('accepts persisted Prisma workspace IDs and refuses paths or arbitrary resource names', async () => {
+    const { teardownProjectExternalResources } = await import('../project-teardown.js');
+    const removed: string[] = [];
+    const valid = ['ws-example123', 'cmve4a35w0008blmsxxxao0td'];
+
+    const complete = await teardownProjectExternalResources(
+      {
+        demonterWorkspace: async (id) => {
+          removed.push(id);
+        },
+      },
+      { id: 'fixture', organizationId: 'fixture', workspaceIds: valid },
+    );
+    expect(complete.complete).toBe(true);
+    expect(removed).toEqual(valid);
+
+    for (const invalid of ['../neighbor', 'workspace-neighbor', '', 'cshort']) {
+      const report = await teardownProjectExternalResources(
+        {
+          demonterWorkspace: async (id) => {
+            removed.push(id);
+          },
+        },
+        { id: 'fixture', organizationId: 'fixture', workspaceIds: [invalid] },
+      );
+      expect(report.failed).toEqual(['workspace-runtime']);
+    }
+    expect(removed).toEqual(valid);
   });
 
   it('déclare explicitement les ressources auditées mais NON couvertes', async () => {

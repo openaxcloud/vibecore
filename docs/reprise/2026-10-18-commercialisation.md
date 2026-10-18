@@ -12,6 +12,13 @@ fusionné réussies. La [livraison](https://github.com/openaxcloud/vibecore/acti
 a réussi à **16:35:44 UTC**. Les états ci-dessous distinguent cette livraison
 du relevé initial et de la preuve fonctionnelle live toujours manquante.
 
+Ajout de reprise : #734 a fusionné les preuves documentaires à 17:12:09 UTC,
+sans fichier de production ni nouvelle livraison. La correction d'horodatage
+suivante a été retenue hors de main après reproduction d'une course de quota.
+Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
+distingue correction locale, livraison préparatoire et activation encore
+conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
+
 ## État actuel et accès
 
 Relevé GitHub et local commencé à 14:41 UTC. Main et checkout initial propre :

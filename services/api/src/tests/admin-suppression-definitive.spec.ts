@@ -1,6 +1,7 @@
 import { hashPassword } from '@vibecore/auth';
 import { describe, expect, it, vi } from 'vitest';
 
+// eslint-disable-next-line no-restricted-imports -- Service tests use NodeNext imports, not the web app alias.
 import { buildApiApp } from '../app.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -145,7 +146,7 @@ describe('DELETE /admin/projects/:projectId', () => {
       throw new Error('CNPG injoignable');
     });
 
-    const { app, projet } = await monter({ databaseProvisioner: { teardown } });
+    const { app, projet, store } = await monter({ databaseProvisioner: { teardown } });
 
     try {
       const r = await app.inject({
@@ -154,10 +155,13 @@ describe('DELETE /admin/projects/:projectId', () => {
         headers: auth('jeton-admin'),
       });
 
-      const corps = r.json() as { teardown: { complete: boolean; failed: string[] } };
+      expect(r.statusCode, r.body).toBe(502);
+      expect(r.json().code).toBe('PROJECT_TEARDOWN_INCOMPLETE');
+      expect(await store.getProject(projet.id)).toMatchObject({ runtimeDeletionPending: true });
 
-      expect(corps.teardown.complete).toBe(false);
-      expect(corps.teardown.failed).toContain('database');
+      const logs = await store.listAuditLogs(projet.organizationId);
+      const partial = logs.find((log) => log.action === 'project.hard_delete_incomplete');
+      expect(partial?.metadata).toMatchObject({ externalTeardown: { complete: false } });
     } finally {
       await app.close();
     }

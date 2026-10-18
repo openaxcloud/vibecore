@@ -22,19 +22,20 @@ elle aussi la présence de ce champ ; sa branche n'est pas modifiée.
 
 ## 💻 Codé
 
-☐ **Livraison bloquée par contre-revue P1 : ne pas fusionner le correctif seul.**
-Proposition testée sur la branche `codex/workspace-manager-timestamp-20261018`.
-Le champ PostgreSQL existant est
-transmis ; le stockage JSON date ses mutations. Une lecture ne rafraîchit
-jamais cette date et ne l'invente pas pour un ancien registre. Aucun schéma,
-forfait ni seuil de quota modifié. La règle conserve toujours les RUNNING.
+☐ Le correctif d'horodatage seul reste interdit de livraison. Une correction
+coordonnée remplace cette proposition sur `codex/workspace-admission-20261018` : contrat V2,
+générations et tentatives CAS, comptage des admissions détenues, verrouillage
+des transferts et fermeture durable avant suppression. GET V1 masque la date
+pour ne pas activer le consommateur ancien. Quatre migrations additives ;
+aucun forfait modifié. Voir le [contrat et les phases de livraison](../reprise/2026-10-18-workspace-admission.md).
+Ni fusion ni activation de ce protocole ne sont attestées à ce stade.
 
 ## ✅ Testé live
 
 ☐ Aucun parcours live ni pod réel vérifié. Le proxy refuse l'accès aux domaines
 de production ; aucune mesure de créneau client n'est effectuée.
 
-## Preuve
+## Preuve historique du candidat d’horodatage seul
 
 Épinglé par `services/workspace-manager/src/prisma-store.spec.ts` : base
 PostgreSQL locale isolée, stockage Prisma réel, route HTTP du manager et
@@ -59,8 +60,8 @@ Effet de la correction : rendre utilisable l'information déjà attendue par
 la réconciliation du quota. Les opérations d'arrêt et de suppression de pods,
 les délais de GC et le metering ne sont pas modifiés. Un heartbeat récent
 peut renouveler `updatedAt` ; ce champ est une date de mutation persistée,
-pas une date dédiée de début de provisionnement. La protection complète des
-démarrages concurrents reste un chantier distinct.
+pas une date dédiée de début de provisionnement. Ces résultats historiques ne sont pas la validation du protocole coordonné
+décrit ci-dessus.
 
 ## Réserve de livraison découverte par la contre-revue
 
