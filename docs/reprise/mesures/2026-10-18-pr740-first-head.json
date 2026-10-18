@@ -1,0 +1,94 @@
+{
+  "head": "f2af72cb450b0c358629974e380a412f52614ac2",
+  "ci": {
+    "run": 39174874151,
+    "job": 117815371235,
+    "conclusion": "failure",
+    "failedStep": "Typecheck",
+    "finishedAtUtc": "2026-10-18T23:06:30Z",
+    "cause": "Browser unit test under scripts/ was included in NodeNext/no-DOM tsconfig.scripts.json; TS2835 and missing DOM globals."
+  },
+  "prValidation": {
+    "run": 39174874113,
+    "job": 117815370834,
+    "conclusion": "failure",
+    "cause": "Required Install, test, build, scan check failed."
+  },
+  "desktop": {
+    "run": 39174874320,
+    "conclusion": "failure",
+    "jobs": {
+      "linux": 117815371818,
+      "windows": 117815372042,
+      "macos": 117815372056
+    },
+    "cause": "All three Electron downloads from npmmirror.com/mirrors/electron/v42.0.0 returned HTTP 504 after renderer and Electron main compilation succeeded.",
+    "scope": "External download failures; no desktop package produced; not attributed to UI product code or DB failure."
+  },
+  "localTypecheckCorrection": {
+    "move": {
+      "from": "scripts/ide-failure-metadata.spec.ts",
+      "to": "tests/ci/ide-failure-metadata.spec.ts",
+      "testBodyPreserved": true,
+      "onlyContentChange": "relative import path"
+    },
+    "mandatoryTask": "scripts/typecheck.mjs adds IDE browser test helpers using tsconfig.ide-diagnostics.json; no existing task removed or exclusion widened.",
+    "typescript": "5.8.3",
+    "nodeScriptsTypecheck": {
+      "exitCode": 0,
+      "log": "/tmp/vibecore-ui-recovery-node-scripts-typecheck.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ideDomTypecheck": {
+      "exitCode": 0,
+      "log": "/tmp/vibecore-ui-recovery-ide-diagnostics-typecheck.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "relocatedTests": {
+      "passed": 18,
+      "failed": 0,
+      "log": "/tmp/vibecore-ui-recovery-moved-test.log",
+      "logSha256": "26938f1338c2a476ba70a1ce0d518c729bf62d3b3e6d4d701ad6991954505592"
+    },
+    "lint": {
+      "exitCode": 0,
+      "log": "/tmp/vibecore-ui-recovery-typecheck-fix-lint-final.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "independentReview": "Read-only review confirmed Vitest discovery, six strict DOM/Node/Bundler files and mandatory failure propagation.",
+    "limits": [
+      "Full monorepo typecheck not rerun locally; previously validated web config and newly validated Node/DOM configs are separate proofs.",
+      "CI on corrected head remains required.",
+      "No production file changed by this correction."
+    ]
+  },
+  "browserChecksObserved": {
+    "e2eRun": 39174874219,
+    "e2eStatus": "in_progress at 23:20 UTC",
+    "newPaletteHandoff": {
+      "job": 117815460719,
+      "passed": true,
+      "seconds": 12.8,
+      "retry": 0
+    },
+    "webkit": {
+      "job": 117815460694,
+      "passed": 17,
+      "skipped": 3,
+      "existingSkips": true,
+      "blocking": false
+    },
+    "frenchAudit": {
+      "run": 39174874206,
+      "conclusion": "success",
+      "finishedAtUtc": "2026-10-18T23:17:32Z",
+      "viewports": [
+        390,
+        768,
+        1024,
+        1440
+      ]
+    },
+    "limit": "CI browser proofs do not establish public HTTPS, actual served version, or DB failure attribution."
+  }
+}

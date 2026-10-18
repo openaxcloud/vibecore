@@ -114,3 +114,28 @@ conserve ses six erreurs et un avertissement historiques ; nouveaux fichiers
 sans diagnostic. Le build n’est pas rejoué après la seule correction des
 tests : ses entrées produit sont comparées octet pour octet.
 Aucune cause CI ou validation production n’est ajoutée par ces succès locaux.
+
+
+## Vérifications complémentaires et premier refus CI — 23:16 UTC
+
+La [PR #740](https://github.com/openaxcloud/vibecore/pull/740) rassemble le
+lot sur `f2af72cb4`. Deux cas DB réels passent également localement à
+390×844, sans retry, en 23,5 s ; mêmes assertions et API/PostgreSQL QA réels.
+Les captures sont inspectées et les deux projets ainsi que leurs liaisons
+DB supprimés avec HTTP 200. [Mesures et limites visuelles](mesures/2026-10-18-ide-recovery-mobile-local.json) :
+la barre de requête « Mes données » reste serrée et son libellé Running
+partiellement rogné. Ces succès ciblés ne reproduisent ni n’expliquent la
+panne CI. Aucune validation Safari ou HTTPS public n’en est déduite.
+
+La première CI de #740 échoue au typage : le test navigateur ajouté dans
+`scripts/` entre dans le projet NodeNext sans DOM. Sa correction le déplace
+vers `tests/ci/`, conserve ses 18 cas et ajoute un projet DOM strict
+obligatoire au wrapper de typage. Le projet Node existant, le nouveau projet
+DOM et les 18 tests passent localement ; aucun contrôle existant n’est
+retiré. La validation du nouveau SHA reste nécessaire.
+[Premier refus et correction locale](mesures/2026-10-18-pr740-first-head.json).
+
+Les trois builds Desktop du même SHA échouent séparément au téléchargement
+d’Electron 42.0.0 depuis npmmirror.com, HTTP 504, après compilation du
+renderer et du processus principal. Aucun paquet Desktop produit ni cause
+UI/DB déduite de ces échecs de téléchargement.

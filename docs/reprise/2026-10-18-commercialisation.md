@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 23:02 UTC
+## Dernier état vérifié — 23:20 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -113,6 +113,18 @@ issue de `43eef614`, sans assouplissement des contrôles : 88 tests ciblés,
 typage web/tests, build client/SSR, puis deux cas Chromium sans retry
 sur le lot `6365455b6`, captures inspectées et nettoyage QA réussi.
 [Preuve intégrée](mesures/2026-10-18-ide-recovery-integrated.json).
+Le lot est publié en [PR #740](https://github.com/openaxcloud/vibecore/pull/740),
+tête `f2af72cb4`. Sa première CI est refusée au typage : le nouveau test
+navigateur était inclus dans le périmètre Node sans DOM. Le déplacement du
+test et un contrôle DOM strict obligatoire passent localement, sans retrait
+des contrôles existants ; ils attendent validation sur la nouvelle tête.
+Les trois packages Desktop échouent séparément au téléchargement d’Electron
+(HTTP 504). Les quatre audits EN/FR et la nouvelle régression de palette
+passent ; WebKit rapporte 17 succès et trois sauts préexistants. Le verdict
+E2E complet reste en cours à 23:20 UTC. [État exact de cette tête](mesures/2026-10-18-pr740-first-head.json).
+Deux [scénarios DB réels locaux à 390 px](mesures/2026-10-18-ide-recovery-mobile-local.json)
+passent sans retry, avec captures inspectées et nettoyage confirmé ; une
+barre de requête serrée reste visible. La panne DB CI demeure non attribuée.
 Aucun de ces changements n’est encore fusionné ou déployé.
 La validation intégrée a ensuite identifié un défaut du lecteur de styles
 du test : trois des six observations supplémentaires lisent un ancien nœud
@@ -160,7 +172,7 @@ Aucun contrôle de livraison n’est contourné.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 23:02 UTC
+## Les cinq conditions de lancement — état vérifié à 23:20 UTC
 
 Main est `43eef614ec3c56d8b7642f105b140e938f6868ef` après la fusion
 documentaire #739 à 22:32:21 UTC : 33 fichiers, aucun de production.

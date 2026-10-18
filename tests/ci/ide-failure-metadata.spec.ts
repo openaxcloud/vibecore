@@ -7,7 +7,7 @@ import {
   collectIdeFailureState,
   createIdeRequestDiagnostics,
   withIdeRequestDiagnostics,
-} from '../tests/e2e/helpers/ide-failure-metadata';
+} from '../e2e/helpers/ide-failure-metadata';
 
 beforeEach(() => {
   document.body.innerHTML = '';
