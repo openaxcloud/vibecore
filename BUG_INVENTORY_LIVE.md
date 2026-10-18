@@ -509,7 +509,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## 2026-10-18 — Vérification avant commercialisation
 
-- [BUG-WORKSPACE-PROVISION-RESOURCES-001](docs/bugs/BUG-WORKSPACE-PROVISION-RESOURCES-001.md) — Le démarrage automatique envoyait au workspace-manager le forfait par défaut sans les ressources de l’abonnement. Les démarrages — 📤 Dispatché : ☑ Reprise ciblée du contrat de ressources de #708 le 18 octobre 2026. · 💻 Codé : ☐ Correctif préparé sur une branche isolée, pas encore fusionné ni livré. Les quatre sites de construction du · ✅ Testé live : ☐ Accès HTTP aux deux domaines refusé par le proxy de l'environnement.
+- [BUG-WORKSPACE-PROVISION-RESOURCES-001](docs/bugs/BUG-WORKSPACE-PROVISION-RESOURCES-001.md) — Le démarrage automatique envoyait au workspace-manager le forfait par défaut sans les ressources de l’abonnement. Les démarrages — 📤 Dispatché : ☑ Reprise ciblée du contrat de ressources de #708 le 18 octobre 2026. · 💻 Codé : ☑ Fusionné par #733 le 18 octobre 2026 à 15:32:55 UTC, commit · ✅ Testé live : ☐ Accès HTTP aux deux domaines refusé par le proxy de l'environnement.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

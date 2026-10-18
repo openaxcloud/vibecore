@@ -4,6 +4,12 @@
 des défauts de code reproduits et des preuves indispensables manquantes, pas
 une affirmation que tous les parcours échouent en production.
 
+Mise à jour à 15:32:55 UTC : [#733](https://github.com/openaxcloud/vibecore/pull/733)
+fusionnée dans `main` sous `615b3fcfb59c0c42cd211536ed2b2675fe72fa5f`, après
+23 contrôles réussis et deux sauts conditionnels. La [livraison du correctif](https://github.com/openaxcloud/vibecore/actions/runs/39140979431)
+est en cours ; aucune nouvelle preuve fonctionnelle live. Le relevé initial
+ci-dessous reste daté et distinct de cette fusion.
+
 ## État actuel et accès
 
 Relevé GitHub et local commencé à 14:41 UTC. Main et checkout initial propre :
