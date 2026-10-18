@@ -4,7 +4,7 @@
 des défauts de code reproduits et des preuves indispensables manquantes, pas
 une affirmation que tous les parcours échouent en production.
 
-Mise à jour finale : [#733](https://github.com/openaxcloud/vibecore/pull/733)
+Livraison précédente attestée : [#733](https://github.com/openaxcloud/vibecore/pull/733)
 fusionnée à 15:32:55 UTC dans `main` sous
 `615b3fcfb59c0c42cd211536ed2b2675fe72fa5f`. Les 23 contrôles de PR réussis
 et deux sauts conditionnels ont précédé la fusion ; CI et E2E du commit
@@ -18,6 +18,44 @@ suivante a été retenue hors de main après reproduction d'une course de quota.
 Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
+
+## Dernier état vérifié — 20:12 UTC
+
+[#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
+**20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
+Les 29 contrôles ont terminé avant fusion : 28 succès et un saut conditionnel.
+Le verdict E2E de la tentative 2 couvre 453 tests et 73/73 fichiers : zéro
+échec, deux instabilités et six exemptions préexistantes inchangées. Le premier
+rouge reste conservé ; son origine n'est pas établie. [Preuves et fichiers exacts](mesures/2026-10-18-pr735-result.json).
+
+La CI, l'E2E et le déploiement du commit fusionné sont encore en cours.
+**V2 reste désactivé** : cette fusion n'autorise pas son activation. La dernière
+livraison réussie attestée reste #733. Aucun nouveau parcours en production
+n'est prouvé.
+
+[#736](https://github.com/openaxcloud/vibecore/pull/736), tête `646ad466ae`,
+reste ouverte : sa CI est verte, son premier verdict E2E compte un échec
+persistant (liste des tables du panneau Base de données), une instabilité,
+six exemptions existantes et les 73 fichiers attendus. Son audit tablette a
+échoué avant tests sur le port Docker 55432 occupé ; la reprise ciblée a
+franchi le démarrage et l'audit réel est en cours. Aucun seuil ni aucune
+exemption ne change. Le diagnostic du panneau se poursuit.
+
+Les [quatre alertes critiques](2026-10-18-security-triage.md) sont qualifiées
+partiellement : deux résultats Capacitor natif et deux advisories Tinypool
+via le moteur de tests ; ni exploitation web ni innocuité des images servies
+ne sont déduites de ce décompte.
+
+Le relevé des [24 PR actuellement ouvertes au moment de la lecture](mesures/2026-10-18-open-pr-file-audit.json)
+a vérifié tous les fichiers et la stabilité des têtes. Parmi les 22 anciens
+brouillons, #324 seule porte des suppressions : 26 fichiers dans son diff,
+dont 21 déjà absents de main et cinq encore présents. La simulation de fusion
+sans modification d'index relève trois conflits, dont un modify/delete sur
+`Pricing.tsx`. Cette page historique n'est pas la page actuellement routée ;
+des tests lisent encore ses sources. Aucun nettoyage ancien n'est repris ni
+fusionné. #414 vise une branche de travail, pas directement main.
+
+Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
 ## Les cinq conditions de lancement — reprise à 19:13 UTC
 
@@ -62,7 +100,7 @@ annoncé : les accès, les résultats live et les dépendances Stripe/restaurati
 ne sont pas encore établis ; la mesure de collisions sur 24 h reste une durée
 d'observation minimale documentée, pas une validation déjà obtenue.
 
-## État actuel et accès
+## État initial et accès
 
 Relevé GitHub et local commencé à 14:41 UTC. Main et checkout initial propre :
 `3f6acb9cfb9d0b6647cea8fc8c0080fe5d55d7f9`, dernière fusion #732 le
@@ -100,7 +138,7 @@ PROBLEMES.md et SERVI-POUR-LES-SESSIONS.md ont été consultés. Le relevé du
   main n’est donc pas une preuve de défaut de protection. Il attend la CI
   et les deux analyses CodeQL ; aucun contrôle ni protection modifié.
 
-## Blocages et inconnues actuels
+## Blocages et inconnues au relevé initial
 
 | Indispensable                                                        | Preuve actuelle et condition de clôture                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
