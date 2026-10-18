@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-432 entrées.
+433 entrées.
 
 ## Sans section
 
@@ -513,6 +513,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-WORKSPACE-MANAGER-TIMESTAMP-001](docs/bugs/BUG-WORKSPACE-MANAGER-TIMESTAMP-001.md) — Le stockage Prisma du workspace-manager retire `updatedAt` de sa réponse, — 📤 Dispatché : ☑ Reprise du 18 octobre 2026, après vérification de #708. Sa garde supposait · 💻 Codé : ☐ Le correctif d'horodatage seul reste interdit de livraison. Une correction · ✅ Testé live : ☐ Aucun parcours live ni pod réel vérifié. Le proxy refuse l'accès aux domaines
 - [BUG-WORKSPACE-AGENT-READY-001](docs/bugs/BUG-WORKSPACE-AGENT-READY-001.md) — `WorkspaceManager.waitForAgentReachable` tente la santé HTTP de l'agent pendant — 📤 Dispatché : ☑ Relevé pendant la contre-revue du protocole d'admission du 18 octobre. · 💻 Codé : ☐ Non corrigé. Un simple rejet dans le chemin legacy ferait passer la ligne · ✅ Testé live : ☐ Accès HTTP/cluster indisponible dans cet environnement. Les tests d'admission
 - [BUG-PUBLIC-TELEMETRY-INVENTED-001](docs/bugs/BUG-PUBLIC-TELEMETRY-INVENTED-001.md) — P1 — Sur la base `1d2755086f5d05d41c1d12739dcfd230a1a99044`, les loaders publics rendent des services opérationnels, 99,99 % de disponibilité, latences, compteu — 📤 Dispatché : ☑ — 18/10/2026, correction isolée demandée par le parent. · 💻 Codé : ☐ — travail local ; ni fusion ni livraison. · ✅ Testé live : ☐ — aucune preuve de production ; accès production non utilisé.
+- [BUG-E2E-IDE-DIAGNOSTIC-BLIND-001](docs/bugs/BUG-E2E-IDE-DIAGNOSTIC-BLIND-001.md) — P2 — Le diagnostic des échecs E2E du panneau base de données ne distinguait pas un panneau externe en chargement d'un panneau absent. Ses indicateurs dépendaien — 📤 Dispatché : 📤 Pris en charge le 18/10/2026, périmètre diagnostic uniquement. · 💻 Codé : ☐ Correctif préparé sur branche dédiée ; pas encore fusionné sur main. · ✅ Testé live : ☐ Aucun test production ni correction de la panne produit revendiqués. Les requêtes APIRequestContext de prépa
 
 ## Reprise commerciale du 2026-10-18 — preuves de sauvegarde et restauration
 
