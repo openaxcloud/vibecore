@@ -274,3 +274,24 @@ Deux captures historiques de #732 ont été inspectées :
 (squelette et attente visibles, pas une application chargée) et
 `agent-return-390.png` (fil de test et composeur visibles). Elles illustrent
 le banc du 13 octobre, pas la production du 18 octobre ni Safari physique.
+
+### Actualisation du 18 octobre à 19:36 UTC : fusion #735 bloquée
+
+Le [verdict E2E](https://github.com/openaxcloud/vibecore/actions/runs/39154310039/job/117768608241)
+est **rouge** sur la tête `1d2755086f5d05d41c1d12739dcfd230a1a99044` :
+453 tests rapportés, trois échecs persistants, neuf instabilités et six
+exemptions existantes. Les 73 fichiers attendus figurent dans les rapports.
+Les trois échecs, encore présents après deux réessais, concernent le tour
+streamé mobile sans message ajouté, le titre du panneau Base de données absent
+et sa première carte absente. Leur cause et leur lien éventuel avec #735 ne
+sont pas encore établis. Aucune exemption ni aucun seuil n'a été modifié.
+
+Les sorties standard et d'erreur sont entrelacées dans le journal : quatre
+tests instables apparaissent après le titre des échecs non exemptés. Le code
+de la porte accepte les résultats `flaky` et calcule bien **trois**, pas sept,
+échecs persistants. Les jobs de tranche verts ne suffisent pas : ils laissent
+le verdict central juger leurs rapports. [Mesure détaillée](mesures/2026-10-18-pr735-e2e-failure.json).
+
+L'audit français, y compris la tablette réellement rejouée, est vert depuis
+19:01:44 UTC. Cela ne lève pas le blocage E2E. **#735 n'est ni fusionnée ni
+déployée** ; aucune ligne de fusion n'est ajoutée au journal pour cette PR.

@@ -1,0 +1,59 @@
+{
+  "observedAtUtc": "2026-10-18T19:36:01Z",
+  "pullRequest": 735,
+  "head": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+  "base": "44a8e01bc1010732cb5862c346071e4411d0511d",
+  "run": 39154310039,
+  "verdictJob": 117768608241,
+  "verdict": "failure",
+  "merged": false,
+  "deployed": false,
+  "reportedTests": 453,
+  "persistentFailures": 3,
+  "flaky": 9,
+  "waivers": 6,
+  "waiversModified": false,
+  "coverage": {
+    "expectedSpecFiles": 73,
+    "reportedSpecFiles": 73
+  },
+  "shard1": {
+    "job": 117754448882,
+    "passed": 129,
+    "failed": 3,
+    "flaky": 8,
+    "skipped": 6,
+    "elapsedMinutes": 57.5,
+    "stepUsesSetPlusE": true
+  },
+  "failures": [
+    {
+      "file": "tests/e2e/ide-mobile-chrome.spec.ts",
+      "line": 2691,
+      "assertionLine": 2813,
+      "observation": "Streamed turn: expected message count greater than zero, received zero; initial and both retries failed",
+      "cause": "unresolved"
+    },
+    {
+      "file": "tests/e2e/ide-mobile-chrome.spec.ts",
+      "line": 3377,
+      "assertionLine": 3395,
+      "observation": "Database tab aria-pressed=true, All databases/Toutes les bases de données heading absent; initial and both retries failed",
+      "cause": "unresolved"
+    },
+    {
+      "file": "tests/e2e/ide-mobile-chrome.spec.ts",
+      "line": 3461,
+      "assertionLine": 3479,
+      "observation": "First database card absent after 30 seconds; initial and both retries failed",
+      "cause": "unresolved"
+    }
+  ],
+  "logOrderingNote": "GitHub interleaves stdout and stderr: four flaky cases print after the stderr failing header. Gate source accepts flaky and computes three failures. They must not be counted as seven persistent failures.",
+  "limits": [
+    "CI localhost, not production",
+    "CI artifact screenshots and attached metadata could not be materialized through workspace proxy",
+    "No causal attribution to PR735 yet",
+    "No rerun or waiver change"
+  ]
+}
