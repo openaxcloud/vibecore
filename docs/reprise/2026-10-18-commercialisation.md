@@ -80,6 +80,8 @@ la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
 Les [deux candidats validés en branches](2026-10-18-candidats-valides.md)
 restent hors de main ; le second corrige les collisions de ports CI.
+La [relecture de la restauration sur main actuel](2026-10-18-restore-current-main.md)
+confirme les défauts distincts avec des références au commit `c6439da`.
 
 Les [quatre alertes critiques](2026-10-18-security-triage.md) sont qualifiées
 partiellement : deux résultats Capacitor natif et deux advisories Tinypool
