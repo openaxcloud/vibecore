@@ -62,6 +62,12 @@ export interface WorkspaceRecord {
   lastActiveAt: string;
 
   /*
+   * Persisted mutation time used by the API's bounded STARTING quota grace.
+   * Legacy JSON records may lack it; reads must not invent a fresh timestamp.
+   */
+  updatedAt?: string;
+
+  /*
    * Last time this runtime's active compute was metered to billing (P4). The GC
    * meters the window from here (or createdAt) to lastActiveAt on stop, then
    * advances it — idempotent across restarts. Undefined until first metered.
@@ -113,7 +119,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
-    const record = { ...input, createdAt: now, lastActiveAt: now };
+    const record = { ...input, createdAt: now, lastActiveAt: now, updatedAt: now };
     const workspaces = await this.read();
     workspaces.set(record.id, record);
     await this.write(workspaces);
@@ -129,7 +135,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       throw workspaceManagerError('workspaceNotFound', { code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
     }
 
-    const updated = { ...existing, ...patch };
+    const updated = { ...existing, ...patch, updatedAt: new Date().toISOString() };
     workspaces.set(workspaceId, updated);
     await this.write(workspaces);
 
@@ -144,7 +150,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       return false;
     }
 
-    workspaces.set(workspaceId, { ...existing, lastMeteredAt: next });
+    workspaces.set(workspaceId, { ...existing, lastMeteredAt: next, updatedAt: new Date().toISOString() });
     await this.write(workspaces);
 
     return true;

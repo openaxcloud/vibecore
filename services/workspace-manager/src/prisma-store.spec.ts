@@ -1,9 +1,11 @@
+import { KubectlWorkspaceK8sClient } from '@vibecore/k8s-client';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
-
-import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
-
-import { PrismaWorkspaceStore } from './prisma-store.js';
+// eslint-disable-next-line no-restricted-imports -- This NodeNext contract test exercises the real API quota consumer across service boundaries.
+import { decideWorkspaceSlot } from '../../api/src/workspace-slot.js';
+import { buildWorkspaceManagerApp } from './app.js';
 import { clientDeBaseJoignable } from './base-de-donnees-joignable.js';
+import { WorkspaceManager } from './manager.js';
+import { PrismaWorkspaceStore } from './prisma-store.js';
 
 /*
  * BUG-TEST-DB-HANG-001 — la sonde locale attendait `prisma.$disconnect()` sur
@@ -77,6 +79,54 @@ integrationDescribe('PrismaWorkspaceStore', () => {
     expect(missing).toBeUndefined();
   });
 
+  for (const scenario of [
+    { status: 'STARTING' as const, ageMinutes: 11, decision: 'free' },
+    { status: 'STARTING' as const, ageMinutes: 9, decision: 'keep' },
+    { status: 'RUNNING' as const, ageMinutes: 11, decision: 'keep' },
+  ]) {
+    it(`preserves the database timestamp through HTTP: ${scenario.status}, ${scenario.ageMinutes} minutes, ${scenario.decision}`, async () => {
+      const record = await createRecord({ status: scenario.status });
+      const now = Date.now();
+      const updatedAt = new Date(now - scenario.ageMinutes * 60_000);
+
+      // Only this test's row is backdated. No Kubernetes action is invoked.
+      await prisma!.workspaceRuntime.update({
+        where: { id: record.id },
+        data: {
+          createdAt: new Date(now - 2 * 86_400_000),
+          lastActiveAt: new Date(now - 86_400_000),
+          updatedAt,
+        },
+      });
+
+      const manager = new WorkspaceManager(
+        store,
+        new KubectlWorkspaceK8sClient(),
+        { publish: async () => undefined },
+        'local-test-only',
+      );
+
+      const app = buildWorkspaceManagerApp(manager);
+
+      try {
+        const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+        const response = await app.inject({
+          method: 'GET',
+          url: `/workspaces/${record.id}`,
+          headers: secret ? { authorization: `Bearer ${secret}` } : {},
+        });
+        expect(response.statusCode).toBe(200);
+
+        const state = response.json();
+        expect(state.updatedAt).toBe(updatedAt.toISOString());
+        expect(decideWorkspaceSlot(state, { now, deadlineMs: 10 * 60_000 })).toBe(scenario.decision);
+      } finally {
+        await app.close();
+      }
+    });
+  }
+
   it('applies a partial patch via update and updates lastActiveAt only when set', async () => {
     const created = await createRecord();
     const afterStatus = await store.update(created.id, { status: 'RUNNING' });
@@ -128,9 +178,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
 
     // The three new ids appear in the order we inserted them.
     expect(newIds).toEqual([w1.id, w2.id, w3.id]);
-    const statuses = after
-      .filter((r) => [w1.id, w2.id, w3.id].includes(r.id))
-      .map((r) => r.status);
+    const statuses = after.filter((r) => [w1.id, w2.id, w3.id].includes(r.id)).map((r) => r.status);
     expect(statuses).toEqual(['RUNNING', 'STOPPED', 'DELETED']);
   });
 });
