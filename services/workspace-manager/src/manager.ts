@@ -632,6 +632,23 @@ export class WorkspaceManager {
     }
   }
 
+  private async _requireLegacyWorkspace(workspaceId: string) {
+    const workspace = await this.requireWorkspace(workspaceId);
+
+    if (workspace.admission) {
+      throw admissionUnavailable('WORKSPACE_ADMISSION_PROTOCOL_REQUIRED');
+    }
+
+    /*
+     * Validate the exact, present record used by the mutation, never an earlier
+     * absence probe. reserveInStore never promotes an existing legacy row, and
+     * lifecycle deletion retains that row. Therefore this record cannot acquire
+     * an admission while the legacy mutation runs. Changing either invariant
+     * requires a durable claim before these Kubernetes mutations.
+     */
+    return workspace;
+  }
+
   async startWorkspace(input: StartWorkspaceInput) {
     await this._assertLegacyWorkspace(input.workspaceId);
     return this._provisionWorkspace(input);
@@ -1605,9 +1622,7 @@ export class WorkspaceManager {
   }
 
   async stopWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
-    await this._assertLegacyWorkspace(workspaceId);
-
-    const workspace = await this.requireWorkspace(workspaceId);
+    const workspace = await this._requireLegacyWorkspace(workspaceId);
 
     /*
      * Optional optimistic guard (used by GC): bail if the row changed since the
@@ -1652,15 +1667,17 @@ export class WorkspaceManager {
 
   async restartWorkspace(input: StartWorkspaceInput) {
     await this._assertLegacyWorkspace(input.workspaceId);
-    await this.stopWorkspace(input.namespace, input.workspaceId).catch(() => undefined);
+    await this.stopWorkspace(input.namespace, input.workspaceId).catch((error: unknown) => {
+      if ((error as { code?: string } | undefined)?.code === 'WORKSPACE_ADMISSION_PROTOCOL_REQUIRED') {
+        throw error;
+      }
+    });
 
     return this.startWorkspace(input);
   }
 
   async deleteWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
-    await this._assertLegacyWorkspace(workspaceId);
-
-    const workspace = await this.requireWorkspace(workspaceId);
+    const workspace = await this._requireLegacyWorkspace(workspaceId);
 
     /*
      * Optional optimistic guard (used by GC): if the row was re-provisioned/

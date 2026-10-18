@@ -75,6 +75,145 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     });
   });
 
+  it.each([
+    ['stop', 1],
+    ['delete', 1],
+    ['restart', 2],
+    ['start', 2],
+  ] as const)(
+    'legacy %s cannot mutate a first admission created after its absent read',
+    async (operation, pauseRead) => {
+      const peer = new JsonWorkspaceStore(store.filePath);
+
+      const peerManager = new WorkspaceManager(
+        peer,
+        k8s,
+        { publish: async () => undefined },
+        'local-admission-tests-only',
+      );
+
+      const get = store.get.bind(store);
+
+      let observedAbsent!: () => void;
+      let resumeLegacy!: () => void;
+
+      const observed = new Promise<void>((resolve) => {
+        observedAbsent = resolve;
+      });
+      const resume = new Promise<void>((resolve) => {
+        resumeLegacy = resolve;
+      });
+
+      let reads = 0;
+      vi.spyOn(store, 'get').mockImplementation(async (id) => {
+        const snapshot = await get(id);
+
+        if (++reads === pauseRead) {
+          expect(snapshot).toBeUndefined();
+          observedAbsent();
+          await resume;
+        }
+
+        return snapshot;
+      });
+
+      const operations = {
+        stop: () => manager.stopWorkspace('workspaces', reservation.workspaceId),
+        delete: () => manager.deleteWorkspace('workspaces', reservation.workspaceId),
+        restart: () => manager.restartWorkspace(startInput),
+        start: () => manager.startWorkspace(startInput),
+      };
+
+      const pending = operations[operation]().then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      await observed;
+
+      const reserved = await peer.reserveAdmission(reservation);
+
+      const running = await peerManager.startAdmittedWorkspace({
+        ...startInput,
+        admissionGeneration: reserved.admission!.generation,
+      });
+      vi.mocked(k8s.apply).mockClear();
+      vi.mocked(k8s.delete).mockClear();
+      resumeLegacy();
+
+      const failure = (await pending) as { statusCode?: number; code?: string } | undefined;
+      expect(failure).toBeDefined();
+      expect([404, 503]).toContain(failure?.statusCode);
+      expect(['WORKSPACE_NOT_FOUND', 'WORKSPACE_ADMISSION_PROTOCOL_REQUIRED']).toContain(failure?.code);
+      expect(k8s.apply).not.toHaveBeenCalled();
+      expect(k8s.delete).not.toHaveBeenCalled();
+      expect(await peer.get(reserved.id)).toEqual(running);
+      expect(objects.has(key('Pod', reserved.podName))).toBe(true);
+      expect(objects.has(key('PersistentVolumeClaim', reserved.pvcName))).toBe(true);
+    },
+  );
+
+  it.each(['stop', 'delete'] as const)(
+    'legacy %s validates the admission on the record it will mutate',
+    async (operation) => {
+      expect(await store.get(reservation.workspaceId)).toBeUndefined();
+
+      const peer = new JsonWorkspaceStore(store.filePath);
+
+      const peerManager = new WorkspaceManager(
+        peer,
+        k8s,
+        { publish: async () => undefined },
+        'local-admission-tests-only',
+      );
+
+      const reserved = await peer.reserveAdmission(reservation);
+
+      const running = await peerManager.startAdmittedWorkspace({
+        ...startInput,
+        admissionGeneration: reserved.admission!.generation,
+      });
+      vi.mocked(k8s.apply).mockClear();
+      vi.mocked(k8s.delete).mockClear();
+
+      const pending =
+        operation === 'stop'
+          ? manager.stopWorkspace('workspaces', reserved.id)
+          : manager.deleteWorkspace('workspaces', reserved.id);
+      await expect(pending).rejects.toMatchObject({ statusCode: 503, code: 'WORKSPACE_ADMISSION_PROTOCOL_REQUIRED' });
+      expect(k8s.apply).not.toHaveBeenCalled();
+      expect(k8s.delete).not.toHaveBeenCalled();
+      expect(await peer.get(reserved.id)).toEqual(running);
+    },
+  );
+
+  it.each(['stop', 'delete'] as const)('a validated legacy row stays legacy during and after %s', async (operation) => {
+    const running = await manager.startWorkspace(startInput);
+    const peer = new JsonWorkspaceStore(store.filePath);
+    const remove = vi.mocked(k8s.delete).getMockImplementation()!;
+
+    let attempts = 0;
+    vi.mocked(k8s.delete).mockImplementation(async (...args) => {
+      const observed = await peer.reserveAdmission(reservation);
+      expect(observed.admission).toBeUndefined();
+      attempts++;
+
+      return remove(...args);
+    });
+
+    if (operation === 'stop') {
+      await manager.stopWorkspace('workspaces', running.id);
+    } else {
+      await manager.deleteWorkspace('workspaces', running.id);
+    }
+
+    expect(attempts).toBeGreaterThan(0);
+
+    const retained = await peer.get(running.id);
+    expect(retained?.status).toBe(operation === 'stop' ? 'STOPPED' : 'DELETED');
+    expect(retained?.admission).toBeUndefined();
+    expect(await peer.reserveAdmission(reservation)).toEqual(retained);
+  });
+
   it('released generations cannot start after a newer reservation', async () => {
     const first = await store.reserveAdmission(reservation);
     expect(
