@@ -139,3 +139,13 @@ Les trois builds Desktop du même SHA échouent séparément au téléchargement
 d’Electron 42.0.0 depuis npmmirror.com, HTTP 504, après compilation du
 renderer et du processus principal. Aucun paquet Desktop produit ni cause
 UI/DB déduite de ces échecs de téléchargement.
+
+
+Le premier E2E complet de #740 termine à **23:26:28 UTC** : 454 cas
+rapportés, zéro échec persistant, zéro instabilité, six exemptions existantes.
+Les styles historiques passent en 7,0 s, le handoff en 12,8 s et les deux
+cas DB en 24,2 s / 24,8 s, tous au premier essai. Les quatre audits EN/FR
+passent ; WebKit compte 17 succès et trois sauts existants. Aucune nouvelle
+métadonnée d’échec DB n’est produite : la cause historique reste inconnue.
+La première tête reste refusée par le typage et les téléchargements Desktop ;
+la correction de typage `88d683c4d` doit passer ses propres contrôles.

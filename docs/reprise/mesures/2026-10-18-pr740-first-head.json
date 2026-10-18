@@ -60,11 +60,12 @@
       "Full monorepo typecheck not rerun locally; previously validated web config and newly validated Node/DOM configs are separate proofs.",
       "CI on corrected head remains required.",
       "No production file changed by this correction."
-    ]
+    ],
+    "commit": "88d683c4d"
   },
   "browserChecksObserved": {
     "e2eRun": 39174874219,
-    "e2eStatus": "in_progress at 23:20 UTC",
+    "e2eStatus": "completed success",
     "newPaletteHandoff": {
       "job": 117815460719,
       "passed": true,
@@ -89,6 +90,29 @@
         1440
       ]
     },
-    "limit": "CI browser proofs do not establish public HTTPS, actual served version, or DB failure attribution."
+    "limit": "CI browser proofs do not establish public HTTPS, actual served version, or DB failure attribution.",
+    "e2eVerdictJob": 117820178826,
+    "e2eSummaryAtUtc": "2026-10-18T23:26:28Z",
+    "e2eFinishedAtUtc": "2026-10-18T23:26:32Z",
+    "reported": 454,
+    "persistentFailures": 0,
+    "flaky": 0,
+    "configuredWaivers": 6,
+    "attempt": 1,
+    "databaseCases": {
+      "job": 117815460646,
+      "tablesSeconds": 24.2,
+      "myDataSeconds": 24.8,
+      "bothFirstAttempt": true,
+      "failureMetadataObtained": false
+    },
+    "historicalStyle": {
+      "job": 117815460646,
+      "seconds": 7.0,
+      "firstAttempt": true
+    },
+    "dbRootCauseEstablished": false,
+    "specsExpected": 74,
+    "specsSeen": 74
   }
 }
