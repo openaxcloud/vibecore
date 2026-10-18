@@ -179,6 +179,35 @@ autorisé et appareil Safari réel. Créer un runtime ou un restore facturé et
 déclencher un paiement réel exigent un accord précis ; aucune de ces actions
 n'a été effectuée.
 
+Accès concret requis pour reprendre les essais :
+
+- Un environnement de navigateur autorisé à joindre en HTTPS `e-code.ai`,
+  `app.e-code.ai` et `api.e-code.ai`, puis les hôtes de preview/publication
+  réellement retournés par l'application, avec WebSocket/WSS. Le proxy de ce
+  workspace refuse actuellement la connexion aux trois premiers hôtes avant
+  toute réponse de l'origine. Aucun accès par IP, proxy alternatif ou autre
+  contournement de ce refus n'est utilisé.
+- Une identité QA dédiée, une boîte de réception de test pour la vérification
+  d'inscription, une organisation sans données client et une seconde identité
+  dans une organisation distincte pour les essais d'isolation. Les identifiants
+  et sessions doivent être fournis par le mécanisme sécurisé de l'environnement,
+  jamais dans le chat ou les preuves commitées. Un compte préexistant ne prouve
+  pas à lui seul que l'inscription neuve fonctionne.
+- Un plafond de dépenses et une autorisation explicite avant tout appel IA,
+  workspace ou restauration facturé ; Stripe doit être en mode test pour les
+  essais de souscription et de webhooks. Aucun abonnement client ne sert de
+  support à ces essais.
+- Pour l'exploitation, accès en lecture aux logs Cloud Build, au manifeste de
+  release et aux imageIDs du cluster `vibecore-prod-app` du projet
+  `vibecore-495216`. L'exercice de restauration nécessite un périmètre séparé
+  explicitement autorisé ; une lecture opérateur seule ne l'autorise pas.
+
+L'intégration de ce bilan n'exige aucune livraison applicative : tous ses
+fichiers correspondent aux filtres `**/*.md` ou `docs/**` de
+`.github/workflows/deploy-main.yml`. Aucun dispatch manuel de déploiement ne
+doit être lancé pour cette seule PR documentaire. Les contrôles de fusion
+habituels restent requis.
+
 Peuvent être reportés **si exclus de l'offre annoncée** : applications natives
 et desktop, SSO Enterprise, connecteurs secondaires, parité exhaustive des
 panneaux et optimisations supplémentaires de CI. L'inscription, le parcours
