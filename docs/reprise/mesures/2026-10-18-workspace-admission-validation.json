@@ -1,5 +1,5 @@
 {
-  "recordedAtUtc": "2026-10-18T18:19:03.913861+00:00",
+  "recordedAtUtc": "2026-10-18T18:22:14.697919+00:00",
   "baseSha": "44a8e01bc1010732cb5862c346071e4411d0511d",
   "branch": "codex/workspace-admission-20261018",
   "scope": "isolated local validation, not production; phase-one rollout only",
@@ -136,6 +136,14 @@
       "appLintAddedDiagnostics": 0,
       "newTestLintDiagnostics": 0,
       "memoryBeforeTestsBytes": 3045269504
+    },
+    "environmentExampleAndPhaseGuards": {
+      "passed": 9,
+      "skipped": 0,
+      "files": 2,
+      "environmentExampleTests": 4,
+      "phaseTestsAlreadyReported": 5,
+      "ciFailureRun": "https://github.com/openaxcloud/vibecore/actions/runs/39152764996"
     }
   },
   "correctedValidationFailures": [
@@ -143,7 +151,8 @@
     "HTTP deletion exposed Prisma CUID rejection in the teardown guard; guard and refusal cases corrected.",
     "Node service typecheck rejected global BodyInit in a new test; changed to RequestInit[body], final typecheck passed.",
     "First PR CI found four SHA-256 evidence values shaped like generic API keys; path/digest records preserve hashes without adding scanner exceptions.",
-    "First PR CI found four hardcoded error messages; moved them to existing English/French catalogs, no baseline change."
+    "First PR CI found four hardcoded error messages; moved them to existing English/French catalogs, no baseline change.",
+    "PR CI 39152764996 on6ea9070ac failed the environment-example completeness guard: two admission flags were undocumented. Added explicit false defaults to.env.example; four environment guards and five phase-one rollout guards pass locally. No gate relaxed."
   ],
   "rollout": {
     "quotaReader": "true",
@@ -306,6 +315,10 @@
     {
       "path": "services/api/src/tests/admin-workspace-restart-audit.spec.ts",
       "sha256": "944085b34847e9b2065d296ba64521f9e22eb49d48ab9b4b90bff0e1bcdec2aa"
+    },
+    {
+      "path": ".env.example",
+      "sha256": "8dee3402788a1c1f89f972bbf7942dc32c802c887cd18f3ef7faa6f2d726435c"
     }
   ],
   "localLogSha256": [
@@ -364,6 +377,10 @@
     {
       "path": "/tmp/vibecore-pr735-admin-audit-build.log",
       "sha256": "e7f4f77f2650e6df549aa7cf9b77b70c88f5faa4f20a9e0736b14eb5602f1e9e"
+    },
+    {
+      "path": "/tmp/vibecore-pr735-env-guard.log",
+      "sha256": "9cef60cc3f7ddaa7533fc8c1fcf5e896a1ce53715f67c6024b9c1acac44e3396"
     }
   ],
   "merged": false,
