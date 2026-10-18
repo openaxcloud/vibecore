@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 20:47 UTC
+## Dernier état vérifié — 20:58 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -45,7 +45,7 @@ a été rebasée sur le commit fusionné de #735 ; aucun conflit restant. Sa CI 
 passage couvre 453 cas, zéro échec et zéro instabilité, avec six exemptions
 existantes et 73/73 fichiers. Le canari WebKit a échoué avant tests sur le
 port Docker occupé ; sa seule reprise ciblée a réussi : 17 tests passent, trois sauts préexistants
-subsistent. La PR est fusionnable ; elle attend la fin du rollout #735.
+subsistent. La PR a été fusionnée à **20:54:14 UTC** dans `b827b12255d423ffb96143c39c1d2a3917ffc5e2`, après 32 contrôles réussis et deux sauts conditionnels. La CI et les E2E de ce commit sont en cours ; sa livraison attend derrière #735, qui reste active sans annulation. Aucun déploiement réussi de ce changement ni résultat public live n'est encore établi.
 [Preuves de cette tête](mesures/2026-10-18-pr736-result.json). Sur l'ancienne tête `646ad466ae`, CI et audit EN/FR
 ont réussi, ce dernier après reprise ciblée du démarrage Docker tablette ;
 l'E2E comptait toujours un échec persistant (liste des tables), une instabilité,
