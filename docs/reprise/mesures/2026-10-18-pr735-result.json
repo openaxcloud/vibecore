@@ -647,7 +647,33 @@
     "existingWaivers": 6,
     "waiverChanged": false,
     "priorAttemptFailures": 3,
-    "rootCauseOfPriorAttempt": "not established"
+    "rootCauseOfPriorAttempt": "not established",
+    "retriedShard": {
+      "job": 117771399663,
+      "passed": 139,
+      "flaky": 1,
+      "skipped": 6,
+      "durationMinutes": 18.1,
+      "databaseListAttempts": [
+        {
+          "attempt": 0,
+          "status": "failed",
+          "durationSeconds": 16.2
+        },
+        {
+          "attempt": 1,
+          "status": "failed",
+          "durationSeconds": 17.3
+        },
+        {
+          "attempt": 2,
+          "status": "passed",
+          "durationSeconds": 26.7
+        }
+      ],
+      "streamingPassedSeconds": 16.6,
+      "myDataPassedSeconds": 29.1
+    }
   },
   "mainRuns": {
     "ci": 39161995399,
@@ -655,5 +681,15 @@
     "deployment": 39161995312
   },
   "deploymentStatusAtRecord": "in progress; no success claimed",
-  "phase": "Preparatory only: WORKSPACE_QUOTA_ENABLED=true, WORKSPACE_ADMISSION_V2_ENABLED=false. No V2 activation."
+  "phase": "Preparatory only: WORKSPACE_ADMISSION_V2_QUOTA_ENABLED=true, WORKSPACE_ADMISSION_V2_ENABLED=false. No V2 activation.",
+  "phaseProof": {
+    "expectedConfig": {
+      "WORKSPACE_ADMISSION_V2_QUOTA_ENABLED": "true",
+      "WORKSPACE_ADMISSION_V2_ENABLED": "false"
+    },
+    "sourceGuard": "scripts/release-gate/verify-workspace-admission-phase.mjs",
+    "liveConfigMapReadStep": "Verify rollout",
+    "observedLive": false,
+    "status": "Release gate still waiting exact-commit CI/E2E at20:20UTC; no live flag evidence claimed."
+  }
 }
