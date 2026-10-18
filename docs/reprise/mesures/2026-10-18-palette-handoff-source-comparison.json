@@ -1,0 +1,42 @@
+[
+  {
+    "path": "app/components/chat/BaseChat.tsx",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "929c949bc94ba62a4bb13e5196a9d4dd5be89ea9b4580908e208c233a7085d72"
+  },
+  {
+    "path": "app/components/chat/Chat.client.tsx",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "f6d752f4d9b30dcd81eb23763cfc4753063c06469d729bdde13b784ae9339908"
+  },
+  {
+    "path": "app/components/chat/PendingComposerShell.tsx",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "3172f39aa38e267c2471bc16d114a0ccddf2a9083af18fde0673c67b4eb0f848"
+  },
+  {
+    "path": "app/components/chat/ide-layout-handoff.ts",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "f6258f40d26ffd40a9202b3898f21bd74f5b53bd4da5ac1594553b82a3e4d026"
+  },
+  {
+    "path": "app/lib/persistence/useChatHistory.ts",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "022f6a4fd038f03f9a4893ad40202e1e645ca6a614ea6c29c1e2512cdd80b0a8"
+  },
+  {
+    "path": "app/routes/projects.$projectId.ide.tsx",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "ad6218754d063db1ca8adbcfaa863af9e4a7400f389f6a8b93cb13dcfe756e4d"
+  },
+  {
+    "path": "app/styles/index.scss",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "8cc3432e9de3df176ad634e7db69bea00479068d9a02780b9e652be1b66d56eb"
+  },
+  {
+    "path": "tests/e2e/dashboard.spec.ts",
+    "sameBuildBaseAndTarget": true,
+    "sha256": "cd3e43a24077ea4d400b62c1bf5203f639934876bddb4c6246faa4d4e3d146b7"
+  }
+]

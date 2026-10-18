@@ -67,8 +67,9 @@ lint ciblés réussis ; 45 scénarios Playwright chargés via `--list`, non exé
 Chromium et un vrai serveur HTTP loopback confirment attente des headers,
 corps partiel, fin et annulation, avec un DOM de fixture : cette preuve porte
 sur le helper isolé. Gitleaks staged et arbre exporté propres, règles
-existantes inchangées. Aucune PR supplémentaire ouverte ; #738 et #739
-occupent les deux créneaux. Cause du défaut produit toujours inconnue.
+existantes inchangées. Au relevé initial, #738 et #739 occupaient les deux
+créneaux. #739 documentaire est depuis fusionnée à 22:32:21 UTC.
+Cause du défaut produit toujours inconnue.
 
 ## Éléments suivants — 22:07 UTC
 
@@ -81,7 +82,20 @@ Le workflow instrumenté [39170180476](https://github.com/openaxcloud/vibecore/a
 sur la tête exacte `a78c7766`, exécute depuis 21:58:37 UTC le fichier mobile
 sur chacun des quatre jobs existants. Les observations supplémentaires
 permettront de distinguer conteneur absent, chargement actif, requête
-pendante/annulée et réponse reçue. Résultat encore attendu.
+pendante/annulée et réponse reçue. Il termine à 22:11:43 UTC avec
+45 cas uniques, zéro échec persistant et une instabilité. Les deux cas DB
+passent au premier essai dans chacun des quatre jobs ; aucune métadonnée
+d’échec DB n’est recueillie. Les six exemptions configurées ne correspondent
+à aucun cas de ce rapport ciblé. [Résultat](mesures/2026-10-18-mobile-db-diagnostic-targeted-result.json).
+
+Le [run complet instrumenté 39171191591](https://github.com/openaxcloud/vibecore/actions/runs/39171191591),
+sur le même SHA et avec l’ordre complet original, termine à 22:30:58 UTC :
+453 rapportés, zéro échec persistant, deux instabilités, six exemptions
+inchangées et 73/73 fichiers. Les deux cas DB passent au premier essai.
+[Résultat complet](mesures/2026-10-18-mobile-db-diagnostic-full-result.json).
+La cause reste inconnue ; ces runs précèdent les correctifs UI.
+Les deux [défauts locaux reproduits et corrigés](2026-10-18-ide-recovery-defects.md)
+ne sont pas présentés comme une attribution des échecs CI.
 
 Un défaut distinct de perte de palette au remplacement de la coque a été
 [reproduit localement et capturé](mesures/2026-10-18-palette-handoff-local.json).

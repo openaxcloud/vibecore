@@ -117,19 +117,19 @@
   ],
   "artifacts": {
     "cleanup-verification.json": {
-      "path": "cleanup-verification.json",
+      "path": "2026-10-18-palette-handoff-cleanup-verification.json",
       "sha256": "9cb708ffe1dd8474070fe9e9b1e06bd3249397be2fadba30d8716b665f0098a6"
     },
     "palette-after-handoff.png": {
-      "path": "palette-after-handoff.png",
+      "path": "../captures/2026-10-18-palette-after-handoff.png",
       "sha256": "adffca414cd62771263d4bddc5ddef5f8b9d1e3f18d1c03b1ec98027d6d9279a"
     },
     "palette-before-handoff.png": {
-      "path": "palette-before-handoff.png",
+      "path": "../captures/2026-10-18-palette-before-handoff.png",
       "sha256": "12d9372cd03d404f32a2b4b4084c8e8af10a314ced3998c4c4963e9bd3a354b4"
     },
     "source-comparison.json": {
-      "path": "source-comparison.json",
+      "path": "2026-10-18-palette-handoff-source-comparison.json",
       "sha256": "35bea4972955140d9337c5025d16ef1af6242f076d88e3196d3b4c851a57f0fa"
     }
   },

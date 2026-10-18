@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 22:07 UTC
+## Dernier état vérifié — 22:40 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -102,15 +102,28 @@ retenue, la palette disparaît quand les anciens nœuds sont démontés.
 [capture après](captures/2026-10-18-palette-after-handoff.png) inspectées.
 Le build local existant utilise huit sources pertinentes identiques à
 `c421` ; le retard est imposé et **l’attribution au run CI reste inconnue**.
-Une correction et une régression déterministe sont en préparation sur une
-branche isolée, sans nouvelle PR ni assouplissement des contrôles.
+Le correctif local passe désormais la nouvelle régression et le cas historique
+de style : deux cas Chromium, zéro retry, captures inspectées. Un second
+défaut est reproduit : le bouton Réessayer ne relance aucune requête lorsque
+la première reste en attente. Son correctif conserve les consommateurs et
+remplace la tentative HTTP, avec contre-épreuves et tests loopback verts.
+[Preuves et limites des deux corrections](2026-10-18-ide-recovery-defects.md).
+Les deux candidats et le diagnostic sont en cours de validation intégrée
+sur `43eef614`, sans assouplissement des contrôles. Aucun n’est déployé.
 
 Le [diagnostic DB instrumenté](https://github.com/openaxcloud/vibecore/actions/runs/39170180476)
 a démarré à 21:58:37 UTC sur `a78c7766`, avec le workflow existant et le
 seul fichier `ide-mobile-chrome.spec.ts`. Ce fichier est exécuté séparément
 par les quatre jobs : leurs résultats ne constituent pas quatre ensembles
-de cas uniques. Le résultat est encore attendu ; ce lancement ajoute des
-observations réseau/DOM et n’est pas une relance identique du rouge de main.
+de cas uniques. Il a terminé avec 45 cas uniques, zéro échec persistant
+et une instabilité ; les deux cas DB passent au premier essai dans les
+quatre jobs. [Résultat ciblé](mesures/2026-10-18-mobile-db-diagnostic-targeted-result.json).
+Le [run complet instrumenté 39171191591](https://github.com/openaxcloud/vibecore/actions/runs/39171191591)
+conserve l’ordre original et termine à 22:30:58 UTC : 453 rapportés, zéro
+échec persistant, deux instabilités, six exemptions inchangées, 73/73 fichiers.
+[Résultat complet](mesures/2026-10-18-mobile-db-diagnostic-full-result.json).
+Aucun échec DB n’a fourni de nouvelles métadonnées : la cause reste inconnue.
+Ces deux runs précèdent les correctifs UI et ne prouvent pas leur effet.
 
 Les [quatre alertes critiques](2026-10-18-security-triage.md) sont qualifiées
 partiellement : deux résultats Capacitor natif et deux advisories Tinypool
@@ -137,9 +150,13 @@ Aucun contrôle de livraison n’est contourné.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 22:07 UTC
+## Les cinq conditions de lancement — état vérifié à 22:40 UTC
 
-Main est `c4211323345cc8e0688a191337a04af9e3b2fab9` après #737.
+Main est `43eef614ec3c56d8b7642f105b140e938f6868ef` après la fusion
+documentaire #739 à 22:32:21 UTC : 33 fichiers, aucun de production.
+[Contrôles exacts et fusion](mesures/2026-10-18-pr739-result.json).
+Ses nouveaux contrôles de main sont encore en cours ; les E2E de PR
+sautés pour le périmètre documentaire ne sont pas de nouveaux tests navigateur.
 La dernière livraison terminée est #735, `c6439da55` ; #736 a été
 refusée par sa barrière ; celle de #737 est également refusée après son échec E2E. Les contrôles locaux et CI ci-dessous
 ne remplacent pas un parcours réel sur la version servie.

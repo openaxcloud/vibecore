@@ -1,0 +1,33 @@
+{
+  "remainingOwned": [
+    {
+      "pid": 122576,
+      "state": "Z",
+      "parent": 1,
+      "group": 122564
+    },
+    {
+      "pid": 122735,
+      "state": "Z",
+      "parent": 1,
+      "group": 122718
+    },
+    {
+      "pid": 122736,
+      "state": "Z",
+      "parent": 1,
+      "group": 122718
+    },
+    {
+      "pid": 122865,
+      "state": "Z",
+      "parent": 1,
+      "group": 122718
+    }
+  ],
+  "activeOwned": 0,
+  "portsRefuseConnection": {
+    "3301": true,
+    "3173": true
+  }
+}

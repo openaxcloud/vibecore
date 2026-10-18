@@ -1,0 +1,70 @@
+{
+  "sha": "a78c77665665354f9d9ffd31edeafb56ab811544",
+  "sourceHash": "929c949bc94ba62a4bb13e5196a9d4dd5be89ea9b4580908e208c233a7085d72",
+  "scope": "AST-extracted unmodified production wrapper and primitives; real React/jsdom and loopback HTTP; synthetic response fixture, no DB or production",
+  "memoryBeforeBytes": 4262612992,
+  "requests": [
+    {
+      "index": 1,
+      "completed": true,
+      "closedBeforeFinish": false
+    }
+  ],
+  "observations": [
+    {
+      "label": "initial-request-retained",
+      "requests": 1,
+      "activeSingleFlight": 1,
+      "busy": true,
+      "retryButtons": 0,
+      "contentMounted": false,
+      "abortedCalls": 0
+    },
+    {
+      "label": "after-click-while-response-retained",
+      "requests": 1,
+      "activeSingleFlight": 1,
+      "busy": true,
+      "retryButtons": 1,
+      "contentMounted": false,
+      "abortedCalls": 0
+    },
+    {
+      "label": "remounted-before-first-response",
+      "requests": 1,
+      "activeSingleFlight": 1,
+      "busy": true,
+      "retryButtons": 0,
+      "contentMounted": false,
+      "abortedCalls": 0
+    },
+    {
+      "label": "original-response-released",
+      "requests": 1,
+      "activeSingleFlight": 0,
+      "busy": false,
+      "retryButtons": 0,
+      "contentMounted": true,
+      "abortedCalls": 0
+    }
+  ],
+  "transport": {
+    "loopback": true,
+    "ephemeralPort": 39267,
+    "networkTargets": [
+      "127.0.0.1"
+    ]
+  },
+  "counterexample": {
+    "intendedRetryContract": "explicit Retry initiates recovery without waiting for original response",
+    "fulfilled": false
+  },
+  "reproductionConfirmed": true,
+  "limit": "Only wrapper and transport lifecycle exercised. ProjectIdePanelContent/error boundary/store/collaboration/localization are seams; no real DB, full Remix route, shell handoff, CI cause or production validation.",
+  "cleanup": {
+    "reactUnmounted": true,
+    "serverClosed": true,
+    "socketsRemaining": 0
+  },
+  "memoryAfterBytes": 4373102592
+}

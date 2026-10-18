@@ -19,9 +19,10 @@
     "buildExit": 0,
     "newLintDiagnostics": 0,
     "gitleaksLeaks": 0,
-    "actualStripeOrProductionPaymentProven": false
+    "actualStripeOrProductionPaymentProven": false,
+    "head": "c33c913b53bd99c78d06116e96b74bbd96a5ac4c"
   },
-  "evidenceScope": "Real Fastify handlers via app.inject and in-memory store; locally signed webhook; no networkHTTP, Stripe, PostgreSQL, customer data or production proof",
+  "evidenceScope": "Initial regression tests: Fastify app.inject with in-memory store and locally signed webhook, no HTTP/Stripe/production. The separate localPostgresProof below uses real Prisma/PostgreSQL in an isolated temporary database, still through app.inject and without Stripe or production access.",
   "files": [
     {
       "path": "BUG_INVENTORY_LIVE.md",

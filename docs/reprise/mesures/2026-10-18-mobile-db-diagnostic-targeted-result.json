@@ -1,0 +1,51 @@
+{
+  "head": "a78c77665665354f9d9ffd31edeafb56ab811544",
+  "run": 39170180476,
+  "verdictJob": 117804255055,
+  "summaryAtUtc": "2026-10-18T22:11:43Z",
+  "spec": "tests/e2e/ide-mobile-chrome.spec.ts",
+  "uniqueCasesReported": 45,
+  "persistentFailures": 0,
+  "flaky": 1,
+  "configuredWaivers": 6,
+  "waivedCasesInTargetedReport": 0,
+  "shardJobs": [
+    {
+      "job": 117801490267,
+      "passedFirstAttempt": 45,
+      "flaky": 0,
+      "durationMinutes": 5.2,
+      "databaseTablesSeconds": 10.2,
+      "myDataSeconds": 10.7
+    },
+    {
+      "job": 117801490345,
+      "passedFirstAttempt": 45,
+      "flaky": 0,
+      "durationMinutes": 5.6,
+      "databaseTablesSeconds": 15.5,
+      "myDataSeconds": 15.1
+    },
+    {
+      "job": 117801490239,
+      "passedFirstAttempt": 45,
+      "flaky": 0,
+      "durationMinutes": 5.2,
+      "databaseTablesSeconds": 7.7,
+      "myDataSeconds": 9.6
+    },
+    {
+      "job": 117801490307,
+      "passedFirstAttempt": 44,
+      "flaky": 1,
+      "durationMinutes": 8.1,
+      "databaseTablesSeconds": 12.7,
+      "myDataSeconds": 13.2,
+      "flakyTest": "ide-mobile-chrome.spec.ts:1008 agent/power menus",
+      "firstFailure": "150000ms deadline at boundingBox :1032"
+    }
+  ],
+  "databaseFailureMetadataObserved": false,
+  "scopeLimit": "The same45cases ran separately in4jobs. This is not180unique cases or the original fullsuite shard order; no DB cause or fix established.",
+  "nextFullInstrumentedRun": 39171191591
+}
