@@ -363,6 +363,10 @@
     "en": "Snapshot archive is not available on local or durable storage",
     "fr": "L’archive de l’instantané n’est disponible ni dans le stockage local ni dans le stockage durable."
   },
+  "RUNTIME_SNAPSHOT_ARCHIVE_UNAVAILABLE": {
+    "en": "Runtime snapshot archives are unavailable. Use project snapshots for saved project files.",
+    "fr": "Les archives d’instantanés de l’espace d’exécution sont indisponibles. Utilisez les instantanés du projet pour les fichiers enregistrés."
+  },
   "SNAPSHOT_CHECKSUM_MISMATCH": {
     "en": "Snapshot archive checksum mismatch",
     "fr": "La somme de contrôle de l’archive de l’instantané ne correspond pas."

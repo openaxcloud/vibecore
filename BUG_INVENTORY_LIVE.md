@@ -514,6 +514,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-WORKSPACE-AGENT-READY-001](docs/bugs/BUG-WORKSPACE-AGENT-READY-001.md) — `WorkspaceManager.waitForAgentReachable` tente la santé HTTP de l'agent pendant — 📤 Dispatché : ☑ Relevé pendant la contre-revue du protocole d'admission du 18 octobre. · 💻 Codé : ☐ Non corrigé. Un simple rejet dans le chemin legacy ferait passer la ligne · ✅ Testé live : ☐ Accès HTTP/cluster indisponible dans cet environnement. Les tests d'admission
 - [BUG-PUBLIC-TELEMETRY-INVENTED-001](docs/bugs/BUG-PUBLIC-TELEMETRY-INVENTED-001.md) — P1 — Sur la base `1d2755086f5d05d41c1d12739dcfd230a1a99044`, les loaders publics rendent des services opérationnels, 99,99 % de disponibilité, latences, compteu — 📤 Dispatché : ☑ — 18/10/2026, correction isolée demandée par le parent. · 💻 Codé : ☐ — travail local ; ni fusion ni livraison. · ✅ Testé live : ☐ — aucune preuve de production ; accès production non utilisé.
 
+## Reprise commerciale du 2026-10-18 — preuves de sauvegarde et restauration
+
+- [BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001](docs/bugs/BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001.md) — La restauration d’un instantané runtime par identifiant annonçait un succès sans restaurer de fichier. — 📤 Dispatché : 2026-10-18 — correctif borné demandé après audit en lecture seule, dans `codex/snapshot-restore-contract-20261 · 💻 Codé : Candidat local rebasé sur `main` `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a` après fusion de #735 ; ce correcti · ✅ Testé live : Non. Aucun appel cloud, aucun paiement, aucune donnée client et aucune restauration en production. Le contrôle
+
 ## Résidus non tabulaires — reportés mot pour mot
 
 1 bloc(s) commençaient comme une entrée sans être une ligne de tableau.

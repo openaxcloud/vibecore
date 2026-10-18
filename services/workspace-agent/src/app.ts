@@ -1,6 +1,6 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream, existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { createServer as createNetServer } from 'node:net';
 import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os';
@@ -109,7 +109,11 @@ const commandSchema = z.object({
   timeoutMs: z.number().int().positive().optional(),
 });
 
-const snapshotSchema = z.object({ files: z.array(writeSchema).default([]) });
+/*
+ * This endpoint applies supplied file contents. It has no archive store or ID
+ * resolver: an ID-only body must never become a successful empty restore.
+ */
+const snapshotSchema = z.object({ files: z.array(writeSchema) }).strict();
 
 /*
  * The agent's own signing secret must NEVER reach user-controlled child
@@ -1422,11 +1426,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return reply.code(response.status).send(Readable.fromWeb(response.body as ReadableStream<Uint8Array>));
   });
 
-  app.post('/snapshots/create', async () => ({
-    id: createHash('sha256').update(`${Date.now()}:${root}`).digest('hex').slice(0, 16),
-    createdAt: new Date().toISOString(),
-    files: await listSnapshotFiles(root, root),
-  }));
+  app.post('/snapshots/create', async () => {
+    // A file inventory is not a backup. No archive was persisted by this route.
+    throw workspaceAgentError('snapshotArchiveUnavailable', {
+      statusCode: 503,
+      code: 'SNAPSHOT_ARCHIVE_UNAVAILABLE',
+    });
+  });
 
   app.post('/snapshots/restore', async (request) => {
     const body = snapshotSchema.parse(request.body);
@@ -2210,7 +2216,7 @@ function previewProxyHeaders(headers: FastifyRequest['headers']) {
 /*
  * Bounds for the materialized tree so a workspace with a giant node_modules /
  * deeply-nested or symlink-looped tree can't exhaust memory/CPU building one
- * in-memory JSON blob. Mirrors listSnapshotFiles' ignore set.
+ * in-memory JSON blob. Excludes dependency and build directories.
  */
 const TREE_MAX_DEPTH = 24;
 const TREE_MAX_ENTRIES = 20_000;
@@ -2288,62 +2294,6 @@ const SNAPSHOT_IGNORED_DIRS = new Set([
    */
   'lost+found',
 ]);
-
-async function listSnapshotFiles(
-  root: string,
-  current: string,
-): Promise<Array<{ path: string; sha256: string; size: number }>> {
-  if (current === root) {
-    await mkdir(root, { recursive: true });
-  }
-
-  const entries = await readdir(current, { withFileTypes: true });
-  const files = [];
-
-  for (const entry of entries) {
-    const fullPath = resolve(current, entry.name);
-
-    if (entry.isDirectory()) {
-      if (SNAPSHOT_IGNORED_DIRS.has(entry.name)) {
-        continue;
-      }
-
-      files.push(...(await listSnapshotFiles(root, fullPath)));
-      continue;
-    }
-
-    /*
-     * Only snapshot regular files. readdir(withFileTypes) does not follow
-     * symlinks, so a symlink (e.g. a dangling `ln -s /nonexistent broken` from
-     * the terminal) has isFile()===false here — including it would make stat()/
-     * createReadStream() throw ENOENT and reject the whole /snapshots/create
-     * request (500). Skip non-regular entries, and guard stat/read so one bad
-     * entry can't abort the snapshot.
-     */
-    if (!entry.isFile()) {
-      continue;
-    }
-
-    try {
-      const fileStat = await stat(fullPath);
-      const hash = createHash('sha256');
-
-      await new Promise<void>((resolvePromise, reject) => {
-        createReadStream(fullPath)
-          .on('data', (chunk) => hash.update(chunk))
-          .on('error', reject)
-          .on('end', () => resolvePromise());
-      });
-
-      files.push({ path: relative(root, fullPath), sha256: hash.digest('hex'), size: fileStat.size });
-    } catch {
-      // Unreadable/vanished entry (dangling symlink, race) — skip it.
-      continue;
-    }
-  }
-
-  return files;
-}
 
 async function runCommand(
   cwd: string,
