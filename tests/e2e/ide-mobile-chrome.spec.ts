@@ -3458,7 +3458,11 @@ test.describe('base de données — les tables portent leur nom et leur compte',
 test.describe('base de données — « Mes données » à la Replit', () => {
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
-  test('le rail liste les tables, les en-têtes portent leur type, la page est annoncée', async ({ page, request }) => {
+  test('le rail liste les tables, les en-têtes portent leur type, la page est annoncée', async ({
+    page,
+    request,
+    ideDiagnostics,
+  }) => {
     test.setTimeout(240_000);
 
     const urlBase = process.env.DATABASE_URL;
@@ -3472,7 +3476,9 @@ test.describe('base de données — « Mes données » à la Replit', () => {
       data: { key: 'DATABASE_URL', value: urlBase },
     });
 
+    ideDiagnostics.mark('setup-request-completed');
     await ouvrirOutil(page, 'database');
+    ideDiagnostics.mark('database-tool-opened');
 
     const carte = page.getByTestId('db-carte').first();
 
