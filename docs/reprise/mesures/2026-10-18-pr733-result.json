@@ -307,7 +307,7 @@
     ]
   },
   "deploymentRun": "https://github.com/openaxcloud/vibecore/actions/runs/39140979431",
-  "deploymentStatus": "in_progress",
+  "deploymentStatus": "success",
   "localExtraValidation": {
     "rootLint": {
       "exitCode": 0,
@@ -344,5 +344,8 @@
       "Read-trigger billing failure keeps existing background logging and 425 response",
       "Manager still rejects starter/core; preexisting billing migration remains open"
     ]
-  }
+  },
+  "deploymentCompletedAtUtc": "2026-10-18T16:35:44Z",
+  "deploymentEvidence": "2026-10-18-deployment-615b3fcfb5.json",
+  "functionalProductionJourneyVerified": false
 }

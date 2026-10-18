@@ -18,8 +18,9 @@ immutables différentes, même pour un client payant. Défaut reproduit sur
 ## 💻 Codé
 
 ☑ Fusionné par #733 le 18 octobre 2026 à 15:32:55 UTC, commit
-`615b3fcfb59c0c42cd211536ed2b2675fe72fa5f`. Livraison non encore attestée
-à ce relevé. Les quatre sites de construction du corps de démarrage
+`615b3fcfb59c0c42cd211536ed2b2675fe72fa5f`. Livraison
+[39140979431](https://github.com/openaxcloud/vibecore/actions/runs/39140979431)
+réussie à 16:35:44 UTC, rollout et comparaison des imageIDs réussis. Les quatre sites de construction du corps de démarrage
 utilisent les droits actuels pour free/pro/team/enterprise. Le contrat
 automatique existant de starter/core est préservé pendant que leur migration
 explicite et leur metering restent ouverts. Une lecture de facturation
@@ -53,4 +54,6 @@ la vérification du parcours réel restent nécessaires.
 Les 25 contrôles de PR sont terminés avant fusion : 23 réussis et deux sauts
 conditionnels attendus. La [CI native](https://github.com/openaxcloud/vibecore/actions/runs/39139487732)
 et les [quatre tranches E2E locales](https://github.com/openaxcloud/vibecore/actions/runs/39139487657)
-passent. La livraison reste distincte de cette validation.
+passent. Les mêmes neuf cas passent dans la suite API de main (2 402 cas
+passés, 23 sauts). La livraison est attestée par le workflow ; le parcours
+fonctionnel live et la mesure de collisions restent non vérifiés.
