@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { WorkspacePlan } from '@vibecore/k8s-client';
 import type { WorkspaceRecord, WorkspaceStore } from './manager.js';
+import { workspaceManagerError } from './public-i18n.js';
 
 export type AdmissionState = 'RESERVED' | 'PROVISIONING' | 'ACTIVE' | 'STOPPING' | 'RELEASED';
 export interface WorkspaceAdmission {
@@ -24,7 +25,7 @@ export interface ReserveWorkspaceInput {
 }
 
 export function admissionUnavailable(code = 'WORKSPACE_ADMISSION_UNCONFIRMED'): Error {
-  return Object.assign(new Error('Workspace admission could not be confirmed'), { statusCode: 503, code });
+  return workspaceManagerError('workspaceAdmissionUnconfirmed', { statusCode: 503, code });
 }
 
 export function assertWorkspaceOwner(record: WorkspaceRecord, input: ReserveWorkspaceInput): void {

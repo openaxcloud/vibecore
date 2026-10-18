@@ -207,7 +207,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       const workspaces = await this.read();
 
       if (workspaces.has(record.id)) {
-        throw Object.assign(new Error('Workspace already exists'), { code: 'P2002' });
+        throw workspaceManagerError('workspaceAlreadyExists', { code: 'P2002' });
       }
 
       workspaces.set(record.id, record);

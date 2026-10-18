@@ -15646,7 +15646,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const workspace = existing ?? (await options.create?.());
 
       if (!workspace) {
-        throw new Error('Workspace not found');
+        throw new Error(appPublicEnglish('WORKSPACE_NOT_FOUND'));
       }
 
       /*

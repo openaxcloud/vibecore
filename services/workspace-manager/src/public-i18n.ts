@@ -3,6 +3,8 @@ export type WorkspaceManagerLocale = 'en' | 'fr';
 const copy = {
   en: {
     workspaceNotFound: 'Workspace not found',
+    workspaceAlreadyExists: 'Workspace already exists',
+    workspaceAdmissionUnconfirmed: 'Workspace admission could not be confirmed',
     workspacePodFailed: 'Workspace pod failed to start',
     workspaceUnschedulable: 'Workspace pod could not be scheduled — no capacity available',
     workspaceOomKilled: 'Workspace pod was OOMKilled — increase the plan memory limit or restart',
@@ -27,6 +29,8 @@ const copy = {
   },
   fr: {
     workspaceNotFound: 'Espace de travail introuvable.',
+    workspaceAlreadyExists: 'L’espace de travail existe déjà.',
+    workspaceAdmissionUnconfirmed: 'La réservation de l’espace de travail n’a pas pu être confirmée.',
     workspacePodFailed: 'Le démarrage de l’espace de travail a échoué.',
     workspaceUnschedulable: 'L’espace de travail n’a pas pu être planifié, car aucune capacité n’est disponible.',
     workspaceOomKilled:

@@ -49,7 +49,7 @@ export class WorkspaceAdmissionClient {
       );
 
       if (!Array.isArray(result.workspaces)) {
-        throw new Error('Invalid workspace admission response');
+        throw new Error(appPublicEnglish('WORKSPACE_MANAGER_INVALID_ADMISSION_RESPONSE'));
       }
 
       return result.workspaces.filter((workspace) => workspace.admission && workspace.admission.state !== 'RELEASED');

@@ -1,4 +1,8 @@
 {
+  "WORKSPACE_MANAGER_INVALID_ADMISSION_RESPONSE": {
+    "en": "The workspace manager returned an invalid admission response.",
+    "fr": "Le gestionnaire d’espaces de travail a renvoyé une réponse de réservation invalide."
+  },
   "PROJECT_DELETION_PENDING": {
     "en": "Permanent deletion is in progress. This project cannot be reopened or transferred.",
     "fr": "La suppression définitive est en cours. Ce projet ne peut plus être rouvert ni transféré."
