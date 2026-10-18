@@ -101,3 +101,14 @@ Un défaut distinct de perte de palette au remplacement de la coque a été
 [reproduit localement et capturé](mesures/2026-10-18-palette-handoff-local.json).
 L’attribution à l’échec CI de palette reste inconnue ; ce mécanisme n’est
 pas présenté comme la cause DB.
+
+## Main documentaire #739 — 22:56 UTC
+
+La CI sur `43eef614` passe, mais l’E2E complet automatique de main échoue
+sur les deux cas DB, chacun lors de trois essais : 453 rapportés, deux
+échecs persistants, deux instabilités, six exemptions, 73/73 fichiers.
+[Preuve exacte](mesures/2026-10-18-main739-validation.json).
+Ce main n’intègre pas encore l’instrumentation nouvelle. Le titre absent
+et les listes de réponses vides de l’ancien helper ne prouvent toujours
+ni l’absence du conteneur extérieur, ni l’absence d’une requête en attente.
+La cause DB reste ouverte ; aucun workflow rouge identique n’est relancé.

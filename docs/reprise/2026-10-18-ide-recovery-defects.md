@@ -1,4 +1,4 @@
-# Deux pertes d’interaction reproduites dans l’IDE — 18 octobre 2026
+# IDE : deux pertes d’interaction et une lecture de style périmée — 18 octobre 2026
 
 Ces observations établissent deux défauts locaux. Elles n’attribuent pas encore
 les échecs de main #736/#737 ou de la PR #738 à ces mécanismes. Aucune
@@ -49,6 +49,31 @@ client ne garantit pas que les travaux SQL/amont s’arrêtent. Cette correction
 ne change pas le délai du premier affichage du titre DB et ne prouve pas
 la cause du rouge CI. Les deux correctifs sont réunis pour validation
 sur main `43eef614`, sans modifier délais, assertions ni exemptions existants.
+
+## Lecture de style sur un nœud détaché — preuve locale
+
+Le premier navigateur du lot intégré `0b8ae254` donne un cas vert et un
+rouge : la nouvelle régression de handoff passe en 19,2 s, mais le cas
+historique de styles lit un rayon vide au lieu de `12px`. La capture montre
+pourtant une palette ouverte. Ce rouge est conservé.
+
+Six observations bornées ajoutent uniquement des métadonnées synchrones au
+callback historique, avec assertions, délais et zéro retry inchangés :
+trois rouges et trois verts en 1,7 min. **Chaque rouge reçoit un nœud
+`isConnected=false`, rayon vide ; au même instant, le menu courant est
+connecté et son rayon vaut `12px`.** Les trois verts lisent le nœud courant.
+[Mesures exactes](mesures/2026-10-18-style-detached-local.json) et
+[capture de l’observation 0 inspectée](captures/2026-10-18-style-detached-palette-visible.png).
+Les six projets QA ont été supprimés avec HTTP 200 ; zéro processus actif
+possédé et ports locaux fermés. Ce n’est pas une relance jusqu’au vert.
+
+La sélection du nœud par `Locator.evaluate` et son évaluation passent par
+deux appels Playwright distincts ; le remplacement de coque peut intervenir
+entre eux. Une lecture atomique, qui sélectionne et mesure le menu courant
+dans le même callback navigateur, est en préparation. Les assertions de
+style restent identiques ; un menu absent ou un vrai CSS incorrect doivent
+toujours être détectés. Cette preuve attribue le rouge **local** observé,
+pas les anciennes exécutions CI dont les captures restent inaccessibles.
 
 ## Limites du diagnostic DB
 

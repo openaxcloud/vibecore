@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-435 entrées.
+436 entrées.
 
 ## Sans section
 
@@ -527,6 +527,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## 2026-10-18 — Vérification avant commercialisation
 
 - [BUG-IDE-PALETTE-HANDOFF-001](docs/bugs/BUG-IDE-PALETTE-HANDOFF-001.md) — P2 — La palette « Add tab » ouverte pendant le chargement initial de l'IDE disparaît lorsque `PendingComposerShell` est remplacé par le Chat définitif. L'ouvert — 📤 Dispatché : 📤 Pris en charge le 18/10/2026, correction isolée de la durée de vie de la palette. · 💻 Codé : ☐ Candidat local sur branche dédiée ; pas encore fusionné sur main. · ✅ Testé live : ☐ Aucun déploiement ni contrôle en production. Les preuves locales ne sont pas une attribution de l'échec CI.
+- [BUG-IDE-STYLE-DETACHED-MENU-001](docs/bugs/BUG-IDE-STYLE-DETACHED-MENU-001.md) — P2 — Le test historique « IDE applies section 12 UI detail styles » peut mesurer le menu de la coque de chargement après son remplacement par React. `Locator.ev — 📤 Dispatché : 📤 Pris en charge le 18/10/2026, après contre-observation locale de l'ancien et du nouveau nœud dans le même c · 💻 Codé : ☐ Correctif de test local ; pas encore fusionné sur main. · ✅ Testé live : ☐ Aucun déploiement ni contrôle en production. Les validations du correctif navigateur sont encore à exécuter
 
 ## Résidus non tabulaires — reportés mot pour mot
 

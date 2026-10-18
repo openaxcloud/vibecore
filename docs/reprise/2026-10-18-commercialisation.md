@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 22:40 UTC
+## Dernier état vérifié — 22:57 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -110,6 +110,12 @@ remplace la tentative HTTP, avec contre-épreuves et tests loopback verts.
 [Preuves et limites des deux corrections](2026-10-18-ide-recovery-defects.md).
 Les deux candidats et le diagnostic sont en cours de validation intégrée
 sur `43eef614`, sans assouplissement des contrôles. Aucun n’est déployé.
+La validation intégrée a ensuite identifié un défaut du lecteur de styles
+du test : trois des six observations supplémentaires lisent un ancien nœud
+détaché (rayon vide), alors que le menu courant est connecté avec `12px`
+au même instant. Ce rouge local est attribué et consigné ; une lecture
+atomique est en préparation. L’ancien rouge CI et la panne DB ne sont
+pas réattribués sans preuve.
 
 Le [diagnostic DB instrumenté](https://github.com/openaxcloud/vibecore/actions/runs/39170180476)
 a démarré à 21:58:37 UTC sur `a78c7766`, avec le workflow existant et le
@@ -150,13 +156,17 @@ Aucun contrôle de livraison n’est contourné.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 22:40 UTC
+## Les cinq conditions de lancement — état vérifié à 22:57 UTC
 
 Main est `43eef614ec3c56d8b7642f105b140e938f6868ef` après la fusion
 documentaire #739 à 22:32:21 UTC : 33 fichiers, aucun de production.
 [Contrôles exacts et fusion](mesures/2026-10-18-pr739-result.json).
-Ses nouveaux contrôles de main sont encore en cours ; les E2E de PR
-sautés pour le périmètre documentaire ne sont pas de nouveaux tests navigateur.
+La CI de ce main passe à 22:55:03 UTC ; ses E2E complets échouent à
+22:56:38 UTC : 453 rapportés, deux échecs DB persistants sur trois essais
+chacun, deux instabilités, six exemptions et 73/73 fichiers.
+[Preuve exacte](mesures/2026-10-18-main739-validation.json).
+Aucune nouvelle livraison produit observée. Les E2E de PR sautés pour le
+périmètre documentaire ne sont pas de nouveaux tests navigateur.
 La dernière livraison terminée est #735, `c6439da55` ; #736 a été
 refusée par sa barrière ; celle de #737 est également refusée après son échec E2E. Les contrôles locaux et CI ci-dessous
 ne remplacent pas un parcours réel sur la version servie.

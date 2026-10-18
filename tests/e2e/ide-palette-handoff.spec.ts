@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { readIdeUiDetailStyles } from './helpers/ide-ui-detail-styles';
 
 test.use({ viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false });
 
@@ -79,6 +80,11 @@ test('an open add-tab palette survives the loading-shell handoff and explicit cl
     await trigger.click();
     await expect(palette).toBeVisible();
     await palette.locator('input').fill('Database');
+
+    const previousMenu = await palette.locator('.bolt-project-tool-menu').elementHandle();
+    expect(previousMenu).not.toBeNull();
+    expect((await readIdeUiDetailStyles(page)).toolMenuRadius).toBe('12px');
+
     await trigger.evaluate((node) => node.setAttribute('data-palette-shell-witness', 'true'));
     await testInfo.attach('palette-before-handoff', { body: await page.screenshot(), contentType: 'image/png' });
 
@@ -92,8 +98,54 @@ test('an open add-tab palette survives the loading-shell handoff and explicit cl
     await expect(palette.locator('input')).toHaveValue('Database');
     await testInfo.attach('palette-after-handoff', { body: await page.screenshot(), contentType: 'image/png' });
 
+    const replacement = await page.evaluate((previous) => {
+      const current = document.querySelector('[data-testid="ide-add-tab-command-palette"] .bolt-project-tool-menu');
+
+      return {
+        sameNode: previous === current,
+        previousConnected: previous?.isConnected,
+        previousRadius: previous ? window.getComputedStyle(previous).borderRadius : null,
+        currentConnected: current?.isConnected,
+        currentRadius: current ? window.getComputedStyle(current).borderRadius : null,
+      };
+    }, previousMenu);
+    expect(replacement).toEqual({
+      sameNode: false,
+      previousConnected: false,
+      previousRadius: '',
+      currentConnected: true,
+      currentRadius: '12px',
+    });
+    await testInfo.attach('palette-style-handoff', {
+      body: JSON.stringify(replacement),
+      contentType: 'application/json',
+    });
+    expect((await readIdeUiDetailStyles(page)).toolMenuRadius).toBe('12px');
+    await previousMenu?.dispose();
+
+    // Report the real wrong value; the unchanged historical assertion requires 12px.
+    const menu = palette.locator('.bolt-project-tool-menu');
+    const previousStyle = await menu.getAttribute('style');
+
+    try {
+      await menu.evaluate((node) => (node as HTMLElement).style.setProperty('border-radius', '13px', 'important'));
+
+      const wrongStyle = await readIdeUiDetailStyles(page);
+      expect(wrongStyle.toolMenuRadius).toBe('13px');
+    } finally {
+      await menu.evaluate((node, style) => {
+        if (style === null) {
+          node.removeAttribute('style');
+        } else {
+          node.setAttribute('style', style);
+        }
+      }, previousStyle);
+    }
+
+    expect((await readIdeUiDetailStyles(page)).toolMenuRadius).toBe('12px');
     await page.keyboard.press('Escape');
     await expect(palette).toHaveCount(0);
+    await expect(readIdeUiDetailStyles(page)).rejects.toThrow('IDE add-tab palette menu is absent or detached.');
     await expect(trigger).toHaveAttribute('aria-expanded', 'false');
     await trigger.click();
     await expect(palette.locator('input')).toHaveValue('');
