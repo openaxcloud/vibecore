@@ -19,9 +19,6 @@ import {
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import Popover from '~/components/ui/Popover';
 import {
-  formatStatusDay,
-  formatStatusHistoryTitle,
-  formatStatusIncidentDuration,
   getMarketingExactStatusDesktopCopy,
   localizeStatusSubscriptionError,
   type StatusPrincipleId,
@@ -29,29 +26,7 @@ import {
 } from '~/lib/i18n/catalogs/marketing-exact-status-desktop';
 
 const PRODUCT = '/ecode-static/assets/product';
-const HISTORY_DAYS = 7;
-
-type StatusIncident = {
-  /** UTC day the incident happened, YYYY-MM-DD. */
-  date: string;
-  severity: 'warning' | 'error';
-  title: string;
-  durationMinutes: number;
-  href?: string;
-};
-
 type StatusIcon = LucideIcon | IconType;
-
-/*
- * Static incident seed for the history section. Days without an entry render
- * the localized quiet row. Append a row here when an incident is resolved.
- */
-const INCIDENT_HISTORY: StatusIncident[] = [];
-
-const INCIDENT_SEVERITY_COLORS = new Map<StatusIncident['severity'], string>([
-  ['warning', 'var(--status-warning-text)'],
-  ['error', 'var(--status-error-text)'],
-]);
 
 const STATUS_SERVICE_ICONS: Record<StatusServiceId, StatusIcon> = {
   api: Server,
@@ -67,16 +42,6 @@ const STATUS_PRINCIPLE_ICONS: Record<StatusPrincipleId, StatusIcon> = {
   transparency: Bell,
   resilience: ShieldCheck,
 };
-
-function lastStatusDaysUtc(language: string): Array<{ key: string; label: string }> {
-  return Array.from({ length: HISTORY_DAYS }, (_, index) => {
-    const day = new Date();
-    day.setUTCHours(0, 0, 0, 0);
-    day.setUTCDate(day.getUTCDate() - index);
-
-    return { key: day.toISOString().slice(0, 10), label: formatStatusDay(day, language) };
-  });
-}
 
 type StatusCopy = ReturnType<typeof getMarketingExactStatusDesktopCopy>['exactStatus'];
 
@@ -164,7 +129,7 @@ export default function StatusPage() {
     <div className="min-h-screen flex flex-col bg-bolt-elements-background-depth-1" data-testid="page-status">
       <PublicNavbar />
 
-      <main className="flex-1">
+      <main className="flex-1" data-telemetry-available="false">
         <section className="bg-bolt-elements-background-depth-1">
           <div className="container-responsive py-16 sm:py-24">
             <div className="text-center max-w-3xl mx-auto">
@@ -176,14 +141,9 @@ export default function StatusPage() {
               </h1>
               <p className="mkt-lead text-bolt-elements-textSecondary mb-8 leading-relaxed">{copy.hero.description}</p>
 
-              <div className="inline-flex max-w-full items-center justify-center gap-3 rounded-xl ring-1 ring-[#F26207]/30 bg-[#F26207]/10 px-4 sm:px-6 py-4">
-                <span className="relative flex h-3 w-3 flex-shrink-0" aria-hidden>
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F26207] opacity-75" />
-                  <span className="relative inline-flex h-3 w-3 rounded-full bg-[#F26207]" />
-                </span>
-                <span className="text-[15px] font-semibold text-bolt-elements-textPrimary">
-                  {copy.hero.operational}
-                </span>
+              <div className="inline-flex max-w-full items-center justify-center gap-3 rounded-xl ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 sm:px-6 py-4">
+                <span className="h-3 w-3 flex-shrink-0 rounded-full bg-bolt-elements-textTertiary" aria-hidden />
+                <span className="text-[15px] font-semibold text-bolt-elements-textPrimary">{copy.hero.unknown}</span>
               </div>
 
               <div className="mt-5 flex justify-center">
@@ -222,8 +182,12 @@ export default function StatusPage() {
                             </p>
                           </div>
                         </div>
-                        <Badge variant="secondary" className="border-[#F26207]/30 bg-[#F26207]/10 text-[#F26207]">
-                          {copy.services.operational}
+                        <Badge
+                          data-status="unknown"
+                          variant="secondary"
+                          className="border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary"
+                        >
+                          {copy.services.unknown}
                         </Badge>
                       </div>
                     </CardContent>
@@ -237,55 +201,15 @@ export default function StatusPage() {
         <section className="bg-bolt-elements-background-depth-1">
           <div className="container-responsive py-16 sm:py-24">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-4">
-                {formatStatusHistoryTitle(HISTORY_DAYS, language)}
-              </h2>
+              <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-4">{copy.history.unavailableTitle}</h2>
               <p className="mkt-body text-bolt-elements-textSecondary leading-relaxed">{copy.history.description}</p>
             </div>
 
-            <div className="mx-auto max-w-3xl overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
-              {lastStatusDaysUtc(language).map((day) => {
-                const incident = INCIDENT_HISTORY.find((entry) => entry.date === day.key);
-                const severityColor = incident ? INCIDENT_SEVERITY_COLORS.get(incident.severity) : undefined;
-
-                return (
-                  <div
-                    key={day.key}
-                    className="flex items-start sm:items-center gap-3 sm:gap-4 border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0"
-                  >
-                    <span
-                      className="w-24 shrink-0 text-[13px] text-bolt-elements-textPrimary"
-                      style={{ fontFamily: 'var(--vc-font-code)' }}
-                    >
-                      {day.label}
-                    </span>
-                    {incident && severityColor ? (
-                      <span className="flex min-w-0 flex-wrap items-center gap-2 text-[13px]">
-                        <span
-                          className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                          style={{
-                            color: severityColor,
-                            background: `color-mix(in srgb, ${severityColor} 12%, transparent)`,
-                          }}
-                        >
-                          {copy.history.severity[incident.severity]}
-                        </span>
-                        <span className="text-bolt-elements-textPrimary">{incident.title}</span>
-                        <span className="text-bolt-elements-textSecondary">
-                          · {formatStatusIncidentDuration(incident.durationMinutes, language)}
-                        </span>
-                        {incident.href ? (
-                          <a href={incident.href} className="underline" style={{ color: severityColor }}>
-                            {copy.history.details}
-                          </a>
-                        ) : null}
-                      </span>
-                    ) : (
-                      <span className="min-w-0 text-[13px] text-bolt-elements-textSecondary">{copy.history.empty}</span>
-                    )}
-                  </div>
-                );
-              })}
+            <div
+              className="mx-auto max-w-3xl rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center"
+              data-testid="status-history-unavailable"
+            >
+              <p className="mkt-body text-bolt-elements-textSecondary">{copy.history.unavailable}</p>
             </div>
           </div>
         </section>
@@ -294,7 +218,10 @@ export default function StatusPage() {
           <div className="container-responsive py-16 sm:py-24">
             <div className="grid lg:grid-cols-2 gap-12 items-center max-w-6xl mx-auto">
               <div>
-                <Badge variant="secondary" className="mb-5 border-[#F26207]/30 bg-[#F26207]/10 text-[#F26207]">
+                <Badge
+                  variant="secondary"
+                  className="mb-5 border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary"
+                >
                   {copy.reliability.badge}
                 </Badge>
                 <h2 className="mkt-h2 font-bold text-bolt-elements-textPrimary mb-6">{copy.reliability.title}</h2>

@@ -17,7 +17,8 @@ type PluralCopy = Readonly<{ one: string; other: string }>;
 interface MarketingExactStatusDesktopCopy {
   exactStatus: {
     seo: { title: string; description: string; imageAlt: string };
-    hero: { title: string; description: string; operational: string };
+    telemetry: { message: string };
+    hero: { title: string; description: string; unknown: string };
     subscription: {
       trigger: string;
       title: string;
@@ -32,13 +33,14 @@ interface MarketingExactStatusDesktopCopy {
     services: {
       title: string;
       description: string;
-      operational: string;
+      unknown: string;
       items: readonly { id: StatusServiceId; name: string; description: string }[];
     };
     history: {
       title: PluralCopy;
       description: string;
-      empty: string;
+      unavailableTitle: string;
+      unavailable: string;
       details: string;
       severity: { warning: string; error: string };
       duration: { hours: PluralCopy; minutes: PluralCopy };
@@ -88,21 +90,23 @@ interface MarketingExactStatusDesktopCopy {
 
 export const marketingExactStatusDesktopEn = {
   exactStatus: {
+    telemetry: { message: 'Public telemetry is unavailable. Service availability has not been verified.' },
     seo: {
       title: 'System Status — E-Code',
-      description: 'Check the live status, uptime and recent incidents for E-Code services.',
+      description:
+        'Public service status for E-Code. Live telemetry and verified incident history are currently unavailable.',
       imageAlt: 'E-Code system status and service availability',
     },
     hero: {
       title: 'Platform status',
       description:
-        'A live look at the services behind E-Code and how we keep you informed when something needs attention.',
-      operational: 'All systems operational',
+        'Live telemetry is not connected to this page. We cannot currently confirm service availability or report measured uptime.',
+      unknown: 'Service status unknown',
     },
     subscription: {
       trigger: 'Subscribe to updates',
-      title: 'Get incident updates by email',
-      success: "You're subscribed — incident updates will land in your inbox.",
+      title: 'Get E-Code updates by email',
+      success: 'Your email subscription is confirmed.',
       emailPlaceholder: 'you@company.com',
       emailAria: 'Email address',
       submitting: 'Subscribing…',
@@ -112,12 +116,13 @@ export const marketingExactStatusDesktopEn = {
         rateLimit: 'Too many attempts — try again in a minute.',
         fallback: 'Subscription failed. Please try again.',
       },
-      channelNote: "Email is the only update channel for now — RSS and webhooks aren't available yet.",
+      channelNote:
+        'This subscribes you to E-Code email updates. Automated incident alerts are not available on this page.',
     },
     services: {
       title: 'Core services',
-      description: 'The building blocks that run every project on E-Code.',
-      operational: 'Operational',
+      description: 'Service descriptions are listed below; their current availability is unverified.',
+      unknown: 'Unknown',
       items: [
         {
           id: 'api',
@@ -156,8 +161,10 @@ export const marketingExactStatusDesktopEn = {
         one: 'Incident history (last {count} day)',
         other: 'Incident history (last {count} days)',
       },
-      description: 'A day-by-day record of platform incidents, most recent first.',
-      empty: 'No incidents reported',
+      description: 'An empty record cannot establish the absence of incidents.',
+      unavailableTitle: 'Incident history unavailable',
+      unavailable:
+        'No verified incident history is connected to this page. This does not mean that no incidents occurred.',
       details: 'Details',
       severity: { warning: 'Degraded', error: 'Outage' },
       duration: {
@@ -167,36 +174,36 @@ export const marketingExactStatusDesktopEn = {
     },
     reliability: {
       badge: 'Reliability',
-      title: 'How we keep E-Code running',
-      imageAlt: 'The E-Code dashboard used to manage projects and monitor running workspaces',
+      title: 'What this page can confirm',
+      imageAlt: 'E-Code dashboard illustration; not a live monitoring view',
       items: [
         {
           id: 'monitoring',
-          title: 'Continuous monitoring',
+          title: 'Availability not measured here',
           description:
-            'Every core service — API, workspaces, deployments and the AI agent — is monitored around the clock so issues surface fast.',
+            'This page has no connected service telemetry. Unknown status does not establish either normal operation or an outage.',
         },
         {
           id: 'transparency',
-          title: 'Transparent incident updates',
+          title: 'No verified incident record',
           description:
-            'When something goes wrong, we post what happened, what we are doing, and when it is resolved — no vague status pages.',
+            'Incident and maintenance records are currently unavailable here. No period without incidents can be inferred from this page.',
         },
         {
           id: 'resilience',
-          title: 'Built for resilience',
+          title: 'Infrastructure is not an availability measure',
           description:
-            'Workspaces, builds and storage run on managed Kubernetes with automatic recovery, so a single failure does not take you down.',
+            'A Kubernetes deployment alone does not establish service availability, recovery success or a measured uptime percentage.',
         },
       ],
     },
     providers: {
       title: 'AI model providers',
       description: 'The agent routes across multiple model providers.',
-      body: 'Code generation depends on upstream AI providers such as OpenAI and Anthropic. When a provider degrades, the agent can fall back to an available model so you can keep working — and we report any provider-side disruption here.',
+      body: 'Code generation depends on upstream AI providers such as OpenAI and Anthropic. This page does not monitor their availability and cannot confirm a provider outage or recovery.',
     },
     cta: {
-      title: 'Build on a platform that stays up',
+      title: 'Explore E-Code',
       description:
         'Spin up a workspace, ship a deployment, and let the agent do the heavy lifting. Your next app is one prompt away.',
       primary: 'Get started for free',
@@ -334,21 +341,25 @@ export const marketingExactStatusDesktopEn = {
 
 export const marketingExactStatusDesktopFr = {
   exactStatus: {
+    telemetry: {
+      message: 'La télémétrie publique est indisponible. La disponibilité des services n’a pas été vérifiée.',
+    },
     seo: {
       title: 'État du système — E-Code',
-      description: 'Consultez en direct l’état, la disponibilité et les incidents récents des services E-Code.',
+      description:
+        'État public des services E-Code. La télémétrie en direct et l’historique vérifié des incidents sont actuellement indisponibles.',
       imageAlt: 'État du système E-Code et disponibilité des services',
     },
     hero: {
       title: 'État de la plateforme',
       description:
-        'Consultez en direct les services qui font fonctionner E-Code et la façon dont nous vous informons lorsqu’un élément nécessite votre attention.',
-      operational: 'Tous les systèmes sont opérationnels',
+        'Aucune télémétrie en direct n’est reliée à cette page. Nous ne pouvons actuellement confirmer la disponibilité des services ni afficher un taux de disponibilité mesuré.',
+      unknown: 'État des services inconnu',
     },
     subscription: {
       trigger: 'S’abonner aux mises à jour',
-      title: 'Recevez les mises à jour d’incident par e-mail',
-      success: 'Votre abonnement est confirmé — les mises à jour d’incident arriveront dans votre boîte de réception.',
+      title: 'Recevez les actualités E-Code par e-mail',
+      success: 'Votre abonnement par e-mail est confirmé.',
       emailPlaceholder: 'vous@entreprise.fr',
       emailAria: 'Adresse e-mail',
       submitting: 'Abonnement en cours…',
@@ -359,12 +370,12 @@ export const marketingExactStatusDesktopFr = {
         fallback: 'Échec de l’abonnement. Veuillez réessayer.',
       },
       channelNote:
-        'L’e-mail est pour l’instant le seul canal de mise à jour — les flux RSS et les webhooks ne sont pas encore disponibles.',
+        'Cet abonnement concerne les actualités E-Code par e-mail. Les alertes automatiques d’incident ne sont pas disponibles sur cette page.',
     },
     services: {
       title: 'Services essentiels',
-      description: 'Les composants qui font fonctionner chaque projet sur E-Code.',
-      operational: 'Opérationnel',
+      description: 'Les services sont décrits ci-dessous ; leur disponibilité actuelle n’est pas vérifiée.',
+      unknown: 'Inconnu',
       items: [
         {
           id: 'api',
@@ -404,8 +415,10 @@ export const marketingExactStatusDesktopFr = {
         one: 'Historique des incidents ({count} dernier jour)',
         other: 'Historique des incidents ({count} derniers jours)',
       },
-      description: 'Le relevé quotidien des incidents de la plateforme, du plus récent au plus ancien.',
-      empty: 'Aucun incident signalé',
+      description: 'Un relevé vide ne permet pas de conclure à l’absence d’incidents.',
+      unavailableTitle: 'Historique des incidents indisponible',
+      unavailable:
+        'Aucun historique vérifié des incidents n’est relié à cette page. Cela ne signifie pas qu’aucun incident n’a eu lieu.',
       details: 'Détails',
       severity: { warning: 'Service dégradé', error: 'Interruption' },
       duration: {
@@ -415,36 +428,36 @@ export const marketingExactStatusDesktopFr = {
     },
     reliability: {
       badge: 'Fiabilité',
-      title: 'Comment nous assurons la disponibilité d’E-Code',
-      imageAlt: 'Le tableau de bord E-Code utilisé pour gérer les projets et surveiller les espaces de travail actifs',
+      title: 'Ce que cette page peut confirmer',
+      imageAlt: 'Illustration du tableau de bord E-Code ; pas une vue de surveillance en direct',
       items: [
         {
           id: 'monitoring',
-          title: 'Surveillance continue',
+          title: 'Disponibilité non mesurée ici',
           description:
-            'Chaque service essentiel — API, espaces de travail, déploiements et agent IA — est surveillé en continu afin de détecter rapidement les problèmes.',
+            'Cette page ne dispose d’aucune télémétrie des services. Un état inconnu ne prouve ni un fonctionnement normal ni une panne.',
         },
         {
           id: 'transparency',
-          title: 'Communication transparente lors des incidents',
+          title: 'Aucun relevé vérifié des incidents',
           description:
-            'Lorsqu’un problème survient, nous indiquons ce qui s’est passé, les mesures prises et le moment de sa résolution, sans message imprécis.',
+            'Les relevés d’incidents et de maintenance sont actuellement indisponibles ici. Cette page ne permet pas de déduire une période sans incident.',
         },
         {
           id: 'resilience',
-          title: 'Conçu pour la résilience',
+          title: 'L’infrastructure n’est pas une mesure de disponibilité',
           description:
-            'Les espaces de travail, les compilations et le stockage fonctionnent sur une infrastructure Kubernetes gérée avec récupération automatique, afin qu’une défaillance isolée ne vous interrompe pas.',
+            'Un déploiement Kubernetes ne prouve à lui seul ni la disponibilité des services, ni la réussite d’une restauration, ni un taux de disponibilité mesuré.',
         },
       ],
     },
     providers: {
       title: 'Fournisseurs de modèles d’IA',
       description: 'L’agent distribue les requêtes entre plusieurs fournisseurs de modèles.',
-      body: 'La génération de code dépend de fournisseurs d’IA externes tels qu’OpenAI et Anthropic. Si l’un d’eux subit une dégradation, l’agent peut se rabattre sur un modèle disponible pour que vous puissiez continuer à travailler ; nous signalons ici toute perturbation provenant d’un fournisseur.',
+      body: 'La génération de code dépend de fournisseurs d’IA externes tels qu’OpenAI et Anthropic. Cette page ne surveille pas leur disponibilité et ne permet de confirmer ni une panne ni un rétablissement chez un fournisseur.',
     },
     cta: {
-      title: 'Développez sur une plateforme qui reste disponible',
+      title: 'Découvrez E-Code',
       description:
         'Créez un espace de travail, livrez un déploiement et laissez l’agent prendre en charge le travail complexe. Votre prochaine application n’est plus qu’à un prompt.',
       primary: 'Commencer gratuitement',

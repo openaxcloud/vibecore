@@ -63,21 +63,21 @@ describe('E-Code public runtime API adapters', () => {
     }>;
     const incidents = (await toResponse(
       await statusIncidentsLoader(loaderArgs('http://app.e-code.ai/api/status/incidents')),
-    ).json()) as unknown[];
+    ).json()) as { incidents: null };
     const metrics = (await toResponse(
       await statusMetricsLoader(loaderArgs('http://app.e-code.ai/api/status/metrics')),
-    ).json()) as { uptime30d: number; services_operational: number };
+    ).json()) as { uptime30d: null; services_operational: null };
     const health = (await toResponse(
       await monitoringHealthLoader(loaderArgs('http://app.e-code.ai/api/monitoring/health')),
-    ).json()) as { status: string; metrics: Record<string, unknown> };
+    ).json()) as { status: string; metrics: null };
 
     expect(services.some((service) => service.name === 'E-Code Editor')).toBe(true);
-    expect(services.every((service) => service.status === 'operational')).toBe(true);
-    expect(incidents).toEqual([]);
-    expect(metrics.services_operational).toBe(services.length);
-    expect(metrics.uptime30d).toBeGreaterThan(99);
-    expect(health.status).toMatch(/healthy|degraded/);
-    expect(health.metrics).toHaveProperty('system');
+    expect(services.every((service) => service.status === 'unknown')).toBe(true);
+    expect(incidents).toMatchObject({ status: 'unknown', incidents: null });
+    expect(metrics.services_operational).toBeNull();
+    expect(metrics.uptime30d).toBeNull();
+    expect(health.status).toBe('unknown');
+    expect(health.metrics).toBeNull();
   });
 
   it('serves polyglot health and capability contracts', async () => {
@@ -91,7 +91,7 @@ describe('E-Code public runtime API adapters', () => {
       await polyglotCapabilitiesLoader(loaderArgs('http://app.e-code.ai/api/polyglot/capabilities')),
     ).json()) as { services: Record<string, unknown>; routing: Record<string, string> };
 
-    expect(health.status).toBe('healthy');
+    expect(health.status).toBe('unknown');
     expect(health.services.length).toBeGreaterThan(0);
     expect(capabilities.services).toHaveProperty('typescript');
     expect(capabilities.services).toHaveProperty('python-ml');

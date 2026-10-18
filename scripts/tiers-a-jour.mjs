@@ -38,7 +38,17 @@ import { join } from 'node:path';
  * que pas de carte du tout.
  */
 export const CHEMINS_PAR_TIER = {
-  web: ['app/', 'electron/', 'vite.config', 'uno.config', 'tsconfig', 'infra/cloudbuild/single-web.yaml'],
+  web: [
+    'app/',
+    'public/',
+    'server.mjs',
+    'legacy-marketing-entry.mjs',
+    'electron/',
+    'vite.config',
+    'uno.config',
+    'tsconfig',
+    'infra/cloudbuild/single-web.yaml',
+  ],
   runtime: [
     'services/api/',
     'services/workspace-manager/',

@@ -34,6 +34,7 @@ import { createRequestHandler } from '@react-router/express';
 import compression from 'compression';
 import express from 'express';
 import morgan from 'morgan';
+import { redirectLegacyMarketingEntry } from './legacy-marketing-entry.mjs';
 
 const BUILD_PATH = process.env.BUILD_PATH ?? './build/server/index.js';
 const build = await import(path.resolve(BUILD_PATH));
@@ -44,6 +45,9 @@ const app = express();
 app.disable('x-powered-by');
 
 app.use(compression());
+
+// Must precede both build/client and public static layers.
+app.use(redirectLegacyMarketingEntry);
 
 /*
  * Couche 1 — les assets empreintés. `immutable` + 1 an : c'est CE réglage qui

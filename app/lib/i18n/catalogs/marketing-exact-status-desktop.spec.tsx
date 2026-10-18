@@ -40,13 +40,13 @@ function dataOf<T>(result: unknown): T {
   return result && typeof result === 'object' && 'data' in result ? (result as { data: T }).data : (result as T);
 }
 
-function renderInFrench(node: ReactNode) {
+function renderInFrench(node: ReactNode, language = 'fr') {
   const router = createMemoryRouter([{ path: '*', element: node }], { initialEntries: ['/'] });
   const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
   try {
     return renderToStaticMarkup(
-      <I18nextProvider i18n={createI18nInstance('fr')}>
+      <I18nextProvider i18n={createI18nInstance(language)}>
         <RouterProvider router={router} />
       </I18nextProvider>,
     );
@@ -98,12 +98,30 @@ describe('exact status and desktop marketing catalogs', () => {
     const markup = renderInFrench(<StatusPage />);
 
     expect(markup).toContain('État de la plateforme');
-    expect(markup).toContain('Tous les systèmes sont opérationnels');
-    expect(markup).toContain('Aucun incident signalé');
+    expect(markup).toContain('État des services inconnu');
+    expect(markup).not.toContain('Tous les systèmes sont opérationnels');
+    expect(markup).toContain('Historique des incidents indisponible');
+    expect(markup).not.toContain('Aucun incident signalé');
     expect(markup).toContain('Fournisseurs de modèles d’IA');
     expect(markup).not.toContain('Platform status');
     expect(markup).not.toContain('No incidents reported');
     expect(markup).not.toContain('Subscribe to updates');
+  });
+
+  it.each(['en', 'fr'])('never turns missing observations into healthy service or quiet days (%s)', (language) => {
+    const markup = renderInFrench(<StatusPage />, language);
+    const copy = getMarketingExactStatusDesktopCopy(language).exactStatus;
+
+    expect(markup).toContain(copy.hero.unknown);
+    expect(markup).toContain(copy.history.unavailableTitle);
+    expect(markup.match(/data-status="unknown"/g)).toHaveLength(6);
+    expect(markup).toContain('data-telemetry-available="false"');
+    expect(markup).not.toMatch(
+      /All systems operational|Tous les systèmes sont opérationnels|No incidents reported|Aucun incident signalé|99\.9|animate-ping/,
+    );
+    expect(markup).toContain('data-testid="button-status-subscribe"');
+    expect(markup).toContain('href="/signup"');
+    expect(markup).toContain('href="/dashboard"');
   });
 
   it('renders the complete Desktop page in French', () => {
