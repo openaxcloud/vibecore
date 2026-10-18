@@ -1,0 +1,193 @@
+{
+  "experiment": "real-database-panel-response-delivery-gate",
+  "scope": "local-QA-only",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "responseContentsChanged": false,
+  "assertionsInRepositoryChanged": false,
+  "timeline": [
+    {
+      "label": "setup-confirmed",
+      "elapsedMs": 6059,
+      "mobilePanel": "chat",
+      "databaseTabActive": false,
+      "databaseContainerMounted": false,
+      "databaseContainerVisible": false,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 3,
+      "urlPanelIsDatabase": false
+    },
+    {
+      "label": "real-response-retained",
+      "elapsedMs": 7354,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": true,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "label": "heading-assertion-under-delivery-gate",
+      "elapsedMs": 12364,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": true,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "event": "delivery-gate-opened",
+      "elapsedMs": 12521
+    },
+    {
+      "label": "original-response-delivered-root-ready",
+      "elapsedMs": 13012,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": true,
+      "headingVisible": true,
+      "visibleCards": 1,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "label": "real-tables-ready",
+      "elapsedMs": 14145,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 128,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    }
+  ],
+  "responses": [
+    {
+      "index": 1,
+      "requestedAtMs": 6750,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 7289,
+      "responseBytes": 3178,
+      "envelopeStatus": "ok",
+      "deliveredAtMs": 12527,
+      "unchangedBytesDelivered": true
+    }
+  ],
+  "screenshots": [
+    "01-real-response-retained-loading.png",
+    "02-real-database-list-ready.png",
+    "03-real-tables-ready.png"
+  ],
+  "checks": {
+    "databaseSetupConfirmed": true,
+    "headingAssertionFailedWithOriginal5000ms": true,
+    "realDatabaseCardReady": true,
+    "originalResponseRestoredPanel": true
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "ownDatabaseBindingRemoved": true,
+    "ownDatabaseBindingDeleteStatus": 200,
+    "qaIdentityAndProjectRetained": true
+  },
+  "memoryBeforeBytes": 4728913920,
+  "registrationStatus": 201,
+  "projectCreationStatus": 201,
+  "browserVersion": "154.0.8037.57",
+  "databaseSetupStatus": 200,
+  "headingAssertionElapsedMs": 5006,
+  "tableChecks": {
+    "tableCount": 128,
+    "sampledNamesNonEmpty": true,
+    "sampledNamesDistinct": true,
+    "sampledRowCountsNumeric": true
+  },
+  "success": true,
+  "memoryAfterBytes": 4877131776,
+  "elapsedMs": 14555,
+  "sourceHead": "1d2755086f5d05d41c1d12739dcfd230a1a99044",
+  "interpretation": "A deliberately imposed delivery delay reproduces tabactive/headingabsent while the loading boundary is visible. This proves a possible mechanism, not the cause or actual latency of GitHub CI failures.",
+  "capturesInspectedByRoot": [
+    "01-real-response-retained-loading.png",
+    "03-real-tables-ready.png"
+  ],
+  "ownedServicesCleaned": {
+    "processesInOwnedGroups": [
+      {
+        "pid": 96440,
+        "ppid": 1,
+        "pgid": 96428,
+        "state": "Z",
+        "name": "MainThread"
+      },
+      {
+        "pid": 96693,
+        "ppid": 1,
+        "pgid": 96674,
+        "state": "Z",
+        "name": "chromium"
+      },
+      {
+        "pid": 96695,
+        "ppid": 1,
+        "pgid": 96674,
+        "state": "Z",
+        "name": "chromium"
+      },
+      {
+        "pid": 96829,
+        "ppid": 1,
+        "pgid": 96674,
+        "state": "Z",
+        "name": "chromium"
+      }
+    ],
+    "ports": [
+      {
+        "port": 3301,
+        "free": true,
+        "acceptsConnection": false,
+        "bindWithReuseAddressAvailable": true
+      },
+      {
+        "port": 3173,
+        "free": false,
+        "acceptsConnection": false,
+        "bindWithReuseAddressAvailable": true
+      }
+    ],
+    "runningOwnedProcesses": 0
+  }
+}

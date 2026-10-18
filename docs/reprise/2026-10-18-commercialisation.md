@@ -51,6 +51,16 @@ est le bouton « Voir les journaux » sur deux lignes dans l'état de publicatio
 en échec à 390 px en français. Ce résultat ne prouve ni une génération réelle,
 ni une publication accessible, ni Safari, ni la cause des instabilités CI.
 
+Une [contre-expérience locale](mesures/2026-10-18-database-panel-delivery-gate.json)
+retient puis livre intacte une vraie réponse HTTP du panneau DB : le titre
+reste absent derrière `aria-busy=true` malgré l'onglet actif, puis le panneau
+et 128 tables du PostgreSQL QA réel apparaissent. Le temps de réponse amont
+mesuré est 539 ms ; **le retard de livraison est imposé volontairement**.
+Captures chargement et tables inspectées ; aucune donnée de ligne ni valeur
+de connexion n'est incluse. Ceci prouve un mécanisme possible, pas la cause
+ni une lenteur constatée en CI. Les processus locaux possédés sont arrêtés ;
+quatre zombies réadoptés par PID1 ne sont pas des serveurs actifs.
+
 Le correctif runtime `855f2240f`, encore local et sans PR, refuse désormais
 une création/restauration d'instantané sans archive au lieu d'annoncer un
 succès sans fichiers restaurés. Sa suite agent complète passe 121/121 tests,
