@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-426 entrées.
+427 entrées.
 
 ## Sans section
 
@@ -506,6 +506,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-MOBILE-RETOUR-SELECTION-001](docs/bugs/BUG-IDE-MOBILE-RETOUR-SELECTION-001.md) — Après ouverture de `audit.txt` depuis l’IDE desktop, passage à 768 px, changement de langue en français, bouton retour au tableau de bord puis retour navigateur — 📤 Dispatché : ☑ — constat transmis au parent pendant l’audit du volet flottant. · 💻 Codé : ☐ — correctifs locaux sur #732, non fusionnés sur main : persistance du choix explicite et course de navigatio · ✅ Testé live : ☐ — reproduction locale uniquement, production non testée.
 - [BUG-IDE-ONGLET-BROUILLON-PERDU-001](docs/bugs/BUG-IDE-ONGLET-BROUILLON-PERDU-001.md) — Signal transmis par la session parent : job GitHub `115041292778`, run `38318643274`, tête `9c07d3a13394050e7fedd3f7bfb759f663a1f7fe`, à 23:08:59 UTC le 12 octo — 📤 Dispatché : ☑ — diagnostic délégué et revue parent. · 💻 Codé : ☐ — correctif intégré à la branche #731, non fusionné sur main. · ✅ Testé live : ☐ — course démontrée sur stores locaux ; cause du signal CI non attribuée.
 - [BUG-IDE-PANEL-NAVIGATION-CONCURRENTE-001](docs/bugs/BUG-IDE-PANEL-NAVIGATION-CONCURRENTE-001.md) — Sur téléphone ou tablette, ouvrir Fichiers puis choisir rapidement un fichier peut réafficher Library après que l’éditeur a montré ce fichier. La mémoire de sél — 📤 Dispatché : ☑ — découvert pendant les contre-épreuves locales de #732 le 13 octobre 2026. · 💻 Codé : ☐ — correctif local avec contre-épreuve 2/2 verte, non poussé ni fusionné sur main. · ✅ Testé live : ☐ — reproduction locale uniquement, production non testée.
+
+## 2026-10-18 — Vérification avant commercialisation
+
+- [BUG-WORKSPACE-PROVISION-RESOURCES-001](docs/bugs/BUG-WORKSPACE-PROVISION-RESOURCES-001.md) — Le démarrage automatique envoyait au workspace-manager le forfait par défaut sans les ressources de l’abonnement. Les démarrages — 📤 Dispatché : ☑ Reprise ciblée du contrat de ressources de #708 le 18 octobre 2026. · 💻 Codé : ☐ Correctif préparé sur une branche isolée, pas encore fusionné ni livré. Les quatre sites de construction du · ✅ Testé live : ☐ Accès HTTP aux deux domaines refusé par le proxy de l'environnement.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

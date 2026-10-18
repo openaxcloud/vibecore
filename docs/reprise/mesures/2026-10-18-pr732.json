@@ -1,0 +1,233 @@
+{
+  "observedAtUtc": "2026-10-18T14:59:21.431791+00:00",
+  "number": 732,
+  "merged_at": "2026-10-13T03:04:22Z",
+  "merge_commit_sha": "3f6acb9cfb9d0b6647cea8fc8c0080fe5d55d7f9",
+  "changed_files": 56,
+  "files": [
+    {
+      "filename": "BUG_INVENTORY_LIVE.md",
+      "status": "modified"
+    },
+    {
+      "filename": "SERVI-POUR-LES-SESSIONS.md",
+      "status": "modified"
+    },
+    {
+      "filename": "app/components/chat/BaseChat.tsx",
+      "status": "modified"
+    },
+    {
+      "filename": "app/components/chat/project-selection-to-persist.spec.ts",
+      "status": "added"
+    },
+    {
+      "filename": "app/components/chat/project-selection-to-persist.ts",
+      "status": "added"
+    },
+    {
+      "filename": "app/components/workbench/Workbench.client.tsx",
+      "status": "modified"
+    },
+    {
+      "filename": "app/lib/i18n/catalogs/base-chat-ast.spec.ts",
+      "status": "modified"
+    },
+    {
+      "filename": "app/lib/stores/files.ts",
+      "status": "modified"
+    },
+    {
+      "filename": "app/lib/stores/workbench.project-storage-return.spec.ts",
+      "status": "added"
+    },
+    {
+      "filename": "app/lib/stores/workbench.ts",
+      "status": "modified"
+    },
+    {
+      "filename": "app/utils/project-ide-panel-url.spec.ts",
+      "status": "modified"
+    },
+    {
+      "filename": "app/utils/project-ide-panel-url.ts",
+      "status": "modified"
+    },
+    {
+      "filename": "docs/bugs/BUG-IDE-MOBILE-RETOUR-SELECTION-001.md",
+      "status": "modified"
+    },
+    {
+      "filename": "docs/bugs/BUG-IDE-PANEL-NAVIGATION-CONCURRENTE-001.md",
+      "status": "added"
+    },
+    {
+      "filename": "docs/bugs/BUG-PILL-LEAKS-PANELS-001.md",
+      "status": "modified"
+    },
+    {
+      "filename": "docs/reprise/2026-10-12-restauration-selection-mobile.md",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/2026-10-13-pastille-preview.md",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/agent-return-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/agent-return-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/geometrie-chargement.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/mesures-rouges.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/preview-loading-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/preview-loading-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/rouge-390.jpeg",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/pastille-preview-2026-10-13/rouge-768.jpeg",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/apres-archives-retour-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/apres-archives-retour-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/apres-readme-attente-audit-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/apres-readme-choix-explicite-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/avant-interruption-readme-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/avant-langue-autre-fichier-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/avant-retour-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/avant-retour-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/harnais-reponse-annulee-B-intact.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/integration-main-readme-attente-rouge.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/integration-main-reponse-tardive-rouge.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/interruption-avant-dashboard-2026-10-13.jpeg",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/interruption-dashboard-avant-timeout-2026-10-13.jpeg",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/interruption-url-dashboard-2026-10-13.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/navigation-concurrente-rouge-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/navigation-concurrente-rouge-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/navigation-concurrente-vert-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/navigation-concurrente-vert-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/readme-explicite-rouge-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/readme-explicite-rouge-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/readme-explicite-vert-390.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/captures/selection-mobile-2026-10-12/readme-explicite-vert-768.png",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/selection-mobile-2026-10-12/brouillons-apres.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/selection-mobile-2026-10-12/brouillons-avant.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/selection-mobile-2026-10-12/cause-archives.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/selection-mobile-2026-10-12/cause-interruption.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/selection-mobile-2026-10-12/hydration-diagnostic-2026-10-13.json",
+      "status": "added"
+    },
+    {
+      "filename": "docs/reprise/mesures/selection-mobile-2026-10-12/navigation-diagnostic-2026-10-13.json",
+      "status": "added"
+    },
+    {
+      "filename": "tests/e2e/diagnostics/mobile-navigation.ts",
+      "status": "added"
+    },
+    {
+      "filename": "tests/e2e/ide-mobile-chrome.spec.ts",
+      "status": "modified"
+    },
+    {
+      "filename": "tests/e2e/ide-mobile-file-restore.spec.ts",
+      "status": "added"
+    }
+  ]
+}

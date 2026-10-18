@@ -1,0 +1,59 @@
+{
+  "recordedAtUtc": "2026-10-18T15:07:55.398260+00:00",
+  "baseSha": "3f6acb9cfb9d0b6647cea8fc8c0080fe5d55d7f9",
+  "branch": "codex/launch-readiness-20261018",
+  "tree": "modified, intentional production fix + new regression tests + audit documentation",
+  "environment": {
+    "node": "24.19.0",
+    "pnpm": "9.14.4",
+    "cgroupMemoryLimitBytes": 17179869184,
+    "memoryBeforeFinalSuitesBytes": 195567616
+  },
+  "commands": {
+    "neighbors": "node /tmp/vibecore-corepack/v1/pnpm/9.14.4/bin/pnpm.cjs --filter @vibecore/api exec vitest run --config vitest.config.ts src/tests/workspace-provision-resources.spec.ts src/tests/provision-respecte-le-quota.spec.ts src/tests/workspace-status-truth.spec.ts src/tests/workspace-isolation.spec.ts src/tests/runtime-reseed.spec.ts src/tests/runtime-readiness.spec.ts src/tests/runtime-ticket-auth.spec.ts src/tests/deploiement-refus-quota.spec.ts src/tests/deploy-workspace-only.spec.ts src/tests/workspace-lifecycle.spec.ts src/tests/workspace-diagnostics.spec.ts src/tests/adversarial-cross-tenant.spec.ts --maxWorkers=1 --no-file-parallelism",
+    "apiTypecheck": "pnpm --filter @vibecore/api typecheck",
+    "apiBuild": "pnpm --filter @vibecore/api build",
+    "index": "vitest run scripts/index-a-jour.spec.mjs --maxWorkers=1 --no-file-parallelism",
+    "lint": "eslint services/api/src/app.ts services/api/src/tests/workspace-provision-resources.spec.ts --format json (compare rule/message counts to main app.ts)",
+    "runtimeScan": "node scripts/check-no-runtime-mocks.mjs"
+  },
+  "results": {
+    "apiNeighbors": {
+      "files": 12,
+      "passed": 126,
+      "skippedPreexisting": 3,
+      "exitCode": 0,
+      "includesFocusedCases": 9,
+      "durationSeconds": 186.41
+    },
+    "counterproofInitialSevenWithMainSource": {
+      "failed": 6,
+      "passed": 1,
+      "exitCode": 1
+    },
+    "apiTypecheckExitCode": 0,
+    "apiBuildExitCode": 0,
+    "index": {
+      "passed": 6,
+      "exitCode": 0
+    },
+    "lint": {
+      "baselineMessages": 338,
+      "finalMessages": 338,
+      "introduced": 0,
+      "newTestMessages": 0
+    },
+    "runtimeSubstituteScan": "clean"
+  },
+  "sourceSha256": {
+    "services/api/src/app.ts": "4ec97899406e2f9c20ee0394f746db4c752eb2cf4b009f9827ba340da1cfa917",
+    "services/api/src/tests/workspace-provision-resources.spec.ts": "7ba1355c3f6b5e4d3c0e4be221f451bef22b3395ca1954b310b92f8973a54006"
+  },
+  "limits": [
+    "API contract tests use local HTTP recorders and an in-memory store",
+    "No Kubernetes runtime or production journey provisioned",
+    "No live Stripe or physical restore performed",
+    "Node 24 local differs from Node 22 CI; native CI still required",
+    "No merge or deployment yet"
+  ]
+}

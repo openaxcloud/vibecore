@@ -1,0 +1,246 @@
+{
+  "observedAtUtc": "2026-10-18T14:57:20Z",
+  "sourceSha": "3f6acb9cfb9d0b6647cea8fc8c0080fe5d55d7f9",
+  "source": "GitHub REST live reads and local workspace; no production customer journey",
+  "pullRequests": [
+    {
+      "number": 718,
+      "head": "1f50ded87d6cba107a1cc9f8ed4920a102226447",
+      "branch": "fix/reprise-services-coherente-20261012",
+      "draft": true,
+      "title": "fix: integrate storage quotas and purge barriers with tenant contracts"
+    },
+    {
+      "number": 708,
+      "head": "99d1969fe6a418b03d96e3563154e434fef011c1",
+      "branch": "fix/espace-un-seul-gabarit",
+      "draft": true,
+      "title": "fix(espaces): un seul gabarit pour les quatre chemins qui démarrent un espace"
+    },
+    {
+      "number": 669,
+      "head": "d816fa0cd3b067cd2728b723f6984c2944ef7f28",
+      "branch": "fix/base-du-dernier-deploiement",
+      "draft": true,
+      "title": "fix(deploiement): la base des tiers avait trois semaines de retard — quatre images pour un changement qui en touche deux"
+    },
+    {
+      "number": 668,
+      "head": "4f1ca154245ef008024cfe1c51f4ffddfea0043f",
+      "branch": "docs/audit-i18n-apercu",
+      "draft": true,
+      "title": "docs(bugs): pourquoi quatre contrôles sont rouges sur TOUTES les propositions — et trois instruments qui m'ont menti"
+    },
+    {
+      "number": 666,
+      "head": "337e907d4a8804c5330aba1c862f025e01b55e25",
+      "branch": "fix/propositions-sans-flot",
+      "draft": true,
+      "title": "fix(moteur): une proposition en cours d'écriture n'est plus envoyée au serveur à chaque morceau"
+    },
+    {
+      "number": 649,
+      "head": "952e2891ceac41132d1706e4afa72aad92e3c51c",
+      "branch": "brouillon/ui-bureau-projets-illimites",
+      "draft": true,
+      "title": "brouillon(paiement): « 1 000 000 projets » → « Projets illimités », plafond gratuit en une constante"
+    },
+    {
+      "number": 648,
+      "head": "d35d38e3b9ded1f55e2dca4122f950c80441eb27",
+      "branch": "perf/cache-navigateurs-playwright",
+      "draft": true,
+      "title": "perf(ci): mettre en cache les navigateurs Playwright — 10 min 33 s sur le chemin critique de chaque mise en production"
+    },
+    {
+      "number": 637,
+      "head": "fa523cca752186055a22c125e137fdda1c4bb32a",
+      "branch": "docs/lot-documentaire",
+      "draft": true,
+      "title": "docs: fusionner une à la fois, le lot de trois, et trois entrées d'inventaire — dont un NON-DÉFAUT assumé"
+    },
+    {
+      "number": 632,
+      "head": "63f3c493f2c3f9efb530d08bbcb69154ead5c016",
+      "branch": "feat/surveillance-par-tier",
+      "draft": true,
+      "title": "feat(deploy): chaque tier est comparé à SON code, pas au tag du voisin"
+    },
+    {
+      "number": 607,
+      "head": "402431aee604c77812aace1299b1e479d44fd6b7",
+      "branch": "fix/carte-des-secrets-complete",
+      "draft": true,
+      "title": "fix(secrets): trois clés n'existaient que dans le cluster, et la carte ne le disait pas"
+    },
+    {
+      "number": 606,
+      "head": "8b7b3a484336e8b1e798638877ff826fdb64150a",
+      "branch": "docs/env-example-complet",
+      "draft": true,
+      "title": "docs(env): un clone neuf ne démarrait pas, et le fichier d'exemple avait l'air complet"
+    },
+    {
+      "number": 560,
+      "head": "06b75bf0369e3cecad60fbb2c70f72c79359a4c6",
+      "branch": "fix/case-a-cocher-ecrasee",
+      "draft": true,
+      "title": "fix(agent): la case à cocher déclarait 16 px et en rendait 7,6"
+    },
+    {
+      "number": 559,
+      "head": "904ba56b4b4aafbdc8dc6996ebc7e3208514731a",
+      "branch": "claude/input-zone-spacing-font-n1rxx3",
+      "draft": true,
+      "title": "fix(ide): « Actualiser les fichiers » répare l'arbre, un partage fait pendant le chargement survit — et quatre points clos avec leur garde"
+    },
+    {
+      "number": 448,
+      "head": "af567e8bd2eed09b81673dd9c3cba3a0c4e5cefc",
+      "branch": "ci/e2e-filtre-chemins",
+      "draft": true,
+      "title": "ci(e2e): la suite navigateur ne tourne plus pour un changement documentaire"
+    },
+    {
+      "number": 424,
+      "head": "ea8b72ca0eca8c3120acd59463a66e17c89cd299",
+      "branch": "feat/effort-slider",
+      "draft": true,
+      "title": "feat(agent): le réglage d'effort devient un curseur à deux crans"
+    },
+    {
+      "number": 414,
+      "head": "130c29f58ccff7146d5c0fdd08c7dc6f57d81888",
+      "branch": "fix/audx-023-real-gcs-inventory",
+      "draft": true,
+      "title": "fix(storage): compter les octets réels de GCS et refuser l'URL signée hors quota (AUDX-023, AUDX-020)"
+    },
+    {
+      "number": 366,
+      "head": "67e9a984b7a7785a56e41b421a0d319115f50e27",
+      "branch": "ci/electron-cancel-superseded",
+      "draft": true,
+      "title": "ci(electron): ne plus construire trois fois le bureau pour des commits dépassés"
+    },
+    {
+      "number": 352,
+      "head": "464f8c4f83c513bcfec84bc2d0ae250ed8946059",
+      "branch": "audit/registre-expert",
+      "draft": true,
+      "title": "docs(audit): registre complet de l'audit externe (158 points) + les 4 correctifs urgents"
+    },
+    {
+      "number": 324,
+      "head": "96954a87457a04bf883267b827d6591df75e4a5c",
+      "branch": "chore/dead-components",
+      "draft": true,
+      "title": "chore(components): cliquet contre les composants morts + suppression des 7 isolés"
+    },
+    {
+      "number": 125,
+      "head": "1e14d78e2fede444177bdb3e21cfd65c9cd69b13",
+      "branch": "fix/from-scratch-install-dr-clean",
+      "draft": true,
+      "title": "fix(infra): l'installation à neuf aboutit — 8 blocages prouvés sur l'env de test, + label gVisor refusé par GKE"
+    },
+    {
+      "number": 79,
+      "head": "0b59b19e49e8bdf3d2dc6a4039358179757b8241",
+      "branch": "feat/p0-a2-14-tenant-guardrails",
+      "draft": true,
+      "title": "feat(multi-tenant): contrats + seuils anti-abus nommés — P0-A2-14"
+    },
+    {
+      "number": 52,
+      "head": "ed281463e3740fd245718c41f0d39cafbb98a580",
+      "branch": "vague3-purge47-hardening",
+      "draft": true,
+      "title": "fix(purge): physical account-purge hardening — expert reserves #47 + REAL GCS/k8s E2E [PROVEN_REVIEW_PENDING]"
+    }
+  ],
+  "checks": {
+    "total": 82,
+    "conclusions": {
+      "success": 67,
+      "skipped": 9,
+      "failure": 6
+    },
+    "runtimeFailures": [
+      {
+        "name": "Playwright @runtime (non-blocking)",
+        "conclusion": "failure",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39097365302/job/117586475206"
+      },
+      {
+        "name": "Playwright @runtime (non-blocking)",
+        "conclusion": "failure",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39002794718/job/117309064398"
+      },
+      {
+        "name": "Playwright @runtime (non-blocking)",
+        "conclusion": "failure",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/38851083611/job/116812210620"
+      },
+      {
+        "name": "Playwright @runtime (non-blocking)",
+        "conclusion": "failure",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/38681920335/job/116248149342"
+      },
+      {
+        "name": "Playwright @runtime (non-blocking)",
+        "conclusion": "failure",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/38512053851/job/115682535057"
+      },
+      {
+        "name": "Playwright @runtime (non-blocking)",
+        "conclusion": "failure",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/38347618219/job/115132554889"
+      }
+    ]
+  },
+  "lastDeployment": {
+    "run": 38339948482,
+    "completedAtUtc": "2026-10-13T03:47:03Z",
+    "conclusion": "success",
+    "onlyRebuiltTier": "web",
+    "rolloutCheck": "success",
+    "imageIdComparisonStep": "success",
+    "manifestArtifact": 11788145195,
+    "rolloutArtifact": 11787109831,
+    "artifactContentsRead": false
+  },
+  "clusterIndirectObservation": {
+    "run": 39127639075,
+    "job": 117676021171,
+    "observedAtUtc": "2026-10-18T12:33:58Z",
+    "webSpecImageDigest": "sha256:aeafc795f5ca6ce1ead587839f0f89184a15d121ca787cb0f717a4321dec4971",
+    "helmWebTag": "3f6acb9cfb",
+    "otherHelmTags": "dfd1d1f071",
+    "limit": "Workflow lists pod spec.containers.image across namespaces, not imageIDs or HTTP routing. This is not proof of the bytes served by either domain."
+  },
+  "nightlyRuntime": {
+    "run": 39097365302,
+    "job": 117586475206,
+    "workflowConclusion": "success",
+    "jobConclusion": "failure",
+    "failed": 18,
+    "passed": 0,
+    "provisionedRuntimeInWorkflow": false,
+    "productionMeasurement": false
+  },
+  "access": {
+    "githubRead": true,
+    "localRepository": true,
+    "productionHttp": false,
+    "productionHttpFailure": "CONNECT tunnel failed, response 403 (environment proxy), for e-code.ai and app.e-code.ai",
+    "gcpOperator": false,
+    "stripeConnection": false,
+    "productionAccount": false
+  },
+  "safety": {
+    "customerDataModified": false,
+    "paymentsTriggered": false,
+    "newPaidResourcesProvisioned": false,
+    "otherBranchesModified": false
+  }
+}

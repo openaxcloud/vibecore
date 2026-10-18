@@ -1,0 +1,49 @@
+---
+id: BUG-WORKSPACE-PROVISION-RESOURCES-001
+section: "2026-10-18 — Vérification avant commercialisation"
+---
+
+## Bug
+
+Le démarrage automatique envoyait au workspace-manager le forfait par défaut sans les ressources de l’abonnement. Les démarrages
+explicites et redémarrages envoyaient les droits issus de la facturation.
+Le même espace pouvait donc recevoir deux spécifications de ressources
+immutables différentes, même pour un client payant. Défaut reproduit sur
+`main` `3f6acb9cfb9d0b6647cea8fc8c0080fe5d55d7f9` le 18 octobre.
+
+## 📤 Dispatché
+
+☑ Reprise ciblée du contrat de ressources de #708 le 18 octobre 2026.
+
+## 💻 Codé
+
+☐ Correctif préparé sur une branche isolée, pas encore fusionné ni livré. Les quatre sites de construction du corps de démarrage
+utilisent les droits actuels pour free/pro/team/enterprise. Le contrat
+automatique existant de starter/core est préservé pendant que leur migration
+explicite et leur metering restent ouverts. Une lecture de facturation
+en échec ne déclenche pas un démarrage gratuit ni une nouvelle réservation.
+
+## ✅ Testé live
+
+☐ Accès HTTP aux deux domaines refusé par le proxy de l'environnement.
+Aucune disparition des collisions, aucun pod réel ni parcours de génération
+publié certifié par cette correction locale.
+
+## Preuve
+
+`services/api/src/tests/workspace-provision-resources.spec.ts` : sept tests
+isolés d'API, avec un serveur HTTP local qui enregistre les requêtes et un
+magasin en mémoire. Ce banc n'est pas une preuve Kubernetes ni Stripe.
+Les quatre forfaits historiques, les surcharges du catalogue et deux états
+initiaux pendant une panne de facturation sont couverts. Sept verts lors de la première passe ; six rouges et un vert en rétablissant
+le code de main. La suite finale ajoute deux gardes de compatibilité
+starter/core : neuf cas ciblés verts, inclus dans 126 cas voisins passés
+(12 fichiers, trois sauts préexistants). Typecheck et build API passent ;
+aucun diagnostic lint ajouté aux 338 diagnostics préexistants de app.ts.
+
+La PR #708 est restée intacte. Sa protection des démarrages en vol n'est pas
+reprise ici ; son repli silencieux de facturation et sa conversion de forfaits
+ne sont pas intégrés. Le manager refuse toujours `starter`/`core` ; choisir leur
+correspondance change aussi le metering, et ne peut pas être présenté comme
+une simple correction de libellé. Le comptage des collisions sur 24 heures et
+la vérification du parcours réel restent nécessaires.
