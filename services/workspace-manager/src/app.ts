@@ -1,8 +1,8 @@
-import { admissionUnavailable } from './admission.js';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { getClusterCapacity } from '@vibecore/k8s-client';
 import Fastify from 'fastify';
 import { z } from 'zod';
+import { admissionUnavailable } from './admission.js';
 import { runAppBuild } from './app-builds.js';
 import { WorkspaceManager } from './manager.js';
 import {
@@ -339,17 +339,22 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   });
 
   app.get('/health', async () => ({ status: 'ok' }));
-  // During a rolling deployment old clients must not mutate a protocol-owned
-  // row, including when their obsolete payload would fail validation first.
+
+  /*
+   * During a rolling deployment old clients must not mutate a protocol-owned
+   * row, including when their obsolete payload would fail validation first.
+   */
   app.addHook('preHandler', async (request) => {
     const path = request.url.split('?')[0];
     const match = /^\/workspaces\/([^/]+)(?:\/(?:stop|restart))?$/.exec(path);
+
     const workspaceId =
       path === '/workspaces/start' && request.method === 'POST'
         ? (request.body as { workspaceId?: unknown } | undefined)?.workspaceId
         : match && ['POST', 'DELETE'].includes(request.method)
           ? decodeURIComponent(match[1])
           : undefined;
+
     if (typeof workspaceId === 'string' && (await manager.store.get(workspaceId))?.admission) {
       throw admissionUnavailable('WORKSPACE_ADMISSION_PROTOCOL_REQUIRED');
     }
@@ -358,11 +363,16 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.post('/v2/workspaces/reserve', async (request) => {
     const input = startSchema.pick({ workspaceId: true, orgId: true, projectId: true, plan: true }).parse(request.body);
     const record = await manager.store.reserveAdmission(input);
+
     return record.admission ? record : { ...record, legacy: true };
   });
   app.get('/v2/workspaces/:workspaceId', async (request, reply) => {
     const record = await manager.store.get((request.params as { workspaceId: string }).workspaceId);
-    if (!record) return reply.code(404).send({ code: 'WORKSPACE_NOT_FOUND' });
+
+    if (!record) {
+      return reply.code(404).send({ code: 'WORKSPACE_NOT_FOUND' });
+    }
+
     return record;
   });
   app.get('/v2/organizations/:orgId/admissions', async (request) => ({
@@ -379,6 +389,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       input.deadlineMs,
     );
   });
+
   const admittedStartSchema = startSchema.extend({ admissionGeneration: z.string().min(1) });
   app.post('/v2/workspaces/start', async (request) =>
     manager.startAdmittedWorkspace({
@@ -517,10 +528,17 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   });
   app.get('/workspaces/:workspaceId', async (request) => {
     const record = await manager.store.get((request.params as { workspaceId: string }).workspaceId);
-    if (!record) return record;
-    // An older API uses updatedAt alone to free STARTING after ten minutes.
-    // Only v2 may expose that timestamp together with the admission contract.
+
+    if (!record) {
+      return record;
+    }
+
+    /*
+     * An older API uses updatedAt alone to free STARTING after ten minutes.
+     * Only v2 may expose that timestamp together with the admission contract.
+     */
     const { updatedAt: _updatedAt, ...legacyResponse } = record;
+
     return legacyResponse;
   });
 

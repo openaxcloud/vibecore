@@ -121,6 +121,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
         const state = response.json();
         expect(state.updatedAt).toBe(updatedAt.toISOString());
         expect(state.admission).toBeUndefined();
+
         const legacy = await app.inject({
           method: 'GET',
           url: `/workspaces/${record.id}`,
@@ -137,10 +138,12 @@ integrationDescribe('PrismaWorkspaceStore', () => {
   it('reserves atomically across stores and only one claim/release CAS wins', async () => {
     const id = uniqueId('admission-race');
     createdIds.push(id);
+
     const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
     const peer = new PrismaWorkspaceStore(prisma!);
     const [a, b] = await Promise.all([store.reserveAdmission(input), peer.reserveAdmission(input)]);
     expect(a.admission).toEqual(b.admission);
+
     const outcomes = await Promise.all([
       store.compareAdmission(id, a.admission!, { ...a.admission!, state: 'PROVISIONING' }),
       peer.compareAdmission(id, b.admission!, { ...b.admission!, state: 'RELEASED' }),
@@ -151,9 +154,11 @@ integrationDescribe('PrismaWorkspaceStore', () => {
   it('does not accept a late result or claim for a released generation', async () => {
     const id = uniqueId('admission-generation');
     createdIds.push(id);
+
     const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
     const first = await store.reserveAdmission(input);
     expect(await store.compareAdmission(id, first.admission!, { ...first.admission!, state: 'RELEASED' })).toBe(true);
+
     const next = await store.reserveAdmission(input);
     expect(next.admission!.generation).not.toBe(first.admission!.generation);
     expect(
@@ -171,6 +176,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
   it('keeps held admissions even for FAILED runtime rows, scoped by organization', async () => {
     const id = uniqueId('admission-list');
     createdIds.push(id);
+
     const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
     const record = await store.reserveAdmission(input);
     await store.compareAdmission(
@@ -186,6 +192,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
   it('CAS refuses a GC decision after an activity mutation', async () => {
     const id = uniqueId('admission-activity');
     createdIds.push(id);
+
     const record = await store.reserveAdmission({
       workspaceId: id,
       projectId: uniqueId('project'),
@@ -207,12 +214,14 @@ integrationDescribe('PrismaWorkspaceStore', () => {
   it('fences results by attempt as well as generation and state', async () => {
     const id = uniqueId('admission-attempt');
     createdIds.push(id);
+
     const record = await store.reserveAdmission({
       workspaceId: id,
       projectId: uniqueId('project'),
       orgId: uniqueId('org'),
       plan: 'free',
     });
+
     const first = { ...record.admission!, state: 'PROVISIONING' as const, attemptId: 'attempt-1' };
     const second = { ...first, attemptId: 'attempt-2' };
     expect(await store.compareAdmission(id, record.admission!, first)).toBe(true);
@@ -224,6 +233,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
   it('adopts a released runtime under an exact previous owner guard', async () => {
     const id = uniqueId('admission-owner');
     createdIds.push(id);
+
     const input = { workspaceId: id, projectId: uniqueId('project'), orgId: uniqueId('org'), plan: 'free' as const };
     const record = await store.reserveAdmission(input);
     const released = { ...record.admission!, state: 'RELEASED' as const };
@@ -237,6 +247,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
         { orgId: 'incorrect-owner', projectId: input.projectId },
       ),
     ).toBe(false);
+
     const adopted = await store.reserveAdmission({ ...input, orgId: uniqueId('new-org') });
     expect(adopted.orgId).not.toBe(input.orgId);
     expect(adopted.admission?.generation).not.toBe(record.admission?.generation);
@@ -294,6 +305,7 @@ integrationDescribe('PrismaWorkspaceStore', () => {
 
     // The three new ids appear in the order we inserted them.
     expect(newIds).toEqual([w1.id, w2.id, w3.id]);
+
     const statuses = after.filter((r) => [w1.id, w2.id, w3.id].includes(r.id)).map((r) => r.status);
     expect(statuses).toEqual(['RUNNING', 'STOPPED', 'DELETED']);
   });

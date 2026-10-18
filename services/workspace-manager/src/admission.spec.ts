@@ -1,10 +1,10 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KubectlWorkspaceK8sClient, type K8sObject } from '@vibecore/k8s-client';
-import { JsonWorkspaceStore, WorkspaceManager } from './manager.js';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildWorkspaceManagerApp } from './app.js';
+import { JsonWorkspaceStore, WorkspaceManager } from './manager.js';
 
 const reservation = {
   workspaceId: 'ws-admission',
@@ -12,6 +12,7 @@ const reservation = {
   orgId: 'org-admission',
   plan: 'free' as const,
 };
+
 const startInput = { ...reservation, namespace: 'workspaces', image: 'agent:test', env: {}, allowedSecretKeys: [] };
 
 describe('workspace admission: real local store, instrumented Kubernetes', () => {
@@ -20,6 +21,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
   let manager: WorkspaceManager;
   let k8s: KubectlWorkspaceK8sClient;
   let objects: Map<string, K8sObject>;
+
   const key = (kind: string, name: string) => `${kind}:${name}`;
 
   beforeEach(async () => {
@@ -52,6 +54,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
   it('only one claim/release wins across JSON store instances', async () => {
     const first = await store.reserveAdmission(reservation);
     const peer = new JsonWorkspaceStore(store.filePath);
+
     const results = await Promise.all([
       store.compareAdmission(first.id, first.admission!, { ...first.admission!, state: 'PROVISIONING' }),
       peer.compareAdmission(first.id, first.admission!, { ...first.admission!, state: 'RELEASED' }),
@@ -63,6 +66,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const first = await store.reserveAdmission(reservation);
     const duplicate = await store.reserveAdmission(reservation);
     expect(duplicate.admission).toEqual(first.admission);
+
     const { createdAt: _createdAt, lastActiveAt: _lastActiveAt, admission: _admission, ...legacy } = first;
     await store.create({ ...legacy, id: 'legacy' });
     expect((await store.reserveAdmission({ ...reservation, workspaceId: 'legacy' })).admission).toBeUndefined();
@@ -76,6 +80,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     expect(
       (await manager.releaseWorkspaceAdmission('workspaces', first.id, first.admission!.generation, 0)).released,
     ).toBe(true);
+
     const second = await store.reserveAdmission(reservation);
     expect(second.admission!.generation).not.toBe(first.admission!.generation);
     await expect(
@@ -115,6 +120,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const generation = reserved.admission!.generation;
     const running = await manager.startAdmittedWorkspace({ ...startInput, admissionGeneration: generation });
     expect(running.admission?.state).toBe('ACTIVE');
+
     const reapplied = await manager.startAdmittedWorkspace({
       ...startInput,
       image: 'agent:changed',
@@ -124,8 +130,10 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     expect(vi.mocked(k8s.apply).mock.calls.filter(([object]) => object.kind === 'PersistentVolumeClaim')).toHaveLength(
       1,
     );
+
     const pod = objects.get(key('Pod', reserved.podName));
     expect(JSON.stringify(pod)).toContain('agent:changed');
+
     const stopped = await manager.stopAdmittedWorkspace('workspaces', reserved.id, generation);
     expect(stopped?.admission?.state).toBe('RELEASED');
     expect(objects.has(key('PersistentVolumeClaim', reserved.pvcName))).toBe(true);
@@ -136,9 +144,11 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const reserved = await store.reserveAdmission(reservation);
     const generation = reserved.admission!.generation;
     vi.mocked(k8s.apply).mockRejectedValueOnce(new Error('apply outcome unknown'));
+
     const failed = await manager.startAdmittedWorkspace({ ...startInput, admissionGeneration: generation });
     expect(failed.status).toBe('FAILED');
     expect(failed.admission?.state).toBe('PROVISIONING');
+
     const calls = vi.mocked(k8s.apply).mock.calls.length;
     await expect(
       manager.startAdmittedWorkspace({ ...startInput, admissionGeneration: generation }),
@@ -189,8 +199,10 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const reserved = await store.reserveAdmission(reservation);
     const input = { ...startInput, admissionGeneration: reserved.admission!.generation };
     await manager.startAdmittedWorkspace(input);
+
     const calls = vi.mocked(k8s.apply).mock.calls.length;
     vi.mocked(k8s.delete).mockRejectedValueOnce(new Error('stop unconfirmed'));
+
     const failed = await manager.startAdmittedWorkspace(input, true);
     expect(failed.status).toBe('FAILED');
     expect(failed.admission?.state).toBe('PROVISIONING');
@@ -202,10 +214,13 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const reserved = await store.reserveAdmission(reservation);
     const getPod = vi.mocked(k8s.getPod).getMockImplementation()!;
     vi.mocked(k8s.getPod).mockImplementation(async (namespace, name) => {
-      if (objects.has(key('Pod', name)))
+      if (objects.has(key('Pod', name))) {
         return { apiVersion: 'v1', kind: 'Pod', metadata: { name }, status: { phase: 'Failed' } } as K8sObject;
+      }
+
       return getPod(namespace, name);
     });
+
     const failed = await manager.startAdmittedWorkspace({
       ...startInput,
       admissionGeneration: reserved.admission!.generation,
@@ -213,6 +228,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     expect(failed).toMatchObject({ status: 'FAILED', admission: { state: 'RELEASED' } });
     expect(objects.has(key('Pod', reserved.podName))).toBe(false);
     expect(objects.has(key('PersistentVolumeClaim', reserved.pvcName))).toBe(true);
+
     const next = await store.reserveAdmission(reservation);
     expect(next.admission!.generation).not.toBe(reserved.admission!.generation);
     vi.mocked(k8s.getPod).mockImplementation(getPod);
@@ -225,9 +241,13 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const reserved = await store.reserveAdmission(reservation);
     const apply = vi.mocked(k8s.apply).getMockImplementation()!;
     vi.mocked(k8s.apply).mockImplementation(async (object) => {
-      if (object.kind === 'Pod') throw new Error('pod apply timed out; server may still commit');
+      if (object.kind === 'Pod') {
+        throw new Error('pod apply timed out; server may still commit');
+      }
+
       return apply(object);
     });
+
     const failed = await manager.startAdmittedWorkspace({
       ...startInput,
       admissionGeneration: reserved.admission!.generation,
@@ -240,6 +260,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
   it('can release a failure before Kubernetes mutations only after confirming absence', async () => {
     const reserved = await store.reserveAdmission(reservation);
     vi.mocked(k8s.get).mockRejectedValue(new Error('PVC inspection failed'));
+
     const failed = await manager.startAdmittedWorkspace({
       ...startInput,
       admissionGeneration: reserved.admission!.generation,
@@ -252,27 +273,35 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
   it('a late result from an earlier attempt cannot delete or overwrite a successor', async () => {
     const reserved = await store.reserveAdmission(reservation);
     const input = { ...startInput, admissionGeneration: reserved.admission!.generation };
+
     let notifyCommitted!: () => void;
     let continueFirst!: () => void;
+
     const committed = new Promise<void>((resolve) => {
       notifyCommitted = resolve;
     });
     const pause = new Promise<void>((resolve) => {
       continueFirst = resolve;
     });
+
     const compare = store.compareAdmission.bind(store);
+
     let first = true;
     vi.spyOn(store, 'compareAdmission').mockImplementation(async (...args) => {
       const result = await compare(...args);
+
       if (first && args[2].state === 'ACTIVE' && result) {
         first = false;
         notifyCommitted();
         await pause;
       }
+
       return result;
     });
+
     const original = manager.startAdmittedWorkspace(input);
     await committed;
+
     const successor = await manager.startAdmittedWorkspace({ ...input, image: 'agent:successor' });
     const assertion = expect(original).rejects.toMatchObject({ statusCode: 409, code: 'WORKSPACE_ADMISSION_STALE' });
     continueFirst();
@@ -288,6 +317,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
       code: 'WORKSPACE_ADMISSION_OWNER_MISMATCH',
     });
     await manager.releaseWorkspaceAdmission('workspaces', reserved.id, reserved.admission!.generation, 0);
+
     const adopted = await store.reserveAdmission({ ...reservation, orgId: 'destination' });
     expect(adopted.orgId).toBe('destination');
     expect(adopted.admission!.generation).not.toBe(reserved.admission!.generation);
@@ -302,6 +332,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const reserved = await store.reserveAdmission(reservation);
     const { createdAt: _createdAt, lastActiveAt: _lastActiveAt, admission: _admission, ...legacy } = reserved;
     await store.create({ ...legacy, id: 'legacy-transfer' });
+
     const input = { ...reservation, workspaceId: 'legacy-transfer', orgId: 'destination' };
     expect(await store.reserveAdmission(input)).toMatchObject({ orgId: reservation.orgId });
     expect((await store.reserveAdmission(input)).admission).toBeUndefined();
@@ -319,6 +350,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     });
     expect(k8s.delete).not.toHaveBeenCalled();
     await manager.stopAdmittedWorkspace('workspaces', reserved.id, generation);
+
     const deleted = await manager.deleteAdmittedWorkspace('workspaces', reserved.id, generation);
     expect(deleted).toMatchObject({ status: 'DELETED', admission: { state: 'RELEASED' } });
     expect(objects.size).toBe(0);
@@ -342,9 +374,13 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const generation = record.admission!.generation;
     await manager.startAdmittedWorkspace({ ...startInput, admissionGeneration: generation });
     await manager.stopAdmittedWorkspace('workspaces', record.id, generation);
+
     const remove = vi.mocked(k8s.delete).getMockImplementation()!;
     vi.mocked(k8s.delete).mockImplementation(async (kind, namespace, name) => {
-      if (kind === 'PersistentVolumeClaim') throw new Error('PVC deletion outcome unknown');
+      if (kind === 'PersistentVolumeClaim') {
+        throw new Error('PVC deletion outcome unknown');
+      }
+
       return remove(kind, namespace, name);
     });
     await expect(manager.deleteAdmittedWorkspace('workspaces', record.id, generation)).rejects.toThrow(
@@ -374,6 +410,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
   it('a fresh activity mutation wins against an old GC observation', async () => {
     const record = await store.reserveAdmission(reservation);
     await manager.startAdmittedWorkspace({ ...startInput, admissionGeneration: record.admission!.generation });
+
     const old = '2020-01-01T00:00:00.000Z';
     await store.update(record.id, { lastActiveAt: old });
     vi.mocked(k8s.getPod).mockImplementationOnce(async () => {
@@ -390,6 +427,7 @@ describe('workspace admission: real local store, instrumented Kubernetes', () =>
     const app = buildWorkspaceManagerApp(manager);
     const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
     const headers = secret ? { authorization: `Bearer ${secret}` } : {};
+
     try {
       expect(
         (await app.inject({ method: 'GET', url: `/workspaces/${record.id}`, headers })).json().updatedAt,

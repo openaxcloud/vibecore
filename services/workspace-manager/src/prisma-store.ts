@@ -62,6 +62,7 @@ interface PrismaRuntimeRow {
 
 function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
   let admission: WorkspaceAdmission | undefined;
+
   if (
     row.admissionGeneration != null ||
     row.admissionState != null ||
@@ -75,6 +76,7 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
     ) {
       throw admissionUnavailable('WORKSPACE_ADMISSION_INVALID');
     }
+
     admission = {
       generation: row.admissionGeneration,
       ...(row.admissionAttemptId ? { attemptId: row.admissionAttemptId } : {}),
@@ -82,6 +84,7 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
       reservedAt: row.admissionReservedAt.toISOString(),
     };
   }
+
   return {
     id: row.id,
     orgId: row.orgId,

@@ -40,6 +40,7 @@ export async function reserveInStore(store: WorkspaceStore, input: ReserveWorksp
     state: 'RESERVED',
     reservedAt: new Date().toISOString(),
   };
+
   let record = await store.get(input.workspaceId);
 
   if (!record) {
@@ -57,23 +58,39 @@ export async function reserveInStore(store: WorkspaceStore, input: ReserveWorksp
         admission,
       });
     } catch (error) {
-      if ((error as { code?: string })?.code !== 'P2002') throw error;
+      if ((error as { code?: string })?.code !== 'P2002') {
+        throw error;
+      }
+
       record = await store.get(input.workspaceId);
     }
   }
 
-  if (!record) throw admissionUnavailable();
-  if (record.projectId !== input.projectId) throw admissionUnavailable('WORKSPACE_ADMISSION_OWNER_MISMATCH');
-  // A legacy row is not evidence that no Kubernetes mutation was issued. The
-  // API revalidates project ownership before choosing its legacy lifecycle.
-  if (!record.admission) return record;
+  if (!record) {
+    throw admissionUnavailable();
+  }
+
+  if (record.projectId !== input.projectId) {
+    throw admissionUnavailable('WORKSPACE_ADMISSION_OWNER_MISMATCH');
+  }
+
+  /*
+   * A legacy row is not evidence that no Kubernetes mutation was issued. The
+   * API revalidates project ownership before choosing its legacy lifecycle.
+   */
+  if (!record.admission) {
+    return record;
+  }
+
   if (record.admission.state !== 'RELEASED') {
     assertWorkspaceOwner(record, input);
     return record;
   }
 
-  // The API fences project transfers against all in-flight reserve requests.
-  // Only a stopped, released runtime may adopt the project's new organization.
+  /*
+   * The API fences project transfers against all in-flight reserve requests.
+   * Only a stopped, released runtime may adopt the project's new organization.
+   */
   await store.compareAdmission(
     record.id,
     record.admission,
@@ -87,8 +104,14 @@ export async function reserveInStore(store: WorkspaceStore, input: ReserveWorksp
     },
     { orgId: record.orgId, projectId: record.projectId },
   );
+
   const current = await store.get(record.id);
-  if (!current) throw admissionUnavailable();
+
+  if (!current) {
+    throw admissionUnavailable();
+  }
+
   assertWorkspaceOwner(current, input);
+
   return current;
 }
