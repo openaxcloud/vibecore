@@ -13,6 +13,8 @@ const copy = {
     pathNotRegularFile: 'The path does not point to a regular file.',
     unsupportedWebSocket: 'This WebSocket implementation is not supported.',
     fileNotFound: 'File not found.',
+    snapshotArchiveUnavailable:
+      'Runtime snapshot archives are unavailable. Use project snapshots for saved project files.',
     fileAlreadyExists: 'A file with this name already exists.',
     pathNotDirectory: 'The path does not point to a directory.',
     workspaceDiskFull: 'The workspace disk is full. Free some space and try again.',
@@ -44,6 +46,8 @@ const copy = {
     pathNotRegularFile: 'Le chemin ne pointe pas vers un fichier standard.',
     unsupportedWebSocket: 'Cette implémentation WebSocket n’est pas prise en charge.',
     fileNotFound: 'Fichier introuvable.',
+    snapshotArchiveUnavailable:
+      'Les archives d’instantanés de l’espace d’exécution sont indisponibles. Utilisez les instantanés du projet pour les fichiers enregistrés.',
     fileAlreadyExists: 'Un fichier portant ce nom existe déjà.',
     pathNotDirectory: 'Le chemin ne pointe pas vers un dossier.',
     workspaceDiskFull: 'Le disque de l’espace de travail est plein. Libérez de l’espace, puis réessayez.',

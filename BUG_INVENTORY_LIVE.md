@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-430 entrées.
+432 entrées.
 
 ## Sans section
 
@@ -513,6 +513,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-WORKSPACE-MANAGER-TIMESTAMP-001](docs/bugs/BUG-WORKSPACE-MANAGER-TIMESTAMP-001.md) — Le stockage Prisma du workspace-manager retire `updatedAt` de sa réponse, — 📤 Dispatché : ☑ Reprise du 18 octobre 2026, après vérification de #708. Sa garde supposait · 💻 Codé : ☐ Le correctif d'horodatage seul reste interdit de livraison. Une correction · ✅ Testé live : ☐ Aucun parcours live ni pod réel vérifié. Le proxy refuse l'accès aux domaines
 - [BUG-WORKSPACE-AGENT-READY-001](docs/bugs/BUG-WORKSPACE-AGENT-READY-001.md) — `WorkspaceManager.waitForAgentReachable` tente la santé HTTP de l'agent pendant — 📤 Dispatché : ☑ Relevé pendant la contre-revue du protocole d'admission du 18 octobre. · 💻 Codé : ☐ Non corrigé. Un simple rejet dans le chemin legacy ferait passer la ligne · ✅ Testé live : ☐ Accès HTTP/cluster indisponible dans cet environnement. Les tests d'admission
 - [BUG-PUBLIC-TELEMETRY-INVENTED-001](docs/bugs/BUG-PUBLIC-TELEMETRY-INVENTED-001.md) — P1 — Sur la base `1d2755086f5d05d41c1d12739dcfd230a1a99044`, les loaders publics rendent des services opérationnels, 99,99 % de disponibilité, latences, compteu — 📤 Dispatché : ☑ — 18/10/2026, correction isolée demandée par le parent. · 💻 Codé : ☐ — travail local ; ni fusion ni livraison. · ✅ Testé live : ☐ — aucune preuve de production ; accès production non utilisé.
+
+## Reprise commerciale du 2026-10-18 — preuves de sauvegarde et restauration
+
+- [BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001](docs/bugs/BUG-RUNTIME-SNAPSHOT-FALSE-SUCCESS-001.md) — La restauration d’un instantané runtime par identifiant annonçait un succès sans restaurer de fichier. — 📤 Dispatché : 2026-10-18 — correctif borné demandé après audit en lecture seule, dans `codex/snapshot-restore-contract-20261 · 💻 Codé : Candidat local rebasé sur `main` `b827b12255d423ffb96143c39c1d2a3917ffc5e2` après fusion de #735 et #736 ; ce · ✅ Testé live : Non. Aucun appel cloud, aucun paiement, aucune donnée client et aucune restauration en production. Le contrôle
+- [BUG-SNAPSHOT-AGENT-ENCODING-001](docs/bugs/BUG-SNAPSHOT-AGENT-ENCODING-001.md) — Une restauration de projet corrompait les fichiers binaires du workspace actif. — 📤 Dispatché : 2026-10-18 — tranche supplémentaire autorisée sur `codex/snapshot-restore-contract-20261018`, après le commit · 💻 Codé : Candidat local rebasé sur `main` `b827b12255d423ffb96143c39c1d2a3917ffc5e2`, non fusionné et non déployé. Les · ✅ Testé live : Non en production. Vérification locale sur trois vrais serveurs HTTP : API, gestionnaire de jetons et agent, a
 
 ## Résidus non tabulaires — reportés mot pour mot
 

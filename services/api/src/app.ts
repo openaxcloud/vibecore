@@ -16506,7 +16506,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const syncRestoredFilesToWorkspace = async (
     workspaceId: string,
-    restoredFiles: ReadonlyArray<{ path: string; content: string }>,
+    restoredFiles: ReadonlyArray<Pick<ProjectFile, 'path' | 'content' | 'encoding'>>,
   ): Promise<void> => {
     try {
       let livePaths: string[] = [];
@@ -16528,7 +16528,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       for (const file of plan.writes) {
         await agentRequest(workspaceId, '/files/write', {
           method: 'POST',
-          body: JSON.stringify({ path: file.path, content: file.content }),
+          body: JSON.stringify({ path: file.path, content: file.content, encoding: file.encoding }),
         }).catch(() => undefined);
       }
 
@@ -17974,6 +17974,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   };
 
+  const rejectRuntimeSnapshot = (): never => {
+    /*
+     * The agent's legacy route returns only a file inventory, not a stored
+     * archive. Refuse at the API boundary as well so mixed agent rollouts cannot
+     * report a successful creation or ID restore without any recoverable bytes.
+     */
+    const message = appPublicEnglish('RUNTIME_SNAPSHOT_ARCHIVE_UNAVAILABLE');
+
+    throw Object.assign(new Error(message), {
+      statusCode: 503,
+      code: 'SNAPSHOT_ARCHIVE_UNAVAILABLE',
+      publicMessage: message,
+    });
+  };
+
   const executeAiTool = async (
     request: any,
     project: ProjectRecord,
@@ -18039,6 +18054,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * deploy_project — did not.
      */
     await requireOrganizationNotSuspended(store, project.organizationId);
+
+    if (toolName === 'create_snapshot' || toolName === 'restore_snapshot') {
+      rejectRuntimeSnapshot();
+    }
+
     await ensureQuota(request, project.organizationId, 'ai.toolCalls');
 
     const path = input.path ? normalizeAiPath(input.path) : undefined;
@@ -18047,7 +18067,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let snapshotId: string | undefined;
     let output: unknown;
 
-    if (['delete_file', 'rename_file', 'apply_patch', 'restore_snapshot'].includes(toolName)) {
+    if (['delete_file', 'rename_file', 'apply_patch'].includes(toolName)) {
       snapshotId = (await createBeforeAiSnapshot(request, project, `Before AI ${toolName}`, snapshotAssociation)).id;
     }
 
@@ -18150,13 +18170,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       };
     } else if (toolName === 'list_ports') {
       output = await agentRequest(workspaceId, '/ports');
-    } else if (toolName === 'create_snapshot') {
-      output = await agentRequest(workspaceId, '/snapshots/create', { method: 'POST' });
-    } else if (toolName === 'restore_snapshot') {
-      output = await agentRequest(workspaceId, '/snapshots/restore', {
-        method: 'POST',
-        body: JSON.stringify({ snapshotId: input.snapshotId }),
-      });
     } else if (toolName === 'commit_to_git') {
       const gitWorkspaceId = await resolveGitWorkspaceId(store, project.id, input.workspaceId);
       output = await gitProvider.commit({
@@ -19802,35 +19815,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.all('/api/runtime/workspaces/:workspaceId/preview/:port/proxy/*', handleRuntimePreviewProxy);
   app.post('/api/runtime/workspaces/:workspaceId/snapshots', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-
-    const snapshot = await agentRequest<{
-      id: string;
-      createdAt: string;
-      files: Array<{ path: string; sha256?: string; size?: number }>;
-    }>(authorized.workspaceId, '/snapshots/create', { method: 'POST' });
-
-    return {
-      id: snapshot.id,
-      workspaceId: authorized.workspaceId,
-      createdAt: snapshot.createdAt,
-      files: snapshot.files.map((file) => ({
-        path: file.path,
-        name: file.path.split('/').pop() ?? file.path,
-        type: 'file',
-        size: file.size,
-      })),
-    };
+    await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    rejectRuntimeSnapshot();
   });
-  app.post('/api/runtime/workspaces/:workspaceId/snapshots/:snapshotId/restore', async (request, reply) => {
+  app.post('/api/runtime/workspaces/:workspaceId/snapshots/:snapshotId/restore', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
-    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentRequest(authorized.workspaceId, '/snapshots/restore', {
-      method: 'POST',
-      body: JSON.stringify({ snapshotId: (request.params as { snapshotId: string }).snapshotId }),
-    });
-
-    return reply.code(204).send();
+    await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    rejectRuntimeSnapshot();
   });
   app.get('/api/runtime/workspaces/:workspaceId/export', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
