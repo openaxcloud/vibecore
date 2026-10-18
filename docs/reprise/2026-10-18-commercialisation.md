@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 21:48 UTC
+## Dernier état vérifié — 22:07 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -70,15 +70,47 @@ de connexion n'est incluse. Ceci prouve un mécanisme possible, pas la cause
 ni une lenteur constatée en CI. Les processus locaux possédés sont arrêtés ;
 quatre zombies réadoptés par PID1 ne sont pas des serveurs actifs.
 
-Le correctif de restauration [#737](https://github.com/openaxcloud/vibecore/pull/737), tête `80c38626a`, a été **fusionné à 21:36:26 UTC** dans `c4211323345cc8e0688a191337a04af9e3b2fab9`, après 24 contrôles terminés (22 succès, deux sauts). La CI de PR passe : 9 714 tests racine, 2 428 API, 152 manager, 121 agent ; E2E : 453 rapportés, zéro échec persistant, une instabilité, six exemptions, 73/73 fichiers. La CI, les E2E et la livraison du nouveau commit commencent ; aucun déploiement de #737 n’est encore revendiqué. Il refuse
+Le correctif de restauration [#737](https://github.com/openaxcloud/vibecore/pull/737), tête `80c38626a`, a été **fusionné à 21:36:26 UTC** dans `c4211323345cc8e0688a191337a04af9e3b2fab9`, après 24 contrôles terminés (22 succès, deux sauts). La CI de PR passe : 9 714 tests racine, 2 428 API, 152 manager, 121 agent ; E2E : 453 rapportés, zéro échec persistant, une instabilité, six exemptions, 73/73 fichiers. La CI du commit fusionné réussit, mais son E2E échoue et sa livraison est refusée avant build (détail ci-dessous). Il refuse
 une création/restauration d'instantané sans archive au lieu d'annoncer un
 succès sans fichiers restaurés. Ses validations après rebase passent : API 27/27, agent 121/121,
 index 6/6, typecheck API complet et aucun diagnostic lint ajouté. Il ne fournit pas une sauvegarde durable : la restauration DB et
 la convergence du Pod restent à établir ; des défauts distincts de contrat
 ont été relevés sur ces chemins. Aucune restauration cloud n'a été exécutée.
-Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Le second des [deux candidats validés](2026-10-18-candidats-valides.md), qui corrige les collisions de ports CI, reste hors de main et sans PR. La correction des quotas annuels est en [PR #738](https://github.com/openaxcloud/vibecore/pull/738), tête initiale `c33c913b5` : 68/68 tests API, 16/16 contrôles d’index, typecheck/build API réussis, aucun nouveau diagnostic lint. Les contrôles financiers restent identiques. Aux tests Fastify `inject` sur store mémoire s’ajoute une [contre-épreuve Prisma/PostgreSQL réelle et locale](mesures/2026-10-18-annual-quota-postgres-local.json) sur `bee26fd2` : 100 migrations dans une base temporaire dédiée, usage précédent exclu (0, autorisé 200), plafond courant atteint (1 000, refus 429), dates annuelles/PAYG/plafond personnel préservés. L’ancienne borne annuelle reproduit le refus via l’agrégation PG et `assertQuota`, sans réexécuter l’ancien handler. Webhook synthétique signé, zéro appel Stripe/cloud ; base supprimée et absence vérifiée. [Preuves et limites](mesures/2026-10-18-pr738-result.json). Sa première CI passe : 2 453 tests API ; E2E 453 rapportés, zéro échec et zéro instabilité. Ces résultats portent sur `c33c913b5`. Le rebase sur #737 a produit `bee26fd28` : correctif billing identique, modifications #737 conservées, index régénéré officiellement à 433 entrées, 68 tests API et six contrôles d’index réussis, gitleaks sans fuite. Les CI du nouveau SHA ont démarré et restent distinctes des résultats précédents. #738 reste ouverte et non livrée ; #737 est fusionnée mais non livrée.
+Il conserve aussi l’encodage binaire jusqu’à un vrai agent HTTP : la contre-épreuve sur main écrit douze caractères base64 au lieu des sept octets attendus ; le correctif restaure les octets exacts. Le second des [deux candidats validés](2026-10-18-candidats-valides.md), qui corrige les collisions de ports CI, reste hors de main et sans PR. La correction des quotas annuels est en [PR #738](https://github.com/openaxcloud/vibecore/pull/738), tête initiale `c33c913b5` : 68/68 tests API, 16/16 contrôles d’index, typecheck/build API réussis, aucun nouveau diagnostic lint. Les contrôles financiers restent identiques. Aux tests Fastify `inject` sur store mémoire s’ajoute une [contre-épreuve Prisma/PostgreSQL réelle et locale](mesures/2026-10-18-annual-quota-postgres-local.json) sur `bee26fd2` : 100 migrations dans une base temporaire dédiée, usage précédent exclu (0, autorisé 200), plafond courant atteint (1 000, refus 429), dates annuelles/PAYG/plafond personnel préservés. L’ancienne borne annuelle reproduit le refus via l’agrégation PG et `assertQuota`, sans réexécuter l’ancien handler. Webhook synthétique signé, zéro appel Stripe/cloud ; base supprimée et absence vérifiée. [Preuves et limites](mesures/2026-10-18-pr738-result.json). Sa première CI passe : 2 453 tests API ; E2E 453 rapportés, zéro échec et zéro instabilité. Ces résultats portent sur `c33c913b5`. Le rebase sur #737 a produit `bee26fd28` : correctif billing identique, modifications #737 conservées, index régénéré officiellement à 433 entrées, 68 tests API et six contrôles d’index réussis, gitleaks sans fuite. Les résultats du nouveau SHA, détaillés ci-dessous, restent distincts des résultats précédents : CI réussie, E2E rouge. #738 reste ouverte et non livrée ; #737 est fusionnée mais non livrée.
 La [relecture de la restauration sur main actuel](2026-10-18-restore-current-main.md)
 confirme les défauts distincts avec des références au commit `c6439da`.
+
+La CI de main après #737 est verte à 21:54:27 UTC, mais son E2E échoue à
+21:56:47 UTC : 453 rapportés, un échec persistant de palette, zéro
+instabilité, six exemptions, 73/73 fichiers. La livraison est **refusée à
+21:57:16 UTC avant build et rollout**. [Preuve distincte du résultat de PR](mesures/2026-10-18-main737-failure.json).
+Les tests DB passent cette fois au premier essai : cela ne résout pas leur
+cause antérieure. La restauration binaire est fusionnée mais non livrée.
+
+Sur la tête exacte `bee26fd28` de #738, la CI est verte à 22:02:07 UTC
+(9 714 racine, 2 463 API, 152 manager, 121 agent ; builds réussis), mais le
+verdict E2E à 22:04:57 UTC est **rouge** : 453 rapportés, un échec DB
+persistant sur les trois tentatives, quatre instabilités, six exemptions,
+73/73 fichiers. **#738 reste ouverte, non fusionnée et non livrée.** Aucun
+relancement identique ni contournement n’est demandé.
+
+Une [contre-épreuve locale réelle de la palette](mesures/2026-10-18-palette-handoff-local.json)
+reproduit une perte d’interaction au remplacement de la coque provisoire
+par le vrai Chat : ouverte avant livraison d’une réponse `ide-state` 200
+retenue, la palette disparaît quand les anciens nœuds sont démontés.
+[Capture avant](captures/2026-10-18-palette-before-handoff.png) et
+[capture après](captures/2026-10-18-palette-after-handoff.png) inspectées.
+Le build local existant utilise huit sources pertinentes identiques à
+`c421` ; le retard est imposé et **l’attribution au run CI reste inconnue**.
+Une correction et une régression déterministe sont en préparation sur une
+branche isolée, sans nouvelle PR ni assouplissement des contrôles.
+
+Le [diagnostic DB instrumenté](https://github.com/openaxcloud/vibecore/actions/runs/39170180476)
+a démarré à 21:58:37 UTC sur `a78c7766`, avec le workflow existant et le
+seul fichier `ide-mobile-chrome.spec.ts`. Ce fichier est exécuté séparément
+par les quatre jobs : leurs résultats ne constituent pas quatre ensembles
+de cas uniques. Le résultat est encore attendu ; ce lancement ajoute des
+observations réseau/DOM et n’est pas une relance identique du rouge de main.
 
 Les [quatre alertes critiques](2026-10-18-security-triage.md) sont qualifiées
 partiellement : deux résultats Capacitor natif et deux advisories Tinypool
@@ -105,11 +137,11 @@ Aucun contrôle de livraison n’est contourné.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 21:48 UTC
+## Les cinq conditions de lancement — état vérifié à 22:07 UTC
 
 Main est `c4211323345cc8e0688a191337a04af9e3b2fab9` après #737.
 La dernière livraison terminée est #735, `c6439da55` ; #736 a été
-refusée par sa barrière, et #737 attend les contrôles de son commit exact. Les contrôles locaux et CI ci-dessous
+refusée par sa barrière ; celle de #737 est également refusée après son échec E2E. Les contrôles locaux et CI ci-dessous
 ne remplacent pas un parcours réel sur la version servie.
 
 | Condition indispensable | Code, tests et intégration établis | Preuve de clôture encore nécessaire |

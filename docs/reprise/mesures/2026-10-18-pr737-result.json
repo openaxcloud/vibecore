@@ -374,5 +374,23 @@
     "ci": 39168587743,
     "e2e": 39168587722,
     "deployment": 39168587721
+  },
+  "mainOutcome": {
+    "ci": "success",
+    "ciFinishedAtUtc": "2026-10-18T21:54:27Z",
+    "rootPassed": 9714,
+    "apiPassed": 2428,
+    "managerPassed": 152,
+    "agentPassed": 121,
+    "e2e": "failure",
+    "reported": 453,
+    "failing": 1,
+    "flaky": 0,
+    "unchangedWaivers": 6,
+    "specsSeen": 73,
+    "failure": "dashboard.spec.ts:1507 palette wrapper/menu disappeared or test deadline reached",
+    "deployment": "refused before build/rollout",
+    "deploymentRefusedAtUtc": "2026-10-18T21:57:16Z",
+    "details": "2026-10-18-main737-failure.json"
   }
 }

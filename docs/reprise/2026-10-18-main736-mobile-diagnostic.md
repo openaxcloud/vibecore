@@ -69,3 +69,21 @@ corps partiel, fin et annulation, avec un DOM de fixture : cette preuve porte
 sur le helper isolé. Gitleaks staged et arbre exporté propres, règles
 existantes inchangées. Aucune PR supplémentaire ouverte ; #738 et #739
 occupent les deux créneaux. Cause du défaut produit toujours inconnue.
+
+## Éléments suivants — 22:07 UTC
+
+L’E2E de main après #737 échoue sur une autre surface (palette d’ajout
+d’onglet) ; ses deux cas DB passent au premier essai. La tête `bee26fd28`
+de #738 échoue à nouveau sur le titre DB absent lors des trois tentatives,
+à 22:04:57 UTC. Aucun de ces résultats n’établit la cause DB.
+
+Le workflow instrumenté [39170180476](https://github.com/openaxcloud/vibecore/actions/runs/39170180476),
+sur la tête exacte `a78c7766`, exécute depuis 21:58:37 UTC le fichier mobile
+sur chacun des quatre jobs existants. Les observations supplémentaires
+permettront de distinguer conteneur absent, chargement actif, requête
+pendante/annulée et réponse reçue. Résultat encore attendu.
+
+Un défaut distinct de perte de palette au remplacement de la coque a été
+[reproduit localement et capturé](mesures/2026-10-18-palette-handoff-local.json).
+L’attribution à l’échec CI de palette reste inconnue ; ce mécanisme n’est
+pas présenté comme la cause DB.

@@ -1,0 +1,69 @@
+{
+  "checkedAtUtc": "2026-10-18T22:01:26.925393+00:00",
+  "head": "c4211323345cc8e0688a191337a04af9e3b2fab9",
+  "e2e": {
+    "run": {
+      "id": 39168587722,
+      "head_sha": "c4211323345cc8e0688a191337a04af9e3b2fab9",
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-10-18T21:56:50Z",
+      "run_attempt": 1
+    },
+    "verdictJob": 117800989250,
+    "summaryAtUtc": "2026-10-18T21:56:47Z",
+    "reported": 453,
+    "failing": 1,
+    "flaky": 0,
+    "unchangedWaivers": 6,
+    "specsExpected": 73,
+    "specsSeen": 73,
+    "shard1Job": 117796783255,
+    "shard1Passed": 139,
+    "shard1Skipped": 6,
+    "shard1DurationMinutes": 15.3,
+    "failure": "dashboard.spec.ts:1507 IDE applies section12 UI detail styles",
+    "attempts": [
+      {
+        "attempt": 0,
+        "assertion": "palette .bolt-project-tool-menu:last missing",
+        "timeoutMs": 15000,
+        "helperLine": 182
+      },
+      {
+        "attempt": 1,
+        "assertion": "toolMenu.evaluate overall test timeout",
+        "timeoutMs": 30000,
+        "specLine": 1534
+      },
+      {
+        "attempt": 2,
+        "assertion": "palette missing",
+        "timeoutMs": 15000,
+        "helperLine": 179
+      }
+    ],
+    "databaseTestsFirstAttemptPass": {
+      "tablesSeconds": 18.8,
+      "myDataSeconds": 19.2
+    },
+    "rootCauseEstablished": false,
+    "screenshotInspected": false
+  },
+  "deployment": {
+    "run": {
+      "id": 39168587721,
+      "head_sha": "c4211323345cc8e0688a191337a04af9e3b2fab9",
+      "status": "completed",
+      "conclusion": "failure",
+      "updated_at": "2026-10-18T21:57:20Z",
+      "run_attempt": 1
+    },
+    "gateJob": 117796776870,
+    "refusedAtUtc": "2026-10-18T21:57:16Z",
+    "buildAndRolloutSkipped": true,
+    "lastSuccessfulSha": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a"
+  },
+  "noIdenticalRerunRequested": true,
+  "independentMobileDiagnosticsRun": 39170180476
+}

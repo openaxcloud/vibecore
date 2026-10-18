@@ -1,0 +1,137 @@
+{
+  "scope": "local-QA, actual unchanged ide-state response; no CI attribution",
+  "events": [
+    {
+      "event": "actual-ide-state-response-ready",
+      "elapsedMs": 6417,
+      "status": 200
+    },
+    {
+      "event": "release-real-response",
+      "elapsedMs": 10012
+    },
+    {
+      "event": "actual-ide-state-response-delivered",
+      "elapsedMs": 10027
+    }
+  ],
+  "checks": {
+    "shellActuallyReplaced": true,
+    "paletteLost": true,
+    "realComponentReopensPalette": true
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "ownProjectDeleteStatus": 200
+  },
+  "before": {
+    "label": "opened-in-shell",
+    "oldTriggerConnected": true,
+    "oldLeafConnected": true,
+    "oldPaletteConnected": true,
+    "currentTriggerExpanded": true,
+    "paletteCount": 1,
+    "innerMenuCount": 1,
+    "theme": "dark"
+  },
+  "after": {
+    "label": "after-real-component-mount",
+    "oldTriggerConnected": false,
+    "oldLeafConnected": false,
+    "oldPaletteConnected": false,
+    "currentTriggerExpanded": false,
+    "paletteCount": 0,
+    "innerMenuCount": 0,
+    "theme": "dark"
+  },
+  "reopened": {
+    "label": "reopened-after-handoff",
+    "oldTriggerConnected": false,
+    "oldLeafConnected": false,
+    "oldPaletteConnected": false,
+    "currentTriggerExpanded": true,
+    "paletteCount": 1,
+    "innerMenuCount": 1,
+    "theme": "dark"
+  },
+  "sourceFindings": [
+    {
+      "file": "app/components/chat/BaseChat.tsx",
+      "lines": [
+        13600,
+        13665,
+        13674,
+        13839,
+        13917,
+        14237,
+        14447
+      ],
+      "finding": "Local open state controls aria-expanded and both wrapper/inner together. Closure via explicit UI/keyboard/outside pointer or unmount; no lazy child or theme-close effect."
+    },
+    {
+      "file": "app/routes/projects.$projectId.ide.tsx",
+      "lines": [
+        123,
+        151,
+        158
+      ],
+      "finding": "Interactive PendingComposerShell fallback replaced by lazy Chat."
+    },
+    {
+      "file": "app/components/chat/Chat.client.tsx",
+      "lines": [
+        197,
+        204,
+        217,
+        2434
+      ],
+      "finding": "History readiness replaces PendingComposerShell with ChatImpl and a new BaseChat subtree."
+    },
+    {
+      "file": "app/components/chat/ide-layout-handoff.ts",
+      "lines": [
+        33,
+        35
+      ],
+      "finding": "Handoff holds pane layout, active pane and floating panes, not palette open/query."
+    },
+    {
+      "file": "tests/e2e/dashboard.spec.ts",
+      "lines": [
+        145,
+        159,
+        178,
+        181,
+        1507,
+        1530,
+        1534
+      ],
+      "finding": "Sequential observations can span replacement. Test has default30s including auth/navigation/reload; helper toPass45s does not establish stable instance."
+    }
+  ],
+  "limits": [
+    "One deterministic local experiment using an unchanged real200response, not an exact CI replay.",
+    "Existing web build on1d2755086, eight relevant source files verified identical to targetc421.",
+    "CI artifact for run39168587722 not read; causal attribution remains unknown.",
+    "No source edits, branch changes, assertion/timeout/waiver changes, push, PR, or production access."
+  ],
+  "artifacts": {
+    "cleanup-verification.json": {
+      "path": "cleanup-verification.json",
+      "sha256": "9cb708ffe1dd8474070fe9e9b1e06bd3249397be2fadba30d8716b665f0098a6"
+    },
+    "palette-after-handoff.png": {
+      "path": "palette-after-handoff.png",
+      "sha256": "adffca414cd62771263d4bddc5ddef5f8b9d1e3f18d1c03b1ec98027d6d9279a"
+    },
+    "palette-before-handoff.png": {
+      "path": "palette-before-handoff.png",
+      "sha256": "12d9372cd03d404f32a2b4b4084c8e8af10a314ced3998c4c4963e9bd3a354b4"
+    },
+    "source-comparison.json": {
+      "path": "source-comparison.json",
+      "sha256": "35bea4972955140d9337c5025d16ef1af6242f076d88e3196d3b4c851a57f0fa"
+    }
+  },
+  "capturesInspectedBy": "agent and root"
+}

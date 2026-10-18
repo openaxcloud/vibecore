@@ -110,5 +110,35 @@
     "oldHandlerReexecuted": false,
     "cleanupConfirmed": true,
     "actualStripeOrProductionPaymentProven": false
+  },
+  "currentCi": {
+    "head": "bee26fd28dad0dfe59bed093684ecd0c0d295440",
+    "run": 39168776656,
+    "job": 117797273963,
+    "status": "success",
+    "finishedAtUtc": "2026-10-18T22:02:07Z",
+    "rootPassed": 9714,
+    "rootSkipped": 4,
+    "apiPassed": 2463,
+    "apiSkipped": 23,
+    "managerPassed": 152,
+    "agentPassed": 121,
+    "builds": "success"
+  },
+  "currentE2e": {
+    "head": "bee26fd28dad0dfe59bed093684ecd0c0d295440",
+    "run": 39168776661,
+    "verdictJob": 117802768428,
+    "summaryAtUtc": "2026-10-18T22:04:57Z",
+    "reported": 453,
+    "failing": 1,
+    "flaky": 4,
+    "unchangedWaivers": 6,
+    "specsExpected": 73,
+    "specsSeen": 73,
+    "runAttempt": 1,
+    "failure": "ide-mobile-chrome.spec.ts:3377 All databases heading absent at3395 on all3attempts",
+    "merged": false,
+    "rerunRequested": false
   }
 }
