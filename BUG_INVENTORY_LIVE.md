@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-438 entrées.
+439 entrées.
 
 ## Sans section
 
@@ -533,6 +533,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Reprise commerciale du 2026-10-19 — chargement Database
 
 - [BUG-DB-INITIAL-LOADING-CONTEXT-001](docs/bugs/BUG-DB-INITIAL-LOADING-CONTEXT-001.md) — P2 — le contenu Database perd son titre pendant sa première requête. — 📤 Dispatché : Correction ciblée autorisée ; contre-épreuve réelle locale et revue indépendante. · 💻 Codé : Candidat sur `codex/database-loading-state-20261019`, base `bb70c7b68`. · ✅ Testé live : ❌ Aucune preuve sur HTTPS public ou Safari réel. Le gate main refuse la livraison.
+
+## 2026-10-18 — Vérification avant commercialisation
+
+- [BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001](docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md) — par mois — 📤 Dispatché : ☑ — 18/10/2026, correctif borné autorisé dans un worktree distinct. · 💻 Codé : ☐ — Candidat local ; aucune fusion ni livraison attestée par cette fiche. · ✅ Testé live : ☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Pas de CI, fusio
 
 ## Résidus non tabulaires — reportés mot pour mot
 

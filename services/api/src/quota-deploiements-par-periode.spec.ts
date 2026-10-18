@@ -55,7 +55,7 @@ describe('quota de déploiements — comptage par période', () => {
     const app = lire('src/app.ts');
 
     expect(app, 'la borne doit être résolue').toContain(
-      'const periodStart = await resolveUsagePeriodStart(organizationId);',
+      'const periodStart = await resolveMonthlyQuotaPeriodStart(organizationId);',
     );
     expect(app, 'et TRANSMISE au comptage').toContain('store.countDeployments(organizationId, periodStart)');
   });

@@ -504,6 +504,7 @@ import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from
 import { redactUrlCredentials } from './log-redaction.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
+import { monthlyUsagePeriodStart } from './usage-period.js';
 import { WorkspaceAdmissionClient, type WorkspaceAdmission } from './workspace-admission.js';
 import {
   recordPreviewBeacon,
@@ -17605,7 +17606,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const TERMINAL_CONCURRENCY_WINDOW_MS = Number(process.env.TERMINAL_CONCURRENCY_WINDOW_MS ?? 6 * 60 * 60 * 1000);
 
   /*
-   * Start of the current usage period for metered (per-month) allowances. Uses
+   * Historical billing window for spend budgets, alerts and financial views. Uses
    * the Stripe subscription's currentPeriodStart when present, otherwise resets
    * at the start of the calendar month (UTC) for free/no-subscription orgs.
    */
@@ -17630,6 +17631,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const now = new Date();
 
     return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  };
+
+  /*
+   * Only monthly quota allowances subdivide a long billing period. Keep the
+   * historical resolver above for PAYG, credits and financial spend limits.
+   */
+  const resolveMonthlyQuotaPeriodStart = async (organizationId: string): Promise<Date> => {
+    const subscription = await store.getSubscription(organizationId).catch(() => undefined);
+
+    return monthlyUsagePeriodStart(subscription);
   };
 
   const computeUsageForQuota = async (organizationId: string, key: QuotaKey) => {
@@ -17658,7 +17669,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * 3 451 instantanés — bloquées pour toujours, sans qu'aucune période ne
        * rouvre quoi que ce soit.
        */
-      const periodStart = await resolveUsagePeriodStart(organizationId);
+      const periodStart = await resolveMonthlyQuotaPeriodStart(organizationId);
 
       return store.countSnapshots(organizationId, periodStart);
     }
@@ -17670,7 +17681,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * for all time monotonically climbed and permanently locked out deploys once
        * the lifetime total hit the plan limit. Scope to the current usage period.
        */
-      const periodStart = await resolveUsagePeriodStart(organizationId);
+      const periodStart = await resolveMonthlyQuotaPeriodStart(organizationId);
       return store.countDeployments(organizationId, periodStart);
     }
 
@@ -17679,8 +17690,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * rows accumulate forever and sumUsage summed them for all time — so a free
      * user was permanently locked out of AI chat after 50 lifetime messages /
      * 100k lifetime tokens (and of public previews after the lifetime cap),
-     * never refilling next period. Scope the sum to the active billing period
-     * (subscription period start, or the calendar month for free orgs).
+     * never refilling next period. Scope the sum to the monthly quota period
+     * (monthly anniversary, or the calendar month for free orgs).
      */
     if (
       key === 'ai.messages' ||
@@ -17689,7 +17700,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       key === 'ai.toolCalls' ||
       key === 'previews.public'
     ) {
-      const periodStart = await resolveUsagePeriodStart(organizationId);
+      const periodStart = await resolveMonthlyQuotaPeriodStart(organizationId);
       return store.sumUsage(organizationId, key, periodStart);
     }
 
