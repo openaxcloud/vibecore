@@ -1,0 +1,29 @@
+{
+  "sourceSha": "615b3fcfb59c0c42cd211536ed2b2675fe72fa5f",
+  "runUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39140979391",
+  "jobId": 117715173347,
+  "source": "Decoded GitHub Actions job log via connector",
+  "extractedSummaryLines": [
+    "2026-10-18T15:34:05.3862745Z  Test Files  1 passed (1)",
+    "2026-10-18T15:34:05.3863846Z       Tests  20 passed (20)",
+    "2026-10-18T15:44:37.0232534Z  Test Files  1267 passed | 2 skipped (1269)",
+    "2026-10-18T15:44:37.0270242Z       Tests  9651 passed | 4 skipped (9655)",
+    "2026-10-18T15:46:33.6908339Z  ✓ src/tests/workspace-provision-resources.spec.ts (9 tests) 12535ms",
+    "2026-10-18T15:49:32.9270292Z  Test Files  287 passed | 4 skipped (291)",
+    "2026-10-18T15:49:32.9281454Z       Tests  2402 passed | 23 skipped (2425)",
+    "2026-10-18T15:49:35.5069987Z  Test Files  7 passed (7)",
+    "2026-10-18T15:49:35.5070994Z       Tests  100 passed (100)",
+    "2026-10-18T15:49:52.7368346Z  Test Files  10 passed (10)",
+    "2026-10-18T15:49:52.7369652Z       Tests  114 passed (114)",
+    "2026-10-18T15:50:00.4704296Z  Test Files  18 passed (18)",
+    "2026-10-18T15:50:00.4705550Z       Tests  129 passed (129)",
+    "2026-10-18T15:50:13.5546629Z  Test Files  9 passed (9)",
+    "2026-10-18T15:50:13.5547991Z       Tests  55 passed (55)",
+    "2026-10-18T15:50:15.6394757Z  Test Files  5 passed (5)",
+    "2026-10-18T15:50:15.6395843Z       Tests  24 passed (24)",
+    "2026-10-18T15:50:19.6144562Z  Test Files  11 passed (11)",
+    "2026-10-18T15:50:19.6145817Z       Tests  124 passed (124)",
+    "2026-10-18T15:50:26.2888835Z  Test Files  5 passed | 1 skipped (6)",
+    "2026-10-18T15:50:26.2890308Z       Tests  23 passed | 2 skipped (25)"
+  ]
+}

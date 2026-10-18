@@ -90,6 +90,34 @@ app.ts conserve les écarts de format préexistants hors du correctif.
 Les [mesures de validation](mesures/2026-10-18-resources-validation.json)
 conservent les commandes, les versions et les empreintes des sources testées.
 
+Contre-revue indépendante transmise par le parent à 15:40 UTC : aucun défaut
+bloquant introduit identifié. Limites conservées : aucun nouveau cas direct
+sur le redémarrage administrateur ; état RUNNING couvert uniquement pour
+la panne de facturation ; ni PVC réel ni concurrence de pods exercés. Sur
+le chemin de lecture, la panne de facturation reste journalisée en
+arrière-plan et la réponse 425 existante est conservée. La protection contre
+un démarrage gratuit implicite ne constitue donc pas une nouvelle preuve
+de qualité de restitution de cette erreur à l’utilisateur.
+
+## Dépendances vulnérables : portée à distinguer
+
+Le journal de CI de #733 rapporte 242 alertes `pnpm audit` : 28 basses,
+118 modérées, 92 élevées et 4 critiques. Cette étape est consultative et
+inclut les dépendances de développement ; ce décompte ne mesure pas les
+failles exploitables du service déployé. Le [tri initial](mesures/2026-10-18-dependency-audit-triage.json)
+conserve les références et les limites de preuve.
+
+Deux alertes critiques concernent [Capacitor natif iOS/Android](https://github.com/advisories/GHSA-rvm3-566m-v7fv),
+les deux autres [Tinypool via Vitest](https://github.com/advisories/GHSA-5gmw-xhrv-c9v3)
+et [ses options d’exécution](https://github.com/advisories/GHSA-85c8-ppgw-ccpr).
+Le Dockerfile des dépendances serveur exclut le mobile ; le manifeste admin
+actuel place Vitest en développement. Les gardes de ces contrats passent
+en CI et `pnpm why -r tinypool --prod --json` ne rapporte aucun chemin de
+production dans l’installation locale. Ces constats ne remplacent pas le
+SBOM des images effectivement servies. Les risques de la chaîne de tests et
+le tri des alertes élevées restent ouverts ; aucun override de dépendance ni
+assouplissement de contrôle n’a été ajouté ici.
+
 ## Dépendances externes et travaux reportables
 
 Pour lever les réserves : accès réseau aux deux domaines, compte QA isolé,
