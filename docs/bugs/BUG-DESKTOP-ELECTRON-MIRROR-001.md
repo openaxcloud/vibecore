@@ -17,10 +17,11 @@ P2 — Les packages Desktop échouent au téléchargement d’Electron 42.0.0 de
 
 ## ✅ Testé live
 
-☐ Aucun package final ni test utilisateur Desktop ou production revendiqué. L’accessibilité des archives depuis les runners et le packaging restent à valider.
+☐ Les builds et uploads Windows/macOS/Linux passent en CI sur `af2badd`, run `39177237725`. Aucun test d’installation utilisateur, release publiée ou production revendiqué ; la fusion et les contrôles du nouveau SHA restent requis.
 
 ## Preuve
 
 - [Échecs, configuration, métadonnées officielles et limites](../reprise/mesures/2026-10-18-desktop-mirror.json). Les trois archives officielles exactes existent, non draft/non prerelease, avec digest SHA256 dans les métadonnées GitHub. Aucun binaire téléchargé localement.
 - Le YAML est parsé et le reste de sa configuration comparé égal. Builds locaux main/preload et smoke test inchangé réussis ; premier smoke refusé faute de ces artefacts, puis exécuté après compilation. Aucun rebuild renderer local ni packaging prétendu.
 - Limite de sécurité conservée : `app-builder-bin5.0.0-alpha.12` passe un checksum vide à son téléchargement Electron. Le retrait du miroir n’ajoute donc pas de vérification cryptographique automatique des ZIP ; il ne désactive aucun contrôle existant.
+- [Résultats CI du packaging et limites](../reprise/mesures/2026-10-18-pr740-ci-test-harness.json).

@@ -167,3 +167,47 @@ tête dont la CI et les E2E sont encore en cours ; aucun résultat terminal
 vert n’est attribué à ces exécutions incomplètes. La nouvelle tête doit
 passer tous les contrôles requis. Le résultat complet de `f2af72cb4` reste
 conservé séparément. Le packaging officiel n’est pas encore prouvé.
+
+## Résultats de `af2badd` et correction des tests — 23:58 UTC
+
+Le retrait du miroir permet maintenant les trois builds Desktop et leurs
+uploads sur Windows, macOS et Linux. Aucune release ni installation utilisateur
+n’est déduite de ce résultat. La tête intermédiaire `133c8ecc0` avait bien
+échoué sur les trois téléchargements HTTP 504 ; sa CI et son E2E ont été
+annulés par la correction de configuration, sans verdict vert revendiqué.
+[Résultats intermédiaires](mesures/2026-10-18-pr740-intermediate-result.json).
+
+L’E2E de `af2badd` termine à 23:56:39 UTC : 454 cas, zéro échec persistant,
+une instabilité iPhone Pro Max et six exemptions inchangées, 74/74 fichiers.
+Les deux cas DB passent dès leur première tentative en 13,7 s et 15,6 s ;
+aucune nouvelle métadonnée d’échec DB n’est produite. Les quatre audits EN/FR
+passent et WebKit compte 17 succès / trois sauts existants.
+
+La CI reste refusée par deux tests, après typage complet réussi. La suite
+Retry ne se charge pas : la configuration Vite racine remplace `node:util`
+par un polyfill navigateur dépourvu de `transferableAbortController`. Le
+rouge est reproduit localement avec cette configuration, sous le même Node
+24 que les essais locaux précédents ; la différence Node 22/24 n’est donc
+pas la cause établie. `createRequire` charge désormais le module Node natif.
+Le corps des tests HTTP/abort/cache reste identique. Le garde de style
+historique exigeait une balise sur une ligne et `loadPanel()` ; il accepte
+les espaces et exige maintenant explicitement `loadPanel({ retry: true })`,
+tout en conservant le variant danger et les exclusions Tailwind.
+
+Les **110 tests distincts de onze fichiers passent avec la configuration
+racine réelle**, zéro saut, en 26,55 s. L’ancienne validation avec une
+configuration minimale n’avait pas détecté le polyfill. Les contre-épreuves
+du garde refusent un mauvais variant et l’absence de `retry: true`.
+[Refus CI, corrections et preuves](mesures/2026-10-18-pr740-ci-test-harness.json).
+Ces changements concernent les tests ; les quatre sources produit web et
+le build navigateur sont inchangés. Les contrôles du nouveau SHA restent requis.
+
+Un essai Chromium mobile du vrai bouton Retry a également réussi sur API et
+PostgreSQL QA réels. La première réponse HTTP 200 est retenue intacte ; le
+bouton relance une deuxième requête, annule la première dans le navigateur,
+puis affiche la vraie base et ses 128 tables. La libération tardive de la
+première réponse ne retire pas le panneau affiché. Les trois captures sont
+inspectées ; projet et liaison DB supprimés HTTP 200, aucun processus actif
+possédé restant. [Mesures et captures](mesures/2026-10-18-panel-retry-browser-local.json).
+Ce délai contrôlé ne mesure ni n’explique la panne CI ; l’annulation navigateur
+ne prouve pas l’arrêt du travail SQL en amont. Aucun accès production n’est acquis.

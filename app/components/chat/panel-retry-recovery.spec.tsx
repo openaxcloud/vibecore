@@ -1,9 +1,9 @@
 /** @vitest-environment jsdom */
 import { readFileSync } from 'node:fs';
 import { createServer, type RequestListener, type Server, type ServerResponse } from 'node:http';
+import { createRequire } from 'node:module';
 import type { Socket } from 'node:net';
 import { resolve } from 'node:path';
-import { transferableAbortController } from 'node:util';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import ts from 'typescript';
@@ -86,7 +86,12 @@ const compiled = ts.transpileModule(
 
 const nativeFetch = globalThis.fetch;
 
-// Node's real HTTP fetch needs its native AbortSignal, not jsdom's other realm.
+/*
+ * Node's HTTP fetch needs its native AbortSignal, not jsdom's other realm.
+ * The root Vite config aliases node:util to a browser polyfill. Load this
+ * test-only primitive through Node's loader to retain the real HTTP contract.
+ */
+const { transferableAbortController } = createRequire(import.meta.url)('node:util') as typeof import('node:util');
 vi.stubGlobal('AbortController', transferableAbortController().constructor);
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 afterAll(() => vi.unstubAllGlobals());

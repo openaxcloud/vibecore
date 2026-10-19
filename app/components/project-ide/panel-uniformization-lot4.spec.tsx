@@ -81,7 +81,7 @@ describe('UNIF lot 4 — point 1 : boutons restants → PanelButton', () => {
 
   it('le Retry de la bannière d’erreur est un PanelButton danger (plus de rouge Tailwind brut)', () => {
     expect(baseChatSource).toMatch(
-      /<PanelButton type="button" variant="danger" size="sm" onClick=\{\(\) => void loadPanel\(\)\}/,
+      /<PanelButton\s+type="button"\s+variant="danger"\s+size="sm"\s+onClick=\{\(\) => void loadPanel\(\{ retry: true \}\)\}/,
     );
     expect(baseChatSource).not.toContain('border-red-500/40');
     expect(baseChatSource).not.toContain('bg-red-500/10');

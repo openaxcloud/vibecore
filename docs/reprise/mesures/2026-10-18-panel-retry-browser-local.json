@@ -1,0 +1,106 @@
+{
+  "head": "af2badddec9b9dac73d028d29c74bf5ecd902e2c",
+  "productionBuildSource": "93e7e3d8eed7318e18f56ceda3bedc6d32679cb9",
+  "productionHashes": {
+    "app/components/chat/BaseChat.tsx": "e44bb692e33798475efec8761f0c4077cfb0611a78a863f5ba9cc413cf590eff",
+    "app/components/chat/IdePaletteState.tsx": "589990979c13064786932f80f762578f4c96772f10e717bdc06bbea8cacdfbf5",
+    "app/lib/ide/panel-request.ts": "02e8ea4b6860bbe152cc948e03e9536ad5ca6ff6bb7a1815c0d5725866605aac",
+    "app/routes/projects.$projectId.ide.tsx": "fa6fa788d9dcfe30a837710eacc45a8ca3b6fbe1983c2e2f5cb7587b19033d0b"
+  },
+  "scope": "One bounded real Chromium390x844/DPR2 + real local API/PostgreSQL QA retry observation; no fabricated responses. First real200 intentionally held, second real200 delivered unchanged.",
+  "startedAtUtc": "2026-10-18T23:41:15.870492+00:00",
+  "finishedAtUtc": "2026-10-18T23:41:50.070534+00:00",
+  "browserDurationMs": 17978,
+  "success": true,
+  "responses": [
+    {
+      "index": 1,
+      "requestedAtMs": 7951,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 8446,
+      "responseBytes": 2921,
+      "envelopeStatus": "ok",
+      "deliveredAtMs": 16571,
+      "unchangedBytesDelivered": true
+    },
+    {
+      "index": 2,
+      "requestedAtMs": 15649,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 15873,
+      "responseBytes": 3178,
+      "envelopeStatus": "ok",
+      "deliveredAtMs": 15876,
+      "unchangedBytesDelivered": true
+    }
+  ],
+  "browserFailures": [
+    {
+      "elapsedMs": 15653,
+      "code": "ERR_ABORTED"
+    }
+  ],
+  "checks": {
+    "databaseSetupConfirmed": true,
+    "requestsBeforeRetry": 1,
+    "requestsAfterRetry": 2,
+    "firstBrowserRequestAborted": true,
+    "realDatabaseCardReady": true,
+    "lateOldResponseDidNotRemoveNewPanel": true,
+    "retryResponseRestoredPanel": true
+  },
+  "tableChecks": {
+    "tableCount": 128,
+    "sampledNamesNonEmpty": true,
+    "sampledNamesDistinct": true,
+    "sampledRowCountsNumeric": true
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "ownDatabaseBindingRemoved": true,
+    "ownDatabaseBindingDeleteStatus": 200,
+    "ownProjectDeleteStatus": 200,
+    "ownProjectRemoved": true,
+    "qaIdentityRetained": true,
+    "qaProjectRetained": false,
+    "activeOwned": 0,
+    "zombies": 3,
+    "ports": {
+      "3301": "closed",
+      "3173": "closed"
+    },
+    "wrapperExitCode": 0
+  },
+  "memory": {
+    "beforeBytes": 4602224640,
+    "peakObservedBytes": 5768069120,
+    "limitBytes": 17179869184
+  },
+  "captures": {
+    "01-retry-visible-during-retained-response": {
+      "path": "../captures/2026-10-18-retry-01-retry-visible-during-retained-response.png",
+      "sha256": "4ace6ea0945d5ff0061365e01ef109af47f2e2b3b954a8cebb2fe2421831137b",
+      "inspected": true
+    },
+    "02-retry-recovered-real-database-list": {
+      "path": "../captures/2026-10-18-retry-02-retry-recovered-real-database-list.png",
+      "sha256": "f1248ed7c50b1a142ec69dfa992410d50a415ef49bfddf1829d3b5eeb79077b2",
+      "inspected": true
+    },
+    "03-real-tables-ready": {
+      "path": "../captures/2026-10-18-retry-03-real-tables-ready.png",
+      "sha256": "126005313e1fd7b7e8cb5acf9c3ed4e20758dac0f1b167cbb35a6fab5bb1b98c",
+      "inspected": true
+    }
+  },
+  "limits": [
+    "This is a controlled local response-delay experiment, not a measurement or attribution of CI latency.",
+    "Browser abort does not prove upstream SQL/server work was cancelled.",
+    "Late first handler fulfillment did not remove the rendered new database card; unit tests separately cover stale response/cache fencing.",
+    "No Safari/public HTTPS/runtime/AI/payment/cloud or customer data proof.",
+    "The disposable QA identity remains in local QA; its project and DATABASE_URL binding were removed.",
+    "Initial wrapper startup failed before services because its output parent directory was missing; mkdir corrected and one browser observation executed."
+  ],
+  "probeScriptSha256": "81d4526440c72824ca5384f35f525279051d4addc0d516a4b3f1f6ce5bd5fc99",
+  "wrapperScriptSha256": "e0bd0847c15412715598993514863be79028946f98b521f256475a93429b7252"
+}
