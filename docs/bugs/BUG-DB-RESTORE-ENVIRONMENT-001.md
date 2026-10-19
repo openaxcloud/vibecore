@@ -35,3 +35,11 @@ provisionneur et HTTP loopback vers une fixture CNPG explicite, store mémoire.
 Aucune archive n'est lue : le nom incorrect du manifeste est prouvé, pas le jeu
 de données que CNPG chargerait effectivement. Aucun appel distant ni donnée
 client ; tous les serveurs de fixture sont fermés.
+
+## Reproductibilité et prochaine correction
+
+Les scripts, configurations et logs actuels sont temporaires, référencés par
+empreinte : la contre-épreuve n’est pas entièrement contre-auditable depuis
+GitHub et ne constitue pas une nouvelle garde CI. La future correction devra
+versionner une reproduction propre sans secret et ses tests de non-régression,
+avec le correctif ; ne pas ajouter un test connu rouge à main sans résolution.

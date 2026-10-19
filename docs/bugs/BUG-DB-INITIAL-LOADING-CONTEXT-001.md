@@ -34,12 +34,24 @@ revendiquée par cette preuve.
 
 ## ✅ Testé live
 
-❌ Aucune preuve sur HTTPS public ou Safari réel. Les contrôles et la livraison
-du nouveau main sont en cours ; le refus cité ci-dessous concerne l’ancien main.
+❌ Aucune preuve sur HTTPS public ou Safari réel. La CI et les E2E de main
+`9d7ff755c` passent ; sa livraison reste en cours au relevé suivant.
+Le refus cité ci-dessous concerne l’ancien main.
 Le correctif ne prétend pas résoudre une lenteur amont non attribuée.
 
 ## Preuves et limites
 
+- [Main après fusion](../reprise/mesures/2026-10-19-main741-validation.json) :
+  CI réussie à 03:01:26 UTC ; verdict E2E à 03:04:13 UTC, 456 rapportés,
+  zéro échec persistant, trois instabilités, six exemptions inchangées,
+  75/75 fichiers. Les quatre cas DB examinés passent au premier essai.
+- [Poll intégré à horloge réelle](../reprise/mesures/2026-10-19-database-real-60s-poll.json) :
+  erreur HTTP initiale explicitement injectée ; second appel après 59 985 ms,
+  titre/alerte/Retry conservés pendant sa réponse réelle retenue. Retry lance
+  le troisième GET réel et affiche 128 tables du PostgreSQL QA local.
+  Quatre captures inspectées, liaison/projet supprimés, serveurs arrêtés.
+  L’ancien appel est annulé côté navigateur ; sa libération tardive ne prouve
+  pas sa consommation. Aucun résultat de production ni Safari déduit.
 - Main E2E [39182148514](https://github.com/openaxcloud/vibecore/actions/runs/39182148514) :
   454 tests rapportés, un échec persistant DB3377, zéro flaky, six exemptions
   inchangées, 74/74 fichiers. Sur les trois essais, le panneau est monté,

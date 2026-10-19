@@ -532,11 +532,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Reprise commerciale du 2026-10-19 — chargement Database
 
-- [BUG-DB-INITIAL-LOADING-CONTEXT-001](docs/bugs/BUG-DB-INITIAL-LOADING-CONTEXT-001.md) — P2 — le contenu Database perd son titre pendant sa première requête. — 📤 Dispatché : Correction ciblée autorisée ; contre-épreuve réelle locale et revue indépendante. · 💻 Codé : Fusionné par #741 le 19 octobre à 02:38:54 UTC, main `9d7ff755c`, · ✅ Testé live : ❌ Aucune preuve sur HTTPS public ou Safari réel. Les contrôles et la livraison
+- [BUG-DB-INITIAL-LOADING-CONTEXT-001](docs/bugs/BUG-DB-INITIAL-LOADING-CONTEXT-001.md) — P2 — le contenu Database perd son titre pendant sa première requête. — 📤 Dispatché : Correction ciblée autorisée ; contre-épreuve réelle locale et revue indépendante. · 💻 Codé : Fusionné par #741 le 19 octobre à 02:38:54 UTC, main `9d7ff755c`, · ✅ Testé live : ❌ Aucune preuve sur HTTPS public ou Safari réel. La CI et les E2E de main
 
 ## 2026-10-18 — Vérification avant commercialisation
 
-- [BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001](docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md) — par mois — 📤 Dispatché : ☑ — 18/10/2026, correctif borné autorisé dans un worktree distinct. · 💻 Codé : ☐ — Candidat local ; aucune fusion ni livraison attestée par cette fiche. · ✅ Testé live : ☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Les CI historiqu
+- [BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001](docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md) — par mois — 📤 Dispatché : ☑ — 18/10/2026, correctif borné autorisé dans un worktree distinct. · 💻 Codé : ☑ — Fusion protégée de #738 le 19 octobre 2026 à 03:13:44 UTC, main `bbbcf3239`, tête validée `816e62ec2`. [Pr · ✅ Testé live : ☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Les refus histor
 
 ## Reprise commerciale du 2026-10-19 — restauration DB
 

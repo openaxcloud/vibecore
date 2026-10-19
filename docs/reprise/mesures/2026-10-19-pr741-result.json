@@ -47,11 +47,14 @@
   "webkit": {
     "job": 117856379150,
     "conclusion": "success",
-    "passedDirectly": 16,
     "flaky": 1,
     "skipped": 3,
     "flakyCase": "agent-scroll-pill.spec.ts:316 mobile390 scroll pill; missing after scroll on first attempt",
-    "finishedAtUtc": "2026-10-19T02:14:43Z"
+    "finishedAtUtc": "2026-10-19T02:14:43Z",
+    "reportedPassed": 16,
+    "successesAtRetryZero": 15,
+    "additionalNonFlakyCaseExecutedDuringSerialRetry": 1,
+    "countClarification": "Playwright16passed includes one tablet case first executed during serial retry after the mobile failure; not16direct first-pass successes."
   },
   "desktop": {
     "run": 39188630672,
@@ -83,7 +86,7 @@
     "jobs": [
       {
         "id": 117856301473,
-        "name": "Audit fran\u00e7ais \u2014 pertinence",
+        "name": "Audit français — pertinence",
         "conclusion": "success"
       },
       {
@@ -108,7 +111,7 @@
       },
       {
         "id": 117860562388,
-        "name": "Audit fran\u00e7ais \u2014 verdict",
+        "name": "Audit français — verdict",
         "conclusion": "success"
       }
     ]
@@ -156,7 +159,7 @@
         "completedAt": "2026-10-19T02:09:56Z",
         "conclusion": "SUCCESS",
         "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39188630750/job/117856301473",
-        "name": "Audit fran\u00e7ais \u2014 pertinence",
+        "name": "Audit français — pertinence",
         "startedAt": "2026-10-19T02:09:33Z",
         "status": "COMPLETED",
         "workflowName": "French i18n live audit"
@@ -386,7 +389,7 @@
         "completedAt": "2026-10-19T02:27:14Z",
         "conclusion": "SUCCESS",
         "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39188630750/job/117860562388",
-        "name": "Audit fran\u00e7ais \u2014 verdict",
+        "name": "Audit français — verdict",
         "startedAt": "2026-10-19T02:27:10Z",
         "status": "COMPLETED",
         "workflowName": "French i18n live audit"

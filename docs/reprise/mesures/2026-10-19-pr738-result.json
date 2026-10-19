@@ -1,0 +1,339 @@
+{
+  "observedAtUtc": "2026-10-19T03:15:30.794544+00:00",
+  "pr": 738,
+  "url": "https://github.com/openaxcloud/vibecore/pull/738",
+  "head": "816e62ec28bfb76e96668577d07e8364ed987ee2",
+  "base": "9d7ff755ccb99b152891ef1f426995fc35061c06",
+  "merge": {
+    "number": 738,
+    "html_url": "https://github.com/openaxcloud/vibecore/pull/738",
+    "merged": true,
+    "merged_at": "2026-10-19T03:13:44Z",
+    "merge_commit_sha": "bbbcf3239296dfa55d60160aba8e19742136a111",
+    "head": "816e62ec28bfb76e96668577d07e8364ed987ee2",
+    "base": "9d7ff755ccb99b152891ef1f426995fc35061c06"
+  },
+  "fileChanges": [
+    {
+      "status": "M",
+      "path": "BUG_INVENTORY_LIVE.md"
+    },
+    {
+      "status": "M",
+      "path": "SERVI-POUR-LES-SESSIONS.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/bugs/BUG-DB-INITIAL-LOADING-CONTEXT-001.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/bugs/BUG-DB-RESTORE-COMPLETION-001.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/bugs/BUG-DB-RESTORE-ENVIRONMENT-001.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/reprise/2026-10-18-commercialisation.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/reprise/2026-10-18-restore-current-main.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-critical-advisories-review.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-cumulative-release-scope.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-e2e-proof-scope.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-pr738-database-rebase.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-pr738-ui-rebase.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-pr741-result.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-public-https-access.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-restore-contract-reproduction.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-19-restore-main-recheck.json"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/app.ts"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/quota-deploiements-par-periode.spec.ts"
+    },
+    {
+      "status": "A",
+      "path": "services/api/src/tests/annual-monthly-quota.spec.ts"
+    },
+    {
+      "status": "A",
+      "path": "services/api/src/usage-period.spec.ts"
+    },
+    {
+      "status": "A",
+      "path": "services/api/src/usage-period.ts"
+    }
+  ],
+  "deletedPaths": [],
+  "productionFiles": [
+    "services/api/src/app.ts",
+    "services/api/src/usage-period.ts"
+  ],
+  "ci": {
+    "runId": 39191358260,
+    "jobId": 117864677742,
+    "conclusion": "success",
+    "root": {
+      "passed": 9760,
+      "skipped": 4
+    },
+    "api": {
+      "passed": 2463,
+      "skipped": 23
+    },
+    "manager": {
+      "passed": 152
+    },
+    "agent": {
+      "passed": 121
+    },
+    "builds": "success",
+    "auditAdvisory": {
+      "total": 242,
+      "low": 28,
+      "moderate": 118,
+      "high": 92,
+      "critical": 4
+    }
+  },
+  "e2e": {
+    "runId": 39191358237,
+    "verdictJobId": 117871190991,
+    "conclusion": "success",
+    "finishedAtUtc": "2026-10-19T03:11:56Z",
+    "reported": 456,
+    "persistentFailures": 0,
+    "flaky": 0,
+    "waivers": 6,
+    "expectedSpecs": 75,
+    "observedSpecs": 75,
+    "firstPassDatabaseCaseSeconds": {
+      "en": 12.7,
+      "fr": 12.6,
+      "historicalTables": 38.0,
+      "historicalMyData": 51.4
+    }
+  },
+  "webkit": {
+    "jobId": 117864772528,
+    "conclusion": "success",
+    "reportedPassed": 16,
+    "flaky": 1,
+    "skipped": 3,
+    "successesAtRetryZero": 15,
+    "additionalNonFlakyCaseExecutedInSerialRetry": 1,
+    "flakyCase": "agent-scroll-pill.spec.ts:316 mobile390; existing retry passed"
+  },
+  "frenchAudit": {
+    "runId": 39191358239,
+    "conclusion": "success",
+    "browserJob": "skipped by path relevance; no new browser proof"
+  },
+  "localRebaseProof": "2026-10-19-pr738-database-rebase.json",
+  "localPostgresProof": {
+    "file": "2026-10-18-annual-quota-postgres-local.json",
+    "source": "bee26fd28",
+    "sourceIdentity": "5quota files unchanged through816e62; real PostgreSQL proof not rerun or reassigned to new source",
+    "realStripe": false
+  },
+  "limitations": [
+    "No real Stripe TEST checkout/webhook integration",
+    "No customer or payment mutation",
+    "No current public serving SHA",
+    "Two P1 physical restore contracts remain uncorrected",
+    "Passing advisory audit step does not clear dependency alerts"
+  ],
+  "mergeTreeMatchesValidatedHead": true,
+  "tree": "80fe7e54cf78b33e2d3cf9f4e6e5280f7cb90ca0",
+  "checks": [
+    {
+      "name": "Quality Analysis",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358242/job/117864677876"
+    },
+    {
+      "name": "Audit français — pertinence",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358239/job/117864677911"
+    },
+    {
+      "name": "Quality Gates",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358240/job/117864677526"
+    },
+    {
+      "name": "Install, test, build, scan",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358260/job/117864677742"
+    },
+    {
+      "name": "Perimetre des changements",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358237/job/117864677797"
+    },
+    {
+      "name": "CodeQL Analysis (javascript)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358236/job/117864677997"
+    },
+    {
+      "name": "Validate PR Title",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191356557/job/117864673302"
+    },
+    {
+      "name": "Validate PR Title",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191424778/job/117864872770"
+    },
+    {
+      "name": "CodeQL Analysis (typescript)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358236/job/117864677847"
+    },
+    {
+      "name": "Playwright ${{ matrix.project }}",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358239/job/117864774659"
+    },
+    {
+      "name": "Security Review Required",
+      "status": "COMPLETED",
+      "conclusion": "SKIPPED",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358240/job/117864678798"
+    },
+    {
+      "name": "Accessibility Tests",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358242/job/117864677979"
+    },
+    {
+      "name": "E2E tranche 1/4",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358237/job/117864772548"
+    },
+    {
+      "name": "Dependency Vulnerability Scan",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358236/job/117864678053"
+    },
+    {
+      "name": "E2E tranche 2/4",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358237/job/117864772562"
+    },
+    {
+      "name": "E2E tranche 3/4",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358237/job/117864772625"
+    },
+    {
+      "name": "E2E tranche 4/4",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358237/job/117864772590"
+    },
+    {
+      "name": "Performance Audit",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358242/job/117864677975"
+    },
+    {
+      "name": "Audit français — verdict",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358239/job/117864774068"
+    },
+    {
+      "name": "Release Validation",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358240/job/117868558844"
+    },
+    {
+      "name": "Canari iOS WebKit (non bloquant)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358237/job/117864772528"
+    },
+    {
+      "name": "Secrets Detection",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358236/job/117864678011"
+    },
+    {
+      "name": "PR Size Check",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358242/job/117864677788"
+    },
+    {
+      "name": "Playwright local stack",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358237/job/117871190991"
+    },
+    {
+      "name": "Secret scan (gitleaks, blocking)",
+      "status": "COMPLETED",
+      "conclusion": "SUCCESS",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39191358236/job/117864677920"
+    }
+  ]
+}
