@@ -1,0 +1,278 @@
+{
+  "head": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+  "ci": {
+    "run": 39182148503,
+    "job": 117836979725,
+    "conclusion": "success",
+    "finishedAtUtc": "2026-10-19T01:03:51Z",
+    "rootPassed": 9754,
+    "apiPassed": 2428,
+    "managerPassed": 152,
+    "agentPassed": 121
+  },
+  "e2e": {
+    "run": 39182148514,
+    "verdictJob": 117842694426,
+    "summaryAtUtc": "2026-10-19T01:10:06Z",
+    "conclusion": "failure",
+    "reported": 454,
+    "persistentFailures": 1,
+    "flaky": 0,
+    "configuredWaivers": 6,
+    "specsExpected": 74,
+    "specsSeen": 74,
+    "shard1Job": 117837051997,
+    "failure": "ide-mobile-chrome.spec.ts:3377 heading All databases absent after default5000ms while outer panel busy",
+    "databaseAttemptsSeconds": [
+      17.8,
+      18.8,
+      21.4
+    ],
+    "myDataFirstAttemptSeconds": 35.9,
+    "paletteFirstAttemptSeconds": 16.6,
+    "metadata": [
+      {
+        "atUtc": "2026-10-19T01:08:22.6517649Z",
+        "samples": [
+          {
+            "label": "setup-confirmed",
+            "elapsedMs": 12414,
+            "state": {
+              "mobilePanel": "chat",
+              "databaseTabActive": false,
+              "databaseMounted": false,
+              "databaseVisible": false,
+              "databaseOuterBusy": false,
+              "databaseHeadingPresent": false,
+              "databaseHeadingVisible": false,
+              "databasePanelInUrl": false,
+              "databaseEmpty": false,
+              "databaseLoadFailed": false,
+              "databaseInnerLoading": false,
+              "cards": 0,
+              "tables": 0,
+              "statuses": 3,
+              "alerts": 0,
+              "moreMenu": 0,
+              "tabSwitcher": 0,
+              "codeEditors": 0,
+              "editorTabs": []
+            },
+            "observedAtMs": 12420
+          },
+          {
+            "label": "failure",
+            "elapsedMs": 17690,
+            "state": {
+              "mobilePanel": "deploy",
+              "databaseTabActive": true,
+              "databaseMounted": true,
+              "databaseVisible": true,
+              "databaseOuterBusy": true,
+              "databaseHeadingPresent": false,
+              "databaseHeadingVisible": false,
+              "databasePanelInUrl": true,
+              "databaseEmpty": false,
+              "databaseLoadFailed": false,
+              "databaseInnerLoading": false,
+              "cards": 0,
+              "tables": 0,
+              "statuses": 2,
+              "alerts": 0,
+              "moreMenu": 0,
+              "tabSwitcher": 0,
+              "codeEditors": 0,
+              "editorTabs": []
+            },
+            "observedAtMs": 17694
+          }
+        ],
+        "responses": [],
+        "requests": [
+          {
+            "id": 1,
+            "kind": "database-panel",
+            "method": "GET",
+            "startedAtMs": 12652,
+            "state": "awaiting-response"
+          }
+        ],
+        "pendingRequests": [
+          {
+            "id": 1,
+            "kind": "database-panel",
+            "state": "awaiting-response",
+            "ageMs": 5042
+          }
+        ],
+        "droppedRequests": 0
+      },
+      {
+        "atUtc": "2026-10-19T01:08:41.8223605Z",
+        "samples": [
+          {
+            "label": "setup-confirmed",
+            "elapsedMs": 12600,
+            "state": {
+              "mobilePanel": "chat",
+              "databaseTabActive": false,
+              "databaseMounted": false,
+              "databaseVisible": false,
+              "databaseOuterBusy": false,
+              "databaseHeadingPresent": false,
+              "databaseHeadingVisible": false,
+              "databasePanelInUrl": false,
+              "databaseEmpty": false,
+              "databaseLoadFailed": false,
+              "databaseInnerLoading": false,
+              "cards": 0,
+              "tables": 0,
+              "statuses": 3,
+              "alerts": 0,
+              "moreMenu": 0,
+              "tabSwitcher": 0,
+              "codeEditors": 0,
+              "editorTabs": []
+            },
+            "observedAtMs": 12624
+          },
+          {
+            "label": "failure",
+            "elapsedMs": 17960,
+            "state": {
+              "mobilePanel": "deploy",
+              "databaseTabActive": true,
+              "databaseMounted": true,
+              "databaseVisible": true,
+              "databaseOuterBusy": true,
+              "databaseHeadingPresent": false,
+              "databaseHeadingVisible": false,
+              "databasePanelInUrl": true,
+              "databaseEmpty": false,
+              "databaseLoadFailed": false,
+              "databaseInnerLoading": false,
+              "cards": 0,
+              "tables": 0,
+              "statuses": 2,
+              "alerts": 0,
+              "moreMenu": 0,
+              "tabSwitcher": 0,
+              "codeEditors": 0,
+              "editorTabs": []
+            },
+            "observedAtMs": 17983
+          }
+        ],
+        "responses": [],
+        "requests": [
+          {
+            "id": 1,
+            "kind": "database-panel",
+            "method": "GET",
+            "startedAtMs": 12883,
+            "state": "awaiting-response"
+          }
+        ],
+        "pendingRequests": [
+          {
+            "id": 1,
+            "kind": "database-panel",
+            "state": "awaiting-response",
+            "ageMs": 5100
+          }
+        ],
+        "droppedRequests": 0
+      },
+      {
+        "atUtc": "2026-10-19T01:09:05.6757847Z",
+        "samples": [
+          {
+            "label": "setup-confirmed",
+            "elapsedMs": 15966,
+            "state": {
+              "mobilePanel": "chat",
+              "databaseTabActive": false,
+              "databaseMounted": false,
+              "databaseVisible": false,
+              "databaseOuterBusy": false,
+              "databaseHeadingPresent": false,
+              "databaseHeadingVisible": false,
+              "databasePanelInUrl": false,
+              "databaseEmpty": false,
+              "databaseLoadFailed": false,
+              "databaseInnerLoading": false,
+              "cards": 0,
+              "tables": 0,
+              "statuses": 3,
+              "alerts": 0,
+              "moreMenu": 0,
+              "tabSwitcher": 0,
+              "codeEditors": 0,
+              "editorTabs": []
+            },
+            "observedAtMs": 15979
+          },
+          {
+            "label": "failure",
+            "elapsedMs": 21263,
+            "state": {
+              "mobilePanel": "deploy",
+              "databaseTabActive": true,
+              "databaseMounted": true,
+              "databaseVisible": true,
+              "databaseOuterBusy": true,
+              "databaseHeadingPresent": false,
+              "databaseHeadingVisible": false,
+              "databasePanelInUrl": true,
+              "databaseEmpty": false,
+              "databaseLoadFailed": false,
+              "databaseInnerLoading": false,
+              "cards": 0,
+              "tables": 0,
+              "statuses": 2,
+              "alerts": 0,
+              "moreMenu": 0,
+              "tabSwitcher": 0,
+              "codeEditors": 0,
+              "editorTabs": []
+            },
+            "observedAtMs": 21273
+          }
+        ],
+        "responses": [],
+        "requests": [
+          {
+            "id": 1,
+            "kind": "database-panel",
+            "method": "GET",
+            "startedAtMs": 16218,
+            "state": "awaiting-response"
+          }
+        ],
+        "pendingRequests": [
+          {
+            "id": 1,
+            "kind": "database-panel",
+            "state": "awaiting-response",
+            "ageMs": 5055
+          }
+        ],
+        "droppedRequests": 0
+      }
+    ]
+  },
+  "limits": [
+    "Browser request awaiting response is measured; web proxy/API/SQL latency cause is not established.",
+    "Visible busy DB container rules out absence of the outer panel in these three attempts.",
+    "No E2E timeout/assertion/waiver changes; no identical rerun requested.",
+    "No delivery or public live verification claimed."
+  ],
+  "deployment": {
+    "run": 39182148402,
+    "gateJob": 117837063669,
+    "refusedAtUtc": "2026-10-19T01:10:27Z",
+    "preflightJob": "skipped",
+    "buildAndRolloutJob": "skipped",
+    "publicProof": false
+  }
+}

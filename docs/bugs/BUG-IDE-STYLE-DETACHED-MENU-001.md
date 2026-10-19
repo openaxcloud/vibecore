@@ -15,7 +15,7 @@ Six observations locales sur le build `93e7e3d8e` et les tests de `0b8ae254f` co
 
 ## 💻 Codé
 
-☐ Correctif de test local ; pas encore fusionné sur main.
+☑ Fusionné dans main par [#740](https://github.com/openaxcloud/vibecore/pull/740), `bb70c7b68`, le 19 octobre à 00:44:41 UTC. Livraison refusée par le gate E2E à 01:10:27 UTC ; non attesté en production.
 
 `tests/e2e/helpers/ide-ui-detail-styles.ts` choisit le menu courant et lit tous les styles dans un seul callback synchrone de `page.evaluate`. L'absence de menu provoque une erreur immédiate. Le test historique appelle ce lecteur ; son helper d'ouverture, ses assertions, délais, retries et exemptions restent inchangés. Aucune source produit ni CSS modifiée.
 

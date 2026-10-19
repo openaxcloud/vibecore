@@ -1,0 +1,705 @@
+{
+  "checkedAtUtc": "2026-10-19T00:44:30.686274+00:00",
+  "pr": {
+    "baseRefName": "main",
+    "headRefOid": "002fb39732d2958fb3b79951125f54aa294d2044",
+    "isDraft": false,
+    "mergeStateStatus": "CLEAN",
+    "number": 740,
+    "state": "OPEN",
+    "statusCheckRollup": [
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:28:14Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421831/job/117831791069",
+        "name": "Quality Analysis",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:44:05Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421806/job/117831791195",
+        "name": "macos desktop build",
+        "startedAt": "2026-10-19T00:21:50Z",
+        "status": "COMPLETED",
+        "workflowName": "Desktop Electron"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:22:05Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421852/job/117831791230",
+        "name": "Audit français — pertinence",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:40:15Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421854/job/117831790839",
+        "name": "Quality Gates",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:39:50Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421768/job/117831790955",
+        "name": "Install, test, build, scan",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Production CI"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:21:59Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421907/job/117831791543",
+        "name": "Perimetre des changements",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:28:42Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421824/job/117831791142",
+        "name": "CodeQL Analysis (javascript)",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:21:44Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180420189/job/117831787057",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-19T00:21:39Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:21:56Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180437708/job/117831839305",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-19T00:21:52Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:30:11Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39181042405/job/117833657763",
+        "name": "Validate PR Title",
+        "startedAt": "2026-10-19T00:30:06Z",
+        "status": "COMPLETED",
+        "workflowName": "Semantic Pull Request"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:30:43Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421806/job/117831791379",
+        "name": "windows desktop build",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Desktop Electron"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:29:57Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421824/job/117831791169",
+        "name": "CodeQL Analysis (typescript)",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:30:54Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421806/job/117831791385",
+        "name": "linux desktop build",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Desktop Electron"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:44:05Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421806/job/117836833085",
+        "name": "Draft desktop release",
+        "startedAt": "2026-10-19T00:44:06Z",
+        "status": "COMPLETED",
+        "workflowName": "Desktop Electron"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:21:38Z",
+        "conclusion": "SKIPPED",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421854/job/117831791802",
+        "name": "Security Review Required",
+        "startedAt": "2026-10-19T00:21:38Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:24:19Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421831/job/117831791298",
+        "name": "Accessibility Tests",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:35:35Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421852/job/117831893350",
+        "name": "Playwright desktop-1440",
+        "startedAt": "2026-10-19T00:22:27Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:38:55Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421907/job/117831872710",
+        "name": "E2E tranche 1/4",
+        "startedAt": "2026-10-19T00:22:01Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:25:08Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421824/job/117831790994",
+        "name": "Dependency Vulnerability Scan",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:33:37Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421852/job/117831893334",
+        "name": "Playwright desktop-1024",
+        "startedAt": "2026-10-19T00:22:07Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:34:43Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421907/job/117831872683",
+        "name": "E2E tranche 2/4",
+        "startedAt": "2026-10-19T00:22:02Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:37:23Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421852/job/117831893339",
+        "name": "Playwright tablet-768",
+        "startedAt": "2026-10-19T00:22:07Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:30:44Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421907/job/117831872659",
+        "name": "E2E tranche 3/4",
+        "startedAt": "2026-10-19T00:22:01Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:36:04Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421852/job/117831893428",
+        "name": "Playwright mobile-390",
+        "startedAt": "2026-10-19T00:22:16Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:28:39Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421907/job/117831872751",
+        "name": "E2E tranche 4/4",
+        "startedAt": "2026-10-19T00:22:02Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:25:51Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421831/job/117831791328",
+        "name": "Performance Audit",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:37:28Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421852/job/117835338235",
+        "name": "Audit français — verdict",
+        "startedAt": "2026-10-19T00:37:25Z",
+        "status": "COMPLETED",
+        "workflowName": "French i18n live audit"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:40:27Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421854/job/117835981953",
+        "name": "Release Validation",
+        "startedAt": "2026-10-19T00:40:17Z",
+        "status": "COMPLETED",
+        "workflowName": "PR Validation"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:26:55Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421907/job/117831872679",
+        "name": "Canari iOS WebKit (non bloquant)",
+        "startedAt": "2026-10-19T00:22:01Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:22:25Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421824/job/117831791217",
+        "name": "Secrets Detection",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:22:00Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421831/job/117831791258",
+        "name": "PR Size Check",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Code Quality"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:39:10Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421907/job/117835682661",
+        "name": "Playwright local stack",
+        "startedAt": "2026-10-19T00:38:56Z",
+        "status": "COMPLETED",
+        "workflowName": "Production E2E"
+      },
+      {
+        "__typename": "CheckRun",
+        "completedAt": "2026-10-19T00:22:14Z",
+        "conclusion": "SUCCESS",
+        "detailsUrl": "https://github.com/openaxcloud/vibecore/actions/runs/39180421824/job/117831791171",
+        "name": "Secret scan (gitleaks, blocking)",
+        "startedAt": "2026-10-19T00:21:40Z",
+        "status": "COMPLETED",
+        "workflowName": "Security Analysis"
+      }
+    ],
+    "url": "https://github.com/openaxcloud/vibecore/pull/740"
+  },
+  "baseSha": "43eef614ec3c56d8b7642f105b140e938f6868ef",
+  "mainSha": "43eef614ec3c56d8b7642f105b140e938f6868ef",
+  "checkCounts": {
+    "SUCCESS": 31,
+    "SKIPPED": 2,
+    "NEUTRAL": 0
+  },
+  "badChecks": [],
+  "candidateFiles": {
+    "observedAtUtc": "2026-10-19T00:31:35.286082+00:00",
+    "base": "43eef614ec3c56d8b7642f105b140e938f6868ef",
+    "head": "002fb39732d2958fb3b79951125f54aa294d2044",
+    "fileCount": 57,
+    "files": [
+      {
+        "status": "M",
+        "path": "BUG_INVENTORY_LIVE.md"
+      },
+      {
+        "status": "M",
+        "path": "SERVI-POUR-LES-SESSIONS.md"
+      },
+      {
+        "status": "M",
+        "path": "app/components/chat/BaseChat.tsx"
+      },
+      {
+        "status": "A",
+        "path": "app/components/chat/IdePaletteState.spec.tsx"
+      },
+      {
+        "status": "A",
+        "path": "app/components/chat/IdePaletteState.tsx"
+      },
+      {
+        "status": "A",
+        "path": "app/components/chat/panel-retry-recovery.spec.tsx"
+      },
+      {
+        "status": "M",
+        "path": "app/components/chat/panel-single-flight.spec.ts"
+      },
+      {
+        "status": "M",
+        "path": "app/components/project-ide/panel-uniformization-lot4.spec.tsx"
+      },
+      {
+        "status": "A",
+        "path": "app/lib/ide/panel-request.spec.ts"
+      },
+      {
+        "status": "A",
+        "path": "app/lib/ide/panel-request.ts"
+      },
+      {
+        "status": "M",
+        "path": "app/routes/projects.$projectId.ide.tsx"
+      },
+      {
+        "status": "A",
+        "path": "docs/bugs/BUG-DESKTOP-ELECTRON-MIRROR-001.md"
+      },
+      {
+        "status": "A",
+        "path": "docs/bugs/BUG-E2E-IDE-DIAGNOSTIC-BLIND-001.md"
+      },
+      {
+        "status": "A",
+        "path": "docs/bugs/BUG-IDE-PALETTE-HANDOFF-001.md"
+      },
+      {
+        "status": "A",
+        "path": "docs/bugs/BUG-IDE-PANEL-RETRY-PENDING-001.md"
+      },
+      {
+        "status": "A",
+        "path": "docs/bugs/BUG-IDE-STYLE-DETACHED-MENU-001.md"
+      },
+      {
+        "status": "M",
+        "path": "docs/reprise/2026-10-18-commercialisation.md"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/2026-10-18-ide-recovery-defects.md"
+      },
+      {
+        "status": "M",
+        "path": "docs/reprise/2026-10-18-main736-mobile-diagnostic.md"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-ide-recovery-after-handoff.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-ide-recovery-before-handoff.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-ide-recovery-mobile-my-data.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-ide-recovery-mobile-tables.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-palette-fixed-after-handoff.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-palette-fixed-before-handoff.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-retry-01-retry-visible-during-retained-response.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-retry-02-retry-recovered-real-database-list.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-retry-03-real-tables-ready.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/captures/2026-10-18-style-detached-palette-visible.png"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-desktop-mirror.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-ide-recovery-integrated.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-ide-recovery-mobile-local.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-main739-validation.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-mobile-db-diagnostic-full-result.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-mobile-db-diagnostic-targeted-result.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-palette-handoff-cleanup-verification.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-palette-handoff-fixed-local.json"
+      },
+      {
+        "status": "M",
+        "path": "docs/reprise/mesures/2026-10-18-palette-handoff-local.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-palette-handoff-source-comparison.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-panel-retry-browser-local.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-panel-retry-local.json"
+      },
+      {
+        "status": "M",
+        "path": "docs/reprise/mesures/2026-10-18-pr738-result.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-pr739-result.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-pr740-ci-test-harness.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-pr740-first-head.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-pr740-intermediate-result.json"
+      },
+      {
+        "status": "A",
+        "path": "docs/reprise/mesures/2026-10-18-style-detached-local.json"
+      },
+      {
+        "status": "M",
+        "path": "electron-builder.yml"
+      },
+      {
+        "status": "M",
+        "path": "scripts/typecheck.mjs"
+      },
+      {
+        "status": "A",
+        "path": "tests/ci/ide-failure-metadata.spec.ts"
+      },
+      {
+        "status": "M",
+        "path": "tests/e2e/dashboard.spec.ts"
+      },
+      {
+        "status": "M",
+        "path": "tests/e2e/helpers/ide-failure-diagnostics.ts"
+      },
+      {
+        "status": "A",
+        "path": "tests/e2e/helpers/ide-failure-metadata.ts"
+      },
+      {
+        "status": "A",
+        "path": "tests/e2e/helpers/ide-ui-detail-styles.ts"
+      },
+      {
+        "status": "M",
+        "path": "tests/e2e/ide-mobile-chrome.spec.ts"
+      },
+      {
+        "status": "A",
+        "path": "tests/e2e/ide-palette-handoff.spec.ts"
+      },
+      {
+        "status": "A",
+        "path": "tsconfig.ide-diagnostics.json"
+      }
+    ],
+    "deleted": 0,
+    "productionAndPackagingPaths": [
+      "app/components/chat/BaseChat.tsx",
+      "app/components/chat/IdePaletteState.tsx",
+      "app/lib/ide/panel-request.ts",
+      "app/routes/projects.$projectId.ide.tsx",
+      "electron-builder.yml"
+    ],
+    "productionHashes": {
+      "app/components/chat/BaseChat.tsx": "e44bb692e33798475efec8761f0c4077cfb0611a78a863f5ba9cc413cf590eff",
+      "app/components/chat/IdePaletteState.tsx": "589990979c13064786932f80f762578f4c96772f10e717bdc06bbea8cacdfbf5",
+      "app/lib/ide/panel-request.ts": "02e8ea4b6860bbe152cc948e03e9536ad5ca6ff6bb7a1815c0d5725866605aac",
+      "app/routes/projects.$projectId.ide.tsx": "fa6fa788d9dcfe30a837710eacc45a8ca3b6fbe1983c2e2f5cb7587b19033d0b",
+      "electron-builder.yml": "19ed48f16e1abecb4771e6a9efd25fbcb275231038f30cd3ac8f191010436ca2"
+    },
+    "controlPipelineChange": "scripts/typecheck.mjs adds mandatory IDE DOM strict project; existing checks retained",
+    "candidateOnly": true,
+    "mergeObserved": false
+  },
+  "headResults": {
+    "head": "002fb39732d2958fb3b79951125f54aa294d2044",
+    "recordedAtUtc": "2026-10-19T00:40:58.215937+00:00",
+    "ci": {
+      "run": 39180421768,
+      "job": 117831790955,
+      "conclusion": "success",
+      "finishedAtUtc": "2026-10-19T00:39:51Z",
+      "root": {
+        "passed": 9754,
+        "skipped": 4
+      },
+      "api": {
+        "passed": 2428,
+        "skipped": 23
+      },
+      "manager": {
+        "passed": 152
+      },
+      "agent": {
+        "passed": 121
+      },
+      "buildWeb": "success",
+      "buildServices": "success",
+      "dependencyAudit": {
+        "total": 242,
+        "low": 28,
+        "moderate": 118,
+        "high": 92,
+        "critical": 4,
+        "gateMode": "advisory; not a clean-vulnerability or runtime-reachability proof"
+      }
+    },
+    "e2e": {
+      "run": 39180421907,
+      "verdictJob": 117835682661,
+      "summaryAtUtc": "2026-10-19T00:39:07Z",
+      "conclusion": "success",
+      "reported": 454,
+      "persistentFailures": 0,
+      "flaky": 1,
+      "configuredWaivers": 6,
+      "specsExpected": 74,
+      "specsSeen": 74,
+      "flakyCase": "ide-mobile-chrome.spec.ts / chrome de l’IDE sur téléphone — 390 / Webview URL typography and log closure",
+      "firstAttemptPasses": {
+        "historicalStylesSeconds": 5.6,
+        "paletteHandoffSeconds": 13.5,
+        "dbTablesSeconds": 15.8,
+        "dbMyDataSeconds": 13.4
+      },
+      "noDatabaseFailureMetadataProduced": true
+    },
+    "webkit": {
+      "job": 117831872679,
+      "passed": 17,
+      "skipped": 3
+    },
+    "frenchAudit": {
+      "run": 39180421852,
+      "conclusion": "success",
+      "viewports": [
+        390,
+        768,
+        1024,
+        1440
+      ]
+    },
+    "desktop": {
+      "run": 39180421806,
+      "windows": "success",
+      "linux": "success",
+      "macos": "success",
+      "macosFinishedAtUtc": "2026-10-19T00:44:05Z"
+    },
+    "localCorrectionsIndependentReview": {
+      "blockingFindings": 0,
+      "testsReplayed": false
+    },
+    "scopeLimits": [
+      "All results are for PR head, not main merge commit or deployed version.",
+      "DB historical cause unknown.",
+      "No paid/customer/cloud operations or live user journey."
+    ]
+  },
+  "merge": {
+    "number": 740,
+    "merged": true,
+    "merged_at": "2026-10-19T00:44:41Z",
+    "merge_commit_sha": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+    "mechanism": "gh pr merge --merge --match-head-commit; no admin or protection bypass",
+    "filesProductionAndPackaging": [
+      "app/components/chat/BaseChat.tsx",
+      "app/components/chat/IdePaletteState.tsx",
+      "app/lib/ide/panel-request.ts",
+      "app/routes/projects.$projectId.ide.tsx",
+      "electron-builder.yml"
+    ]
+  }
+}

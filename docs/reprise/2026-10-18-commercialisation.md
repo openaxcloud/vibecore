@@ -1,5 +1,7 @@
 # Vérification avant commercialisation — 18 octobre 2026
 
+> **Actualisation du 19 octobre, 01:25 UTC — lancement toujours non validé.** Main est `bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a` après #740 (00:44:41 UTC). CI verte, E2E rouges : un titre Database absent pendant la requête initiale, 454 tests rapportés, zéro flaky, six exemptions, 74/74 fichiers. Le gate a refusé la livraison à 01:10:27 UTC, avant build et rollout. [Preuves](mesures/2026-10-19-main740-database-failure.json). La dernière livraison réussie reste `c6439da55` le 18 octobre à 21:35 UTC ; version HTTPS réellement servie toujours inaccessible via le proxy. #738 (quota annuel) reste ouverte, tête `9245b8228`, avec le même échec DB. Le correctif de contexte Database est un candidat local en validation ; aucune assertion/durée existante n'est assouplie. La latence amont n'est pas attribuée. Les observations datées ci-dessous restent historiques.
+
 **Décision : lancement commercial complet non validé.** Ce verdict exprime
 des défauts de code reproduits et des preuves indispensables manquantes, pas
 une affirmation que tous les parcours échouent en production.

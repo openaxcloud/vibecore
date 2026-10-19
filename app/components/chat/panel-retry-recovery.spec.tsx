@@ -6,8 +6,10 @@ import type { Socket } from 'node:net';
 import { resolve } from 'node:path';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import ts from 'typescript';
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+import { DatabaseHeading } from '~/components/database/DatabaseHeading';
 import {
   __resetProjectPanelCacheForTests,
   readProjectPanelCache,
@@ -96,9 +98,19 @@ vi.stubGlobal('AbortController', transferableAbortController().constructor);
 vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 afterAll(() => vi.unstubAllGlobals());
 
+let language = 'en';
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ i18n: { language, resolvedLanguage: language } }),
+}));
+
 const translate = (key: string) => key;
+
+const databaseHeading = () =>
+  [...document.querySelectorAll('h2')].find((node) =>
+    ['All databases', 'Toutes les bases de données'].includes(node.textContent ?? ''),
+  );
 type Extracted = {
-  Panel: React.ComponentType<{ projectId: string; panel: string }>;
+  Panel: React.ComponentType<{ projectId?: string; panel: string; initialPayload?: unknown }>;
   extractedFetch: typeof fetch;
   slowLoadMs: number;
 };
@@ -106,6 +118,7 @@ type Extracted = {
 function wrapper(fetcher: typeof fetch): Extracted {
   const bindings = {
     React,
+    DatabaseHeading,
     useState: React.useState,
     useRef: React.useRef,
     useEffect: React.useEffect,
@@ -128,7 +141,9 @@ function wrapper(fetcher: typeof fetch): Extracted {
     panelIcon: () => '',
     isPanelAuthError: () => false,
     PanelErrorBoundary: ({ children }: React.PropsWithChildren) => <>{children}</>,
-    ProjectIdePanelContent: ({ data }: { data: { attempt?: string } }) => <div data-attempt={data.attempt} />,
+    ProjectIdePanelContent: ({ data }: { data: { attempt?: string } }) => (
+      <div data-panel-content data-attempt={data.attempt} />
+    ),
     PanelEmptyState: () => <div data-empty />,
     fetch: fetcher,
   };
@@ -215,6 +230,7 @@ afterEach(async () => {
   server = undefined;
   document.body.innerHTML = '';
   __resetProjectPanelCacheForTests();
+  language = 'en';
 });
 
 describe('actual panel wrapper: explicit Retry over loopback HTTP', () => {
@@ -309,5 +325,135 @@ describe('actual panel wrapper: explicit Retry over loopback HTTP', () => {
     await rejected;
     expect(transport).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
+  });
+});
+
+describe('database context before an initial response', () => {
+  it.each([
+    ['en', 'All databases'],
+    ['fr', 'Toutes les bases de données'],
+  ])('keeps %s context in the first render, pending response, error and recovery', async (locale, title) => {
+    language = locale;
+
+    const requests: ServerResponse[] = [];
+
+    const origin = await listen((_request, response) => {
+      requests.push(response);
+    });
+
+    const { Panel } = wrapper((input, init) => nativeFetch(new URL(String(input), origin), init));
+
+    // No effect has run yet: absence of data must not mount the data consumer.
+    const initial = renderToString(<Panel projectId="fixture" panel="database" />);
+    expect(initial).toContain(title);
+    expect(initial).toContain('aria-busy="true"');
+    expect(initial).not.toContain('data-panel-content');
+    expect(initial).not.toContain('data-empty');
+    expect(requests).toHaveLength(0);
+
+    document.body.innerHTML = '<div id="root"></div>';
+    root = createRoot(document.getElementById('root')!);
+    await act(async () => root!.render(<Panel projectId="fixture" panel="database" />));
+    await until(() => requests.length === 1);
+    expect(databaseHeading()?.textContent).toBe(title);
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(document.querySelector('[data-panel-content], [data-empty]')).toBeNull();
+
+    // Real loopback HTTP failure, deliberately non-retryable transport status.
+    await act(async () => {
+      requests[0].writeHead(400, { 'content-type': 'application/json' });
+      requests[0].end(JSON.stringify({ status: 'error' }));
+      await pause(20);
+    });
+    await until(() => Boolean(document.querySelector('[role="alert"]')));
+    expect(databaseHeading()?.textContent).toBe(title);
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+    expect(document.querySelector('[data-panel-content], [data-empty]')).toBeNull();
+
+    const retry = document.querySelector<HTMLButtonElement>('[role="alert"] button')!;
+    expect(retry.disabled).toBe(false);
+    await act(async () => retry.click());
+    await until(() => requests.length === 2);
+    expect(databaseHeading()?.textContent).toBe(title);
+    await act(async () => {
+      send(requests[1], 'recovered');
+      await pause(20);
+    });
+    await until(() => Boolean(document.querySelector('[data-attempt="recovered"]')));
+    expect(document.querySelector('[role="alert"], [aria-busy="true"]')).toBeNull();
+    expect(databaseHeading()).toBeUndefined(); // Context now belongs to the actual content.
+  });
+
+  it('does not imply loading without a project identifier', () => {
+    const transport = vi.fn<typeof fetch>();
+    const { Panel } = wrapper(transport);
+    const initial = renderToString(<Panel panel="database" />);
+    expect(initial).toContain('All databases');
+    expect(initial).toContain('role="alert"');
+    expect(initial).toContain('chat.copy.missingProjectIdReloadTheIde_66a40459');
+    expect(initial).not.toContain('aria-busy="true"');
+    expect(initial).not.toContain('data-panel-content');
+    expect(transport).not.toHaveBeenCalled();
+  });
+
+  it('keeps an HTTP 200 error envelope out of the consumer and shows pending recovery', async () => {
+    const requests: ServerResponse[] = [];
+
+    const origin = await listen((_request, response) => {
+      requests.push(response);
+
+      if (requests.length === 1) {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(
+          JSON.stringify({
+            status: 'error',
+            error: { code: 'PANEL_UPSTREAM', message: 'fixture-only', retryable: true },
+          }),
+        );
+      }
+    });
+
+    const { Panel } = wrapper((input, init) => nativeFetch(new URL(String(input), origin), init));
+    document.body.innerHTML = '<div id="root"></div>';
+    root = createRoot(document.getElementById('root')!);
+    await act(async () => root!.render(<Panel projectId="fixture" panel="database" />));
+    await until(() => Boolean(document.querySelector('[role="alert"]')));
+    expect(databaseHeading()?.textContent).toBe('All databases');
+    expect(document.querySelector('[aria-busy="true"], [data-panel-content], [data-empty]')).toBeNull();
+
+    const retry = document.querySelector<HTMLButtonElement>('[role="alert"] button')!;
+    expect(retry.disabled).toBe(false);
+    await act(async () => retry.click());
+    await until(() => requests.length === 2);
+    expect(databaseHeading()?.textContent).toBe('All databases');
+    expect(document.querySelector('[aria-busy="true"]')).not.toBeNull();
+    expect(document.querySelector('[role="alert"], [data-panel-content], [data-empty]')).toBeNull();
+    await act(async () => {
+      send(requests[1], 'recovered-envelope');
+      await pause(20);
+    });
+    await until(() => Boolean(document.querySelector('[data-attempt="recovered-envelope"]')));
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
+  });
+
+  it('keeps cached data mounted during a silent refresh', async () => {
+    const requests: ServerResponse[] = [];
+
+    const origin = await listen((_request, response) => {
+      requests.push(response);
+    });
+
+    const { Panel } = wrapper((input, init) => nativeFetch(new URL(String(input), origin), init));
+    writeProjectPanelCache('fixture:database', {
+      payload: { status: 'ok', data: { attempt: 'cached' } },
+      lastLoadedAt: new Date().toISOString(),
+    });
+    document.body.innerHTML = '<div id="root"></div>';
+    root = createRoot(document.getElementById('root')!);
+    await act(async () => root!.render(<Panel projectId="fixture" panel="database" />));
+    await until(() => requests.length === 1);
+    expect(document.querySelector('[data-attempt="cached"]')).not.toBeNull();
+    expect(databaseHeading()).toBeUndefined();
+    expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 });

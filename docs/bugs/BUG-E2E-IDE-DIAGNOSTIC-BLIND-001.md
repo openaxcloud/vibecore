@@ -15,7 +15,7 @@ Le rouge produit reste distinct et ouvert : sur main `b827b122`, le test `ide-mo
 
 ## 💻 Codé
 
-☐ Correctif préparé sur branche dédiée ; pas encore fusionné sur main.
+☑ Fusionné dans main par [#740](https://github.com/openaxcloud/vibecore/pull/740), `bb70c7b68`, le 19 octobre à 00:44:41 UTC. Livraison refusée par le gate E2E à 01:10:27 UTC ; non attesté en production.
 
 - Le conteneur réel `ide-service-panel[data-panel=database]`, sa visibilité, son chargement externe `aria-busy`, la présence et la visibilité du titre sont observés indépendamment. Le chargement interne reste un indicateur séparé.
 - Les événements navigateur `request`, `response`, `requestfinished`, `requestfailed` sont corrélés par objet Request. Une réponse reçue avec corps encore en cours reste distinguée d'une requête terminée. Les observateurs restent attachés jusqu'après le dernier échantillon et la capture des métadonnées.

@@ -19,8 +19,7 @@ palette et de l'enquête sur le titre DB absent en CI.
 
 ## 💻 Codé
 
-Correctif local sur `codex/panel-retry-recovery-20261018`, base `c42113233`.
-Fusion et déploiement non attestés par cette fiche.
+☑ Fusionné dans main par [#740](https://github.com/openaxcloud/vibecore/pull/740), `bb70c7b68`, le 19 octobre à 00:44:41 UTC. Livraison refusée par le gate E2E à 01:10:27 UTC ; non attesté en production.
 
 `panel-request.ts` conserve `createSingleFlight` et une promesse logique par
 couple projet/panneau. Seul un clic explicite Réessayer remplace sa tentative

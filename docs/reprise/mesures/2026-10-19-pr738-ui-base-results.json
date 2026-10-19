@@ -1,0 +1,43 @@
+{
+  "observedAtUtc": "2026-10-19T01:32:36.263435+00:00",
+  "pr": 738,
+  "head": "9245b8228e9445d834cebbaf601e5253edb76170",
+  "base": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+  "ci": {
+    "run": 39182463864,
+    "job": 117837935633,
+    "conclusion": "success",
+    "rootPassed": 9754,
+    "rootSkipped": 4,
+    "apiPassed": 2463,
+    "apiSkipped": 23,
+    "managerPassed": 152,
+    "agentPassed": 121,
+    "dependencyAudit": {
+      "total": 242,
+      "critical": 4,
+      "mode": "advisory"
+    }
+  },
+  "e2e": {
+    "run": 39182463910,
+    "verdictJob": 117844093221,
+    "conclusion": "failure",
+    "verdictAtUtc": "2026-10-19T01:16:01Z",
+    "reported": 454,
+    "persistentFailures": 1,
+    "flaky": 0,
+    "waived": 6,
+    "specs": "74/74",
+    "failure": "ide-mobile-chrome.spec.ts3377 initial heading absent",
+    "attemptDurationsSeconds": [
+      16.8,
+      18.3,
+      22.3
+    ],
+    "myDataFirstPassSeconds": 32.9
+  },
+  "merged": false,
+  "deployed": false,
+  "identicalRerunRequested": false
+}

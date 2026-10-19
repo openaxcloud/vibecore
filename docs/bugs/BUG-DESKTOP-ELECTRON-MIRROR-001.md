@@ -13,7 +13,9 @@ P2 — Les packages Desktop échouent au téléchargement d’Electron 42.0.0 de
 
 ## 💻 Codé
 
-☐ Correctif préparé, pas encore fusionné : retrait du seul bloc `electronDownload.mirror`. Le résolveur existant revient aux releases officielles GitHub ; versions, lockfile, TLS, proxy et contrôles CI restent identiques. Aucun retry global ou fallback ajouté.
+☑ Fusionné dans main par [#740](https://github.com/openaxcloud/vibecore/pull/740), `bb70c7b68`, le 19 octobre à 00:44:41 UTC. Livraison refusée par le gate E2E à 01:10:27 UTC ; non attesté en production.
+
+Correction : retrait du seul bloc `electronDownload.mirror`. Le résolveur existant revient aux releases officielles GitHub ; versions, lockfile, TLS, proxy et contrôles CI restent identiques. Aucun retry global ou fallback ajouté.
 
 ## ✅ Testé live
 
