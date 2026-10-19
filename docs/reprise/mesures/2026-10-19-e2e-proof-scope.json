@@ -1,0 +1,38 @@
+{
+  "atUtc": "2026-10-19T02:21:14.694553+00:00",
+  "sourceHead": "4fcfd12a765fef059afb995370a99a2e86f67dd8",
+  "unchangedWaivers": [
+    {
+      "test": "ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre",
+      "unstable": true,
+      "reason": "Presente dans 8 des 9 echecs des 20 derniers Production E2E. Rattrapee au retry sur la majorite des runs, en echec franc sur les autres \u2014 le comportement ne change pas, seul le tirage change."
+    },
+    {
+      "test": "ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran",
+      "unstable": true,
+      "reason": "Meme suite, meme instabilite : apparait tantot en echec franc, tantot dans `flaky (passed on retry)` sur le meme commit."
+    },
+    {
+      "test": "rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)",
+      "unstable": true,
+      "reason": "Presente dans 8 des 9 echecs. Documentee comme instable depuis le 2026-09-08 ; les deux variantes tombent toujours ensemble, ce qui pointe un montage partage et non un defaut de rendu."
+    },
+    {
+      "test": "rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)",
+      "unstable": true,
+      "reason": "Variante sombre de la precedente, toujours en echec avec elle."
+    },
+    {
+      "test": "ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads",
+      "unstable": true,
+      "reason": "Presente dans 6 des 9 echecs des 20 derniers Production E2E. Echouait deja sur `main` le 2026-09-08 a 21:07, 21:25, 21:37, 22:20 et 22:26 \u2014 donc AVANT toute livraison qui lui a ete imputee. Cette imputation erronee a coute plusieurs heures de production figee et l'annulation de deux rollouts sains."
+    },
+    {
+      "test": "mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se",
+      "unstable": true,
+      "reason": "Presente dans 2 des 9 echecs. SEULE cette variante a ete observee en echec : les autres appareils de la matrice restent bloquants, on ne deroge pas une suite entiere sur la foi d'un seul cas."
+    }
+  ],
+  "expiry": "2026-11-04",
+  "runtimeScope": "scripts/e2e-gate.mjs excludes files carrying only @runtime tests from required75-file coverage; e2e.yml grep-invert excludes @runtime cases. No claim of agent/runtime/cloud journey proof from this gate."
+}

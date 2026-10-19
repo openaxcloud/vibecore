@@ -1,0 +1,109 @@
+{
+  "recordedAtUtc": "2026-10-19T02:19:26.427619+00:00",
+  "lastSuccessfulDeploymentSha": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+  "candidateSha": "4fcfd12a765fef059afb995370a99a2e86f67dd8",
+  "classification": "Non-documentation/non-test candidates; includes build and validation configuration, not all runtime files",
+  "files": [
+    {
+      "status": "M",
+      "path": ".github/workflows/deploy-main.yml"
+    },
+    {
+      "status": "M",
+      "path": "Dockerfile"
+    },
+    {
+      "status": "M",
+      "path": "app/components/chat/BaseChat.tsx"
+    },
+    {
+      "status": "A",
+      "path": "app/components/chat/IdePaletteState.tsx"
+    },
+    {
+      "status": "A",
+      "path": "app/components/database/DatabaseHeading.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/components/database/DatabaseWorkbench.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/components/marketing/ecode-exact/pages/StatusPage.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/i18n/catalogs/marketing-exact-status-desktop.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/lib/ide/panel-request.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/marketing/ecode-public-runtime.server.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/routes/projects.$projectId.ide.tsx"
+    },
+    {
+      "status": "M",
+      "path": "electron-builder.yml"
+    },
+    {
+      "status": "M",
+      "path": "functions/[[path]].ts"
+    },
+    {
+      "status": "A",
+      "path": "legacy-marketing-entry.mjs"
+    },
+    {
+      "status": "A",
+      "path": "public/_redirects"
+    },
+    {
+      "status": "A",
+      "path": "scripts/check-public-status-local.mjs"
+    },
+    {
+      "status": "M",
+      "path": "scripts/tiers-a-jour.mjs"
+    },
+    {
+      "status": "M",
+      "path": "scripts/typecheck.mjs"
+    },
+    {
+      "status": "M",
+      "path": "server.mjs"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/app-public-copy.json"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/app.ts"
+    },
+    {
+      "status": "M",
+      "path": "services/workspace-agent/src/app.ts"
+    },
+    {
+      "status": "M",
+      "path": "services/workspace-agent/src/public-i18n.ts"
+    },
+    {
+      "status": "A",
+      "path": "tsconfig.ide-diagnostics.json"
+    },
+    {
+      "status": "M",
+      "path": "vite.config.ts"
+    }
+  ],
+  "deletedPathsAllScopes": []
+}

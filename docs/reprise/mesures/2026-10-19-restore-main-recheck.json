@@ -1,0 +1,66 @@
+{
+  "checkedAtUtc": "2026-10-19T00:27:23.643916+00:00",
+  "main": "43eef614ec3c56d8b7642f105b140e938f6868ef",
+  "inspectedWorktreeHead": "002fb39732d2958fb3b79951125f54aa294d2044",
+  "relevantFilesIdenticalToMain": true,
+  "fileHashes": {
+    "services/api/src/app.ts": "2a6cc81edbfaa02ecb8c76bf7be3e2e38358d44aa2374aa844e0706c172dcec4",
+    "services/api/src/database-provisioner.ts": "fda83761d0f0c06f07564f69d1549dd4526b07500e38cb7deec34dce7acca247",
+    "services/api/src/prisma-store.ts": "8e03620953966eb27706db103ce18f30c0466fe533629d837434b732ccc7446f"
+  },
+  "confirmedCodeGaps": [
+    {
+      "path": "services/api/src/app.ts",
+      "lines": [
+        33987,
+        33994,
+        34012,
+        34014
+      ],
+      "observation": "Snapshot metadata created before physical snapshot request; request errors swallowed. Restore completed solely on progress.ready."
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "lines": [
+        36000,
+        36011,
+        36076
+      ],
+      "observation": "Selected production/development instance is not forwarded to startRestore input."
+    },
+    {
+      "path": "services/api/src/database-provisioner.ts",
+      "lines": [
+        380,
+        384,
+        393,
+        411,
+        726,
+        746
+      ],
+      "observation": "On-demand backup and recovery source use default project cluster; restoreProgress only checks health/readyInstances, no data or connection cutover."
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "lines": [
+        3247,
+        3256
+      ],
+      "observation": "updateDatabaseRestore only changes status/error/timestamps."
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "lines": [
+        16506,
+        16531,
+        16539
+      ],
+      "observation": "Binary encoding now forwarded by merged #737; write/delete failures still swallowed, convergence not guaranteed."
+    }
+  ],
+  "limits": [
+    "Source inspection only, no live operator/cloud/restore action.",
+    "Does not claim all production restores currently fail.",
+    "Binary fix #737 is merged but not delivered as of this observation."
+  ]
+}

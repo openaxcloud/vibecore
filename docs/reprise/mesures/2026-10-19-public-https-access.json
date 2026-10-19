@@ -1,0 +1,34 @@
+{
+  "startedAtUtc": "2026-10-19T02:12:23.620910+00:00",
+  "finishedAtUtc": "2026-10-19T02:12:23.700436+00:00",
+  "scope": "Ordinary proxy path, no bypass, no credentials, no customer mutation",
+  "results": [
+    {
+      "domain": "e-code.ai",
+      "method": "HEAD",
+      "curlExitCode": 56,
+      "originHttpCode": "000",
+      "proxyConnectHttpCode": "403",
+      "originReached": false,
+      "errorClass": "proxy_connect_refused"
+    },
+    {
+      "domain": "app.e-code.ai",
+      "method": "HEAD",
+      "curlExitCode": 56,
+      "originHttpCode": "000",
+      "proxyConnectHttpCode": "403",
+      "originReached": false,
+      "errorClass": "proxy_connect_refused"
+    },
+    {
+      "domain": "api.e-code.ai",
+      "method": "HEAD",
+      "curlExitCode": 56,
+      "originHttpCode": "000",
+      "proxyConnectHttpCode": "403",
+      "originReached": false,
+      "errorClass": "proxy_connect_refused"
+    }
+  ]
+}

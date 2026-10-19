@@ -30,3 +30,16 @@ contrat distinct : création sans archive et restauration par identifiant annonc
 ci-dessus. Pour clôturer le lancement : restauration isolée autorisée, comparaison
 des données/octets, bascule et reconnexion vérifiées, mesures RPO/RTO et retour
 arrière. Les durées des runbooks sont des objectifs tant que cet exercice manque.
+
+## Contre-épreuve du 19 octobre — sources main vérifiées
+
+[Preuve structurée et limites](mesures/2026-10-19-restore-contract-reproduction.json) :
+deux passages, chacun deux témoins verts et deux contrats rouges, durées
+20,95 s et 12,93 s. L'environnement production disparaît de `startRestore` ;
+le manifeste sans suffixe production est observé. Un simple statut CNPG prêt
+fait aussi passer `RUNNING` à `COMPLETED`, sans écriture de secret applicatif ni
+lecture du secret de connexion manager. La comparaison des secrets porte sur
+leurs métadonnées seulement. Fastify et provisionneur réels, HTTP loopback avec
+fixtures explicites, store mémoire ; aucun PostgreSQL/GCS/CNPG/PVC physique.
+Aucun appel distant et quatre serveurs fermés à chaque passage. Les défauts
+restent ouverts, distincts de la correction binaire #737 maintenant fusionnée.

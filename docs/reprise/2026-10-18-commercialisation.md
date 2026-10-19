@@ -1,6 +1,28 @@
 # Vérification avant commercialisation — 18 octobre 2026
 
-> **Actualisation du 19 octobre, 02:08 UTC — lancement toujours non validé.** Main reste `bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a` après #740 (00:44:41 UTC) ; CI verte, E2E rouges, livraison refusée à 01:10:27 UTC avant build/rollout. [Preuves main](mesures/2026-10-19-main740-database-failure.json). Dernière livraison réussie : `c6439da55` le 18 octobre à 21:35 UTC ; version HTTPS réellement servie toujours inaccessible via le proxy. #738, tête `9245b8228`, attend le correctif Database. #741 tête `a07f7c0c0` a réussi sa CI et ses E2E (456 cas, zéro échec/zéro flaky, six exemptions, 75/75 fichiers), mais sa contre-revue a reproduit une disparition de Retry au poll après erreur : fusion retenue, delta local corrigé et validé par 72 tests, types, lint, build, quatre cas navigateur réels et reprise intégrée. [Preuves et limites](mesures/2026-10-19-database-silent-poll-validation.json). Ce delta doit encore passer sa propre CI. Aucun seuil/retry/exemption assoupli, aucune cause de latence amont attribuée. Les observations suivantes restent historiques.
+> **Actualisation du 19 octobre, 02:42 UTC — lancement toujours non validé.** #741 est fusionnée depuis **02:38:54 UTC**, main `9d7ff755ccb99b152891ef1f426995fc35061c06`, arbre identique à la tête validée `4fcfd12a7`. Trente contrôles réussis, deux sauts ; E2E 456 cas rapportés, zéro échec/zéro flaky Chromium, six exemptions, 75/75 fichiers. WebKit séparé : 16 succès directs, un flaky, trois sauts. Le P2 du poll silencieux est reproduit et corrigé dans cette fusion. [Preuves #741](mesures/2026-10-19-pr741-result.json). Les contrôles et la livraison du nouveau main sont en cours, sans succès de déploiement confirmé. Dernière livraison réussie encore attestée : `c6439da55` le 18 octobre à 21:35 UTC. À **02:12:23 UTC**, HEAD sur les trois domaines publics reste refusé par le proxy (CONNECT 403, origine non atteinte) : [relevé actuel](mesures/2026-10-19-public-https-access.json). #738 est rebasée localement sur `9d7ff755c` : cinq fichiers quota identiques, 68 tests ciblés et types API verts ; nouvelle CI encore à exécuter. Aucun succès Stripe réel ou parcours agent/publication déduit de ces tests. Les observations suivantes restent historiques.
+
+## Blocages précisés le 19 octobre
+
+La [contre-épreuve de restauration](mesures/2026-10-19-restore-contract-reproduction.json)
+reproduit deux défauts sur les sources main : environnement production perdu
+avant provisionnement et `COMPLETED` déclenché par la seule santé du cluster,
+sans bascule applicative observée. Deux passages donnent chacun deux témoins
+verts et deux assertions de sécurité rouges. Fastify/provisionneur réels,
+fixtures HTTP loopback et store mémoire ; aucune archive, restauration physique
+ou intégrité de données validée. Les deux fiches P1 restent ouvertes.
+
+La [revue des alertes critiques](mesures/2026-10-19-critical-advisories-review.json)
+distingue quatre lignes de rapport et trois avis : Capacitor natif Android/iOS
+8.3.1 doit être corrigé avant distribution native ; Tinypool 1.1.1 apparaît dans
+l'outillage Vitest, avec pollution préalable du prototype requise pour les
+vecteurs documentés. Aucun exploit web/API n'est démontré. Les images servies
+et leurs SBOM restent inaccessibles ; les 92 alertes élevées ne sont pas couvertes
+par cette revue ciblée. Ces réserves ne sont pas clôturées par la CI verte.
+
+Le [périmètre du verdict E2E](mesures/2026-10-19-e2e-proof-scope.json) conserve six
+exemptions et exclut les cas `@runtime`. Il ne remplace pas le parcours réel
+inscription → agent → exécution → persistance → publication accessible.
 
 **Décision : lancement commercial complet non validé.** Ce verdict exprime
 des défauts de code reproduits et des preuves indispensables manquantes, pas
@@ -21,7 +43,42 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 23:37 UTC
+## Actualisation du 19 octobre — 00:47 UTC
+
+Main est désormais `bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a` :
+[#740](https://github.com/openaxcloud/vibecore/pull/740) fusionnée à
+**00:44:41 UTC**, après 33 contrôles terminés, 31 succès et deux sauts
+conditionnels. La palette conserve son état pendant le remplacement de coque,
+Retry remplace une tentative HTTP en attente sans perdre ses consommateurs,
+et le miroir Electron défaillant est retiré. Les deux refus unitaires ont
+été reproduits puis corrigés sans retirer les protections ; la tête finale
+`002fb3973` passe 9 754 tests racine, 2 428 API, 152 manager et 121 agent,
+ainsi que les builds. L'E2E rapporte 454 cas, zéro échec persistant, une
+instabilité Webview mobile et six exemptions inchangées, 74/74 fichiers.
+Palette, styles et deux cas DB passent au premier essai ; la cause historique
+des échecs DB reste inconnue. Trois packages Desktop, quatre audits EN/FR et
+le canari WebKit (17 succès/trois sauts existants) passent.
+[Résultats et liste des fichiers](mesures/2026-10-19-pr740-result.json).
+
+La [CI de main](https://github.com/openaxcloud/vibecore/actions/runs/39182148503),
+ses [E2E](https://github.com/openaxcloud/vibecore/actions/runs/39182148514)
+et son [déploiement](https://github.com/openaxcloud/vibecore/actions/runs/39182148402)
+sont en cours à ce relevé. **Fusion ne signifie pas livraison.** La dernière
+livraison réussie attestée reste #735 à 21:35:00 UTC le 18 octobre ; les
+changements #736/#737 restent non livrés. La version réellement servie sur
+les domaines publics demeure inconnue, faute d'accès HTTPS à l'origine.
+L'audit dépendances conserve 242 alertes, dont quatre critiques : aucun
+constat d'absence de vulnérabilité ou d'inaccessibilité runtime n'en est déduit.
+
+#738 est réactualisée sur cette base, avec code quota identique et index
+régénéré ; ses nouveaux contrôles restent requis. Les cinq critères de
+lancement ci-dessous et leurs dépendances externes restent ouverts. La
+[relecture de restauration sur les fichiers actuels](mesures/2026-10-19-restore-main-recheck.json)
+confirme la distinction : encodage binaire corrigé par #737, mais contrat
+PITR, sélection d'environnement, bascule et convergence toujours non validés.
+Aucune nouvelle ressource payante, donnée client ou opération cloud utilisée.
+
+## Historique de la reprise du 18 octobre — relevé à 23:37 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
