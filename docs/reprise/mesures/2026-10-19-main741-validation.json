@@ -1,0 +1,108 @@
+{
+  "observedAtUtc": "2026-10-19T03:07:19.283612+00:00",
+  "mainSha": "9d7ff755ccb99b152891ef1f426995fc35061c06",
+  "mergedPr": 741,
+  "runs": [
+    {
+      "id": 39190954169,
+      "name": "Production CI",
+      "head_sha": "9d7ff755ccb99b152891ef1f426995fc35061c06",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-19T02:38:57Z",
+      "updated_at": "2026-10-19T03:01:27Z",
+      "run_attempt": 1,
+      "html_url": "https://github.com/openaxcloud/vibecore/actions/runs/39190954169"
+    },
+    {
+      "id": 39190954143,
+      "name": "Production E2E",
+      "head_sha": "9d7ff755ccb99b152891ef1f426995fc35061c06",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-19T02:38:57Z",
+      "updated_at": "2026-10-19T03:04:17Z",
+      "run_attempt": 1,
+      "html_url": "https://github.com/openaxcloud/vibecore/actions/runs/39190954143"
+    }
+  ],
+  "ci": {
+    "jobId": 117863419214,
+    "finishedAtUtc": "2026-10-19T03:01:26Z",
+    "root": {
+      "passed": 9760,
+      "skipped": 4
+    },
+    "api": {
+      "passed": 2428,
+      "skipped": 23
+    },
+    "manager": {
+      "passed": 152
+    },
+    "agent": {
+      "passed": 121
+    },
+    "typecheck": "success",
+    "builds": "success",
+    "advisoryAudit": {
+      "total": 242,
+      "low": 28,
+      "moderate": 118,
+      "high": 92,
+      "critical": 4
+    }
+  },
+  "e2e": {
+    "verdictJobId": 117869301318,
+    "verdictAtUtc": "2026-10-19T03:04:13Z",
+    "reported": 456,
+    "persistentFailures": 0,
+    "flaky": 3,
+    "waivers": 6,
+    "waiverExpiry": "2026-11-04",
+    "expectedSpecs": 75,
+    "observedSpecs": 75,
+    "reports": 4,
+    "firstPassDatabaseCases": [
+      {
+        "file": "database-loading-context.spec.ts",
+        "language": "en",
+        "durationSeconds": 11.1
+      },
+      {
+        "file": "database-loading-context.spec.ts",
+        "language": "fr",
+        "durationSeconds": 10.9
+      },
+      {
+        "file": "ide-mobile-chrome.spec.ts",
+        "line": 3377,
+        "durationSeconds": 26.7
+      },
+      {
+        "file": "ide-mobile-chrome.spec.ts",
+        "line": 3461,
+        "durationSeconds": 27.4
+      }
+    ],
+    "flakyCases": [
+      "ide-floating-file-tabs.spec.ts:8",
+      "ide-floating-viewport.spec.ts:87",
+      "ide-mobile-file-restore.spec.ts:513 at768"
+    ]
+  },
+  "webkit": {
+    "jobId": 117863515402,
+    "passed": 17,
+    "skipped": 3,
+    "flaky": 0,
+    "productionSafariProven": false
+  },
+  "limits": [
+    "No runtime-tagged journey exercised by blocking E2E",
+    "No public production browser verification",
+    "Existing waivers/retries unchanged; no identical rerun requested",
+    "CI success alone is not deployment success"
+  ]
+}

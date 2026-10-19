@@ -35,3 +35,11 @@ ni écriture du secret applicatif. L'égalité avant/après des secrets concerne
 seulement leurs métadonnées ; l'absence d'écriture est observée séparément.
 Fastify/provisionneur réels, HTTP loopback avec fixtures explicites et store
 mémoire ; aucun cloud ou client touché. Ce n'est pas une restauration physique.
+
+## Reproductibilité et prochaine correction
+
+Les scripts, configurations et logs actuels sont temporaires, référencés par
+empreinte : la contre-épreuve n’est pas entièrement contre-auditable depuis
+GitHub et ne constitue pas une nouvelle garde CI. La future correction devra
+versionner une reproduction propre sans secret et ses tests de non-régression,
+avec le correctif ; ne pas ajouter un test connu rouge à main sans résolution.

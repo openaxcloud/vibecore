@@ -5,7 +5,8 @@ Ce fichier n'est pas un second registre de statuts.
 
 ## Lire les sources de vérité
 
-- [Vérification avant commercialisation du 18 octobre](docs/reprise/2026-10-18-commercialisation.md) : relevé actuel de main, CI et livraison, accès production limité, défaut de ressources reproduit et conditions de lancement encore non prouvées.
+- [État du lancement du 19 octobre](docs/reprise/2026-10-19-etat-lancement.md) : fusions, validations de main et état de livraison distingués des preuves en production ; cinq conditions indispensables encore ouvertes.
+- [Vérification avant commercialisation du 18 octobre](docs/reprise/2026-10-18-commercialisation.md) : historique détaillé de la reprise, accès production limité et défaut de ressources reproduit.
 - [Inventaire de reprise du 11 octobre](docs/reprise/2026-10-11-inventaire.md) : conserver les 71 entrées A-1–A-35 et B-1–B-36, leurs preuves et leurs réserves.
 - [Complément de périmètre et priorités](docs/reprise/2026-10-12-complement-inventaire.md) : A-36/A-37, B-4bis, C à F et ordre P0–P4 ; les observations anciennes ne valent pas vérification actuelle.
 - [A-37 : compilation locale revalidée](docs/reprise/2026-10-12-a37-compilation-locale.md) : défaut actuel du wrapper HMR reproduit ; aucune clôture du parcours génération/publication live.

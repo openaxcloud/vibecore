@@ -15,7 +15,7 @@ P1 — L'offre actuellement routée `/pricing` annonce des messages et déploiem
 
 ## 💻 Codé
 
-☐ — Candidat local ; aucune fusion ni livraison attestée par cette fiche.
+☑ — Fusion protégée de #738 le 19 octobre 2026 à **03:13:44 UTC**, main `bbbcf3239`, tête validée `816e62ec2`. [Preuves exactes](../reprise/mesures/2026-10-19-pr738-result.json). Livraison encore en attente au relevé de fusion ; aucune preuve Stripe réelle.
 
 Une résolution mensuelle dédiée s'applique uniquement aux allocations de messages, jetons, appels d'outils, previews publiques, déploiements et instantanés. La résolution historique reste utilisée par les vues financières, `/credits`, les alertes PAYG et les plafonds de dépense par membre ; leurs agrégations et dates de facturation ne changent pas. Les jauges de projets, membres, espaces actifs, stockage et terminaux gardent leurs mécanismes existants. Aucun montant, plan, checkout, webhook, statut d'abonnement, crédit prépayé ou donnée persistée n'est changé.
 
@@ -41,7 +41,7 @@ La contre-revue indépendante n'a trouvé aucun nouveau P0/P1/P2 après isolemen
 
 ## ✅ Testé live
 
-☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Les CI historiques de #738 sont réussies, mais l'E2E de `bee26fd28` reste refusé sur un cas DB ; aucune fusion, livraison ou parcours payé réel attesté. Le correctif dépend de bornes de période valides déjà enregistrées ; il ne répare pas un abonnement dont les dates sont absentes ou incorrectes et n'invente pas leur valeur.
+☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Les refus historiques restent conservés ; la tête finale `816e62ec2` est fusionnée après CI et E2E verts. La livraison et le parcours payé réel ne sont pas encore attestés au relevé de fusion. Le correctif dépend de bornes de période valides déjà enregistrées ; il ne répare pas un abonnement dont les dates sont absentes ou incorrectes et n'invente pas leur valeur.
 
 ## Réactualisation après le correctif UI — 19 octobre
 
@@ -69,3 +69,20 @@ conservées sans les attribuer à une nouvelle exécution. Index régénéré, e
 #740 en double retirée, journal #741 consigné. La nouvelle tête doit encore
 passer sa propre CI avant fusion ; aucune livraison du quota ni preuve Stripe
 mode test ou paiement réel n'est revendiquée.
+
+## Fusion du 19 octobre — 03:13:44 UTC
+
+La tête finale `816e62ec2` passe 9 760 tests racine et 2 463 API ; E2E :
+456 cas rapportés, zéro échec persistant/zéro flaky Chromium, six exemptions
+inchangées, 75/75 fichiers. WebKit distinct : 16 passés, un flaky, trois sauts.
+Fusion `bbbcf3239`, arbre identique, contrôles et livraison de main suivis séparément.
+Les paragraphes de rebase précédents sont historiques.
+
+## Validation de main après fusion — 19 octobre
+
+Main `bbbcf3239` passe sa CI à **03:27:16 UTC** (9 760 tests racine,
+2 463 API), puis les E2E à **03:39:59 UTC** : 456 cas rapportés, zéro
+échec persistant, cinq cas réussis après reprise, six exemptions inchangées
+et 75/75 fichiers. WebKit séparé : 16 classés passés, un flaky et trois sauts.
+[Preuve distincte de la PR](../reprise/mesures/2026-10-19-main738-validation.json).
+Ces résultats ne prouvent ni la livraison ni Stripe TEST.

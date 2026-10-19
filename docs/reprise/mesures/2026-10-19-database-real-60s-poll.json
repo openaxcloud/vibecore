@@ -1,0 +1,286 @@
+{
+  "recordedAtUtc": "2026-10-19T02:58:51.529542+00:00",
+  "sourceHead": "4fcfd12a765fef059afb995370a99a2e86f67dd8",
+  "mainMergeWithIdenticalTree": "9d7ff755ccb99b152891ef1f426995fc35061c06",
+  "startedAtUtc": "2026-10-19T02:56:21.991996+00:00",
+  "finishedAtUtc": "2026-10-19T02:57:49.312350+00:00",
+  "result": "success",
+  "probeExitCode": 0,
+  "browser": {
+    "engine": "Chromium",
+    "version": "154.0.8037.57",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "locale": "en",
+    "realClock": true,
+    "repositoryAssertionsChanged": false
+  },
+  "scope": {
+    "firstGet": "Explicit HTTP200 status:error fixture; no claim that the upstream produced this error",
+    "secondGet": "Real local API/PostgreSQL response, retained until after manual Retry",
+    "thirdGet": "Real local API/PostgreSQL response, original bytes fulfilled; recovery visible in browser",
+    "services": "Existing local PostgreSQL QA at loopback55439; temporary owned API3301/web3173",
+    "existingBuild": "Prior final build from #741; no product source edited or new build for this probe",
+    "noProof": [
+      "production outage/recovery",
+      "Safari",
+      "real agent generation",
+      "publication",
+      "physical restore",
+      "SQL cancellation",
+      "delivery to browser of the old aborted second request"
+    ]
+  },
+  "checks": {
+    "databaseSetupConfirmed": true,
+    "observedPollIntervalMs": 59985,
+    "errorAndRetrySurviveRealPoll": true,
+    "pollBrowserRequestAborted": true,
+    "requestsAfterRetry": 3,
+    "realDatabaseCardReady": true,
+    "lateOldHandlerDidNotRemoveRecoveredPanel": true,
+    "retryResponseRestoredPanel": true
+  },
+  "tableChecks": {
+    "tableCount": 128,
+    "sampledNamesNonEmpty": true,
+    "sampledNamesDistinct": true,
+    "sampledRowCountsNumeric": true
+  },
+  "timeline": [
+    {
+      "label": "setup-confirmed",
+      "elapsedMs": 6531,
+      "mobilePanel": "chat",
+      "databaseTabActive": false,
+      "databaseContainerMounted": false,
+      "databaseContainerVisible": false,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 3,
+      "urlPanelIsDatabase": false
+    },
+    {
+      "label": "explicit-error-visible-before-real-poll",
+      "elapsedMs": 7167,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": true,
+      "headingVisible": true,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 1,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "label": "real-poll-in-flight-after-error",
+      "elapsedMs": 67389,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": true,
+      "headingVisible": true,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 1,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "event": "retry-clicked",
+      "elapsedMs": 67649
+    },
+    {
+      "label": "retry-response-delivered-root-ready",
+      "elapsedMs": 68642,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": true,
+      "headingVisible": true,
+      "visibleCards": 1,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "event": "delivery-gate-opened",
+      "elapsedMs": 68853
+    },
+    {
+      "label": "real-tables-ready",
+      "elapsedMs": 69891,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 128,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    }
+  ],
+  "responses": [
+    {
+      "index": 1,
+      "requestedAtMs": 7039,
+      "explicitErrorFixture": true,
+      "fixtureDeliveredAtMs": 7045
+    },
+    {
+      "index": 2,
+      "requestedAtMs": 67024,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 67362,
+      "responseBytes": 3422,
+      "envelopeStatus": "ok",
+      "routeFulfillResolvedAtMs": 68856,
+      "routeFulfillUsedUnchangedUpstreamBytes": true
+    },
+    {
+      "index": 3,
+      "requestedAtMs": 67716,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 68143,
+      "responseBytes": 3422,
+      "envelopeStatus": "ok",
+      "routeFulfillResolvedAtMs": 68146,
+      "routeFulfillUsedUnchangedUpstreamBytes": true
+    }
+  ],
+  "browserFailures": [
+    {
+      "elapsedMs": 67716,
+      "code": "ERR_ABORTED"
+    }
+  ],
+  "elapsedMs": 70443,
+  "memory": {
+    "beforeWrapperBytes": 3893194752,
+    "peakObservedBytes": 5067440128,
+    "sampleIntervalSeconds": 2,
+    "cgroupLimitBytes": 17179869184,
+    "afterBytes": 3909148672
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "ownDatabaseBindingRemoved": true,
+    "ownDatabaseBindingDeleteStatus": 200,
+    "ownProjectDeleteStatus": 200,
+    "ownProjectRemoved": true,
+    "qaIdentityRetained": true,
+    "qaProjectRetained": false
+  },
+  "processCleanup": {
+    "checkedAtUtc": "2026-10-19T02:58:09.980214+00:00",
+    "remainingOwnedGroupProcesses": [
+      {
+        "pid": 186622,
+        "ppid": 1,
+        "pgid": 186605,
+        "state": "Z"
+      },
+      {
+        "pid": 186623,
+        "ppid": 1,
+        "pgid": 186605,
+        "state": "Z"
+      },
+      {
+        "pid": 186755,
+        "ppid": 1,
+        "pgid": 186605,
+        "state": "Z"
+      }
+    ],
+    "activeOwnedProcesses": 0,
+    "ports": [
+      {
+        "port": 3301,
+        "free": true
+      },
+      {
+        "port": 3173,
+        "free": true
+      }
+    ]
+  },
+  "captures": [
+    {
+      "path": "docs/reprise/captures/2026-10-19-real-60s-poll-1.png",
+      "localSource": "01-explicit-error-before-poll.png",
+      "sha256": "8e3ea89d34f05431e2b3cf6af598246b1e5360583548b8b9813e8902caf16531"
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-real-60s-poll-2.png",
+      "localSource": "02-error-and-retry-during-real-poll.png",
+      "sha256": "8e3ea89d34f05431e2b3cf6af598246b1e5360583548b8b9813e8902caf16531"
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-real-60s-poll-3.png",
+      "localSource": "03-retry-recovered-real-database-list.png",
+      "sha256": "433d3a7da3bc18dae9e170a3551107159bed084649a5c78d7201f765a66ef8b5"
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-real-60s-poll-4.png",
+      "localSource": "04-real-tables-ready.png",
+      "sha256": "8ebb56a472659b243e4d72d34e29e2a7e43cd9f53e22237406b9cdfd9870af6b"
+    }
+  ],
+  "visualReview": {
+    "rootInspected": [
+      "02-error-and-retry-during-real-poll.png",
+      "04-real-tables-ready.png"
+    ],
+    "independentReview": {
+      "reviewer": "review_workspace_timestamp",
+      "result": "No blocking issue in local proof; all4captures inspected; no secrets or row contents; late aborted response consumption not claimed",
+      "scope": "read-only; no repeated test"
+    }
+  },
+  "interpretation": "The already-merged P2 fix survives the real60second timer in an integrated Chromium session after an injected initial error. Manual retry recovers via actual local PostgreSQL. The old background browser request aborts; a later route.fulfill resolution is not proof of old response delivery.",
+  "sourceHeadMeaning": "Checkout during the browser probe; not a claim that the reused build was started on that committed head.",
+  "buildProvenance": {
+    "relatedProof": "2026-10-19-database-silent-poll-validation.json",
+    "existingBuild": {
+      "name": "build",
+      "startedAtUtc": "2026-10-19T01:58:48.887369+00:00",
+      "memoryBeforeBytes": 4153090048,
+      "memoryLimitBytes": 17179869184,
+      "exitCode": 0,
+      "peakObservedMemoryBytes": 12457005056,
+      "finishedAtUtc": "2026-10-19T02:05:11.590101+00:00"
+    },
+    "commentOnlyFormatting": {
+      "atUtc": "2026-10-19T02:02:10.919Z",
+      "file": "app/components/chat/BaseChat.tsx",
+      "beforeSha256": "3195f3b4502122366eb1fb32f1fcf1a175796da47ed696125f3b728554fd73bd",
+      "afterSha256": "f4ff462d54089d5d23f9c7ac3253ab827f804d2bf568ad2073812e17342db60c",
+      "transpiledWithCommentsRemovedSha256": "b4de86aa650e2baa407187ef2fee88102d65468de245d16caec215a056bcc178",
+      "identicalTranspiledOutput": true,
+      "buildStartedBeforeFormatting": true,
+      "limitation": "Local web types, unit tests and build were started against the pre-formatting source; only a comment delimiter changed. New remote CI will validate the committed bytes."
+    },
+    "committedBytesValidation": "Final PR4fc CI and merged9d7 CI both passed; see2026-10-19-pr741-result.json and2026-10-19-main741-validation.json",
+    "limit": "No byte-for-byte equality of the reused browser bundle with a new CI bundle is asserted."
+  }
+}
