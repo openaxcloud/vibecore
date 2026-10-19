@@ -257,5 +257,30 @@
       "scope": "read-only; no repeated test"
     }
   },
-  "interpretation": "The already-merged P2 fix survives the real60second timer in an integrated Chromium session after an injected initial error. Manual retry recovers via actual local PostgreSQL. The old background browser request aborts; a later route.fulfill resolution is not proof of old response delivery."
+  "interpretation": "The already-merged P2 fix survives the real60second timer in an integrated Chromium session after an injected initial error. Manual retry recovers via actual local PostgreSQL. The old background browser request aborts; a later route.fulfill resolution is not proof of old response delivery.",
+  "sourceHeadMeaning": "Checkout during the browser probe; not a claim that the reused build was started on that committed head.",
+  "buildProvenance": {
+    "relatedProof": "2026-10-19-database-silent-poll-validation.json",
+    "existingBuild": {
+      "name": "build",
+      "startedAtUtc": "2026-10-19T01:58:48.887369+00:00",
+      "memoryBeforeBytes": 4153090048,
+      "memoryLimitBytes": 17179869184,
+      "exitCode": 0,
+      "peakObservedMemoryBytes": 12457005056,
+      "finishedAtUtc": "2026-10-19T02:05:11.590101+00:00"
+    },
+    "commentOnlyFormatting": {
+      "atUtc": "2026-10-19T02:02:10.919Z",
+      "file": "app/components/chat/BaseChat.tsx",
+      "beforeSha256": "3195f3b4502122366eb1fb32f1fcf1a175796da47ed696125f3b728554fd73bd",
+      "afterSha256": "f4ff462d54089d5d23f9c7ac3253ab827f804d2bf568ad2073812e17342db60c",
+      "transpiledWithCommentsRemovedSha256": "b4de86aa650e2baa407187ef2fee88102d65468de245d16caec215a056bcc178",
+      "identicalTranspiledOutput": true,
+      "buildStartedBeforeFormatting": true,
+      "limitation": "Local web types, unit tests and build were started against the pre-formatting source; only a comment delimiter changed. New remote CI will validate the committed bytes."
+    },
+    "committedBytesValidation": "Final PR4fc CI and merged9d7 CI both passed; see2026-10-19-pr741-result.json and2026-10-19-main741-validation.json",
+    "limit": "No byte-for-byte equality of the reused browser bundle with a new CI bundle is asserted."
+  }
 }

@@ -15,8 +15,12 @@ deux sauts conditionnels ; 9 760 tests racine et 2 463 API passent. E2E :
 inchangées, 75/75 fichiers. WebKit séparé : 16 classés passés, un flaky,
 trois sauts. [Fichiers exacts et résultats](mesures/2026-10-19-pr738-result.json).
 
-Au relevé de fusion, les contrôles du nouveau main sont en cours et sa
-[livraison](https://github.com/openaxcloud/vibecore/actions/runs/39193686200)
+Les contrôles du nouveau main passent : CI à **03:27:16 UTC**, E2E à
+**03:39:59 UTC**, 456 cas rapportés, zéro échec persistant, **cinq cas réussis
+après reprise**, six exemptions inchangées et 75/75 fichiers. Les quatre cas
+DB examinés passent au premier essai. WebKit séparé : 16 classés passés, un
+flaky et trois sauts. [Preuves main](mesures/2026-10-19-main738-validation.json).
+Sa [livraison](https://github.com/openaxcloud/vibecore/actions/runs/39193686200)
 attend celle de #741. Le dernier déploiement réussi attesté reste `c6439da55`,
 le 18 octobre à 21:35 UTC. **Aucune nouvelle version servie n'est déduite de
 la fusion.**
@@ -28,8 +32,9 @@ E2E à **03:04:13 UTC** rapporte 456 cas, zéro échec persistant, trois
 instabilités, six exemptions inchangées et 75/75 fichiers. Les quatre cas DB
 examinés passent au premier essai. WebKit de ce main : 17 passent, trois
 sauts. [Preuves main](mesures/2026-10-19-main741-validation.json).
-Sa livraison a franchi ses barrières et construit le runtime ; aucun rollout
-réussi n'est encore attesté dans ce relevé.
+Sa livraison a franchi ses barrières ; la construction du runtime réussit à
+**03:35:19 UTC** après 29 min 28 s. La construction web est encore en cours
+au relevé de **03:43 UTC** ; aucun rollout réussi n'est encore attesté.
 
 Les correctifs #736 (indicateurs honnêtes), #737 (archives runtime et octets
 binaires) et #740 (palette, Retry et build Desktop) sont également fusionnés.

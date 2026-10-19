@@ -77,3 +77,12 @@ La tête finale `816e62ec2` passe 9 760 tests racine et 2 463 API ; E2E :
 inchangées, 75/75 fichiers. WebKit distinct : 16 passés, un flaky, trois sauts.
 Fusion `bbbcf3239`, arbre identique, contrôles et livraison de main suivis séparément.
 Les paragraphes de rebase précédents sont historiques.
+
+## Validation de main après fusion — 19 octobre
+
+Main `bbbcf3239` passe sa CI à **03:27:16 UTC** (9 760 tests racine,
+2 463 API), puis les E2E à **03:39:59 UTC** : 456 cas rapportés, zéro
+échec persistant, cinq cas réussis après reprise, six exemptions inchangées
+et 75/75 fichiers. WebKit séparé : 16 classés passés, un flaky et trois sauts.
+[Preuve distincte de la PR](../reprise/mesures/2026-10-19-main738-validation.json).
+Ces résultats ne prouvent ni la livraison ni Stripe TEST.

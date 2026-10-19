@@ -1,0 +1,158 @@
+{
+  "observedAtUtc": "2026-10-19T03:43:52.254549+00:00",
+  "mainSha": "bbbcf3239296dfa55d60160aba8e19742136a111",
+  "mergedPr": 738,
+  "runs": [
+    {
+      "id": 39193686218,
+      "name": "Production CI",
+      "head_sha": "bbbcf3239296dfa55d60160aba8e19742136a111",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-19T03:13:47Z",
+      "updated_at": "2026-10-19T03:27:17Z",
+      "run_attempt": 1,
+      "html_url": "https://github.com/openaxcloud/vibecore/actions/runs/39193686218"
+    },
+    {
+      "id": 39193686202,
+      "name": "Production E2E",
+      "head_sha": "bbbcf3239296dfa55d60160aba8e19742136a111",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-19T03:13:47Z",
+      "updated_at": "2026-10-19T03:39:59Z",
+      "run_attempt": 1,
+      "html_url": "https://github.com/openaxcloud/vibecore/actions/runs/39193686202"
+    }
+  ],
+  "ci": {
+    "jobId": 117871730413,
+    "finishedAtUtc": "2026-10-19T03:27:16Z",
+    "root": {
+      "passed": 9760,
+      "skipped": 4
+    },
+    "api": {
+      "passed": 2463,
+      "skipped": 23
+    },
+    "manager": {
+      "passed": 152
+    },
+    "agent": {
+      "passed": 121
+    },
+    "typecheck": "success",
+    "builds": "success",
+    "advisoryAudit": {
+      "total": 242,
+      "low": 28,
+      "moderate": 118,
+      "high": 92,
+      "critical": 4
+    }
+  },
+  "e2e": {
+    "verdictJobId": 117878019310,
+    "finishedAtUtc": "2026-10-19T03:39:59Z",
+    "reported": 456,
+    "persistentFailures": 0,
+    "flaky": 5,
+    "waivers": 6,
+    "waiverExpiry": "2026-11-04",
+    "expectedSpecs": 75,
+    "observedSpecs": 75,
+    "reports": 4,
+    "firstPassDatabaseCases": [
+      {
+        "file": "database-loading-context.spec.ts",
+        "language": "en",
+        "durationSeconds": 11.3
+      },
+      {
+        "file": "database-loading-context.spec.ts",
+        "language": "fr",
+        "durationSeconds": 11.9
+      },
+      {
+        "file": "ide-mobile-chrome.spec.ts",
+        "line": 3377,
+        "durationSeconds": 24.2
+      },
+      {
+        "file": "ide-mobile-chrome.spec.ts",
+        "line": 3461,
+        "durationSeconds": 31.6
+      }
+    ],
+    "flakyCases": [
+      {
+        "file": "ide-mobile-chrome.spec.ts",
+        "line": 1008,
+        "case": "composer menus Agent/Economique, phone 390"
+      },
+      {
+        "file": "ide-mobile-chrome.spec.ts",
+        "line": 1794,
+        "case": "speech dictation UI lifecycle, phone 390"
+      },
+      {
+        "file": "mobile-device-matrix.spec.ts",
+        "line": 320,
+        "case": "iphone-pro-max"
+      },
+      {
+        "file": "mobile-device-matrix.spec.ts",
+        "line": 320,
+        "case": "android-landscape"
+      },
+      {
+        "file": "mobile-device-matrix.spec.ts",
+        "line": 320,
+        "case": "ipad-mini-portrait"
+      }
+    ],
+    "flakyReview": {
+      "scope": "CI logs and exact source; no rerun, no production proof",
+      "allFivePassedAtRetry": 1,
+      "observations": [
+        {
+          "case": "composer menus",
+          "firstFailure": "boundingBox request for Economique exceeded overall 150 s test budget after visibility/enabled checks",
+          "limit": "Does not show that the button was absent for 150 s"
+        },
+        {
+          "case": "dictation lifecycle",
+          "firstFailure": "aria-pressed and placeholder had returned to idle; immediate computed-color assertion still saw red",
+          "scope": "Speech engine is an explicit test fixture; no real microphone failure established"
+        },
+        {
+          "case": "device matrix",
+          "firstFailures": "two forced clicks saw elements become invisible; one computed font-size parsed as NaN",
+          "limit": "NaN is not proof of font size being too small; no DOM connectedness measurement at failure"
+        }
+      ],
+      "cause": "No common root cause established; source mechanisms such as responsive shell replacement or CSS transition remain hypotheses",
+      "sourcesMatchMainSha": true,
+      "failureScreenshotsInspected": false
+    }
+  },
+  "webkit": {
+    "jobId": 117871812924,
+    "reportedPassed": 16,
+    "successesAtRetryZero": 15,
+    "additionalNonFlakyCaseFirstExecutedDuringSerialRetry": 1,
+    "skipped": 3,
+    "flaky": 1,
+    "flakyCase": "agent-scroll-pill.spec.ts:316 mobile 390; passed retry #1",
+    "productionSafariProven": false,
+    "flakyReview": "Pill absent for 5 s after scripted upward scroll; scroll position not remeasured at failure. Root cause open; retry #1 green."
+  },
+  "limits": [
+    "No runtime-tagged journey exercised by blocking E2E",
+    "No public production browser verification",
+    "Existing waivers/retries unchanged; no identical rerun requested",
+    "CI success alone is not deployment success"
+  ]
+}
