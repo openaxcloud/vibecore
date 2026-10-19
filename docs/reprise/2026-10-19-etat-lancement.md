@@ -1,5 +1,8 @@
 # État du lancement — 19 octobre 2026
 
+Relevé arrêté à **03:50 UTC** : les exécutions liées ci-dessous peuvent évoluer
+après ce constat. Une fusion ou une construction ne vaut pas preuve de livraison.
+
 **Commercialisation complète non validée.** Des défauts ont été corrigés et
 fusionnés ; les preuves indispensables de restauration et de parcours réel
 restent manquantes. Ce verdict ne signifie pas que tous les parcours échouent
@@ -33,8 +36,9 @@ instabilités, six exemptions inchangées et 75/75 fichiers. Les quatre cas DB
 examinés passent au premier essai. WebKit de ce main : 17 passent, trois
 sauts. [Preuves main](mesures/2026-10-19-main741-validation.json).
 Sa livraison a franchi ses barrières ; la construction du runtime réussit à
-**03:35:19 UTC** après 29 min 28 s. La construction web est encore en cours
-au relevé de **03:43 UTC** ; aucun rollout réussi n'est encore attesté.
+**03:35:19 UTC** après 29 min 28 s, celle du web à **03:44:43 UTC** et celle
+de l'agent à **03:47:22 UTC**. La construction de l'administration reste en cours
+à **03:50 UTC** ; aucun rollout réussi n'est encore attesté.
 
 Les correctifs #736 (indicateurs honnêtes), #737 (archives runtime et octets
 binaires) et #740 (palette, Retry et build Desktop) sont également fusionnés.
