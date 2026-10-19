@@ -1,9 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": [
-      "node"
-    ]
+    "types": ["node"]
   },
   "include": [
     "tests/ci/ide-failure-metadata.spec.ts",
@@ -11,6 +9,7 @@
     "tests/e2e/helpers/ide-failure-diagnostics.ts",
     "tests/e2e/helpers/ide-ui-detail-styles.ts",
     "tests/e2e/dashboard.spec.ts",
-    "tests/e2e/ide-palette-handoff.spec.ts"
+    "tests/e2e/ide-palette-handoff.spec.ts",
+    "tests/e2e/database-loading-context.spec.ts"
   ]
 }

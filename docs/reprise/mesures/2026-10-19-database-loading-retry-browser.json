@@ -1,0 +1,319 @@
+{
+  "experiment": "real-browser-retry-replaces-retained-panel-response",
+  "scope": "local-QA-only",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "responseContentsChanged": false,
+  "assertionsInRepositoryChanged": false,
+  "timeline": [
+    {
+      "label": "setup-confirmed",
+      "elapsedMs": 10438,
+      "mobilePanel": "chat",
+      "databaseTabActive": false,
+      "databaseContainerMounted": false,
+      "databaseContainerVisible": false,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 3,
+      "urlPanelIsDatabase": false
+    },
+    {
+      "label": "real-response-retained",
+      "elapsedMs": 11694,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": true,
+      "headingPresent": true,
+      "headingVisible": true,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "event": "retry-clicked",
+      "elapsedMs": 19022
+    },
+    {
+      "label": "retry-response-delivered-root-ready",
+      "elapsedMs": 20124,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": true,
+      "headingVisible": true,
+      "visibleCards": 1,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "event": "delivery-gate-opened",
+      "elapsedMs": 20287
+    },
+    {
+      "label": "real-tables-ready",
+      "elapsedMs": 21303,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 128,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    }
+  ],
+  "responses": [
+    {
+      "index": 1,
+      "requestedAtMs": 11238,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 11651,
+      "responseBytes": 2921,
+      "envelopeStatus": "ok",
+      "deliveredAtMs": 20291,
+      "routeFulfillSucceededWithUnmodifiedBytes": true
+    },
+    {
+      "index": 2,
+      "requestedAtMs": 19100,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 19406,
+      "responseBytes": 3178,
+      "envelopeStatus": "ok",
+      "deliveredAtMs": 19414,
+      "routeFulfillSucceededWithUnmodifiedBytes": true
+    }
+  ],
+  "screenshots": [
+    "01-retry-visible-during-retained-response.png",
+    "02-retry-recovered-real-database-list.png",
+    "03-real-tables-ready.png"
+  ],
+  "checks": {
+    "databaseSetupConfirmed": true,
+    "requestsBeforeRetry": 1,
+    "requestsAfterRetry": 2,
+    "firstBrowserRequestAborted": true,
+    "realDatabaseCardReady": true,
+    "lateOldResponseDidNotRemoveNewPanel": true,
+    "retryResponseRestoredPanel": true
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "ownDatabaseBindingRemoved": true,
+    "ownDatabaseBindingDeleteStatus": 200,
+    "ownProjectDeleteStatus": 200,
+    "ownProjectRemoved": true,
+    "qaIdentityRetained": true,
+    "qaProjectRetained": false
+  },
+  "memoryBeforeBytes": 5622726656,
+  "registrationStatus": 201,
+  "projectCreationStatus": 201,
+  "browserVersion": "154.0.8037.57",
+  "databaseSetupStatus": 200,
+  "browserFailures": [
+    {
+      "elapsedMs": 19108,
+      "code": "ERR_ABORTED"
+    }
+  ],
+  "tableChecks": {
+    "tableCount": 128,
+    "sampledNamesNonEmpty": true,
+    "sampledNamesDistinct": true,
+    "sampledRowCountsNumeric": true
+  },
+  "success": true,
+  "memoryAfterBytes": 5009977344,
+  "elapsedMs": 22152,
+  "firstResponseSemantics": "Browser request A was aborted. A later route.fulfill completion does not prove browser delivery or upstream SQL cancellation.",
+  "resourceRun": {
+    "startedAtUtc": "2026-10-19T01:36:32.424990+00:00",
+    "scope": "local-QA-only",
+    "memoryLimitBytes": 12884901888,
+    "samples": [
+      {
+        "elapsedMs": 47,
+        "memoryBytes": 4229480448
+      },
+      {
+        "elapsedMs": 121,
+        "memoryBytes": 4239589376
+      },
+      {
+        "elapsedMs": 1299,
+        "memoryBytes": 4329545728
+      },
+      {
+        "elapsedMs": 2438,
+        "memoryBytes": 4441264128
+      },
+      {
+        "elapsedMs": 3536,
+        "memoryBytes": 4546723840
+      },
+      {
+        "elapsedMs": 4585,
+        "memoryBytes": 4655611904
+      },
+      {
+        "elapsedMs": 5635,
+        "memoryBytes": 4762636288
+      },
+      {
+        "elapsedMs": 6684,
+        "memoryBytes": 4833193984
+      },
+      {
+        "elapsedMs": 7722,
+        "memoryBytes": 4483833856
+      },
+      {
+        "elapsedMs": 8765,
+        "memoryBytes": 4639002624
+      },
+      {
+        "elapsedMs": 9952,
+        "memoryBytes": 4833198080
+      },
+      {
+        "elapsedMs": 11036,
+        "memoryBytes": 4971180032
+      },
+      {
+        "elapsedMs": 11212,
+        "memoryBytes": 4959248384
+      },
+      {
+        "elapsedMs": 12267,
+        "memoryBytes": 5063454720
+      },
+      {
+        "elapsedMs": 13305,
+        "memoryBytes": 5171036160
+      },
+      {
+        "elapsedMs": 14343,
+        "memoryBytes": 5238898688
+      },
+      {
+        "elapsedMs": 15389,
+        "memoryBytes": 5336154112
+      },
+      {
+        "elapsedMs": 16427,
+        "memoryBytes": 5464571904
+      },
+      {
+        "elapsedMs": 16641,
+        "memoryBytes": 5483446272
+      },
+      {
+        "elapsedMs": 18678,
+        "memoryBytes": 5621940224
+      },
+      {
+        "elapsedMs": 20721,
+        "memoryBytes": 5820870656
+      },
+      {
+        "elapsedMs": 22873,
+        "memoryBytes": 6094016512
+      },
+      {
+        "elapsedMs": 25006,
+        "memoryBytes": 6222774272
+      },
+      {
+        "elapsedMs": 27221,
+        "memoryBytes": 6278090752
+      },
+      {
+        "elapsedMs": 29272,
+        "memoryBytes": 5367762944
+      },
+      {
+        "elapsedMs": 31314,
+        "memoryBytes": 5395542016
+      },
+      {
+        "elapsedMs": 33373,
+        "memoryBytes": 5304823808
+      },
+      {
+        "elapsedMs": 35450,
+        "memoryBytes": 5303877632
+      },
+      {
+        "elapsedMs": 37539,
+        "memoryBytes": 5310713856
+      },
+      {
+        "elapsedMs": 39604,
+        "memoryBytes": 5331017728
+      }
+    ],
+    "cleanup": [
+      {
+        "group": 170067,
+        "signal": "SIGTERM"
+      },
+      {
+        "group": 169949,
+        "signal": "SIGTERM"
+      },
+      {
+        "group": 170006,
+        "signal": "SIGTERM"
+      },
+      {
+        "group": 170067,
+        "signal": "SIGKILL"
+      }
+    ],
+    "services": [
+      {
+        "name": "api",
+        "pid": 169949,
+        "processGroup": 169949
+      },
+      {
+        "name": "web",
+        "pid": 170006,
+        "processGroup": 170006
+      },
+      {
+        "name": "probe",
+        "pid": 170020,
+        "processGroup": 170020
+      }
+    ],
+    "webBuild": "existing artifact; not rebuilt",
+    "sourceHead": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+    "probeExitCode": 0,
+    "remainingOwnedProcesses": 3,
+    "finishedAtUtc": "2026-10-19T01:37:14.287050+00:00",
+    "memoryAfterBytes": 4241338368,
+    "peakObservedMemoryBytes": 6278090752
+  }
+}

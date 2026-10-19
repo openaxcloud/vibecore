@@ -2,6 +2,7 @@ import { ChevronRight, RefreshCw, Table2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
+import { DatabaseHeading } from './DatabaseHeading';
 import { DatabaseSettings } from './DatabaseSettings';
 import { DatabaseStudio } from './DatabaseStudio';
 import { enregistrerLeRejet, noteEstPertinente, rejetEnregistre } from './note-dev-prod';
@@ -349,9 +350,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
     return (
       <div className="flex min-w-0 flex-col gap-4 p-3 sm:p-4">
         <header className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-          <h2 className="min-w-0 break-words text-[15px] font-semibold text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
-            {copy['databaseWorkbench.allDatabases']}
-          </h2>
+          <DatabaseHeading />
           <button
             type="button"
             onClick={() => fetcher.load(base)}

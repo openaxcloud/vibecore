@@ -17,7 +17,7 @@ Le [run main 39168587722](https://github.com/openaxcloud/vibecore/actions/runs/3
 
 ## 💻 Codé
 
-☐ Candidat local sur branche dédiée ; pas encore fusionné sur main.
+☑ Fusionné dans main par [#740](https://github.com/openaxcloud/vibecore/pull/740), `bb70c7b68`, le 19 octobre à 00:44:41 UTC. Livraison refusée par le gate E2E à 01:10:27 UTC ; non attesté en production.
 
 `IdePaletteProvider`, placé dans la route au-dessus des fallbacks ClientOnly/Suspense, conserve ouverture et recherche pendant le remplacement des coques. Le contexte est isolé par projet, fenêtre et panneau ; il disparaît à la sortie de l'IDE. Fermer la palette efface sa recherche, et retirer un panneau invalide sa palette. Le démontage transitoire d'une coque n'efface rien. Les usages sans provider gardent leur état local. Aucun stockage local, serveur ou global ajouté.
 

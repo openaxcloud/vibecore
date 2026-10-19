@@ -1,0 +1,493 @@
+{
+  "observedAtUtc": "2026-10-19T01:38:39.014366+00:00",
+  "scope": "Existing isolated local PostgreSQL/API and built app; Chromium only",
+  "sourceBase": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+  "candidateFiles": {
+    "app/components/chat/BaseChat.tsx": "3ab223baa95b0f100b40fd583ccc50b8d1658d8878dc5250ea30c89c923ea469",
+    "app/components/database/DatabaseHeading.tsx": "e9d607c4925ec22c28b505c5660f8596a649d24d1baf7a5eb1117efd8e7d11f1",
+    "app/components/database/DatabaseWorkbench.tsx": "2e9b6fd9883677bf3e7dc07a6c0f22162e75eda6460995829578708efda23d64",
+    "app/components/chat/panel-retry-recovery.spec.tsx": "b30ecf630c5deb33b6f1e86659c0d96af2beb3352d993eb9b85e05b1ef3f3736",
+    "tests/e2e/database-loading-context.spec.ts": "7e9c6a514cb93b4a18e52cf55c812f9adc7976282daa6e02b3b20bc9887a8149",
+    "tsconfig.ide-diagnostics.json": "d494a701542f61868ef19d1e6be001adbed1cb25f4879985061e79a152e52132"
+  },
+  "unitTests": {
+    "passed": 71,
+    "skipped": 0,
+    "files": 10,
+    "durationSeconds": 43.56,
+    "configuration": "root vite.config.ts,1worker"
+  },
+  "build": {
+    "name": "build",
+    "startedAtUtc": "2026-10-19T01:26:06.895831+00:00",
+    "memoryBeforeBytes": 4221579264,
+    "memoryLimitBytes": 17179869184,
+    "exitCode": 0,
+    "peakObservedMemoryBytes": 12582305792,
+    "finishedAtUtc": "2026-10-19T01:32:05.041286+00:00"
+  },
+  "webTypecheck": {
+    "name": "web-typecheck",
+    "startedAtUtc": "2026-10-19T01:24:24.670993+00:00",
+    "memoryBeforeBytes": 5061558272,
+    "memoryLimitBytes": 17179869184,
+    "exitCode": 0,
+    "peakObservedMemoryBytes": 6446460928,
+    "finishedAtUtc": "2026-10-19T01:26:06.799132+00:00"
+  },
+  "otherChecks": {
+    "finishedAtUtc": "2026-10-19T01:37:00.023164+00:00",
+    "results": [
+      {
+        "name": "diagnostics-typecheck",
+        "exitCode": 0
+      },
+      {
+        "name": "final-lint",
+        "exitCode": 0
+      }
+    ]
+  },
+  "browser": {
+    "passed": 4,
+    "skipped": 0,
+    "retries": 0,
+    "workers": 1,
+    "newEnSeconds": 16.6,
+    "newFrSeconds": 16.6,
+    "historicalTablesSeconds": 10.4,
+    "historicalMyDataSeconds": 28.8,
+    "realResponses": {
+      "en": {
+        "initialRequests": 1,
+        "requestedMs": 5774,
+        "responses": [
+          {
+            "status": 200,
+            "bytes": 3142,
+            "upstreamReadyMs": 8239,
+            "unchanged": true,
+            "deliveredMs": 12198
+          }
+        ],
+        "tablesReadyMs": 14358,
+        "tableCount": 128,
+        "locale": "en",
+        "measuredDurationsMs": {
+          "requestToUpstreamBody": 2465,
+          "requestToDelivery": 6424,
+          "upstreamBodyRetainedBeforeDelivery": 3959,
+          "deliveryToTablesReady": 2160
+        }
+      },
+      "fr": {
+        "initialRequests": 1,
+        "requestedMs": 5950,
+        "responses": [
+          {
+            "status": 200,
+            "bytes": 2885,
+            "upstreamReadyMs": 6361,
+            "unchanged": true,
+            "deliveredMs": 12577
+          }
+        ],
+        "tablesReadyMs": 14765,
+        "tableCount": 128,
+        "locale": "fr",
+        "measuredDurationsMs": {
+          "requestToUpstreamBody": 411,
+          "requestToDelivery": 6627,
+          "upstreamBodyRetainedBeforeDelivery": 6216,
+          "deliveryToTablesReady": 2188
+        }
+      }
+    },
+    "originalRun": {
+      "startedAtUtc": "2026-10-19T01:33:02.682358+00:00",
+      "scope": "local-QA-only",
+      "memoryLimitBytes": 12884901888,
+      "samples": [
+        {
+          "elapsedMs": 155,
+          "memoryBytes": 4338495488
+        },
+        {
+          "elapsedMs": 263,
+          "memoryBytes": 4349140992
+        },
+        {
+          "elapsedMs": 1358,
+          "memoryBytes": 4469661696
+        },
+        {
+          "elapsedMs": 2419,
+          "memoryBytes": 4584984576
+        },
+        {
+          "elapsedMs": 3499,
+          "memoryBytes": 4590403584
+        },
+        {
+          "elapsedMs": 4561,
+          "memoryBytes": 4659367936
+        },
+        {
+          "elapsedMs": 5633,
+          "memoryBytes": 4716253184
+        },
+        {
+          "elapsedMs": 6706,
+          "memoryBytes": 4779618304
+        },
+        {
+          "elapsedMs": 7798,
+          "memoryBytes": 4903075840
+        },
+        {
+          "elapsedMs": 8867,
+          "memoryBytes": 4907708416
+        },
+        {
+          "elapsedMs": 9061,
+          "memoryBytes": 4919160832
+        },
+        {
+          "elapsedMs": 10207,
+          "memoryBytes": 4989825024
+        },
+        {
+          "elapsedMs": 11313,
+          "memoryBytes": 5022015488
+        },
+        {
+          "elapsedMs": 12420,
+          "memoryBytes": 5047443456
+        },
+        {
+          "elapsedMs": 13597,
+          "memoryBytes": 5059178496
+        },
+        {
+          "elapsedMs": 14706,
+          "memoryBytes": 5097713664
+        },
+        {
+          "elapsedMs": 15759,
+          "memoryBytes": 5145530368
+        },
+        {
+          "elapsedMs": 16055,
+          "memoryBytes": 5161439232
+        },
+        {
+          "elapsedMs": 18141,
+          "memoryBytes": 5294751744
+        },
+        {
+          "elapsedMs": 20228,
+          "memoryBytes": 5412556800
+        },
+        {
+          "elapsedMs": 22305,
+          "memoryBytes": 5545443328
+        },
+        {
+          "elapsedMs": 24423,
+          "memoryBytes": 5692223488
+        },
+        {
+          "elapsedMs": 26542,
+          "memoryBytes": 5806469120
+        },
+        {
+          "elapsedMs": 28670,
+          "memoryBytes": 5859295232
+        },
+        {
+          "elapsedMs": 31302,
+          "memoryBytes": 5925289984
+        },
+        {
+          "elapsedMs": 33373,
+          "memoryBytes": 5934456832
+        },
+        {
+          "elapsedMs": 35446,
+          "memoryBytes": 5933826048
+        },
+        {
+          "elapsedMs": 37535,
+          "memoryBytes": 5946679296
+        },
+        {
+          "elapsedMs": 39690,
+          "memoryBytes": 5828521984
+        },
+        {
+          "elapsedMs": 41808,
+          "memoryBytes": 5820551168
+        },
+        {
+          "elapsedMs": 43910,
+          "memoryBytes": 5903618048
+        },
+        {
+          "elapsedMs": 45956,
+          "memoryBytes": 5912842240
+        },
+        {
+          "elapsedMs": 48013,
+          "memoryBytes": 5924978688
+        },
+        {
+          "elapsedMs": 50071,
+          "memoryBytes": 5922226176
+        },
+        {
+          "elapsedMs": 52121,
+          "memoryBytes": 5913935872
+        },
+        {
+          "elapsedMs": 54213,
+          "memoryBytes": 5939798016
+        },
+        {
+          "elapsedMs": 56305,
+          "memoryBytes": 5801984000
+        },
+        {
+          "elapsedMs": 58350,
+          "memoryBytes": 5870780416
+        },
+        {
+          "elapsedMs": 60419,
+          "memoryBytes": 5957378048
+        },
+        {
+          "elapsedMs": 62560,
+          "memoryBytes": 5986447360
+        },
+        {
+          "elapsedMs": 64661,
+          "memoryBytes": 5994475520
+        },
+        {
+          "elapsedMs": 66743,
+          "memoryBytes": 5857443840
+        },
+        {
+          "elapsedMs": 68806,
+          "memoryBytes": 5918162944
+        },
+        {
+          "elapsedMs": 70857,
+          "memoryBytes": 6006431744
+        },
+        {
+          "elapsedMs": 72925,
+          "memoryBytes": 6027542528
+        },
+        {
+          "elapsedMs": 74983,
+          "memoryBytes": 6053859328
+        },
+        {
+          "elapsedMs": 84188,
+          "memoryBytes": 6056001536
+        },
+        {
+          "elapsedMs": 88247,
+          "memoryBytes": 6056738816
+        },
+        {
+          "elapsedMs": 94860,
+          "memoryBytes": 5993340928
+        },
+        {
+          "elapsedMs": 97620,
+          "memoryBytes": 5274279936
+        },
+        {
+          "elapsedMs": 98802,
+          "memoryBytes": 5324337152
+        },
+        {
+          "elapsedMs": 99903,
+          "memoryBytes": 5259329536
+        }
+      ],
+      "cleanup": [
+        {
+          "group": 168531,
+          "signal": "SIGTERM"
+        },
+        {
+          "group": 168484,
+          "signal": "SIGTERM"
+        },
+        {
+          "group": 169685,
+          "signal": "SIGTERM"
+        },
+        {
+          "group": 168438,
+          "signal": "SIGTERM"
+        },
+        {
+          "group": 168531,
+          "signal": "SIGKILL"
+        },
+        {
+          "group": 169685,
+          "signal": "SIGKILL"
+        },
+        {
+          "group": 168438,
+          "signal": "SIGKILL"
+        }
+      ],
+      "services": [
+        {
+          "name": "api",
+          "pid": 168438,
+          "processGroup": 168438
+        },
+        {
+          "name": "web",
+          "pid": 168484,
+          "processGroup": 168484
+        },
+        {
+          "name": "probe",
+          "pid": 168496,
+          "processGroup": 168496
+        },
+        {
+          "name": "dashboard-cleanup",
+          "pid": 169685,
+          "processGroup": 169685
+        }
+      ],
+      "webBuild": "existing artifact; not rebuilt",
+      "sourceHead": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+      "probeExitCode": 0,
+      "dashboardCleanupExitCode": 1,
+      "remainingOwnedProcesses": 4,
+      "finishedAtUtc": "2026-10-19T01:34:44.047764+00:00",
+      "memoryAfterBytes": 4356046848,
+      "peakObservedMemoryBytes": 6056738816
+    }
+  },
+  "cleanup": {
+    "newCases": "both own binding and project DELETE200 in each case",
+    "firstHistoricalCleanup": "failed before mutation:missing local Prisma runtime-utils link",
+    "localDependencyRepair": "4existing local dependency symlinks;no install or lock change",
+    "preflightPortAttempt": "refused before service start;subsequent read-only listener check found none",
+    "historicalCleanup": {
+      "startedAtUtc": "2026-10-19T01:35:52.577468+00:00",
+      "scope": "local-QA-only",
+      "memoryLimitBytes": 12884901888,
+      "samples": [
+        {
+          "elapsedMs": 50,
+          "memoryBytes": 4224335872
+        },
+        {
+          "elapsedMs": 117,
+          "memoryBytes": 4234625024
+        },
+        {
+          "elapsedMs": 1257,
+          "memoryBytes": 4312506368
+        },
+        {
+          "elapsedMs": 2401,
+          "memoryBytes": 4344008704
+        },
+        {
+          "elapsedMs": 3491,
+          "memoryBytes": 4381143040
+        },
+        {
+          "elapsedMs": 4581,
+          "memoryBytes": 4418330624
+        },
+        {
+          "elapsedMs": 5663,
+          "memoryBytes": 4464304128
+        },
+        {
+          "elapsedMs": 8545,
+          "memoryBytes": 4474789888
+        },
+        {
+          "elapsedMs": 11659,
+          "memoryBytes": 4505366528
+        },
+        {
+          "elapsedMs": 12898,
+          "memoryBytes": 4594696192
+        },
+        {
+          "elapsedMs": 14078,
+          "memoryBytes": 4627177472
+        },
+        {
+          "elapsedMs": 14343,
+          "memoryBytes": 4642197504
+        },
+        {
+          "elapsedMs": 16424,
+          "memoryBytes": 4777119744
+        }
+      ],
+      "cleanup": [
+        {
+          "group": 169877,
+          "signal": "SIGTERM"
+        }
+      ],
+      "services": [
+        {
+          "name": "api",
+          "pid": 169877,
+          "processGroup": 169877
+        },
+        {
+          "name": "probe",
+          "pid": 169906,
+          "processGroup": 169906
+        }
+      ],
+      "webBuild": "existing artifact; not rebuilt",
+      "sourceHead": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+      "probeExitCode": 0,
+      "remainingOwnedProcesses": 0,
+      "finishedAtUtc": "2026-10-19T01:36:11.272223+00:00",
+      "memoryAfterBytes": 4232900608,
+      "peakObservedMemoryBytes": 4777119744
+    },
+    "historicalDeletedBindingStatuses": [
+      200,
+      200
+    ],
+    "historicalDeletedProjectStatuses": [
+      200,
+      200
+    ],
+    "qaIdentitiesRetained": true
+  },
+  "independentReview": {
+    "source": "no blocking findings after error-envelope Retry and cleanup corrections",
+    "captures": "four EN/FR images inspected by root and independent reviewer",
+    "frozenSourceHashesMatch": true
+  },
+  "limits": [
+    "No public HTTPS or Safari proof",
+    "No attribution of CI upstream latency",
+    "Latency values are observations of separate local runs, not a comparative performance benchmark",
+    "Unit HTTP responses are explicit fixtures; integrated browser scenarios use real API/PG responses",
+    "No customer mutation, model call, payment or new cloud resource"
+  ]
+}

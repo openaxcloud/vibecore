@@ -1,0 +1,152 @@
+{
+  "experiment": "database-context-visible-during-retained-real-response",
+  "scope": "local-QA-only",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "responseContentsChanged": false,
+  "assertionsInRepositoryChanged": false,
+  "timeline": [
+    {
+      "label": "setup-confirmed",
+      "elapsedMs": 10624,
+      "mobilePanel": "chat",
+      "databaseTabActive": false,
+      "databaseContainerMounted": false,
+      "databaseContainerVisible": false,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 3,
+      "urlPanelIsDatabase": false
+    },
+    {
+      "label": "real-response-retained-past-six-seconds",
+      "elapsedMs": 17334,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": true,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "event": "delivery-gate-opened",
+      "elapsedMs": 17724
+    },
+    {
+      "label": "real-response-delivered-root-ready",
+      "elapsedMs": 18627,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": true,
+      "headingVisible": true,
+      "visibleCards": 1,
+      "visibleTables": 0,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    },
+    {
+      "label": "real-tables-ready",
+      "elapsedMs": 19892,
+      "mobilePanel": "deploy",
+      "databaseTabActive": true,
+      "databaseContainerMounted": true,
+      "databaseContainerVisible": true,
+      "databaseContainerBusy": false,
+      "headingPresent": false,
+      "headingVisible": false,
+      "visibleCards": 0,
+      "visibleTables": 128,
+      "visibleAlerts": 0,
+      "visibleStatuses": 2,
+      "urlPanelIsDatabase": true
+    }
+  ],
+  "responses": [
+    {
+      "index": 1,
+      "requestedAtMs": 11221,
+      "upstreamStatus": 200,
+      "upstreamReadyAtMs": 11918,
+      "responseBytes": 2921,
+      "envelopeStatus": "ok",
+      "deliveredAtMs": 17729,
+      "unchangedBytesDelivered": true
+    }
+  ],
+  "screenshots": [
+    "01-database-pending.png",
+    "02-real-database-list.png",
+    "03-real-tables-ready.png"
+  ],
+  "checks": {
+    "databaseSetupConfirmed": true,
+    "headingVisibleWithinFiveSeconds": false,
+    "honestPendingState": true,
+    "realDatabaseCardReady": true
+  },
+  "cleanup": {
+    "browserClosed": true,
+    "ownDatabaseBindingRemoved": true,
+    "ownDatabaseBindingDeleteStatus": 200,
+    "ownProjectDeleteStatus": 200,
+    "ownProjectRemoved": true,
+    "qaIdentityRetained": true,
+    "qaProjectRetained": false
+  },
+  "memoryBeforeBytes": 4883394560,
+  "registrationStatus": 201,
+  "projectCreationStatus": 201,
+  "browserVersion": "154.0.8037.57",
+  "databaseSetupStatus": 200,
+  "browserFailures": [],
+  "tableChecks": {
+    "tableCount": 128,
+    "sampledNamesNonEmpty": true,
+    "sampledNamesDistinct": true,
+    "sampledRowCountsNumeric": true
+  },
+  "success": false,
+  "failure": {
+    "phase": "verify-real-tables",
+    "code": "DATABASE_CONTEXT_HIDDEN_DURING_INITIAL_LOAD"
+  },
+  "memoryAfterBytes": 5100273664,
+  "elapsedMs": 20591,
+  "buildSourceHead": "002fb39732d2958fb3b79951125f54aa294d2044",
+  "parentMain": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+  "productionWebSourcesIdenticalToMain": true,
+  "resources": {
+    "startedAtUtc": "2026-10-19T01:16:47.114140+00:00",
+    "finishedAtUtc": "2026-10-19T01:17:26.616435+00:00",
+    "probeExitCode": 1,
+    "memoryLimitBytes": 12884901888,
+    "peakObservedMemoryBytes": 5404348416
+  },
+  "limits": [
+    "Deliberately delayed delivery of real local response, not attribution of CI upstream latency",
+    "No public HTTPS or Safari proof",
+    "QA identity retained in existing isolated local database; owned binding/project deleted"
+  ],
+  "failureInterpretation": "Heading visibility failed under the unchanged five-second bound. The assertion was reported after releasing the real response and verifying all table checks successfully.",
+  "measuredDurationsMs": {
+    "requestToUpstreamBody": 697,
+    "requestToDelivery": 6508,
+    "upstreamBodyRetainedBeforeDelivery": 5811
+  }
+}

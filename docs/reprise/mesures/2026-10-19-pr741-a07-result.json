@@ -1,0 +1,114 @@
+{
+  "recordedAtUtc": "2026-10-19T02:02:30.778Z",
+  "head": "a07f7c0c02ae5236efba1fde5b2454ce12474281",
+  "base": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+  "scope": "Historical PR741 checks before the silent-poll followup; does not validate later source or production",
+  "ci": {
+    "run": 39186354748,
+    "job": 117849504019,
+    "conclusion": "success",
+    "testSummaries": [
+      "      Tests  20 passed (20)",
+      "      Tests  9759 passed | 4 skipped (9763)",
+      "      Tests  2428 passed | 23 skipped (2451)",
+      "      Tests  152 passed (152)",
+      "      Tests  121 passed (121)",
+      "      Tests  129 passed (129)",
+      "      Tests  55 passed (55)",
+      "      Tests  24 passed (24)",
+      "      Tests  124 passed (124)",
+      "      Tests  23 passed | 2 skipped (25)"
+    ],
+    "advisoryAudit": {
+      "total": 242,
+      "low": 28,
+      "moderate": 118,
+      "high": 92,
+      "critical": 4
+    }
+  },
+  "e2e": {
+    "run": 39186354789,
+    "verdictJob": 117852904306,
+    "conclusion": "success",
+    "reported": 456,
+    "persistentFailures": 0,
+    "flaky": 0,
+    "waived": 6,
+    "expectedSpecFiles": 75,
+    "seenSpecFiles": 75
+  },
+  "databaseFirstAttempts": {
+    "shardJob": 117849579037,
+    "enSeconds": 9.7,
+    "frSeconds": 10.1,
+    "historicalTablesSeconds": 7.1,
+    "historicalMyDataSeconds": 7.8
+  },
+  "french": {
+    "run": 39186354702,
+    "jobs": [
+      {
+        "id": 117849503931,
+        "name": "Audit fran\u00e7ais \u2014 pertinence",
+        "conclusion": "success"
+      },
+      {
+        "id": 117849610888,
+        "name": "Playwright mobile-390",
+        "conclusion": "success"
+      },
+      {
+        "id": 117849610905,
+        "name": "Playwright tablet-768",
+        "conclusion": "success"
+      },
+      {
+        "id": 117849610969,
+        "name": "Playwright desktop-1024",
+        "conclusion": "success"
+      },
+      {
+        "id": 117849610990,
+        "name": "Playwright desktop-1440",
+        "conclusion": "success"
+      },
+      {
+        "id": 117853003205,
+        "name": "Audit fran\u00e7ais \u2014 verdict",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "desktop": {
+    "run": 39186354682,
+    "jobs": [
+      {
+        "id": 117849503829,
+        "name": "windows desktop build",
+        "conclusion": "success"
+      },
+      {
+        "id": 117849504005,
+        "name": "linux desktop build",
+        "conclusion": "success"
+      },
+      {
+        "id": 117849504034,
+        "name": "macos desktop build",
+        "conclusion": "success"
+      },
+      {
+        "id": 117853831075,
+        "name": "Draft desktop release",
+        "conclusion": "skipped"
+      }
+    ]
+  },
+  "webkit": {
+    "job": 117849579022,
+    "passed": 17,
+    "skipped": 3,
+    "conclusion": "success"
+  }
+}

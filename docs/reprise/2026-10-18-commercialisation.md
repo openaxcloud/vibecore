@@ -1,5 +1,7 @@
 # Vérification avant commercialisation — 18 octobre 2026
 
+> **Actualisation du 19 octobre, 02:08 UTC — lancement toujours non validé.** Main reste `bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a` après #740 (00:44:41 UTC) ; CI verte, E2E rouges, livraison refusée à 01:10:27 UTC avant build/rollout. [Preuves main](mesures/2026-10-19-main740-database-failure.json). Dernière livraison réussie : `c6439da55` le 18 octobre à 21:35 UTC ; version HTTPS réellement servie toujours inaccessible via le proxy. #738, tête `9245b8228`, attend le correctif Database. #741 tête `a07f7c0c0` a réussi sa CI et ses E2E (456 cas, zéro échec/zéro flaky, six exemptions, 75/75 fichiers), mais sa contre-revue a reproduit une disparition de Retry au poll après erreur : fusion retenue, delta local corrigé et validé par 72 tests, types, lint, build, quatre cas navigateur réels et reprise intégrée. [Preuves et limites](mesures/2026-10-19-database-silent-poll-validation.json). Ce delta doit encore passer sa propre CI. Aucun seuil/retry/exemption assoupli, aucune cause de latence amont attribuée. Les observations suivantes restent historiques.
+
 **Décision : lancement commercial complet non validé.** Ce verdict exprime
 des défauts de code reproduits et des preuves indispensables manquantes, pas
 une affirmation que tous les parcours échouent en production.

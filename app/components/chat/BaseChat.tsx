@@ -188,6 +188,7 @@ import {
 import { ShareConversationButton } from './ShareConversationButton';
 import { PhraseAvecCode } from '~/components/ui/PhraseAvecCode';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
+import { DatabaseHeading } from '~/components/database/DatabaseHeading';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
 import { initialesPersonne, libellePersonne } from '~/utils/person-label';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -11720,6 +11721,11 @@ function ProjectIdeApiServicePanel({
        * Ordinary loads/polls still join the current request without cancelling it.
        */
       if (options?.retry) {
+        // A failed envelope is not database content to preserve during Retry.
+        if (panel === 'database') {
+          setPayload((current: any) => (current?.status === 'error' ? undefined : current));
+        }
+
         panneauEnVol.retry(`${projectId}:${panel}`);
       }
 
@@ -11733,7 +11739,13 @@ function ProjectIdeApiServicePanel({
         setBusy(true);
       }
 
-      setError(undefined);
+      /*
+       * A background database retry must not erase the only recovery action
+       * while its replacement response is still pending.
+       */
+      if (panel !== 'database' || !options?.silent) {
+        setError(undefined);
+      }
 
       try {
         /*
@@ -11807,6 +11819,8 @@ function ProjectIdeApiServicePanel({
         if (result.status === 'error' && typeof result.error === 'object' && result.error) {
           console.warn('IDE panel returned an error envelope', { panel, serverError: result.error });
           setError(`[${result.error.code}] ${t('baseChatAst.panel.loadFailed')}`);
+        } else if (panel === 'database' && options?.silent) {
+          setError(undefined);
         }
 
         const loadedAt = new Date().toISOString();
@@ -12118,17 +12132,25 @@ function ProjectIdeApiServicePanel({
             </div>
           </div>
         ) : null}
-        {busy && !payload ? (
+        {/* No response is not an empty database. Keep context from the first
+            render, without mounting a second loader or offering provisioning. */}
+        {(panel === 'database' && (!payload || payload.status === 'error')) || (busy && !payload) ? (
           <div className="flex flex-col gap-3">
+            {panel === 'database' ? <DatabaseHeading /> : null}
             {/* Discreet skeleton while the first fetch is in flight — no raw
                 "from backend" text and no immediate Retry (which reads as broken). */}
-            <PanelLoading title={t('chat.copy.loadingValue0_99abf3e6', { value0: title.toLowerCase() })} />
+            {panel === 'database' && !projectId ? (
+              <p role="alert">{t('chat.copy.missingProjectIdReloadTheIde_66a40459')}</p>
+            ) : null}
+            {!error && projectId && payload?.status !== 'error' ? (
+              <PanelLoading title={t('chat.copy.loadingValue0_99abf3e6', { value0: title.toLowerCase() })} />
+            ) : null}
             {/*
              * Retry only appears once the load is genuinely stuck (past the slow
              * threshold) — e.g. the workspace is still starting, or the panel has
              * no data yet. During a normal fast load the skeleton shows alone.
              */}
-            {slowLoad ? (
+            {slowLoad && !error ? (
               <div
                 className="flex flex-col items-center gap-2 text-center text-xs text-bolt-elements-textSecondary"
                 role="status"
