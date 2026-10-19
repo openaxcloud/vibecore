@@ -1,0 +1,100 @@
+{
+  "head": "4cce474b7213e40607d7e60faea9e34458b4e1ef",
+  "base": "c4211323345cc8e0688a191337a04af9e3b2fab9",
+  "branch": "codex/ide-palette-handoff-20261018",
+  "worktree": "/workspace/vibecore-palette-handoff",
+  "clean": true,
+  "pushed": false,
+  "sourceHashes": {
+    "app/components/chat/BaseChat.tsx": "438caa88d06b07b6313e7c2f77f1866ebd213c2d1187326841981e6f43ae01ce",
+    "app/components/chat/IdePaletteState.tsx": "589990979c13064786932f80f762578f4c96772f10e717bdc06bbea8cacdfbf5",
+    "app/routes/projects.$projectId.ide.tsx": "fa6fa788d9dcfe30a837710eacc45a8ca3b6fbe1983c2e2f5cb7587b19033d0b",
+    "app/components/chat/IdePaletteState.spec.tsx": "2f537a61c4fe137142bdbe7aec3b9e19743f0fc6d334412610e924bded9a65ca",
+    "tests/e2e/ide-palette-handoff.spec.ts": "3097fb453b771abd733fafd4f9bd7845f57e206f5bfc2a9ee0ab9e4c44224d58"
+  },
+  "evidence": {
+    "red": {
+      "path": "/tmp/vibecore-palette-regression-red/probe.log",
+      "sha256": "2fc3c823a92c3b7903d28867fff1a321698aef36a9904f982abdc578dc9f2929"
+    },
+    "greenFirst": {
+      "path": "/tmp/vibecore-palette-regression-green/probe.log",
+      "sha256": "b56c91d9f8918e3e18db138d720c1cd6a3c9cd676becb59959375fa9d868b179"
+    },
+    "greenTwoCases": {
+      "path": "/tmp/vibecore-palette-regression-green-captures/probe.log",
+      "sha256": "802837aef4dfc25865cef2cecbf78ea60b080afc2a5fcdb63a053ca505bbfb10"
+    },
+    "units": {
+      "path": "/tmp/vibecore-palette-unit-tests-final.log",
+      "sha256": "9df603787ddcc4cd1ea34db8e37f9497782c66e1e03f5674af7d44e5cd65f2ee"
+    },
+    "indexTests": {
+      "path": "/tmp/vibecore-palette-bug-index-tests-final.log",
+      "sha256": "4bdfb99072c3a94c444e59c5485955213772f63eb810d46ad809a5c1f8f25898"
+    },
+    "webTypecheck": {
+      "path": "/tmp/vibecore-palette-web-typecheck-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "newTestsTypecheck": {
+      "path": "/tmp/vibecore-palette-tests-typecheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "webBuild": {
+      "path": "/tmp/vibecore-palette-web-build-final.log",
+      "sha256": "b65566decf9ccff411dfc77e23381a6c4f5f885e3778dca219bb26722cd526b5"
+    },
+    "eslint": {
+      "path": "/tmp/vibecore-palette-eslint-final.json",
+      "sha256": "f9af47ef01fb6c02c9f04a74248c2c66fc63fc50afe8c935bdea8d24aa642943"
+    },
+    "gitleaks": {
+      "path": "/tmp/vibecore-palette-gitleaks-staged.log",
+      "sha256": "85f9978a348750dfc8d77c99904ba48ce6ba5298b284c4d536d582d0793f2383"
+    },
+    "indexRegeneration": {
+      "path": "/tmp/vibecore-palette-index-regeneration.log",
+      "sha256": "41f4bde6a01f2d57598d719415d415a44de1a18b0df2e6968b0711daed35fd4c"
+    },
+    "processCleanup": {
+      "path": "/tmp/vibecore-palette-regression-green-captures/cleanup-verification.json",
+      "sha256": "dc3d7cb3f165855b8c3d244f31c913ff4883a2c4c072e95b6515cbe2d979d677"
+    },
+    "dashboardCleanup": {
+      "path": "/tmp/vibecore-palette-regression-green-captures/dashboard-cleanup-verification.json",
+      "sha256": "1ea21fe8ec203a12a89213e9e42d22a60b04171622e78e1ceff15fb33d760c0b"
+    },
+    "resources": {
+      "path": "/tmp/vibecore-palette-regression-green-captures/resources.json",
+      "sha256": "01aa1f32301a500a07243398fd681ac15d977684c1796b1f95243102c09f9c28"
+    },
+    "captureBefore": {
+      "path": "../captures/2026-10-18-palette-fixed-before-handoff.png",
+      "sha256": "cc36f23da4f8aca9fb469f50f11327548b07a1cdd7ce9334b53daead767d008a"
+    },
+    "captureAfter": {
+      "path": "../captures/2026-10-18-palette-fixed-after-handoff.png",
+      "sha256": "78133bc1c3f2388a237fe19ba691dafc3627e8819f195664bc41c8036f489ff9"
+    }
+  },
+  "tests": {
+    "providerAndLayout": 19,
+    "indexGenerator": 16,
+    "chromiumCases": 2,
+    "retries": 0
+  },
+  "typescriptVersion": "5.8.3",
+  "webTypecheckExitCode": 0,
+  "newTestsTypecheckExitCode": 0,
+  "buildExitCode": 0,
+  "eslintDiagnostics": 0,
+  "captureInspection": "Both screenshots inspected; palette and Database query retained after actual shell node replacement.",
+  "limits": [
+    "CI failure cause is not attributed by this local mechanism.",
+    "No Safari/mobile/production proof.",
+    "Full web tsconfig checked; monorepo Electron/services wrapper not rerun.",
+    "Final wrapper exit1 followed two passing browser tests because temporary cleanup script called Response.status(); own project deletion confirmed by correlated HTTP200 and read-only deletedAt check."
+  ],
+  "scope": "Individual palette candidate, before combined integration; local Chromium only; no CI cause attribution."
+}

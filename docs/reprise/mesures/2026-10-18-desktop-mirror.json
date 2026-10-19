@@ -1,0 +1,109 @@
+{
+  "observedAtUtc": "2026-10-18T23:35:37.881383+00:00",
+  "symptom": "Desktop packaging fails on Electron archive downloads from the explicitly configured npmmirror mirror with HTTP504.",
+  "firstHead": {
+    "sha": "f2af72cb450b0c358629974e380a412f52614ac2",
+    "run": 39174874320,
+    "jobs": {
+      "linux": 117815371818,
+      "windows": 117815372042,
+      "macos": 117815372056
+    },
+    "allFailedAfterCompilation": true
+  },
+  "secondHead": {
+    "sha": "133c8ecc037423a631bf9a119e8826dbc5f697cd",
+    "run": 39176678068,
+    "linux": {
+      "job": 117820674424,
+      "conclusion": "failure",
+      "errorAtUtc": "2026-10-18T23:31:51Z",
+      "httpStatus": 504
+    },
+    "windows": {
+      "job": 117820674589,
+      "conclusion": "failure"
+    },
+    "macos": {
+      "job": 117820674608,
+      "status": "in_progress at 23:35 UTC"
+    },
+    "ci": {
+      "run": 39176678089,
+      "job": 117820674433,
+      "typecheck": "success",
+      "statusBeforeCorrectionPush": "in_progress at Unit tests"
+    },
+    "e2e": {
+      "run": 39176678092,
+      "statusBeforeCorrectionPush": "in_progress",
+      "terminalSuccessClaimed": false
+    }
+  },
+  "configurationOrigin": {
+    "file": "electron-builder.yml",
+    "firstIntroduction": "12701af1a (2025-03-19)",
+    "laterImport": "d337179ca (2026-05-05)",
+    "currentRunnerSpecificRequirementFound": false
+  },
+  "officialRelease": {
+    "source": "https://api.github.com/repos/electron/electron/releases/tags/v42.0.0",
+    "releaseId": 318012421,
+    "publishedDate": "2026-05-06",
+    "draft": false,
+    "prerelease": false,
+    "readOnlyVerification": "GitHub connector metadata inspected independently by review_workspace_timestamp",
+    "assets": [
+      {
+        "name": "electron-v42.0.0-linux-x64.zip",
+        "id": 413017811,
+        "bytes": 119048291
+      },
+      {
+        "name": "electron-v42.0.0-win32-x64.zip",
+        "id": 413082175,
+        "bytes": 144296793
+      },
+      {
+        "name": "electron-v42.0.0-darwin-arm64.zip",
+        "id": 413053502,
+        "bytes": 117864828
+      }
+    ],
+    "allAssetsUploadedWithSha256Metadata": true,
+    "shasums256AssetPresent": true,
+    "binaryDownloadedLocally": false
+  },
+  "resolver": {
+    "version": "app-builder-bin5.0.0-alpha.12",
+    "source": "https://github.com/develar/app-builder/blob/v5.0.0-alpha.12/pkg/electron/electronDownloader.go",
+    "priority": "config.mirror before ELECTRON_MIRROR; official GitHub release base when neither is set",
+    "tlsSource": "https://github.com/develar/app-builder/blob/v5.0.0-alpha.12/pkg/download/downloader.go#L34",
+    "checksumSource": "https://github.com/develar/app-builder/blob/v5.0.0-alpha.12/pkg/download/ActualLocation.go#L103",
+    "integrityLimit": "ElectronDownloader supplies an empty checksum; cannot claim automatic archive SHA verification. Removing mirror retains TLS/proxy and existing controls, but adds no cryptographic verification."
+  },
+  "localCorrection": {
+    "change": "Remove only electronDownload.mirror block and trailing separator line; use default official source.",
+    "otherYamlConfigurationEqual": true,
+    "yamlParser": "PyYAML.safe_load",
+    "mainBuildExitCode": 0,
+    "preloadBuildExitCode": 0,
+    "smokeExitCode": 0,
+    "memoryBeforeBytes": 4624584704,
+    "memoryLimitBytes": 17179869184,
+    "initialSmoke": "Failed before checks because local Electron artifacts had not been built; then main/preload builds and unchanged smoke passed.",
+    "initialYamlProbe": "js-yaml not installed at worktree root; no dependency installed. Existing PyYAML used successfully.",
+    "noDependencyOrVersionOrWorkflowChange": true,
+    "mainLogSha256": "2b4f3ed21b5fd0c62b4cd607b92444f9c2f437ccb1f9dfca3cf76a4b5e585298",
+    "preloadLogSha256": "7f805c2d30ead150b75c5298c287a37513a1b73c4f27a8c6507b09b853c1f705",
+    "smokeLogSha256": "050dfa92ef9f2965f78c784b68bd1bb48f84636c688d5013d96f68bc23c11a84",
+    "indexChecksPassed": 6
+  },
+  "limits": [
+    "Cause inside mirror is unknown; HTTP504 is the observed failure.",
+    "Official archive accessibility from CI runners and final packaging remain to be verified.",
+    "No automatic SHA verification claim.",
+    "No UI/DB failure attribution or production deployment proof from this correction."
+  ],
+  "publication": "Same PR740; new head necessitates fresh required checks. Superseded incomplete runs are not claimed as completed validation."
+}

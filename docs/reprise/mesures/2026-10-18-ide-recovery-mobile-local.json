@@ -1,0 +1,72 @@
+{
+  "head": "f2af72cb450b0c358629974e380a412f52614ac2",
+  "scope": "Two real PostgreSQL QA database read/display cases, Chromium390x844/DPR2; original source preserved with capture-only afterEach appended",
+  "manifest": {
+    "head": "f2af72cb450b0c358629974e380a412f52614ac2",
+    "sourceHash": "7f0cc8b289bea0a6d1dbbb36bc3cb4160eb87f14cd92b4ecf20205c251081b13",
+    "originalSourcePreservedAsPrefix": true,
+    "appendOnly": "afterEach capture",
+    "scope": "Two real database read/display cases at390px; QA only, no external service"
+  },
+  "browser": {
+    "passed": 2,
+    "failed": 0,
+    "retries": 0,
+    "workers": 1,
+    "durationSeconds": 23.5,
+    "cases": [
+      {
+        "name": "table names and counts",
+        "seconds": 10.1
+      },
+      {
+        "name": "My data rail, column types and pagination",
+        "seconds": 10.5
+      }
+    ],
+    "startedAtUtc": "2026-10-18T23:06:36.470361+00:00",
+    "finishedAtUtc": "2026-10-18T23:07:18.149118+00:00"
+  },
+  "cleanup": {
+    "ownDatabaseBindingDeleteStatuses": [
+      200,
+      200
+    ],
+    "ownProjectDeleteStatuses": [
+      200,
+      200
+    ],
+    "wrapperExitCode": 0,
+    "activeOwnedProcesses": 0,
+    "remainingZombies": 3,
+    "ports": {
+      "3301": "closed",
+      "3173": "closed"
+    }
+  },
+  "memory": {
+    "beforeBytes": 4504764416,
+    "peakObservedBytes": 6037889024,
+    "limitBytes": 17179869184
+  },
+  "limits": [
+    "These two targeted local passes do not reproduce or explain persistent CI failures.",
+    "Captures inspected: database tables visible at390px; My data query toolbar cramped, Running label partly clipped; no claim of complete mobile layout quality.",
+    "The final My data screenshot does not show all result headers/pagination in the viewport; their assertions passed in DOM.",
+    "No WebKit/Safari/physical-device/public HTTPS proof; local WebKit binary absent.",
+    "No AI provider, payment, paid runtime/cloud, or customer data involved."
+  ],
+  "captures": {
+    "tables": {
+      "path": "../captures/2026-10-18-ide-recovery-mobile-tables.png",
+      "sha256": "126005313e1fd7b7e8cb5acf9c3ed4e20758dac0f1b167cbb35a6fab5bb1b98c",
+      "inspected": true
+    },
+    "my-data": {
+      "path": "../captures/2026-10-18-ide-recovery-mobile-my-data.png",
+      "sha256": "a480ac4da2f73ed9b51678b5746d50b738024f3ba0d8f81d92dc2cad64ee52ea",
+      "inspected": true
+    }
+  },
+  "logSha256": "03262c7d05128e2d1487aaf37ca0effc164ad6f225dbb7c31ac004160b59cfdf"
+}

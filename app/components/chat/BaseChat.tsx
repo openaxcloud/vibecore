@@ -162,6 +162,7 @@ import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
+import { useIdePalette, useRetainIdePalettes } from './IdePaletteState';
 import {
   deposerDisposition,
   lireDispositionTransmise,
@@ -299,7 +300,7 @@ import {
   type IdeWorkspacePanel,
 } from '~/lib/ide/panel-registry';
 import { readProjectPanelCache, writeProjectPanelCache } from '~/lib/ide/panel-payload-cache';
-import { createSingleFlight } from '~/lib/ide/single-flight';
+import { createPanelRequest, waitForPanelRetry } from '~/lib/ide/panel-request';
 import { resolvePendingSelectedFile } from '~/lib/ide/pending-selected-file';
 import {
   type CompactPreviewRunState,
@@ -3792,6 +3793,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const floatingPanesRef = useRef(floatingPanes);
     floatingPanesRef.current = floatingPanes;
+
+    const palettePaneIds = useMemo(
+      () => [...flattenPaneLeafIds(paneTree), ...floatingPanes.map((floating) => floating.pane.id)],
+      [paneTree, floatingPanes],
+    );
+    useRetainIdePalettes(palettePaneIds);
 
     /** RPL-IDE-001.1 — last layout signature applied, to skip redundant cross-tab echoes. */
     const projectEditorWindowSyncRef = useRef<string>('');
@@ -11555,7 +11562,7 @@ const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
  * (projet, panneau), pas pour un composant. Une portée d'instance ne
  * corrigerait rien — c'est précisément le défaut qu'on corrige.
  */
-const panneauEnVol = createSingleFlight<{ status: number; ok: boolean; corps: unknown }>();
+const panneauEnVol = createPanelRequest<{ status: number; ok: boolean; corps: unknown }>();
 
 const PROJECT_PANEL_SLOW_LOAD_MS = 7000;
 
@@ -11675,6 +11682,8 @@ function ProjectIdeApiServicePanel({
     let lastNetworkError: unknown;
 
     for (let attempt = 0; attempt < PROJECT_PANEL_FETCH_MAX_ATTEMPTS; attempt += 1) {
+      init?.signal?.throwIfAborted();
+
       try {
         const response = await fetch(input, init);
 
@@ -11682,15 +11691,16 @@ function ProjectIdeApiServicePanel({
           return response;
         }
 
-        await new Promise((resolve) => window.setTimeout(resolve, projectPanelFetchRetryDelay(response, attempt)));
+        await waitForPanelRetry(projectPanelFetchRetryDelay(response, attempt), init?.signal ?? undefined);
       } catch (error) {
+        init?.signal?.throwIfAborted();
         lastNetworkError = error;
 
         if (!shouldRetryProjectPanelNetworkError(method, attempt)) {
           throw error;
         }
 
-        await new Promise((resolve) => window.setTimeout(resolve, projectPanelFetchRetryDelay(undefined, attempt)));
+        await waitForPanelRetry(projectPanelFetchRetryDelay(undefined, attempt), init?.signal ?? undefined);
       }
     }
 
@@ -11700,9 +11710,17 @@ function ProjectIdeApiServicePanel({
   }, []);
 
   const loadPanel = useCallback(
-    async (options?: { silent?: boolean }) => {
+    async (options?: { silent?: boolean; retry?: boolean }) => {
       if (!projectId) {
         return;
+      }
+
+      /*
+       * An explicit Retry replaces the shared GET for every waiting consumer.
+       * Ordinary loads/polls still join the current request without cancelling it.
+       */
+      if (options?.retry) {
+        panneauEnVol.retry(`${projectId}:${panel}`);
       }
 
       if (loadingPanelRef.current) {
@@ -11739,9 +11757,10 @@ function ProjectIdeApiServicePanel({
          * de ré-entrance reste : les deux protections ne couvrent pas le même
          * cas.
          */
-        const partage = await panneauEnVol.run(`${projectId}:${panel}`, async () => {
+        const partage = await panneauEnVol.run(`${projectId}:${panel}`, async (signal) => {
           const reponse = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
             headers: { accept: 'application/json' },
+            signal,
           });
 
           return { status: reponse.status, ok: reponse.ok, corps: await reponse.json() };
@@ -12041,7 +12060,13 @@ function ProjectIdeApiServicePanel({
             role="alert"
           >
             <span className="flex-1">{error}</span>
-            <PanelButton type="button" variant="danger" size="sm" onClick={() => void loadPanel()} disabled={busy}>
+            <PanelButton
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => void loadPanel({ retry: true })}
+              disabled={busy}
+            >
               {t('chat.copy.retry_9f5cd8a2')}
             </PanelButton>
           </div>
@@ -12109,7 +12134,7 @@ function ProjectIdeApiServicePanel({
                 role="status"
               >
                 <span>{t('chat.copy.thisIsTakingLongerThanUsual_04718c01')}</span>
-                <PanelButton type="button" variant="outline" size="sm" onClick={() => void loadPanel()}>
+                <PanelButton type="button" variant="outline" size="sm" onClick={() => void loadPanel({ retry: true })}>
                   {t('chat.copy.retry_9f5cd8a2')}
                 </PanelButton>
               </div>
@@ -13596,9 +13621,8 @@ function IdeTabBar({
   onOpenFile?: (filePath: string, preview: boolean) => void;
 }) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
+  const { open, query: toolQuery, openPalette, closePalette, setQuery: setToolQuery } = useIdePalette(paneId);
   const [actionsOpen, setActionsOpen] = useState(false);
-  const [toolQuery, setToolQuery] = useState('');
 
   /**
    * RPL-IDE-001.4 — insertion slot under the pointer during a tab drag, drawn as
@@ -13662,20 +13686,21 @@ function IdeTabBar({
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
 
-  const closeToolMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
-    setOpen(false);
-    setToolQuery('');
+  const closeToolMenu = useCallback(
+    (options: { restoreFocus?: boolean } = {}) => {
+      closePalette();
 
-    if (options.restoreFocus) {
-      window.requestAnimationFrame(() => addTabButtonRef.current?.focus());
-    }
-  }, []);
+      if (options.restoreFocus) {
+        window.requestAnimationFrame(() => addTabButtonRef.current?.focus());
+      }
+    },
+    [closePalette],
+  );
 
   const openToolMenu = useCallback(() => {
     setActionsOpen(false);
-    setToolQuery('');
-    setOpen(true);
-  }, []);
+    openPalette();
+  }, [openPalette]);
 
   /*
    * RPL-IDE-001.6 — the menu is portalled to <body> and positioned from the

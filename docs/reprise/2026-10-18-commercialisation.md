@@ -19,7 +19,7 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 22:07 UTC
+## Dernier état vérifié — 23:37 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.
@@ -102,15 +102,59 @@ retenue, la palette disparaît quand les anciens nœuds sont démontés.
 [capture après](captures/2026-10-18-palette-after-handoff.png) inspectées.
 Le build local existant utilise huit sources pertinentes identiques à
 `c421` ; le retard est imposé et **l’attribution au run CI reste inconnue**.
-Une correction et une régression déterministe sont en préparation sur une
-branche isolée, sans nouvelle PR ni assouplissement des contrôles.
+Le correctif local passe désormais la nouvelle régression et le cas historique
+de style : deux cas Chromium, zéro retry, captures inspectées. Un second
+défaut est reproduit : le bouton Réessayer ne relance aucune requête lorsque
+la première reste en attente. Son correctif conserve les consommateurs et
+remplace la tentative HTTP, avec contre-épreuves et tests loopback verts.
+[Preuves et limites des deux corrections](2026-10-18-ide-recovery-defects.md).
+Les deux candidats et le diagnostic sont validés localement sur une branche
+issue de `43eef614`, sans assouplissement des contrôles : 88 tests ciblés,
+typage web/tests, build client/SSR, puis deux cas Chromium sans retry
+sur le lot `6365455b6`, captures inspectées et nettoyage QA réussi.
+[Preuve intégrée](mesures/2026-10-18-ide-recovery-integrated.json).
+Le lot est publié en [PR #740](https://github.com/openaxcloud/vibecore/pull/740),
+tête `f2af72cb4`. Sa première CI est refusée au typage : le nouveau test
+navigateur était inclus dans le périmètre Node sans DOM. Le déplacement du
+test et un contrôle DOM strict obligatoire passent localement, sans retrait
+des contrôles existants ; ils attendent validation sur la nouvelle tête.
+Les trois packages Desktop échouent séparément au téléchargement d’Electron
+(HTTP 504). Les quatre audits EN/FR et la nouvelle régression de palette
+passent ; WebKit rapporte 17 succès et trois sauts préexistants. Le verdict
+E2E complet réussit à 23:26:28 UTC : 454 rapportés, zéro échec et zéro
+instabilité, six exemptions inchangées. Les deux cas DB passent au premier
+essai (24,2 s et 24,8 s), sans nouvelle métadonnée d’échec ; leur ancienne
+cause demeure inconnue. [État exact de cette tête](mesures/2026-10-18-pr740-first-head.json).
+Deux [scénarios DB réels locaux à 390 px](mesures/2026-10-18-ide-recovery-mobile-local.json)
+passent sans retry, avec captures inspectées et nettoyage confirmé ; une
+barre de requête serrée reste visible. La panne DB CI demeure non attribuée.
+Sur `133c8ecc0`, le typage complet passe en CI ; le téléchargement Desktop
+répète toutefois le même 504 sur Linux et Windows. La correction minimale
+retire le miroir hérité et revient aux archives officielles existantes.
+Builds locaux main/preload, smoke test et six contrôles d’index passent ;
+le packaging officiel et les contrôles de la tête qui suit restent à valider.
+[Preuve, résultats incomplets et limites](mesures/2026-10-18-desktop-mirror.json).
+Aucun de ces changements n’est encore fusionné ou déployé.
+La validation intégrée a ensuite identifié un défaut du lecteur de styles
+du test : trois des six observations supplémentaires lisent un ancien nœud
+détaché (rayon vide), alors que le menu courant est connecté avec `12px`
+au même instant. Ce rouge local est attribué et consigné ; la lecture
+atomique passe désormais ses contre-épreuves de CSS incorrect et de menu absent. L’ancien rouge CI et la panne DB ne sont
+pas réattribués sans preuve.
 
 Le [diagnostic DB instrumenté](https://github.com/openaxcloud/vibecore/actions/runs/39170180476)
 a démarré à 21:58:37 UTC sur `a78c7766`, avec le workflow existant et le
 seul fichier `ide-mobile-chrome.spec.ts`. Ce fichier est exécuté séparément
 par les quatre jobs : leurs résultats ne constituent pas quatre ensembles
-de cas uniques. Le résultat est encore attendu ; ce lancement ajoute des
-observations réseau/DOM et n’est pas une relance identique du rouge de main.
+de cas uniques. Il a terminé avec 45 cas uniques, zéro échec persistant
+et une instabilité ; les deux cas DB passent au premier essai dans les
+quatre jobs. [Résultat ciblé](mesures/2026-10-18-mobile-db-diagnostic-targeted-result.json).
+Le [run complet instrumenté 39171191591](https://github.com/openaxcloud/vibecore/actions/runs/39171191591)
+conserve l’ordre original et termine à 22:30:58 UTC : 453 rapportés, zéro
+échec persistant, deux instabilités, six exemptions inchangées, 73/73 fichiers.
+[Résultat complet](mesures/2026-10-18-mobile-db-diagnostic-full-result.json).
+Aucun échec DB n’a fourni de nouvelles métadonnées : la cause reste inconnue.
+Ces deux runs précèdent les correctifs UI et ne prouvent pas leur effet.
 
 Les [quatre alertes critiques](2026-10-18-security-triage.md) sont qualifiées
 partiellement : deux résultats Capacitor natif et deux advisories Tinypool
@@ -137,9 +181,17 @@ Aucun contrôle de livraison n’est contourné.
 
 Les relevés suivants conservent leur date et ne remplacent pas cet état.
 
-## Les cinq conditions de lancement — état vérifié à 22:07 UTC
+## Les cinq conditions de lancement — état vérifié à 23:37 UTC
 
-Main est `c4211323345cc8e0688a191337a04af9e3b2fab9` après #737.
+Main est `43eef614ec3c56d8b7642f105b140e938f6868ef` après la fusion
+documentaire #739 à 22:32:21 UTC : 33 fichiers, aucun de production.
+[Contrôles exacts et fusion](mesures/2026-10-18-pr739-result.json).
+La CI de ce main passe à 22:55:03 UTC ; ses E2E complets échouent à
+22:56:38 UTC : 453 rapportés, deux échecs DB persistants sur trois essais
+chacun, deux instabilités, six exemptions et 73/73 fichiers.
+[Preuve exacte](mesures/2026-10-18-main739-validation.json).
+Aucune nouvelle livraison produit observée. Les E2E de PR sautés pour le
+périmètre documentaire ne sont pas de nouveaux tests navigateur.
 La dernière livraison terminée est #735, `c6439da55` ; #736 a été
 refusée par sa barrière ; celle de #737 est également refusée après son échec E2E. Les contrôles locaux et CI ci-dessous
 ne remplacent pas un parcours réel sur la version servie.

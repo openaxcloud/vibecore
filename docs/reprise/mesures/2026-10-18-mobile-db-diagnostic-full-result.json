@@ -1,0 +1,23 @@
+{
+  "head": "a78c77665665354f9d9ffd31edeafb56ab811544",
+  "run": 39171191591,
+  "verdictJob": 117808439997,
+  "summaryAtUtc": "2026-10-18T22:30:58Z",
+  "reported": 453,
+  "persistentFailures": 0,
+  "flaky": 2,
+  "unchangedWaivers": 6,
+  "specsExpected": 73,
+  "specsSeen": 73,
+  "databaseTablesSeconds": 14.2,
+  "myDataSeconds": 14.9,
+  "databaseFirstAttempt": true,
+  "databaseFailureMetadataObserved": false,
+  "flakyTests": [
+    "ide-mobile-chrome.spec.ts:1008 agent/power menus",
+    "ide-mobile-file-restore.spec.ts explicit provisional README project A after B at390"
+  ],
+  "productSourceChanged": false,
+  "rootCauseEstablished": false,
+  "limit": "Instrumentation only, before either UI correction; successful full run does not establish a fix or production readiness."
+}

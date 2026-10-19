@@ -1,0 +1,121 @@
+{
+  "scope": "Combined local candidate, real API/PostgreSQL/built web and Chromium; no external provider/payment/cloud/runtime",
+  "head": "6365455b6984e39e97e5a8a08c7ab5fa4f283f6a",
+  "base": "43eef614ec3c56d8b7642f105b140e938f6868ef",
+  "productionSourceHead": "93e7e3d8eed7318e18f56ceda3bedc6d32679cb9",
+  "productionHashes": {
+    "app/components/chat/BaseChat.tsx": "e44bb692e33798475efec8761f0c4077cfb0611a78a863f5ba9cc413cf590eff",
+    "app/components/chat/IdePaletteState.tsx": "589990979c13064786932f80f762578f4c96772f10e717bdc06bbea8cacdfbf5",
+    "app/lib/ide/panel-request.ts": "02e8ea4b6860bbe152cc948e03e9536ad5ca6ff6bb7a1815c0d5725866605aac",
+    "app/routes/projects.$projectId.ide.tsx": "fa6fa788d9dcfe30a837710eacc45a8ca3b6fbe1983c2e2f5cb7587b19033d0b"
+  },
+  "targetedTests": {
+    "passed": 72,
+    "files": 9,
+    "generatorPassed": 16,
+    "generatorFiles": 1,
+    "uniqueTotal": 88,
+    "finalIndexRerunPassed": 6,
+    "finalIndexRerunIncludedInUniqueTotal": true
+  },
+  "webTypecheck": {
+    "exitCode": 0,
+    "typescriptVersion": "5.8.3"
+  },
+  "styleTestsTypecheck": {
+    "exitCode": 0,
+    "typescriptVersion": "5.8.3"
+  },
+  "lint": {
+    "newDiagnostics": 0,
+    "dashboardBaselineErrors": 6,
+    "dashboardBaselineWarnings": 1,
+    "dashboardUnchanged": true
+  },
+  "build": {
+    "clientAndSSRExitCode": 0,
+    "productInputsUnchangedAfterBuild": true,
+    "beforeMemory": {
+      "at": "2026-10-18T22:39:22.089726+00:00",
+      "currentBytes": 4554108928,
+      "limitBytes": 17179869184,
+      "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+    }
+  },
+  "browser": {
+    "passed": 2,
+    "failed": 0,
+    "retries": 0,
+    "workers": 1,
+    "durationSeconds": 49.4,
+    "cases": [
+      {
+        "name": "IDE applies section 12 UI detail styles",
+        "seconds": 16.2,
+        "assertions": "unchanged",
+        "reader": "atomic current DOM selection and measurement"
+      },
+      {
+        "name": "an open add-tab palette survives the loading-shell handoff and explicit closure stays closed",
+        "seconds": 27.9,
+        "includes": [
+          "actual unchanged ide-state response",
+          "old node detached/current node connected",
+          "retained query",
+          "CSS13px observed and restored",
+          "absent menu rejected",
+          "Escape/explicit closure/project navigation"
+        ]
+      }
+    ],
+    "startedAtUtc": "2026-10-18T22:59:22.537124+00:00",
+    "finishedAtUtc": "2026-10-18T23:00:34.467096+00:00",
+    "capturesInspected": true
+  },
+  "cleanup": {
+    "ownProjectDeleteStatuses": [
+      200,
+      200,
+      200
+    ],
+    "wrapperExitCode": 0,
+    "cleanupExitCode": 0,
+    "activeOwnedProcesses": 0,
+    "remainingZombies": 2,
+    "ports": {
+      "3301": "closed",
+      "3173": "closed"
+    }
+  },
+  "memory": {
+    "beforeBytes": 4605317120,
+    "peakObservedBytes": 6333030400,
+    "cgroupLimitBytes": 17179869184,
+    "eventsAfter": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+  },
+  "limits": [
+    "Earlier combined browser run failed the historical style case; retained and diagnosed (3red/3green observations), not erased.",
+    "Two API-start environment failures occurred before tests: missing SDK link, then missing Prisma runtime link; dependencies linked to existing installed versions, no install/lock change.",
+    "Historical CI failure causes, including database panels, remain unknown.",
+    "No public HTTPS, Safari/mobile or production verification."
+  ],
+  "captures": {
+    "before": {
+      "path": "../captures/2026-10-18-ide-recovery-before-handoff.png",
+      "sha256": "d57a3cf1adf229302d371e43a0b0eeb011cd3581bf61619897107f9d3f2aad72"
+    },
+    "after": {
+      "path": "../captures/2026-10-18-ide-recovery-after-handoff.png",
+      "sha256": "e5a53ed82c20c178c742129c23ba5d356a5454d71743d0f2577da9777e25ca3a"
+    }
+  },
+  "logHashes": {
+    "vibecore-ui-recovery-tests.log": "415c92063e94d053951d20db5bedc4f151c5973c7f9ae952300293ebfbd685e7",
+    "vibecore-ui-recovery-index-tests.log": "138f7820ddf3d8b36d7aa4a8dc6c507a62c756c78da100217512d88046960ed1",
+    "vibecore-ui-recovery-index-final.log": "216bf2411700a3381b4b2a78c88f0a6b90c992e4d902e397cea715b198dca159",
+    "vibecore-ui-recovery-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "vibecore-ui-recovery-build.log": "90a43c129b6d64542af50a723892246c3bb9a60ddbad37570326cd62caab8e86",
+    "vibecore-style-atomic-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "browser/probe.log": "343564fa0957f978aef8a7b145cc7945feb763979c5d27535570175790f9fa8c"
+  }
+}

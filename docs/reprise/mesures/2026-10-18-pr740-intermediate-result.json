@@ -1,0 +1,35 @@
+{
+  "head": "133c8ecc037423a631bf9a119e8826dbc5f697cd",
+  "reasonSuperseded": "Minimal packaging source correction after repeated Electron mirror HTTP504; no identical E2E rerun",
+  "ci": {
+    "run": 39176678089,
+    "job": 117820674433,
+    "conclusion": "cancelled",
+    "finishedAtUtc": "2026-10-18T23:36:55Z",
+    "typecheck": "success",
+    "unitSuiteIncomplete": true
+  },
+  "e2e": {
+    "run": 39176678092,
+    "conclusion": "cancelled",
+    "finishedAtUtc": "2026-10-18T23:37:14Z",
+    "terminalSuccessClaimed": false
+  },
+  "desktop": {
+    "run": 39176678068,
+    "conclusion": "failure",
+    "finishedAtUtc": "2026-10-18T23:37:36Z",
+    "jobs": {
+      "linux": 117820674424,
+      "windows": 117820674589,
+      "macos": 117820674608
+    },
+    "allThreeArchiveDownloadHttpStatuses": [
+      504,
+      504,
+      504
+    ],
+    "lastFailureAtUtc": "2026-10-18T23:37:29Z"
+  },
+  "nextHead": "af2badddec9b9dac73d028d29c74bf5ecd902e2c"
+}

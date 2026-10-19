@@ -1,0 +1,136 @@
+{
+  "headObserved": "af2badddec9b9dac73d028d29c74bf5ecd902e2c",
+  "ci": {
+    "run": 39177237733,
+    "job": 117822378762,
+    "conclusion": "failure",
+    "typecheck": "success",
+    "testFiles": {
+      "failed": 2,
+      "passed": 1273,
+      "skipped": 2
+    },
+    "tests": {
+      "failed": 1,
+      "passed": 9751,
+      "skipped": 4
+    },
+    "causes": [
+      "Root Vite config aliases node:util to util@0.12.5; transferableAbortController absent, retry suite fails collection.",
+      "Historical PanelButton source guard assumes one-line props and loadPanel() with no retry option."
+    ]
+  },
+  "corrections": {
+    "retryTest": "createRequire from native node:module loads native node:util; real HTTP, abort and stale-response assertions unchanged.",
+    "styleGuard": "Whitespace tolerant but still requires danger variant, small size and explicit retry:true; raw red Tailwind exclusions unchanged.",
+    "productionFilesChanged": false
+  },
+  "local": {
+    "configuration": "Unmodified repository root vite.config.ts; no private --config",
+    "node": "24.19.0",
+    "ciNode": "22.23.3",
+    "passed": 110,
+    "failed": 0,
+    "skipped": 0,
+    "files": 11,
+    "durationSeconds": 26.55,
+    "workers": 1,
+    "priorCollectionFailureReproducedUnderSameLocalNode": true,
+    "priorStyleGuardFailed": 1,
+    "priorStyleGuardPassed": 21,
+    "counterexamples": {
+      "realCurrentSourceAccepted": true,
+      "wrongStyleVariantRejected": true,
+      "missingExplicitRetryRejected": true,
+      "productionFilesModified": false
+    },
+    "memoryBeforeBytes": 4594589696,
+    "memoryLimitBytes": 17179869184,
+    "lintExitCode": 0,
+    "indexRegeneratedEntries": 437,
+    "indexPostRegenerationTestsPassed": 6,
+    "indexTestsIncludedInUniqueTotal": true,
+    "standaloneTypecheck": {
+      "supersededAttempts": "Two accidentally broad tsconfig.json invocations stopped with SIGTERM143; neither counts as validation. CI uses the separate tsconfig.web.json project.",
+      "disconnection": "First official web-project result was lost after environment/session interruption; empty log and no active process are insufficient success proof.",
+      "resumedOfficialWebProject": {
+        "command": [
+          "node",
+          "--max-old-space-size=6144",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "--project",
+          "tsconfig.web.json"
+        ],
+        "startedAtUtc": "2026-10-19T00:18:50.961718+00:00",
+        "finishedAtUtc": "2026-10-19T00:21:11.207328+00:00",
+        "exitCode": 0
+      }
+    },
+    "memoryEventsAfter": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+    "stagedSecretScanExitCode": 0
+  },
+  "e2e": {
+    "run": 39177237745,
+    "verdictJob": 117826277438,
+    "summaryAtUtc": "2026-10-18T23:56:39Z",
+    "conclusion": "success",
+    "reported": 454,
+    "persistentFailures": 0,
+    "flaky": 1,
+    "configuredWaivers": 6,
+    "specsSeen": 74,
+    "specsExpected": 74,
+    "flakyCase": "mobile-device-matrix.spec.ts / compact IDE shell device matrix / adapts to iphone-pro-max",
+    "databaseCases": {
+      "shardJob": 117822500389,
+      "tableListSeconds": 13.7,
+      "myDataSeconds": 15.6,
+      "bothFirstAttempt": true
+    },
+    "databaseFailureMetadataProduced": false
+  },
+  "desktop": {
+    "run": 39177237725,
+    "conclusion": "success",
+    "jobs": {
+      "windows": 117822518307,
+      "macos": 117822518507,
+      "linux": 117822518599
+    },
+    "allBuildAndArtifactUploadStepsSucceeded": true,
+    "releaseJob": "skipped"
+  },
+  "webkit": {
+    "job": 117822500378,
+    "passed": 17,
+    "skipped": 3
+  },
+  "frenchAudit": {
+    "run": 39177237767,
+    "conclusion": "success",
+    "viewports": [
+      390,
+      768,
+      1024,
+      1440
+    ]
+  },
+  "limits": [
+    "110 tests replace the earlier minimal-config local evidence for this set; earlier minimal config did not expose the util polyfill problem.",
+    "New exact-head CI on Node22 remains required.",
+    "No attribution of historical DB failures; no failure metadata in this green run.",
+    "Desktop build is not a user installation or published release.",
+    "No production/public HTTPS/Safari or commercial journey validation."
+  ],
+  "logHashes": {
+    "vibecore-ui-recovery-real-config-110.log": "ee66f6d0d6e28c69307fa85617c5e999a0a32588ed7ea5fee7c24eb9a5f023b9",
+    "vibecore-panel-retry-ci-config-red.log": "e1534b4f511d92fa5b0a21b76c5c657f3c16e447279e6c0c8117d9a391bc310e",
+    "vibecore-panel-retry-ci-config-green.log": "5f86a91eef13fbff3168dd01b0009b6051778d898fa88b52f0ce836fff581699",
+    "vibecore-ui-recovery-style-guard-before.log": "996779d26b4f4e6a3f3277d99f000fd506b932640f1e3cd68d4b5cc5e831e6ce",
+    "vibecore-ui-recovery-style-guard-after.log": "07a2f1cfa61893a2e137d7dd48d0f7ebb81048e9c30f9c6fe18891c938c45704",
+    "vibecore-ui-recovery-final-test-typecheck-web-resumed.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "vibecore-ui-recovery-final-test-lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "vibecore-ui-recovery-final-test-index-check.log": "d66ef27dbffa8424479ee872307dc1a36b928dda4d55588e2cebb42d30bdffc3"
+  }
+}

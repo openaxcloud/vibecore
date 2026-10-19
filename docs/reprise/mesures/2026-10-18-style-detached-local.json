@@ -1,0 +1,298 @@
+{
+  "scope": "Actual local API/PostgreSQL/built web and Chromium; unmodified HTTP, unchanged historical assertions/timeouts; additional synchronous DOM metadata only",
+  "head": "0b8ae254ffd7a42e8f94b60b8f2dce710177b491",
+  "productionSourceHead": "93e7e3d8eed7318e18f56ceda3bedc6d32679cb9",
+  "sourceManifest": {
+    "sourceHead": "0b8ae254ffd7a42e8f94b60b8f2dce710177b491",
+    "sourcePath": "/workspace/vibecore-ui-recovery/tests/e2e/dashboard.spec.ts",
+    "sourceSha256": "cd3e43a24077ea4d400b62c1bf5203f639934876bddb4c6246faa4d4e3d146b7",
+    "instrumentedPath": "/tmp/vibecore-style-observation/dashboard-style-observation.spec.ts",
+    "instrumentedSha256": "29c98bb3f88861b15663bf07ddccd495ca67edfb616d7febda717c02f3243bbe",
+    "stripDiagnosticBlocksRestoresOriginalBytes": true,
+    "config": "/tmp/vibecore-style-observation/playwright.config.cjs",
+    "repeatEach": 6,
+    "workers": 1,
+    "retries": 0,
+    "executed": true,
+    "cleanup": "Parent owns lifecycle and cleanup; exact project name IDE UI Details Project, existing e2e-*@local.test identity and run creation window."
+  },
+  "startedAtUtc": "2026-10-18T22:52:11.558901+00:00",
+  "finishedAtUtc": "2026-10-18T22:54:14.262956+00:00",
+  "observations": [
+    {
+      "repetition": 0,
+      "elapsedMs": 6439.304999999702,
+      "candidateCount": 1,
+      "sameNode": false,
+      "received": {
+        "connected": false,
+        "inCurrentDocument": false,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 0,
+        "width": 0,
+        "height": 0,
+        "display": "",
+        "visibility": "",
+        "radius": "",
+        "shadow": "",
+        "backdrop": ""
+      },
+      "current": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "documentVisible": true,
+      "theme": "dark"
+    },
+    {
+      "repetition": 1,
+      "elapsedMs": 7853.315000001341,
+      "candidateCount": 1,
+      "sameNode": true,
+      "received": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "current": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "documentVisible": true,
+      "theme": "dark"
+    },
+    {
+      "repetition": 2,
+      "elapsedMs": 5519.279999997467,
+      "candidateCount": 1,
+      "sameNode": true,
+      "received": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "current": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "documentVisible": true,
+      "theme": "dark"
+    },
+    {
+      "repetition": 3,
+      "elapsedMs": 7630.719999998808,
+      "candidateCount": 1,
+      "sameNode": true,
+      "received": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "current": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "documentVisible": true,
+      "theme": "dark"
+    },
+    {
+      "repetition": 4,
+      "elapsedMs": 7016.905000001192,
+      "candidateCount": 1,
+      "sameNode": false,
+      "received": {
+        "connected": false,
+        "inCurrentDocument": false,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 0,
+        "width": 0,
+        "height": 0,
+        "display": "",
+        "visibility": "",
+        "radius": "",
+        "shadow": "",
+        "backdrop": ""
+      },
+      "current": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "documentVisible": true,
+      "theme": "dark"
+    },
+    {
+      "repetition": 5,
+      "elapsedMs": 5733.205000001937,
+      "candidateCount": 1,
+      "sameNode": false,
+      "received": {
+        "connected": false,
+        "inCurrentDocument": false,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 0,
+        "width": 0,
+        "height": 0,
+        "display": "",
+        "visibility": "",
+        "radius": "",
+        "shadow": "",
+        "backdrop": ""
+      },
+      "current": {
+        "connected": true,
+        "inCurrentDocument": true,
+        "sameDocument": true,
+        "isBaseMenu": true,
+        "isModalMenu": true,
+        "rectCount": 1,
+        "width": 640,
+        "height": 620,
+        "display": "flex",
+        "visibility": "visible",
+        "radius": "12px",
+        "shadow": "rgba(0, 4, 20, 0.7) 0px 24px 64px 0px",
+        "backdrop": "blur(12px)"
+      },
+      "documentVisible": true,
+      "theme": "dark"
+    }
+  ],
+  "outcome": {
+    "failed": 3,
+    "passed": 3,
+    "retries": 0,
+    "workers": 1,
+    "everyFailureReceivedDetachedNode": true,
+    "everyFailureHadConnectedCurrentMenuWith12px": true
+  },
+  "cleanup": {
+    "ownProjectDeleteStatuses": [
+      200,
+      200,
+      200,
+      200,
+      200,
+      200
+    ],
+    "cleanupExitCode": 0,
+    "activeOwnedProcesses": 0,
+    "remainingZombies": 13,
+    "ports": {
+      "3301": "closed",
+      "3173": "closed"
+    }
+  },
+  "memory": {
+    "peakObservedBytes": 6284414976,
+    "beforeBytes": 4681576448,
+    "cgroupLimitBytes": 17179869184
+  },
+  "limits": [
+    "Historical CI failure attribution remains unknown.",
+    "No production, mobile or Safari proof.",
+    "First integrated run: one historical style failure and one passing handoff regression; preserved, not overwritten.",
+    "Six repeats were bounded diagnostic observations, not retries used to turn a failed run green."
+  ],
+  "logHashes": {
+    "run/probe.log": "b6fc27fc65146539fb53ed07d235df2d8f80cdba74a872dc928d42af311360ec",
+    "results.json": "7c461b6ec9d0a384a402f7945f60564a45d2ca85c5a747435c7bd79d9864ee3d"
+  },
+  "capture": {
+    "path": "../captures/2026-10-18-style-detached-palette-visible.png",
+    "observation": 0,
+    "sha256": "bdd00af08e8d7ee3b2ea81df7cd8471d5061780f1ff0a2b4bf10b3b7af6afdda",
+    "inspected": true,
+    "observationAtCapture": "palette visible after style failure; synchronous received/current distinction comes from metadata"
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "sha": "43eef614ec3c56d8b7642f105b140e938f6868ef",
+  "scope": "Main after documentation-only PR739; product sources unchanged from737",
+  "ci": {
+    "run": 39172672320,
+    "job": 117808819183,
+    "conclusion": "success",
+    "finishedAtUtc": "2026-10-18T22:55:03Z",
+    "root": {
+      "passed": 9714,
+      "skipped": 4
+    },
+    "api": {
+      "passed": 2428,
+      "skipped": 23
+    },
+    "managerPassed": 152,
+    "agentPassed": 121,
+    "builds": "success",
+    "audit": {
+      "low": 28,
+      "moderate": 118,
+      "high": 92,
+      "critical": 4
+    }
+  },
+  "e2e": {
+    "run": 39172672228,
+    "verdictJob": 117813930793,
+    "summaryAtUtc": "2026-10-18T22:56:38Z",
+    "finishedAtUtc": "2026-10-18T22:56:41Z",
+    "conclusion": "failure",
+    "reported": 453,
+    "persistentFailures": 2,
+    "flaky": 2,
+    "waivers": 6,
+    "specsSeen": 73,
+    "specsExpected": 73,
+    "persistentCases": [
+      {
+        "file": "tests/e2e/ide-mobile-chrome.spec.ts",
+        "line": 3377,
+        "assertionLine": 3395,
+        "failure": "All databases heading absent in all3attempts"
+      },
+      {
+        "file": "tests/e2e/ide-mobile-chrome.spec.ts",
+        "line": 3461,
+        "assertionLine": 3479,
+        "failure": "Database list heading absent in all3attempts"
+      }
+    ],
+    "flakyCases": [
+      "ide-mobile-file-restore.spec.ts: explicit provisional README stays in project A after switching to B at390",
+      "mobile-device-matrix.spec.ts: galaxy-large"
+    ],
+    "metadataLimit": "Old helper derives mount from heading and observes response events only; databaseMountedfalse and responsesempty do not identify outer mount, busy state or pending requests."
+  },
+  "workflowsObserved": [
+    {
+      "id": 39172672339,
+      "name": "Update Stable Branch",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 39172672345,
+      "name": "Docs CI/CD",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39172672322,
+      "name": "Parity registries",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39172672417,
+      "name": "Code Quality",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39172672328,
+      "name": "Security Analysis",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39172672320,
+      "name": "Production CI",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 39172672228,
+      "name": "Production E2E",
+      "event": "push",
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  ],
+  "newProductDeploymentObserved": false,
+  "lastSuccessfulProductDeployment": {
+    "sha": "c6439da55bebf180fe43dce65dbc5c32e6a9fa0a",
+    "run": 39161995312,
+    "finishedAtUtc": "2026-10-18T21:35:00Z"
+  },
+  "limits": [
+    "No identical failed workflow rerun requested.",
+    "Database CI cause remains unknown.",
+    "Public HTTPS and CI artifact materialization remain blocked by environment proxy; no new public version or capture proof."
+  ]
+}

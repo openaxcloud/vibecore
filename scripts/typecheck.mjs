@@ -8,10 +8,12 @@ const DEFAULT_TIMEOUT_MS = 10 * 60 * 1000;
 const timeoutMs = Number(process.env.TYPECHECK_TIMEOUT_MS ?? DEFAULT_TIMEOUT_MS);
 const tsc = resolve('node_modules/typescript/bin/tsc');
 
-// Avant tsc, et pas après : une dépendance déclarée mais absente fait rendre à
-// TypeScript « Cannot find module », qui envoie chercher un défaut de code là
-// où il n'y en a pas. Le 2026-09-04, `esbuild` manquait sur `main` vierge et le
-// pré-commit accusait un fichier inchangé depuis des semaines.
+/*
+ * Avant tsc, et pas après : une dépendance déclarée mais absente fait rendre à
+ * TypeScript « Cannot find module », qui envoie chercher un défaut de code là
+ * où il n'y en a pas. Le 2026-09-04, `esbuild` manquait sur `main` vierge et le
+ * pré-commit accusait un fichier inchangé depuis des semaines.
+ */
 const manquantes = dependancesManquantes(JSON.parse(readFileSync('package.json', 'utf8')));
 const alerte = messageInstallation(manquantes);
 
@@ -30,6 +32,11 @@ const tasks = [
     name: 'node scripts',
     command: process.execPath,
     args: [tsc, '--project', 'tsconfig.scripts.json', '--noEmit', '--pretty', 'false'],
+  },
+  {
+    name: 'IDE browser test helpers',
+    command: process.execPath,
+    args: [tsc, '--project', 'tsconfig.ide-diagnostics.json', '--noEmit', '--pretty', 'false'],
   },
   {
     name: 'electron main',
