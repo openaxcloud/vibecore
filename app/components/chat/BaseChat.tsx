@@ -11739,7 +11739,13 @@ function ProjectIdeApiServicePanel({
         setBusy(true);
       }
 
-      setError(undefined);
+      /*
+       * A background database retry must not erase the only recovery action
+       * while its replacement response is still pending.
+       */
+      if (panel !== 'database' || !options?.silent) {
+        setError(undefined);
+      }
 
       try {
         /*
@@ -11813,6 +11819,8 @@ function ProjectIdeApiServicePanel({
         if (result.status === 'error' && typeof result.error === 'object' && result.error) {
           console.warn('IDE panel returned an error envelope', { panel, serverError: result.error });
           setError(`[${result.error.code}] ${t('baseChatAst.panel.loadFailed')}`);
+        } else if (panel === 'database' && options?.silent) {
+          setError(undefined);
         }
 
         const loadedAt = new Date().toISOString();

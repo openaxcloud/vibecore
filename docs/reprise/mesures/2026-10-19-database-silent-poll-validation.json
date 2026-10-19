@@ -1,0 +1,462 @@
+{
+  "recordedAtUtc": "2026-10-19T02:08:27.307420+00:00",
+  "scope": "Local validation of PR741 silent-poll followup, not production",
+  "source": {
+    "frozenAtUtc": "2026-10-19T02:00:35.531034+00:00",
+    "baseHead": "a07f7c0c02ae5236efba1fde5b2454ce12474281",
+    "workingTreeDelta": "silent poll alert retention regression",
+    "sha256": {
+      "app/components/chat/BaseChat.tsx": "f4ff462d54089d5d23f9c7ac3253ab827f804d2bf568ad2073812e17342db60c",
+      "app/components/chat/panel-retry-recovery.spec.tsx": "045d53b88f3a9c9348865c4edaf25a97cf42038ea701c08c05789515ccb512a5",
+      "app/components/database/DatabaseHeading.tsx": "e9d607c4925ec22c28b505c5660f8596a649d24d1baf7a5eb1117efd8e7d11f1",
+      "app/components/database/DatabaseWorkbench.tsx": "2e9b6fd9883677bf3e7dc07a6c0f22162e75eda6460995829578708efda23d64",
+      "tests/e2e/database-loading-context.spec.ts": "7e9c6a514cb93b4a18e52cf55c812f9adc7976282daa6e02b3b20bc9887a8149",
+      "tsconfig.ide-diagnostics.json": "d494a701542f61868ef19d1e6be001adbed1cb25f4879985061e79a152e52132"
+    },
+    "commentOnlyFormatting": {
+      "atUtc": "2026-10-19T02:02:10.919Z",
+      "file": "app/components/chat/BaseChat.tsx",
+      "beforeSha256": "3195f3b4502122366eb1fb32f1fcf1a175796da47ed696125f3b728554fd73bd",
+      "afterSha256": "f4ff462d54089d5d23f9c7ac3253ab827f804d2bf568ad2073812e17342db60c",
+      "transpiledWithCommentsRemovedSha256": "b4de86aa650e2baa407187ef2fee88102d65468de245d16caec215a056bcc178",
+      "identicalTranspiledOutput": true,
+      "buildStartedBeforeFormatting": true,
+      "limitation": "Local web types, unit tests and build were started against the pre-formatting source; only a comment delimiter changed. New remote CI will validate the committed bytes."
+    }
+  },
+  "red": {
+    "baseHead": "a07f7c0c02ae5236efba1fde5b2454ce12474281",
+    "test": "preserves recovery during the automatic poll after an error envelope",
+    "failed": 1,
+    "filtered": 7,
+    "durationSeconds": 13.96,
+    "assertion": "Alert vanished after second request triggered by existing 60000ms poll",
+    "transport": "Real loopback HTTP fixture; extracted actual wrapper; only interval clock controlled; explicit UI/store fixture seams"
+  },
+  "green": {
+    "passed": 72,
+    "files": 10,
+    "skipped": 0,
+    "durationSeconds": 78.32,
+    "coverage": "60s poll retains alert and enabled Retry; Retry replaces active poll; valid replacement clears alert",
+    "notCovered": "No integrated browser 60s error-poll scenario was run; this specific regression is covered by the HTTP wrapper test"
+  },
+  "webTypecheck": {
+    "name": "web-typecheck",
+    "startedAtUtc": "2026-10-19T01:54:59.176955+00:00",
+    "memoryBeforeBytes": 4233433088,
+    "memoryLimitBytes": 17179869184,
+    "exitCode": 0,
+    "peakObservedMemoryBytes": 6888726528,
+    "finishedAtUtc": "2026-10-19T01:58:48.728317+00:00"
+  },
+  "build": {
+    "name": "build",
+    "startedAtUtc": "2026-10-19T01:58:48.887369+00:00",
+    "memoryBeforeBytes": 4153090048,
+    "memoryLimitBytes": 17179869184,
+    "exitCode": 0,
+    "peakObservedMemoryBytes": 12457005056,
+    "finishedAtUtc": "2026-10-19T02:05:11.590101+00:00"
+  },
+  "quickChecks": {
+    "finishedAtUtc": "2026-10-19T02:01:10.196794+00:00",
+    "results": [
+      {
+        "name": "diagnostics-typecheck",
+        "exitCode": 0
+      },
+      {
+        "name": "lint",
+        "exitCode": 1
+      }
+    ],
+    "lintRetry": {
+      "finishedAtUtc": "2026-10-19T02:03:10.533634+00:00",
+      "exitCode": 0,
+      "reason": "Only multiline-comment-style failed; converted the new comment to block format. Exact pre/post hashes and equivalent transpilation are recorded in source snapshot.",
+      "log": "/tmp/vibecore-database-silent-poll-lint-final.log"
+    }
+  },
+  "browser": {
+    "passed": 4,
+    "retries": 0,
+    "realAPIAndPostgreSQL": true,
+    "durationsSeconds": {
+      "en": 19.8,
+      "fr": 35.7,
+      "historicalTables": 17.6,
+      "historicalMyData": 10.6
+    },
+    "responses": {
+      "en": {
+        "initialRequests": 1,
+        "requestedMs": 7339,
+        "responses": [
+          {
+            "status": 200,
+            "bytes": 3142,
+            "upstreamReadyMs": 8123,
+            "unchanged": true,
+            "deliveredMs": 14444
+          }
+        ],
+        "tablesReadyMs": 17640,
+        "tableCount": 128,
+        "locale": "en"
+      },
+      "fr": {
+        "initialRequests": 1,
+        "requestedMs": 5996,
+        "responses": [
+          {
+            "status": 200,
+            "bytes": 2885,
+            "upstreamReadyMs": 6388,
+            "unchanged": true,
+            "deliveredMs": 12497
+          }
+        ],
+        "tablesReadyMs": 34408,
+        "tableCount": 128,
+        "locale": "fr"
+      }
+    },
+    "resources": {
+      "startedAtUtc": "2026-10-19T02:05:16.652532+00:00",
+      "scope": "local-QA-only",
+      "memoryLimitBytes": 12884901888,
+      "cleanup": [
+        {
+          "group": 175314,
+          "signal": "SIGTERM"
+        },
+        {
+          "group": 175285,
+          "signal": "SIGTERM"
+        },
+        {
+          "group": 175365,
+          "signal": "SIGTERM"
+        },
+        {
+          "group": 175365,
+          "signal": "SIGKILL"
+        }
+      ],
+      "services": [
+        {
+          "name": "api",
+          "pid": 175285,
+          "processGroup": 175285
+        },
+        {
+          "name": "web",
+          "pid": 175314,
+          "processGroup": 175314
+        },
+        {
+          "name": "probe",
+          "pid": 175335,
+          "processGroup": 175335
+        },
+        {
+          "name": "dashboard-cleanup",
+          "pid": 176530,
+          "processGroup": 176530
+        }
+      ],
+      "webBuild": "existing artifact; not rebuilt",
+      "sourceHead": "a07f7c0c02ae5236efba1fde5b2454ce12474281",
+      "probeExitCode": 0,
+      "dashboardCleanupExitCode": 0,
+      "remainingOwnedProcesses": 2,
+      "finishedAtUtc": "2026-10-19T02:07:04.910074+00:00",
+      "memoryAfterBytes": 4232556544,
+      "peakObservedMemoryBytes": 5683724288,
+      "processInspection": {
+        "scope": "Groups launched by own browser wrapper only",
+        "remaining": [
+          {
+            "pid": 175386,
+            "state": "Z",
+            "ppid": 1,
+            "group": 175365
+          },
+          {
+            "pid": 175389,
+            "state": "Z",
+            "ppid": 1,
+            "group": 175365
+          }
+        ],
+        "activeCount": 0
+      }
+    },
+    "cleanup": "New EN/FR each binding200/project200; historical two bindings and two projects all200. QA identities retained."
+  },
+  "retryBrowser": {
+    "experiment": "real-browser-retry-replaces-retained-panel-response",
+    "scope": "local-QA-only",
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "responseContentsChanged": false,
+    "assertionsInRepositoryChanged": false,
+    "timeline": [
+      {
+        "label": "setup-confirmed",
+        "elapsedMs": 7240,
+        "mobilePanel": "chat",
+        "databaseTabActive": false,
+        "databaseContainerMounted": false,
+        "databaseContainerVisible": false,
+        "databaseContainerBusy": false,
+        "headingPresent": false,
+        "headingVisible": false,
+        "visibleCards": 0,
+        "visibleTables": 0,
+        "visibleAlerts": 0,
+        "visibleStatuses": 3,
+        "urlPanelIsDatabase": false
+      },
+      {
+        "label": "real-response-retained",
+        "elapsedMs": 8423,
+        "mobilePanel": "deploy",
+        "databaseTabActive": true,
+        "databaseContainerMounted": true,
+        "databaseContainerVisible": true,
+        "databaseContainerBusy": true,
+        "headingPresent": true,
+        "headingVisible": true,
+        "visibleCards": 0,
+        "visibleTables": 0,
+        "visibleAlerts": 0,
+        "visibleStatuses": 2,
+        "urlPanelIsDatabase": true
+      },
+      {
+        "event": "retry-clicked",
+        "elapsedMs": 15588
+      },
+      {
+        "label": "retry-response-delivered-root-ready",
+        "elapsedMs": 16735,
+        "mobilePanel": "deploy",
+        "databaseTabActive": true,
+        "databaseContainerMounted": true,
+        "databaseContainerVisible": true,
+        "databaseContainerBusy": false,
+        "headingPresent": true,
+        "headingVisible": true,
+        "visibleCards": 1,
+        "visibleTables": 0,
+        "visibleAlerts": 0,
+        "visibleStatuses": 2,
+        "urlPanelIsDatabase": true
+      },
+      {
+        "event": "delivery-gate-opened",
+        "elapsedMs": 16892
+      },
+      {
+        "label": "real-tables-ready",
+        "elapsedMs": 17919,
+        "mobilePanel": "deploy",
+        "databaseTabActive": true,
+        "databaseContainerMounted": true,
+        "databaseContainerVisible": true,
+        "databaseContainerBusy": false,
+        "headingPresent": false,
+        "headingVisible": false,
+        "visibleCards": 0,
+        "visibleTables": 128,
+        "visibleAlerts": 0,
+        "visibleStatuses": 2,
+        "urlPanelIsDatabase": true
+      }
+    ],
+    "responses": [
+      {
+        "index": 1,
+        "requestedAtMs": 7882,
+        "upstreamStatus": 200,
+        "upstreamReadyAtMs": 8361,
+        "responseBytes": 2921,
+        "envelopeStatus": "ok",
+        "deliveredAtMs": 16900,
+        "routeFulfillSucceededWithUnmodifiedBytes": true
+      },
+      {
+        "index": 2,
+        "requestedAtMs": 15674,
+        "upstreamStatus": 200,
+        "upstreamReadyAtMs": 16070,
+        "responseBytes": 3178,
+        "envelopeStatus": "ok",
+        "deliveredAtMs": 16075,
+        "routeFulfillSucceededWithUnmodifiedBytes": true
+      }
+    ],
+    "screenshots": [
+      "01-retry-visible-during-retained-response.png",
+      "02-retry-recovered-real-database-list.png",
+      "03-real-tables-ready.png"
+    ],
+    "checks": {
+      "databaseSetupConfirmed": true,
+      "requestsBeforeRetry": 1,
+      "requestsAfterRetry": 2,
+      "firstBrowserRequestAborted": true,
+      "realDatabaseCardReady": true,
+      "lateOldResponseDidNotRemoveNewPanel": true,
+      "retryResponseRestoredPanel": true
+    },
+    "cleanup": {
+      "browserClosed": true,
+      "ownDatabaseBindingRemoved": true,
+      "ownDatabaseBindingDeleteStatus": 200,
+      "ownProjectDeleteStatus": 200,
+      "ownProjectRemoved": true,
+      "qaIdentityRetained": true,
+      "qaProjectRetained": false
+    },
+    "memoryBeforeBytes": 4953542656,
+    "registrationStatus": 201,
+    "projectCreationStatus": 201,
+    "browserVersion": "154.0.8037.57",
+    "databaseSetupStatus": 200,
+    "browserFailures": [
+      {
+        "elapsedMs": 15670,
+        "code": "ERR_ABORTED"
+      }
+    ],
+    "tableChecks": {
+      "tableCount": 128,
+      "sampledNamesNonEmpty": true,
+      "sampledNamesDistinct": true,
+      "sampledRowCountsNumeric": true
+    },
+    "success": true,
+    "memoryAfterBytes": 5027782656,
+    "elapsedMs": 18544,
+    "firstResponseSemantics": "Browser request A was aborted. Later route.fulfill success does not prove browser delivery or upstream SQL cancellation."
+  },
+  "retryResources": {
+    "startedAtUtc": "2026-10-19T02:07:05.114681+00:00",
+    "scope": "local-QA-only",
+    "memoryLimitBytes": 12884901888,
+    "cleanup": [
+      {
+        "group": 176585,
+        "signal": "SIGTERM"
+      },
+      {
+        "group": 176651,
+        "signal": "SIGTERM"
+      },
+      {
+        "group": 176557,
+        "signal": "SIGTERM"
+      },
+      {
+        "group": 176651,
+        "signal": "SIGKILL"
+      }
+    ],
+    "services": [
+      {
+        "name": "api",
+        "pid": 176557,
+        "processGroup": 176557
+      },
+      {
+        "name": "web",
+        "pid": 176585,
+        "processGroup": 176585
+      },
+      {
+        "name": "probe",
+        "pid": 176604,
+        "processGroup": 176604
+      }
+    ],
+    "webBuild": "existing artifact; not rebuilt",
+    "sourceHead": "a07f7c0c02ae5236efba1fde5b2454ce12474281",
+    "probeExitCode": 0,
+    "remainingOwnedProcesses": 3,
+    "finishedAtUtc": "2026-10-19T02:07:39.950721+00:00",
+    "memoryAfterBytes": 4232429568,
+    "peakObservedMemoryBytes": 5426720768,
+    "processInspection": {
+      "remaining": [
+        {
+          "pid": 176668,
+          "state": "Z",
+          "ppid": 1,
+          "group": 176651
+        },
+        {
+          "pid": 176670,
+          "state": "Z",
+          "ppid": 1,
+          "group": 176651
+        },
+        {
+          "pid": 176798,
+          "state": "Z",
+          "ppid": 1,
+          "group": 176651
+        }
+      ],
+      "activeCount": 0
+    }
+  },
+  "screenshots": [
+    {
+      "path": "docs/reprise/captures/2026-10-19-database-silent-poll-en-pending.png",
+      "sha256": "590260762920cd49ee6e21a36397f3fe3c4bcd148f02575b75839ba9c42c9c69",
+      "inspected": true
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-database-silent-poll-en-ready.png",
+      "sha256": "f0eef980ffd583dd89b99ed85a34477216e14a64437b86fe93916e5e19b20064",
+      "inspected": true
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-database-silent-poll-fr-pending.png",
+      "sha256": "f8a41f10750725aa369e0990b62e19b0b0988302bc87be79c72c1adbdfb1ddaa",
+      "inspected": true
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-database-silent-poll-fr-ready.png",
+      "sha256": "4cfecaaabcc73158c7f83b6fd62db4a12502cce3c7fbc9c6ff74bde718316261",
+      "inspected": true
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-database-silent-poll-retry-1.png",
+      "sha256": "ae51b4fdd73f7c734d43972e250a5b40c493cf4a1d7a42ba76f23fd79c9bd6ef",
+      "inspected": true
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-database-silent-poll-retry-2.png",
+      "sha256": "f1248ed7c50b1a142ec69dfa992410d50a415ef49bfddf1829d3b5eeb79077b2",
+      "inspected": true
+    },
+    {
+      "path": "docs/reprise/captures/2026-10-19-database-silent-poll-retry-3.png",
+      "sha256": "8ebb56a472659b243e4d72d34e29e2a7e43cd9f53e22237406b9cdfd9870af6b",
+      "inspected": true
+    }
+  ],
+  "independentReview": "Source review favorable; four EN/FR captures reviewed independently. Root inspected EN pending/FR ready and all3 Retry captures. No secret or blocking visual defect found.",
+  "limits": [
+    "No production HTTPS or Safari proof",
+    "No upstream latency attribution",
+    "No model call, new paid cloud resource, Stripe call or customer mutation",
+    "Polling cadence, shared request protocol, existing assertions/timeouts/retries/waivers unchanged"
+  ]
+}

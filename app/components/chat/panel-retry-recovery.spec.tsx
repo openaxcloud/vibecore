@@ -436,6 +436,54 @@ describe('database context before an initial response', () => {
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 
+  it('preserves recovery during the automatic poll after an error envelope', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+
+    const requests: ServerResponse[] = [];
+
+    const origin = await listen((_request, response) => {
+      requests.push(response);
+
+      if (requests.length === 1) {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(
+          JSON.stringify({
+            status: 'error',
+            error: { code: 'PANEL_UPSTREAM', message: 'fixture-only', retryable: true },
+          }),
+        );
+      }
+    });
+
+    const { Panel } = wrapper((input, init) => nativeFetch(new URL(String(input), origin), init));
+    document.body.innerHTML = '<div id="root"></div>';
+    root = createRoot(document.getElementById('root')!);
+    await act(async () => root!.render(<Panel projectId="fixture" panel="database" />));
+    await until(() => Boolean(document.querySelector('[role="alert"]')));
+    expect(projectPanelRefreshIntervalMs('database')).toBe(60_000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    await until(() => requests.length === 2);
+    expect(databaseHeading()?.textContent).toBe('All databases');
+    expect(document.querySelector('[role="alert"]')).not.toBeNull();
+    expect(document.querySelector('[data-panel-content], [data-empty]')).toBeNull();
+
+    const retry = document.querySelector<HTMLButtonElement>('[role="alert"] button')!;
+    expect(retry.disabled).toBe(false);
+
+    // Recovery stays actionable while the poll is in flight, including replacement.
+    await act(async () => retry.click());
+    await until(() => requests.length === 3);
+    expect(document.querySelector('[role="alert"]')).not.toBeNull();
+    await act(async () => {
+      send(requests[2], 'recovered-from-poll');
+      await pause(20);
+    });
+    await until(() => Boolean(document.querySelector('[data-attempt="recovered-from-poll"]')));
+    expect(document.querySelector('[role="alert"], [aria-busy="true"]')).toBeNull();
+  });
+
   it('keeps cached data mounted during a silent refresh', async () => {
     const requests: ServerResponse[] = [];
 
