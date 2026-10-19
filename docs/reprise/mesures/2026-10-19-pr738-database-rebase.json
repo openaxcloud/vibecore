@@ -1,0 +1,83 @@
+{
+  "atUtc": "2026-10-19T02:41:00.438906+00:00",
+  "oldHead": "9245b8228e9445d834cebbaf601e5253edb76170",
+  "rebasedHead": "04cbab141ba6b1aef0d5b394acfa825761bf7a42",
+  "newBase": "9d7ff755ccb99b152891ef1f426995fc35061c06",
+  "fileComparison": {
+    "services/api/src/app.ts": {
+      "identical": true,
+      "sha256": "7f41e8d1e6c39648ff60868bea9e869bc06c66224264ace27ab9df82a8014ba8"
+    },
+    "services/api/src/usage-period.ts": {
+      "identical": true,
+      "sha256": "63332141895e410e1725c5efd4d7509b3c570916fe5f6f83dcfe41fab6aba9a9"
+    },
+    "services/api/src/usage-period.spec.ts": {
+      "identical": true,
+      "sha256": "d7f728045b50bd43f61e49db542a297935658fb5d01a74a9f1f06bc9b9afbeae"
+    },
+    "services/api/src/tests/annual-monthly-quota.spec.ts": {
+      "identical": true,
+      "sha256": "1352da309fa4466d7a635d3f56454da6146bcee7cd73b2c1bcc86b95f1241467"
+    },
+    "services/api/src/quota-deploiements-par-periode.spec.ts": {
+      "identical": true,
+      "sha256": "47e7ce4d908d6440c35563b20774cb47b890dcc5cff61dfc1307e1a5e9fd698d"
+    }
+  },
+  "conflicts": "Only derived index, regenerated twice; duplicate older pending #740 journal record removed, actual refusal record retained",
+  "memoryBeforeTestsBytes": 4157882368,
+  "memoryLimitBytes": 17179869184,
+  "tests": {
+    "name": "tests",
+    "command": [
+      "node",
+      "../../node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "vitest.config.ts",
+      "src/tests/credit-packs-billing.spec.ts",
+      "src/tests/user-spend-limit-routes.spec.ts",
+      "src/tests/usage-breakdown-routes.spec.ts",
+      "src/tests/annual-monthly-quota.spec.ts",
+      "src/quota-deploiements-par-periode.spec.ts",
+      "src/usage-period.spec.ts",
+      "src/tests/deployment-billing.spec.ts",
+      "src/tests/quota-instantanes-par-periode.spec.ts",
+      "--maxWorkers=1",
+      "--minWorkers=1"
+    ],
+    "sourceHead": "04cbab141ba6b1aef0d5b394acfa825761bf7a42",
+    "startedAtUtc": "2026-10-19T02:41:00.706415+00:00",
+    "memoryBeforeBytes": 4159639552,
+    "exitCode": 0,
+    "peakObservedMemoryBytes": 6098100224,
+    "finishedAtUtc": "2026-10-19T02:41:34.754632+00:00"
+  },
+  "typecheck": {
+    "name": "typecheck",
+    "command": [
+      "node",
+      "--max-old-space-size=4096",
+      "../../node_modules/typescript/bin/tsc",
+      "--noEmit",
+      "-p",
+      "tsconfig.json"
+    ],
+    "sourceHead": "04cbab141ba6b1aef0d5b394acfa825761bf7a42",
+    "startedAtUtc": "2026-10-19T02:41:00.707515+00:00",
+    "memoryBeforeBytes": 4159467520,
+    "exitCode": 0,
+    "peakObservedMemoryBytes": 6098362368,
+    "finishedAtUtc": "2026-10-19T02:42:00.778364+00:00"
+  },
+  "indexValidation": {
+    "entries": 441,
+    "passed": 6,
+    "skipped": 0,
+    "durationSeconds": 5.66,
+    "regeneration": "node scripts/migrer-inventaire-bugs.mjs --index",
+    "command": "node node_modules/vitest/vitest.mjs run scripts/index-a-jour.spec.mjs --maxWorkers=1 --minWorkers=1"
+  },
+  "validationScope": "Rebase-only product delta:all5quota source/test files identical to9245; inherited741 product preserved. Remote exact-head CI remains required; no new PostgreSQL/Stripe/live proof claimed."
+}

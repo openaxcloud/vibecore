@@ -59,3 +59,13 @@ appliqué, fenêtre financière et plafond personnel préservés, base temporair
 supprimée. Elle n'est pas rejouée ni attribuée au nouveau SHA ; les fichiers
 de code qui la concernent sont comparés identiques. Elle ne constitue pas
 une transaction Stripe ni une preuve de production.
+
+## Rebase après #741 — 19 octobre
+
+Nouvelle base main `9d7ff755c`, après fusion protégée de #741 à 02:38:54 UTC.
+Les cinq fichiers source/tests quota restent identiques à `9245b8228`. Nouvelle
+validation : 68 tests API et typage complet verts ; preuves PostgreSQL antérieures
+conservées sans les attribuer à une nouvelle exécution. Index régénéré, entrée
+#740 en double retirée, journal #741 consigné. La nouvelle tête doit encore
+passer sa propre CI avant fusion ; aucune livraison du quota ni preuve Stripe
+mode test ou paiement réel n'est revendiquée.

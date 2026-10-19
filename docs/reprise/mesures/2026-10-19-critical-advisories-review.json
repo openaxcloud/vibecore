@@ -1,0 +1,139 @@
+{
+  "reviewedAtUtc": "2026-10-19 02:15:33 UTC",
+  "scope": "Read-only dependency/advisory review; no install, upgrade, exploit, workflow rerun, image execution, client or cloud access.",
+  "repository": "openaxcloud/vibecore",
+  "worktree": "/workspace/vibecore-database-loading",
+  "reviewedHead": "4fcfd12a765fef059afb995370a99a2e86f67dd8",
+  "ci": {
+    "runId": 39186354748,
+    "jobId": 117849504019,
+    "head": "a07f7c0c02ae5236efba1fde5b2454ce12474281",
+    "url": "https://github.com/openaxcloud/vibecore/actions/runs/39186354748/job/117849504019",
+    "auditAtUtc": "2026-10-19T02:01:55Z",
+    "reportedCriticalRows": 4,
+    "distinctAdvisories": 3,
+    "totals": {
+      "low": 28,
+      "moderate": 118,
+      "high": 92,
+      "critical": 4
+    },
+    "gate": "CI pnpm audit is advisory-only in .github/workflows/ci.yml:281; green CI is not a clean audit."
+  },
+  "dependencyManifestDiffFromAuditHead": "No diff for pnpm-lock.yaml, package.json, apps/mobile/package.json, apps/admin/package.json.",
+  "advisories": [
+    {
+      "id": "GHSA-rvm3-566m-v7fv",
+      "cve": "CVE-2026-103922",
+      "primaryUrl": "https://github.com/ionic-team/capacitor/security/advisories/GHSA-rvm3-566m-v7fv",
+      "reviewedDatabaseUrl": "https://github.com/advisories/GHSA-rvm3-566m-v7fv",
+      "packages": [
+        {
+          "name": "@capacitor/android",
+          "version": "8.3.1",
+          "path": "apps/mobile > @capacitor/android@8.3.1"
+        },
+        {
+          "name": "@capacitor/ios",
+          "version": "8.3.1",
+          "path": "apps/mobile > @capacitor/ios@8.3.1"
+        }
+      ],
+      "affectedRangeRelevant": ">=8.0.0 <=8.3.4",
+      "patched8xVersionsInOfficialAdvisory": [
+        "8.4.3",
+        "8.5.1"
+      ],
+      "auditPatchedVersionDisplay": "<0.0.0; this display is not proof that no patched release exists.",
+      "conditions": "A victim activates a link inside the native WebView leading to its own-origin internal HTTP proxy path; attacker-selected remote document is returned under application origin and may access origin storage/native plugins. Disabling CapacitorHttp alone is explicitly insufficient.",
+      "sourceEvidence": [
+        "pnpm-lock.yaml:715-760 resolves 8.3.1",
+        "apps/mobile/package.json:26-42 declares runtime Android/iOS/core and native plugins",
+        "apps/mobile/ios/App/CapApp-SPM/Package.swift:14 pins capacitor-swift-pm exact 8.3.1",
+        "apps/mobile/android/capacitor.settings.gradle:3 binds capacitor-android 8.3.1",
+        "apps/mobile/index.html:28 embeds web-app-frame without a sandbox attribute",
+        "apps/mobile/src/main.ts sets frame.src from configured webAppOrigin and guards deep-link origin at lines123-135",
+        "apps/mobile/android/app/src/main/java/app/vibecore/mobile/MainActivity.java is an unmodified BridgeActivity subclass",
+        "No shouldOverrideLoad or internal-proxy-path mitigation found in apps/mobile Java/Swift/Kotlin/TypeScript/JSON source"
+      ],
+      "exposureConclusion": "Native runtime dependency is real, not merely a test dependency. No exploit through this application's actual UI was performed; released native binary versions and effective configuration are unknown. No Capacitor imports found in web/API production source.",
+      "installedEvidence": "CI frozen lock and generated native integration references establish resolved versions. Native node_modules links are absent in the reviewed QA worktree; no local native runtime was executed.",
+      "priority": "Resolve before distributing a native app built from this vulnerable runtime; do not present this as an established e-code.ai HTTP exploit.",
+      "candidateRemediation": "Move coordinated Capacitor core/CLI/platform packages to a maintained patched 8.x release, regenerate native projects via official sync, test native navigation and registered plugins, rebuild and redistribute. No dependency change made."
+    },
+    {
+      "id": "GHSA-5gmw-xhrv-c9v3",
+      "cve": "CVE-2026-104848",
+      "primaryUrl": "https://github.com/tinylibs/tinypool/security/advisories/GHSA-5gmw-xhrv-c9v3",
+      "reviewedDatabaseUrl": "https://github.com/advisories/GHSA-5gmw-xhrv-c9v3",
+      "package": "tinypool",
+      "version": "1.1.1",
+      "affectedRange": "<=2.1.0",
+      "patchedVersion": "2.1.1",
+      "conditions": "Requires a prior Object.prototype pollution primitive; inherited execArgv or env can become explicit worker options and load attacker-controlled code.",
+      "sourceEvidence": [
+        "Actual local Vitest3.2.6 resolves /workspace/vibecore/node_modules/.pnpm/tinypool@1.1.1/node_modules/tinypool/dist/index.js",
+        "Tinypool1.1.1 dist/index.js:509 builds a normal-prototype options object; lines547-549 read env/execArgv",
+        "Installed Vitest3.2.6 forks/threads constructors explicitly provide own env and execArgv (coverage.DfSpMS-b.js:2616-2622,2751-2758), so the advisory alone does not prove this exact injection chain in standard Vitest use"
+      ],
+      "exposureConclusion": "Tooling/CI supply-chain risk. A prerequisite pollution source and reachable attacker-controlled worker code have not been established in this repository. No Tinypool web/API request handler found."
+    },
+    {
+      "id": "GHSA-85c8-ppgw-ccpr",
+      "cve": "CVE-2026-104849",
+      "primaryUrl": "https://github.com/tinylibs/tinypool/security/advisories/GHSA-85c8-ppgw-ccpr",
+      "reviewedDatabaseUrl": "https://github.com/advisories/GHSA-85c8-ppgw-ccpr",
+      "package": "tinypool",
+      "version": "1.1.1",
+      "affectedRange": "<2.1.2",
+      "patchedVersion": "2.1.2",
+      "conditions": "Requires prior Object.prototype.filename pollution and pool.run(task, options) with a supplied options object lacking an own filename. run(task) without a second argument is not affected by this vector according to the advisory.",
+      "sourceEvidence": [
+        "Tinypool1.1.1 dist/index.js:748-750 destructures filename from run options without own-property checks",
+        "Installed Vitest3.2.6 calls pool.run(data,{name,channel}) for forks and pool.run(data,{transferList,name,channel}) for threads (coverage.DfSpMS-b.js:2652,2793): options have no own filename"
+      ],
+      "exposureConclusion": "A documented gadget is present in actual test tooling. No prerequisite prototype-pollution entry point was proved, and no remote web/API exploit was established. Priority is tooling hardening, not a claim of platform compromise."
+    }
+  ],
+  "tinypoolDependencyPaths": {
+    "directVitestImporters15": [
+      ".",
+      "apps/admin",
+      "packages/connector-sdk",
+      "packages/k8s-client",
+      "packages/sandbox-runtime",
+      "packages/sdk",
+      "packages/template-catalog",
+      "packages/workspace-sdk",
+      "services/ai-gateway",
+      "services/connector-proxy",
+      "services/preview-proxy",
+      "services/screenshotter",
+      "services/worker",
+      "services/workspace-agent",
+      "services/workspace-manager"
+    ],
+    "classification": "All 15 direct Vitest3.2.6 declarations are devDependencies; services/api invokes the root tooling without declaring Vitest itself.",
+    "pathPattern": "<importer> > vitest@3.2.6 > tinypool@1.1.1",
+    "mobileTestTooling": "apps/mobile uses Vitest4.1.5; that lockfile snapshot has no Tinypool dependency.",
+    "candidateRemediation": "Update the test tooling coherently to a compatible dependency tree without the vulnerable Tinypool versions, or validate an upstream backport. Tinypool >=2.1.2 covers both advisories, but a blind major override of Vitest3.2.6's ^1.1.1 dependency is not a validated fix."
+  },
+  "productionImageLimits": {
+    "currentServedImagesInspected": false,
+    "actualPresenceOfPackagesInServedImages": "unknown",
+    "sourcePackaging": [
+      "Dockerfile:92 prunes production dependencies, then line110 invokes the store-pruning script",
+      "infra/docker/node-service.Dockerfile:52 uses pnpm deploy --prod, then line70 invokes store-pruning"
+    ],
+    "historicalComments": "Some comments describe older live-image observations and conflict concerning Tinypool/admin reachability. They were not treated as current proof.",
+    "requiredEvidence": "Inspect current deployed image digests/SBOMs and reachable dependency trees; if test/native-only packages remain, remove them through the existing packaging mechanism with startup/migration checks, then scan exact final images."
+  },
+  "limits": [
+    "No source edits or dependency changes.",
+    "No installed native app, device, Safari or production probe.",
+    "No demonstration of either exploit on Vibecore.",
+    "No current production SBOM or deployed image inspected.",
+    "The remaining 92 high,118 moderate,28 low rows were outside this focused four-row review.",
+    "Native distribution risk and web/API exploitability remain distinct."
+  ]
+}

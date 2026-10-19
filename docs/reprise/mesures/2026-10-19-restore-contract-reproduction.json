@@ -1,0 +1,224 @@
+{
+  "recordedAtUtc": "2026-10-19T02:41:57.099636+00:00",
+  "sourceIdentity": {
+    "capturedAt": "2026-10-19T02:14:23.119Z",
+    "sourceMain": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+    "sourceWorktree": "/workspace/vibecore-ui-recovery",
+    "sourceWorktreeHead": "002fb39732d2958fb3b79951125f54aa294d2044",
+    "sourceFiles": [
+      {
+        "path": "services/api/src/app.ts",
+        "sha256": "2a6cc81edbfaa02ecb8c76bf7be3e2e38358d44aa2374aa844e0706c172dcec4",
+        "identicalToRequestedMain": true
+      },
+      {
+        "path": "services/api/src/database-provisioner.ts",
+        "sha256": "fda83761d0f0c06f07564f69d1549dd4526b07500e38cb7deec34dce7acca247",
+        "identicalToRequestedMain": true
+      },
+      {
+        "path": "services/api/src/tests/test-api-store.ts",
+        "sha256": "487c00709cf1be959bf39f40ad0727cabb07d42f3299fabed35e5ce16fdc3043",
+        "identicalToRequestedMain": true
+      },
+      {
+        "path": "services/api/src/tests/database-rollback-routes.spec.ts",
+        "sha256": "d03bf2c86a994bbf54b540e7b04cd0af933b2600bfe12552509de6b9bd957275",
+        "identicalToRequestedMain": true
+      }
+    ],
+    "artifacts": [
+      {
+        "path": "restore-contract.spec.ts",
+        "sha256": "46b8160b6fe7db45251af289aa8c4293eec37f416477e755752086a4f5414314"
+      },
+      {
+        "path": "vitest.config.mjs",
+        "sha256": "63b001a89cb220cd800544df6a72eef627b2e351cc878de0f9eb4d63934cc41b"
+      },
+      {
+        "path": "red-run-1.log",
+        "sha256": "59869dd4f914bfdd879e59da4b06dcccaf2036487a82b25c27f506106e994348"
+      },
+      {
+        "path": "red-run-2.log",
+        "sha256": "64ce830bdee88baf2c5cc992bbe7798ef453b9a979f65151fff44e6820d4570b"
+      },
+      {
+        "path": "evidence-run-1.json",
+        "sha256": "5debb1bb2815686c713637251af4c1c3e2e2a4863f467fbe9532a8143107b7f5"
+      },
+      {
+        "path": "evidence-run-2.json",
+        "sha256": "032be920ef7219010b8b63c4b7a0e1b39cc140cbca96d9f02bde5802d651b321"
+      }
+    ],
+    "worktreeClean": true,
+    "nodeVersion": "v24.19.0",
+    "vitestVersion": "3.2.6",
+    "command": "node /workspace/vibecore-ui-recovery/node_modules/vitest/vitest.mjs run --config /tmp/vibecore-restore-contract-proof/vitest.config.mjs --reporter=verbose",
+    "memoryLimitBytes": 17179869184,
+    "memoryBeforeRun1Bytes": 4181082112,
+    "memoryBeforeRun2Bytes": 4188000256,
+    "workers": 1,
+    "runs": [
+      {
+        "run": 1,
+        "expectedTestExitCode": 1,
+        "observedResult": "Tests  2 failed | 2 passed (4)",
+        "duration": "20.95s",
+        "allFourFixtureServersClosed": true,
+        "externalFetchAttempts": 0
+      },
+      {
+        "run": 2,
+        "expectedTestExitCode": 1,
+        "observedResult": "Tests  2 failed | 2 passed (4)",
+        "duration": "12.93s",
+        "allFourFixtureServersClosed": true,
+        "externalFetchAttempts": 0
+      }
+    ]
+  },
+  "runs": [
+    {
+      "sourceMain": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+      "proofLevel": "Fastify inject + actual provisioner + loopback manager fixture + in-memory store",
+      "physicalRestoreTested": false,
+      "evidence": [
+        {
+          "case": "development",
+          "httpStatus": 202,
+          "selectedInstanceEnvironment": "development",
+          "actualStartRestoreEnvironment": null,
+          "recoverySource": "db-project_6ur1kqtfsolmvemdy5g-backup",
+          "expectedRecoverySource": "db-project_6ur1kqtfsolmvemdy5g-backup",
+          "persistedStatus": "RUNNING"
+        },
+        {
+          "case": "production",
+          "httpStatus": 202,
+          "selectedInstanceEnvironment": "production",
+          "actualStartRestoreEnvironment": null,
+          "recoverySource": "db-project_989w2094iy5mvemdyjk-backup",
+          "expectedRecoverySource": "db-project_989w2094iy5mvemdyjk-prod-backup",
+          "persistedStatus": "RUNNING"
+        },
+        {
+          "case": "readiness-false",
+          "httpStatus": 200,
+          "fixtureReady": false,
+          "status": "RUNNING",
+          "completedAtPresent": false,
+          "projectSecretWrites": 0,
+          "managerConnectionSecretReads": 0,
+          "reportedRestoresAdvanced": 0,
+          "applicationSecretMetadataUnchanged": true
+        },
+        {
+          "case": "readiness-true",
+          "httpStatus": 200,
+          "fixtureReady": true,
+          "status": "COMPLETED",
+          "completedAtPresent": true,
+          "projectSecretWrites": 0,
+          "managerConnectionSecretReads": 0,
+          "reportedRestoresAdvanced": 1,
+          "applicationSecretMetadataUnchanged": true
+        }
+      ],
+      "cleanup": [
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        },
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        },
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        },
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        }
+      ]
+    },
+    {
+      "sourceMain": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+      "proofLevel": "Fastify inject + actual provisioner + loopback manager fixture + in-memory store",
+      "physicalRestoreTested": false,
+      "evidence": [
+        {
+          "case": "development",
+          "httpStatus": 202,
+          "selectedInstanceEnvironment": "development",
+          "actualStartRestoreEnvironment": null,
+          "recoverySource": "db-project_4mcrqe3uroxmvemesfy-backup",
+          "expectedRecoverySource": "db-project_4mcrqe3uroxmvemesfy-backup",
+          "persistedStatus": "RUNNING"
+        },
+        {
+          "case": "production",
+          "httpStatus": 202,
+          "selectedInstanceEnvironment": "production",
+          "actualStartRestoreEnvironment": null,
+          "recoverySource": "db-project_ey115k1vd0vmvemesv5-backup",
+          "expectedRecoverySource": "db-project_ey115k1vd0vmvemesv5-prod-backup",
+          "persistedStatus": "RUNNING"
+        },
+        {
+          "case": "readiness-false",
+          "httpStatus": 200,
+          "fixtureReady": false,
+          "status": "RUNNING",
+          "completedAtPresent": false,
+          "projectSecretWrites": 0,
+          "managerConnectionSecretReads": 0,
+          "reportedRestoresAdvanced": 0,
+          "applicationSecretMetadataUnchanged": true
+        },
+        {
+          "case": "readiness-true",
+          "httpStatus": 200,
+          "fixtureReady": true,
+          "status": "COMPLETED",
+          "completedAtPresent": true,
+          "projectSecretWrites": 0,
+          "managerConnectionSecretReads": 0,
+          "reportedRestoresAdvanced": 1,
+          "applicationSecretMetadataUnchanged": true
+        }
+      ],
+      "cleanup": [
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        },
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        },
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        },
+        {
+          "listening": false,
+          "remoteAttempts": 0
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Actual Fastify inject and CnpgProvisioner, real loopback HTTP with explicit CNPG fixtures and in-memory TestApiStore",
+    "No physical PostgreSQL/PITR/GCS/K8s/PVC restoration or application cutover validated",
+    "Source manifest name without production suffix is proven; actual GCS archive selected was not read",
+    "Secret equality is metadata only; no project-secret write or manager connection-secret read was observed separately",
+    "Existing legacy alias environment loss remains source review only",
+    "No cloud/customer mutation or external fetch attempt; all four fixture servers closed per run",
+    "No product code fixed here; operator archive/source verification and actual cutover/integrity are still required"
+  ]
+}

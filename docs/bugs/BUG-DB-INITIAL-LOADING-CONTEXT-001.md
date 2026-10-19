@@ -23,8 +23,8 @@ Aucun changement de transport, de cache, de délai ou d'assertion des tests exis
 
 ## 💻 Codé
 
-Candidat sur `codex/database-loading-state-20261019`, base `bb70c7b68`.
-Pas encore fusionné ni déployé. Le titre localisé est partagé entre la coque
+Fusionné par #741 le **19 octobre à 02:38:54 UTC**, main `9d7ff755c`,
+tête validée `4fcfd12a7`. Livraison en cours, pas encore confirmée. Le titre localisé est partagé entre la coque
 initiale et le Workbench. Sans réponse, aucun consommateur de données, formulaire
 ou carte n'est monté. Une erreur garde le titre et la récupération existante sans
 spinner ; sans projet, le message localisé existant demande de recharger l'IDE.
@@ -34,7 +34,8 @@ revendiquée par cette preuve.
 
 ## ✅ Testé live
 
-❌ Aucune preuve sur HTTPS public ou Safari réel. Le gate main refuse la livraison.
+❌ Aucune preuve sur HTTPS public ou Safari réel. Les contrôles et la livraison
+du nouveau main sont en cours ; le refus cité ci-dessous concerne l’ancien main.
 Le correctif ne prétend pas résoudre une lenteur amont non attribuée.
 
 ## Preuves et limites
@@ -141,3 +142,5 @@ propre actif après nettoyage ; les processus restants sont des zombies PID1.
 La régression du poll à 60 secondes repose sur le wrapper réel avec HTTP local
 et horloge d'intervalle contrôlée, pas sur un parcours navigateur intégré de
 60 secondes. Aucun résultat live, Safari réel ou commercial n'est revendiqué.
+
+Fusion et contrôles exacts : [preuve #741](../reprise/mesures/2026-10-19-pr741-result.json). La réserve P2 du poll est incluse dans cette fusion.

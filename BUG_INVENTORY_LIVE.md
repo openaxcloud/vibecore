@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-439 entrées.
+441 entrées.
 
 ## Sans section
 
@@ -532,11 +532,16 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Reprise commerciale du 2026-10-19 — chargement Database
 
-- [BUG-DB-INITIAL-LOADING-CONTEXT-001](docs/bugs/BUG-DB-INITIAL-LOADING-CONTEXT-001.md) — P2 — le contenu Database perd son titre pendant sa première requête. — 📤 Dispatché : Correction ciblée autorisée ; contre-épreuve réelle locale et revue indépendante. · 💻 Codé : Candidat sur `codex/database-loading-state-20261019`, base `bb70c7b68`. · ✅ Testé live : ❌ Aucune preuve sur HTTPS public ou Safari réel. Le gate main refuse la livraison.
+- [BUG-DB-INITIAL-LOADING-CONTEXT-001](docs/bugs/BUG-DB-INITIAL-LOADING-CONTEXT-001.md) — P2 — le contenu Database perd son titre pendant sa première requête. — 📤 Dispatché : Correction ciblée autorisée ; contre-épreuve réelle locale et revue indépendante. · 💻 Codé : Fusionné par #741 le 19 octobre à 02:38:54 UTC, main `9d7ff755c`, · ✅ Testé live : ❌ Aucune preuve sur HTTPS public ou Safari réel. Les contrôles et la livraison
 
 ## 2026-10-18 — Vérification avant commercialisation
 
 - [BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001](docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md) — par mois — 📤 Dispatché : ☑ — 18/10/2026, correctif borné autorisé dans un worktree distinct. · 💻 Codé : ☐ — Candidat local ; aucune fusion ni livraison attestée par cette fiche. · ✅ Testé live : ☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Les CI historiqu
+
+## Reprise commerciale du 2026-10-19 — restauration DB
+
+- [BUG-DB-RESTORE-COMPLETION-001](docs/bugs/BUG-DB-RESTORE-COMPLETION-001.md) — P1 — la santé du cluster suffit à annoncer une restauration terminée. — 📤 Dispatché : Revue et contre-épreuve de contrat terminées, sans changement produit. · 💻 Codé : ❌ Non corrigé. La fin de restauration doit dépendre de la bascule et de sa · ✅ Testé live : ❌ Aucune restauration physique, intégrité des données, reconnexion ou mesure
+- [BUG-DB-RESTORE-ENVIRONMENT-001](docs/bugs/BUG-DB-RESTORE-ENVIRONMENT-001.md) — P1 — l'environnement production disparaît avant le provisionnement de restauration. — 📤 Dispatché : Revue et contre-épreuve de contrat terminées, sans changement produit. · 💻 Codé : ❌ Non corrigé. Sources API vérifiées identiques à main `bb70c7b68` puis · ✅ Testé live : ❌ Aucun exercice physique PostgreSQL/GCS/CNPG/PVC ou preuve production.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
