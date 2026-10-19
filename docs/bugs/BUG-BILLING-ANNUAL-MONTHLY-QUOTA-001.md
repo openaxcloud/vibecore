@@ -41,4 +41,21 @@ La contre-revue indépendante n'a trouvé aucun nouveau P0/P1/P2 après isolemen
 
 ## ✅ Testé live
 
-☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Pas de CI, fusion, déploiement ou parcours payé réel attesté. Le correctif dépend de bornes de période valides déjà enregistrées ; il ne répare pas un abonnement dont les dates sont absentes ou incorrectes et n'invente pas leur valeur.
+☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Les CI historiques de #738 sont réussies, mais l'E2E de `bee26fd28` reste refusé sur un cas DB ; aucune fusion, livraison ou parcours payé réel attesté. Le correctif dépend de bornes de période valides déjà enregistrées ; il ne répare pas un abonnement dont les dates sont absentes ou incorrectes et n'invente pas leur valeur.
+
+## Réactualisation après le correctif UI — 19 octobre
+
+#740 est fusionnée dans `bb70c7b68` à 00:44:41 UTC ; #738 est rebasée sur ce commit.
+Le seul conflit est l'index dérivé, régénéré officiellement à 438 entrées.
+Les deux fichiers de production quota et les trois fichiers de tests modifiés
+sont identiques octet pour octet à `bee26fd28` : aucun contrat financier changé
+pendant ce rebase. **68 tests API passent à nouveau**, huit fichiers, zéro saut,
+en 42,17 s. Le typage, les contrôles d'index et la CI exacte sont consignés
+dans la [mesure de rebase](../reprise/mesures/2026-10-19-pr738-ui-rebase.json).
+
+La [contre-épreuve Prisma/PostgreSQL locale](../reprise/mesures/2026-10-18-annual-quota-postgres-local.json)
+reste distincte des tests en mémoire : usage précédent exclu, nouveau plafond
+appliqué, fenêtre financière et plafond personnel préservés, base temporaire
+supprimée. Elle n'est pas rejouée ni attribuée au nouveau SHA ; les fichiers
+de code qui la concernent sont comparés identiques. Elle ne constitue pas
+une transaction Stripe ni une preuve de production.

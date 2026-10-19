@@ -536,7 +536,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## 2026-10-18 — Vérification avant commercialisation
 
-- [BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001](docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md) — par mois — 📤 Dispatché : ☑ — 18/10/2026, correctif borné autorisé dans un worktree distinct. · 💻 Codé : ☐ — Candidat local ; aucune fusion ni livraison attestée par cette fiche. · ✅ Testé live : ☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Pas de CI, fusio
+- [BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001](docs/bugs/BUG-BILLING-ANNUAL-MONTHLY-QUOTA-001.md) — par mois — 📤 Dispatché : ☑ — 18/10/2026, correctif borné autorisé dans un worktree distinct. · 💻 Codé : ☐ — Candidat local ; aucune fusion ni livraison attestée par cette fiche. · ✅ Testé live : ☐ — Aucun appel Stripe, PostgreSQL de production, paiement, ressource cloud ou donnée client. Les CI historiqu
 
 ## Résidus non tabulaires — reportés mot pour mot
 

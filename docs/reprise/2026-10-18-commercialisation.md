@@ -21,7 +21,42 @@ Le [protocole coordonné en validation](2026-10-18-workspace-admission.md)
 distingue correction locale, livraison préparatoire et activation encore
 conditionnée à un inventaire/drainage réel. Le verdict commercial reste inchangé.
 
-## Dernier état vérifié — 23:37 UTC
+## Actualisation du 19 octobre — 00:47 UTC
+
+Main est désormais `bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a` :
+[#740](https://github.com/openaxcloud/vibecore/pull/740) fusionnée à
+**00:44:41 UTC**, après 33 contrôles terminés, 31 succès et deux sauts
+conditionnels. La palette conserve son état pendant le remplacement de coque,
+Retry remplace une tentative HTTP en attente sans perdre ses consommateurs,
+et le miroir Electron défaillant est retiré. Les deux refus unitaires ont
+été reproduits puis corrigés sans retirer les protections ; la tête finale
+`002fb3973` passe 9 754 tests racine, 2 428 API, 152 manager et 121 agent,
+ainsi que les builds. L'E2E rapporte 454 cas, zéro échec persistant, une
+instabilité Webview mobile et six exemptions inchangées, 74/74 fichiers.
+Palette, styles et deux cas DB passent au premier essai ; la cause historique
+des échecs DB reste inconnue. Trois packages Desktop, quatre audits EN/FR et
+le canari WebKit (17 succès/trois sauts existants) passent.
+[Résultats et liste des fichiers](mesures/2026-10-19-pr740-result.json).
+
+La [CI de main](https://github.com/openaxcloud/vibecore/actions/runs/39182148503),
+ses [E2E](https://github.com/openaxcloud/vibecore/actions/runs/39182148514)
+et son [déploiement](https://github.com/openaxcloud/vibecore/actions/runs/39182148402)
+sont en cours à ce relevé. **Fusion ne signifie pas livraison.** La dernière
+livraison réussie attestée reste #735 à 21:35:00 UTC le 18 octobre ; les
+changements #736/#737 restent non livrés. La version réellement servie sur
+les domaines publics demeure inconnue, faute d'accès HTTPS à l'origine.
+L'audit dépendances conserve 242 alertes, dont quatre critiques : aucun
+constat d'absence de vulnérabilité ou d'inaccessibilité runtime n'en est déduit.
+
+#738 est réactualisée sur cette base, avec code quota identique et index
+régénéré ; ses nouveaux contrôles restent requis. Les cinq critères de
+lancement ci-dessous et leurs dépendances externes restent ouverts. La
+[relecture de restauration sur les fichiers actuels](mesures/2026-10-19-restore-main-recheck.json)
+confirme la distinction : encodage binaire corrigé par #737, mais contrat
+PITR, sélection d'environnement, bascule et convergence toujours non validés.
+Aucune nouvelle ressource payante, donnée client ou opération cloud utilisée.
+
+## Historique de la reprise du 18 octobre — relevé à 23:37 UTC
 
 [#735](https://github.com/openaxcloud/vibecore/pull/735) est fusionnée depuis
 **20:09:07 UTC**, commit `c6439da55bebf180fe43dce65dbc5c32e6a9fa0a`.

@@ -1,0 +1,81 @@
+{
+  "atUtc": "2026-10-19T00:46:03.063633+00:00",
+  "oldHead": "bee26fd28dad0dfe59bed093684ecd0c0d295440",
+  "newHead": "c7a8f461c764d02c82fc7546cf253e7b70076b77",
+  "newBase": "bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a",
+  "onlyConflict": "BUG_INVENTORY_LIVE.md; regenerated with repository tool, 438 entries",
+  "memoryBeforeTestsBytes": 4273037312,
+  "memoryLimitBytes": 17179869184,
+  "fileComparison": {
+    "services/api/src/app.ts": {
+      "identical": true,
+      "sha256": "7f41e8d1e6c39648ff60868bea9e869bc06c66224264ace27ab9df82a8014ba8"
+    },
+    "services/api/src/usage-period.ts": {
+      "identical": true,
+      "sha256": "63332141895e410e1725c5efd4d7509b3c570916fe5f6f83dcfe41fab6aba9a9"
+    },
+    "services/api/src/usage-period.spec.ts": {
+      "identical": true,
+      "sha256": "d7f728045b50bd43f61e49db542a297935658fb5d01a74a9f1f06bc9b9afbeae"
+    },
+    "services/api/src/tests/annual-monthly-quota.spec.ts": {
+      "identical": true,
+      "sha256": "1352da309fa4466d7a635d3f56454da6146bcee7cd73b2c1bcc86b95f1241467"
+    },
+    "services/api/src/quota-deploiements-par-periode.spec.ts": {
+      "identical": true,
+      "sha256": "47e7ce4d908d6440c35563b20774cb47b890dcc5cff61dfc1307e1a5e9fd698d"
+    }
+  },
+  "localTests": {
+    "passed": 68,
+    "files": 8,
+    "skipped": 0,
+    "durationSeconds": 42.17,
+    "command": [
+      "node",
+      "../../node_modules/vitest/vitest.mjs",
+      "run",
+      "--config",
+      "vitest.config.ts",
+      "src/tests/credit-packs-billing.spec.ts",
+      "src/tests/user-spend-limit-routes.spec.ts",
+      "src/tests/usage-breakdown-routes.spec.ts",
+      "src/tests/annual-monthly-quota.spec.ts",
+      "src/quota-deploiements-par-periode.spec.ts",
+      "src/usage-period.spec.ts",
+      "src/tests/deployment-billing.spec.ts",
+      "src/tests/quota-instantanes-par-periode.spec.ts",
+      "--maxWorkers=1",
+      "--minWorkers=1"
+    ],
+    "startedAtUtc": "2026-10-19T00:46:28.903754+00:00",
+    "finishedAtUtc": "2026-10-19T00:47:12.450443+00:00",
+    "exitCode": 0
+  },
+  "limits": [
+    "The previous real-PostgreSQL proof belongs to bee26fd28; relevant product files are byte-identical, but that experiment was not rerun.",
+    "Previous head CI passed and E2E failed; no success transferred to this new head.",
+    "Main #740 delivery still pending.",
+    "No customer data, payment, provider model, paid resource or cloud action."
+  ],
+  "headMeaning": "Rebased quota code commit before documentation-only evidence follow-up",
+  "typecheck": {
+    "startedAtUtc": "2026-10-19T00:46:30.240074+00:00",
+    "finishedAtUtc": "2026-10-19T00:47:35.765551+00:00",
+    "exitCode": 0
+  },
+  "index": {
+    "regeneratedEntries": 438,
+    "testsPassed": 6,
+    "failed": 0
+  },
+  "lint": "Relevant code/tests byte-identical to previously linted bee26fd28; no local lint rerun claimed. Exact-head CI still required.",
+  "build": "Relevant API/shared production inputs unchanged; previous build proof retained separately, no new local API build claimed.",
+  "logHashes": {
+    "vibecore-pr738-ui-rebase-tests.log": "147bacf75602461e52af719957637d36c92bae844b91fec5b9a8645ce9776744",
+    "vibecore-pr738-ui-rebase-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "vibecore-pr738-ui-rebase-index-tests.log": "1ccedf359bc7d887dc58eae62220d747c4176d7b392abe81f68563dc1aec3b7d"
+  }
+}
