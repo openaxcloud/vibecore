@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { hashToken } from '@vibecore/auth';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
+import { decryptJson } from '@vibecore/security';
 import {
   DatabaseRestoreError,
   type DatabaseRestoreRepository,
@@ -16,6 +17,27 @@ type Journal = Prisma.DatabaseRestoreExecutionGetPayload<{ include: typeof inclu
 
 const secretKey = (environment: string) => (environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL');
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+
+function sameSecretValue(left: string | null | undefined, right: string | null | undefined): boolean {
+  if (!left || !right) {
+    return false;
+  }
+
+  if (left === right) {
+    return true;
+  }
+
+  // Key rotation uses a fresh IV for each copy. It changes the ciphertext, not
+  // the binding. Keep the organization, target and version guards independent.
+  try {
+    const original = decryptJson<{ value?: unknown } | null>(left);
+    const current = decryptJson<{ value?: unknown } | null>(right);
+
+    return typeof original?.value === 'string' && original.value === current?.value;
+  } catch {
+    return false;
+  }
+}
 
 function map(row: Journal): RestoreExecution {
   const instance = row.restore.databaseInstance;
@@ -81,7 +103,8 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
         if (
           instance.projectId !== input.instance.projectId ||
           instance.organizationId !== input.instance.organizationId ||
-          project.organizationId !== input.instance.organizationId ||
+          input.instance.organizationId !== input.expectedOrganizationId ||
+          project.organizationId !== input.expectedOrganizationId ||
           instance.environment !== input.instance.environment ||
           instance.status !== 'ACTIVE' ||
           project.deletedAt ||
@@ -276,7 +299,7 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
         project.organizationId !== instance.organizationId ||
         instance.bindingVersion !== row.expectedBindingVersion ||
         instance.activeTargetRef !== row.sourceTargetRef ||
-        secret?.valueEncrypted !== row.originalSecretEncrypted ||
+        !sameSecretValue(secret?.valueEncrypted, row.originalSecretEncrypted) ||
         !row.targetConnectionEncrypted ||
         !row.quiescence ||
         !row.target ||
@@ -331,7 +354,7 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
         instance.status !== 'ACTIVE' ||
         instance.activeTargetRef !== row.targetId ||
         instance.bindingVersion !== row.appliedBindingVersion ||
-        secret?.valueEncrypted !== row.targetConnectionEncrypted ||
+        !sameSecretValue(secret?.valueEncrypted, row.targetConnectionEncrypted) ||
         !row.readback ||
         !row.release
       ) {

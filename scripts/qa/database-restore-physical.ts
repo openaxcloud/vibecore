@@ -93,7 +93,7 @@ try {
   await writeFile(resolve(output, 'private-repository-tests.log'), repositoryTests.stdout, { mode: 0o600 });
   const testSummary = repositoryTests.stdout.replace(/\u001b\[[0-9;]*m/g, '').match(/Tests\s+(\d+) passed/);
   assert.ok(testSummary, 'Repository test summary was not found');
-  assert.equal(Number(testSummary[1]), 21, 'All PostgreSQL repository cases must run');
+  assert.equal(Number(testSummary[1]), 30, 'All PostgreSQL repository cases must run');
   fixture.evidence.repositoryTests = { passed: Number(testSummary[1]), database: 'isolated restore_control' };
   prisma = createDatabaseClient({ poolMax: 3 });
   stage = 'control fixtures';

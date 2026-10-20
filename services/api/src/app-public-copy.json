@@ -871,6 +871,10 @@
     "en": "workflow",
     "fr": "workflow"
   },
+  "RESTORE_INSTANCE_CHANGED": {
+    "en": "The project or its database changed during this request. Reload the project to verify your access before trying again.",
+    "fr": "Le projet ou sa base a changé pendant cette demande. Rechargez le projet pour vérifier vos accès avant de réessayer."
+  },
   "RESTORE_APPLICATION_CUTOVER_UNAVAILABLE": {
     "en": "Database restoration is unavailable. No restoration was started.",
     "fr": "La restauration de la base est indisponible. Aucune restauration n’a été lancée."

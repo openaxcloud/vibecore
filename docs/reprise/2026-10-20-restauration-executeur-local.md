@@ -4,8 +4,35 @@ Branche `codex/database-restore-executor-20261020`, PR
 [#745](https://github.com/openaxcloud/vibecore/pull/745), base actuelle
 `9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828`. La première version `89019cdf`
 est poussée mais non fusionnée ; ses contrôles CI ont révélé des dépendances
-workspace absentes. Les correctifs de revue sont encore locaux au relevé
-de 16:47 UTC.
+workspace absentes. La révision de revue `01cf9e90` a ensuite été poussée à
+17:04:28 UTC. Les compléments d'autorisation et de rotation décrits ci-dessous
+sont locaux, non fusionnés, au relevé de 18:09 UTC.
+
+## Complément vérifié à 18:09 UTC
+
+La portée d'organisation autorisée par HTTP est désormais conservée après
+un transfert concurrent et vérifiée sous verrou à l'admission. Les lectures
+de connexion la revérifient après les dernières attentes. Les tests donnent
+42/42 routes/transfert, puis 30/30 repository PostgreSQL dans un passage
+distinct, sans saut. La rotation des clés inclut les deux colonnes du journal,
+préserve une valeur modifiée en parallèle et accepte des ciphertexts différents
+de même valeur, sans retirer les autres gardes.
+
+Le build API termine à 17:58:53 UTC. Le banc physique de 18:02 termine rouge :
+les 30 tests repository passent, mais son assertion exige encore 21 cas.
+Après correction de ce nombre attendu, le passage **18:08:04–18:09:30 UTC**
+réussit : archive/WAL, refus d'altération, admission 202/refus concurrent 409,
+quiescence 503, bascule, deux lignes exactes relues, reprise 200 et persistance
+après redémarrage. Nettoyage confirmé ; pic partagé 8 213 843 968 octets.
+Les reçus rouge/vert et les 36 empreintes sources sont publiés dans les
+[preuves d'autorisation et rotation](mesures/2026-10-20-restore-auth-rotation.json).
+
+Cette validation reste locale et synthétique. Les contrôles du nouveau commit,
+le raccordement des pilotes cloud et la preuve d'exclusion de tous les
+consommateurs restent requis. Les paragraphes suivants conservent l'historique
+des étapes antérieures ; leurs compteurs ne remplacent pas ce complément.
+
+## Révision antérieure de revue
 
 La revue a aussi reproduit la perte d'une ancienne tentative entre deux
 reprises et l'incohérence d'organisation d'une DB après transfert de projet.

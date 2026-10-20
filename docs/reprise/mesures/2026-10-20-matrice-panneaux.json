@@ -1,12 +1,11 @@
 {
   "schemaVersion": 1,
-  "recordedAtUtc": "2026-10-20T16:32:54.329568+00:00",
-  "scope": "Relecture figée des preuves 19–20 octobre et inventaire source au main exact ; aucun nouvel essai. Non exhaustif au niveau de chaque geste.",
+  "recordedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+  "scope": "Relecture des preuves 19–20 octobre : socle16:20, inventaire source figé16:29 et compléments candidats fichier/Monaco16:41–16:42, Debugger17:15–17:16 et contrats isolés17:07–17:13. Aucun nouvel essai effectué pour cette documentation. Complément isolation DB locale A/B : reçus17:29 et17:38 aux périmètres séparés. Complément chaîne locale17:46–17:48 et récupération17:54 : actions ciblées passées, run global rouge conservé ; BFF Debugger17:42 avant retouches17:47.",
   "mainReference": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
   "preparationHead": "89019cdf1cdbbd622179fdc4b2b4a68ab3219fef",
   "preparationHeadMeaning": "Branche de travail du parent ; aucune validation ou fusion de ses modifications en cours inférée.",
   "reviewSnapshot": {
-    "functionalEvidenceReviewFrozenAtUtc": "2026-10-20T16:20:47.039265+00:00",
     "sourceInventoryGeneratedAtUtc": "2026-10-20T16:29:07.015734+00:00",
     "sourceReconciledAtUtc": "2026-10-20T16:32:54.329568+00:00",
     "sourceInventory": {
@@ -18,11 +17,16 @@
     "evidenceInventory": {
       "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/evidence-inventory-final-source-20261020T162907Z-f9cb8e336a42.json",
       "sha256": "f9cb8e336a42a18b5be28b0d4166e9357a59c96bef440e720fee3a07668ffd74",
-      "recordedAtUtc": "2026-10-20T16:32:04.641824+00:00"
+      "recordedAtUtc": "2026-10-20T16:32:04.641824+00:00",
+      "scope": "Socle historique avant ces compléments ; cette copie figée est conservée et n’est pas présentée comme inventaire à jour des nouveaux reçus."
     },
     "provenanceManifest": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/final-source-snapshot-20261020T162907Z.json",
     "localArtifactsDelivered": false,
-    "newFunctionalReceiptsAdded": false
+    "newFunctionalReceiptsAdded": true,
+    "baselineFunctionalEvidenceReviewFrozenAtUtc": "2026-10-20T16:20:47.039265+00:00",
+    "supplementReviewedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+    "supplementReceiptsThroughUtc": "2026-10-20T17:59:51.730904+00:00",
+    "newExecutionByThisReviewer": false
   },
   "method": {
     "newTestsRun": false,
@@ -104,10 +108,13 @@
     },
     {
       "panelId": "editor",
-      "status": "PARTIEL — voir portée de chaque preuve",
+      "status": "PARTIEL — ouverture Monaco diagnostique et sauvegarde runtime HTTP réelle ; aucun edit/save UI, Options rouge",
       "proofIds": [
         "LAYOUT-DIAGNOSTIC-20",
-        "FILES-ARCHIVE-20"
+        "FILES-ARCHIVE-20",
+        "FILES-MONACO-DIAGNOSTIC-1641",
+        "PANE-OPTIONS-TIMEOUT-1642",
+        "RUNTIME-FILE-SAVE-1747"
       ],
       "sourceIdentifiedFunctions": "Ouvrir un fichier, modifier/enregistrer, onglets, navigation par symbole, recherche/remplacement, historique, comparaison/restauration de version ; sous-composants de l’éditeur encore à suivre.",
       "sourceMappingGaps": [
@@ -122,8 +129,10 @@
     },
     {
       "panelId": "preview",
-      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
-      "proofIds": [],
+      "status": "PARTIEL — proxy API autonome200 et capture root ; global rouge en attente de fin processus, panneau IDE/publication non testés",
+      "proofIds": [
+        "API-PROXY-PREVIEW-1747"
+      ],
       "sourceIdentifiedFunctions": "Aperçu URL/port, rechargement, navigation, modes d’appareil, ouverture externe, capture/inspection visuelle, console et commandes de démarrage/reprise.",
       "sourceMappingGaps": [
         "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
@@ -136,10 +145,14 @@
     },
     {
       "panelId": "files",
-      "status": "PARTIEL — voir portée de chaque preuve",
+      "status": "PARTIEL — lecture UI et sauvegarde/relecture runtime HTTP, refus outsider ; aucune manipulation complète via UI",
       "proofIds": [
         "LAYOUT-DIAGNOSTIC-20",
-        "FILES-ARCHIVE-20"
+        "FILES-ARCHIVE-20",
+        "FILES-MONACO-DIAGNOSTIC-1641",
+        "PANE-OPTIONS-TIMEOUT-1642",
+        "RUNTIME-FILE-SAVE-1747",
+        "RUNTIME-ORG-ISOLATION-1747"
       ],
       "sourceIdentifiedFunctions": "Arborescence, ouvrir, créer fichier/dossier, renommer, supprimer, importer/téléverser, télécharger/exporter, rechercher, historique et verrouillage ; effets répartis entre callbacks et store.",
       "sourceMappingGaps": [
@@ -149,7 +162,11 @@
       "productionFunctionalProof": false,
       "permissionsAcrossUsersOrOrganizationsProven": false,
       "safariActionCoverageProven": false,
-      "sourceActionCatalogLocation": "Copie source immuable : panels[id=files].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=files].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée.",
+      "permissionsPartialEvidenceIds": [
+        "RUNTIME-ORG-ISOLATION-1747"
+      ],
+      "permissionsAcrossUsersOrOrganizationsProvenMeaning": "La valeur false indique que la couverture du panneau entier n’est pas établie ; refus QA ciblés listés séparément."
     },
     {
       "panelId": "search",
@@ -219,13 +236,14 @@
     },
     {
       "panelId": "database",
-      "status": "PARTIEL — voir portée de chaque preuve",
+      "status": "PARTIEL — lectures/refus UI historiques et isolation HTTP/Prisma A→B candidate ; aucun restore cloud ou panneau complet",
       "proofIds": [
         "DB-READ-RETRY-19",
         "DB-POLL-RETRY-19",
         "DB-RESTORE-API-20",
         "DB-RESTORE-UI-20",
-        "RESTORE-PHYSICAL-CANDIDATE-20"
+        "RESTORE-PHYSICAL-CANDIDATE-20",
+        "DB-TRANSFER-ISOLATION-CANDIDATE-1738"
       ],
       "sourceIdentifiedFunctions": "Sélection dev/prod, provisionner/réessayer, aperçu, données/tables/requête SQL, configuration/connexion, secrets, sauvegardes et restauration. Une désactivation ou un refus n’établit pas la restauration.",
       "sourceMappingGaps": [
@@ -329,7 +347,7 @@
     },
     {
       "panelId": "workflows",
-      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "status": "UI/CHAÎNE NON TESTÉES — contrats isolés candidat exercés, fixtures explicites",
       "proofIds": [],
       "sourceIdentifiedFunctions": "Créer/modifier/supprimer workflow, bouton Run, planification, lancement immédiat, tâches créer/modifier/supprimer/déplacer/réordonner ; dépendance à l’exécuteur.",
       "sourceMappingGaps": [],
@@ -337,19 +355,28 @@
       "productionFunctionalProof": false,
       "permissionsAcrossUsersOrOrganizationsProven": false,
       "safariActionCoverageProven": false,
-      "sourceActionCatalogLocation": "Copie source immuable : panels[id=workflows].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=workflows].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée.",
+      "technicalEvidenceIds": [
+        "TERMINAL-WORKFLOW-SECURITY-ISOLATED-1713"
+      ]
     },
     {
       "panelId": "debugger",
-      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
-      "proofIds": [],
+      "status": "PARTIEL SOUS-SYSTÈME LOCAL CANDIDAT — Node/Inspector et autorisations avec fixtures ; UI/Prisma/production non testés",
+      "proofIds": [
+        "DEBUGGER-NODE-CANDIDATE-1715",
+        "DEBUGGER-API-AUTH-CANDIDATE-1716"
+      ],
       "sourceIdentifiedFunctions": "Configurations, breakpoints, expressions surveillées, début/fin session ; quatre commandes de contrôle signalées par le reviewer comme sans handler dans main.",
       "sourceMappingGaps": [],
       "businessCompletionProven": false,
       "productionFunctionalProof": false,
       "permissionsAcrossUsersOrOrganizationsProven": false,
       "safariActionCoverageProven": false,
-      "sourceActionCatalogLocation": "Copie source immuable : panels[id=debugger].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=debugger].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée.",
+      "technicalEvidenceIds": [
+        "DEBUGGER-TECHNICAL-1715"
+      ]
     },
     {
       "panelId": "deployments",
@@ -368,7 +395,7 @@
     },
     {
       "panelId": "security",
-      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "status": "UI/CHAÎNE NON TESTÉES — contrats isolés candidat exercés, fixtures explicites",
       "proofIds": [],
       "sourceIdentifiedFunctions": "Lire alertes et activité, configurer protections, scanner, masquer/réafficher vulnérabilité ; dépendance aux sources d’analyse.",
       "sourceMappingGaps": [],
@@ -376,7 +403,10 @@
       "productionFunctionalProof": false,
       "permissionsAcrossUsersOrOrganizationsProven": false,
       "safariActionCoverageProven": false,
-      "sourceActionCatalogLocation": "Copie source immuable : panels[id=security].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=security].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée.",
+      "technicalEvidenceIds": [
+        "TERMINAL-WORKFLOW-SECURITY-ISOLATED-1713"
+      ]
     },
     {
       "panelId": "env",
@@ -434,8 +464,12 @@
     },
     {
       "panelId": "terminal",
-      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
-      "proofIds": [],
+      "status": "PARTIEL BACKEND / DÉFAUT RÉEL — commandes exit 0/7 et refus autre organisation établis ; un POST de 16 s rejoué trois fois. UI/BFF complet et SSH positif non éprouvés.",
+      "proofIds": [
+        "RUNTIME-ORG-ISOLATION-1747",
+        "RUNTIME-COMMAND-EXITS-1747",
+        "RUNTIME-COMMAND-REPLAY-1758"
+      ],
       "sourceIdentifiedFunctions": "Terminal interactif, scripts, processus, restart/stop workspace, SSH ajouter/générer/supprimer/connecter/déconnecter, git SSH ; sous-vues env/secrets/ports réutilisées.",
       "sourceMappingGaps": [
         "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
@@ -444,7 +478,14 @@
       "productionFunctionalProof": false,
       "permissionsAcrossUsersOrOrganizationsProven": false,
       "safariActionCoverageProven": false,
-      "sourceActionCatalogLocation": "Copie source immuable : panels[id=terminal].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=terminal].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée.",
+      "technicalEvidenceIds": [
+        "TERMINAL-WORKFLOW-SECURITY-ISOLATED-1713"
+      ],
+      "permissionsPartialEvidenceIds": [
+        "RUNTIME-ORG-ISOLATION-1747"
+      ],
+      "permissionsAcrossUsersOrOrganizationsProvenMeaning": "La valeur false indique que la couverture du panneau entier n’est pas établie ; refus QA ciblés listés séparément."
     },
     {
       "panelId": "logs",
@@ -1134,6 +1175,616 @@
         "Données client",
         "Déploiement"
       ]
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "captureReview": "Parent/root a inspecté la capture monaco-before-options.jpeg ; le reçu la dit lisible. Une seule capture desktop avant Options. Pas nouvelle inspection dans cette mise à jour documentaire.",
+      "id": "FILES-MONACO-DIAGNOSTIC-1641",
+      "panelIds": [
+        "editor",
+        "files"
+      ],
+      "action": "Cliquer audit.txt dans l’arborescence puis vérifier Monaco et le texte synthétique exact.",
+      "interaction": "Vrai clic UI et assertions visibles dans un diagnostic distinct ; pas édition ni sauvegarde.",
+      "date": "2026-10-20T16:41:31.239529Z–16:42:38.635944Z ; clic16:42:09.551139Z–16:42:15.317246Z, texte confirmé16:42:15.834220Z",
+      "environment": "UI compilée candidate, HTTP API et PostgreSQL QA réels ; inscription/import/login réels ; Chromium154/Node24 local, desktop1440×900 ; runtime manager absent.",
+      "result": "Archive HTTP200 avec9fichiers ; audit.txt réellement sélectionné, Monaco visible et contenu synthétique exact.",
+      "persistence": "Deux PUT ide-state200 observés, sans relecture fonctionnelle démontrant survie. Aucun edit/save effectué.",
+      "reload": "Non atteint ; split, flottement et navigation de persistance non exécutés.",
+      "errors": "Recette globale rouge au clic Options suivant. Ce diagnostic avec préparation90s ne satisfait pas les recettes canoniques30s précédemment rouges.",
+      "permissions": "Propre identité/projet QA ; aucune preuve inter-locataires.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/diagnostic-review.json",
+          "sha256AtReview": "f4067ba7242af16ad643c178a88bf3310cf3f49b397df6d3f6201cde3bd55eb3",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/run-result.json",
+          "sha256AtReview": "6d5a80cfa13396fa8f7a45ab072d07428e7a5c3d22e633cc3e2fa0f78d28c60e",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/plan.json",
+          "sha256AtReview": "3697189e1acba0291ab66a1bac2ac2ca3873a3087f15205e1578a355eab30efa",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/baseline-20261020T164131Z/manifest.json",
+          "sha256AtReview": "1ef437a4da5daf1fbc088e03d90c122d0df06a74dc023ceb821b30f16a4ef501",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "source": {
+        "head": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+        "baseTreeSameAsMain": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+        "state": "candidat non fusionné ; sources et bundle inchangés pendant le passage selon reçu",
+        "sourceAndBundleManifest": [
+          {
+            "path": "app/components/chat/BaseChat.tsx",
+            "sha256": "cc2b3448ca9052565407e700d0ab5cf784d7dc14a3eb38413d6f691cd75482c1"
+          },
+          {
+            "path": "app/components/chat/usePersistProjectEditorLayout.ts",
+            "sha256": "ba045960210ddb696c16435a3b6d47164045d733b89e5c900ccfd8ec23d2e6a9"
+          },
+          {
+            "path": "app/lib/stores/workbench.ts",
+            "sha256": "baebc4d194fa15c6767629b229e0eadbf0e31895467c8b9d9026b25d8400a444"
+          },
+          {
+            "path": "app/lib/persistence/projectIdeMemory.ts",
+            "sha256": "2c3901b92143507d334abf96897d32c22bb692cd3e694fc231e4efea95fea223"
+          },
+          {
+            "path": "packages/editor/src/index.ts",
+            "sha256": "fede0d2589d24ff6eb0cc55c236b67e807c81328bc9aa811bf11c9883f74c575"
+          },
+          {
+            "path": "tests/e2e/ide-floating-file-tabs.spec.ts",
+            "sha256": "20b23cff3edc9f1f43f1887d261649e028c91d084774d33949a30c32b3f33f22"
+          },
+          {
+            "path": "tests/e2e/ide-floating-viewport.spec.ts",
+            "sha256": "46e9cfc15d179eb35831f5002d650c19e49397792956dcd1cfb3698aa5117709"
+          },
+          {
+            "path": "build/server/index.js",
+            "sha256": "38f88bfc2d17fcb41efc08a6adbfa007de7bda95336e9891a0efc86f5f3126f8"
+          }
+        ]
+      },
+      "notCovered": [
+        "Éditer/enregistrer",
+        "Recharger et retrouver modification",
+        "Créer/renommer/supprimer un fichier",
+        "Split/flottement/persistance",
+        "Exécution/preview",
+        "Mobile/Safari",
+        "Production"
+      ]
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "captureReview": "options-timeout.jpeg est une copie du dernier cadre pré-clic, pas une capture post-timeout ; aucun succès visuel après erreur déduit. Inspection root rapportée par le parent.",
+      "id": "PANE-OPTIONS-TIMEOUT-1642",
+      "panelIds": [
+        "editor",
+        "files"
+      ],
+      "action": "Tenter le clic Options du panneau après ouverture du fichier.",
+      "interaction": "Clic UI tenté ; timeout primaire, action non déclarée réussie.",
+      "date": "2026-10-20T16:42:16.215885Z–16:42:21.316201Z",
+      "environment": "Même diagnostic candidat local desktop1440×900, UI/API/PostgreSQL réels.",
+      "result": "Timeout5000ms ; le snapshot DOM après timeout contient le menu ouvert et11éléments. Cela ne prouve pas que l’action Playwright a terminé.",
+      "persistence": "Non vérifiée ; aucun geste fonctionnel de persistance exécuté.",
+      "reload": "Non atteint.",
+      "errors": "Cause produit/renderer/protocole non attribuée. Rejet d’une promesse du banc au teardown a masqué le timeout et interrompu les mesures/nettoyage ; nettoyage ultérieur exact confirmé. Aucun délai/retry/assertion canonique changé.",
+      "permissions": "Propre identité QA uniquement.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/diagnostic-review.json",
+          "sha256AtReview": "f4067ba7242af16ad643c178a88bf3310cf3f49b397df6d3f6201cde3bd55eb3",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/retained-dom-review.json",
+          "sha256AtReview": "857703549d4221aade13b26aae4abdf515b8341b6f0df53d1545b213d818afac",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/run-result.json",
+          "sha256AtReview": "6d5a80cfa13396fa8f7a45ab072d07428e7a5c3d22e633cc3e2fa0f78d28c60e",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "source": "Même candidat que FILES-MONACO-DIAGNOSTIC-1641 ; baseline exacte conservée dans manifest local.",
+      "notCovered": [
+        "Sélectionner une option du menu",
+        "Split",
+        "Flotter",
+        "Éditer/enregistrer",
+        "Persistance",
+        "Cause du timeout"
+      ]
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "captureReview": "Aucune capture navigateur : sous-système uniquement.",
+      "id": "DEBUGGER-NODE-CANDIDATE-1715",
+      "panelIds": [
+        "debugger"
+      ],
+      "action": "Démarrer un enfant Node sous Inspector, continuer et effectuer les trois pas ; lire variables/expressions, appliquer breakpoints puis arrêter l’enfant possédé.",
+      "interaction": "Appels au sous-système agent via tests locaux, vrai Node/Inspector ; aucun clic UI.",
+      "date": "2026-10-20T17:15:15Z ; passage21,92s ; manifeste17:20:58.641304Z",
+      "environment": "Candidat codex/debugger-real-controls-20261020 basé sur main9c8 ; Nodev24.19.0 et fichiers synthétiques Linux locaux ; pas Prisma, cloud ou navigateur.",
+      "result": "Notifications CDP réelles attendues ; continue/stepOver/stepInto/stepOut, variables, expressions sans effet de bord, conditions/hit/log, mise à jour et arrêt confirmés sur enfant possédé.",
+      "persistence": "État de session/processus et effet fichier synthétique contrôlés ; pas persistance plateforme PostgreSQL, pas redémarrage applicatif prouvé.",
+      "reload": "Pas navigateur ; non testé.",
+      "errors": "Défauts protocole précédents et course de démarrage reproduits puis corrigés. Injections explicites : refus de signal et perte d’ACK d’un pas réellement effectué ; effet fichier unique, pas suivants refusés, Stop reste disponible.",
+      "permissions": "Authentification agent et confinement workspace/session exercés localement ; Inspector127.0.0.2 exclu du proxy/discovery. Pas isolation OS/cloud ni autorisation Prisma prouvée.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/bugs/BUG-IDE-DEBUGGER-REAL-CONTROLS-001.md",
+          "sha256AtReview": "60a0597242c4edce36b97f9a2e1d3202c40d02d9b8ffa21ca6978ae2876ac500",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/manifest.json",
+          "sha256AtReview": "9c856a2cc5dabd18ab4b309163eb9436011421cf752f245357c438cf51216c3b",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "source": {
+        "base": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+        "branch": "codex/debugger-real-controls-20261020",
+        "committed": false,
+        "deployed": false,
+        "coreSha256": "295756ddff902c70e9bd2424d6bd0782a62034eced634b48b534782d9a48a786",
+        "specSha256": "53247d1b4a2514d2beca328ffefd2d956519d0dab697a2124a8af64b7f158f96"
+      },
+      "notCovered": [
+        "Boutons UI et contrat BFF",
+        "Prisma/PostgreSQL",
+        "Cloud/gVisor",
+        "Image réellement servie",
+        "Autres langages/attach externe/sourcemaps TypeScript",
+        "Mobile/Safari",
+        "Production"
+      ],
+      "currentCandidateApplicability": "Succès sur les empreintes enregistrées du passage. Retouches core/agent/API/BFF à17:47 non revalidées : aucun verdict automatique sur la source courante."
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "captureReview": "Aucune capture navigateur : sous-système uniquement.",
+      "id": "DEBUGGER-API-AUTH-CANDIDATE-1716",
+      "panelIds": [
+        "debugger"
+      ],
+      "action": "Appeler API→agent→Inspector comme propriétaire et vérifier les refus sans identité, viewer, ticket/projet ou workspace étranger ; révoquer permission terminal et arrêter.",
+      "interaction": "Vrais serveurs API/agent et enfant Node ; store identité et émetteur de jetons fixtures explicites.",
+      "date": "2026-10-20T17:16:31Z ; cas2,16s dans suite15,45s ; manifeste17:20:58.641304Z",
+      "environment": "Candidat local Node/Inspector ; store identité mémoire, pas Prisma/PostgreSQL, navigateur ou cloud.",
+      "result": "Propriétaire autorisé, vraie pause dans le fichier ; absence d’identité/viewer/ticket autre projet refusés avant jeton ; workspace étranger refusé ; session inconnue404 ; révocation appliquée aux5routes ; Stop confirmé.",
+      "persistence": "Fixtures identité en mémoire ; aucune preuve de persistance applicative/Prisma.",
+      "reload": "Non testé.",
+      "errors": "Refus précis exercés ; serveurs/enfant arrêtés en fin de cas selon reçu.",
+      "permissions": "Contrat API d’autorisation partiellement exercé avec fixtures identité/jetons ; ne certifie pas isolation complète en production.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/bugs/BUG-IDE-DEBUGGER-REAL-CONTROLS-001.md",
+          "sha256AtReview": "60a0597242c4edce36b97f9a2e1d3202c40d02d9b8ffa21ca6978ae2876ac500",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/manifest.json",
+          "sha256AtReview": "9c856a2cc5dabd18ab4b309163eb9436011421cf752f245357c438cf51216c3b",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "source": {
+        "base": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+        "branch": "codex/debugger-real-controls-20261020",
+        "committed": false,
+        "deployed": false,
+        "validatedTestSource": {
+          "path": "services/api/src/tests/runtime-debugger-auth.spec.ts",
+          "sha256": "ae597a8acc6767da6cd20c4684d5126b5ad246ab386f81dcd93bbea0568a4bb3"
+        }
+      },
+      "notCovered": [
+        "Contrat BFF et clic UI",
+        "Prisma/PostgreSQL",
+        "Vrais tickets utilisateur de production",
+        "Isolation OS/container/cloud",
+        "Mobile/Safari",
+        "Déploiement"
+      ],
+      "currentCandidateApplicability": "Succès sur les empreintes enregistrées du passage. Retouches core/agent/API/BFF à17:47 non revalidées : aucun verdict automatique sur la source courante."
+    },
+    {
+      "id": "DB-TRANSFER-ISOLATION-CANDIDATE-1738",
+      "panelIds": [
+        "database"
+      ],
+      "action": "Transférer le projet A→B puis exercer les lectures/provisionnements et admissions de restauration à différentes frontières d’autorisation.",
+      "interaction": "HTTP loopback réel avec Prisma pour lectures/provision ; Fastify app.inject avec Prisma pour quatre admissions restore/restores dev/prod. Aucun clic UI.",
+      "date": "HTTP lectures/provision :2026-10-20T17:37:48.801866Z–17:38:23.326468Z ; admissions app.inject/Prisma : passage2026-10-20T17:28:52.698527Z–17:29:32.824338Z",
+      "environment": "Candidat non fusionné ; PostgreSQL QA dédié et Prisma réels, réponses de provisionneur fixtures. Les10tests routes mémoire du reçu final sont distincts et ne sont pas attribués à PostgreSQL.",
+      "result": "Ancien membre/organisation A refusé après transfert engagé vers B avant lecture instance, après réponse fournisseur tardive ou projection de métadonnées ; requête fraîche autorisée B éprouvée ; refus409 EN/FR explicite. Quatre cas app.inject/Prisma refusent restore/restores dev/prod après transfert entre autorisation et lecture instance.",
+      "persistence": "Transfert et instances relus via Prisma/PostgreSQL ; propriété dev/prod atomique et rollback en erreur éprouvés. Aucun résultat fournisseur cloud ni restauration physique établi par ces cas.",
+      "reload": "Lecture fraîche backend seulement ; aucun rechargement navigateur.",
+      "errors": "Le passage global précédent est rouge62/63 : le cas transfert pendant admission active échouait. Sa sous-suite repository27/27 est verte ; le passage ultérieur routes/transferts42/42 est vert. Ces reçus portent sur des sources API différentes et ne sont pas fusionnés en un verdict global final.",
+      "permissions": "Isolation locale d’autorisation A/B partiellement éprouvée ; pas isolation OS/conteneur/cloud ni matrice complète de tous panneaux.",
+      "captureReview": "Pas de capture UI ; reçus machine et intitulés de cas relus.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/routes-transfer-final-execution.json",
+          "sha256AtReview": "8a4f5d1c6b15ca488fd483b9af20820dad1efb3586bdda148529bdd245923292",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/routes-transfer-final-report.json",
+          "sha256AtReview": "71edc519609d35903a2af0ac71363941e5b9a8238cfcdaf9e17ca9454057bd12",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/full-execution.json",
+          "sha256AtReview": "1457240e226ca0aa4eb187a01f6e0cf5a86293d731d019ed8669eb676b5929fc",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/full-report.json",
+          "sha256AtReview": "e5f6e63761411f890149e93c699415096640b6e416bf7c458334018d800d8a2e",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "source": {
+        "state": "candidat non fusionné, distinct du main9c8",
+        "finalRoutesTransferSourceHashes": {
+          "services/api/src/app-public-copy.json": "4c23199c545b22deb26deb16c4fa066f5b69a2e715ec47ac95f0f532200c5310",
+          "services/api/src/app.ts": "f191f1467e1d37d8466d36d0e826b8917ddbd47209252f7f3a8cced551c23f90",
+          "services/api/src/database-restore-contract.ts": "23c1a025b1efe97dccf823e17ddc1ae8f5dc9f74e7a127218256f55575d06434",
+          "services/api/src/database-restore-repository.ts": "193f295ec767bc251787a223333eb70ff566279363f2bfc88b729e7194775825",
+          "services/api/src/database-restore-executor.ts": "626c2d325b9e6d5daf697fe70c212fc4e118aeff79ee94a354e9f417fe6edc0a",
+          "services/api/src/tests/database-restore-repository.spec.ts": "51558d00177697024a676a79b9c55041a0aea37f5ae77368c572395d3c24a0d4",
+          "services/api/src/tests/database-restore-routes.spec.ts": "08253a0b337dfc3808a7615d5188bf4026a379587e2d32f24522780afc2d8f3b",
+          "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts": "5c5f36a10ab0de222f893a1b765e51a3218fd709814158d879ba2ac5dbb54a0c"
+        },
+        "earlierFullSourceHashes": {
+          "services/api/src/app.ts": "c70c57cf7cadeff1cc4cd7c4d3c93f4663b739f50ed4bb5c0b65f32aa2c334e8",
+          "services/api/src/database-restore-contract.ts": "1b1a7682eaf4a4f83ccf2fc854ac647aaa56a2899add24e6eb8a844982e88bf1",
+          "services/api/src/database-restore-repository.ts": "193f295ec767bc251787a223333eb70ff566279363f2bfc88b729e7194775825",
+          "services/api/src/database-restore-executor.ts": "626c2d325b9e6d5daf697fe70c212fc4e118aeff79ee94a354e9f417fe6edc0a",
+          "services/api/src/tests/database-restore-repository.spec.ts": "51558d00177697024a676a79b9c55041a0aea37f5ae77368c572395d3c24a0d4"
+        },
+        "sameSourceClaim": false
+      },
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "notCovered": [
+        "Clics UI",
+        "Cloud/CNPG",
+        "Sauvegarde/restauration physique",
+        "Isolation complète production",
+        "Réexécution globale finale sur les mêmes sources",
+        "Mobile/Safari"
+      ]
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "runId": "LOCAL-CHAIN-1746-RED",
+      "globalRunPassed": false,
+      "source": "Voir localChainRun.source : six fichiers runtime correspondent exactement au main9c8 ; banc/probes et workspace préalloué explicitement synthétiques.",
+      "captureReview": "Pas de capture requise pour cette action HTTP ; voir reçus assainis.",
+      "environment": "Vrais serveurs API/Prisma, manager JWT et agent/disque locaux ; deux identités et organisations synthétiques, workspace préalloué en métadonnées ; fallback API désactivé.",
+      "id": "RUNTIME-FILE-SAVE-1747",
+      "panelIds": [
+        "editor",
+        "files"
+      ],
+      "action": "Modifier un fichier synthétique via PUT runtime puis relire disque, GET runtime et archive ZIP par deux requêtes fraîches.",
+      "interaction": "Vrai HTTP authentifié API→manager→agent ; aucun clic/édition Monaco.",
+      "date": "2026-10-20T17:47:22.942Z–2026-10-20T17:47:23.737Z",
+      "result": "PUT204 corroboré par contenu exact sur disque, GET runtime et exports ZIP frais ; fichier voisin inchangé. Aucun réimport après sauvegarde ni substitution de stockage/réponse.",
+      "persistence": "Empreinte initiale54af7571… remplacée par1b5fe4cb… ; contenu attendu relu sur disque/runtime/archives. Pas preuve de survie à un redémarrage.",
+      "reload": "Export API indépendant répété ; ni reload navigateur ni restart processus.",
+      "permissions": "Identité propriétaire QA réelle ; refus outsider couverts séparément.",
+      "errors": "Cette sonde passed=true ; le run englobant reste rouge sur attente de fin du processus preview.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/archive-runtime-save-result.json",
+          "sha256AtReview": "b181cf6661763449e55358a11ffde8712fdffa1d312728f3aa0a55458946f2f4",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/resources.json",
+          "sha256AtReview": "ef32dea13f679e50d468c4173bf52942c891355379fd08249ee468d5770db25f",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "notCovered": [
+        "Éditer/enregistrer depuis Monaco",
+        "Créer/renommer/supprimer via UI",
+        "Reload/restart",
+        "Provisionnement/Kubernetes",
+        "Cloud/publication"
+      ]
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "runId": "LOCAL-CHAIN-1746-RED",
+      "globalRunPassed": false,
+      "source": "Voir localChainRun.source : six fichiers runtime correspondent exactement au main9c8 ; banc/probes et workspace préalloué explicitement synthétiques.",
+      "captureReview": "Pas de capture requise pour cette action HTTP ; voir reçus assainis.",
+      "environment": "Vrais serveurs API/Prisma, manager JWT et agent/disque locaux ; deux identités et organisations synthétiques, workspace préalloué en métadonnées ; fallback API désactivé.",
+      "id": "RUNTIME-ORG-ISOLATION-1747",
+      "panelIds": [
+        "files",
+        "terminal"
+      ],
+      "action": "Tenter lecture, écriture et commande depuis une autre organisation synthétique ; présenter un jeton absent puis un JWT API incorrect au vrai agent.",
+      "interaction": "Vrais appels HTTP sur API authentifiée/Prisma puis agent ; pas injection de réponse.",
+      "date": "2026-10-20T17:47:25.027Z–2026-10-20T17:48:00.808Z",
+      "result": "Lecture/écriture/commande outsider404 ; empreintes disque/archive inchangées et compteur de commandes agent inchangé. Agent401 pour jeton absent et JWT API de l’outsider non valable comme jeton agent.",
+      "persistence": "Aucune mutation du fichier/ZIP après les trois refus ; pas garantie globale de toutes données projet.",
+      "reload": "Relectures API après refus ; pas navigateur.",
+      "permissions": "Refus réel entre organisations QA au niveau API RBAC et contrôle JWT agent ; pas isolation OS/conteneur/noyau ni tous rôles/tous panneaux.",
+      "errors": "Refus attendus vérifiés ; global rouge distinct à la fin du test preview.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/execution-preview-isolation-result.json",
+          "sha256AtReview": "879e91e9db89a421816b3f487d88b366e364872310c769a5c9453330a3a4bf46",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/resources.json",
+          "sha256AtReview": "ef32dea13f679e50d468c4173bf52942c891355379fd08249ee468d5770db25f",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "notCovered": [
+        "Matrice exhaustive rôles/permissions",
+        "Isolation conteneur/noyau/réseau",
+        "UI",
+        "Cloud",
+        "Données client"
+      ]
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "runId": "LOCAL-CHAIN-1746-RED",
+      "globalRunPassed": false,
+      "source": "Voir localChainRun.source : six fichiers runtime correspondent exactement au main9c8 ; banc/probes et workspace préalloué explicitement synthétiques.",
+      "captureReview": "Pas de capture requise pour cette action HTTP ; voir reçus assainis.",
+      "environment": "Vrais serveurs API/Prisma, manager JWT et agent/disque locaux ; deux identités et organisations synthétiques, workspace préalloué en métadonnées ; fallback API désactivé.",
+      "id": "RUNTIME-COMMAND-EXITS-1747",
+      "panelIds": [
+        "terminal"
+      ],
+      "action": "Exécuter deux vraies commandes Node par l’agent, l’une réussie et l’autre quittant avec le code7.",
+      "interaction": "Endpoint runtime HTTP réel→manager JWT→agent ; fallback API désactivé. Aucun clic terminal/BFF.",
+      "date": "2026-10-20T17:47:25.027Z–2026-10-20T17:48:00.808Z",
+      "result": "Codes de sortie réels0 et7 reçus ; les deux réponses endpoint runtime sont HTTP200 avec leur exitCode.",
+      "persistence": "Effets/processus du banc seulement ; historique terminal/workflow et rechargement UI non éprouvés.",
+      "reload": "Non testé.",
+      "permissions": "Propriétaire QA autorisé ; outsider refusé dans l’action séparée.",
+      "errors": "Le code7 est un échec de commande réellement observé ; son traitement par BFF/UI est une autre couche, toujours couvert séparément par contrats isolés. Global rouge ensuite au processus preview.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/execution-preview-isolation-result.json",
+          "sha256AtReview": "879e91e9db89a421816b3f487d88b366e364872310c769a5c9453330a3a4bf46",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/resources.json",
+          "sha256AtReview": "ef32dea13f679e50d468c4173bf52942c891355379fd08249ee468d5770db25f",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "notCovered": [
+        "Commande saisie dans UI",
+        "Annonce d’erreur BFF/UI en chaîne réelle",
+        "Workflow/SSH positif",
+        "Provisionnement/Kubernetes",
+        "Cloud"
+      ]
+    },
+    {
+      "productionFunctionalProof": false,
+      "businessCompletionProven": false,
+      "runId": "LOCAL-CHAIN-1746-RED",
+      "globalRunPassed": false,
+      "source": "Voir localChainRun.source : six fichiers runtime correspondent exactement au main9c8 ; banc/probes et workspace préalloué explicitement synthétiques.",
+      "captureReview": "Root a inspecté real-agent-preview.png et confirmé le titre visible ; pas nouvelle inspection par cet agent documentaire.",
+      "environment": "Vrais serveurs API/Prisma, manager JWT et agent/disque locaux ; deux identités et organisations synthétiques, workspace préalloué en métadonnées ; fallback API désactivé.",
+      "id": "API-PROXY-PREVIEW-1747",
+      "panelIds": [
+        "preview"
+      ],
+      "action": "Écrire une application Node HTTP synthétique, attendre readiness, lire son proxy API puis ouvrir la preview autonome dans Chromium.",
+      "interaction": "Vrai HTTP et navigateur sur le proxy API local ; aucun bouton Preview de l’IDE.",
+      "date": "2026-10-20T17:47:25.027Z–2026-10-20T17:48:00.808Z",
+      "result": "Readiness200 et proxy200 ; titre visible selon inspection root de real-agent-preview.png. Application synthétique explicite, sans modèle/fournisseur ; reporter de preview injecté.",
+      "persistence": "Application fichier du banc ; pas publication ni persistance après redémarrage.",
+      "reload": "Chargement autonome Chromium seulement, pas retour/reload du panneau IDE.",
+      "permissions": "Propre projet QA ; autres permissions preview non éprouvées.",
+      "errors": "ÉCHEC GLOBAL CONSERVÉ : TimeoutError35000ms à preview-process-finished. Le cleanup ultérieur et les ports fermés ne rendent pas la recette verte.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/execution-preview-isolation-result.json",
+          "sha256AtReview": "879e91e9db89a421816b3f487d88b366e364872310c769a5c9453330a3a4bf46",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/resources.json",
+          "sha256AtReview": "ef32dea13f679e50d468c4173bf52942c891355379fd08249ee468d5770db25f",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/real-agent-preview.png",
+          "sha256AtReview": "37b8897a2b744d456d22124f4e1727ad80a18836644ffcdaded523a3d23b2c84",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/recovery-20261020T1753.json",
+          "sha256AtReview": "e27dc9a3e47ba3d62a6ceb88b37c78411d43ceb6e1f784850279cd39bdc2a676",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "notCovered": [
+        "Clic Preview/Run IDE",
+        "Début de workspace",
+        "Publication accessible publiquement",
+        "Cloud/Kubernetes",
+        "Mobile/Safari",
+        "Fin normale du processus preview"
+      ]
+    },
+    {
+      "id": "RUNTIME-COMMAND-REPLAY-1758",
+      "panelIds": [
+        "terminal"
+      ],
+      "runId": "LOCAL-COMMAND-REPLAY-1758-RED",
+      "globalRunPassed": false,
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "date": "2026-10-20T17:58:47.352Z–2026-10-20T17:59:23.073Z",
+      "action": "Envoyer une seule commande HTTP non idempotente de 16 s, puis lire les démarrages de processus réellement inscrits sur disque.",
+      "interaction": "Un POST API authentifié réel ; pas clic terminal UI.",
+      "environment": "API/Prisma → manager JWT → agent/disque et vrais processus Node locaux ; workspace préalloué synthétique, fallback désactivé.",
+      "result": "ÉCHEC REPRODUIT : trois processus démarrent à 0, 15 234 et 30 581 ms pour une requête ; client TimeoutError à 35 113 ms.",
+      "persistence": "Démarrages distincts relus sur disque du banc ; cleanup synthétique réussi. Pas garantie de reprise après redémarrage.",
+      "reload": "Aucun reload navigateur.",
+      "permissions": "Propre identité QA ; cette contre-épreuve ne complète pas la matrice de permissions.",
+      "errors": "Commande de 16 s avec timeout demandé 25 s, mais hop interne API limité à 15 s puis relancé pour POST. Run rouge, aucun correctif validé par ce reçu.",
+      "source": "Voir localCommandReplayRun.source ; mêmes six empreintes runtime que le run précédent, correspondant au main de référence. Cause relue au SHA exact.",
+      "captureReview": "Aucun navigateur ni capture pour cette contre-épreuve.",
+      "notCovered": [
+        "UI terminal",
+        "Production",
+        "Provisionnement/cloud",
+        "SSH positif",
+        "Cause de la déconnexion du transport exécuteur"
+      ],
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/command-replay-red-proof.json",
+          "sha256AtReview": "4a5689138165971ab5c8756ee065ed2e87055fb64795f52f6b6b6a81b04b9b09",
+          "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/command-replay-result.json",
+          "sha256AtReview": "ab2c9ff1eaa30b0ea995da2f025ffdf2680e938b0257b4f9daf9263644c22f36",
+          "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/resources.json",
+          "sha256AtReview": "6a9533de8e8ebe2e25856f58fe952fa9e2c91e3bc60ce83a04c18c676c8b3006",
+          "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/fixture-cleanup.json",
+          "sha256AtReview": "eee2b3cab2157f9e78ceac0d595ab934dc861a3ed57835ddaabd0c78568f4719",
+          "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ]
     }
   ],
   "outsideIde": [
@@ -1249,7 +1900,7 @@
     }
   ],
   "mappingNotes": [
-    "31 panneaux canoniques rapprochés de la source finale du 20 octobre à 16:29:07 au SHA main fixé ; 17 surfaces gardent des trous de graphe contrôle→callback→backend. Aucune exhaustivité fonctionnelle ni nouveau reçu.",
+    "31 panneaux canoniques rapprochés de la source finale du 20 octobre à 16:29:07 au SHA main fixé ; 17 surfaces gardent des trous de graphe contrôle→callback→backend. Cette cartographie source ne produit aucune preuve fonctionnelle ; les reçus ultérieurs sont datés séparément.",
     "Connect/intégrations : HTTP direct sans token. Sync : refus. Create-webhook : configuration via UI, pas livraison. Restore/snapshots : refus HTTP direct.",
     "Les réessais DB/page dédiée ne prouvent pas toutes les intentions du panneau Database.",
     "Le smoke26/31 et les contrats21GET/auth signalés par le parent ne sont pas réexécutés ; ouverture/rendu/GET ne valent pas clics/mutations.",
@@ -1290,7 +1941,8 @@
     "Stripe TEST identifié et parcours abonnement/paiement/webhook/quota cohérent sans paiement LIVE.",
     "Sauvegarde/restauration cloud isolée avec données synthétiques, quiescence complète, fencing et relecture applicative.",
     "Isolation inter-utilisateurs/inter-organisations et parcours d'erreur pour chaque action sensible.",
-    "Recettes UI normales des panneaux restants, mobile/tablette/desktop et Safari ; résolution des recettes Monaco/layout rouges."
+    "Recettes UI normales des panneaux restants, mobile/tablette/desktop et Safari ; résolution des recettes canoniques Monaco/layout rouges et du timeout Options du diagnostic.",
+    "Corriger le rejeu des commandes non idempotentes après timeout interne API, puis contre-épreuve réelle : un POST doit produire un seul effet. Le reçu local du 20 octobre à 17:58–17:59 est rouge."
   ],
   "repositoryEvidence": [
     {
@@ -1538,6 +2190,222 @@
       "sha256": "6fd544d364c4067d9c44c2c526c3eb8c2b6552db89c1f3fb93b5b76ab3229b4b",
       "existsAtReview": true,
       "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/diagnostic-review.json",
+      "sha256AtReview": "f4067ba7242af16ad643c178a88bf3310cf3f49b397df6d3f6201cde3bd55eb3",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/run-result.json",
+      "sha256AtReview": "6d5a80cfa13396fa8f7a45ab072d07428e7a5c3d22e633cc3e2fa0f78d28c60e",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/retained-dom-review.json",
+      "sha256AtReview": "857703549d4221aade13b26aae4abdf515b8341b6f0df53d1545b213d818afac",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/plan.json",
+      "sha256AtReview": "3697189e1acba0291ab66a1bac2ac2ca3873a3087f15205e1578a355eab30efa",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/baseline-20261020T164131Z/manifest.json",
+      "sha256AtReview": "1ef437a4da5daf1fbc088e03d90c122d0df06a74dc023ceb821b30f16a4ef501",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-debugger-real-controls/docs/bugs/BUG-IDE-DEBUGGER-REAL-CONTROLS-001.md",
+      "sha256AtReview": "60a0597242c4edce36b97f9a2e1d3202c40d02d9b8ffa21ca6978ae2876ac500",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/manifest.json",
+      "sha256AtReview": "7a0508df75a8f5204b8f8e8238a9bdd824336994aebfa3549ec63003ec8d9aab",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/full-vitest-20261020T1712.json",
+      "sha256AtReview": "b861ca79d8833a38178cc5f367dd60f86a2b846db8eda4d5148697bd52048819",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/counterproof-20261020T170708Z-b8c65e15/result.json",
+      "sha256AtReview": "8e24e705ab972abf93b3e94ecfbffa985b887e1887d807ce99601e3ff189d043",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/counterproof-20261020T171149Z-e787ea6c/result.json",
+      "sha256AtReview": "079d6e4c449771f7834943a580aa8cfaa151911b73375161e26faf13e667ead2",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/candidate-prepared.json",
+      "sha256AtReview": "814c4413f028ba872a70c263b6d88d94f56311f4844869e8eddc576f5ef74432",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-chain-prepared.json",
+      "sha256AtReview": "a2fde6f7dcf5525593ad5cc7d7505eee06e0dc7ec2781c179bccfe0171b23a2c",
+      "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/routes-transfer-final-execution.json",
+      "sha256AtReview": "8a4f5d1c6b15ca488fd483b9af20820dad1efb3586bdda148529bdd245923292",
+      "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/routes-transfer-final-report.json",
+      "sha256AtReview": "71edc519609d35903a2af0ac71363941e5b9a8238cfcdaf9e17ca9454057bd12",
+      "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/full-execution.json",
+      "sha256AtReview": "1457240e226ca0aa4eb187a01f6e0cf5a86293d731d019ed8669eb676b5929fc",
+      "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/full-report.json",
+      "sha256AtReview": "e5f6e63761411f890149e93c699415096640b6e416bf7c458334018d800d8a2e",
+      "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/archive-runtime-save-result.json",
+      "sha256AtReview": "b181cf6661763449e55358a11ffde8712fdffa1d312728f3aa0a55458946f2f4",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/execution-preview-isolation-result.json",
+      "sha256AtReview": "879e91e9db89a421816b3f487d88b366e364872310c769a5c9453330a3a4bf46",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/resources.json",
+      "sha256AtReview": "ef32dea13f679e50d468c4173bf52942c891355379fd08249ee468d5770db25f",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/fixture-cleanup.json",
+      "sha256AtReview": "bfcba8858cd366811dfe8e614503a40fb2c1e9e54650d5f44057fe9ba12fef4a",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/recovery-20261020T1753.json",
+      "sha256AtReview": "e27dc9a3e47ba3d62a6ceb88b37c78411d43ceb6e1f784850279cd39bdc2a676",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/real-agent-preview.png",
+      "sha256AtReview": "37b8897a2b744d456d22124f4e1727ad80a18836644ffcdaded523a3d23b2c84",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/08-bff-contract.txt",
+      "sha256AtReview": "38b9d3be2668a0229d55531ae3db57bcd60d5863bbb3ea4f6e022a7eadafe182",
+      "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/command-replay-red-proof.json",
+      "sha256AtReview": "4a5689138165971ab5c8756ee065ed2e87055fb64795f52f6b6b6a81b04b9b09",
+      "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/command-replay-result.json",
+      "sha256AtReview": "ab2c9ff1eaa30b0ea995da2f025ffdf2680e938b0257b4f9daf9263644c22f36",
+      "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/resources.json",
+      "sha256AtReview": "6a9533de8e8ebe2e25856f58fe952fa9e2c91e3bc60ce83a04c18c676c8b3006",
+      "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/fixture-cleanup.json",
+      "sha256AtReview": "eee2b3cab2157f9e78ceac0d595ab934dc861a3ed57835ddaabd0c78568f4719",
+      "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+      "includedInRepository": false,
+      "mayBeUpdatedByOwner": true
     }
   ],
   "sourceOnlyScope": {
@@ -1894,5 +2762,826 @@
         "GET env-vars en échec est remplacé par liste vide puis suivi d’un PUT : risque de réécriture de configuration vide à reproduire sur fixture isolée."
       ]
     }
-  ]
+  ],
+  "candidateTechnicalEvidence": [
+    {
+      "id": "DEBUGGER-TECHNICAL-1715",
+      "panelIds": [
+        "debugger"
+      ],
+      "date": "2026-10-20T17:15:15Z et17:16:31Z",
+      "status": "PROGRÈS SOUS-SYSTÈME CANDIDAT ; aucune recette panneau complet",
+      "validationCountsNotProductActions": {
+        "agentAndWebsocketCasesPassed": 16,
+        "apiAgentInspectorCasesPassed": 1,
+        "ignoredInFinalRuns": 0
+      },
+      "bffContract": {
+        "status": "PASSED_ON_PRE_STYLE_PATCH",
+        "passed": 12,
+        "failed": 0,
+        "skipped": 0,
+        "startedAt": "2026-10-20T17:42:08Z",
+        "durationSeconds": 8.2,
+        "scope": "Contrat BFF isolé, frontière API simulée explicitement ; pas UI/runtime",
+        "evidence": [
+          {
+            "kind": "local_artifact_not_delivered",
+            "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/08-bff-contract.txt",
+            "sha256AtReview": "38b9d3be2668a0229d55531ae3db57bcd60d5863bbb3ea4f6e022a7eadafe182",
+            "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+            "includedInRepository": false,
+            "mayBeUpdatedByOwner": true
+          },
+          {
+            "kind": "local_artifact_not_delivered",
+            "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/manifest.json",
+            "sha256AtReview": "7a0508df75a8f5204b8f8e8238a9bdd824336994aebfa3549ec63003ec8d9aab",
+            "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+            "includedInRepository": false,
+            "mayBeUpdatedByOwner": true
+          }
+        ]
+      },
+      "otherNotRun": [
+        "types API/front",
+        "build web",
+        "recette UI/mobile/Safari",
+        "cloud/production"
+      ],
+      "source": {
+        "base": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+        "branch": "codex/debugger-real-controls-20261020",
+        "manifest": {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/manifest.json",
+          "sha256AtReview": "9c856a2cc5dabd18ab4b309163eb9436011421cf752f245357c438cf51216c3b",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      },
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/bugs/BUG-IDE-DEBUGGER-REAL-CONTROLS-001.md",
+          "sha256AtReview": "60a0597242c4edce36b97f9a2e1d3202c40d02d9b8ffa21ca6978ae2876ac500",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/manifest.json",
+          "sha256AtReview": "9c856a2cc5dabd18ab4b309163eb9436011421cf752f245357c438cf51216c3b",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/08-bff-contract.txt",
+          "sha256AtReview": "38b9d3be2668a0229d55531ae3db57bcd60d5863bbb3ea4f6e022a7eadafe182",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-debugger-real-controls/docs/audit/evidence/2026-10-20-debugger-local/manifest.json",
+          "sha256AtReview": "7a0508df75a8f5204b8f8e8238a9bdd824336994aebfa3549ec63003ec8d9aab",
+          "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "currentPatchAfterValidation": {
+        "at": "2026-10-20T17:47:34.222272+00:00",
+        "reason": "lint fixes: whitespace/comments/import ordering, private member renames, explicit branches and effect return",
+        "sourceHashes": [
+          {
+            "path": "app/components/chat/BaseChat.tsx",
+            "sha256": "d0c374573d76e6ec17f8cb2b07044c87f96d9f4ac4597d3c236218ddb8da4045"
+          },
+          {
+            "path": "app/lib/i18n/catalogs/api-runtime-routes.ts",
+            "sha256": "4f97579d5bd8d7e44af97002d5daf8c828ba183fe424ae30d2a0859c7f0f92c3"
+          },
+          {
+            "path": "app/lib/i18n/catalogs/base-chat-ast.ts",
+            "sha256": "ca1d0d558bbcb1b0bfef1f9ee92adcb1c3e1971d4adc3ae62abe51210d9bde85"
+          },
+          {
+            "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+            "sha256": "4b3557430f18f1382b739b371a8a8b594fab67a2ed6092e73dc3efc4090e2942"
+          },
+          {
+            "path": "services/api/src/app.ts",
+            "sha256": "5d3fcf50919b1416c3e6975d412baf3a0c1a8c70e249225a2ada1dd8be9cd339"
+          },
+          {
+            "path": "services/workspace-agent/src/app.ts",
+            "sha256": "407bac3227e7fda8a5cdbdc4d71852fd2cf1a839c6aee73d92731866616f5c88"
+          },
+          {
+            "path": "services/workspace-agent/src/node-debugger.ts",
+            "sha256": "2aa302a270b08ec02ca611425552510a414cd50270cb26e4bb155e511d648826"
+          },
+          {
+            "path": "services/workspace-agent/src/preview-ws-proxy.ts",
+            "sha256": "6c950277442c8d8c73cba0b86e81f70d196060e12511da423bf951438ccc12ea"
+          },
+          {
+            "path": "services/workspace-agent/src/public-i18n.ts",
+            "sha256": "3da63ddbbccc1e3fb5e7315f38de2bb1ea6ba723e7c8bf06a507955bcd54cfbf"
+          },
+          {
+            "path": "services/workspace-agent/src/node-debugger.spec.ts",
+            "sha256": "599c344d676467ed91d1f0b6e686f3afa98725f7f59875533f92986ebf5f30f9"
+          },
+          {
+            "path": "services/api/src/tests/runtime-debugger-auth.spec.ts",
+            "sha256": "46911feaef68616b209e2ec992cdcc378e62aca0790e9d50e56174d1d31c0e46"
+          },
+          {
+            "path": "app/routes/api.projects.$projectId.ide-panel.debugger.action.spec.ts",
+            "sha256": "6211e42551af73dbddb7a7e8573c2e3140bfa32a771b6f882b37cead4b049bac"
+          }
+        ],
+        "validation": "Pas de nouvelle exécution attestée après ces retouches ; core/agent/API/BFF doivent être revalidés.",
+        "validatedOldSourceHashes": [
+          {
+            "path": "app/components/chat/BaseChat.tsx",
+            "sha256": "dba70f031795991a99ed6deebcd4c99e2c7981378161d6bc8571c5b71a178fb3"
+          },
+          {
+            "path": "app/lib/i18n/catalogs/api-runtime-routes.ts",
+            "sha256": "4f97579d5bd8d7e44af97002d5daf8c828ba183fe424ae30d2a0859c7f0f92c3"
+          },
+          {
+            "path": "app/lib/i18n/catalogs/base-chat-ast.ts",
+            "sha256": "ca1d0d558bbcb1b0bfef1f9ee92adcb1c3e1971d4adc3ae62abe51210d9bde85"
+          },
+          {
+            "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+            "sha256": "b24e7009261585d20b154cafce4fc24234a3d71e9c3d5d6a410eab87c7b64ba8"
+          },
+          {
+            "path": "services/api/src/app.ts",
+            "sha256": "2525bac17f5742eb62d32676d5a938ee79396fb0d22436743284f35e20c59a5b"
+          },
+          {
+            "path": "services/workspace-agent/src/app.ts",
+            "sha256": "93e1eca4ad7e8d968189f7e8eabfd21d59773c80995ef08d2b56b6fe3791f05a"
+          },
+          {
+            "path": "services/workspace-agent/src/node-debugger.ts",
+            "sha256": "295756ddff902c70e9bd2424d6bd0782a62034eced634b48b534782d9a48a786"
+          },
+          {
+            "path": "services/workspace-agent/src/preview-ws-proxy.ts",
+            "sha256": "8d41751c48b00541244c2ddfa05f7a18ad22ea5310b3bbeac328effbf8609a5b"
+          },
+          {
+            "path": "services/workspace-agent/src/public-i18n.ts",
+            "sha256": "3da63ddbbccc1e3fb5e7315f38de2bb1ea6ba723e7c8bf06a507955bcd54cfbf"
+          },
+          {
+            "path": "services/workspace-agent/src/node-debugger.spec.ts",
+            "sha256": "53247d1b4a2514d2beca328ffefd2d956519d0dab697a2124a8af64b7f158f96"
+          },
+          {
+            "path": "services/api/src/tests/runtime-debugger-auth.spec.ts",
+            "sha256": "ae597a8acc6767da6cd20c4684d5126b5ad246ab386f81dcd93bbea0568a4bb3"
+          },
+          {
+            "path": "app/routes/api.projects.$projectId.ide-panel.debugger.action.spec.ts",
+            "sha256": "2aecc510ab24de680be6ec2ceb28591a4484cbd489b7d268cd99adefa99fd897"
+          }
+        ]
+      }
+    },
+    {
+      "id": "TERMINAL-WORKFLOW-SECURITY-ISOLATED-1713",
+      "panelIds": [
+        "terminal",
+        "workflows",
+        "security"
+      ],
+      "date": "2026-10-20T17:13:22.013Z–17:13:52.667063Z",
+      "status": "CONTRATS ISOLÉS CANDIDATS DE 17:13 ; UI et chaîne réelle absentes de cette suite. Exécution réelle ultérieure partielle et globalement rouge : voir LOCAL-CHAIN-1746-RED.",
+      "environment": "Handlers BFF réels et handler UI extrait, transport loopback vers réponses API fixtures ; protocole/processus synthétiques. Pas chaîne BFF→API→manager→agent, ni Prisma/SQL/SSH positif.",
+      "assertedBehavior": [
+        "Terminal/SSH : échec et code de sortie manquant ne deviennent pas succès ; enregistrement contrôlé dans fixture avant refus.",
+        "Workflow : étape échouée, étapes suivantes non envoyées, statut/étapes relus dans fixture ; aucun workflow réellement lancé dans runtime.",
+        "Sécurité : état par scanner ; findings antérieurs conservés en échec ou couverture tronquée ; sortie/code outil séparés ; HTTP200 seul ne devient pas scan terminé.",
+        "Quelques cas exécutent de vrais processus locaux Node/grep/npm sur fichiers synthétiques, registre limité au loopback ; cela ne prouve pas le runtime de plateforme."
+      ],
+      "persistence": "Fixtures seulement ; aucune relecture PostgreSQL ou rechargement UI établi.",
+      "permissions": "Refus runtime simulés conservés par handlers ; aucune recette réelle multi-locataire.",
+      "validationCountsNotProductActions": {
+        "suitePassed": 137,
+        "failed": 0,
+        "ignored": 0,
+        "newCandidateContractCases": 65,
+        "priorIntegrationCasesIncluded": 72,
+        "executionCounterproof": {
+          "redFailures": 18,
+          "greenPasses": 18,
+          "filtered": 28,
+          "startedAt": "2026-10-20T17:07:08.878806Z",
+          "finishedAt": "2026-10-20T17:08:00.917246Z"
+        },
+        "truncationCounterproof": {
+          "redFailures": 4,
+          "greenPasses": 4,
+          "filtered": 49,
+          "startedAt": "2026-10-20T17:11:49.898934Z",
+          "finishedAt": "2026-10-20T17:12:34.656430Z"
+        }
+      },
+      "source": {
+        "worktree": "/workspace/vibecore-integration-verification",
+        "baseHead": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+        "state": "candidat non fusionné, inclut lot Intégrations antérieur",
+        "sourceManifest": {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/candidate-prepared.json",
+          "sha256AtReview": "814c4413f028ba872a70c263b6d88d94f56311f4844869e8eddc576f5ef74432",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      },
+      "chainReceipt": {
+        "preparedAt": "2026-10-20T17:19:01.125853Z",
+        "executed": false,
+        "evidence": {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-chain-prepared.json",
+          "sha256AtReview": "a2fde6f7dcf5525593ad5cc7d7505eee06e0dc7ec2781c179bccfe0171b23a2c",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        "historicalPreparationOnly": true
+      },
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/full-vitest-20261020T1712.json",
+          "sha256AtReview": "b861ca79d8833a38178cc5f367dd60f86a2b846db8eda4d5148697bd52048819",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/counterproof-20261020T170708Z-b8c65e15/result.json",
+          "sha256AtReview": "8e24e705ab972abf93b3e94ecfbffa985b887e1887d807ce99601e3ff189d043",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/counterproof-20261020T171149Z-e787ea6c/result.json",
+          "sha256AtReview": "079d6e4c449771f7834943a580aa8cfaa151911b73375161e26faf13e667ead2",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/candidate-prepared.json",
+          "sha256AtReview": "814c4413f028ba872a70c263b6d88d94f56311f4844869e8eddc576f5ef74432",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-chain-prepared.json",
+          "sha256AtReview": "a2fde6f7dcf5525593ad5cc7d7505eee06e0dc7ec2781c179bccfe0171b23a2c",
+          "observedAtUtc": "2026-10-20T17:39:27.294262+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ],
+      "notCovered": [
+        "Clics UI",
+        "Runtime réel plateforme",
+        "SQL/Prisma",
+        "SSH positif",
+        "Chaîne complète",
+        "Cloud",
+        "Mobile/Safari",
+        "Production"
+      ],
+      "laterRealExecution": {
+        "runId": "LOCAL-CHAIN-1746-RED",
+        "globalPassed": false,
+        "newScope": "Sauvegarde runtime, refus d’accès, commandes et preview autonome ; pas workflow/scanner/UI/SSH."
+      }
+    },
+    {
+      "id": "DB-TRANSFER-ISOLATION-TECHNICAL-1738",
+      "panelIds": [
+        "database"
+      ],
+      "date": "2026-10-20T17:38:23.326468Z",
+      "validationCountsNotProductActions": {
+        "finalRoutesAndTransfer": {
+          "passed": 42,
+          "failed": 0,
+          "ignored": 0,
+          "prismaTransferCases": 32,
+          "inMemoryInjectedRouteCases": 10
+        },
+        "earlierFullRun": {
+          "passed": 62,
+          "failed": 1,
+          "repositorySubsuitePassed": 27,
+          "prismaInjectedAliasInterleavings": 4,
+          "failedCase": "still refuses transfer while a restore admission holds the instance"
+        }
+      },
+      "proofBoundary": "Ne pas attribuer10routes TestApiStore àPrisma. Les4interleavings POSTaliases sont dans27repositoryVerts du passageglobalrouge, pas dans42final.",
+      "sameSourceFullGreenRecheckProven": false,
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/routes-transfer-final-execution.json",
+          "sha256AtReview": "8a4f5d1c6b15ca488fd483b9af20820dad1efb3586bdda148529bdd245923292",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/routes-transfer-final-report.json",
+          "sha256AtReview": "71edc519609d35903a2af0ac71363941e5b9a8238cfcdaf9e17ca9454057bd12",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/full-execution.json",
+          "sha256AtReview": "1457240e226ca0aa4eb187a01f6e0cf5a86293d731d019ed8669eb676b5929fc",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/restore-admission-owner-race/full-report.json",
+          "sha256AtReview": "e5f6e63761411f890149e93c699415096640b6e416bf7c458334018d800d8a2e",
+          "observedAtUtc": "2026-10-20T17:41:23.115866+00:00",
+          "includedInRepository": false,
+          "mayBeUpdatedByOwner": true
+        }
+      ]
+    }
+  ],
+  "localChainRun": {
+    "id": "LOCAL-CHAIN-1746-RED",
+    "date": {
+      "startedAt": "2026-10-20T17:46:54.692165+00:00",
+      "finishedAt": "2026-10-20T17:48:05.524581+00:00",
+      "recoveryCheckedAt": "2026-10-20T17:54:20.440034+00:00"
+    },
+    "globalPassed": false,
+    "failure": {
+      "phase": "preview-process-finished",
+      "name": "TimeoutError",
+      "timeoutMs": 35000,
+      "wrapperStage": "probe-1",
+      "wrapperFailureType": "AssertionError"
+    },
+    "environment": "Vrais serveurs API/Prisma, manager JWT et agent/disque locaux ; deux identités et organisations synthétiques, workspace préalloué en métadonnées ; fallback API désactivé.",
+    "source": {
+      "mainReference": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "runtimeSourceHashes": [
+        {
+          "path": "services/api/src/app.ts",
+          "sha256": "d061e3eacb59f53e01bc8e49fd5e90c980f8d9637f2f976b4c039cbc46c7f897"
+        },
+        {
+          "path": "services/api/src/prisma-store.ts",
+          "sha256": "8e03620953966eb27706db103ce18f30c0466fe533629d837434b732ccc7446f"
+        },
+        {
+          "path": "services/workspace-manager/src/app.ts",
+          "sha256": "ce169bf4e022ec86ddd338c5851c1edc0b9ce168ff3f229fcc571e19364a7e85"
+        },
+        {
+          "path": "services/workspace-manager/src/manager.ts",
+          "sha256": "5e0c6d0baa74a42c641064019fafbe0d923bac46699f66a004b342fb30a3e40b"
+        },
+        {
+          "path": "services/workspace-agent/src/app.ts",
+          "sha256": "de6b702045a9e54dca634501fa498d895fc9f878046007aaa8fdaf2907d97ee3"
+        },
+        {
+          "path": "packages/workspace-sdk/src/index.ts",
+          "sha256": "d51f46333a068e5913f32bdccd402c902f7b9616f83446b98261f048813f9397"
+        }
+      ],
+      "allSixRuntimeSourcesComparedToMain": true,
+      "runtimeSourceMismatches": 0,
+      "probeSourceHashes": [
+        {
+          "path": "/workspace/vibecore-layout-evidence-20261020/layout-functional-recipe/archive-runtime-save-probe.mjs",
+          "sha256": "df23396aef611eba70d3092f6e45002ced4eea25b8d61184aeb90cb38c4a171b"
+        },
+        {
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/execution-preview-isolation-probe.mjs",
+          "sha256": "8f9fca5a7ea7b10483d10e2f134c08f719cd37b3d6990cecf00c14b7cde4ee82"
+        }
+      ],
+      "sourcesAndProbesUnchangedDuringRun": true,
+      "limit": "Égalité de fichiers source, pas attestation de bundle, déploiement ou version servie."
+    },
+    "cleanup": {
+      "receiptPassed": true,
+      "ownProjectRowsRemaining": 0,
+      "ownOrganizationRowsRemaining": 0,
+      "ownUserRowsRemaining": 0,
+      "ownedDisksRemoved": true,
+      "rootRecovery": {
+        "closedPortCount": 4,
+        "absentOwnedServicePidCount": 3,
+        "ownedZombieStates": [
+          "Z"
+        ],
+        "socketStatus": "Les quatre ports API/manager/agent/preview sont fermés ; root rapporte le zombie Z sans socket."
+      },
+      "changesGlobalFailureToPass": false
+    },
+    "cloudOperationAttempts": 0,
+    "scopeLimits": [
+      "Aucun clic Monaco ni édition/sauvegarde UI",
+      "Aucun provisionnement/startWorkspace/Kubernetes",
+      "Aucun modèle/fournisseur/cloud/publication",
+      "Pas de preuve redémarrage processus ou reload navigateur",
+      "Pas isolation OS/conteneur/noyau",
+      "Preview autonome via proxy API, pas panneau IDE ; Chromium seulement"
+    ],
+    "evidence": [
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/resources.json",
+        "sha256AtReview": "ef32dea13f679e50d468c4173bf52942c891355379fd08249ee468d5770db25f",
+        "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/archive-runtime-save-result.json",
+        "sha256AtReview": "b181cf6661763449e55358a11ffde8712fdffa1d312728f3aa0a55458946f2f4",
+        "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/execution-preview-isolation-result.json",
+        "sha256AtReview": "879e91e9db89a421816b3f487d88b366e364872310c769a5c9453330a3a4bf46",
+        "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/fixture-cleanup.json",
+        "sha256AtReview": "bfcba8858cd366811dfe8e614503a40fb2c1e9e54650d5f44057fe9ba12fef4a",
+        "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/recovery-20261020T1753.json",
+        "sha256AtReview": "e27dc9a3e47ba3d62a6ceb88b37c78411d43ceb6e1f784850279cd39bdc2a676",
+        "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T174654Z-6ebc8f1b/real-agent-preview.png",
+        "sha256AtReview": "37b8897a2b744d456d22124f4e1727ad80a18836644ffcdaded523a3d23b2c84",
+        "observedAtUtc": "2026-10-20T17:59:59.702262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      }
+    ]
+  },
+  "sanitizedReceiptSummaries": {
+    "archiveRuntimeSave": {
+      "passed": true,
+      "startedAt": "2026-10-20T17:47:22.942Z",
+      "finishedAt": "2026-10-20T17:47:23.737Z",
+      "phases": [
+        {
+          "phase": "initial-archive-readback",
+          "status": 200
+        },
+        {
+          "phase": "initial-archive-readback",
+          "exactContent": true,
+          "siblingUnchanged": true,
+          "auditContentSha256": "54af7571a2c2be22b25a1b5c64a98ab690b76c9635595993a8acaac2a60daf54"
+        },
+        {
+          "phase": "initial-runtime-readback",
+          "status": 200
+        },
+        {
+          "phase": "initial-runtime-readback",
+          "exactContent": true,
+          "auditContentSha256": "54af7571a2c2be22b25a1b5c64a98ab690b76c9635595993a8acaac2a60daf54"
+        },
+        {
+          "phase": "initial-disk-readback",
+          "exactContent": true,
+          "siblingUnchanged": true,
+          "auditContentSha256": "54af7571a2c2be22b25a1b5c64a98ab690b76c9635595993a8acaac2a60daf54"
+        },
+        {
+          "phase": "real-runtime-file-save",
+          "status": 204
+        },
+        {
+          "phase": "saved-disk-readback",
+          "exactContent": true,
+          "siblingUnchanged": true,
+          "auditContentSha256": "1b5fe4cbd0928a50c9f455458abe5c22b7aa855deab374bd14b7df08ad2e4ed6"
+        },
+        {
+          "phase": "saved-runtime-readback",
+          "status": 200
+        },
+        {
+          "phase": "saved-runtime-readback",
+          "exactContent": true,
+          "auditContentSha256": "1b5fe4cbd0928a50c9f455458abe5c22b7aa855deab374bd14b7df08ad2e4ed6"
+        },
+        {
+          "phase": "saved-archive-readback",
+          "status": 200
+        },
+        {
+          "phase": "saved-archive-readback",
+          "exactContent": true,
+          "siblingUnchanged": true,
+          "auditContentSha256": "1b5fe4cbd0928a50c9f455458abe5c22b7aa855deab374bd14b7df08ad2e4ed6"
+        },
+        {
+          "phase": "fresh-api-archive-reload",
+          "status": 200
+        },
+        {
+          "phase": "fresh-api-archive-reload",
+          "exactContent": true,
+          "siblingUnchanged": true,
+          "auditContentSha256": "1b5fe4cbd0928a50c9f455458abe5c22b7aa855deab374bd14b7df08ad2e4ed6"
+        }
+      ],
+      "genuineHttp": true,
+      "realDisk": true,
+      "importAfterSave": false,
+      "storageOrResponseSubstitution": false,
+      "browserOrUiClaim": false,
+      "physicalProcessRestartClaim": false
+    },
+    "executionIsolationPreview": {
+      "passed": false,
+      "startedAt": "2026-10-20T17:47:25.027Z",
+      "finishedAt": "2026-10-20T17:48:00.808Z",
+      "isolation": {
+        "readStatus": 404,
+        "writeStatus": 404,
+        "commandStatus": 404,
+        "diskSha256BeforeAfter": "1b5fe4cbd0928a50c9f455458abe5c22b7aa855deab374bd14b7df08ad2e4ed6",
+        "archiveContentSha256BeforeAfter": "3e8d9ccb828aafa77bda322ee4232f95466ebfcfc3c31f01bbe222f8d2c21781",
+        "agentCommandCountUnchanged": true,
+        "scope": "Distinct synthetic organizations refused by API RBAC before agent command; not container/kernel isolation."
+      },
+      "agentTokenRejection": {
+        "statuses": [
+          401,
+          401
+        ],
+        "scope": "Missing token and outsider API JWT refused by real agent; not a proof of container/kernel isolation."
+      },
+      "execution": {
+        "successExitCode": 0,
+        "failureExitCode": 7,
+        "localRuntime": false,
+        "note": "Runtime command endpoint returns HTTP200 with genuine exitCode; BFF outcome handling is a separate test layer."
+      },
+      "preview": {
+        "ready": true,
+        "status": 200,
+        "syntheticAppSha256": "aa19bdb69b71ce504b3906b802646113f2a993ef9e36348b3162f0e35fcfaed5",
+        "receivedProxyBodySha256": "e105d7056b8924d5b26eadb5c12c2ccb9a76db4c7ddb27c10eb1059525bb6edd",
+        "reporterInjected": true,
+        "application": "Explicit synthetic Node HTTP application; no model/provider used.",
+        "capture": "real-agent-preview.png",
+        "browserScope": "Standalone API-proxied preview only, not IDE panel click or runtime startup; Chromium only."
+      },
+      "failure": {
+        "phase": "preview-process-finished",
+        "name": "TimeoutError"
+      },
+      "timeoutMs": 35000
+    },
+    "cleanup": {
+      "passed": true,
+      "finishedAt": "2026-10-20T17:48:04.922Z",
+      "remainingOwnProjectRows": 0,
+      "remainingOwnOrganizationRows": 0,
+      "remainingOwnUserRows": 0,
+      "ownedDisksRemoved": true
+    },
+    "rootRecovery": {
+      "checkedAt": "2026-10-20T17:54:20.440034+00:00",
+      "closedPorts": 4,
+      "absentServicePids": 3,
+      "remainingOwnedProcessState": "Z",
+      "socketConclusion": "Root reports no socket; API/manager/agent/preview ports all closed.",
+      "doesNotEraseGlobalRed": true
+    },
+    "commandReplay": {
+      "sourcePaths": [
+        "/workspace/vibecore-audit-artifacts/terminal-workflow-security/command-replay-red-proof.json",
+        "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/command-replay-result.json",
+        "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/resources.json",
+        "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/fixture-cleanup.json"
+      ],
+      "passed": false,
+      "singleRequest": true,
+      "commandDurationMs": 16000,
+      "requestedCommandTimeoutMs": 25000,
+      "clientTimeoutMs": 35000,
+      "actualProcessStartsRelativeMs": [
+        0,
+        15234,
+        30581
+      ],
+      "duplicateExecutionObserved": true,
+      "transportFailure": {
+        "name": "TimeoutError",
+        "elapsedMs": 35113
+      },
+      "failure": {
+        "phase": "read-real-command-starts",
+        "name": "AssertionError",
+        "code": "ERR_ASSERTION"
+      },
+      "cleanup": {
+        "receiptPassed": true,
+        "ownProjectRowsRemaining": 0,
+        "ownOrganizationRowsRemaining": 0,
+        "ownUserRowsRemaining": 0,
+        "ownedDisksRemoved": true,
+        "allThreeServicePortsClosed": true,
+        "remainingOwnedActiveProcessCount": 0,
+        "remainingOwnedZombieCount": 1,
+        "changesGlobalFailureToPass": false
+      },
+      "cloudOperationAttempts": 0
+    }
+  },
+  "localCommandReplayRun": {
+    "id": "LOCAL-COMMAND-REPLAY-1758-RED",
+    "date": {
+      "startedAt": "2026-10-20T17:58:24.895009+00:00",
+      "finishedAt": "2026-10-20T17:59:32.835822+00:00",
+      "proofRecordedAt": "2026-10-20T17:59:51.730904+00:00"
+    },
+    "globalPassed": false,
+    "environment": "Real API/Prisma, manager JWT, agent/disk and adopted probes; preallocated Workspace metadata fixture, no provisioning.",
+    "singleRequest": true,
+    "commandDurationMs": 16000,
+    "requestedCommandTimeoutMs": 25000,
+    "clientTimeoutMs": 35000,
+    "actualProcessStartsRelativeMs": [
+      0,
+      15234,
+      30581
+    ],
+    "duplicateExecutionObserved": true,
+    "transportFailure": {
+      "name": "TimeoutError",
+      "elapsedMs": 35113
+    },
+    "failure": {
+      "phase": "read-real-command-starts",
+      "name": "AssertionError",
+      "code": "ERR_ASSERTION"
+    },
+    "source": {
+      "mainReference": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "runtimeSourceHashes": [
+        {
+          "path": "services/api/src/app.ts",
+          "sha256": "d061e3eacb59f53e01bc8e49fd5e90c980f8d9637f2f976b4c039cbc46c7f897"
+        },
+        {
+          "path": "services/api/src/prisma-store.ts",
+          "sha256": "8e03620953966eb27706db103ce18f30c0466fe533629d837434b732ccc7446f"
+        },
+        {
+          "path": "services/workspace-manager/src/app.ts",
+          "sha256": "ce169bf4e022ec86ddd338c5851c1edc0b9ce168ff3f229fcc571e19364a7e85"
+        },
+        {
+          "path": "services/workspace-manager/src/manager.ts",
+          "sha256": "5e0c6d0baa74a42c641064019fafbe0d923bac46699f66a004b342fb30a3e40b"
+        },
+        {
+          "path": "services/workspace-agent/src/app.ts",
+          "sha256": "de6b702045a9e54dca634501fa498d895fc9f878046007aaa8fdaf2907d97ee3"
+        },
+        {
+          "path": "packages/workspace-sdk/src/index.ts",
+          "sha256": "d51f46333a068e5913f32bdccd402c902f7b9616f83446b98261f048813f9397"
+        }
+      ],
+      "sameSixHashesAsLocalChainRun": true,
+      "sourceUnchangedDuringRun": true,
+      "probeSourceHashes": [
+        {
+          "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/command-replay-probe.mjs",
+          "sha256": "12733ecbd2ef30209885b56467f560d6ead2f609a7d03189cfa7feed49995fba"
+        }
+      ],
+      "causeCode": [
+        "services/api/src/app.ts:15211 RUNTIME_PROXY_TIMEOUT_MS=15000",
+        "services/api/src/app.ts:15370 timed fetch, default15s",
+        "services/api/src/app.ts:15394 retry connection error forPOST",
+        "services/api/src/app.ts:9399 shouldRetryAgentHop connection=true"
+      ],
+      "causeReviewedAgainstExactMain": true,
+      "cause": "Timeout interne de 15 s ; son abort est classé connection, puis shouldRetryAgentHop autorise la relance sans filtrer la méthode POST. Une commande déjà reçue peut donc être exécutée plusieurs fois.",
+      "limit": "Source relue et répétition locale reproduite ; ni version servie ni incident en production attesté."
+    },
+    "cleanup": {
+      "receiptPassed": true,
+      "ownProjectRowsRemaining": 0,
+      "ownOrganizationRowsRemaining": 0,
+      "ownUserRowsRemaining": 0,
+      "ownedDisksRemoved": true,
+      "allThreeServicePortsClosed": true,
+      "remainingOwnedActiveProcessCount": 0,
+      "remainingOwnedZombieCount": 1,
+      "changesGlobalFailureToPass": false
+    },
+    "cloudOperationAttempts": 0,
+    "scopeLimits": [
+      "No production claim",
+      "No UI provisioning or SSH positive proof",
+      "Does not identify the cause of executor transport disconnection",
+      "Pas UI/BFF, provisionnement, Kubernetes, cloud, publication ou redémarrage.",
+      "Ne démontre pas à lui seul la cause du timeout preview précédent."
+    ],
+    "evidence": [
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/command-replay-red-proof.json",
+        "sha256AtReview": "4a5689138165971ab5c8756ee065ed2e87055fb64795f52f6b6b6a81b04b9b09",
+        "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/command-replay-result.json",
+        "sha256AtReview": "ab2c9ff1eaa30b0ea995da2f025ffdf2680e938b0257b4f9daf9263644c22f36",
+        "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/resources.json",
+        "sha256AtReview": "6a9533de8e8ebe2e25856f58fe952fa9e2c91e3bc60ce83a04c18c676c8b3006",
+        "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/terminal-workflow-security/real-20261020T175824Z-07c3098c/fixture-cleanup.json",
+        "sha256AtReview": "eee2b3cab2157f9e78ceac0d595ab934dc861a3ed57835ddaabd0c78568f4719",
+        "observedAtUtc": "2026-10-20T18:11:25.744262+00:00",
+        "includedInRepository": false,
+        "mayBeUpdatedByOwner": true
+      }
+    ]
+  }
 }

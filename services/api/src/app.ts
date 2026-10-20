@@ -129,6 +129,7 @@ import { MongoClient } from 'mongodb';
 import mysql from 'mysql2/promise';
 import { Client as PgClient } from 'pg';
 import type { DatabaseRestoreCoordinator } from './database-restore-executor.js';
+import { DatabaseRestoreError } from './database-restore-contract.js';
 
 import { createPostgresMigrationApplier } from './db-migration-applier.js';
 import {
@@ -25329,6 +25330,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
     };
   });
+  // Preserve the organization on which authorization was granted. A fresh
+  // instance read after a project transfer must not silently adopt its new owner.
+  // This guard precedes provider calls; it cannot undo an external call already
+  // in flight. Restore admission also repeats the invariant under row locks.
+  const assertDatabaseRequestScope = async (
+    projectId: string,
+    expectedOrganizationId: string,
+    instance?: { projectId: string; organizationId: string },
+  ) => {
+    if (
+      instance &&
+      (instance.projectId !== projectId || instance.organizationId !== expectedOrganizationId)
+    ) {
+      throw new DatabaseRestoreError('RESTORE_INSTANCE_CHANGED');
+    }
+    const current = await store.getProject(projectId);
+    if (
+      !current ||
+      current.organizationId !== expectedOrganizationId ||
+      current.deletedAt ||
+      current.runtimeDeletionPending
+    ) {
+      throw new DatabaseRestoreError('RESTORE_INSTANCE_CHANGED');
+    }
+  };
+
   app.get('/projects/:projectId/databases', async (request) => {
     const project = await requireProject(
       request,
@@ -25336,6 +25363,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+    const authorizedOrganizationId = project.organizationId;
 
     /*
      * Reconcile-on-read for THIS panel's connection source. A managed CNPG database
@@ -25348,8 +25376,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * the provisioner can now resolve its URI, write DATABASE_URL + flip ACTIVE so it
      * shows up as a postgres connection below. Best-effort — never fails the list.
      */
+    const instance = await store.getDatabaseInstanceByProject(project.id);
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instance);
+
     try {
-      const instance = await store.getDatabaseInstanceByProject(project.id);
 
       if (instance?.status === 'PROVISIONING' && !instance.activeTargetRef) {
         const provisioner = resolveDefaultDatabaseProvisioner();
@@ -25359,7 +25389,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             typeof provisioner.getConnectionUri
           >[0]['environment'];
 
-          const billing = await billingState(project.organizationId).catch(() => undefined);
+          const billing = await billingState(authorizedOrganizationId).catch(() => undefined);
           const tier = resolveDatabaseTier(billing?.plan.key);
           const expectedSecret = await store.getProjectSecret(
             project.id,
@@ -25379,6 +25409,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log?.warn?.({ err: error }, 'db connection reconcile on /databases failed (non-fatal)');
     }
 
+    const instanceGeree = await store.getDatabaseInstanceByProject(project.id);
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instanceGeree);
     const connectionsBrutes = await listDatabaseConnections(store, project.id);
 
     /*
@@ -25399,7 +25431,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * l'utilisateur a collée lui-même reste « shared » : là, nous ne savons
      * effectivement pas, et le deviner serait pire que l'avouer.
      */
-    const instanceGeree = await store.getDatabaseInstanceByProject(project.id).catch(() => undefined);
     const environnementGere = (instanceGeree as { environment?: string } | undefined)?.environment;
     const cleGeree = environnementGere === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL';
 
@@ -25447,7 +25478,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * ACTIVE. La route CONNAIT pourtant l'etat : elle vient de reconcilier
      * l'instance en `ACTIVE` quelques lignes plus haut.
      */
-    const instancePourStatut = await store.getDatabaseInstanceByProject(project.id).catch(() => undefined);
+    const instancePourStatut = await store.getDatabaseInstanceByProject(project.id);
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instancePourStatut);
 
     return {
       connections: connections.map(({ value: _value, ...connection }) => ({
@@ -35594,12 +35626,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   /*
    * ===== Replit-parity database point-in-time rollback (Pro: 28-day window) =====
-   * Phase-1 scaffold — DORMANT behind DB_ROLLBACK_ENABLED. The read route returns
-   * the project's managed-database panel (instance + plan entitlement + recovery
-   * points); the restore route records a PENDING restore request (the WAL-restore
-   * executor is a later phase). Both 404 with FEATURE_NOT_ENABLED until the flag
-   * is on, so shipping this has no effect on live traffic. See
-   * database-rollback-service.ts + migration 0040.
+   * DB_ROLLBACK_ENABLED gates the managed-database panel. Restore admission also
+   * requires an explicitly injected coordinator and available recovery driver.
+   * The production factory does not inject one; a feature flag alone cannot
+   * enable an unverified restore.
    */
   app.get('/projects/:projectId/database', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
@@ -35612,12 +35642,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+    const authorizedOrganizationId = project.organizationId;
 
     const environment = parse(databaseEnvironmentQuery, request.query ?? {}).environment;
-    const state = await billingState(project.organizationId).catch(() => undefined);
+    const state = await billingState(authorizedOrganizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
     let instance = await store.getDatabaseInstanceByProject(project.id, environment);
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instance);
 
     const restoreAvailable = Boolean(
       instance && options.databaseRestoreCoordinator && (await options.databaseRestoreCoordinator.available(instance)),
@@ -35666,28 +35698,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instance);
+
     const [snapshots, restores] = await Promise.all([
       store.listDatabaseSnapshots(instance.id),
       store.listDatabaseRestores(instance.id),
     ]);
 
-    return {
-      entitlement,
-      restoreCapability,
-      instance,
-      snapshots,
-      // Historical COMPLETED rows predate any application-cutover verification.
-      // Preserve the stored status, but never present it as verified recovery.
-      restores: await Promise.all(
-        restores.map(
-          async (restore) =>
-            (await options.databaseRestoreCoordinator?.evidence(restore.id)) ?? {
-              ...restore,
-              applicationCutoverVerified: restore.applicationCutoverVerified === true,
-            },
-        ),
+    // Historical COMPLETED rows predate any application-cutover verification.
+    // Preserve the stored status, but never present it as verified recovery.
+    const publicRestores = await Promise.all(
+      restores.map(
+        async (restore) =>
+          (await options.databaseRestoreCoordinator?.evidence(restore.id)) ?? {
+            ...restore,
+            applicationCutoverVerified: restore.applicationCutoverVerified === true,
+          },
       ),
-    };
+    );
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instance);
+
+    return { entitlement, restoreCapability, instance, snapshots, restores: publicRestores };
   });
 
   app.post('/projects/:projectId/database/restores', async (request, reply) => {
@@ -35701,6 +35732,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+    const authorizedOrganizationId = project.organizationId;
 
     const body = parse(
       z
@@ -35716,12 +35748,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instance);
 
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
 
-    const state = await billingState(project.organizationId).catch(() => undefined);
+    const state = await billingState(authorizedOrganizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
     const nowMs = Date.now();
 
@@ -35774,6 +35807,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('SNAPSHOT_NOT_FOUND'), code: 'SNAPSHOT_NOT_FOUND' });
     }
     const restore = await coordinator.request({
+      expectedOrganizationId: authorizedOrganizationId,
       instance,
       snapshot,
       targetTimestamp: new Date(targetTimestampMs).toISOString(),
@@ -35804,9 +35838,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+    const authorizedOrganizationId = project.organizationId;
 
     const environment = parse(databaseEnvironmentQuery, request.body ?? {}).environment;
     const existing = await store.getDatabaseInstanceByProject(project.id, environment);
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, existing);
 
     /*
      * BUG-DB-001, moitié « réessai » — une ligne PROVISIONING périmée enfermait
@@ -35841,7 +35877,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { instance: existing, created: false };
     }
 
-    const state = await billingState(project.organizationId).catch(() => undefined);
+    const state = await billingState(authorizedOrganizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
     const provisioner = resolveDefaultDatabaseProvisioner();
@@ -35866,7 +35902,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const outcome = await provisioner
         .provisionInstance({
           projectId: project.id,
-          organizationId: project.organizationId,
+          organizationId: authorizedOrganizationId,
           retentionDays: entitlement.retentionDays,
           tier,
           environment,
@@ -35905,7 +35941,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ? await store.reconcileDatabaseProvisioning({ expected: existing! })
       : await store.createDatabaseInstance({
           projectId: project.id,
-          organizationId: project.organizationId,
+          organizationId: authorizedOrganizationId,
           retentionDays: entitlement.retentionDays,
           environment,
         });
@@ -36064,6 +36100,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+    const authorizedOrganizationId = project.organizationId;
 
     const body = parse(
       z
@@ -36079,12 +36116,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
+    await assertDatabaseRequestScope(project.id, authorizedOrganizationId, instance);
 
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
 
-    const state = await billingState(project.organizationId).catch(() => undefined);
+    const state = await billingState(authorizedOrganizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
     const nowMs = Date.now();
 
@@ -36138,6 +36176,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('SNAPSHOT_NOT_FOUND'), code: 'SNAPSHOT_NOT_FOUND' });
     }
     const restore = await coordinator.request({
+      expectedOrganizationId: authorizedOrganizationId,
       instance,
       snapshot,
       targetTimestamp: new Date(targetTimestampMs).toISOString(),
@@ -36151,7 +36190,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { restoreId: restore.id, targetTimestamp: new Date(targetTimestampMs).toISOString() },
     });
     await audit(request, store, {
-      organizationId: project.organizationId,
+      organizationId: authorizedOrganizationId,
       action: 'database.restore.request',
       resourceType: 'projectDatabase',
       resourceId: project.id,

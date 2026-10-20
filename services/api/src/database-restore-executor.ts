@@ -33,6 +33,10 @@ export class DatabaseRestoreCoordinator {
   }
 
   async request(input: RestoreRequest) {
+    if (input.instance.organizationId !== input.expectedOrganizationId) {
+      throw new DatabaseRestoreError('RESTORE_INSTANCE_CHANGED');
+    }
+
     if (!(await this.available(input.instance))) {
       throw new DatabaseRestoreError('RESTORE_APPLICATION_CUTOVER_UNAVAILABLE', 503);
     }

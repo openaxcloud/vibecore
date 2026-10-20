@@ -290,9 +290,33 @@ function fixture(overrides: Partial<DatabaseRestorePorts> = {}) {
 }
 
 describe('durable restore coordinator (explicit driver fixtures)', () => {
+  it.each(['foreign-organization', undefined])(
+    'refuses an unauthorized organization before consulting a driver (%s)',
+    async (expectedOrganizationId) => {
+      let availabilityChecks = 0;
+      const f = fixture({
+        available: async () => {
+          availabilityChecks += 1;
+          return true;
+        },
+      });
+      // The missing-field case deliberately exercises an untyped caller too.
+      const input = { instance, expectedOrganizationId, targetTimestamp } as unknown as RestoreRequest;
+      await expect(f.coordinator.request(input)).rejects.toMatchObject({ code: 'RESTORE_INSTANCE_CHANGED' });
+      expect(availabilityChecks).toBe(0);
+      expect(f.repository.rows.size).toBe(0);
+      expect(f.repository.bindings.size).toBe(0);
+      expect(f.calls).toEqual([]);
+    },
+  );
+
   it('requires validated archive, stable target, cutover, new application readback and release in order', async () => {
     const f = fixture();
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     expect(requested.status).toBe('PENDING');
 
     const done = await f.coordinator.execute(requested.id);
@@ -304,14 +328,20 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
 
   it('refuses unavailable capabilities before creating any row', async () => {
     const f = fixture({ available: async () => false });
-    await expect(f.coordinator.request({ instance, targetTimestamp })).rejects.toMatchObject({ statusCode: 503 });
+    await expect(
+      f.coordinator.request({ instance, expectedOrganizationId: instance.organizationId, targetTimestamp }),
+    ).rejects.toMatchObject({ statusCode: 503 });
     expect(f.repository.rows.size).toBe(0);
   });
 
   it('refuses a non-active instance even when the driver declares availability', async () => {
     const f = fixture();
     await expect(
-      f.coordinator.request({ instance: { ...instance, status: 'SUSPENDED' }, targetTimestamp }),
+      f.coordinator.request({
+        instance: { ...instance, status: 'SUSPENDED' },
+        expectedOrganizationId: instance.organizationId,
+        targetTimestamp,
+      }),
     ).rejects.toMatchObject({ statusCode: 503 });
     expect(f.repository.rows.size).toBe(0);
   });
@@ -321,6 +351,7 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
     await expect(
       f.coordinator.request({
         instance,
+        expectedOrganizationId: instance.organizationId,
         targetTimestamp,
         snapshot: {
           id: 'foreign',
@@ -348,7 +379,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
         ...(kind === 'timestamp' ? { targetTimestamp: '2026-10-20T02:00:00.000Z' } : {}),
       });
 
-      const requested = await f.coordinator.request({ instance, targetTimestamp });
+      const requested = await f.coordinator.request({
+        instance,
+        expectedOrganizationId: instance.organizationId,
+        targetTimestamp,
+      });
       const failed = await f.coordinator.execute(requested.id);
       expect(f.calls).toEqual(['archive']);
       expect(failed?.status).toBe('FAILED');
@@ -361,7 +396,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
     const original = f.ports.prepareTarget;
     f.ports.prepareTarget = async (input) => ({ ...(await original(input)), targetId: 'another-target' });
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     expect(await f.coordinator.execute(requested.id)).toMatchObject({ failureCode: 'RESTORE_TARGET_MISMATCH' });
     expect(f.calls).toEqual(['archive', 'target']);
   });
@@ -375,7 +414,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       throw new Error('Target reply lost');
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     expect(await f.coordinator.execute(requested.id)).toMatchObject({
       status: 'FAILED',
       phase: 'RECOVERY_REQUIRED',
@@ -386,7 +429,9 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       resumePhase: 'PREPARING',
       targetId: expect.any(String),
     });
-    await expect(f.coordinator.request({ instance, targetTimestamp })).rejects.toMatchObject({
+    await expect(
+      f.coordinator.request({ instance, expectedOrganizationId: instance.organizationId, targetTimestamp }),
+    ).rejects.toMatchObject({
       code: 'RESTORE_ALREADY_RUNNING',
     });
     expect(f.calls).toEqual(['archive', 'target']);
@@ -398,7 +443,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
     const original = f.ports.prepareTarget;
     f.ports.prepareTarget = async (input) => ({ ...(await original(input)), systemIdentifier: 'other-system' });
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     expect(await f.coordinator.execute(requested.id)).toMatchObject({ failureCode: 'RESTORE_TARGET_MISMATCH' });
     expect(f.calls).toEqual(['archive', 'target']);
     expect(f.repository.bindings.get(instance.id)?.version).toBe(0);
@@ -417,7 +466,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       return original(input);
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     const running = f.coordinator.execute(requested.id);
     await entered.promise;
     expect(await f.coordinator.evidence(requested.id)).toMatchObject({
@@ -438,13 +491,19 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       throw new Error('password=do-not-persist');
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     expect(await f.coordinator.execute(requested.id)).toMatchObject({
       phase: 'RECOVERY_REQUIRED',
       failureCode: 'RESTORE_READBACK_FAILED',
       applicationCutoverVerified: false,
     });
-    await expect(f.coordinator.request({ instance, targetTimestamp })).rejects.toMatchObject({
+    await expect(
+      f.coordinator.request({ instance, expectedOrganizationId: instance.organizationId, targetTimestamp }),
+    ).rejects.toMatchObject({
       code: 'RESTORE_ALREADY_RUNNING',
     });
 
@@ -476,7 +535,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       return original(input);
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     const old = f.coordinator.execute(requested.id);
     await firstEntered.promise;
 
@@ -506,7 +569,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
         ...(kind === 'system' ? { systemIdentifier: 'wrong' } : {}),
       });
 
-      const requested = await f.coordinator.request({ instance, targetTimestamp });
+      const requested = await f.coordinator.request({
+        instance,
+        expectedOrganizationId: instance.organizationId,
+        targetTimestamp,
+      });
       expect(await f.coordinator.execute(requested.id)).toMatchObject({
         phase: 'RECOVERY_REQUIRED',
         failureCode: 'RESTORE_READBACK_MISMATCH',
@@ -517,7 +584,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
 
   it('does not steal a claimed job during automatic maintenance', async () => {
     const f = fixture();
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'claimed-before-crash');
     expect(await f.make().advancePending()).toBe(0);
     expect(f.calls).toEqual([]);
@@ -525,7 +596,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
 
   it('does not invoke any driver twice for concurrent execute calls', async () => {
     const f = fixture();
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await Promise.all([f.coordinator.execute(requested.id), f.make().execute(requested.id)]);
     expect(f.calls).toEqual(['archive', 'target', 'quiesce', 'readback', 'release']);
     expect(f.repository.bindings.get(instance.id)?.version).toBe(1);
@@ -538,7 +613,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       },
     });
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'old-attempt');
     expect(await f.make().resume(requested.id, 'old-attempt')).toMatchObject({
       phase: 'RECOVERY_REQUIRED',
@@ -550,7 +629,9 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
     expect(record?.runnerToken).not.toBe('old-attempt');
     expect(f.calls).toEqual([]);
     expect(await f.make().advancePending()).toBe(0);
-    await expect(f.coordinator.request({ instance, targetTimestamp })).rejects.toMatchObject({
+    await expect(
+      f.coordinator.request({ instance, expectedOrganizationId: instance.organizationId, targetTimestamp }),
+    ).rejects.toMatchObject({
       code: 'RESTORE_ALREADY_RUNNING',
     });
   });
@@ -570,7 +651,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       return originalPrepare(input);
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'attempt-a');
     // Durable takeover committed, then its process died before calling the port.
     await f.repository.resume(requested.id, 'attempt-a', 'attempt-b');
@@ -602,7 +687,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       return originalPrepare(input);
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'attempt-a');
     expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({
       phase: 'RECOVERY_REQUIRED',
@@ -634,7 +723,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       return acknowledge(...args);
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'attempt-a');
     expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({ phase: 'RECOVERY_REQUIRED' });
     expect(f.calls).toEqual([]);
@@ -659,7 +752,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
         return { ...scope(input), excludedAttemptToken: input.previousAttemptToken };
       },
     });
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'attempt-a');
     const oldRecovery = f.make().resume(requested.id, 'attempt-a');
     await firstFenceEntered.promise;
@@ -691,7 +788,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       return acknowledged;
     };
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'attempt-a');
     expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({ phase: 'RECOVERY_REQUIRED' });
     expect(f.calls).toEqual([]);
@@ -707,7 +808,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
     const f = fixture({
       fenceAttempt: async (input) => ({ ...scope(input), excludedAttemptToken: 'unrelated-attempt' }),
     });
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     await f.repository.claim(requested.id, 'attempt-a');
 
     expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({
@@ -725,7 +830,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       },
     });
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     expect(await f.coordinator.execute(requested.id)).toMatchObject({
       phase: 'RECOVERY_REQUIRED',
       failureCode: 'RESTORE_QUIESCE_FAILED',
@@ -743,7 +852,11 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
       },
     });
 
-    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    const requested = await f.coordinator.request({
+      instance,
+      expectedOrganizationId: instance.organizationId,
+      targetTimestamp,
+    });
     const result = await f.coordinator.execute(requested.id);
     expect(result).toMatchObject({ failureCode: 'RESTORE_ARCHIVE_INVALID' });
     expect(JSON.stringify(await f.repository.get(requested.id))).not.toContain('private');

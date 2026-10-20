@@ -23,8 +23,19 @@ sans supprimer leur historique.
   inconnue ; aucune panne d'origine n'est déduite de ce refus. Les captures
   CI ne sont pas accessibles non plus et ne sont pas prétendument inspectées.
 - [#745](https://github.com/openaxcloud/vibecore/pull/745) est ouverte,
-  **non fusionnée**. Son premier commit `89019cdf` échoue en CI sur trois
-  dépendances workspace absentes du manifeste racine. La revue a aussi
+  **non fusionnée**. Le commit de revue `01cf9e90` a été poussé à 17:04:28 UTC.
+  La CI confirme la correction des dépendances workspace absentes de la
+  première version `89019cdf` : installation, typage et génération Prisma
+  réussis. Elle refuse toutefois le registre de rotation des clés, qui
+  n'inclut pas les deux nouveaux champs chiffrés du journal. L'étape PostgreSQL
+  suivante est donc sautée, pas réussie. Quality Gates échoue séparément sur
+  une réponse HTTP 500 de l'API GitHub. Le gate E2E termine aussi en échec :
+  456 cas rapportés, quatre échecs persistants, quatre instabilités et six
+  exemptions, 75/75 fichiers. Le chargement de l'éditeur, le rechargement
+  français et le retour mobile restent à diagnostiquer ; aucune augmentation
+  de délai ni exemption nouvelle n'est appliquée.
+  [Relevé exact](mesures/2026-10-20-pr745-01cf-ci.json).
+  La revue avait aussi
   reproduit une perte d'exclusion entre deux reprises de restauration et
   identifié une incohérence de propriétaire DB après transfert de projet.
   Les corrections locales passent 64 tests API, 29 tests du lanceur CI et
@@ -34,8 +45,26 @@ sans supprimer leur historique.
   Les typages API/scripts et le build API sont verts ; le
   [nouveau banc physique](mesures/2026-10-20-restore-physical-review-final.json)
   réussit à 16:47:01 UTC sur les sources corrigées, après un premier essai
-  rouge dû au drapeau QA omis par le lanceur. Le commit de revue, ses contrôles
-  CI et sa fusion restent à terminer ; aucune preuve cloud n'est ajoutée.
+  rouge dû au drapeau QA omis par le lanceur. Ces preuves concernent la
+  révision de revue antérieure ; aucune preuve cloud n'est ajoutée.
+  Une nouvelle contre-revue a reproduit une perte de portée d'autorisation
+  après transfert A vers B dans les deux routes de restauration, ainsi que
+  dans les lectures/reprovisionnements de DB. Les correctifs locaux donnent
+  42/42 tests routes/transfert verts puis, dans une autre exécution, 30/30
+  tests PostgreSQL verts à 17:56:18 UTC, sans saut. Ce dernier passage vérifie
+  aussi une rotation réelle avec conflit SQL pendant la bascule et reprise
+  sans ancienne clé. Le build API termine avec succès à 17:58:53 UTC.
+  [Preuves et empreintes](mesures/2026-10-20-restore-auth-rotation.json).
+  Le banc physique suivant termine rouge à 18:06:43 : ses 30 tests repository
+  passent, mais son lanceur exige encore 21 cas ; les ressources sont nettoyées.
+  Ce compteur est corrigé sans retirer l'assertion. Le passage physique
+  suivant termine vert à **18:09:30 UTC** : 30 tests PostgreSQL, point de
+  restauration exact, quiescence, nouvelle connexion, relecture SQL et
+  redémarrage de cible. Les 36 empreintes sources et le nettoyage sont
+  conservés avec le premier rouge. Les contrôles du nouveau commit et sa
+  fusion restent requis.
+  L'ancienne tête `01cf9e90` ne doit pas être fusionnée.
+  Aucun incident de production n'est allégué.
 - 22 anciennes PR en brouillon restent séparées. Les suppressions ont été
   inspectées : #324 supprime notamment cinq chemins encore présents sur main.
   Aucun de ces anciens lots n'a été fusionné ni écrasé.
@@ -50,7 +79,7 @@ sans supprimer leur historique.
 | Sauvegarde et restauration | Archive/WAL cloud, arrêt des écritures de tous les consommateurs, bascule, relecture indépendante et reprise après panne.                   |
 | Service livré              | Parcours HTTPS sur mobile et Safari, erreurs honnêtes, version publique reliée à la livraison.                                              |
 
-Le banc PostgreSQL/WAL local a réussi sur le candidat corrigé de #745.
+Le banc PostgreSQL/WAL local a réussi sur la révision de revue antérieure de #745.
 Le coordinateur reste désactivé dans le serveur de production : ses pilotes
 CNPG/GCS/runtime et le cycle de vie après bascule restent à réaliser et prouver.
 Ni ce banc ni la CI générale ne prouvent une restauration cloud.
@@ -87,6 +116,15 @@ fonction achevée. La [matrice des actions et preuves](2026-10-20-matrice-pannea
 ne certifie aucun panneau complet. Les quelques actions documentées sont
 distinguées des recettes Monaco échouées, des refus sûrs et des actions sans
 reçu. Les gardes d'ouverture/GET ne sont pas comptées comme des clics métier.
+
+La recette réelle locale a vérifié la sauvegarde sur disque et dans deux
+archives relues, les refus pour une autre identité, les sorties de commande
+0/7 et une preview HTTP inspectée. Elle reste globalement rouge. Une sonde
+ultérieure reproduit un défaut d'exécution : un unique POST d'une commande de
+16 secondes lance trois processus, à environ 0, 15 et 30 secondes, puis le
+client expire à 35 secondes. Le correctif est préparé séparément ; aucun succès
+du parcours exécution complet, du clic Enregistrer ou de la publication cloud
+n'est déduit des étapes déjà passées.
 
 ## Reports possibles et estimations
 

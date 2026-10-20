@@ -137,6 +137,8 @@ export interface RestoreExecution {
 }
 
 export interface RestoreRequest {
+  /** Organization authorized by the caller before any subsequent instance read. */
+  expectedOrganizationId: string;
   instance: DatabaseInstanceRecord;
   snapshot?: DatabaseSnapshotRecord;
   targetTimestamp: string;
@@ -173,13 +175,14 @@ export class DatabaseRestoreError extends Error {
     readonly code: string,
     readonly statusCode = 409,
   ) {
-    super(code);
+    super(code === 'RESTORE_INSTANCE_CHANGED' ? appPublicEnglish(code) : code);
     this.name = 'DatabaseRestoreError';
 
     if (
       code === 'RESTORE_TARGET_LIFECYCLE_UNAVAILABLE' ||
       code === 'RESTORE_BACKUP_TARGET_UNAVAILABLE' ||
-      code === 'RESTORE_ADMISSION_BUSY'
+      code === 'RESTORE_ADMISSION_BUSY' ||
+      code === 'RESTORE_INSTANCE_CHANGED'
     ) {
       this.publicMessage = appPublicEnglish(code);
     }

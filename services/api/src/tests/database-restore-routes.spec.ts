@@ -120,7 +120,7 @@ async function setup(environment: 'development' | 'production', available = true
     },
   });
 
-  return { store, project, instance, repository };
+  return { store, org, project, instance, repository };
 }
 
 describe('managed restore routes use the coordinated journal', () => {
@@ -170,6 +170,7 @@ describe('managed restore routes use the coordinated journal', () => {
         });
         expect(f.repository.admit).toHaveBeenCalledWith(
           expect.objectContaining({
+            expectedOrganizationId: f.org.id,
             instance: expect.objectContaining({ id: f.instance.id, projectId: f.project.id, environment }),
             targetTimestamp,
           }),

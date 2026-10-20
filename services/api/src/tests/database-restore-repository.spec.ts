@@ -5,10 +5,14 @@
  */
 import { randomUUID } from 'node:crypto';
 import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
+import { ciphertextKeyId, decryptJson, encryptJson, reencryptJson } from '@vibecore/security';
 import { Client } from 'pg';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { RestoreExecution, RestoreScope } from '../database-restore-contract.js';
+import { buildApiApp } from '../app.js';
+import type { DatabaseRestorePorts, RestoreExecution, RestoreScope } from '../database-restore-contract.js';
+import { DatabaseRestoreCoordinator } from '../database-restore-executor.js';
 import { PrismaDatabaseRestoreRepository } from '../database-restore-repository.js';
+import { encryptionCorpusStatus, rotateEncryptedCorpus } from '../encryption-rotation.js';
 import { PrismaApiStore } from '../prisma-store.js';
 
 const dedicatedUrl = process.env.RESTORE_TEST_DATABASE_URL;
@@ -20,6 +24,7 @@ let store: PrismaApiStore;
 let repository: PrismaDatabaseRestoreRepository;
 
 const organizations: string[] = [];
+const users: string[] = [];
 
 function deferred() {
   let resolve!: () => void;
@@ -70,6 +75,14 @@ run('restore repository (dedicated local PostgreSQL)', () => {
     }
 
     vi.stubEnv('DATABASE_URL', dedicatedUrl);
+    vi.stubEnv('DB_ROLLBACK_ENABLED', 'true');
+    vi.stubEnv('DB_BACKUP_BUCKET', '');
+    vi.stubEnv('REDIS_URL', '');
+    vi.stubEnv('WORKSPACE_MANAGER_URL', '');
+    vi.stubEnv('INTERNAL_API_SHARED_SECRET', 'restore-owner-race-internal-fixture');
+    vi.stubGlobal('fetch', () => {
+      throw new Error('No provider or network allowed by restore admission fixture');
+    });
     prisma = createDatabaseClient({ poolMax: 4 });
     store = new PrismaApiStore(prisma);
     repository = new PrismaDatabaseRestoreRepository(prisma);
@@ -81,10 +94,15 @@ run('restore repository (dedicated local PostgreSQL)', () => {
       await prisma.project.deleteMany({ where: { organizationId: id } });
       await prisma.organization.delete({ where: { id } });
     }
+    for (const id of users.splice(0)) {
+      await prisma.user.delete({ where: { id } });
+    }
+    vi.restoreAllMocks();
   });
   afterAll(async () => {
     await prisma?.$disconnect();
     vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
   });
 
   async function seed(environment: 'development' | 'production' = 'development') {
@@ -113,10 +131,173 @@ run('restore repository (dedicated local PostgreSQL)', () => {
       throw new Error('Fixture instance missing');
     }
 
-    return { project, instance: active, targetTimestamp: new Date(Date.now() - 60_000).toISOString() };
+    return {
+      project,
+      instance: active,
+      expectedOrganizationId: organization.id,
+      targetTimestamp: new Date(Date.now() - 60_000).toISOString(),
+    };
   }
 
-  async function prepared(execution: RestoreExecution, token: string) {
+  for (const environment of ['development', 'production'] as const) {
+    it(`${environment}: refuses a fresh transferred instance under the previously authorized organization`, async () => {
+      const input = await seed(environment);
+      const target = await prisma.organization.create({
+        data: { name: 'Restore admission destination', slug: `restore-admission-target-${randomUUID()}` },
+      });
+      organizations.push(target.id);
+      await store.transferProject({
+        projectId: input.project.id,
+        expectedSourceOrganizationId: input.expectedOrganizationId,
+        targetOrganizationId: target.id,
+      });
+      const freshInstance = await store.getDatabaseInstanceByProject(input.project.id, environment);
+      expect(freshInstance).toMatchObject({ organizationId: target.id });
+      expect(await store.getProject(input.project.id)).toMatchObject({ organizationId: target.id });
+      await expect(repository.admit({ ...input, instance: freshInstance! })).rejects.toMatchObject({
+        code: 'RESTORE_INSTANCE_CHANGED',
+      });
+      expect(await prisma.databaseRestore.count({ where: { databaseInstanceId: input.instance.id } })).toBe(0);
+      expect(
+        await prisma.databaseRestoreExecution.count({ where: { restore: { databaseInstanceId: input.instance.id } } }),
+      ).toBe(0);
+    });
+
+    for (const endpoint of ['restore', 'restores'] as const) {
+      it(`${endpoint}/${environment}: refuses HTTP admission after a transfer commits between authorization and instance read`, async () => {
+        const input = await seed(environment);
+        const user = await store.createUser({
+          email: `restore-owner-race-${randomUUID()}@example.invalid`,
+          passwordHash: 'disabled-fixture',
+        });
+        users.push(user.id);
+        await store.addMember({ organizationId: input.expectedOrganizationId, userId: user.id, roleKey: 'owner' });
+        await store.upsertSubscription({
+          organizationId: input.expectedOrganizationId,
+          planKey: 'team',
+          status: 'ACTIVE',
+        });
+        const session = `restore-owner-race-${randomUUID()}`;
+        await store.createSession({
+          userId: user.id,
+          token: session,
+          expiresAt: new Date(Date.now() + 60_000),
+        });
+        const target = await prisma.organization.create({
+          data: { name: 'Restore race destination', slug: `restore-owner-target-${randomUUID()}` },
+        });
+        organizations.push(target.id);
+        expect((await store.listOrganizations(user.id)).map((entry) => entry.id)).toEqual([
+          input.expectedOrganizationId,
+        ]);
+
+        const transferClient = createDatabaseClient({ poolMax: 2 });
+        const transferStore = new PrismaApiStore(transferClient);
+        const realInstanceRead = store.getDatabaseInstanceByProject.bind(store);
+        const admit = vi.spyOn(repository, 'admit');
+        // Keep any wrongly admitted operation unclaimed. Admission itself below
+        // is the real Prisma transaction; no driver or physical restore is faked.
+        const claim = vi.spyOn(repository, 'claim').mockResolvedValue(undefined);
+        const driver = vi.fn(async (): Promise<never> => {
+          throw new Error('No physical driver permitted in authorization race fixture');
+        });
+        const available = vi.fn(async () => true);
+        const ports: DatabaseRestorePorts = {
+          available,
+          validateArchive: driver,
+          prepareTarget: driver,
+          quiesceApplication: driver,
+          reconnectAndReadback: driver,
+          releaseApplication: driver,
+          fenceAttempt: driver,
+        };
+        const coordinator = new DatabaseRestoreCoordinator({
+          repository,
+          ports,
+          encryptConnection: () => {
+            throw new Error('No target connection in admission fixture');
+          },
+          decryptConnection: () => {
+            throw new Error('No target connection in admission fixture');
+          },
+        });
+        const routeApp = await buildApiApp({
+          store,
+          databaseRestoreCoordinator: coordinator,
+          emailProvider: {
+            async send() {
+              throw new Error('No email in admission fixture');
+            },
+          },
+        });
+        let transferCommitted = false;
+        const read = vi
+          .spyOn(store, 'getDatabaseInstanceByProject')
+          .mockImplementationOnce(async (projectId, scope) => {
+            expect(projectId).toBe(input.project.id);
+            expect(scope).toBe(environment);
+            expect(admit).not.toHaveBeenCalled();
+            // This is a scheduling barrier, not a fabricated instance response:
+            // the second client's production transfer commits before the real read.
+            await transferStore.transferProject({
+              projectId: input.project.id,
+              expectedSourceOrganizationId: input.expectedOrganizationId,
+              targetOrganizationId: target.id,
+            });
+            const project = await prisma.project.findUniqueOrThrow({ where: { id: input.project.id } });
+            const instance = await prisma.databaseInstance.findUniqueOrThrow({ where: { id: input.instance.id } });
+            expect(project.organizationId).toBe(target.id);
+            expect(instance.organizationId).toBe(target.id);
+            transferCommitted = true;
+            return realInstanceRead(projectId, scope);
+          });
+
+        try {
+          const response = await routeApp.inject({
+            method: 'POST',
+            url: `/projects/${input.project.id}/database/${endpoint}`,
+            headers: { authorization: `Bearer ${session}` },
+            payload: { environment, targetTimestamp: input.targetTimestamp },
+          });
+          expect(transferCommitted).toBe(true);
+          expect(read).toHaveBeenCalledTimes(1);
+          const restores = await prisma.databaseRestore.count({ where: { databaseInstanceId: input.instance.id } });
+          const executions = await prisma.databaseRestoreExecution.count({
+            where: { restore: { databaseInstanceId: input.instance.id } },
+          });
+          expect(
+            {
+              status: response.statusCode,
+              restores,
+              executions,
+              claims: claim.mock.calls.length,
+              driverCalls: driver.mock.calls.length,
+            },
+            'The source-authorized request must not admit or execute a restore under the new owner',
+          ).toEqual({ status: 409, restores: 0, executions: 0, claims: 0, driverCalls: 0 });
+          expect(response.json().code).toBe('RESTORE_INSTANCE_CHANGED');
+          expect(admit).not.toHaveBeenCalled();
+          expect(available).not.toHaveBeenCalled();
+          expect(await transferStore.getProject(input.project.id)).toMatchObject({ organizationId: target.id });
+          expect(
+            await store.getProjectSecret(
+              input.project.id,
+              environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
+            ),
+          ).toMatchObject({ valueEncrypted: 'fixture-cipher-original' });
+        } finally {
+          await routeApp.close();
+          await transferClient.$disconnect();
+        }
+      });
+    }
+  }
+
+  async function prepared(
+    execution: RestoreExecution,
+    token: string,
+    targetConnectionEncrypted = 'fixture-cipher-target',
+  ) {
     const scope: RestoreScope = {
       operationId: execution.restore.id,
       instanceId: execution.instance.id,
@@ -142,7 +323,7 @@ run('restore repository (dedicated local PostgreSQL)', () => {
         },
         target: { ...scope, targetId: execution.targetId, systemIdentifier: 'fixture-system' },
         quiescence: { ...scope, receiptId: 'fixture-quiescence' },
-        targetConnectionEncrypted: 'fixture-cipher-target',
+        targetConnectionEncrypted,
       }),
     ).toBe(true);
 
@@ -498,6 +679,192 @@ run('restore repository (dedicated local PostgreSQL)', () => {
     expect(current).toMatchObject({ bindingVersion: 0 });
     expect(current?.activeTargetRef).toBeUndefined();
     expect((await repository.get(execution.restore.id))?.phase).toBe('CUTOVER');
+  });
+
+  it.each(['cutover', 'completion'] as const)(
+    'continues %s after independent ciphertext rotation but rejects a changed plaintext binding',
+    async (stage) => {
+      vi.stubEnv(
+        'CONFIG_ENCRYPTION_KEYS',
+        JSON.stringify({ fixture_old: 'restore-rotation-fixture-old', fixture_new: 'restore-rotation-fixture-new' }),
+      );
+      vi.stubEnv('CONFIG_ENCRYPTION_PRIMARY_KEY_ID', 'fixture_old');
+      const originalValue = { value: 'postgresql://restore-source.invalid/fixture' };
+      const targetValue = { value: 'postgresql://restore-target.invalid/fixture' };
+      const originalEncrypted = encryptJson(originalValue);
+      const targetEncrypted = encryptJson(targetValue);
+      const input = await seed();
+      await store.upsertProjectSecret({
+        projectId: input.project.id,
+        key: 'DATABASE_URL',
+        valueEncrypted: originalEncrypted,
+      });
+      const execution = await repository.admit(input);
+      const token = 'fixture-rotation-attempt';
+      const scope = await prepared(execution, token, targetEncrypted);
+      if (stage === 'completion') {
+        const applied = await repository.cutover(execution.restore.id, token);
+        expect(
+          await repository.checkpoint(execution.restore.id, token, 'VERIFYING', {
+            phase: 'RELEASING',
+            readback: {
+              ...scope,
+              receiptId: 'fixture-rotation-readback',
+              targetId: execution.targetId,
+              bindingVersion: applied.appliedBindingVersion!,
+              systemIdentifier: 'fixture-system',
+              previousPoolClosed: true,
+              newConnection: true,
+              observedReadbackSha256: digest,
+            },
+            release: {
+              ...scope,
+              receiptId: 'fixture-rotation-release',
+              targetId: execution.targetId,
+              bindingVersion: applied.appliedBindingVersion!,
+            },
+          }),
+        ).toBe(true);
+      }
+      const expectedValue = stage === 'cutover' ? originalValue : targetValue;
+      const previousCiphertext = stage === 'cutover' ? originalEncrypted : targetEncrypted;
+      vi.stubEnv('CONFIG_ENCRYPTION_PRIMARY_KEY_ID', 'fixture_new');
+
+      // Real AES-GCM/keyring rotation happens independently for the live binding
+      // and journal, as it does during a corpus sweep. Equal values have new IVs.
+      const rotatedLive = reencryptJson(previousCiphertext);
+      const rotatedJournal = reencryptJson(previousCiphertext);
+      expect(ciphertextKeyId(previousCiphertext)).toBe('fixture_old');
+      expect(ciphertextKeyId(rotatedLive)).toBe('fixture_new');
+      expect(ciphertextKeyId(rotatedJournal)).toBe('fixture_new');
+      expect(rotatedLive).not.toBe(rotatedJournal);
+      expect(decryptJson(rotatedLive)).toEqual(expectedValue);
+      expect(decryptJson(rotatedJournal)).toEqual(expectedValue);
+      await prisma.databaseRestoreExecution.update({
+        where: { restoreId: execution.restore.id },
+        data:
+          stage === 'cutover'
+            ? { originalSecretEncrypted: rotatedJournal }
+            : { targetConnectionEncrypted: rotatedJournal },
+      });
+      const secretWhere = { projectId_key: { projectId: input.project.id, key: 'DATABASE_URL' } };
+      const advance = () =>
+        stage === 'cutover'
+          ? repository.cutover(execution.restore.id, token)
+          : repository.complete(execution.restore.id, token);
+
+      // A different valid encrypted value must still fail; tolerating every
+      // ciphertext mismatch would make this witness fail before the positive case.
+      await prisma.projectSecret.update({
+        where: secretWhere,
+        data: { valueEncrypted: encryptJson({ value: 'postgresql://unrelated-binding.invalid/fixture' }) },
+      });
+      await expect(advance()).rejects.toMatchObject({ code: 'RESTORE_BINDING_CHANGED' });
+      expect(await repository.get(execution.restore.id)).toMatchObject({
+        phase: stage === 'cutover' ? 'CUTOVER' : 'RELEASING',
+        active: true,
+      });
+      expect(await store.getDatabaseInstanceByProject(input.project.id)).toMatchObject({
+        bindingVersion: stage === 'cutover' ? 0 : 1,
+      });
+      await prisma.projectSecret.update({ where: secretWhere, data: { valueEncrypted: rotatedLive } });
+
+      const advanced = await advance();
+      expect(advanced).toMatchObject({
+        phase: stage === 'cutover' ? 'VERIFYING' : 'COMPLETED',
+        active: stage === 'cutover',
+      });
+      const binding = await store.getProjectSecret(input.project.id, 'DATABASE_URL');
+      expect(binding?.valueEncrypted).toBe(stage === 'cutover' ? targetEncrypted : rotatedLive);
+      expect(decryptJson(binding!.valueEncrypted!)).toEqual(targetValue);
+    },
+  );
+
+  it('rotates the real restore corpus with a SQL compare-and-swap conflict against concurrent cutover', async () => {
+    vi.stubEnv(
+      'CONFIG_ENCRYPTION_KEYS',
+      JSON.stringify({ fixture_old: 'restore-rotation-fixture-old', fixture_new: 'restore-rotation-fixture-new' }),
+    );
+    vi.stubEnv('CONFIG_ENCRYPTION_PRIMARY_KEY_ID', 'fixture_old');
+    const originalValue = { value: 'postgresql://restore-source.invalid/fixture' };
+    const targetValue = { value: 'postgresql://restore-target.invalid/fixture' };
+    const originalEncrypted = encryptJson(originalValue);
+    const targetEncrypted = encryptJson(targetValue);
+    const input = await seed();
+    const secret = await store.upsertProjectSecret({
+      projectId: input.project.id,
+      key: 'DATABASE_URL',
+      valueEncrypted: originalEncrypted,
+    });
+    const execution = await repository.admit(input);
+    const token = 'fixture-rotation-sweep-attempt';
+    await prepared(execution, token, targetEncrypted);
+    let cutoverCommitted = false;
+    const barrierClient = prisma.$extends({
+      query: {
+        projectSecret: {
+          async updateMany({ args, query }) {
+            if (!cutoverCommitted && args.where?.id === secret.id) {
+              expect(args.where.valueEncrypted).toBe(originalEncrypted);
+              // The sweep already read the original ciphertext. Commit the
+              // competing production transaction before its real SQL CAS write.
+              await repository.cutover(execution.restore.id, token);
+              cutoverCommitted = true;
+              const outcome = await query(args);
+              expect(outcome.count).toBe(0);
+              return outcome;
+            }
+            return query(args);
+          },
+        },
+      },
+    });
+    vi.stubEnv('CONFIG_ENCRYPTION_PRIMARY_KEY_ID', 'fixture_new');
+    const first = await rotateEncryptedCorpus(barrierClient as unknown as Parameters<typeof rotateEncryptedCorpus>[0], {
+      batchSize: 1,
+    });
+    expect(cutoverCommitted).toBe(true);
+    expect(first).toMatchObject({ conflicts: 1, unreadable: 0, rotated: 2 });
+    expect(first.columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ model: 'projectSecret', column: 'valueEncrypted', rotated: 0, conflicts: 1 }),
+        expect.objectContaining({
+          model: 'databaseRestoreExecution',
+          column: 'originalSecretEncrypted',
+          rotated: 1,
+        }),
+        expect.objectContaining({
+          model: 'databaseRestoreExecution',
+          column: 'targetConnectionEncrypted',
+          rotated: 1,
+        }),
+      ]),
+    );
+    expect((await store.getProjectSecret(input.project.id, 'DATABASE_URL'))?.valueEncrypted).toBe(targetEncrypted);
+    expect(await encryptionCorpusStatus(prisma as unknown as Parameters<typeof encryptionCorpusStatus>[0])).toEqual({
+      fixture_old: 1,
+      fixture_new: 2,
+    });
+
+    // A fresh operator sweep can now rotate the winning target connection.
+    const retry = await rotateEncryptedCorpus(prisma as unknown as Parameters<typeof rotateEncryptedCorpus>[0]);
+    expect(retry).toMatchObject({ conflicts: 0, unreadable: 0, rotated: 3 });
+    expect(await encryptionCorpusStatus(prisma as unknown as Parameters<typeof encryptionCorpusStatus>[0])).toEqual({
+      fixture_new: 3,
+    });
+    vi.stubEnv('CONFIG_ENCRYPTION_KEYS', JSON.stringify({ fixture_new: 'restore-rotation-fixture-new' }));
+    const journal = await prisma.databaseRestoreExecution.findUniqueOrThrow({
+      where: { restoreId: execution.restore.id },
+    });
+    const binding = await store.getProjectSecret(input.project.id, 'DATABASE_URL');
+    expect(decryptJson(journal.originalSecretEncrypted)).toEqual(originalValue);
+    expect(decryptJson(journal.targetConnectionEncrypted!)).toEqual(targetValue);
+    expect(decryptJson(binding!.valueEncrypted!)).toEqual(targetValue);
+    expect(await store.getDatabaseInstanceByProject(input.project.id)).toMatchObject({
+      activeTargetRef: execution.targetId,
+      bindingVersion: 1,
+    });
+    expect(journal.phase).toBe('VERIFYING');
   });
 
   it('rejects old checkpoints and failures after durable ownership changes', async () => {
