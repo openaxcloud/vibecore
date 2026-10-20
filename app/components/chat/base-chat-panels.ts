@@ -43,6 +43,9 @@ export function panelAuthRedirectTarget(currentUrl: string): string {
 }
 
 const SNAPSHOT_RESTORE_FAILURES: Readonly<Record<string, SnapshotRestoreFailure>> = {
+  CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE: 'combinedUnavailable',
+  CHECKPOINT_RESTORE_PARTIAL: 'partial',
+  CHECKPOINT_RESTORE_DATE_REQUIRED: 'dateRequired',
   SNAPSHOT_STORAGE_MISSING: 'snapshotMissing',
   SNAPSHOT_STORAGE_CHECKSUM_MISMATCH: 'snapshotCorrupted',
   FORBIDDEN: 'forbidden',
@@ -63,9 +66,11 @@ const SNAPSHOT_RESTORE_FAILURES: Readonly<Record<string, SnapshotRestoreFailure>
  */
 export function describeSnapshotRestoreFailure(httpStatus: number, payload: unknown, language?: string | null): string {
   const error = payload && typeof payload === 'object' ? (payload as { error?: unknown }).error : undefined;
-  const code = error && typeof error === 'object' ? (error as { code?: string }).code : undefined;
+  const nestedCode = error && typeof error === 'object' ? (error as { code?: unknown }).code : undefined;
+  const flatCode = payload && typeof payload === 'object' ? (payload as { code?: unknown }).code : undefined;
+  const code = typeof flatCode === 'string' ? flatCode : typeof nestedCode === 'string' ? nestedCode : undefined;
 
-  if (code && SNAPSHOT_RESTORE_FAILURES[code]) {
+  if (code && Object.hasOwn(SNAPSHOT_RESTORE_FAILURES, code)) {
     return formatSnapshotRestoreFailure(SNAPSHOT_RESTORE_FAILURES[code], language);
   }
 

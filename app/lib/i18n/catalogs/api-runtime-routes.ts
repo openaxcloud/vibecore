@@ -65,11 +65,12 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.bug.issue.currentModel': 'Current model',
   'apiRuntime.bug.issue.contact': 'Contact',
   'apiRuntime.bug.issue.submitted': 'Submitted through the E-Code bug-report feature',
-  'apiRuntime.snapshot.featureUnavailable':
-    'Files were restored, but database rollback is unavailable for this project. The database was left unchanged.',
-  'apiRuntime.snapshot.noDatabase':
-    'Files were restored. This project has no managed database, so the database was left unchanged.',
-  'apiRuntime.snapshot.failed': 'Files were restored, but the database could not be restored.',
+  'apiRuntime.snapshot.combinedUnavailable':
+    'Combined file and database restoration is unavailable. No changes were made. Use Checkpoints to restore files only.',
+  'apiRuntime.snapshot.memoryDateRequired':
+    'Select a checkpoint with a valid date to restore agent memory. No changes were made.',
+  'apiRuntime.snapshot.memoryFailed':
+    'Files were restored, but agent memory could not be restored. Review the project before continuing.',
   'apiRuntime.panel.loadFailed': 'The panel data could not be loaded. Please try again.',
   'apiRuntime.panel.authenticationRequired': 'Sign in again to load this panel.',
   'apiRuntime.panel.forbidden': 'You do not have permission to load this panel.',
@@ -246,11 +247,12 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.bug.issue.currentModel': 'Modèle actuel',
   'apiRuntime.bug.issue.contact': 'Contact',
   'apiRuntime.bug.issue.submitted': 'Envoyé avec la fonctionnalité de signalement de bugs E-Code',
-  'apiRuntime.snapshot.featureUnavailable':
-    'Les fichiers ont été restaurés, mais le retour arrière de la base de données est indisponible pour ce projet. La base de données est restée inchangée.',
-  'apiRuntime.snapshot.noDatabase':
-    'Les fichiers ont été restaurés. Ce projet ne possède pas de base de données gérée ; la base de données est donc restée inchangée.',
-  'apiRuntime.snapshot.failed': 'Les fichiers ont été restaurés, mais la base de données n’a pas pu être restaurée.',
+  'apiRuntime.snapshot.combinedUnavailable':
+    'La restauration combinée des fichiers et de la base est indisponible. Aucune modification n’a été apportée. Utilisez les points de restauration pour restaurer les fichiers seuls.',
+  'apiRuntime.snapshot.memoryDateRequired':
+    'Sélectionnez un point de restauration avec une date valide pour restaurer la mémoire de l’agent. Aucune modification n’a été apportée.',
+  'apiRuntime.snapshot.memoryFailed':
+    'Les fichiers ont été restaurés, mais la mémoire de l’agent n’a pas pu être restaurée. Vérifiez le projet avant de continuer.',
   'apiRuntime.panel.loadFailed': 'Les données du panneau n’ont pas pu être chargées. Veuillez réessayer.',
   'apiRuntime.panel.authenticationRequired': 'Reconnectez-vous pour charger ce panneau.',
   'apiRuntime.panel.forbidden': 'Vous n’avez pas l’autorisation de charger ce panneau.',

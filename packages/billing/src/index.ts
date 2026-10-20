@@ -370,7 +370,6 @@ export const creditPlanCatalog: CreditBillingPlan[] = [
       '50 viewers',
       '10 parallel agents',
       'Most powerful models',
-      '28-day database rollbacks',
       'Premium support',
     ],
     limits: { ...planByKey('team').limits, 'workspaces.active': UNLIMITED, 'projects.count': UNLIMITED },

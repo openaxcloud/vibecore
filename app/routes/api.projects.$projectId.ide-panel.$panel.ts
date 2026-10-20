@@ -1,10 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import {
-  classifyDatabaseRestoreError,
-  foldRestoreResponse,
-  shouldRestoreDatabase,
-  type DatabaseRestoreOutcome,
-} from './snapshot-restore-database';
+import { shouldRestoreDatabase } from './snapshot-restore-database';
 import {
   apiRequest,
   clearSessionCookie,
@@ -1474,72 +1469,83 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         throw json({ error: copy['apiRuntime.panel.snapshotRequired'], code: 'SNAPSHOT_REQUIRED' }, { status: 400 });
       }
 
+      /*
+       * No coordinator can currently restore files + the application's active
+       * database together. Checking only PITR availability would not provide
+       * that guarantee. Refuse the combined request before any write, even
+       * with an older API, after the normal project authorization read.
+       * Explicit file-only restores retain their existing authorized endpoint.
+       */
+      if (shouldRestoreDatabase(body.restoreDatabase)) {
+        await apiRequest(request, `/projects/${projectId}`);
+
+        return json(
+          {
+            ok: false,
+            outcome: 'not_started',
+            code: 'CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE',
+            error: copy['apiRuntime.snapshot.combinedUnavailable'],
+            filesRestore: 'not_started',
+            databaseRestore: 'unavailable',
+            agentMemoryRestore: 'not_started',
+          },
+          { status: 503 },
+        );
+      }
+
+      const restoreAgentMemory = shouldRestoreDatabase(body.restoreAgentMemory);
+      const since = typeof body.since === 'string' ? body.since.trim() : '';
+
+      if (restoreAgentMemory && (!since || !Number.isFinite(Date.parse(since)))) {
+        return json(
+          {
+            ok: false,
+            outcome: 'not_started',
+            code: 'CHECKPOINT_RESTORE_DATE_REQUIRED',
+            error: copy['apiRuntime.snapshot.memoryDateRequired'],
+            filesRestore: 'not_started',
+            databaseRestore: 'skipped',
+            agentMemoryRestore: 'not_started',
+          },
+          { status: 400 },
+        );
+      }
+
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
         method: 'POST',
       });
 
-      /*
-       * The rollback modal's "Database" checkbox posts `restoreDatabase`. The
-       * file restore above rewinds project storage + the workspace tree only;
-       * when the user explicitly asked for the database too, drive the real
-       * point-in-time restore (POST /projects/:id/database/restores) with the
-       * same snapshot. Surface its outcome so a checked box never silently
-       * leaves the database un-rolled-back.
-       */
-      let databaseOutcome: DatabaseRestoreOutcome = { kind: 'skipped' };
-
-      if (shouldRestoreDatabase(body.restoreDatabase)) {
-        try {
-          const restore = await apiRequest(request, `/projects/${projectId}/database/restores`, {
-            method: 'POST',
-            body: JSON.stringify({ snapshotId }),
-          });
-
-          databaseOutcome = { kind: 'restored', restore };
-        } catch (error) {
-          if (error instanceof Response) {
-            const payload = (await error
-              .clone()
-              .json()
-              .catch(() => ({}))) as { code?: string; error?: string };
-
-            databaseOutcome = classifyDatabaseRestoreError(
-              {
-                status: error.status,
-                code: payload.code,
-                message: payload.error ?? 'DATABASE_RESTORE_FAILED',
-              },
-              language,
-            );
-          } else {
-            console.error('Database restore failed:', error);
-            databaseOutcome = {
-              kind: 'failed',
-              status: 502,
-              message: copy['apiRuntime.snapshot.failed'],
-            };
-          }
-        }
-      }
-
-      /*
-       * RP-CKPT-05 — la feuille Replit annonce trois choses restaurées :
-       * fichiers, base de données, mémoire de l'agent. La mémoire suit ici :
-       * ce que l'agent a appris APRÈS le point est archivé. Son échec ne
-       * bloque pas le retour des fichiers, déjà fait ; il est journalisé.
-       */
-      if (body.restoreAgentMemory === 'true' && (body.since ?? '').trim()) {
+      if (restoreAgentMemory) {
         try {
           await apiRequest(request, `/projects/${projectId}/agent-memory/rollback`, {
             method: 'POST',
-            body: JSON.stringify({ since: body.since.trim() }),
+            body: JSON.stringify({ since }),
           });
         } catch (error) {
-          console.error('Agent memory rollback failed:', error instanceof Response ? error.status : error);
+          console.error('Agent memory rollback failed:', { status: error instanceof Response ? error.status : 502 });
+
+          return json(
+            {
+              ok: false,
+              outcome: 'partial',
+              code: 'CHECKPOINT_RESTORE_PARTIAL',
+              error: copy['apiRuntime.snapshot.memoryFailed'],
+              filesRestore: 'restored',
+              databaseRestore: 'skipped',
+              agentMemoryRestore: 'failed',
+            },
+            { status: 502 },
+          );
         }
       }
 
-      return json(foldRestoreResponse(databaseOutcome));
+      return json({
+        ok: true,
+        outcome: 'completed',
+        filesRestore: 'restored',
+        databaseRestore: 'skipped',
+        agentMemoryRestore: restoreAgentMemory ? 'restored' : 'skipped',
+      });
     } else if (intent === 'checkpoint') {
       /*
        * RP-CKPT-04 — point de restauration AUTOMATIQUE de fin de tour, à la

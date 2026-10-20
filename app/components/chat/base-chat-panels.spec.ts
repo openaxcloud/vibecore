@@ -39,6 +39,27 @@ describe('panelAuthRedirectTarget', () => {
 });
 
 describe('describeSnapshotRestoreFailure', () => {
+  it.each(['en', 'fr'])('distinguishes a refused combined operation from partial restoration in %s', (language) => {
+    const refused = describeSnapshotRestoreFailure(503, { code: 'CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE' }, language);
+    const partial = describeSnapshotRestoreFailure(502, { code: 'CHECKPOINT_RESTORE_PARTIAL' }, language);
+    expect(refused).toContain(language === 'fr' ? 'Aucune modification' : 'No changes');
+    expect(partial).toContain(language === 'fr' ? 'Les fichiers ont été restaurés' : 'Files were restored');
+    expect(partial).not.toContain(language === 'fr' ? 'Aucune modification' : 'No changes');
+  });
+
+  it.each(['constructor', '__proto__'])('does not treat prototype key %s as a known failure', (code) => {
+    expect(describeSnapshotRestoreFailure(502, { code }, 'en')).toContain('could not confirm');
+  });
+
+  it('ignores unrecognized flat error messages and non-string codes', () => {
+    expect(describeSnapshotRestoreFailure(502, { code: {}, error: 'private upstream detail' }, 'en')).toContain(
+      'could not confirm',
+    );
+    expect(
+      describeSnapshotRestoreFailure(502, { code: 'INTERNAL', error: 'private upstream detail' }, 'en'),
+    ).not.toContain('private');
+  });
+
   it('maps known backend codes to specific copy', () => {
     expect(describeSnapshotRestoreFailure(409, { error: { code: 'SNAPSHOT_STORAGE_MISSING' } }, 'en')).toContain(
       'no longer available',
@@ -51,15 +72,17 @@ describe('describeSnapshotRestoreFailure', () => {
   it('masks an unmapped backend diagnostic instead of leaking English or secrets into French', () => {
     const message = describeSnapshotRestoreFailure(400, { error: { message: 'bad request secret=raw' } }, 'fr');
 
-    expect(message).toBe('Restauration impossible. Aucune modification n’a été apportée.');
+    expect(message).toBe(
+      'Le résultat de la restauration n’a pas pu être confirmé. Vérifiez le projet avant de réessayer.',
+    );
     expect(message).not.toContain('bad request');
     expect(message).not.toContain('secret=raw');
   });
 
   it('falls back on status when no payload detail is present', () => {
     expect(describeSnapshotRestoreFailure(403, undefined, 'en')).toContain('permission');
-    expect(describeSnapshotRestoreFailure(500, undefined, 'en')).toContain('No changes were made');
-    expect(describeSnapshotRestoreFailure(0, undefined, 'en')).toBe('Rollback failed. No changes were made.');
+    expect(describeSnapshotRestoreFailure(500, undefined, 'en')).toContain('could not confirm');
+    expect(describeSnapshotRestoreFailure(0, undefined, 'en')).toContain('could not be confirmed');
   });
 });
 

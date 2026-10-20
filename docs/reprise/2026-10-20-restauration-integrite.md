@@ -41,8 +41,58 @@ Les résultats JSON, les captures et les empreintes des sources sont dans [`2026
 
 La restauration commercialisable nécessite encore une chaîne de sauvegarde physique vérifiée, un pointeur durable vers la base restaurée, une bascule des processus/pools de l'application et une lecture de contrôle depuis celle-ci, puis un exercice de reprise et des durées mesurées. Copier une URI de secret ou constater un cluster sain ne prouve pas cette chaîne. La conservation et le nettoyage des anciens clusters doivent être explicitement traités.
 
-Limites conservées dans ce lot : une ancienne demande dont le cluster n'est pas sain ou ne peut être lu reste en attente ; les textes existants des instantanés et le compteur `snapshotted` ne distinguent pas encore suffisamment la demande de la création physique réussie. Le listing seul ne garantit donc pas une archive. Le chemin distinct de reprise fichier+base peut restaurer les fichiers puis signaler le refus base : aucune atomicité globale n'est démontrée.
+Limites conservées dans ce lot : une ancienne demande dont le cluster n'est pas sain ou ne peut être lu reste en attente ; les textes existants des instantanés et le compteur `snapshotted` ne distinguent pas encore suffisamment la demande de la création physique réussie. Le listing seul ne garantit donc pas une archive. Le chemin combiné fichier+base, identifié par la contre-revue, est désormais refusé par le candidat avant toute écriture ; aucun coordinateur atomique n’est implémenté. Les reprises fichiers seules conservent leur endpoint existant. Une restauration de fichiers ou de mémoire physique n’a pas été exécutée dans cette recette.
 
 Les quatre autres critères restent également ouverts : parcours inscription → agent → exécution → persistance → URL publiée, isolation/quota avec inventaire des anciens workspaces, facturation Stripe TEST de bout en bout, et parcours authentifiés sur mobile/Safari réel. Le catalogue des panneaux n'est pas une recette terminée.
 
 Au relevé du 20 octobre, GitHub est lisible ; main reste `e40edf3`. Le run E2E `39198013106` demeure rouge. La dernière livraison continue réussie reste `39193686200`, commit `bbbcf3239296dfa55d60160aba8e19742136a111`, terminée le 19 octobre à 04:42:20 UTC. Les trois requêtes HEAD vers e-code.ai, app.e-code.ai et api.e-code.ai sont bloquées au CONNECT par le proxy (403, origine non atteinte) : cela ne prouve ni panne applicative ni version servie. Les autorisations de paiement réel, ressource cloud payante et restauration destructive ne sont pas acquises.
+
+## Complément de contre-revue : reprise combinée
+
+Le chemin initial du panneau Snapshots appelle le POST fichiers avant le POST base,
+puis renvoie `ok:true` même lorsque la base refuse. Le client peut alors remplacer
+sa conversation. Le candidat refuse désormais toute demande combinée par
+`503 CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE` après la lecture autorisée du projet,
+avant les POST fichiers, base ou mémoire. Une capacité PITR isolée ne suffit pas à
+prouver un coordinateur fichiers/base ; aucun drapeau n'active ce parcours non livré.
+
+Le parcours fichiers seuls conserve son endpoint autorisé. Lorsque la mémoire est
+aussi demandée, sa date est validée avant toute écriture. Si les fichiers sont restaurés
+mais que l'appel mémoire échoue, le résultat est `ok:false`, `outcome:partial`, HTTP502,
+avec états explicites par opération. Le client n'écrase donc plus sa conversation sur
+ce résultat. Les erreurs de transport inconnues ne promettent plus « aucune modification ».
+La boîte de dialogue indique l'indisponibilité combinée et oriente vers les points de
+restauration pour les fichiers seuls. Sa fonction combinée reste indisponible.
+
+La nouvelle suite d'orchestration donne 14 assertions rouges et un témoin vert sur
+l'ancien chemin, puis 15/15 sur le candidat. Dix rouges portent sur la sécurité et
+quatre sur le nouveau format du résultat : ce total ne représente pas quatorze défauts
+distincts. Les frontières API de ces tests sont contrôlées ; aucun serveur cloud ni
+fichier client n'est modifié. Avec les helpers, les messages et la garde de typage,
+55 tests passent dans cinq fichiers, à nouveau après recompilation (20,85 s).
+
+Le nouveau build web client/serveur du 20 octobre utilise explicitement le mode
+`remote-kubernetes`, relié exclusivement à l'API QA locale. Le BFF compilé refuse
+quatre requêtes combinées réelles (EN/FR, formulaire et booléen JSON) à 11:12 UTC.
+Les empreintes avant/après des métadonnées de snapshots, contenu synthétique stocké,
+état IDE, restaurations DB, métadonnées mémoire et nombre de secrets sont identiques.
+La table mémoire de cette fixture est vide ; ce cas ne prouve pas une restauration
+physique de mémoire ni de fichiers. Les objets synthétiques ajoutés par la sonde sont
+supprimés après vérification.
+
+La recette Chromium 154 repasse aux formats 1440, 820 et 390 : historique non vérifié,
+refus affiché, contrôle d'instantané conservé et résultat maintenu au rechargement.
+Les pages tarifaires locales n'affichent plus la promesse de restauration 28 jours ;
+leur catalogue est celui de la QA, pas un catalogue Stripe de production.
+Six captures ont été inspectées ; aucun débordement horizontal de page ni erreur
+JavaScript relevé. Dix-huit requêtes navigateur externes ont été bloquées sans
+substitution de réponse. Les preuves complémentaires portent le préfixe `checkpoint-`
+dans le répertoire de preuves. Cette recette ne valide pas les fournisseurs,
+les runtimes distants, Safari ou la production.
+
+La promesse « 28-day database rollbacks » a aussi été retrouvée dans la carte tarifaire
+Pro et la liste descriptive du catalogue de crédits. Le candidat retire cette promesse
+non réalisable. Prix, crédits, limites, droits `dbRollbackDays`, produits/prix Stripe et
+abonnements restent inchangés. Le droit contractuel de rétention ne constitue pas une
+preuve de restauration disponible ; il reste à réconcilier l'offre livrée et les parcours
+Stripe TEST avant lancement. Aucun paiement ni modification de catalogue Stripe exécuté.

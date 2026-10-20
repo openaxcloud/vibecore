@@ -1,0 +1,44 @@
+{
+  "timestamp": "2026-10-20T11:13:21.810Z",
+  "browser": "154.0.8037.57",
+  "scope": "built application with real local API and PostgreSQL; synthetic metadata only",
+  "physicalRestore": false,
+  "providerOperation": false,
+  "externalRequestsBlocked": 18,
+  "runtimeMode": "remote-kubernetes",
+  "results": [
+    {
+      "viewport": "desktop",
+      "status": 200,
+      "completionUnverified": true,
+      "restoreActionUnavailable": true,
+      "snapshotControlVisible": true,
+      "persistedOnReload": true,
+      "horizontalOverflow": false,
+      "pageErrors": [],
+      "pricingClaimAbsent": true
+    },
+    {
+      "viewport": "tablet",
+      "status": 200,
+      "completionUnverified": true,
+      "restoreActionUnavailable": true,
+      "snapshotControlVisible": true,
+      "persistedOnReload": true,
+      "horizontalOverflow": false,
+      "pageErrors": [],
+      "pricingClaimAbsent": true
+    },
+    {
+      "viewport": "mobile",
+      "status": 200,
+      "completionUnverified": true,
+      "restoreActionUnavailable": true,
+      "snapshotControlVisible": true,
+      "persistedOnReload": true,
+      "horizontalOverflow": false,
+      "pageErrors": [],
+      "pricingClaimAbsent": true
+    }
+  ]
+}

@@ -4252,10 +4252,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [rollbackTarget, setRollbackTarget] = useState<ProjectConversationCheckpoint | null>(null);
 
     /*
-     * RP-CKPT-05 — la feuille Replit ne propose pas de case : le retour
-     * arrière remet TOUJOURS les fichiers, la base de données de
-     * développement et la mémoire de l'agent. Le serveur dit ce qu'il a pu
-     * faire ; un échec de la base remonte en avertissement, jamais en silence.
+     * This dialog requests a combined restore. The server currently refuses
+     * it before any mutation because application database cutover is unavailable.
+     * The Checkpoints panel retains the explicit file-only restore path.
      */
     const rollbackDatabase = true;
     const [rollbackBusy, setRollbackBusy] = useState(false);
@@ -11423,9 +11422,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              * un titre, le message du commit et sa date, « What will be
              * impacted » en trois blocs — Files / Database / Agent memory —,
              * puis Cancel et un bouton bleu. Pas de case à cocher, pas de
-             * capture d'écran fictive : chaque ligne annonce quelque chose que
-             * le serveur fait vraiment (fichiers, base via PITR, mémoire
-             * archivée après le point).
+             * capture d'écran fictive. La ligne Database indique le refus
+             * actuel de l'opération combinée avant toute modification.
              */}
             <div className="bolt-project-rollback-dialog">
               <button
