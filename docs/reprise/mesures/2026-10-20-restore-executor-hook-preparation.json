@@ -1,0 +1,49 @@
+{
+  "firstNormalHook": {
+    "label": "normal-commit-hook",
+    "startedAt": "2026-10-20T14:25:27.799061+00:00",
+    "memoryBefore": 3308630016,
+    "command": [
+      "git",
+      "-c",
+      "core.hooksPath=.husky",
+      "commit",
+      "-m",
+      "feat(database): add durable verified restore coordination"
+    ],
+    "exitCode": 1,
+    "seconds": 679.47,
+    "peakMemory": 5551628288,
+    "finishedAt": "2026-10-20T14:36:47.274136+00:00"
+  },
+  "failure": "Mobile package node_modules missing: unresolved Capacitor dependencies; no commit created",
+  "environmentRepair": {
+    "repairedAt": "2026-10-20T14:41:33.879184+00:00",
+    "method": "Reuse existing installed module links from validated worktree with identical lockfile and package manifests; workspace targets rewritten to this worktree",
+    "copiedMissingDirectories": [
+      "apps/mobile/node_modules",
+      "services/screenshotter/node_modules"
+    ],
+    "rewrittenLocalPaths": 1,
+    "brokenSymlinks": [],
+    "sourceWorktreeModified": false,
+    "lockSha256": "bfa4fd3fce0cebd40c3f0d3044b84f0aeceac406948d5acbd073fbf1bf8f67ca"
+  },
+  "productSourcesModifiedByRepair": false,
+  "fullHookRerunRequired": true,
+  "mobileTypecheckAfterRepair": {
+    "label": "mobile-typecheck-after-dependencies",
+    "startedAt": "2026-10-20T14:47:19.110829+00:00",
+    "memoryBefore": 2986635264,
+    "command": [
+      "pnpm",
+      "--filter",
+      "@vibecore/mobile",
+      "typecheck"
+    ],
+    "exitCode": 0,
+    "seconds": 10.07,
+    "peakMemory": 3389829120,
+    "finishedAt": "2026-10-20T14:47:29.176789+00:00"
+  }
+}

@@ -634,6 +634,12 @@ export type DatabaseSnapshot = $Result.DefaultSelection<Prisma.$DatabaseSnapshot
  */
 export type DatabaseRestore = $Result.DefaultSelection<Prisma.$DatabaseRestorePayload>
 /**
+ * Model DatabaseRestoreExecution
+ * Durable restore journal. Credentials remain encrypted and are never projected
+ * by the restore HTTP routes. A held activeLock is not reclaimed by a timeout.
+ */
+export type DatabaseRestoreExecution = $Result.DefaultSelection<Prisma.$DatabaseRestoreExecutionPayload>
+/**
  * Model ScheduledTask
  * One cron-scheduled unit of work owned by a project. `nextRunAt` is the claim
  * token: the scheduler advances it inside a conditional UPDATE, so exactly one
@@ -2301,6 +2307,16 @@ export class PrismaClient<
   get databaseRestore(): Prisma.DatabaseRestoreDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.databaseRestoreExecution`: Exposes CRUD operations for the **DatabaseRestoreExecution** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DatabaseRestoreExecutions
+    * const databaseRestoreExecutions = await prisma.databaseRestoreExecution.findMany()
+    * ```
+    */
+  get databaseRestoreExecution(): Prisma.DatabaseRestoreExecutionDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.scheduledTask`: Exposes CRUD operations for the **ScheduledTask** model.
     * Example usage:
     * ```ts
@@ -3031,6 +3047,7 @@ export namespace Prisma {
     DatabaseInstance: 'DatabaseInstance',
     DatabaseSnapshot: 'DatabaseSnapshot',
     DatabaseRestore: 'DatabaseRestore',
+    DatabaseRestoreExecution: 'DatabaseRestoreExecution',
     ScheduledTask: 'ScheduledTask',
     ScheduledTaskRun: 'ScheduledTaskRun',
     AgentRoutingCard: 'AgentRoutingCard',
@@ -3065,7 +3082,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "databaseRestoreExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11045,6 +11062,80 @@ export namespace Prisma {
           }
         }
       }
+      DatabaseRestoreExecution: {
+        payload: Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>
+        fields: Prisma.DatabaseRestoreExecutionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DatabaseRestoreExecutionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DatabaseRestoreExecutionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>
+          }
+          findFirst: {
+            args: Prisma.DatabaseRestoreExecutionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DatabaseRestoreExecutionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>
+          }
+          findMany: {
+            args: Prisma.DatabaseRestoreExecutionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>[]
+          }
+          create: {
+            args: Prisma.DatabaseRestoreExecutionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>
+          }
+          createMany: {
+            args: Prisma.DatabaseRestoreExecutionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DatabaseRestoreExecutionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>[]
+          }
+          delete: {
+            args: Prisma.DatabaseRestoreExecutionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>
+          }
+          update: {
+            args: Prisma.DatabaseRestoreExecutionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>
+          }
+          deleteMany: {
+            args: Prisma.DatabaseRestoreExecutionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DatabaseRestoreExecutionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DatabaseRestoreExecutionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>[]
+          }
+          upsert: {
+            args: Prisma.DatabaseRestoreExecutionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DatabaseRestoreExecutionPayload>
+          }
+          aggregate: {
+            args: Prisma.DatabaseRestoreExecutionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDatabaseRestoreExecution>
+          }
+          groupBy: {
+            args: Prisma.DatabaseRestoreExecutionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreExecutionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DatabaseRestoreExecutionCountArgs<ExtArgs>
+            result: $Utils.Optional<DatabaseRestoreExecutionCountAggregateOutputType> | number
+          }
+        }
+      }
       ScheduledTask: {
         payload: Prisma.$ScheduledTaskPayload<ExtArgs>
         fields: Prisma.ScheduledTaskFieldRefs
@@ -12667,6 +12758,7 @@ export namespace Prisma {
     databaseInstance?: DatabaseInstanceOmit
     databaseSnapshot?: DatabaseSnapshotOmit
     databaseRestore?: DatabaseRestoreOmit
+    databaseRestoreExecution?: DatabaseRestoreExecutionOmit
     scheduledTask?: ScheduledTaskOmit
     scheduledTaskRun?: ScheduledTaskRunOmit
     agentRoutingCard?: AgentRoutingCardOmit
@@ -134947,11 +135039,13 @@ export namespace Prisma {
   export type DatabaseInstanceAvgAggregateOutputType = {
     sizeBytes: number | null
     retentionDays: number | null
+    bindingVersion: number | null
   }
 
   export type DatabaseInstanceSumAggregateOutputType = {
     sizeBytes: bigint | null
     retentionDays: number | null
+    bindingVersion: number | null
   }
 
   export type DatabaseInstanceMinAggregateOutputType = {
@@ -134965,6 +135059,8 @@ export namespace Prisma {
     sizeBytes: bigint | null
     retentionDays: number | null
     pitrEnabled: boolean | null
+    activeTargetRef: string | null
+    bindingVersion: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -134980,6 +135076,8 @@ export namespace Prisma {
     sizeBytes: bigint | null
     retentionDays: number | null
     pitrEnabled: boolean | null
+    activeTargetRef: string | null
+    bindingVersion: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -134995,6 +135093,8 @@ export namespace Prisma {
     sizeBytes: number
     retentionDays: number
     pitrEnabled: number
+    activeTargetRef: number
+    bindingVersion: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -135004,11 +135104,13 @@ export namespace Prisma {
   export type DatabaseInstanceAvgAggregateInputType = {
     sizeBytes?: true
     retentionDays?: true
+    bindingVersion?: true
   }
 
   export type DatabaseInstanceSumAggregateInputType = {
     sizeBytes?: true
     retentionDays?: true
+    bindingVersion?: true
   }
 
   export type DatabaseInstanceMinAggregateInputType = {
@@ -135022,6 +135124,8 @@ export namespace Prisma {
     sizeBytes?: true
     retentionDays?: true
     pitrEnabled?: true
+    activeTargetRef?: true
+    bindingVersion?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -135037,6 +135141,8 @@ export namespace Prisma {
     sizeBytes?: true
     retentionDays?: true
     pitrEnabled?: true
+    activeTargetRef?: true
+    bindingVersion?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -135052,6 +135158,8 @@ export namespace Prisma {
     sizeBytes?: true
     retentionDays?: true
     pitrEnabled?: true
+    activeTargetRef?: true
+    bindingVersion?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -135154,6 +135262,8 @@ export namespace Prisma {
     sizeBytes: bigint
     retentionDays: number
     pitrEnabled: boolean
+    activeTargetRef: string | null
+    bindingVersion: number
     createdAt: Date
     updatedAt: Date
     _count: DatabaseInstanceCountAggregateOutputType | null
@@ -135188,6 +135298,8 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    activeTargetRef?: boolean
+    bindingVersion?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -135207,6 +135319,8 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    activeTargetRef?: boolean
+    bindingVersion?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -135223,6 +135337,8 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    activeTargetRef?: boolean
+    bindingVersion?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -135239,11 +135355,13 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    activeTargetRef?: boolean
+    bindingVersion?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
+  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "activeTargetRef" | "bindingVersion" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
   export type DatabaseInstanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
@@ -135275,6 +135393,11 @@ export namespace Prisma {
       sizeBytes: bigint
       retentionDays: number
       pitrEnabled: boolean
+      /**
+       * Restore cutover identity; legacy instances retain their original provider target.
+       */
+      activeTargetRef: string | null
+      bindingVersion: number
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["databaseInstance"]>
@@ -135713,6 +135836,8 @@ export namespace Prisma {
     readonly sizeBytes: FieldRef<"DatabaseInstance", 'BigInt'>
     readonly retentionDays: FieldRef<"DatabaseInstance", 'Int'>
     readonly pitrEnabled: FieldRef<"DatabaseInstance", 'Boolean'>
+    readonly activeTargetRef: FieldRef<"DatabaseInstance", 'String'>
+    readonly bindingVersion: FieldRef<"DatabaseInstance", 'Int'>
     readonly createdAt: FieldRef<"DatabaseInstance", 'DateTime'>
     readonly updatedAt: FieldRef<"DatabaseInstance", 'DateTime'>
   }
@@ -137549,6 +137674,7 @@ export namespace Prisma {
     startedAt?: boolean
     completedAt?: boolean
     databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+    execution?: boolean | DatabaseRestore$executionArgs<ExtArgs>
   }, ExtArgs["result"]["databaseRestore"]>
 
   export type DatabaseRestoreSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -137595,6 +137721,7 @@ export namespace Prisma {
   export type DatabaseRestoreOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "databaseInstanceId" | "snapshotId" | "targetTimestamp" | "status" | "requestedByUserId" | "error" | "createdAt" | "startedAt" | "completedAt", ExtArgs["result"]["databaseRestore"]>
   export type DatabaseRestoreInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
+    execution?: boolean | DatabaseRestore$executionArgs<ExtArgs>
   }
   export type DatabaseRestoreIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     databaseInstance?: boolean | DatabaseInstanceDefaultArgs<ExtArgs>
@@ -137607,6 +137734,7 @@ export namespace Prisma {
     name: "DatabaseRestore"
     objects: {
       databaseInstance: Prisma.$DatabaseInstancePayload<ExtArgs>
+      execution: Prisma.$DatabaseRestoreExecutionPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -138014,6 +138142,7 @@ export namespace Prisma {
   export interface Prisma__DatabaseRestoreClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     databaseInstance<T extends DatabaseInstanceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseInstanceDefaultArgs<ExtArgs>>): Prisma__DatabaseInstanceClient<$Result.GetResult<Prisma.$DatabaseInstancePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    execution<T extends DatabaseRestore$executionArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseRestore$executionArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -138454,6 +138583,25 @@ export namespace Prisma {
   }
 
   /**
+   * DatabaseRestore.execution
+   */
+  export type DatabaseRestore$executionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    where?: DatabaseRestoreExecutionWhereInput
+  }
+
+  /**
    * DatabaseRestore without action
    */
   export type DatabaseRestoreDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -138469,6 +138617,1278 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DatabaseRestoreInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model DatabaseRestoreExecution
+   */
+
+  export type AggregateDatabaseRestoreExecution = {
+    _count: DatabaseRestoreExecutionCountAggregateOutputType | null
+    _avg: DatabaseRestoreExecutionAvgAggregateOutputType | null
+    _sum: DatabaseRestoreExecutionSumAggregateOutputType | null
+    _min: DatabaseRestoreExecutionMinAggregateOutputType | null
+    _max: DatabaseRestoreExecutionMaxAggregateOutputType | null
+  }
+
+  export type DatabaseRestoreExecutionAvgAggregateOutputType = {
+    expectedBindingVersion: number | null
+    appliedBindingVersion: number | null
+  }
+
+  export type DatabaseRestoreExecutionSumAggregateOutputType = {
+    expectedBindingVersion: number | null
+    appliedBindingVersion: number | null
+  }
+
+  export type DatabaseRestoreExecutionMinAggregateOutputType = {
+    restoreId: string | null
+    activeLock: string | null
+    phase: string | null
+    resumePhase: string | null
+    runnerToken: string | null
+    expectedBindingVersion: number | null
+    appliedBindingVersion: number | null
+    sourceTargetRef: string | null
+    originalSecretEncrypted: string | null
+    targetId: string | null
+    targetConnectionEncrypted: string | null
+    failureCode: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DatabaseRestoreExecutionMaxAggregateOutputType = {
+    restoreId: string | null
+    activeLock: string | null
+    phase: string | null
+    resumePhase: string | null
+    runnerToken: string | null
+    expectedBindingVersion: number | null
+    appliedBindingVersion: number | null
+    sourceTargetRef: string | null
+    originalSecretEncrypted: string | null
+    targetId: string | null
+    targetConnectionEncrypted: string | null
+    failureCode: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DatabaseRestoreExecutionCountAggregateOutputType = {
+    restoreId: number
+    activeLock: number
+    phase: number
+    resumePhase: number
+    runnerToken: number
+    expectedBindingVersion: number
+    appliedBindingVersion: number
+    sourceTargetRef: number
+    originalSecretEncrypted: number
+    targetId: number
+    targetConnectionEncrypted: number
+    snapshot: number
+    archive: number
+    target: number
+    quiescence: number
+    readback: number
+    release: number
+    failureCode: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type DatabaseRestoreExecutionAvgAggregateInputType = {
+    expectedBindingVersion?: true
+    appliedBindingVersion?: true
+  }
+
+  export type DatabaseRestoreExecutionSumAggregateInputType = {
+    expectedBindingVersion?: true
+    appliedBindingVersion?: true
+  }
+
+  export type DatabaseRestoreExecutionMinAggregateInputType = {
+    restoreId?: true
+    activeLock?: true
+    phase?: true
+    resumePhase?: true
+    runnerToken?: true
+    expectedBindingVersion?: true
+    appliedBindingVersion?: true
+    sourceTargetRef?: true
+    originalSecretEncrypted?: true
+    targetId?: true
+    targetConnectionEncrypted?: true
+    failureCode?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type DatabaseRestoreExecutionMaxAggregateInputType = {
+    restoreId?: true
+    activeLock?: true
+    phase?: true
+    resumePhase?: true
+    runnerToken?: true
+    expectedBindingVersion?: true
+    appliedBindingVersion?: true
+    sourceTargetRef?: true
+    originalSecretEncrypted?: true
+    targetId?: true
+    targetConnectionEncrypted?: true
+    failureCode?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type DatabaseRestoreExecutionCountAggregateInputType = {
+    restoreId?: true
+    activeLock?: true
+    phase?: true
+    resumePhase?: true
+    runnerToken?: true
+    expectedBindingVersion?: true
+    appliedBindingVersion?: true
+    sourceTargetRef?: true
+    originalSecretEncrypted?: true
+    targetId?: true
+    targetConnectionEncrypted?: true
+    snapshot?: true
+    archive?: true
+    target?: true
+    quiescence?: true
+    readback?: true
+    release?: true
+    failureCode?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type DatabaseRestoreExecutionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestoreExecution to aggregate.
+     */
+    where?: DatabaseRestoreExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreExecutions to fetch.
+     */
+    orderBy?: DatabaseRestoreExecutionOrderByWithRelationInput | DatabaseRestoreExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DatabaseRestoreExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DatabaseRestoreExecutions
+    **/
+    _count?: true | DatabaseRestoreExecutionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DatabaseRestoreExecutionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DatabaseRestoreExecutionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DatabaseRestoreExecutionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DatabaseRestoreExecutionMaxAggregateInputType
+  }
+
+  export type GetDatabaseRestoreExecutionAggregateType<T extends DatabaseRestoreExecutionAggregateArgs> = {
+        [P in keyof T & keyof AggregateDatabaseRestoreExecution]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDatabaseRestoreExecution[P]>
+      : GetScalarType<T[P], AggregateDatabaseRestoreExecution[P]>
+  }
+
+
+
+
+  export type DatabaseRestoreExecutionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DatabaseRestoreExecutionWhereInput
+    orderBy?: DatabaseRestoreExecutionOrderByWithAggregationInput | DatabaseRestoreExecutionOrderByWithAggregationInput[]
+    by: DatabaseRestoreExecutionScalarFieldEnum[] | DatabaseRestoreExecutionScalarFieldEnum
+    having?: DatabaseRestoreExecutionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DatabaseRestoreExecutionCountAggregateInputType | true
+    _avg?: DatabaseRestoreExecutionAvgAggregateInputType
+    _sum?: DatabaseRestoreExecutionSumAggregateInputType
+    _min?: DatabaseRestoreExecutionMinAggregateInputType
+    _max?: DatabaseRestoreExecutionMaxAggregateInputType
+  }
+
+  export type DatabaseRestoreExecutionGroupByOutputType = {
+    restoreId: string
+    activeLock: string | null
+    phase: string
+    resumePhase: string | null
+    runnerToken: string | null
+    expectedBindingVersion: number
+    appliedBindingVersion: number | null
+    sourceTargetRef: string | null
+    originalSecretEncrypted: string
+    targetId: string
+    targetConnectionEncrypted: string | null
+    snapshot: JsonValue | null
+    archive: JsonValue | null
+    target: JsonValue | null
+    quiescence: JsonValue | null
+    readback: JsonValue | null
+    release: JsonValue | null
+    failureCode: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: DatabaseRestoreExecutionCountAggregateOutputType | null
+    _avg: DatabaseRestoreExecutionAvgAggregateOutputType | null
+    _sum: DatabaseRestoreExecutionSumAggregateOutputType | null
+    _min: DatabaseRestoreExecutionMinAggregateOutputType | null
+    _max: DatabaseRestoreExecutionMaxAggregateOutputType | null
+  }
+
+  type GetDatabaseRestoreExecutionGroupByPayload<T extends DatabaseRestoreExecutionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DatabaseRestoreExecutionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DatabaseRestoreExecutionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DatabaseRestoreExecutionGroupByOutputType[P]>
+            : GetScalarType<T[P], DatabaseRestoreExecutionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DatabaseRestoreExecutionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restoreId?: boolean
+    activeLock?: boolean
+    phase?: boolean
+    resumePhase?: boolean
+    runnerToken?: boolean
+    expectedBindingVersion?: boolean
+    appliedBindingVersion?: boolean
+    sourceTargetRef?: boolean
+    originalSecretEncrypted?: boolean
+    targetId?: boolean
+    targetConnectionEncrypted?: boolean
+    snapshot?: boolean
+    archive?: boolean
+    target?: boolean
+    quiescence?: boolean
+    readback?: boolean
+    release?: boolean
+    failureCode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    restore?: boolean | DatabaseRestoreDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreExecution"]>
+
+  export type DatabaseRestoreExecutionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restoreId?: boolean
+    activeLock?: boolean
+    phase?: boolean
+    resumePhase?: boolean
+    runnerToken?: boolean
+    expectedBindingVersion?: boolean
+    appliedBindingVersion?: boolean
+    sourceTargetRef?: boolean
+    originalSecretEncrypted?: boolean
+    targetId?: boolean
+    targetConnectionEncrypted?: boolean
+    snapshot?: boolean
+    archive?: boolean
+    target?: boolean
+    quiescence?: boolean
+    readback?: boolean
+    release?: boolean
+    failureCode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    restore?: boolean | DatabaseRestoreDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreExecution"]>
+
+  export type DatabaseRestoreExecutionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    restoreId?: boolean
+    activeLock?: boolean
+    phase?: boolean
+    resumePhase?: boolean
+    runnerToken?: boolean
+    expectedBindingVersion?: boolean
+    appliedBindingVersion?: boolean
+    sourceTargetRef?: boolean
+    originalSecretEncrypted?: boolean
+    targetId?: boolean
+    targetConnectionEncrypted?: boolean
+    snapshot?: boolean
+    archive?: boolean
+    target?: boolean
+    quiescence?: boolean
+    readback?: boolean
+    release?: boolean
+    failureCode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    restore?: boolean | DatabaseRestoreDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["databaseRestoreExecution"]>
+
+  export type DatabaseRestoreExecutionSelectScalar = {
+    restoreId?: boolean
+    activeLock?: boolean
+    phase?: boolean
+    resumePhase?: boolean
+    runnerToken?: boolean
+    expectedBindingVersion?: boolean
+    appliedBindingVersion?: boolean
+    sourceTargetRef?: boolean
+    originalSecretEncrypted?: boolean
+    targetId?: boolean
+    targetConnectionEncrypted?: boolean
+    snapshot?: boolean
+    archive?: boolean
+    target?: boolean
+    quiescence?: boolean
+    readback?: boolean
+    release?: boolean
+    failureCode?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type DatabaseRestoreExecutionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"restoreId" | "activeLock" | "phase" | "resumePhase" | "runnerToken" | "expectedBindingVersion" | "appliedBindingVersion" | "sourceTargetRef" | "originalSecretEncrypted" | "targetId" | "targetConnectionEncrypted" | "snapshot" | "archive" | "target" | "quiescence" | "readback" | "release" | "failureCode" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseRestoreExecution"]>
+  export type DatabaseRestoreExecutionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restore?: boolean | DatabaseRestoreDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreExecutionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restore?: boolean | DatabaseRestoreDefaultArgs<ExtArgs>
+  }
+  export type DatabaseRestoreExecutionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    restore?: boolean | DatabaseRestoreDefaultArgs<ExtArgs>
+  }
+
+  export type $DatabaseRestoreExecutionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DatabaseRestoreExecution"
+    objects: {
+      restore: Prisma.$DatabaseRestorePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      restoreId: string
+      activeLock: string | null
+      phase: string
+      resumePhase: string | null
+      runnerToken: string | null
+      expectedBindingVersion: number
+      appliedBindingVersion: number | null
+      sourceTargetRef: string | null
+      originalSecretEncrypted: string
+      targetId: string
+      targetConnectionEncrypted: string | null
+      snapshot: Prisma.JsonValue | null
+      archive: Prisma.JsonValue | null
+      target: Prisma.JsonValue | null
+      quiescence: Prisma.JsonValue | null
+      readback: Prisma.JsonValue | null
+      release: Prisma.JsonValue | null
+      failureCode: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["databaseRestoreExecution"]>
+    composites: {}
+  }
+
+  type DatabaseRestoreExecutionGetPayload<S extends boolean | null | undefined | DatabaseRestoreExecutionDefaultArgs> = $Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload, S>
+
+  type DatabaseRestoreExecutionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DatabaseRestoreExecutionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DatabaseRestoreExecutionCountAggregateInputType | true
+    }
+
+  export interface DatabaseRestoreExecutionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DatabaseRestoreExecution'], meta: { name: 'DatabaseRestoreExecution' } }
+    /**
+     * Find zero or one DatabaseRestoreExecution that matches the filter.
+     * @param {DatabaseRestoreExecutionFindUniqueArgs} args - Arguments to find a DatabaseRestoreExecution
+     * @example
+     * // Get one DatabaseRestoreExecution
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DatabaseRestoreExecutionFindUniqueArgs>(args: SelectSubset<T, DatabaseRestoreExecutionFindUniqueArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DatabaseRestoreExecution that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DatabaseRestoreExecutionFindUniqueOrThrowArgs} args - Arguments to find a DatabaseRestoreExecution
+     * @example
+     * // Get one DatabaseRestoreExecution
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DatabaseRestoreExecutionFindUniqueOrThrowArgs>(args: SelectSubset<T, DatabaseRestoreExecutionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestoreExecution that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreExecutionFindFirstArgs} args - Arguments to find a DatabaseRestoreExecution
+     * @example
+     * // Get one DatabaseRestoreExecution
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DatabaseRestoreExecutionFindFirstArgs>(args?: SelectSubset<T, DatabaseRestoreExecutionFindFirstArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DatabaseRestoreExecution that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreExecutionFindFirstOrThrowArgs} args - Arguments to find a DatabaseRestoreExecution
+     * @example
+     * // Get one DatabaseRestoreExecution
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DatabaseRestoreExecutionFindFirstOrThrowArgs>(args?: SelectSubset<T, DatabaseRestoreExecutionFindFirstOrThrowArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DatabaseRestoreExecutions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreExecutionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DatabaseRestoreExecutions
+     * const databaseRestoreExecutions = await prisma.databaseRestoreExecution.findMany()
+     * 
+     * // Get first 10 DatabaseRestoreExecutions
+     * const databaseRestoreExecutions = await prisma.databaseRestoreExecution.findMany({ take: 10 })
+     * 
+     * // Only select the `restoreId`
+     * const databaseRestoreExecutionWithRestoreIdOnly = await prisma.databaseRestoreExecution.findMany({ select: { restoreId: true } })
+     * 
+     */
+    findMany<T extends DatabaseRestoreExecutionFindManyArgs>(args?: SelectSubset<T, DatabaseRestoreExecutionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DatabaseRestoreExecution.
+     * @param {DatabaseRestoreExecutionCreateArgs} args - Arguments to create a DatabaseRestoreExecution.
+     * @example
+     * // Create one DatabaseRestoreExecution
+     * const DatabaseRestoreExecution = await prisma.databaseRestoreExecution.create({
+     *   data: {
+     *     // ... data to create a DatabaseRestoreExecution
+     *   }
+     * })
+     * 
+     */
+    create<T extends DatabaseRestoreExecutionCreateArgs>(args: SelectSubset<T, DatabaseRestoreExecutionCreateArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DatabaseRestoreExecutions.
+     * @param {DatabaseRestoreExecutionCreateManyArgs} args - Arguments to create many DatabaseRestoreExecutions.
+     * @example
+     * // Create many DatabaseRestoreExecutions
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DatabaseRestoreExecutionCreateManyArgs>(args?: SelectSubset<T, DatabaseRestoreExecutionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DatabaseRestoreExecutions and returns the data saved in the database.
+     * @param {DatabaseRestoreExecutionCreateManyAndReturnArgs} args - Arguments to create many DatabaseRestoreExecutions.
+     * @example
+     * // Create many DatabaseRestoreExecutions
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DatabaseRestoreExecutions and only return the `restoreId`
+     * const databaseRestoreExecutionWithRestoreIdOnly = await prisma.databaseRestoreExecution.createManyAndReturn({
+     *   select: { restoreId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DatabaseRestoreExecutionCreateManyAndReturnArgs>(args?: SelectSubset<T, DatabaseRestoreExecutionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DatabaseRestoreExecution.
+     * @param {DatabaseRestoreExecutionDeleteArgs} args - Arguments to delete one DatabaseRestoreExecution.
+     * @example
+     * // Delete one DatabaseRestoreExecution
+     * const DatabaseRestoreExecution = await prisma.databaseRestoreExecution.delete({
+     *   where: {
+     *     // ... filter to delete one DatabaseRestoreExecution
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DatabaseRestoreExecutionDeleteArgs>(args: SelectSubset<T, DatabaseRestoreExecutionDeleteArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DatabaseRestoreExecution.
+     * @param {DatabaseRestoreExecutionUpdateArgs} args - Arguments to update one DatabaseRestoreExecution.
+     * @example
+     * // Update one DatabaseRestoreExecution
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DatabaseRestoreExecutionUpdateArgs>(args: SelectSubset<T, DatabaseRestoreExecutionUpdateArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DatabaseRestoreExecutions.
+     * @param {DatabaseRestoreExecutionDeleteManyArgs} args - Arguments to filter DatabaseRestoreExecutions to delete.
+     * @example
+     * // Delete a few DatabaseRestoreExecutions
+     * const { count } = await prisma.databaseRestoreExecution.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DatabaseRestoreExecutionDeleteManyArgs>(args?: SelectSubset<T, DatabaseRestoreExecutionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestoreExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreExecutionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DatabaseRestoreExecutions
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DatabaseRestoreExecutionUpdateManyArgs>(args: SelectSubset<T, DatabaseRestoreExecutionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DatabaseRestoreExecutions and returns the data updated in the database.
+     * @param {DatabaseRestoreExecutionUpdateManyAndReturnArgs} args - Arguments to update many DatabaseRestoreExecutions.
+     * @example
+     * // Update many DatabaseRestoreExecutions
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DatabaseRestoreExecutions and only return the `restoreId`
+     * const databaseRestoreExecutionWithRestoreIdOnly = await prisma.databaseRestoreExecution.updateManyAndReturn({
+     *   select: { restoreId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DatabaseRestoreExecutionUpdateManyAndReturnArgs>(args: SelectSubset<T, DatabaseRestoreExecutionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DatabaseRestoreExecution.
+     * @param {DatabaseRestoreExecutionUpsertArgs} args - Arguments to update or create a DatabaseRestoreExecution.
+     * @example
+     * // Update or create a DatabaseRestoreExecution
+     * const databaseRestoreExecution = await prisma.databaseRestoreExecution.upsert({
+     *   create: {
+     *     // ... data to create a DatabaseRestoreExecution
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DatabaseRestoreExecution we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DatabaseRestoreExecutionUpsertArgs>(args: SelectSubset<T, DatabaseRestoreExecutionUpsertArgs<ExtArgs>>): Prisma__DatabaseRestoreExecutionClient<$Result.GetResult<Prisma.$DatabaseRestoreExecutionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DatabaseRestoreExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreExecutionCountArgs} args - Arguments to filter DatabaseRestoreExecutions to count.
+     * @example
+     * // Count the number of DatabaseRestoreExecutions
+     * const count = await prisma.databaseRestoreExecution.count({
+     *   where: {
+     *     // ... the filter for the DatabaseRestoreExecutions we want to count
+     *   }
+     * })
+    **/
+    count<T extends DatabaseRestoreExecutionCountArgs>(
+      args?: Subset<T, DatabaseRestoreExecutionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DatabaseRestoreExecutionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DatabaseRestoreExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreExecutionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DatabaseRestoreExecutionAggregateArgs>(args: Subset<T, DatabaseRestoreExecutionAggregateArgs>): Prisma.PrismaPromise<GetDatabaseRestoreExecutionAggregateType<T>>
+
+    /**
+     * Group by DatabaseRestoreExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DatabaseRestoreExecutionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DatabaseRestoreExecutionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DatabaseRestoreExecutionGroupByArgs['orderBy'] }
+        : { orderBy?: DatabaseRestoreExecutionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DatabaseRestoreExecutionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDatabaseRestoreExecutionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DatabaseRestoreExecution model
+   */
+  readonly fields: DatabaseRestoreExecutionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DatabaseRestoreExecution.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DatabaseRestoreExecutionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    restore<T extends DatabaseRestoreDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DatabaseRestoreDefaultArgs<ExtArgs>>): Prisma__DatabaseRestoreClient<$Result.GetResult<Prisma.$DatabaseRestorePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DatabaseRestoreExecution model
+   */
+  interface DatabaseRestoreExecutionFieldRefs {
+    readonly restoreId: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly activeLock: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly phase: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly resumePhase: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly runnerToken: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly expectedBindingVersion: FieldRef<"DatabaseRestoreExecution", 'Int'>
+    readonly appliedBindingVersion: FieldRef<"DatabaseRestoreExecution", 'Int'>
+    readonly sourceTargetRef: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly originalSecretEncrypted: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly targetId: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly targetConnectionEncrypted: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly snapshot: FieldRef<"DatabaseRestoreExecution", 'Json'>
+    readonly archive: FieldRef<"DatabaseRestoreExecution", 'Json'>
+    readonly target: FieldRef<"DatabaseRestoreExecution", 'Json'>
+    readonly quiescence: FieldRef<"DatabaseRestoreExecution", 'Json'>
+    readonly readback: FieldRef<"DatabaseRestoreExecution", 'Json'>
+    readonly release: FieldRef<"DatabaseRestoreExecution", 'Json'>
+    readonly failureCode: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly createdAt: FieldRef<"DatabaseRestoreExecution", 'DateTime'>
+    readonly updatedAt: FieldRef<"DatabaseRestoreExecution", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DatabaseRestoreExecution findUnique
+   */
+  export type DatabaseRestoreExecutionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreExecution to fetch.
+     */
+    where: DatabaseRestoreExecutionWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreExecution findUniqueOrThrow
+   */
+  export type DatabaseRestoreExecutionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreExecution to fetch.
+     */
+    where: DatabaseRestoreExecutionWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreExecution findFirst
+   */
+  export type DatabaseRestoreExecutionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreExecution to fetch.
+     */
+    where?: DatabaseRestoreExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreExecutions to fetch.
+     */
+    orderBy?: DatabaseRestoreExecutionOrderByWithRelationInput | DatabaseRestoreExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestoreExecutions.
+     */
+    cursor?: DatabaseRestoreExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreExecutions.
+     */
+    distinct?: DatabaseRestoreExecutionScalarFieldEnum | DatabaseRestoreExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreExecution findFirstOrThrow
+   */
+  export type DatabaseRestoreExecutionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreExecution to fetch.
+     */
+    where?: DatabaseRestoreExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreExecutions to fetch.
+     */
+    orderBy?: DatabaseRestoreExecutionOrderByWithRelationInput | DatabaseRestoreExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DatabaseRestoreExecutions.
+     */
+    cursor?: DatabaseRestoreExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreExecutions.
+     */
+    distinct?: DatabaseRestoreExecutionScalarFieldEnum | DatabaseRestoreExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreExecution findMany
+   */
+  export type DatabaseRestoreExecutionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * Filter, which DatabaseRestoreExecutions to fetch.
+     */
+    where?: DatabaseRestoreExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DatabaseRestoreExecutions to fetch.
+     */
+    orderBy?: DatabaseRestoreExecutionOrderByWithRelationInput | DatabaseRestoreExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DatabaseRestoreExecutions.
+     */
+    cursor?: DatabaseRestoreExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DatabaseRestoreExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DatabaseRestoreExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DatabaseRestoreExecutions.
+     */
+    distinct?: DatabaseRestoreExecutionScalarFieldEnum | DatabaseRestoreExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DatabaseRestoreExecution create
+   */
+  export type DatabaseRestoreExecutionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a DatabaseRestoreExecution.
+     */
+    data: XOR<DatabaseRestoreExecutionCreateInput, DatabaseRestoreExecutionUncheckedCreateInput>
+  }
+
+  /**
+   * DatabaseRestoreExecution createMany
+   */
+  export type DatabaseRestoreExecutionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DatabaseRestoreExecutions.
+     */
+    data: DatabaseRestoreExecutionCreateManyInput | DatabaseRestoreExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DatabaseRestoreExecution createManyAndReturn
+   */
+  export type DatabaseRestoreExecutionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * The data used to create many DatabaseRestoreExecutions.
+     */
+    data: DatabaseRestoreExecutionCreateManyInput | DatabaseRestoreExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestoreExecution update
+   */
+  export type DatabaseRestoreExecutionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a DatabaseRestoreExecution.
+     */
+    data: XOR<DatabaseRestoreExecutionUpdateInput, DatabaseRestoreExecutionUncheckedUpdateInput>
+    /**
+     * Choose, which DatabaseRestoreExecution to update.
+     */
+    where: DatabaseRestoreExecutionWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreExecution updateMany
+   */
+  export type DatabaseRestoreExecutionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DatabaseRestoreExecutions.
+     */
+    data: XOR<DatabaseRestoreExecutionUpdateManyMutationInput, DatabaseRestoreExecutionUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestoreExecutions to update
+     */
+    where?: DatabaseRestoreExecutionWhereInput
+    /**
+     * Limit how many DatabaseRestoreExecutions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestoreExecution updateManyAndReturn
+   */
+  export type DatabaseRestoreExecutionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * The data used to update DatabaseRestoreExecutions.
+     */
+    data: XOR<DatabaseRestoreExecutionUpdateManyMutationInput, DatabaseRestoreExecutionUncheckedUpdateManyInput>
+    /**
+     * Filter which DatabaseRestoreExecutions to update
+     */
+    where?: DatabaseRestoreExecutionWhereInput
+    /**
+     * Limit how many DatabaseRestoreExecutions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * DatabaseRestoreExecution upsert
+   */
+  export type DatabaseRestoreExecutionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the DatabaseRestoreExecution to update in case it exists.
+     */
+    where: DatabaseRestoreExecutionWhereUniqueInput
+    /**
+     * In case the DatabaseRestoreExecution found by the `where` argument doesn't exist, create a new DatabaseRestoreExecution with this data.
+     */
+    create: XOR<DatabaseRestoreExecutionCreateInput, DatabaseRestoreExecutionUncheckedCreateInput>
+    /**
+     * In case the DatabaseRestoreExecution was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DatabaseRestoreExecutionUpdateInput, DatabaseRestoreExecutionUncheckedUpdateInput>
+  }
+
+  /**
+   * DatabaseRestoreExecution delete
+   */
+  export type DatabaseRestoreExecutionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
+    /**
+     * Filter which DatabaseRestoreExecution to delete.
+     */
+    where: DatabaseRestoreExecutionWhereUniqueInput
+  }
+
+  /**
+   * DatabaseRestoreExecution deleteMany
+   */
+  export type DatabaseRestoreExecutionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DatabaseRestoreExecutions to delete
+     */
+    where?: DatabaseRestoreExecutionWhereInput
+    /**
+     * Limit how many DatabaseRestoreExecutions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DatabaseRestoreExecution without action
+   */
+  export type DatabaseRestoreExecutionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DatabaseRestoreExecution
+     */
+    select?: DatabaseRestoreExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DatabaseRestoreExecution
+     */
+    omit?: DatabaseRestoreExecutionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DatabaseRestoreExecutionInclude<ExtArgs> | null
   }
 
 
@@ -162737,6 +164157,8 @@ export namespace Prisma {
     sizeBytes: 'sizeBytes',
     retentionDays: 'retentionDays',
     pitrEnabled: 'pitrEnabled',
+    activeTargetRef: 'activeTargetRef',
+    bindingVersion: 'bindingVersion',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -162774,6 +164196,32 @@ export namespace Prisma {
   };
 
   export type DatabaseRestoreScalarFieldEnum = (typeof DatabaseRestoreScalarFieldEnum)[keyof typeof DatabaseRestoreScalarFieldEnum]
+
+
+  export const DatabaseRestoreExecutionScalarFieldEnum: {
+    restoreId: 'restoreId',
+    activeLock: 'activeLock',
+    phase: 'phase',
+    resumePhase: 'resumePhase',
+    runnerToken: 'runnerToken',
+    expectedBindingVersion: 'expectedBindingVersion',
+    appliedBindingVersion: 'appliedBindingVersion',
+    sourceTargetRef: 'sourceTargetRef',
+    originalSecretEncrypted: 'originalSecretEncrypted',
+    targetId: 'targetId',
+    targetConnectionEncrypted: 'targetConnectionEncrypted',
+    snapshot: 'snapshot',
+    archive: 'archive',
+    target: 'target',
+    quiescence: 'quiescence',
+    readback: 'readback',
+    release: 'release',
+    failureCode: 'failureCode',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type DatabaseRestoreExecutionScalarFieldEnum = (typeof DatabaseRestoreExecutionScalarFieldEnum)[keyof typeof DatabaseRestoreExecutionScalarFieldEnum]
 
 
   export const ScheduledTaskScalarFieldEnum: {
@@ -171944,6 +173392,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    activeTargetRef?: StringNullableFilter<"DatabaseInstance"> | string | null
+    bindingVersion?: IntFilter<"DatabaseInstance"> | number
     createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
@@ -171962,6 +173412,8 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    activeTargetRef?: SortOrderInput | SortOrder
+    bindingVersion?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
@@ -171984,6 +173436,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    activeTargetRef?: StringNullableFilter<"DatabaseInstance"> | string | null
+    bindingVersion?: IntFilter<"DatabaseInstance"> | number
     createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
@@ -172002,6 +173456,8 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    activeTargetRef?: SortOrderInput | SortOrder
+    bindingVersion?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: DatabaseInstanceCountOrderByAggregateInput
@@ -172025,6 +173481,8 @@ export namespace Prisma {
     sizeBytes?: BigIntWithAggregatesFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntWithAggregatesFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolWithAggregatesFilter<"DatabaseInstance"> | boolean
+    activeTargetRef?: StringNullableWithAggregatesFilter<"DatabaseInstance"> | string | null
+    bindingVersion?: IntWithAggregatesFilter<"DatabaseInstance"> | number
     createdAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
   }
@@ -172126,6 +173584,7 @@ export namespace Prisma {
     startedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
     databaseInstance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+    execution?: XOR<DatabaseRestoreExecutionNullableScalarRelationFilter, DatabaseRestoreExecutionWhereInput> | null
   }
 
   export type DatabaseRestoreOrderByWithRelationInput = {
@@ -172140,6 +173599,7 @@ export namespace Prisma {
     startedAt?: SortOrderInput | SortOrder
     completedAt?: SortOrderInput | SortOrder
     databaseInstance?: DatabaseInstanceOrderByWithRelationInput
+    execution?: DatabaseRestoreExecutionOrderByWithRelationInput
   }
 
   export type DatabaseRestoreWhereUniqueInput = Prisma.AtLeast<{
@@ -172157,6 +173617,7 @@ export namespace Prisma {
     startedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"DatabaseRestore"> | Date | string | null
     databaseInstance?: XOR<DatabaseInstanceScalarRelationFilter, DatabaseInstanceWhereInput>
+    execution?: XOR<DatabaseRestoreExecutionNullableScalarRelationFilter, DatabaseRestoreExecutionWhereInput> | null
   }, "id">
 
   export type DatabaseRestoreOrderByWithAggregationInput = {
@@ -172189,6 +173650,138 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"DatabaseRestore"> | Date | string
     startedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
     completedAt?: DateTimeNullableWithAggregatesFilter<"DatabaseRestore"> | Date | string | null
+  }
+
+  export type DatabaseRestoreExecutionWhereInput = {
+    AND?: DatabaseRestoreExecutionWhereInput | DatabaseRestoreExecutionWhereInput[]
+    OR?: DatabaseRestoreExecutionWhereInput[]
+    NOT?: DatabaseRestoreExecutionWhereInput | DatabaseRestoreExecutionWhereInput[]
+    restoreId?: StringFilter<"DatabaseRestoreExecution"> | string
+    activeLock?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    phase?: StringFilter<"DatabaseRestoreExecution"> | string
+    resumePhase?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    runnerToken?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    expectedBindingVersion?: IntFilter<"DatabaseRestoreExecution"> | number
+    appliedBindingVersion?: IntNullableFilter<"DatabaseRestoreExecution"> | number | null
+    sourceTargetRef?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    originalSecretEncrypted?: StringFilter<"DatabaseRestoreExecution"> | string
+    targetId?: StringFilter<"DatabaseRestoreExecution"> | string
+    targetConnectionEncrypted?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    snapshot?: JsonNullableFilter<"DatabaseRestoreExecution">
+    archive?: JsonNullableFilter<"DatabaseRestoreExecution">
+    target?: JsonNullableFilter<"DatabaseRestoreExecution">
+    quiescence?: JsonNullableFilter<"DatabaseRestoreExecution">
+    readback?: JsonNullableFilter<"DatabaseRestoreExecution">
+    release?: JsonNullableFilter<"DatabaseRestoreExecution">
+    failureCode?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestoreExecution"> | Date | string
+    updatedAt?: DateTimeFilter<"DatabaseRestoreExecution"> | Date | string
+    restore?: XOR<DatabaseRestoreScalarRelationFilter, DatabaseRestoreWhereInput>
+  }
+
+  export type DatabaseRestoreExecutionOrderByWithRelationInput = {
+    restoreId?: SortOrder
+    activeLock?: SortOrderInput | SortOrder
+    phase?: SortOrder
+    resumePhase?: SortOrderInput | SortOrder
+    runnerToken?: SortOrderInput | SortOrder
+    expectedBindingVersion?: SortOrder
+    appliedBindingVersion?: SortOrderInput | SortOrder
+    sourceTargetRef?: SortOrderInput | SortOrder
+    originalSecretEncrypted?: SortOrder
+    targetId?: SortOrder
+    targetConnectionEncrypted?: SortOrderInput | SortOrder
+    snapshot?: SortOrderInput | SortOrder
+    archive?: SortOrderInput | SortOrder
+    target?: SortOrderInput | SortOrder
+    quiescence?: SortOrderInput | SortOrder
+    readback?: SortOrderInput | SortOrder
+    release?: SortOrderInput | SortOrder
+    failureCode?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    restore?: DatabaseRestoreOrderByWithRelationInput
+  }
+
+  export type DatabaseRestoreExecutionWhereUniqueInput = Prisma.AtLeast<{
+    restoreId?: string
+    activeLock?: string
+    targetId?: string
+    AND?: DatabaseRestoreExecutionWhereInput | DatabaseRestoreExecutionWhereInput[]
+    OR?: DatabaseRestoreExecutionWhereInput[]
+    NOT?: DatabaseRestoreExecutionWhereInput | DatabaseRestoreExecutionWhereInput[]
+    phase?: StringFilter<"DatabaseRestoreExecution"> | string
+    resumePhase?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    runnerToken?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    expectedBindingVersion?: IntFilter<"DatabaseRestoreExecution"> | number
+    appliedBindingVersion?: IntNullableFilter<"DatabaseRestoreExecution"> | number | null
+    sourceTargetRef?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    originalSecretEncrypted?: StringFilter<"DatabaseRestoreExecution"> | string
+    targetConnectionEncrypted?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    snapshot?: JsonNullableFilter<"DatabaseRestoreExecution">
+    archive?: JsonNullableFilter<"DatabaseRestoreExecution">
+    target?: JsonNullableFilter<"DatabaseRestoreExecution">
+    quiescence?: JsonNullableFilter<"DatabaseRestoreExecution">
+    readback?: JsonNullableFilter<"DatabaseRestoreExecution">
+    release?: JsonNullableFilter<"DatabaseRestoreExecution">
+    failureCode?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    createdAt?: DateTimeFilter<"DatabaseRestoreExecution"> | Date | string
+    updatedAt?: DateTimeFilter<"DatabaseRestoreExecution"> | Date | string
+    restore?: XOR<DatabaseRestoreScalarRelationFilter, DatabaseRestoreWhereInput>
+  }, "restoreId" | "activeLock" | "targetId">
+
+  export type DatabaseRestoreExecutionOrderByWithAggregationInput = {
+    restoreId?: SortOrder
+    activeLock?: SortOrderInput | SortOrder
+    phase?: SortOrder
+    resumePhase?: SortOrderInput | SortOrder
+    runnerToken?: SortOrderInput | SortOrder
+    expectedBindingVersion?: SortOrder
+    appliedBindingVersion?: SortOrderInput | SortOrder
+    sourceTargetRef?: SortOrderInput | SortOrder
+    originalSecretEncrypted?: SortOrder
+    targetId?: SortOrder
+    targetConnectionEncrypted?: SortOrderInput | SortOrder
+    snapshot?: SortOrderInput | SortOrder
+    archive?: SortOrderInput | SortOrder
+    target?: SortOrderInput | SortOrder
+    quiescence?: SortOrderInput | SortOrder
+    readback?: SortOrderInput | SortOrder
+    release?: SortOrderInput | SortOrder
+    failureCode?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: DatabaseRestoreExecutionCountOrderByAggregateInput
+    _avg?: DatabaseRestoreExecutionAvgOrderByAggregateInput
+    _max?: DatabaseRestoreExecutionMaxOrderByAggregateInput
+    _min?: DatabaseRestoreExecutionMinOrderByAggregateInput
+    _sum?: DatabaseRestoreExecutionSumOrderByAggregateInput
+  }
+
+  export type DatabaseRestoreExecutionScalarWhereWithAggregatesInput = {
+    AND?: DatabaseRestoreExecutionScalarWhereWithAggregatesInput | DatabaseRestoreExecutionScalarWhereWithAggregatesInput[]
+    OR?: DatabaseRestoreExecutionScalarWhereWithAggregatesInput[]
+    NOT?: DatabaseRestoreExecutionScalarWhereWithAggregatesInput | DatabaseRestoreExecutionScalarWhereWithAggregatesInput[]
+    restoreId?: StringWithAggregatesFilter<"DatabaseRestoreExecution"> | string
+    activeLock?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
+    phase?: StringWithAggregatesFilter<"DatabaseRestoreExecution"> | string
+    resumePhase?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
+    runnerToken?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
+    expectedBindingVersion?: IntWithAggregatesFilter<"DatabaseRestoreExecution"> | number
+    appliedBindingVersion?: IntNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | number | null
+    sourceTargetRef?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
+    originalSecretEncrypted?: StringWithAggregatesFilter<"DatabaseRestoreExecution"> | string
+    targetId?: StringWithAggregatesFilter<"DatabaseRestoreExecution"> | string
+    targetConnectionEncrypted?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
+    snapshot?: JsonNullableWithAggregatesFilter<"DatabaseRestoreExecution">
+    archive?: JsonNullableWithAggregatesFilter<"DatabaseRestoreExecution">
+    target?: JsonNullableWithAggregatesFilter<"DatabaseRestoreExecution">
+    quiescence?: JsonNullableWithAggregatesFilter<"DatabaseRestoreExecution">
+    readback?: JsonNullableWithAggregatesFilter<"DatabaseRestoreExecution">
+    release?: JsonNullableWithAggregatesFilter<"DatabaseRestoreExecution">
+    failureCode?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"DatabaseRestoreExecution"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"DatabaseRestoreExecution"> | Date | string
   }
 
   export type ScheduledTaskWhereInput = {
@@ -183157,6 +184750,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
@@ -183175,6 +184770,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -183191,6 +184788,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
@@ -183209,6 +184808,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
@@ -183226,6 +184827,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -183240,6 +184843,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -183255,6 +184860,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -183360,6 +184967,7 @@ export namespace Prisma {
     startedAt?: Date | string | null
     completedAt?: Date | string | null
     databaseInstance: DatabaseInstanceCreateNestedOneWithoutRestoresInput
+    execution?: DatabaseRestoreExecutionCreateNestedOneWithoutRestoreInput
   }
 
   export type DatabaseRestoreUncheckedCreateInput = {
@@ -183373,6 +184981,7 @@ export namespace Prisma {
     createdAt?: Date | string
     startedAt?: Date | string | null
     completedAt?: Date | string | null
+    execution?: DatabaseRestoreExecutionUncheckedCreateNestedOneWithoutRestoreInput
   }
 
   export type DatabaseRestoreUpdateInput = {
@@ -183386,6 +184995,7 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     databaseInstance?: DatabaseInstanceUpdateOneRequiredWithoutRestoresNestedInput
+    execution?: DatabaseRestoreExecutionUpdateOneWithoutRestoreNestedInput
   }
 
   export type DatabaseRestoreUncheckedUpdateInput = {
@@ -183399,6 +185009,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    execution?: DatabaseRestoreExecutionUncheckedUpdateOneWithoutRestoreNestedInput
   }
 
   export type DatabaseRestoreCreateManyInput = {
@@ -183437,6 +185048,166 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type DatabaseRestoreExecutionCreateInput = {
+    activeLock?: string | null
+    phase?: string
+    resumePhase?: string | null
+    runnerToken?: string | null
+    expectedBindingVersion: number
+    appliedBindingVersion?: number | null
+    sourceTargetRef?: string | null
+    originalSecretEncrypted: string
+    targetId: string
+    targetConnectionEncrypted?: string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    restore: DatabaseRestoreCreateNestedOneWithoutExecutionInput
+  }
+
+  export type DatabaseRestoreExecutionUncheckedCreateInput = {
+    restoreId: string
+    activeLock?: string | null
+    phase?: string
+    resumePhase?: string | null
+    runnerToken?: string | null
+    expectedBindingVersion: number
+    appliedBindingVersion?: number | null
+    sourceTargetRef?: string | null
+    originalSecretEncrypted: string
+    targetId: string
+    targetConnectionEncrypted?: string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DatabaseRestoreExecutionUpdateInput = {
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    phase?: StringFieldUpdateOperationsInput | string
+    resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
+    runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBindingVersion?: IntFieldUpdateOperationsInput | number
+    appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    originalSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    targetId?: StringFieldUpdateOperationsInput | string
+    targetConnectionEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    restore?: DatabaseRestoreUpdateOneRequiredWithoutExecutionNestedInput
+  }
+
+  export type DatabaseRestoreExecutionUncheckedUpdateInput = {
+    restoreId?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    phase?: StringFieldUpdateOperationsInput | string
+    resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
+    runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBindingVersion?: IntFieldUpdateOperationsInput | number
+    appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    originalSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    targetId?: StringFieldUpdateOperationsInput | string
+    targetConnectionEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreExecutionCreateManyInput = {
+    restoreId: string
+    activeLock?: string | null
+    phase?: string
+    resumePhase?: string | null
+    runnerToken?: string | null
+    expectedBindingVersion: number
+    appliedBindingVersion?: number | null
+    sourceTargetRef?: string | null
+    originalSecretEncrypted: string
+    targetId: string
+    targetConnectionEncrypted?: string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DatabaseRestoreExecutionUpdateManyMutationInput = {
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    phase?: StringFieldUpdateOperationsInput | string
+    resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
+    runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBindingVersion?: IntFieldUpdateOperationsInput | number
+    appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    originalSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    targetId?: StringFieldUpdateOperationsInput | string
+    targetConnectionEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreExecutionUncheckedUpdateManyInput = {
+    restoreId?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    phase?: StringFieldUpdateOperationsInput | string
+    resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
+    runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBindingVersion?: IntFieldUpdateOperationsInput | number
+    appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    originalSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    targetId?: StringFieldUpdateOperationsInput | string
+    targetConnectionEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ScheduledTaskCreateInput = {
@@ -191235,6 +193006,8 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    activeTargetRef?: SortOrder
+    bindingVersion?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -191242,6 +193015,7 @@ export namespace Prisma {
   export type DatabaseInstanceAvgOrderByAggregateInput = {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
+    bindingVersion?: SortOrder
   }
 
   export type DatabaseInstanceMaxOrderByAggregateInput = {
@@ -191255,6 +193029,8 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    activeTargetRef?: SortOrder
+    bindingVersion?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -191270,6 +193046,8 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    activeTargetRef?: SortOrder
+    bindingVersion?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -191277,6 +193055,7 @@ export namespace Prisma {
   export type DatabaseInstanceSumOrderByAggregateInput = {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
+    bindingVersion?: SortOrder
   }
 
   export type EnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -191364,6 +193143,11 @@ export namespace Prisma {
     not?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel> | $Enums.DatabaseRestoreStatus
   }
 
+  export type DatabaseRestoreExecutionNullableScalarRelationFilter = {
+    is?: DatabaseRestoreExecutionWhereInput | null
+    isNot?: DatabaseRestoreExecutionWhereInput | null
+  }
+
   export type DatabaseRestoreCountOrderByAggregateInput = {
     id?: SortOrder
     databaseInstanceId?: SortOrder
@@ -191411,6 +193195,78 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
     _max?: NestedEnumDatabaseRestoreStatusFilter<$PrismaModel>
+  }
+
+  export type DatabaseRestoreScalarRelationFilter = {
+    is?: DatabaseRestoreWhereInput
+    isNot?: DatabaseRestoreWhereInput
+  }
+
+  export type DatabaseRestoreExecutionCountOrderByAggregateInput = {
+    restoreId?: SortOrder
+    activeLock?: SortOrder
+    phase?: SortOrder
+    resumePhase?: SortOrder
+    runnerToken?: SortOrder
+    expectedBindingVersion?: SortOrder
+    appliedBindingVersion?: SortOrder
+    sourceTargetRef?: SortOrder
+    originalSecretEncrypted?: SortOrder
+    targetId?: SortOrder
+    targetConnectionEncrypted?: SortOrder
+    snapshot?: SortOrder
+    archive?: SortOrder
+    target?: SortOrder
+    quiescence?: SortOrder
+    readback?: SortOrder
+    release?: SortOrder
+    failureCode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DatabaseRestoreExecutionAvgOrderByAggregateInput = {
+    expectedBindingVersion?: SortOrder
+    appliedBindingVersion?: SortOrder
+  }
+
+  export type DatabaseRestoreExecutionMaxOrderByAggregateInput = {
+    restoreId?: SortOrder
+    activeLock?: SortOrder
+    phase?: SortOrder
+    resumePhase?: SortOrder
+    runnerToken?: SortOrder
+    expectedBindingVersion?: SortOrder
+    appliedBindingVersion?: SortOrder
+    sourceTargetRef?: SortOrder
+    originalSecretEncrypted?: SortOrder
+    targetId?: SortOrder
+    targetConnectionEncrypted?: SortOrder
+    failureCode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DatabaseRestoreExecutionMinOrderByAggregateInput = {
+    restoreId?: SortOrder
+    activeLock?: SortOrder
+    phase?: SortOrder
+    resumePhase?: SortOrder
+    runnerToken?: SortOrder
+    expectedBindingVersion?: SortOrder
+    appliedBindingVersion?: SortOrder
+    sourceTargetRef?: SortOrder
+    originalSecretEncrypted?: SortOrder
+    targetId?: SortOrder
+    targetConnectionEncrypted?: SortOrder
+    failureCode?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DatabaseRestoreExecutionSumOrderByAggregateInput = {
+    expectedBindingVersion?: SortOrder
+    appliedBindingVersion?: SortOrder
   }
 
   export type EnumScheduledTaskKindFilter<$PrismaModel = never> = {
@@ -199475,6 +201331,18 @@ export namespace Prisma {
     connect?: DatabaseInstanceWhereUniqueInput
   }
 
+  export type DatabaseRestoreExecutionCreateNestedOneWithoutRestoreInput = {
+    create?: XOR<DatabaseRestoreExecutionCreateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedCreateWithoutRestoreInput>
+    connectOrCreate?: DatabaseRestoreExecutionCreateOrConnectWithoutRestoreInput
+    connect?: DatabaseRestoreExecutionWhereUniqueInput
+  }
+
+  export type DatabaseRestoreExecutionUncheckedCreateNestedOneWithoutRestoreInput = {
+    create?: XOR<DatabaseRestoreExecutionCreateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedCreateWithoutRestoreInput>
+    connectOrCreate?: DatabaseRestoreExecutionCreateOrConnectWithoutRestoreInput
+    connect?: DatabaseRestoreExecutionWhereUniqueInput
+  }
+
   export type EnumDatabaseRestoreStatusFieldUpdateOperationsInput = {
     set?: $Enums.DatabaseRestoreStatus
   }
@@ -199485,6 +201353,40 @@ export namespace Prisma {
     upsert?: DatabaseInstanceUpsertWithoutRestoresInput
     connect?: DatabaseInstanceWhereUniqueInput
     update?: XOR<XOR<DatabaseInstanceUpdateToOneWithWhereWithoutRestoresInput, DatabaseInstanceUpdateWithoutRestoresInput>, DatabaseInstanceUncheckedUpdateWithoutRestoresInput>
+  }
+
+  export type DatabaseRestoreExecutionUpdateOneWithoutRestoreNestedInput = {
+    create?: XOR<DatabaseRestoreExecutionCreateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedCreateWithoutRestoreInput>
+    connectOrCreate?: DatabaseRestoreExecutionCreateOrConnectWithoutRestoreInput
+    upsert?: DatabaseRestoreExecutionUpsertWithoutRestoreInput
+    disconnect?: DatabaseRestoreExecutionWhereInput | boolean
+    delete?: DatabaseRestoreExecutionWhereInput | boolean
+    connect?: DatabaseRestoreExecutionWhereUniqueInput
+    update?: XOR<XOR<DatabaseRestoreExecutionUpdateToOneWithWhereWithoutRestoreInput, DatabaseRestoreExecutionUpdateWithoutRestoreInput>, DatabaseRestoreExecutionUncheckedUpdateWithoutRestoreInput>
+  }
+
+  export type DatabaseRestoreExecutionUncheckedUpdateOneWithoutRestoreNestedInput = {
+    create?: XOR<DatabaseRestoreExecutionCreateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedCreateWithoutRestoreInput>
+    connectOrCreate?: DatabaseRestoreExecutionCreateOrConnectWithoutRestoreInput
+    upsert?: DatabaseRestoreExecutionUpsertWithoutRestoreInput
+    disconnect?: DatabaseRestoreExecutionWhereInput | boolean
+    delete?: DatabaseRestoreExecutionWhereInput | boolean
+    connect?: DatabaseRestoreExecutionWhereUniqueInput
+    update?: XOR<XOR<DatabaseRestoreExecutionUpdateToOneWithWhereWithoutRestoreInput, DatabaseRestoreExecutionUpdateWithoutRestoreInput>, DatabaseRestoreExecutionUncheckedUpdateWithoutRestoreInput>
+  }
+
+  export type DatabaseRestoreCreateNestedOneWithoutExecutionInput = {
+    create?: XOR<DatabaseRestoreCreateWithoutExecutionInput, DatabaseRestoreUncheckedCreateWithoutExecutionInput>
+    connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutExecutionInput
+    connect?: DatabaseRestoreWhereUniqueInput
+  }
+
+  export type DatabaseRestoreUpdateOneRequiredWithoutExecutionNestedInput = {
+    create?: XOR<DatabaseRestoreCreateWithoutExecutionInput, DatabaseRestoreUncheckedCreateWithoutExecutionInput>
+    connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutExecutionInput
+    upsert?: DatabaseRestoreUpsertWithoutExecutionInput
+    connect?: DatabaseRestoreWhereUniqueInput
+    update?: XOR<XOR<DatabaseRestoreUpdateToOneWithWhereWithoutExecutionInput, DatabaseRestoreUpdateWithoutExecutionInput>, DatabaseRestoreUncheckedUpdateWithoutExecutionInput>
   }
 
   export type ScheduledTaskRunCreateNestedManyWithoutTaskInput = {
@@ -207032,6 +208934,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
@@ -207048,6 +208952,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -207750,6 +209656,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    activeTargetRef?: StringNullableFilter<"DatabaseInstance"> | string | null
+    bindingVersion?: IntFilter<"DatabaseInstance"> | number
     createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
   }
@@ -226702,6 +228610,7 @@ export namespace Prisma {
     createdAt?: Date | string
     startedAt?: Date | string | null
     completedAt?: Date | string | null
+    execution?: DatabaseRestoreExecutionCreateNestedOneWithoutRestoreInput
   }
 
   export type DatabaseRestoreUncheckedCreateWithoutDatabaseInstanceInput = {
@@ -226714,6 +228623,7 @@ export namespace Prisma {
     createdAt?: Date | string
     startedAt?: Date | string | null
     completedAt?: Date | string | null
+    execution?: DatabaseRestoreExecutionUncheckedCreateNestedOneWithoutRestoreInput
   }
 
   export type DatabaseRestoreCreateOrConnectWithoutDatabaseInstanceInput = {
@@ -226897,6 +228807,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
@@ -226914,6 +228826,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -226945,6 +228859,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
@@ -226962,6 +228878,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
@@ -226977,6 +228895,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
@@ -226994,6 +228914,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -227002,6 +228924,55 @@ export namespace Prisma {
   export type DatabaseInstanceCreateOrConnectWithoutRestoresInput = {
     where: DatabaseInstanceWhereUniqueInput
     create: XOR<DatabaseInstanceCreateWithoutRestoresInput, DatabaseInstanceUncheckedCreateWithoutRestoresInput>
+  }
+
+  export type DatabaseRestoreExecutionCreateWithoutRestoreInput = {
+    activeLock?: string | null
+    phase?: string
+    resumePhase?: string | null
+    runnerToken?: string | null
+    expectedBindingVersion: number
+    appliedBindingVersion?: number | null
+    sourceTargetRef?: string | null
+    originalSecretEncrypted: string
+    targetId: string
+    targetConnectionEncrypted?: string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DatabaseRestoreExecutionUncheckedCreateWithoutRestoreInput = {
+    activeLock?: string | null
+    phase?: string
+    resumePhase?: string | null
+    runnerToken?: string | null
+    expectedBindingVersion: number
+    appliedBindingVersion?: number | null
+    sourceTargetRef?: string | null
+    originalSecretEncrypted: string
+    targetId: string
+    targetConnectionEncrypted?: string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type DatabaseRestoreExecutionCreateOrConnectWithoutRestoreInput = {
+    where: DatabaseRestoreExecutionWhereUniqueInput
+    create: XOR<DatabaseRestoreExecutionCreateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedCreateWithoutRestoreInput>
   }
 
   export type DatabaseInstanceUpsertWithoutRestoresInput = {
@@ -227025,6 +228996,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
@@ -227042,9 +229015,134 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
+  }
+
+  export type DatabaseRestoreExecutionUpsertWithoutRestoreInput = {
+    update: XOR<DatabaseRestoreExecutionUpdateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedUpdateWithoutRestoreInput>
+    create: XOR<DatabaseRestoreExecutionCreateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedCreateWithoutRestoreInput>
+    where?: DatabaseRestoreExecutionWhereInput
+  }
+
+  export type DatabaseRestoreExecutionUpdateToOneWithWhereWithoutRestoreInput = {
+    where?: DatabaseRestoreExecutionWhereInput
+    data: XOR<DatabaseRestoreExecutionUpdateWithoutRestoreInput, DatabaseRestoreExecutionUncheckedUpdateWithoutRestoreInput>
+  }
+
+  export type DatabaseRestoreExecutionUpdateWithoutRestoreInput = {
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    phase?: StringFieldUpdateOperationsInput | string
+    resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
+    runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBindingVersion?: IntFieldUpdateOperationsInput | number
+    appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    originalSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    targetId?: StringFieldUpdateOperationsInput | string
+    targetConnectionEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreExecutionUncheckedUpdateWithoutRestoreInput = {
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    phase?: StringFieldUpdateOperationsInput | string
+    resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
+    runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    expectedBindingVersion?: IntFieldUpdateOperationsInput | number
+    appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
+    sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    originalSecretEncrypted?: StringFieldUpdateOperationsInput | string
+    targetId?: StringFieldUpdateOperationsInput | string
+    targetConnectionEncrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    snapshot?: NullableJsonNullValueInput | InputJsonValue
+    archive?: NullableJsonNullValueInput | InputJsonValue
+    target?: NullableJsonNullValueInput | InputJsonValue
+    quiescence?: NullableJsonNullValueInput | InputJsonValue
+    readback?: NullableJsonNullValueInput | InputJsonValue
+    release?: NullableJsonNullValueInput | InputJsonValue
+    failureCode?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DatabaseRestoreCreateWithoutExecutionInput = {
+    id?: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    databaseInstance: DatabaseInstanceCreateNestedOneWithoutRestoresInput
+  }
+
+  export type DatabaseRestoreUncheckedCreateWithoutExecutionInput = {
+    id?: string
+    databaseInstanceId: string
+    snapshotId?: string | null
+    targetTimestamp?: Date | string | null
+    status?: $Enums.DatabaseRestoreStatus
+    requestedByUserId?: string | null
+    error?: string | null
+    createdAt?: Date | string
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+  }
+
+  export type DatabaseRestoreCreateOrConnectWithoutExecutionInput = {
+    where: DatabaseRestoreWhereUniqueInput
+    create: XOR<DatabaseRestoreCreateWithoutExecutionInput, DatabaseRestoreUncheckedCreateWithoutExecutionInput>
+  }
+
+  export type DatabaseRestoreUpsertWithoutExecutionInput = {
+    update: XOR<DatabaseRestoreUpdateWithoutExecutionInput, DatabaseRestoreUncheckedUpdateWithoutExecutionInput>
+    create: XOR<DatabaseRestoreCreateWithoutExecutionInput, DatabaseRestoreUncheckedCreateWithoutExecutionInput>
+    where?: DatabaseRestoreWhereInput
+  }
+
+  export type DatabaseRestoreUpdateToOneWithWhereWithoutExecutionInput = {
+    where?: DatabaseRestoreWhereInput
+    data: XOR<DatabaseRestoreUpdateWithoutExecutionInput, DatabaseRestoreUncheckedUpdateWithoutExecutionInput>
+  }
+
+  export type DatabaseRestoreUpdateWithoutExecutionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    databaseInstance?: DatabaseInstanceUpdateOneRequiredWithoutRestoresNestedInput
+  }
+
+  export type DatabaseRestoreUncheckedUpdateWithoutExecutionInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    databaseInstanceId?: StringFieldUpdateOperationsInput | string
+    snapshotId?: NullableStringFieldUpdateOperationsInput | string | null
+    targetTimestamp?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    status?: EnumDatabaseRestoreStatusFieldUpdateOperationsInput | $Enums.DatabaseRestoreStatus
+    requestedByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScheduledTaskRunCreateWithoutTaskInput = {
@@ -231852,6 +233950,8 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    activeTargetRef?: string | null
+    bindingVersion?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -232663,6 +234763,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
@@ -232679,6 +234781,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
@@ -232695,6 +234799,8 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    activeTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
+    bindingVersion?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -233697,6 +235803,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    execution?: DatabaseRestoreExecutionUpdateOneWithoutRestoreNestedInput
   }
 
   export type DatabaseRestoreUncheckedUpdateWithoutDatabaseInstanceInput = {
@@ -233709,6 +235816,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    execution?: DatabaseRestoreExecutionUncheckedUpdateOneWithoutRestoreNestedInput
   }
 
   export type DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceInput = {

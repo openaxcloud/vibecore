@@ -1392,6 +1392,8 @@ exports.Prisma.DatabaseInstanceScalarFieldEnum = {
   sizeBytes: 'sizeBytes',
   retentionDays: 'retentionDays',
   pitrEnabled: 'pitrEnabled',
+  activeTargetRef: 'activeTargetRef',
+  bindingVersion: 'bindingVersion',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1420,6 +1422,29 @@ exports.Prisma.DatabaseRestoreScalarFieldEnum = {
   createdAt: 'createdAt',
   startedAt: 'startedAt',
   completedAt: 'completedAt'
+};
+
+exports.Prisma.DatabaseRestoreExecutionScalarFieldEnum = {
+  restoreId: 'restoreId',
+  activeLock: 'activeLock',
+  phase: 'phase',
+  resumePhase: 'resumePhase',
+  runnerToken: 'runnerToken',
+  expectedBindingVersion: 'expectedBindingVersion',
+  appliedBindingVersion: 'appliedBindingVersion',
+  sourceTargetRef: 'sourceTargetRef',
+  originalSecretEncrypted: 'originalSecretEncrypted',
+  targetId: 'targetId',
+  targetConnectionEncrypted: 'targetConnectionEncrypted',
+  snapshot: 'snapshot',
+  archive: 'archive',
+  target: 'target',
+  quiescence: 'quiescence',
+  readback: 'readback',
+  release: 'release',
+  failureCode: 'failureCode',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ScheduledTaskScalarFieldEnum = {
@@ -2024,6 +2049,7 @@ exports.Prisma.ModelName = {
   DatabaseInstance: 'DatabaseInstance',
   DatabaseSnapshot: 'DatabaseSnapshot',
   DatabaseRestore: 'DatabaseRestore',
+  DatabaseRestoreExecution: 'DatabaseRestoreExecution',
   ScheduledTask: 'ScheduledTask',
   ScheduledTaskRun: 'ScheduledTaskRun',
   AgentRoutingCard: 'AgentRoutingCard',

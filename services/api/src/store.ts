@@ -272,8 +272,19 @@ export interface DatabaseInstanceRecord {
   sizeBytes: number;
   retentionDays: number;
   pitrEnabled: boolean;
+  activeTargetRef?: string;
+  bindingVersion?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Snapshot taken before awaiting the legacy provisioner's response. */
+export interface DatabaseProvisioningReconciliation {
+  expected: DatabaseInstanceRecord;
+  binding?: {
+    valueEncrypted: string;
+    expectedSecret: ProjectSecretRecord | undefined;
+  };
 }
 
 /** A recovery point for a DatabaseInstance (auto/manual snapshot). */
@@ -302,6 +313,9 @@ export interface DatabaseRestoreRecord {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+  /** Persisted execution evidence; absent on legacy requests. */
+  phase?: string;
+  applicationCutoverVerified?: boolean;
 }
 
 /**
@@ -2065,6 +2079,9 @@ export interface ApiStore {
   updateDatabaseInstance(
     id: string,
     patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
+  ): Promise<DatabaseInstanceRecord | undefined>;
+  reconcileDatabaseProvisioning(
+    input: DatabaseProvisioningReconciliation,
   ): Promise<DatabaseInstanceRecord | undefined>;
   createDatabaseSnapshot(input: {
     databaseInstanceId: string;

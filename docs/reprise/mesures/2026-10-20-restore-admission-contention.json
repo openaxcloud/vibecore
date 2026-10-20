@@ -1,0 +1,246 @@
+{
+  "recordedAt": "2026-10-20T12:48:45.348943+00:00",
+  "base": "e8ede226b3fdadf9b1b62bffb5485d4757712cd2",
+  "uncommitted": true,
+  "merged": false,
+  "deployed": false,
+  "productionRestoreAvailableByDefault": false,
+  "sources": [
+    {
+      "path": "packages/database/generated/client/edge.js",
+      "sha256": "d02f1b61aa98bff4bc182b8107c4c85621b08e1485a6cc2dd19e84dc829f84e1"
+    },
+    {
+      "path": "packages/database/generated/client/index-browser.js",
+      "sha256": "e91edf8ec1179005689578241cda5405202e727f15a8b4f6b58d3e838d39c12c"
+    },
+    {
+      "path": "packages/database/generated/client/index.d.ts",
+      "sha256": "296793623642e346b68dfa76f0e751c92d931ee2329ca5a2a39d2d849230249c"
+    },
+    {
+      "path": "packages/database/generated/client/index.js",
+      "sha256": "d72b497280868aa8fc5487f4f9693269c28be92297a33f3cc0ee6d188fd95061"
+    },
+    {
+      "path": "packages/database/generated/client/package.json",
+      "sha256": "0253fb252f9cb3f48b1deb72269ac70438dcc9511051d4506439dac07ca79481"
+    },
+    {
+      "path": "packages/database/generated/client/schema.prisma",
+      "sha256": "e09cad757c170c45cd41e1632528a37a0a289197915189fa0a1aadf8a6eb3db0"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0091_database_restore_journal/migration.sql",
+      "sha256": "41e9742ae655fde851ac73fe226e5d42bfc9266f366b6736eaf2db825e741d18"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "sha256": "a607086e1fe2d8607c9f0dc4db60a3bc013ef525fbe25d78e51952c7a7415145"
+    },
+    {
+      "path": "scripts/qa/database-restore-api-fixture.ts",
+      "sha256": "be30af145b61fa867120c817047316adaa5bca21248bb4ea87f57a388dc9325d"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "9134578a0200e601841494d55494321bba4d73d503cc0ab370605fd13e9daf2c"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "30f25f2fae52668466cf02d331bd4dd3052fbb24e12367b0a81488a896544b16"
+    },
+    {
+      "path": "services/api/src/database-provision-retry.spec.ts",
+      "sha256": "5c9c58a8ee4c0ff1aec735f4acfc8979bbb567fbb7b24ac74ac64880700cbf1b"
+    },
+    {
+      "path": "services/api/src/database-restore-binding.ts",
+      "sha256": "adc0d934683f4f6cb84e11d753fad7cb7c00b738259356d44b4828c5ba39928e"
+    },
+    {
+      "path": "services/api/src/database-restore-contract.ts",
+      "sha256": "dcad532749c0422b3672f0fb74bad9bf1d460cd3e079ac767a67c71242f77d58"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.spec.ts",
+      "sha256": "f91942f4292ead04851004bbd51b1d10a48b15522c04eb4abae017f359cc4247"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.ts",
+      "sha256": "b4e610e601525ffbb00201b4c50e8cc271b91934c277f08e2fc863e72299d4b4"
+    },
+    {
+      "path": "services/api/src/database-restore-repository.ts",
+      "sha256": "babd82fb200edcf4a200172b965bf9e16e9a7fe258ee3f4bfcaf9a861dd0cb70"
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "924bf650e839226621cb756a398891f8b30a19eca5834900f9670b6d1fdfc628"
+    },
+    {
+      "path": "services/api/src/store.ts",
+      "sha256": "b3a621c7c7ff5f93c25244e0cbaec036ea7e9033d153f75213447422340b3677"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+      "sha256": "afa5613886122e4fcf84957aefb26d1c7fc8a9a4799ce380634301a10df768ba"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-repository.spec.ts",
+      "sha256": "69814cc256940ffbc3d71fc9274d6dc945d25ea318c97e7734cf1b7cf93d3193"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-routes.spec.ts",
+      "sha256": "6310f808cd12914346dd6eb429a47d1e068d14fd91fd2a85fe53e432e9fe7e0e"
+    },
+    {
+      "path": "services/api/src/tests/test-api-store.ts",
+      "sha256": "27f8bba0458ab6773614bce1845f29d06a8863cbaccc12bbca13fe8388f7ed55"
+    }
+  ],
+  "counterexample": {
+    "validation": {
+      "label": "admission-wait-red",
+      "exitCode": 1,
+      "startedAt": "2026-10-20T12:45:15Z",
+      "finishedAt": "2026-10-20T12:45:54Z",
+      "elapsedSeconds": 38.818,
+      "sharedCgroupMemoryBeforeBytes": 5443858432,
+      "sharedCgroupPeakBytes": 5821726720,
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/tests/database-restore-repository.spec.ts",
+        "--testNamePattern",
+        "reports a busy project",
+        "--maxWorkers=1",
+        "--no-file-parallelism"
+      ]
+    },
+    "failed": 1,
+    "skippedByNameFilter": 14,
+    "observedErrorCodes": [
+      "P2010",
+      "57014"
+    ],
+    "sourceRestoredByteForByte": true,
+    "scope": "Old blocking admission deliberately used while a separate real PostgreSQL connection holds the Project row. This does not identify the cause of P2028 in physical attempt 3."
+  },
+  "postgresql": {
+    "validation": {
+      "label": "admission-control-pg-green",
+      "exitCode": 0,
+      "startedAt": "2026-10-20T12:45:55Z",
+      "finishedAt": "2026-10-20T12:46:07Z",
+      "elapsedSeconds": 12.486,
+      "sharedCgroupMemoryBeforeBytes": 5428551680,
+      "sharedCgroupPeakBytes": 5867573248,
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/tests/database-restore-repository.spec.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism"
+      ]
+    },
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "Real Prisma transactions in a disposable loopback control database, synthetic tenant records and execution receipts; no physical archive restore."
+  },
+  "unitAndRoutes": {
+    "validation": {
+      "label": "unit-routes-contention-final",
+      "exitCode": 0,
+      "startedAt": "2026-10-20T12:46:07Z",
+      "finishedAt": "2026-10-20T12:46:46Z",
+      "elapsedSeconds": 38.94,
+      "sharedCgroupMemoryBeforeBytes": 5421764608,
+      "sharedCgroupPeakBytes": 6380163072,
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/database-restore-executor.spec.ts",
+        "src/tests/database-restore-routes.spec.ts",
+        "src/tests/database-restore-integrity.spec.ts",
+        "src/database-provision-retry.spec.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism"
+      ]
+    },
+    "passed": 58,
+    "failed": 0,
+    "skipped": 0,
+    "files": 4,
+    "scope": "Coordinator with explicit port/journal fixtures; real Fastify handlers via injection and TestApiStore, including real loopback provider responses for delayed continuation regressions."
+  },
+  "resources": {
+    "startedAt": "2026-10-20T12:44:42.636845+00:00",
+    "containerName": "vc-restore-admission-bb59d311d8",
+    "image": "sha256:9b05db12a35460fff0587e009f9326e414a53e9484555547f96d214a2ba98ef7",
+    "sharedQaTouched": false,
+    "memoryBeforeBytes": 4252897280,
+    "stages": [
+      {
+        "stage": "migrations",
+        "exitCode": 0
+      },
+      {
+        "stage": "counterexample",
+        "exitCode": 0
+      },
+      {
+        "stage": "admission-control-pg-green",
+        "exitCode": 0
+      },
+      {
+        "stage": "unit-routes-contention-final",
+        "exitCode": 0
+      }
+    ],
+    "port": 32780,
+    "passed": true,
+    "ownedContainerAbsent": true,
+    "cleanupExitCode": 0,
+    "credentialFileRemoved": true,
+    "finishedAt": "2026-10-20T12:46:48.299632+00:00",
+    "ownedPortRefusesConnection": true
+  },
+  "lint": {
+    "files": 8,
+    "errors": 9,
+    "warnings": 0,
+    "rules": [
+      "no-restricted-imports"
+    ],
+    "scope": "Only nine relative-import diagnostics remain in the API specs and QA helper. The root web rule requests ~/ while API NodeNext has no such alias. No suppression or resolver change added. Not a clean global-lint claim."
+  },
+  "pending": [
+    "Full API plus four QA-script typecheck after contention/style delta",
+    "API build after current changes",
+    "Complete physical drill with stable target endpoint and latest code",
+    "Production CNPG/GCS/runtime drivers and distributed fencing",
+    "Post-cutover backup/target lifecycle"
+  ],
+  "limits": [
+    "Prior complete physical drill remains globally failed",
+    "No customer data, cloud resource, payment, production or Safari evidence",
+    "Parent-owned physical harness scripts were not executed by this step and are excluded from these source hashes"
+  ]
+}

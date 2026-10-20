@@ -128,6 +128,7 @@ import JSZip from 'jszip';
 import { MongoClient } from 'mongodb';
 import mysql from 'mysql2/promise';
 import { Client as PgClient } from 'pg';
+import type { DatabaseRestoreCoordinator } from './database-restore-executor.js';
 
 import { createPostgresMigrationApplier } from './db-migration-applier.js';
 import {
@@ -629,6 +630,9 @@ export interface ApiAppOptions {
    * ne serait prouvable qu'en théorie.
    */
   databaseProvisioner?: DatabaseProvisioner;
+
+  /** Absent by default: cluster readiness never enables application recovery. */
+  databaseRestoreCoordinator?: DatabaseRestoreCoordinator;
 
   /*
    * Les trois démontages ajoutés le 2026-09-07, injectables pour que les tests
@@ -25347,7 +25351,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       const instance = await store.getDatabaseInstanceByProject(project.id);
 
-      if (instance && instance.status !== 'ACTIVE') {
+      if (instance?.status === 'PROVISIONING' && !instance.activeTargetRef) {
         const provisioner = resolveDefaultDatabaseProvisioner();
 
         if (provisioner.active) {
@@ -25357,15 +25361,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           const billing = await billingState(project.organizationId).catch(() => undefined);
           const tier = resolveDatabaseTier(billing?.plan.key);
+          const expectedSecret = await store.getProjectSecret(
+            project.id,
+            environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
+          );
           const uri = await provisioner.getConnectionUri({ projectId: project.id, tier, environment });
 
           if (uri) {
-            await store.upsertProjectSecret({
-              projectId: project.id,
-              key: environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
-              valueEncrypted: encryptJson({ value: uri }),
+            await store.reconcileDatabaseProvisioning({
+              expected: instance,
+              binding: { expectedSecret, valueEncrypted: encryptJson({ value: uri }) },
             });
-            await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' });
           }
         }
       }
@@ -33990,15 +33996,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const instances = await store.listActiveDatabaseInstances().catch(() => []);
 
     let snapshotted = 0;
-    let restoresAdvanced = 0;
+    let restoresAdvanced = (await options.databaseRestoreCoordinator?.advancePending()) ?? 0;
 
     for (const instance of instances) {
       // Daily automatic snapshot, retained for the plan window.
       const expiresAt = new Date(nowMs + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
 
-      const snapshot = await store
-        .createDatabaseSnapshot({ databaseInstanceId: instance.id, kind: 'auto', expiresAt })
-        .catch(() => undefined);
+      // Until the backup driver addresses restored targets, skip them explicitly.
+      // Prisma rechecks the current binding under admission's lock as well.
+      const snapshot = instance.activeTargetRef
+        ? undefined
+        : await store
+            .createDatabaseSnapshot({ databaseInstanceId: instance.id, kind: 'auto', expiresAt })
+            .catch(() => undefined);
 
       if (snapshot) {
         snapshotted += 1;
@@ -34016,6 +34026,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       for (const restore of restores) {
+        // New journals own their state machine; legacy cluster-health handling
+        // must never overwrite their application-cutover state.
+        if (restore.phase || (await options.databaseRestoreCoordinator?.evidence(restore.id))) continue;
         if (!provisioner.active) {
           continue;
         }
@@ -35606,9 +35619,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let instance = await store.getDatabaseInstanceByProject(project.id, environment);
 
+    const restoreAvailable = Boolean(
+      instance && options.databaseRestoreCoordinator && (await options.databaseRestoreCoordinator.available(instance)),
+    );
     const restoreCapability = {
-      available: resolveDefaultDatabaseProvisioner().restoreAvailable,
-      reason: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
+      available: restoreAvailable,
+      reason: restoreAvailable ? undefined : RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
     };
 
     if (!instance) {
@@ -35623,21 +35639,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * native DB with no extra API. Production uses a distinct PROD_DATABASE_URL
      * secret so dev and prod connections coexist. Best-effort.
      */
-    if (instance.status !== 'ACTIVE') {
+    if (instance.status === 'PROVISIONING' && !instance.activeTargetRef) {
       const provisioner = resolveDefaultDatabaseProvisioner();
 
       if (provisioner.active) {
         try {
           const tier = resolveDatabaseTier(state?.plan.key);
+          const expectedSecret = await store.getProjectSecret(
+            project.id,
+            environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
+          );
           const uri = await provisioner.getConnectionUri({ projectId: project.id, tier, environment });
 
           if (uri) {
-            await store.upsertProjectSecret({
-              projectId: project.id,
-              key: environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
-              valueEncrypted: encryptJson({ value: uri }),
-            });
-            instance = (await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' })) ?? instance;
+            instance =
+              (await store.reconcileDatabaseProvisioning({
+                expected: instance,
+                binding: { expectedSecret, valueEncrypted: encryptJson({ value: uri }) },
+              })) ??
+              (await store.getDatabaseInstanceByProject(project.id, environment)) ??
+              instance;
           }
         } catch (error) {
           request.log?.warn?.({ err: error }, 'db connection-uri reconcile failed (non-fatal)');
@@ -35657,7 +35678,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       snapshots,
       // Historical COMPLETED rows predate any application-cutover verification.
       // Preserve the stored status, but never present it as verified recovery.
-      restores: restores.map((restore) => ({ ...restore, applicationCutoverVerified: false })),
+      restores: await Promise.all(
+        restores.map(
+          async (restore) =>
+            (await options.databaseRestoreCoordinator?.evidence(restore.id)) ?? {
+              ...restore,
+              applicationCutoverVerified: restore.applicationCutoverVerified === true,
+            },
+        ),
+      ),
     };
   });
 
@@ -35730,39 +35759,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const provisioner = resolveDefaultDatabaseProvisioner();
-    if (!provisioner.restoreAvailable) {
+    const coordinator = options.databaseRestoreCoordinator;
+    if (!coordinator || !(await coordinator.available(instance))) {
       return reply.code(503).send({
         error: appPublicEnglish('RESTORE_APPLICATION_CUTOVER_UNAVAILABLE'),
         code: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
       });
     }
-
-    const restore = await store.createDatabaseRestore({
-      databaseInstanceId: instance.id,
-      snapshotId: body.snapshotId,
-      targetTimestamp: body.targetTimestamp,
+    // Resolve any snapshot even when the caller also supplied a timestamp.
+    const snapshot = body.snapshotId
+      ? (await store.listDatabaseSnapshots(instance.id)).find((entry) => entry.id === body.snapshotId)
+      : undefined;
+    if (body.snapshotId && !snapshot) {
+      return reply.code(404).send({ error: appPublicEnglish('SNAPSHOT_NOT_FOUND'), code: 'SNAPSHOT_NOT_FOUND' });
+    }
+    const restore = await coordinator.request({
+      instance,
+      snapshot,
+      targetTimestamp: new Date(targetTimestampMs).toISOString(),
       requestedByUserId: request.currentUser?.id,
     });
 
-    /*
-     * All current providers refuse admission above. Enabling a future provider
-     * requires an application cutover executor as well as this cluster kickoff;
-     * the maintenance worker must never infer completion from cluster health.
-     */
-    if (provisioner.active) {
-      await provisioner
-        .startRestore({
-          projectId: project.id,
-          organizationId: project.organizationId,
-          restoreId: restore.id,
-          targetTimeIso: new Date(targetTimestampMs).toISOString(),
-          environment: instance.environment,
-          retentionDays: entitlement.retentionDays,
-        })
-        .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))
-        .catch((error) => request.log?.warn?.({ err: error }, 'restore kickoff failed (non-fatal)'));
-    }
+    // The journal is durable before kickoff; maintenance can claim an unstarted
+    // PENDING job. A claimed/crashed attempt requires explicit fencing to resume.
+    void coordinator.execute(restore.id).catch(() => {
+      request.log?.warn?.({ restoreId: restore.id }, 'database restore requires reconciliation');
+    });
 
     return reply.code(202).send({ restore });
   });
@@ -35880,13 +35902,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * redonne au seuil de péremption un point de départ franc.
      */
     const instance = provisioningPerime
-      ? ((await store.updateDatabaseInstance(existing!.id, { status: 'PROVISIONING' })) ?? existing!)
+      ? await store.reconcileDatabaseProvisioning({ expected: existing! })
       : await store.createDatabaseInstance({
           projectId: project.id,
           organizationId: project.organizationId,
           retentionDays: entitlement.retentionDays,
           environment,
         });
+
+    if (!instance) {
+      return reply.code(409).send({
+        error: appPublicEnglish('DATABASE_PROVISION_STATE_CHANGED'),
+        code: 'DATABASE_PROVISION_STATE_CHANGED',
+      });
+    }
 
     return reply
       .code(202)
@@ -35917,6 +35946,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
+    }
+    if (instance.activeTargetRef) {
+      return reply.code(503).send({
+        error: appPublicEnglish('RESTORE_BACKUP_TARGET_UNAVAILABLE'),
+        code: 'RESTORE_BACKUP_TARGET_UNAVAILABLE',
+      });
     }
 
     const expiresAt = new Date(Date.now() + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
@@ -35969,9 +36004,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const instance = await store.getDatabaseInstanceByProject(project.id, environment);
 
+    const restoreAvailable = Boolean(
+      instance && options.databaseRestoreCoordinator && (await options.databaseRestoreCoordinator.available(instance)),
+    );
     const restoreCapability = {
-      available: resolveDefaultDatabaseProvisioner().restoreAvailable,
-      reason: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
+      available: restoreAvailable,
+      reason: restoreAvailable ? undefined : RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
     };
     if (!instance) {
       return { entitlement, restoreCapability, window: null, recoveryPoints: [] };
@@ -36000,15 +36038,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * No usable restore window is exposed without an application-cutover
      * implementation. Retention alone does not prove physical archive coverage.
      */
-    const window = entitlement.allowed && restoreCapability.available
-      ? {
-          earliestMs: floorMs,
-          earliest: new Date(floorMs).toISOString(),
-          latestMs: nowMs,
-          latest: new Date(nowMs).toISOString(),
-          retentionDays: entitlement.retentionDays,
-        }
-      : null;
+    // A capable executor validates each requested archive. Until it provides a
+    // verified archive catalogue, do not fabricate continuous PITR coverage.
+    const window = null;
 
     return { entitlement, restoreCapability, window, recoveryPoints };
   });
@@ -36091,18 +36123,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const provisioner = resolveDefaultDatabaseProvisioner();
-    if (!provisioner.restoreAvailable) {
+    const coordinator = options.databaseRestoreCoordinator;
+    if (!coordinator || !(await coordinator.available(instance))) {
       return reply.code(503).send({
         error: appPublicEnglish('RESTORE_APPLICATION_CUTOVER_UNAVAILABLE'),
         code: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
       });
     }
-
-    const restore = await store.createDatabaseRestore({
-      databaseInstanceId: instance.id,
-      snapshotId: body.snapshotId,
-      targetTimestamp: body.targetTimestamp,
+    // Resolve any snapshot even when the caller also supplied a timestamp.
+    const snapshot = body.snapshotId
+      ? (await store.listDatabaseSnapshots(instance.id)).find((entry) => entry.id === body.snapshotId)
+      : undefined;
+    if (body.snapshotId && !snapshot) {
+      return reply.code(404).send({ error: appPublicEnglish('SNAPSHOT_NOT_FOUND'), code: 'SNAPSHOT_NOT_FOUND' });
+    }
+    const restore = await coordinator.request({
+      instance,
+      snapshot,
+      targetTimestamp: new Date(targetTimestampMs).toISOString(),
       requestedByUserId: request.currentUser?.id,
     });
 
@@ -36120,24 +36158,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { restoreId: restore.id, snapshotId: body.snapshotId, targetTimestamp: body.targetTimestamp },
     });
 
-    /*
-     * All current providers refuse admission above. Enabling a future provider
-     * requires an application cutover executor as well as this cluster kickoff;
-     * the maintenance worker must never infer completion from cluster health.
-     */
-    if (provisioner.active) {
-      await provisioner
-        .startRestore({
-          projectId: project.id,
-          organizationId: project.organizationId,
-          restoreId: restore.id,
-          targetTimeIso: new Date(targetTimestampMs).toISOString(),
-          environment: instance.environment,
-          retentionDays: entitlement.retentionDays,
-        })
-        .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))
-        .catch((error) => request.log?.warn?.({ err: error }, 'restore kickoff failed (non-fatal)'));
-    }
+    // The journal is durable before kickoff; maintenance can claim an unstarted
+    // PENDING job. A claimed/crashed attempt requires explicit fencing to resume.
+    void coordinator.execute(restore.id).catch(() => {
+      request.log?.warn?.({ restoreId: restore.id }, 'database restore requires reconciliation');
+    });
 
     return reply.code(202).send({ restore });
   });

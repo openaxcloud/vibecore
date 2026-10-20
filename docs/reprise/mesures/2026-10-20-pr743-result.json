@@ -1,0 +1,777 @@
+{
+  "observedAt": "2026-10-20T13:32:21.419Z",
+  "pr": 743,
+  "head": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+  "base": "bc74c39534d737ed8ab2c27b491d3d8fb5a209ee",
+  "merge": {
+    "url": "https://github.com/openaxcloud/vibecore/pull/743",
+    "number": 743,
+    "state": "closed",
+    "merged": true,
+    "mergeable": false,
+    "draft": false,
+    "title": "fix(database): refuse unverified application restores",
+    "base": "main",
+    "base_sha": "bc74c39534d737ed8ab2c27b491d3d8fb5a209ee",
+    "head": "codex/restore-completion-integrity-20261019",
+    "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+    "head_repo_id": 1229478470,
+    "head_repo_full_name": "openaxcloud/vibecore",
+    "merge_commit_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+    "user": {
+      "login": "openaxcloud",
+      "name": "openaxcloud",
+      "email": null,
+      "avatar_url": "https://avatars.githubusercontent.com/u/206718829?v=4",
+      "id": 206718829
+    },
+    "requested_reviewers": null,
+    "requested_team_reviewers": null,
+    "diff": null,
+    "comments": null,
+    "created_at": "2026-10-20T10:31:21Z",
+    "updated_at": "2026-10-20T13:31:40Z",
+    "closed_at": "2026-10-20T13:31:39Z",
+    "merged_at": "2026-10-20T13:31:39Z",
+    "commits": 3,
+    "changed_files": 62,
+    "additions": 2412,
+    "deletions": 347,
+    "display_url": "https://github.com/openaxcloud/vibecore/pull/743",
+    "display_title": "fix(database): refuse unverified application restores"
+  },
+  "checks": [
+    {
+      "id": 118654125495,
+      "name": "Release Validation",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145411/job/118654125495",
+      "completed_at": "2026-10-20T13:27:42Z"
+    },
+    {
+      "id": 118653622270,
+      "name": "Playwright local stack",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145421/job/118653622270",
+      "completed_at": "2026-10-20T13:26:57Z"
+    },
+    {
+      "id": 118652122724,
+      "name": "Draft desktop release",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145534/job/118652122724",
+      "completed_at": "2026-10-20T13:23:22Z"
+    },
+    {
+      "id": 118650003605,
+      "name": "Audit français — verdict",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145605/job/118650003605",
+      "completed_at": "2026-10-20T13:19:10Z"
+    },
+    {
+      "id": 118642900888,
+      "name": "Validate PR Title",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427278462/job/118642900888",
+      "completed_at": "2026-10-20T13:06:54Z"
+    },
+    {
+      "id": 118642628189,
+      "name": "Playwright desktop-1440",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145605/job/118642628189",
+      "completed_at": "2026-10-20T13:17:20Z"
+    },
+    {
+      "id": 118642628000,
+      "name": "Playwright tablet-768",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145605/job/118642628000",
+      "completed_at": "2026-10-20T13:19:03Z"
+    },
+    {
+      "id": 118642627954,
+      "name": "Playwright mobile-390",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145605/job/118642627954",
+      "completed_at": "2026-10-20T13:15:37Z"
+    },
+    {
+      "id": 118642627939,
+      "name": "Playwright desktop-1024",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145605/job/118642627939",
+      "completed_at": "2026-10-20T13:14:54Z"
+    },
+    {
+      "id": 118642621430,
+      "name": "E2E tranche 3/4",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145421/job/118642621430",
+      "completed_at": "2026-10-20T13:12:26Z"
+    },
+    {
+      "id": 118642621242,
+      "name": "E2E tranche 2/4",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145421/job/118642621242",
+      "completed_at": "2026-10-20T13:15:08Z"
+    },
+    {
+      "id": 118642621229,
+      "name": "E2E tranche 4/4",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145421/job/118642621229",
+      "completed_at": "2026-10-20T13:10:00Z"
+    },
+    {
+      "id": 118642621215,
+      "name": "E2E tranche 1/4",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145421/job/118642621215",
+      "completed_at": "2026-10-20T13:26:24Z"
+    },
+    {
+      "id": 118642621180,
+      "name": "Canari iOS WebKit (non bloquant)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145421/job/118642621180",
+      "completed_at": "2026-10-20T13:09:35Z"
+    },
+    {
+      "id": 118642450126,
+      "name": "windows desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145534/job/118642450126",
+      "completed_at": "2026-10-20T13:23:21Z"
+    },
+    {
+      "id": 118642450035,
+      "name": "Install, test, build, scan",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145848/job/118642450035",
+      "completed_at": "2026-10-20T13:26:55Z"
+    },
+    {
+      "id": 118642449977,
+      "name": "linux desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145534/job/118642449977",
+      "completed_at": "2026-10-20T13:14:48Z"
+    },
+    {
+      "id": 118642449541,
+      "name": "macos desktop build",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145534/job/118642449541",
+      "completed_at": "2026-10-20T13:23:12Z"
+    },
+    {
+      "id": 118642448872,
+      "name": "Security Review Required",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145411/job/118642448872",
+      "completed_at": "2026-10-20T13:03:12Z"
+    },
+    {
+      "id": 118642447655,
+      "name": "Quality Gates",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145411/job/118642447655",
+      "completed_at": "2026-10-20T13:27:26Z"
+    },
+    {
+      "id": 118642447230,
+      "name": "Audit français — pertinence",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145605/job/118642447230",
+      "completed_at": "2026-10-20T13:03:35Z"
+    },
+    {
+      "id": 118642446742,
+      "name": "Perimetre des changements",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145421/job/118642446742",
+      "completed_at": "2026-10-20T13:03:34Z"
+    },
+    {
+      "id": 118642446430,
+      "name": "CodeQL Analysis (typescript)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145283/job/118642446430",
+      "completed_at": "2026-10-20T13:12:07Z"
+    },
+    {
+      "id": 118642446125,
+      "name": "CodeQL Analysis (javascript)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145283/job/118642446125",
+      "completed_at": "2026-10-20T13:10:20Z"
+    },
+    {
+      "id": 118642446066,
+      "name": "Secret scan (gitleaks, blocking)",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145283/job/118642446066",
+      "completed_at": "2026-10-20T13:03:47Z"
+    },
+    {
+      "id": 118642446013,
+      "name": "Secrets Detection",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145283/job/118642446013",
+      "completed_at": "2026-10-20T13:03:53Z"
+    },
+    {
+      "id": 118642445915,
+      "name": "Accessibility Tests",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145322/job/118642445915",
+      "completed_at": "2026-10-20T13:07:10Z"
+    },
+    {
+      "id": 118642445912,
+      "name": "Quality Analysis",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145322/job/118642445912",
+      "completed_at": "2026-10-20T13:11:21Z"
+    },
+    {
+      "id": 118642445817,
+      "name": "PR Size Check",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145322/job/118642445817",
+      "completed_at": "2026-10-20T13:03:35Z"
+    },
+    {
+      "id": 118642445772,
+      "name": "Dependency Vulnerability Scan",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145283/job/118642445772",
+      "completed_at": "2026-10-20T13:06:48Z"
+    },
+    {
+      "id": 118642445406,
+      "name": "Performance Audit",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427145322/job/118642445406",
+      "completed_at": "2026-10-20T13:07:19Z"
+    },
+    {
+      "id": 118642439114,
+      "name": "Validate PR Title",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "72d2322892bc973f6a66032e11c4e427a1ea3145",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39427142316/job/118642439114",
+      "completed_at": "2026-10-20T13:03:17Z"
+    }
+  ],
+  "workflows": [
+    {
+      "id": 39431157586,
+      "name": "Code Quality",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157586",
+      "created_at": "2026-10-20T13:31:42Z"
+    },
+    {
+      "id": 39431157671,
+      "name": "Production CI",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157671",
+      "created_at": "2026-10-20T13:31:42Z"
+    },
+    {
+      "id": 39431157563,
+      "name": "Parity registries",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157563",
+      "created_at": "2026-10-20T13:31:42Z"
+    },
+    {
+      "id": 39431157610,
+      "name": "Security Analysis",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157610",
+      "created_at": "2026-10-20T13:31:42Z"
+    },
+    {
+      "id": 39431157591,
+      "name": "Update Stable Branch",
+      "status": "completed",
+      "conclusion": "skipped",
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157591",
+      "created_at": "2026-10-20T13:31:42Z"
+    },
+    {
+      "id": 39431157582,
+      "name": "Docs CI/CD",
+      "status": "completed",
+      "conclusion": "success",
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157582",
+      "created_at": "2026-10-20T13:31:42Z"
+    },
+    {
+      "id": 39431157717,
+      "name": "Deploy Production (Continuous)",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157717",
+      "created_at": "2026-10-20T13:31:42Z"
+    },
+    {
+      "id": 39431157538,
+      "name": "Production E2E",
+      "status": "in_progress",
+      "conclusion": null,
+      "head_sha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157538",
+      "created_at": "2026-10-20T13:31:42Z"
+    }
+  ],
+  "e2e": {
+    "reported": 456,
+    "failed": 0,
+    "flaky": 0,
+    "preexistingWaivers": 6,
+    "specs": 75
+  },
+  "deploymentVerified": false,
+  "publicHttpsVerified": false,
+  "files": [
+    {
+      "status": "M",
+      "path": "BUG_INVENTORY_LIVE.md"
+    },
+    {
+      "status": "M",
+      "path": "SERVI-POUR-LES-SESSIONS.md"
+    },
+    {
+      "status": "M",
+      "path": "app/components/chat/BaseChat.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/components/chat/base-chat-panels.spec.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/components/chat/base-chat-panels.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/components/chat/checkpoint-rollback-client.spec.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/components/database/DatabaseRollbackPanel.i18n.spec.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/components/database/DatabaseRollbackPanel.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/components/marketing/ecode-exact/pages/Pricing.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/i18n/catalogs/api-runtime-routes.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/i18n/catalogs/client-visible-errors.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/i18n/catalogs/database-restore.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/i18n/catalogs/database-rollback.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/i18n/catalogs/fin-de-tour.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/lib/i18n/catalogs/remaining-api-routes.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/routes/api.projects.$projectId.database.restore-error.spec.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/routes/api.projects.$projectId.database.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts"
+    },
+    {
+      "status": "A",
+      "path": "app/routes/api.projects.$projectId.ide-panel.snapshot-restore.action.spec.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/routes/projects.$projectId.database.i18n.spec.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/routes/projects.$projectId.database.tsx"
+    },
+    {
+      "status": "M",
+      "path": "app/routes/snapshot-restore-database.spec.ts"
+    },
+    {
+      "status": "M",
+      "path": "app/routes/snapshot-restore-database.ts"
+    },
+    {
+      "status": "A",
+      "path": "docs/bugs/BUG-CHECKPOINT-RESTORE-PARTIAL-001.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/bugs/BUG-DB-RESTORE-COMPLETION-001.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/bugs/BUG-DB-RESTORE-ENVIRONMENT-001.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-integrite.md"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/browser-evidence.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-browser.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-database-desktop.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-database-mobile.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-database-tablet.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-http.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-pricing-desktop.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-pricing-mobile.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-pricing-tablet.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-sources.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/database-desktop.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/database-mobile.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/database-tablet.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-browser.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-build.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-desktop.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-http.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-i18n.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-index.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-mobile.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-red-green.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-review.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-sources.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-tablet.png"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-units.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/qa-api-evidence.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/source-hashes.json"
+    },
+    {
+      "status": "A",
+      "path": "docs/reprise/mesures/2026-10-20-pr744-result.json"
+    },
+    {
+      "status": "M",
+      "path": "packages/billing/src/index.ts"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/app-public-copy.json"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/app.ts"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/database-provisioner.ts"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/tests/database-provisioner.spec.ts"
+    },
+    {
+      "status": "A",
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts"
+    },
+    {
+      "status": "M",
+      "path": "services/api/src/tests/database-rollback-routes.spec.ts"
+    }
+  ],
+  "productionFiles": [
+    "app/components/chat/BaseChat.tsx",
+    "app/components/chat/base-chat-panels.ts",
+    "app/components/database/DatabaseRollbackPanel.tsx",
+    "app/components/marketing/ecode-exact/pages/Pricing.tsx",
+    "app/lib/i18n/catalogs/api-runtime-routes.ts",
+    "app/lib/i18n/catalogs/client-visible-errors.ts",
+    "app/lib/i18n/catalogs/database-restore.ts",
+    "app/lib/i18n/catalogs/database-rollback.ts",
+    "app/lib/i18n/catalogs/fin-de-tour.ts",
+    "app/lib/i18n/catalogs/remaining-api-routes.ts",
+    "app/routes/api.projects.$projectId.database.ts",
+    "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+    "app/routes/projects.$projectId.database.tsx",
+    "app/routes/snapshot-restore-database.ts",
+    "packages/billing/src/index.ts",
+    "services/api/src/app-public-copy.json",
+    "services/api/src/app.ts",
+    "services/api/src/database-provisioner.ts"
+  ],
+  "validatedTree": "46d1a0bd41b76d4bc86d60befc02844bdbc23a46",
+  "mergedTreeVerifiedLocally": true,
+  "mergedTree": "46d1a0bd41b76d4bc86d60befc02844bdbc23a46",
+  "mainObservation": {
+    "observedAt": "2026-10-20T14:13:10Z",
+    "headSha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+    "workflows": [
+      {
+        "id": 39431157586,
+        "name": "Code Quality",
+        "status": "completed",
+        "conclusion": "success",
+        "updatedAt": "2026-10-20T13:37:16Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157586"
+      },
+      {
+        "id": 39431157563,
+        "name": "Parity registries",
+        "status": "completed",
+        "conclusion": "success",
+        "updatedAt": "2026-10-20T13:32:51Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157563"
+      },
+      {
+        "id": 39431157591,
+        "name": "Update Stable Branch",
+        "status": "completed",
+        "conclusion": "skipped",
+        "updatedAt": "2026-10-20T13:31:43Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157591"
+      },
+      {
+        "id": 39431157582,
+        "name": "Docs CI/CD",
+        "status": "completed",
+        "conclusion": "success",
+        "updatedAt": "2026-10-20T13:32:06Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157582"
+      },
+      {
+        "id": 39431157610,
+        "name": "Security Analysis",
+        "status": "completed",
+        "conclusion": "success",
+        "updatedAt": "2026-10-20T13:44:00Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157610"
+      },
+      {
+        "id": 39431157671,
+        "name": "Production CI",
+        "status": "completed",
+        "conclusion": "success",
+        "updatedAt": "2026-10-20T13:52:43Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157671"
+      },
+      {
+        "id": 39431157538,
+        "name": "Production E2E",
+        "status": "completed",
+        "conclusion": "success",
+        "updatedAt": "2026-10-20T13:58:57Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157538"
+      },
+      {
+        "id": 39431157717,
+        "name": "Deploy Production (Continuous)",
+        "status": "in_progress",
+        "conclusion": null,
+        "updatedAt": "2026-10-20T13:59:57Z",
+        "url": "https://github.com/openaxcloud/vibecore/actions/runs/39431157717"
+      }
+    ],
+    "e2e": {
+      "reported": 456,
+      "failed": 0,
+      "flaky": 1,
+      "preexistingWaivers": 6,
+      "specs": 75,
+      "gateJob": 118669910341,
+      "shard1Job": 118656441801,
+      "flakyCase": "ide-mobile-chrome.spec.ts:3042 publication panel tablet"
+    },
+    "deployment": {
+      "runId": 39431157717,
+      "status": "in_progress",
+      "jobId": 118670546368,
+      "currentStep": "Build runtime tier (Cloud Build)",
+      "rolloutVerified": false,
+      "servedVersionVerified": false
+    }
+  }
+}

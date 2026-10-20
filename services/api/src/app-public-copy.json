@@ -875,6 +875,18 @@
     "en": "Database restoration is unavailable. No restoration was started.",
     "fr": "La restauration de la base est indisponible. Aucune restauration n’a été lancée."
   },
+  "RESTORE_TARGET_LIFECYCLE_UNAVAILABLE": {
+    "en": "This project has a restored database. Transfer and permanent deletion are unavailable until that database can be managed safely.",
+    "fr": "Ce projet possède une base restaurée. Le transfert et la suppression définitive sont indisponibles tant que cette base ne peut pas être gérée de façon sûre."
+  },
+  "RESTORE_ADMISSION_BUSY": {
+    "en": "The database is being changed. No restore was admitted by this request; try again when the change has finished.",
+    "fr": "La base est en cours de modification. Cette demande n’a admis aucune restauration ; réessayez une fois la modification terminée."
+  },
+  "RESTORE_BACKUP_TARGET_UNAVAILABLE": {
+    "en": "Backups of this restored database are unavailable. No backup was started.",
+    "fr": "Les sauvegardes de cette base restaurée sont indisponibles. Aucune sauvegarde n’a été lancée."
+  },
   "ROLLBACK_DISABLED": {
     "en": "Database rollback is not enabled.",
     "fr": "La restauration de la base de données n’est pas activée."
@@ -2630,6 +2642,10 @@
   "ENTITLEMENT_CHECK_UNAVAILABLE": {
     "en": "Your plan limits could not be verified right now. Try again in a moment — no deployment was created.",
     "fr": "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n’a été créée."
+  },
+  "DATABASE_PROVISION_STATE_CHANGED": {
+    "en": "The database changed while provisioning. Refresh its current state before trying again.",
+    "fr": "La base a changé pendant le provisionnement. Actualisez son état avant de réessayer."
   },
   "DATABASE_PROVISION_UNAVAILABLE": {
     "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",
