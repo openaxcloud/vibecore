@@ -63,7 +63,9 @@ describe('TSNOCHECK-DEBT-001 — les plantages masqués sont corrigés', () => {
     // La déclaration doit précéder les usages, qui sont ~200 lignes plus bas.
     const body = CODE.slice(start, start + 30_000);
     const declaration = body.indexOf('const language = resolvedBaseChatLanguage(i18n)');
-    const firstUse = body.indexOf('formatBaseChatAstNumber(language');
+
+    // Le taux webhook non mesuré a été retiré ; l’expiration des clés utilise toujours la langue.
+    const firstUse = body.indexOf('formatBaseChatAstDate(language');
 
     expect(declaration).toBeGreaterThan(-1);
     expect(firstUse).toBeGreaterThan(-1);

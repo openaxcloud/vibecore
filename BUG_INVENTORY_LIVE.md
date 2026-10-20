@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-441 entrées.
+443 entrées.
 
 ## Sans section
 
@@ -542,6 +542,11 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-DB-RESTORE-COMPLETION-001](docs/bugs/BUG-DB-RESTORE-COMPLETION-001.md) — P1 — la santé du cluster suffit à annoncer une restauration terminée. — 📤 Dispatché : Revue et contre-épreuve de contrat terminées, sans changement produit. · 💻 Codé : ❌ Non corrigé. La fin de restauration doit dépendre de la bascule et de sa · ✅ Testé live : ❌ Aucune restauration physique, intégrité des données, reconnexion ou mesure
 - [BUG-DB-RESTORE-ENVIRONMENT-001](docs/bugs/BUG-DB-RESTORE-ENVIRONMENT-001.md) — P1 — l'environnement production disparaît avant le provisionnement de restauration. — 📤 Dispatché : Revue et contre-épreuve de contrat terminées, sans changement produit. · 💻 Codé : ❌ Non corrigé. Sources API vérifiées identiques à main `bb70c7b68` puis · ✅ Testé live : ❌ Aucun exercice physique PostgreSQL/GCS/CNPG/PVC ou preuve production.
+
+## Intégrations — contrat fonctionnel
+
+- [BUG-INTEGRATIONS-SYNC-FALSE-SUCCESS-001](docs/bugs/BUG-INTEGRATIONS-SYNC-FALSE-SUCCESS-001.md) — Le panneau Intégrations présente une synchronisation réussie sans opération fournisseur. Sur `e40edf3e04217e2d0e96ea1385c0420e18374bac`, le POST `intent=sync` l — 📤 Dispatché : Oui — tranche bornée du 20 octobre 2026, branche `codex/integration-sync-honesty-20261020`. · 💻 Codé : Correctif local validé sur le périmètre ci-dessous, non fusionné : le POST garde la lecture autorisée du proje · ✅ Testé live : Non. Aucun fournisseur, OAuth réel, paiement, secret ou donnée client touché. Aucun nouveau connecteur impléme
+- [BUG-INTEGRATIONS-WEBHOOK-UNMEASURED-001](docs/bugs/BUG-INTEGRATIONS-WEBHOOK-UNMEASURED-001.md) — Défaut source distinct vérifié sur `e40edf3e04217e2d0e96ea1385c0420e18374bac` : dans `app/routes/api.projects.$projectId.ide-panel.$panel.ts`, l’action `create- — 📤 Dispatché : Oui — complément borné du lot d’honnêteté des intégrations du 20 octobre 2026, branche `codex/integration-sync · 💻 Codé : Correctif local validé sur le périmètre ci-dessous, non fusionné : `create-webhook` n’enregistre plus de taux. · ✅ Testé live : Non. Aucun webhook fournisseur créé/envoyé, aucun secret, ressource ou donnée client modifié. Aucun transport
 
 ## Résidus non tabulaires — reportés mot pour mot
 
