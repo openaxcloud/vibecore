@@ -59,6 +59,10 @@ export interface ReleaseReceipt extends RestoreScope {
   bindingVersion: number;
 }
 
+export interface AttemptFenceReceipt extends RestoreScope {
+  excludedAttemptToken: string;
+}
+
 /**
  * Every mutating port must fence attemptToken and be idempotent for operationId.
  * A default production port is deliberately absent. A healthy database alone
@@ -102,8 +106,10 @@ export interface DatabaseRestorePorts {
   /**
    * Explicit crash recovery only. Must exclude/stop the previous attempt before
    * acknowledging the new token; expiry or process silence is not sufficient.
+   * Calls may repeat after a lost acknowledgement. The coordinator preserves
+   * and excludes every unconfirmed predecessor before making further effects.
    */
-  fenceAttempt(input: RestoreScope & { previousAttemptToken: string }): Promise<RestoreScope>;
+  fenceAttempt(input: RestoreScope & { previousAttemptToken: string }): Promise<AttemptFenceReceipt>;
 }
 
 export interface RestoreExecution {
@@ -112,6 +118,8 @@ export interface RestoreExecution {
   phase: RestorePhase;
   resumePhase?: RestorePhase;
   runnerToken?: string;
+  /** Durable exclusion debt, including predecessors of crashed recovery attempts. */
+  pendingFenceTokens: string[];
   active: boolean;
   expectedBindingVersion: number;
   appliedBindingVersion?: number;
@@ -155,6 +163,7 @@ export interface DatabaseRestoreRepository {
   complete(operationId: string, attemptToken: string): Promise<RestoreExecution>;
   fail(operationId: string, attemptToken: string, code: string): Promise<void>;
   resume(operationId: string, previousToken: string, nextToken: string): Promise<RestoreExecution | undefined>;
+  acknowledgeFence(operationId: string, attemptToken: string, excludedToken: string): Promise<boolean>;
 }
 
 export class DatabaseRestoreError extends Error {

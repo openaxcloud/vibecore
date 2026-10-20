@@ -1,0 +1,1898 @@
+{
+  "schemaVersion": 1,
+  "recordedAtUtc": "2026-10-20T16:32:54.329568+00:00",
+  "scope": "Relecture figée des preuves 19–20 octobre et inventaire source au main exact ; aucun nouvel essai. Non exhaustif au niveau de chaque geste.",
+  "mainReference": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+  "preparationHead": "89019cdf1cdbbd622179fdc4b2b4a68ab3219fef",
+  "preparationHeadMeaning": "Branche de travail du parent ; aucune validation ou fusion de ses modifications en cours inférée.",
+  "reviewSnapshot": {
+    "functionalEvidenceReviewFrozenAtUtc": "2026-10-20T16:20:47.039265+00:00",
+    "sourceInventoryGeneratedAtUtc": "2026-10-20T16:29:07.015734+00:00",
+    "sourceReconciledAtUtc": "2026-10-20T16:32:54.329568+00:00",
+    "sourceInventory": {
+      "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/source-inventory-20261020T162907Z-0dcdd3e136c4.json",
+      "sha256": "0dcdd3e136c4e58a50977a68e7af7f66e4fbae2db9977d9661cb7466814fa910",
+      "frozenAtUtc": "2026-10-20T16:31:15.616747+00:00",
+      "completeness": "BOUNDED_SOURCE_GRAPH_COMPLETE_FOR_DECLARED_SCOPE_WITH_EXPLICIT_UNRESOLVED_EDGES; NO_FUNCTIONAL_EXHAUSTIVENESS_CLAIM"
+    },
+    "evidenceInventory": {
+      "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/evidence-inventory-final-source-20261020T162907Z-f9cb8e336a42.json",
+      "sha256": "f9cb8e336a42a18b5be28b0d4166e9357a59c96bef440e720fee3a07668ffd74",
+      "recordedAtUtc": "2026-10-20T16:32:04.641824+00:00"
+    },
+    "provenanceManifest": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/final-source-snapshot-20261020T162907Z.json",
+    "localArtifactsDelivered": false,
+    "newFunctionalReceiptsAdded": false
+  },
+  "method": {
+    "newTestsRun": false,
+    "browserLaunched": false,
+    "databaseConnected": false,
+    "credentialsRead": false,
+    "productionFilesModified": false,
+    "repositoryWrites": "Ces deux nouveaux documents uniquement.",
+    "panelCompletionCertified": false,
+    "actionMappingComplete": false,
+    "panelsWithRemainingMappingGaps": 17,
+    "sourceOnlyDoesNotProveExecution": true,
+    "refusalIsNotCompletedFunction": true
+  },
+  "environmentLegend": {
+    "localReal": "Web compilé/BFF→HTTP API→Prisma/PostgreSQL QA loopback, identités et données synthétiques ; sans fournisseur cloud.",
+    "physicalLocal": "Banc PostgreSQL physique/API/Prisma et application sonde synthétique, hors navigateur et hors production.",
+    "diagnostic": "UI et backend locaux réels, mais refus réseau Google Fonts intentionnel ; distinct du réseau normal.",
+    "isolatedTests": "Fixtures/mocks/TestApiStore non convertis en preuve de persistance réelle ou cloud."
+  },
+  "production": {
+    "deploymentReceipt": {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-20-deployment-9c8f6bc6.json",
+      "exists": true,
+      "presentAtMainReference": false,
+      "trackedAtPreparationHead": false
+    },
+    "reportedDeployment": "Workflow39431157717 terminé success à14:58:11Z ; rollout et comparaison imageIDs annoncés réussis par étapes structurées.",
+    "servedOrigins": [
+      "https://e-code.ai",
+      "https://app.e-code.ai"
+    ],
+    "servedVersionVerified": false,
+    "functionalJourneyVerified": false,
+    "blocker": "CONNECT HTTP403 du proxy avant l'origine ; aucune nouvelle tentative dans cet inventaire.",
+    "rawImageIdsRetrieved": false
+  },
+  "ciLimits": {
+    "evidence": [
+      {
+        "kind": "repository",
+        "path": "docs/reprise/mesures/2026-10-19-e2e-proof-scope.json",
+        "exists": true,
+        "presentAtMainReference": true,
+        "trackedAtPreparationHead": true
+      },
+      {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/main9c8-webkit-summary.json",
+        "existsAtReview": true,
+        "includedInRepository": false
+      }
+    ],
+    "requiredE2E": "Les tests @runtime ne sont pas couverts par le gate requis étudié ; six exemptions préexistantes incluent smoke tous panneaux / matrice compacte / live proof.",
+    "webkit": "Au main9c8, canari non bloquant :17passés,3ignorés ; pas recette Safari réelle/public ni captures inspectées.",
+    "rule": "Aucun nombre de tests global n'est converti en nombre de boutons ou panneaux validés.",
+    "parentReportedNotIndependentlyMapped": "Parent signale smoke26/31 (ouverture/rendu/GET seulement) et contrats21GET/auth. Sans reçu d'exécution précis relu ici, ils ne modifient pas la matrice des actions.",
+    "buttonStyleTests": "panel-buttons.spec vérifie classes/tailles selon le parent ; aucune preuve de clic ou effet métier déduite."
+  },
+  "panels": [
+    {
+      "panelId": "agent",
+      "status": "PARTIEL — voir portée de chaque preuve",
+      "proofIds": [
+        "CHECKPOINT-REFUSAL-20",
+        "HISTORY-NO-SNAPSHOT-20",
+        "HISTORY-LABELS-CANDIDATE-20"
+      ],
+      "sourceIdentifiedFunctions": "Composer/envoyer/arrêter une demande, modes Agent/Assistant/Plan, puissance, pièces jointes et dictée, mentions et commandes, messages/outils, branches et historique/restauration. Options conditionnées par projectIdeMode et fournisseurs ; sélectionner un modèle n’est pas présumé visible dans l’IDE courant.",
+      "sourceMappingGaps": [
+        "Composer et sous-composants extraits ; conditions projectIdeMode/legacy et callbacks vers Chat.client restent à tracer, chrome global séparé."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=agent].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "editor",
+      "status": "PARTIEL — voir portée de chaque preuve",
+      "proofIds": [
+        "LAYOUT-DIAGNOSTIC-20",
+        "FILES-ARCHIVE-20"
+      ],
+      "sourceIdentifiedFunctions": "Ouvrir un fichier, modifier/enregistrer, onglets, navigation par symbole, recherche/remplacement, historique, comparaison/restauration de version ; sous-composants de l’éditeur encore à suivre.",
+      "sourceMappingGaps": [
+        "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs.",
+        "Implémentation EditorAdapter du package @vibecore/editor non extraite ; callbacks de toolbar présents, effets Monaco/CodeMirror à vérifier."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=editor].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "preview",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Aperçu URL/port, rechargement, navigation, modes d’appareil, ouverture externe, capture/inspection visuelle, console et commandes de démarrage/reprise.",
+      "sourceMappingGaps": [
+        "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=preview].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "files",
+      "status": "PARTIEL — voir portée de chaque preuve",
+      "proofIds": [
+        "LAYOUT-DIAGNOSTIC-20",
+        "FILES-ARCHIVE-20"
+      ],
+      "sourceIdentifiedFunctions": "Arborescence, ouvrir, créer fichier/dossier, renommer, supprimer, importer/téléverser, télécharger/exporter, rechercher, historique et verrouillage ; effets répartis entre callbacks et store.",
+      "sourceMappingGaps": [
+        "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=files].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "search",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Requête, options de recherche, résultats, ouvrir un fichier à une ligne, remplacement ; dépendance au workspace et à l’éditeur.",
+      "sourceMappingGaps": [
+        "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=search].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "locks",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lister/rechercher/filtrer les chemins verrouillés, sélectionner, déverrouiller une sélection ou tout déverrouiller ; état workbench via unlockFile/unlockFolder.",
+      "sourceMappingGaps": [
+        "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=locks].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "overview",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Affichage synthétique du projet et de son état ; composant sans contrôle interactif propre détecté.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=overview].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "studio",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Supervision des propositions de patches, réparations, consensus multi-agent, branches de conversation et mémoire ; actualiser et déplier le détail d’un consensus.",
+      "sourceMappingGaps": [
+        "Compléter le graphe des sous-composants et gestes dynamiques ; absence de contrôle local ne signifie pas absence de fonction."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=studio].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "problems",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lire les diagnostics et ouvrir le fichier/ligne ; données provenant de l’éditeur.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=problems].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "database",
+      "status": "PARTIEL — voir portée de chaque preuve",
+      "proofIds": [
+        "DB-READ-RETRY-19",
+        "DB-POLL-RETRY-19",
+        "DB-RESTORE-API-20",
+        "DB-RESTORE-UI-20",
+        "RESTORE-PHYSICAL-CANDIDATE-20"
+      ],
+      "sourceIdentifiedFunctions": "Sélection dev/prod, provisionner/réessayer, aperçu, données/tables/requête SQL, configuration/connexion, secrets, sauvegardes et restauration. Une désactivation ou un refus n’établit pas la restauration.",
+      "sourceMappingGaps": [
+        "Compléter le graphe des sous-composants et gestes dynamiques ; absence de contrôle local ne signifie pas absence de fonction."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=database].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "object-storage",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Statut, buckets et objets, créer/supprimer bucket, URL d’upload/download, déplacer/supprimer/exporter un objet ; dépend du stockage configuré.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=object-storage].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "packages",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lister/rechercher paquets, installer paquet/tous, audit et versions obsolètes ; exécution dans workspace.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=packages].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "skills",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Catalogue, détails, installation/désinstallation, approbation/révocation, activation/désactivation ; dépendance au catalogue et droits.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=skills].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "monitoring",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lire métriques, choisir fenêtre/série et actualiser ; données runtime requises.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=monitoring].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "ports",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lister les ports, choisir port principal et visibilité ; dépendance au workspace actif.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=ports].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "extensions",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Catalogue MCP, installer, supprimer, activer/désactiver une extension ; dépendance aux installations MCP.",
+      "sourceMappingGaps": [
+        "Champ extensionAction, et non intent : valeurs relevées manuellement dans la branche BFF."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=extensions].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "integrations",
+      "status": "PARTIEL — voir portée de chaque preuve",
+      "proofIds": [
+        "INTEGRATION-CONFIG-20",
+        "INTEGRATION-SYNC-REFUSAL-20",
+        "WEBHOOK-CONFIG-20"
+      ],
+      "sourceIdentifiedFunctions": "Connecter/déconnecter fournisseur, synchroniser, webhooks créer/activer/supprimer, clés API créer/révoquer, streams créer/activer ; distinguer configuration et effets externes.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=integrations].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "workflows",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Créer/modifier/supprimer workflow, bouton Run, planification, lancement immédiat, tâches créer/modifier/supprimer/déplacer/réordonner ; dépendance à l’exécuteur.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=workflows].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "debugger",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Configurations, breakpoints, expressions surveillées, début/fin session ; quatre commandes de contrôle signalées par le reviewer comme sans handler dans main.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=debugger].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "deployments",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Publier, consulter déploiements, annuler, redéployer, rollback ; sous-vue Domaines réutilisée ; dépendance à l’infrastructure de publication.",
+      "sourceMappingGaps": [
+        "Action par défaut/champ dynamique à réconcilier : les littéraux intent ne sont pas le nombre exhaustif de gestes UI.",
+        "Compléter le graphe des sous-composants et gestes dynamiques ; absence de contrôle local ne signifie pas absence de fonction."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=deployments].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "security",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lire alertes et activité, configurer protections, scanner, masquer/réafficher vulnérabilité ; dépendance aux sources d’analyse.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=security].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "env",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lister/rechercher, ajouter/modifier/supprimer variable d’environnement, révéler/copier selon contrôle ; stockage serveur.",
+      "sourceMappingGaps": [
+        "Action par défaut/champ dynamique à réconcilier : les littéraux intent ne sont pas le nombre exhaustif de gestes UI."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=env].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "secrets",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lister, créer/modifier/supprimer, révéler/copier un secret, filtrer ; garde par permissions à vérifier par recette.",
+      "sourceMappingGaps": [
+        "Action par défaut/champ dynamique à réconcilier : les littéraux intent ne sont pas le nombre exhaustif de gestes UI."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=secrets].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "git",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Statut/diff, stage/discard/restore, commit/push/pull/sync, remote, branches, stash, cherry-pick, conflits, PR ; dépendance au dépôt/runtime/credentials.",
+      "sourceMappingGaps": [
+        "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=git].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "activity",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lire/filtrer l’activité, ouvrir détails et états ; aucun branchement mutation BFF propre.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=activity].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "terminal",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Terminal interactif, scripts, processus, restart/stop workspace, SSH ajouter/générer/supprimer/connecter/déconnecter, git SSH ; sous-vues env/secrets/ports réutilisées.",
+      "sourceMappingGaps": [
+        "Callbacks/store/runtime à tracer au-delà des composants : endpoint et persistance par geste pas encore exhaustifs."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=terminal].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "logs",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lire/filtrer, reprendre suivi, actualiser, téléchargement, mode scindé ; dépendance aux flux de journaux.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=logs].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "collaborators",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Présence/commentaires, lien de partage, permissions terminal, partage IA ; invitations/membres délégués à sous-composants à suivre.",
+      "sourceMappingGaps": [
+        "Action par défaut/champ dynamique à réconcilier : les littéraux intent ne sont pas le nombre exhaustif de gestes UI.",
+        "Compléter le graphe des sous-composants et gestes dynamiques ; absence de contrôle local ne signifie pas absence de fonction."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=collaborators].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "domains",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Lister/ajouter, vérifier DNS, configurer domaine ; délégué également depuis Déploiements.",
+      "sourceMappingGaps": [
+        "Action par défaut/champ dynamique à réconcilier : les littéraux intent ne sont pas le nombre exhaustif de gestes UI."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=domains].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "snapshots",
+      "status": "PARTIEL — voir portée de chaque preuve",
+      "proofIds": [
+        "CHECKPOINT-REFUSAL-20",
+        "HISTORY-NO-SNAPSHOT-20"
+      ],
+      "sourceIdentifiedFunctions": "Créer checkpoint, liste et détails/diff, restaurer checkpoint ; restauration de données requiert un backend capable.",
+      "sourceMappingGaps": [
+        "Action par défaut/champ dynamique à réconcilier : les littéraux intent ne sont pas le nombre exhaustif de gestes UI."
+      ],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=snapshots].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    },
+    {
+      "panelId": "settings",
+      "status": "NON TESTÉ — aucune preuve action par action retrouvée dans les reçus examinés",
+      "proofIds": [],
+      "sourceIdentifiedFunctions": "Profil, mot de passe, sessions, vérification email, suppression compte, préférences/clavier/notifications, credentials et routage IA.",
+      "sourceMappingGaps": [],
+      "businessCompletionProven": false,
+      "productionFunctionalProof": false,
+      "permissionsAcrossUsersOrOrganizationsProven": false,
+      "safariActionCoverageProven": false,
+      "sourceActionCatalogLocation": "Copie source immuable : panels[id=settings].actionCatalog ; non importé ici et sans preuve fonctionnelle ajoutée."
+    }
+  ],
+  "actions": [
+    {
+      "id": "DB-READ-RETRY-19",
+      "panelIds": [
+        "database"
+      ],
+      "action": "Ouvrir Database sur mobile, attendre une réponse retardée, cliquer Réessayer et lire la liste réelle des tables.",
+      "interaction": "clic UI + vraie réponse API retenue, sans modification de son contenu",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques.",
+      "result": "Réessayer récupère la liste ; 128 noms de tables distincts non vides avec nombres de lignes numériques ; ancienne requête navigateur abandonnée.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/mesures/2026-10-19-database-loading-retry-browser.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Voir le reçu ; aucune capture ne prouve à elle seule l'effet d'une action.",
+      "date": "2026-10-19T01:36:32.424990Z–01:37:14.287050Z",
+      "formats": [
+        "Chromium 154, 390×844"
+      ],
+      "source": "Source observée bb70c7b685ab4ff5017e36b3ffa2b0f11f7fe55a ; artefact web préexistant non reconstruit, sans égalité binaire au bundle main actuel.",
+      "persistence": "Lecture de tables PostgreSQL ; aucune écriture métier.",
+      "reload": "Non prouvé par cette recette.",
+      "errors": "Retard contrôlé d'une vraie réponse ; ne prouve pas l'annulation SQL ni une panne en production.",
+      "notCovered": [
+        "Créer/modifier/supprimer lignes ou tables",
+        "Exécuter une requête SQL",
+        "Export",
+        "Provisionnement cloud",
+        "Safari"
+      ]
+    },
+    {
+      "id": "DB-POLL-RETRY-19",
+      "panelIds": [
+        "database"
+      ],
+      "action": "Conserver erreur et Réessayer pendant le vrai poll de 60 secondes ; cliquer Réessayer et retrouver les tables.",
+      "interaction": "clic UI ; première erreur explicitement simulée ; réponses suivantes réelles",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques.",
+      "result": "Erreur et contrôle restent visibles pendant le poll mesuré à 59 985 ms ; réessai manuel récupère 128 tables ; requête ancienne abandonnée.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/mesures/2026-10-19-database-real-60s-poll.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Reçu visualReview : parent et reviewer_workspace_timestamp ; quatre captures référencées.",
+      "date": "2026-10-19T02:56:21Z–02:57:49Z",
+      "formats": [
+        "Chromium 154, 390×844, EN"
+      ],
+      "source": "Source observée 4fcfd12a765fef059afb995370a99a2e86f67dd8 ; merge à arbre identique 9d7ff755ccb99b152891ef1f426995fc35061c06 ; build local préexistant, sans égalité binaire au bundle CI/main actuel.",
+      "persistence": "Lecture réelle PostgreSQL, pas une écriture métier.",
+      "reload": "Non prouvé.",
+      "errors": "Premier GET HTTP200 status:error explicitement fixturé. Deuxième réponse réelle retenue, troisième réelle délivrée sans modification.",
+      "notCovered": [
+        "Erreur produite naturellement par le backend",
+        "Panne/recouvrement production",
+        "Annulation SQL",
+        "Tous les boutons Database",
+        "Safari"
+      ]
+    },
+    {
+      "id": "DB-RESTORE-API-20",
+      "panelIds": [
+        "database"
+      ],
+      "action": "Lire capacités/historique et fenêtre de récupération dev/prod ; demander restore/restores sur API.",
+      "interaction": "HTTP direct réel ; aucun clic restauration",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques. Instances ACTIVE synthétiques, aucun fournisseur CNPG.",
+      "result": "GET 200 ; POST restore et restores 503 RESTORE_APPLICATION_CUTOVER_UNAVAILABLE ; fenêtre usableWindow=false.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-preuves/qa-api-evidence.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Voir le reçu ; aucune capture ne prouve à elle seule l'effet d'une action.",
+      "date": "2026-10-20T09:59:39.363Z",
+      "sourceManifest": {
+        "kind": "repository",
+        "path": "docs/reprise/2026-10-20-restauration-preuves/source-hashes.json",
+        "exists": true,
+        "presentAtMainReference": true,
+        "trackedAtPreparationHead": true
+      },
+      "persistence": "Journal de restaurations inchangé ; zéro secret avant/après.",
+      "reload": "Relecture API ; pas recharge navigateur dans cette sous-preuve.",
+      "errors": "Refus honnête vérifié avant faux succès ; ne fournit pas une restauration utilisable.",
+      "notCovered": [
+        "Sauvegarde physique",
+        "Restauration réussie",
+        "Provisionnement CNPG",
+        "Cloud",
+        "Permission autre locataire"
+      ]
+    },
+    {
+      "id": "DB-RESTORE-UI-20",
+      "panelIds": [
+        "database"
+      ],
+      "action": "Ouvrir la page dédiée de base, fermer le tour, lire Fin non vérifiée et indisponibilité de restauration, puis recharger.",
+      "interaction": "lecture UI + fermeture du tour + reload",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques. Métadonnées d'instances synthétiques.",
+      "result": "États attendus présents avant/après reload ; contrôle snapshot visible ; aucun débordement horizontal ou erreur page rapporté.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-browser.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        },
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-integrite.md",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Le document de recette rapporte inspection par le parent des six captures DB/pricing ; pas réinspection des six par cet inventaire.",
+      "date": "2026-10-20T11:13:21.810Z",
+      "formats": [
+        "1440×1000 EN",
+        "820×1180 FR",
+        "390×844 FR"
+      ],
+      "sourceManifest": {
+        "kind": "repository",
+        "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-sources.json",
+        "exists": true,
+        "presentAtMainReference": true,
+        "trackedAtPreparationHead": true
+      },
+      "persistence": "Lecture de métadonnées PostgreSQL.",
+      "reload": "Vérifié dans les trois formats.",
+      "errors": "L'interface refuse de présenter une restauration non vérifiée comme terminée.",
+      "notCovered": [
+        "Clic sauvegarde/snapshot",
+        "Clic restauration réussi",
+        "Studio SQL complet",
+        "Safari",
+        "Production"
+      ]
+    },
+    {
+      "id": "CHECKPOINT-REFUSAL-20",
+      "panelIds": [
+        "snapshots",
+        "agent"
+      ],
+      "action": "Demander une restauration combinée de checkpoint via BFF compilé en EN/FR, formulaire et JSON.",
+      "interaction": "quatre POST HTTP directs réels ; pas clic utilisateur",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques.",
+      "result": "503 CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE, outcome=not_started dans les quatre cas.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-http.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Voir le reçu ; aucune capture ne prouve à elle seule l'effet d'une action.",
+      "date": "2026-10-20T12:43:40.139Z",
+      "sourceManifest": {
+        "kind": "repository",
+        "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-sources.json",
+        "exists": true,
+        "presentAtMainReference": true,
+        "trackedAtPreparationHead": true
+      },
+      "persistence": "Empreinte avant/après inchangée : 59675921985f3611b05412dd7d2bf23414531bbc7d575f226834d9857accff4d ; métadonnées snapshot/contenu synthétique/IDE/restore/mémoire/secrets comparés.",
+      "reload": "Relecture PostgreSQL/API, pas preuve de parcours UI.",
+      "errors": "Refus avant mutation établi.",
+      "memoryScope": "La table mémoire agent était vide.",
+      "notCovered": [
+        "Restauration de fichiers",
+        "Restauration de mémoire agent non vide",
+        "Restauration DB/cloud",
+        "Tous les boutons snapshots"
+      ]
+    },
+    {
+      "id": "HISTORY-NO-SNAPSHOT-20",
+      "panelIds": [
+        "agent",
+        "snapshots"
+      ],
+      "action": "Ouvrir l'historique d'une conversation sans archive, tenter l'activation native du bouton Restaurer ici désactivé et relire la conversation.",
+      "interaction": "UI réelle ; activation d'un contrôle désactivé",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques. Conversation textuelle synthétique, runtime indisponible.",
+      "result": "Bouton désactivé, aucun dialogue/POST restauration ni remplacement de conversation ; quatre messages conservés.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-browser.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        },
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-sources.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Parent : trois captures selon manifeste. panel_evidence_inventory : nosnapshot-mobile.png inspectée le 20 octobre ; bouton désactivé visible, libellé Examiner les différences tronqué dans la version capturée.",
+      "date": "2026-10-20T12:42:11.568Z",
+      "formats": [
+        "1440×1000",
+        "820×1180",
+        "390×844"
+      ],
+      "sourceManifest": {
+        "kind": "repository",
+        "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-sources.json",
+        "exists": true,
+        "presentAtMainReference": true,
+        "trackedAtPreparationHead": true
+      },
+      "persistence": "Conversation relue intacte, empreinte cbe9108633c7b77f50213145b004b89109c1d4d1c53531369d6c11f27659605b ; zéro autosave identique ou remplacement pendant mesure.",
+      "reload": "Relecture persistée prouvée ; pas recette complète de navigation/rechargement historique.",
+      "errors": "Absence d'archive traitée sans tronquer la conversation ; ne constitue pas une restauration achevée.",
+      "capturesInspectedHere": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-mobile.png",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "notCovered": [
+        "Génération agent",
+        "Exécution d'application",
+        "Afficher une conversation archivée",
+        "Examiner les différences",
+        "Restaurer effectivement",
+        "Safari"
+      ]
+    },
+    {
+      "id": "INTEGRATION-CONFIG-20",
+      "panelIds": [
+        "integrations"
+      ],
+      "action": "Enregistrer une configuration GitHub sans token, puis relire Connected.",
+      "interaction": "POST BFF direct via context.request ; pas clic Connecter",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques. Aucun échange fournisseur.",
+      "result": "200 ; connected=true persisté, aucun lastSync ; UI Connected affiche configuration non vérifiée.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-sync/browser-result.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-sync/browser-probe.mjs",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "repository",
+          "path": "docs/reprise/mesures/2026-10-20-integration-honesty-local.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Voir le reçu ; aucune capture ne prouve à elle seule l'effet d'une action.",
+      "date": "2026-10-20T10:34:35.851Z–10:35:38.600Z",
+      "sourceManifest": {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/integration-sync/source-hashes.json",
+        "existsAtReview": true,
+        "includedInRepository": false
+      },
+      "source": "Candidat ensuite fusionné par #744 ; BaseChat/BFF ont changé avec #743, cette recette ne vaut pas nouveau run exact main9c8.",
+      "persistence": "Relecture API de la configuration enregistrée.",
+      "reload": "Configuration visible après rechargement dans les trois formats de cette recette.",
+      "errors": "Étiquette non vérifiée ; connected en base ne prouve pas autorisation/provider.",
+      "formats": [
+        "1440×1000 EN",
+        "820×1180 FR",
+        "390×844 FR"
+      ],
+      "notCovered": [
+        "Clic Connecter/OAuth",
+        "Token valide",
+        "Droits fournisseur",
+        "Déconnexion",
+        "Clés API"
+      ]
+    },
+    {
+      "id": "INTEGRATION-SYNC-REFUSAL-20",
+      "panelIds": [
+        "integrations"
+      ],
+      "action": "Vérifier Sync désactivé et demander directement intent=sync.",
+      "interaction": "lecture UI + POST BFF direct",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques. Non-loopback bloqué.",
+      "result": "503 INTEGRATION_SYNC_UNAVAILABLE ; configuration exactement inchangée, absence de lastSync inventé.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-sync/browser-result.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "repository",
+          "path": "docs/reprise/mesures/2026-10-20-integration-honesty-local.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Voir le reçu ; aucune capture ne prouve à elle seule l'effet d'une action.",
+      "date": "2026-10-20T10:34:35.851Z–10:35:38.600Z",
+      "sourceManifest": {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/integration-sync/source-hashes.json",
+        "existsAtReview": true,
+        "includedInRepository": false
+      },
+      "persistence": "État API avant/après comparé.",
+      "reload": "UI rechargée ; trois formats.",
+      "errors": "Refus honnête, synchronisation externe non implémentée/vérifiée dans cette preuve.",
+      "notCovered": [
+        "Synchronisation fournisseur effective",
+        "Conflit fournisseur",
+        "Permissions OAuth"
+      ]
+    },
+    {
+      "id": "WEBHOOK-CONFIG-20",
+      "panelIds": [
+        "integrations"
+      ],
+      "action": "Cliquer Webhooks puis Ajouter, renseigner nom/URL/events et soumettre ; relire l'entrée puis recharger.",
+      "interaction": "création par vrais clics/formulaire desktop ; lecture/reload desktop/tablet/mobile",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques.",
+      "result": "POST200 ; une entrée persistée avec événements demandés, sans successRate inventé ; métriques indisponibles visibles après reload.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-sync/browser-result.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-sync/browser-probe.mjs",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-sync/capture-result.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "repository",
+          "path": "docs/reprise/mesures/2026-10-20-integration-honesty-local.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Captures ciblées relues par parent selon reçu ; panel_evidence_inventory a inspecté fr-mobile-webhook.png : entrée synthétique et mesures indisponibles visibles.",
+      "date": "2026-10-20T10:34:35.851Z–10:35:38.600Z ; captures ciblées 10:49:57.996Z–10:50:28.510Z",
+      "sourceManifest": {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/integration-sync/source-hashes.json",
+        "existsAtReview": true,
+        "includedInRepository": false
+      },
+      "persistence": "Relecture réelle API de l'entrée et de ses événements.",
+      "reload": "Entrée persistée affichée dans trois formats.",
+      "errors": "Métriques inconnues affichées explicitement ; aucun 100% fabriqué.",
+      "formats": [
+        "1440×1000 EN",
+        "820×1180 FR",
+        "390×844 FR"
+      ],
+      "capturesInspectedHere": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-sync/focused-captures/fr-mobile-webhook.png",
+          "existsAtReview": true,
+          "includedInRepository": false
+        }
+      ],
+      "notCovered": [
+        "Livraison de webhook",
+        "Suspendre",
+        "Supprimer",
+        "Ajouter/supprimer un flux",
+        "Clés API",
+        "Permissions autre utilisateur"
+      ]
+    },
+    {
+      "id": "LAYOUT-DIAGNOSTIC-20",
+      "panelIds": [
+        "editor",
+        "files"
+      ],
+      "action": "Déplacer/redimensionner un panneau flottant ; changer viewport/langue ; revenir du dashboard ; ancrer/remettre en flottant/fermer.",
+      "interaction": "clics UI réels, contrôle réseau diagnostique",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques. Dix requêtes CSS Google Fonts volontairement refusées, sans substitution de réponse applicative.",
+      "result": "Parcours diagnostique passe, panneau restauré ; les recettes réseau normal avant/après restent rouges.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/fonts-control-review.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/handoff-current.md",
+          "existsAtReview": true,
+          "includedInRepository": false
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Parent rapporte dix captures inspectées dans handoff-current.md.",
+      "date": "2026-10-20T11:47:21.471Z",
+      "source": "Candidat non fusionné, base e40edf3e04217e2d0e96ea1385c0420e18374bac ; source exacte identifiée par manifeste local, pas par le main actuel.",
+      "persistence": "Le reçu de navigation observe état de panneau restauré.",
+      "reload": "Changement locale/rechargement et aller-retour dashboard dans le diagnostic.",
+      "errors": "Trois recettes précédentes en délai global conservées ; cause non attribuée.",
+      "formats": [
+        "1440",
+        "768",
+        "390",
+        "FR 1440"
+      ],
+      "notCovered": [
+        "Recette sans contrôle réseau",
+        "Sauvegarde de code",
+        "Exécution",
+        "Action de tous boutons éditeur/fichiers",
+        "Production",
+        "Safari"
+      ]
+    },
+    {
+      "id": "FILES-ARCHIVE-20",
+      "panelIds": [
+        "editor",
+        "files"
+      ],
+      "action": "Recevoir l'archive de fichiers synthétiques avant l'ouverture de l'éditeur.",
+      "interaction": "réponse HTTP réelle ; prérequis, pas action métier complétée",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques.",
+      "result": "Deux réponses200 avec neuf fichiers et README synthétique attendu. Les deux recettes échouent à l'assertion Monaco initiale.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/browser-743-file-archive-proof.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/browser-743-final-neutral-review.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Voir le reçu ; aucune capture ne prouve à elle seule l'effet d'une action.",
+      "date": "2026-10-20T13:57:42.131Z et 13:59:10.715Z",
+      "source": "Candidat local dirty au head72d2322892bc973f6a66032e11c4e427a1ea3145, base arbre main9c8.",
+      "persistence": "Aucune écriture de code validée ; aucun PUT IDE-state avant l'échec de file-tabs.",
+      "reload": "Non atteint.",
+      "errors": "ROUGE : Monaco non prêt ; absence d'attribution produit/navigateur.",
+      "notCovered": [
+        "Ouverture effective Monaco",
+        "Éditer/enregistrer",
+        "Créer/renommer/supprimer fichiers",
+        "Onglets après rechargement",
+        "Tous contrôles floating"
+      ]
+    },
+    {
+      "id": "HISTORY-LABELS-CANDIDATE-20",
+      "panelIds": [
+        "agent"
+      ],
+      "action": "Mesurer et capturer les libellés d'historique français avant/après correction CSS sur trois formats.",
+      "interaction": "visuel + actionabilité trial ; pas exécution des actions métier",
+      "environment": "UI compilée locale / BFF réel / HTTP API réel / Prisma / PostgreSQL QA loopback ; données synthétiques.",
+      "result": "Les neuf libellés sont contenus après correction ; Restaurer reste désactivé.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/browser-743-final-neutral-review.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/history-neutral-bounds-review.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Propre identité/projet QA ; aucun scénario d'accès inter-organisation ou changement de rôle prouvé par cette action.",
+      "captureReview": "Reçu : parent a inspecté les six captures avant/après ; pas réinspection des six dans cet inventaire.",
+      "date": "2026-10-20T14:44:37.190833Z–14:46:26.118283Z",
+      "source": "Candidat dirty non fusionné au head72d2322892bc973f6a66032e11c4e427a1ea3145 ; aucune preuve déploiement.",
+      "persistence": "Non concerné par mesure visuelle.",
+      "reload": "Non prouvé pour une action métier.",
+      "errors": "Avant : libellés tronqués desktop/mobile. Après : aucun débordement après retrait naturel du pointeur.",
+      "notCovered": [
+        "Afficher le chat",
+        "Examiner les différences",
+        "Restauration effective",
+        "Actions de l'historique",
+        "Production"
+      ]
+    },
+    {
+      "id": "RESTORE-PHYSICAL-CANDIDATE-20",
+      "panelIds": [
+        "database"
+      ],
+      "action": "Restaurer une sauvegarde physique + WAL local au point cible, basculer une application sonde, relire, redémarrer et relire.",
+      "interaction": "HTTP API réel + PostgreSQL physique réel ; aucun navigateur/IDE",
+      "environment": "Candidat #745, PostgreSQL Docker local isolé ; API réelle + Prisma ; application sonde synthétique en lecture seule ; contrôle/app distincts dans le même conteneur source.",
+      "result": "Admission202, concurrence409 ; archive vérifiée et archive altérée rejetée ; target promue ; application503 durant quiescence puis200 ; pool précédent fermé ; deux lignes attendues relues ; état durable COMPLETED après restart.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/mesures/2026-10-20-restore-physical-final.json",
+          "exists": true,
+          "presentAtMainReference": false,
+          "trackedAtPreparationHead": true
+        },
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-executeur-local.md",
+          "exists": true,
+          "presentAtMainReference": false,
+          "trackedAtPreparationHead": true
+        }
+      ],
+      "productionFunctionalProof": false,
+      "permissions": "Identité/session propres au banc ; isolation opérationnelle locale. Pas preuve d'isolation multi-locataire complète ni de tous les consommateurs SQL production.",
+      "captureReview": "Sans capture : preuve machine structurée et empreintes sources.",
+      "date": "2026-10-20T13:53:47.261Z",
+      "sourceManifest": {
+        "kind": "repository",
+        "path": "docs/reprise/mesures/2026-10-20-restore-executor-qa-pool-preflight.json",
+        "exists": true,
+        "presentAtMainReference": false,
+        "trackedAtPreparationHead": true
+      },
+      "source": "26 sources gelées dans reçu ; candidat ensuite PR#745, pas main9c8 ni application production. Correctif fencing ultérieur en cours hors de cette preuve.",
+      "persistence": "Journal durable, bindingVersion1, client contrôle rouvert, cible maintenue après redémarrage ; autre environnement inchangé.",
+      "reload": "Redémarrage conteneur et relecture API SQL200, pas recharge de l'IDE.",
+      "errors": "Admission concurrente rejetée ; archive altérée refusée. Fencing distribué non couvert, défaut P1 découvert après ce reçu.",
+      "notCovered": [
+        "Clic restauration de plateforme",
+        "CNPG",
+        "Archive cloud",
+        "Fencing distribué",
+        "Tous consommateurs SQL de production",
+        "Données client",
+        "Déploiement"
+      ]
+    }
+  ],
+  "outsideIde": [
+    {
+      "surface": "Inscription / authentification / création de projet",
+      "status": "PARTIEL — préparation incidente",
+      "proof": "Des inscriptions/projets synthétiques HTTP201 et logins avec redirection sont attestés comme prérequis des recettes. Aucun parcours complet formulaire inscription→vérification email→reconnexion→permissions n'est établi ici.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/mesures/2026-10-19-database-loading-retry-browser.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/auth-readiness-report-review.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        }
+      ]
+    },
+    {
+      "surface": "Tarification / facturation / Stripe",
+      "status": "PARTIEL VISUEL ; paiement TEST NON TESTÉ",
+      "proof": "Absence de la promesse 28-day database rollbacks vérifiée sur pricing dans trois formats. Catalogue QA et abonnement synthétique ne prouvent pas checkout, abonnement, facture, annulation, quota ou webhook Stripe.",
+      "evidence": [
+        {
+          "kind": "repository",
+          "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-browser.json",
+          "exists": true,
+          "presentAtMainReference": true,
+          "trackedAtPreparationHead": true
+        }
+      ]
+    },
+    {
+      "surface": "Settings global / compte / équipe / sécurité / administration / connecteurs",
+      "status": "NON TESTÉ dans les reçus fonctionnels examinés",
+      "proof": "Inventaire source final : 19 URLs settings et 34 sections admin séparées des 31 panneaux IDE ; aucune nouvelle preuve fonctionnelle de leurs contrôles ou permissions.",
+      "evidence": []
+    },
+    {
+      "surface": "Assets de polices / lisibilité",
+      "status": "PARTIEL TECHNIQUE/VISUEL, candidat",
+      "proof": "Sept WOFF2 servis en local identiques aux fichiers ; historique lisible sur trois formats après correctif candidat. Ne prouve aucune action métier.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/served-fonts-743.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-layout-evidence-20261020/browser-743-final-neutral-review.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        }
+      ]
+    }
+  ],
+  "sourceComparisons": [
+    {
+      "manifest": {
+        "kind": "repository",
+        "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-sources.json",
+        "exists": true,
+        "presentAtMainReference": true,
+        "trackedAtPreparationHead": true
+      },
+      "mainSha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "matchingSourceFiles": 28,
+      "totalComparedSourceFiles": 28,
+      "differentSourcePaths": [],
+      "limit": "Égalité de fichiers source uniquement ; aucune égalité du bundle, nouvelle recette ou vérification production inférée."
+    },
+    {
+      "manifest": {
+        "kind": "repository",
+        "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-sources.json",
+        "exists": true,
+        "presentAtMainReference": true,
+        "trackedAtPreparationHead": true
+      },
+      "mainSha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "matchingSourceFiles": 9,
+      "totalComparedSourceFiles": 12,
+      "differentSourcePaths": [
+        "app/components/chat/BaseChat.tsx",
+        "app/lib/i18n/catalogs/api-runtime-routes.ts",
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts"
+      ],
+      "limit": "Égalité de fichiers source uniquement ; aucune égalité du bundle, nouvelle recette ou vérification production inférée."
+    },
+    {
+      "manifest": {
+        "kind": "local_artifact_not_delivered",
+        "path": "/workspace/vibecore-audit-artifacts/integration-sync/source-hashes.json",
+        "existsAtReview": true,
+        "includedInRepository": false
+      },
+      "mainSha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "matchingSourceFiles": 4,
+      "totalComparedSourceFiles": 7,
+      "differentSourcePaths": [
+        "app/components/chat/BaseChat.tsx",
+        "app/lib/i18n/catalogs/api-runtime-routes.ts",
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts"
+      ],
+      "limit": "Égalité de fichiers source uniquement ; aucune égalité du bundle, nouvelle recette ou vérification production inférée."
+    }
+  ],
+  "mappingNotes": [
+    "31 panneaux canoniques rapprochés de la source finale du 20 octobre à 16:29:07 au SHA main fixé ; 17 surfaces gardent des trous de graphe contrôle→callback→backend. Aucune exhaustivité fonctionnelle ni nouveau reçu.",
+    "Connect/intégrations : HTTP direct sans token. Sync : refus. Create-webhook : configuration via UI, pas livraison. Restore/snapshots : refus HTTP direct.",
+    "Les réessais DB/page dédiée ne prouvent pas toutes les intentions du panneau Database.",
+    "Le smoke26/31 et les contrats21GET/auth signalés par le parent ne sont pas réexécutés ; ouverture/rendu/GET ne valent pas clics/mutations.",
+    "panel-buttons.spec : gardes de présentation signalées par le parent, pas preuve de boutons exécutés. Ancien audit24/81 non utilisé pour attester main.",
+    "L’intention Ports inconnue est une observation statique non reproduite ; les formulaires UI actuels émettent leurs deux intentions reconnues. Aucun incident ni clic fautif allégué."
+  ],
+  "candidateLimits": [
+    {
+      "surface": "integrations",
+      "scope": "Candidat vérification/configuration, déconnexion et suppression webhook",
+      "status": "Tests isolés avec fixtures BFF/UI ; recette navigateur seulement préparée au moment de la lecture.",
+      "evidence": [
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-verification/browser-recipe-plan.md",
+          "existsAtReview": true,
+          "includedInRepository": false
+        },
+        {
+          "kind": "local_artifact_not_delivered",
+          "path": "/workspace/vibecore-audit-artifacts/integration-verification/webhook-ui-bff-green.json",
+          "existsAtReview": true,
+          "includedInRepository": false
+        }
+      ],
+      "notProven": "Pas persistance réelle, fournisseur, révocation, recette browser ou production."
+    },
+    {
+      "surface": "database",
+      "scope": "P1 dette de fencing, dépendances CI, transfert de projet PROVISIONING",
+      "status": "Travaux concurrents du parent ; non absorbés dans ce reçu figé, même si nouveaux artefacts apparaissent.",
+      "notProven": "Aucun vert post-correctif ou fusion déduit de l'ancien banc physique."
+    }
+  ],
+  "remainingLaunchProofs": [
+    "Inscription/reconnexion et permissions réelles, génération agent d'une application utilisable, exécution et persistance après rechargement.",
+    "Publication accessible depuis l'extérieur, domains/DNS/TLS et erreurs de publication vérifiées.",
+    "Stripe TEST identifié et parcours abonnement/paiement/webhook/quota cohérent sans paiement LIVE.",
+    "Sauvegarde/restauration cloud isolée avec données synthétiques, quiescence complète, fencing et relecture applicative.",
+    "Isolation inter-utilisateurs/inter-organisations et parcours d'erreur pour chaque action sensible.",
+    "Recettes UI normales des panneaux restants, mobile/tablette/desktop et Safari ; résolution des recettes Monaco/layout rouges."
+  ],
+  "repositoryEvidence": [
+    {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-19-database-loading-retry-browser.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-19-database-real-60s-poll.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/qa-api-evidence.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/source-hashes.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-browser.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-integrite.md",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/checkpoint-sources.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-http.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-sources.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-browser.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-preuves/nosnapshot-mobile.png",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-20-integration-honesty-local.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-20-restore-physical-final.json",
+      "exists": true,
+      "presentAtMainReference": false,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/2026-10-20-restauration-executeur-local.md",
+      "exists": true,
+      "presentAtMainReference": false,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-20-restore-executor-qa-pool-preflight.json",
+      "exists": true,
+      "presentAtMainReference": false,
+      "trackedAtPreparationHead": true
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-20-deployment-9c8f6bc6.json",
+      "exists": true,
+      "presentAtMainReference": false,
+      "trackedAtPreparationHead": false
+    },
+    {
+      "kind": "repository",
+      "path": "docs/reprise/mesures/2026-10-19-e2e-proof-scope.json",
+      "exists": true,
+      "presentAtMainReference": true,
+      "trackedAtPreparationHead": true
+    }
+  ],
+  "localArtifactsNotDelivered": [
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/integration-sync/browser-result.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/integration-sync/browser-probe.mjs",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/integration-sync/source-hashes.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/integration-sync/capture-result.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/integration-sync/focused-captures/fr-mobile-webhook.png",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/fonts-control-review.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/handoff-current.md",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/browser-743-file-archive-proof.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/browser-743-final-neutral-review.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/history-neutral-bounds-review.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/auth-readiness-report-review.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-layout-evidence-20261020/served-fonts-743.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/main9c8-webkit-summary.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/integration-verification/browser-recipe-plan.md",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/integration-verification/webhook-ui-bff-green.json",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "frozen_local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/source-inventory-20261020T162907Z-0dcdd3e136c4.json",
+      "sha256": "0dcdd3e136c4e58a50977a68e7af7f66e4fbae2db9977d9661cb7466814fa910",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "frozen_local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/evidence-inventory-final-source-20261020T162907Z-f9cb8e336a42.json",
+      "sha256": "f9cb8e336a42a18b5be28b0d4166e9357a59c96bef440e720fee3a07668ffd74",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "frozen_local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/final-source-snapshot-20261020T162907Z.json",
+      "sha256": "4340d57f54be9436554f26ca2126a8408cb79378ee71fe6af8a19380ed4b8188",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "frozen_local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/source-manifest-20261020T162907Z-c3c16f68bf74.json",
+      "sha256": "c3c16f68bf7424dacc89258cc8a1a99a916ff923169d7f1df4415f9563106583",
+      "existsAtReview": true,
+      "includedInRepository": false
+    },
+    {
+      "kind": "frozen_local_artifact_not_delivered",
+      "path": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/action-catalog-20261020T162907Z-6fd544d364c4.md",
+      "sha256": "6fd544d364c4067d9c44c2c526c3eb8c2b6552db89c1f3fb93b5b76ab3229b4b",
+      "existsAtReview": true,
+      "includedInRepository": false
+    }
+  ],
+  "sourceOnlyScope": {
+    "mainSha": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+    "manifest": {
+      "frozenPath": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/source-manifest-20261020T162907Z-c3c16f68bf74.json",
+      "sha256": "c3c16f68bf7424dacc89258cc8a1a99a916ff923169d7f1df4415f9563106583",
+      "bytes": 30542,
+      "originalPath": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/source-manifest.json",
+      "originalPathIsMutable": true
+    },
+    "actionCatalog": {
+      "frozenPath": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/provenance/action-catalog-20261020T162907Z-6fd544d364c4.md",
+      "sha256": "6fd544d364c4067d9c44c2c526c3eb8c2b6552db89c1f3fb93b5b76ab3229b4b",
+      "bytes": 196265,
+      "originalPath": "/workspace/vibecore-audit-artifacts/panel-audit-20261020/action-catalog.md",
+      "originalPathIsMutable": true
+    },
+    "sourceFiles": 171,
+    "idePanelCount": 31,
+    "ideAliases": {
+      "chat": "agent",
+      "actions": "agent",
+      "assistant": "agent",
+      "deploy": "deployments",
+      "publishing": "deployments",
+      "debug": "debugger",
+      "developer": "debugger",
+      "multiplayer": "collaborators",
+      "collaboration": "collaborators",
+      "collaborate": "collaborators",
+      "checkpoints": "snapshots",
+      "kv-store": "database",
+      "storage": "object-storage",
+      "app-storage": "object-storage",
+      "console": "terminal",
+      "shell": "terminal",
+      "history": "activity",
+      "auth": "settings",
+      "web": "preview"
+    },
+    "settingsUrlSurfaces": [
+      {
+        "id": "profile",
+        "route": "/settings/profile",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "settings",
+        "route": "/settings/settings",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "notifications",
+        "route": "/settings/notifications",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "features",
+        "route": "/settings/features",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "data",
+        "route": "/settings/data",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "cloud-providers",
+        "route": "/settings/cloud-providers",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "local-providers",
+        "route": "/settings/local-providers",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "github",
+        "route": "/settings/github",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "connections",
+        "route": "/settings/connections",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "gitlab",
+        "route": "/settings/gitlab",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "netlify",
+        "route": "/settings/netlify",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "vercel",
+        "route": "/settings/vercel",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "supabase",
+        "route": "/settings/supabase",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "event-logs",
+        "route": "/settings/event-logs",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "mcp",
+        "route": "/settings/mcp",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "update",
+        "route": "/settings/update",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "debug",
+        "route": "/settings/debug",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "task-manager",
+        "route": "/settings/task-manager",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "service-status",
+        "route": "/settings/service-status",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      }
+    ],
+    "adminSections": [
+      {
+        "id": "overview",
+        "route": "/admin/overview",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "health",
+        "route": "/admin/health",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "monitoring",
+        "route": "/admin/monitoring",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "users",
+        "route": "/admin/users",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "organizations",
+        "route": "/admin/organizations",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "projects",
+        "route": "/admin/projects",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "workspaces",
+        "route": "/admin/workspaces",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "infrastructure",
+        "route": "/admin/infrastructure",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "terminals",
+        "route": "/admin/terminals",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "previews",
+        "route": "/admin/previews",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "deployments",
+        "route": "/admin/deployments",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "usage",
+        "route": "/admin/usage",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "ai-usage",
+        "route": "/admin/ai-usage",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "provider-health",
+        "route": "/admin/provider-health",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "quotas",
+        "route": "/admin/quotas",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "abuse-events",
+        "route": "/admin/abuse-events",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "security-events",
+        "route": "/admin/security-events",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "audit-logs",
+        "route": "/admin/audit-logs",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "admin-audit-logs",
+        "route": "/admin/admin-audit-logs",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "support-tickets",
+        "route": "/admin/support-tickets",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "account-deletions",
+        "route": "/admin/account-deletions",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "feature-flags",
+        "route": "/admin/feature-flags",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "system-settings",
+        "route": "/admin/system-settings",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "ops-controls",
+        "route": "/admin/ops-controls",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "costs",
+        "route": "/admin/costs",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "ai-provider-keys",
+        "route": "/admin/ai-provider-keys",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "providers",
+        "route": "/admin/providers",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "models",
+        "route": "/admin/models",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "oauth-providers",
+        "route": "/admin/oauth-providers",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "wallets",
+        "route": "/admin/wallets",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "checkpoints",
+        "route": "/admin/checkpoints",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "stripe-health",
+        "route": "/admin/stripe-health",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "mcp-catalog",
+        "route": "/admin/mcp-catalog",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      },
+      {
+        "id": "developer-tools",
+        "route": "/admin/developer-tools",
+        "verificationStatus": "SOURCE_ONLY_NOT_FUNCTIONALLY_TESTED"
+      }
+    ],
+    "distinctScopes": "19 settings URL, 34 admin et 19 alias IDE distincts des 31 panneaux IDE. Les alias ne créent pas de fonctions supplémentaires.",
+    "remainingGraphWork": [
+      "Composer agent extrait ; distinguer les conditions projectIdeMode/legacy et séparer le chrome BaseChat restant",
+      "Sous-composants et callbacks/store/runtime à suivre pour plusieurs panneaux",
+      "Routes hors IDE : wrappers, formulaires et permissions à réconcilier",
+      "Traductions/champs dynamiques peuvent produire plusieurs actions pour un site JSX",
+      "Branche BFF existante ne garantit ni bouton visible ni autorisation correcte ni effet réel"
+    ],
+    "hashRecheck": {
+      "recordedAtUtc": "2026-10-20T16:34:12.381747+00:00",
+      "method": "SHA-256 of git show exact-main-SHA:path for each path in the frozen manifest",
+      "sourceCommit": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+      "filesCompared": 171,
+      "mismatches": 0,
+      "functionalTest": false
+    }
+  },
+  "staticFindingsNotExecuted": [
+    {
+      "id": "PORTS_UNKNOWN_INTENT_SUCCESS",
+      "status": "SOURCE_PATH_CONFIRMED_NOT_RUNTIME_REPRODUCED",
+      "sourceRefs": [
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts:1461",
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts:2180",
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts:2185",
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts:2189",
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts:2197",
+        "app/routes/api.projects.$projectId.ide-panel.$panel.ts:3499"
+      ],
+      "callableCase": {
+        "method": "POST",
+        "path": "/api/projects/:projectId/ide-panel/ports",
+        "contentType": "application/json",
+        "body": {
+          "intent": "unknown",
+          "port": "3000"
+        },
+        "preconditions": "session et accès projet valides ; appels GET/PUT env-vars réussissent"
+      },
+      "observation": "Intention inconnue ne change ni primaryPort ni visibility, mais réécrit le state par PUT et atteint le retour global ok:true. Corps vide suit aussi le défaut avec port NaN. Aucune exécution effectuée.",
+      "uiEmitterStatus": "Les deux formulaires UI actuels émettent set-primary/set-visibility ; aucun clic erroné actuel établi.",
+      "additionalUnreproducedHypotheses": [
+        "Number.parseInt sans validation de plage/syntaxe complète accepte notamment valeurs suffixées/horsplage.",
+        "GET env-vars en échec est remplacé par liste vide puis suivi d’un PUT : risque de réécriture de configuration vide à reproduire sur fixture isolée."
+      ]
+    }
+  ]
+}

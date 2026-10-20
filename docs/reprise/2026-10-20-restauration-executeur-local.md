@@ -1,9 +1,56 @@
 # Exécuteur de restauration — candidat local du 20 octobre 2026
 
-Base `e8ede226b3fdadf9b1b62bffb5485d4757712cd2`, branche
-`codex/database-restore-executor-20261020`. Candidat non committé, non fusionné,
-non déployé. Ce document décrit le noyau et ses limites ; il ne remplace pas
-une preuve de restauration complète.
+Branche `codex/database-restore-executor-20261020`, PR
+[#745](https://github.com/openaxcloud/vibecore/pull/745), base actuelle
+`9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828`. La première version `89019cdf`
+est poussée mais non fusionnée ; ses contrôles CI ont révélé des dépendances
+workspace absentes. Les correctifs de revue sont encore locaux au relevé
+de 16:47 UTC.
+
+La revue a aussi reproduit la perte d'une ancienne tentative entre deux
+reprises et l'incohérence d'organisation d'une DB après transfert de projet.
+La migration additive 0092 conserve désormais la dette d'exclusion jusqu'aux
+reçus confirmés. Les sources corrigées passent 64 tests API, 29 tests du
+lanceur CI et [31 tests PostgreSQL réels](mesures/2026-10-20-restore-ci-postgresql-local.json).
+La [résolution des dépendances](mesures/2026-10-20-restore-workspace-dependencies.json)
+est vérifiée sur installation propre, avec contre-épreuve du manifeste ancien.
+Les typages API et scripts, puis le build API, sont verts. Un premier banc
+physique a passé ses 21 tests PostgreSQL mais échoué avant l'admission HTTP
+car le lanceur n'avait pas transmis le drapeau local exigé par sa fixture.
+Ce premier résultat reste rouge ; aucun succès de restauration n'en est déduit.
+Le [reçu de cet échec de préparation](mesures/2026-10-20-restore-physical-review-setup-failure.json)
+est conservé. L'assertion reste en place ; la commande correcte pour ce banc
+local explicitement isolé est :
+
+```sh
+NODE_ENV=test DB_ROLLBACK_ENABLED=true \
+  RESTORE_QA_OUTPUT=".vibecore/qa-physical-restore-$(date -u +%Y%m%dT%H%M%SZ)" \
+  node --import tsx scripts/qa/database-restore-physical.ts
+```
+
+Cette commande utilise uniquement l'image PostgreSQL déjà en cache, ses
+conteneurs/volumes propres et une API locale. Elle n'active aucun serveur
+de production.
+
+Le passage corrigé est **vert à 16:47:01 UTC**, sur les 34 sources revérifiées
+identiques. Il comprend 21 tests PostgreSQL, une vraie sauvegarde physique et
+les WAL, le refus d'une archive altérée, l'admission HTTP 202 et le refus
+concurrent 409, la quiescence 503, la bascule et la relecture applicative,
+la reprise 200, la lecture SQL API puis le redémarrage et la reconnexion.
+Les conteneurs et volumes propres sont absents après nettoyage ; le conteneur
+QA partagé conserve son identifiant et reste actif.
+
+Le processus complet dure 136,17 secondes, avec un pic cgroup partagé de
+7 959 773 184 octets et aucun OOM. Ces valeurs décrivent ce banc synthétique ;
+elles ne constituent pas un RTO commercial.
+[Preuve physique après revue](mesures/2026-10-20-restore-physical-review-final.json)
+et [typages, build et tests ciblés](mesures/2026-10-20-restore-review-local-checks.json).
+Le pilote QA ne prétend toujours pas exclure un worker distribué après crash.
+
+L'historique ci-dessous part de la base antérieure `e8ede226` et conserve ses
+échecs puis ses validations. Ses preuves physiques antérieures ne valident
+pas automatiquement les corrections de revue. Ce document ne constitue
+jamais une preuve de restauration cloud ou de parcours IDE complet.
 
 ## Contrat intégré
 
@@ -28,11 +75,15 @@ possède un token conditionnant les écritures suivantes.
 | Reprise      | Confirmation explicite du trafic applicatif sur la liaison vérifiée.                                                    |
 | Achèvement   | Reçus durables et liaison encore courante avant `COMPLETED`.                                                            |
 
-Un échec `PENDING` ou `VALIDATING` peut libérer l'admission. Dès `PREPARING`,
+Un échec `PENDING` ou `VALIDATING` peut libérer l'admission si aucune exclusion
+ne reste à confirmer. Dès `PREPARING`,
 une ressource peut exister malgré l'échec de sa réponse : `RECOVERY_REQUIRED`
 conserve verrou, token et identifiant de cible. La reprise explicite exige
-l'exclusion réelle de l'ancien pilote ; aucune expiration de délai ne la
-remplace. Aucun nettoyage ou rollback automatique de la cible n'est revendiqué.
+l'exclusion réelle de tous les anciens pilotes encore inscrits au journal ;
+aucune expiration de délai ne la remplace. Une nouvelle reprise conserve
+cette liste et y ajoute son prédécesseur. Seul le propriétaire courant peut
+confirmer une exclusion. Aucun nettoyage ou rollback automatique de la cible
+n'est revendiqué.
 
 Pendant l'opération, les mutations de liaison et le transfert/suppression du
 projet sont bloqués. Après bascule, sauvegardes héritées, transfert et suppression

@@ -73,6 +73,7 @@ async function setup(environment: 'development' | 'production', available = true
         instance: input.instance,
         phase: 'PENDING',
         active: true,
+        pendingFenceTokens: [],
         expectedBindingVersion: 0,
         targetId: `fixture-${restore.id}`,
       };
@@ -88,6 +89,7 @@ async function setup(environment: 'development' | 'production', available = true
     complete: unused,
     fail: unused,
     resume: unused,
+    acknowledgeFence: unused,
   };
   const ports: DatabaseRestorePorts = {
     available: async () => available,

@@ -51,6 +51,7 @@ function map(row: Journal): RestoreExecution {
     phase: row.phase as RestorePhase,
     resumePhase: (row.resumePhase ?? undefined) as RestorePhase | undefined,
     runnerToken: row.runnerToken ?? undefined,
+    pendingFenceTokens: row.pendingFenceTokens,
     active: row.activeLock !== null,
     expectedBindingVersion: row.expectedBindingVersion,
     appliedBindingVersion: row.appliedBindingVersion ?? undefined,
@@ -188,7 +189,12 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
   async pending(limit: number) {
     return (
       await this.prisma.databaseRestoreExecution.findMany({
-        where: { phase: 'PENDING', runnerToken: null, activeLock: { not: null } },
+        where: {
+          phase: 'PENDING',
+          runnerToken: null,
+          pendingFenceTokens: { isEmpty: true },
+          activeLock: { not: null },
+        },
         orderBy: { createdAt: 'asc' },
         take: Math.max(1, Math.min(limit, 100)),
         select: { restoreId: true },
@@ -199,7 +205,13 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
   async claim(operationId: string, attemptToken: string) {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.databaseRestoreExecution.updateMany({
-        where: { restoreId: operationId, phase: 'PENDING', runnerToken: null, activeLock: { not: null } },
+        where: {
+          restoreId: operationId,
+          phase: 'PENDING',
+          runnerToken: null,
+          pendingFenceTokens: { isEmpty: true },
+          activeLock: { not: null },
+        },
         data: { runnerToken: attemptToken },
       });
 
@@ -218,7 +230,13 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
 
   async checkpoint(operationId: string, attemptToken: string, from: RestorePhase, patch: RestoreCheckpoint) {
     const result = await this.prisma.databaseRestoreExecution.updateMany({
-      where: { restoreId: operationId, runnerToken: attemptToken, phase: from, activeLock: { not: null } },
+      where: {
+        restoreId: operationId,
+        runnerToken: attemptToken,
+        phase: from,
+        pendingFenceTokens: { isEmpty: true },
+        activeLock: { not: null },
+      },
       data: {
         phase: patch.phase,
         ...(patch.archive ? { archive: json(patch.archive) } : {}),
@@ -347,13 +365,16 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
        * prepareTarget may have allocated a durable target before rejecting.
        * Keep its handle and scope locked until a fenced recovery resolves it.
        */
-      const safeToRelease = code !== 'RESTORE_FENCE_UNCONFIRMED' && ['PENDING', 'VALIDATING'].includes(row.phase);
+      const safeToRelease =
+        row.pendingFenceTokens.length === 0 &&
+        code !== 'RESTORE_FENCE_UNCONFIRMED' &&
+        ['PENDING', 'VALIDATING'].includes(row.phase);
 
       const updated = await tx.databaseRestoreExecution.updateMany({
         where: { restoreId: operationId, runnerToken: attemptToken, phase: row.phase },
         data: {
           phase: safeToRelease ? 'FAILED' : 'RECOVERY_REQUIRED',
-          resumePhase: row.phase,
+          resumePhase: row.phase === 'RECOVERY_REQUIRED' ? row.resumePhase : row.phase,
           failureCode: code,
           ...(safeToRelease ? { activeLock: null, runnerToken: null } : {}),
         },
@@ -372,7 +393,7 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
     return this.prisma.$transaction(async (tx) => {
       const row = await tx.databaseRestoreExecution.findUnique({ where: { restoreId: operationId } });
 
-      if (!row || !row.activeLock || row.runnerToken !== previousToken) {
+      if (!row || !row.activeLock || row.runnerToken !== previousToken || previousToken === nextToken) {
         return undefined;
       }
 
@@ -384,7 +405,13 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
 
       const updated = await tx.databaseRestoreExecution.updateMany({
         where: { restoreId: operationId, runnerToken: previousToken, phase: row.phase },
-        data: { phase, runnerToken: nextToken, resumePhase: null, failureCode: null },
+        data: {
+          phase,
+          runnerToken: nextToken,
+          pendingFenceTokens: [...new Set([...row.pendingFenceTokens, previousToken])],
+          resumePhase: null,
+          failureCode: null,
+        },
       });
 
       if (updated.count !== 1) {
@@ -394,6 +421,28 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
       await tx.databaseRestore.update({ where: { id: operationId }, data: { status: 'RUNNING', error: null } });
 
       return map(await tx.databaseRestoreExecution.findUniqueOrThrow({ where: { restoreId: operationId }, include }));
+    });
+  }
+
+  async acknowledgeFence(operationId: string, attemptToken: string, excludedToken: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "restoreId" FROM "DatabaseRestoreExecution" WHERE "restoreId" = ${operationId} FOR UPDATE`;
+      const row = await tx.databaseRestoreExecution.findUnique({ where: { restoreId: operationId } });
+
+      if (!row || !row.activeLock || row.runnerToken !== attemptToken || excludedToken === attemptToken) {
+        return false;
+      }
+
+      // Repeating an already persisted acknowledgement by this owner is safe.
+      if (!row.pendingFenceTokens.includes(excludedToken)) {
+        return true;
+      }
+
+      await tx.databaseRestoreExecution.update({
+        where: { restoreId: operationId },
+        data: { pendingFenceTokens: row.pendingFenceTokens.filter((token) => token !== excludedToken) },
+      });
+      return true;
     });
   }
 
@@ -429,6 +478,10 @@ export class PrismaDatabaseRestoreRepository implements DatabaseRestoreRepositor
   private _assertOwner(row: Journal, token: string, phase: RestorePhase) {
     if (row.runnerToken !== token || row.phase !== phase || !row.activeLock) {
       throw new DatabaseRestoreError('RESTORE_ATTEMPT_STALE');
+    }
+
+    if (row.pendingFenceTokens.length !== 0) {
+      throw new DatabaseRestoreError('RESTORE_FENCE_UNCONFIRMED');
     }
   }
 }

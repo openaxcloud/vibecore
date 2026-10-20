@@ -2340,6 +2340,7 @@ model DatabaseRestoreExecution {
   phase                     String          @default("PENDING")
   resumePhase               String?
   runnerToken               String?
+  pendingFenceTokens        String[]        @default([])
   expectedBindingVersion    Int
   appliedBindingVersion     Int?
   sourceTargetRef           String?

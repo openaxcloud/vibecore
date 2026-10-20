@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-10-20T15:41:08.720496+00:00",
+  "reviewedCommit": "89019cdf1cdbbd622179fdc4b2b4a68ab3219fef",
+  "run": {
+    "label": "fence-debt-old-counterproof-executed",
+    "startedAt": "2026-10-20T15:33:49.550480+00:00",
+    "memoryBefore": 4439515136,
+    "command": [
+      "pnpm",
+      "--filter",
+      "@vibecore/api",
+      "exec",
+      "vitest",
+      "run",
+      "--config",
+      "vitest.config.ts",
+      "src/database-restore-executor.spec.ts",
+      "--maxWorkers=1",
+      "--minWorkers=1"
+    ],
+    "exitCode": 1,
+    "seconds": 35.5,
+    "peakMemory": 4649066496,
+    "finishedAt": "2026-10-20T15:34:25.045580+00:00"
+  },
+  "result": {
+    "failed": 2,
+    "passedWitnesses": 25,
+    "skipped": 0,
+    "cases": [
+      "crash between durable takeover and fence",
+      "failed fence followed by a second recovery"
+    ],
+    "observed": "Both cases resumed preparation while the original attempt was still unexcluded."
+  },
+  "scope": "Coordinator unit tests with explicitly in-memory repository and driver fixtures. No physical or cloud fencing is proved.",
+  "productionSourceAtRun": [
+    {
+      "path": "services/api/src/database-restore-contract.ts",
+      "sha256": "dcad532749c0422b3672f0fb74bad9bf1d460cd3e079ac767a67c71242f77d58"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.ts",
+      "sha256": "b4e610e601525ffbb00201b4c50e8cc271b91934c277f08e2fc863e72299d4b4"
+    },
+    {
+      "path": "services/api/src/database-restore-repository.ts",
+      "sha256": "babd82fb200edcf4a200172b965bf9e16e9a7fe258ee3f4bfcaf9a861dd0cb70"
+    }
+  ],
+  "regressionTestSourceHashAtRun": "Not separately captured before the subsequent fix; the execution log and added cases are retained.",
+  "logSha256": "6dfe095ce25bea45bf23e01a8e6229a223f264b64eb3bcfd047fdc27968ae1eb",
+  "priorInvocation": {
+    "file": "fence-debt-old-counterproof.json",
+    "status": "CLI option parsing failed before executing tests; not a regression result."
+  },
+  "fixStatus": "written, not yet validated",
+  "productionCoordinatorInjected": false
+}

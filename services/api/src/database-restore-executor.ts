@@ -102,14 +102,35 @@ export class DatabaseRestoreCoordinator {
     const scope = this._scope(resumed, nextToken);
 
     try {
-      const fenced = await this._options.ports.fenceAttempt({ ...scope, previousAttemptToken });
-      this._assertScope(scope, fenced);
+      for (const excludedToken of resumed.pendingFenceTokens) {
+        const fenced = await this._options.ports.fenceAttempt({ ...scope, previousAttemptToken: excludedToken });
+        this._assertScope(scope, fenced);
+
+        if (fenced.excludedAttemptToken !== excludedToken) {
+          throw new DatabaseRestoreError('RESTORE_RECEIPT_MISMATCH');
+        }
+
+        if (!(await this._options.repository.acknowledgeFence(operationId, nextToken, excludedToken))) {
+          throw new DatabaseRestoreError('RESTORE_ATTEMPT_STALE');
+        }
+      }
+
+      const fencedExecution = await this._options.repository.get(operationId);
+
+      if (
+        !fencedExecution ||
+        fencedExecution.runnerToken !== nextToken ||
+        !fencedExecution.active ||
+        fencedExecution.pendingFenceTokens.length !== 0
+      ) {
+        throw new DatabaseRestoreError('RESTORE_FENCE_UNCONFIRMED');
+      }
+
+      return this._run(fencedExecution, nextToken);
     } catch {
       await this._options.repository.fail(operationId, nextToken, 'RESTORE_FENCE_UNCONFIRMED');
       return this.evidence(operationId);
     }
-
-    return this._run(resumed, nextToken);
   }
 
   private _publicRecord(execution: RestoreExecution) {
@@ -164,6 +185,11 @@ export class DatabaseRestoreCoordinator {
     };
 
     try {
+      if (execution.pendingFenceTokens.length !== 0) {
+        failureCode = 'RESTORE_FENCE_UNCONFIRMED';
+        throw new DatabaseRestoreError(failureCode);
+      }
+
       while (!terminal.has(execution.phase)) {
         if (execution.phase === 'PENDING') {
           await checkpoint({ phase: 'VALIDATING' });

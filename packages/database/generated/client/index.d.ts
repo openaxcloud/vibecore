@@ -138682,6 +138682,7 @@ export namespace Prisma {
     phase: number
     resumePhase: number
     runnerToken: number
+    pendingFenceTokens: number
     expectedBindingVersion: number
     appliedBindingVersion: number
     sourceTargetRef: number
@@ -138751,6 +138752,7 @@ export namespace Prisma {
     phase?: true
     resumePhase?: true
     runnerToken?: true
+    pendingFenceTokens?: true
     expectedBindingVersion?: true
     appliedBindingVersion?: true
     sourceTargetRef?: true
@@ -138861,6 +138863,7 @@ export namespace Prisma {
     phase: string
     resumePhase: string | null
     runnerToken: string | null
+    pendingFenceTokens: string[]
     expectedBindingVersion: number
     appliedBindingVersion: number | null
     sourceTargetRef: string | null
@@ -138903,6 +138906,7 @@ export namespace Prisma {
     phase?: boolean
     resumePhase?: boolean
     runnerToken?: boolean
+    pendingFenceTokens?: boolean
     expectedBindingVersion?: boolean
     appliedBindingVersion?: boolean
     sourceTargetRef?: boolean
@@ -138927,6 +138931,7 @@ export namespace Prisma {
     phase?: boolean
     resumePhase?: boolean
     runnerToken?: boolean
+    pendingFenceTokens?: boolean
     expectedBindingVersion?: boolean
     appliedBindingVersion?: boolean
     sourceTargetRef?: boolean
@@ -138951,6 +138956,7 @@ export namespace Prisma {
     phase?: boolean
     resumePhase?: boolean
     runnerToken?: boolean
+    pendingFenceTokens?: boolean
     expectedBindingVersion?: boolean
     appliedBindingVersion?: boolean
     sourceTargetRef?: boolean
@@ -138975,6 +138981,7 @@ export namespace Prisma {
     phase?: boolean
     resumePhase?: boolean
     runnerToken?: boolean
+    pendingFenceTokens?: boolean
     expectedBindingVersion?: boolean
     appliedBindingVersion?: boolean
     sourceTargetRef?: boolean
@@ -138992,7 +138999,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DatabaseRestoreExecutionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"restoreId" | "activeLock" | "phase" | "resumePhase" | "runnerToken" | "expectedBindingVersion" | "appliedBindingVersion" | "sourceTargetRef" | "originalSecretEncrypted" | "targetId" | "targetConnectionEncrypted" | "snapshot" | "archive" | "target" | "quiescence" | "readback" | "release" | "failureCode" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseRestoreExecution"]>
+  export type DatabaseRestoreExecutionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"restoreId" | "activeLock" | "phase" | "resumePhase" | "runnerToken" | "pendingFenceTokens" | "expectedBindingVersion" | "appliedBindingVersion" | "sourceTargetRef" | "originalSecretEncrypted" | "targetId" | "targetConnectionEncrypted" | "snapshot" | "archive" | "target" | "quiescence" | "readback" | "release" | "failureCode" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseRestoreExecution"]>
   export type DatabaseRestoreExecutionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     restore?: boolean | DatabaseRestoreDefaultArgs<ExtArgs>
   }
@@ -139014,6 +139021,7 @@ export namespace Prisma {
       phase: string
       resumePhase: string | null
       runnerToken: string | null
+      pendingFenceTokens: string[]
       expectedBindingVersion: number
       appliedBindingVersion: number | null
       sourceTargetRef: string | null
@@ -139458,6 +139466,7 @@ export namespace Prisma {
     readonly phase: FieldRef<"DatabaseRestoreExecution", 'String'>
     readonly resumePhase: FieldRef<"DatabaseRestoreExecution", 'String'>
     readonly runnerToken: FieldRef<"DatabaseRestoreExecution", 'String'>
+    readonly pendingFenceTokens: FieldRef<"DatabaseRestoreExecution", 'String[]'>
     readonly expectedBindingVersion: FieldRef<"DatabaseRestoreExecution", 'Int'>
     readonly appliedBindingVersion: FieldRef<"DatabaseRestoreExecution", 'Int'>
     readonly sourceTargetRef: FieldRef<"DatabaseRestoreExecution", 'String'>
@@ -164204,6 +164213,7 @@ export namespace Prisma {
     phase: 'phase',
     resumePhase: 'resumePhase',
     runnerToken: 'runnerToken',
+    pendingFenceTokens: 'pendingFenceTokens',
     expectedBindingVersion: 'expectedBindingVersion',
     appliedBindingVersion: 'appliedBindingVersion',
     sourceTargetRef: 'sourceTargetRef',
@@ -173661,6 +173671,7 @@ export namespace Prisma {
     phase?: StringFilter<"DatabaseRestoreExecution"> | string
     resumePhase?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
     runnerToken?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    pendingFenceTokens?: StringNullableListFilter<"DatabaseRestoreExecution">
     expectedBindingVersion?: IntFilter<"DatabaseRestoreExecution"> | number
     appliedBindingVersion?: IntNullableFilter<"DatabaseRestoreExecution"> | number | null
     sourceTargetRef?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
@@ -173685,6 +173696,7 @@ export namespace Prisma {
     phase?: SortOrder
     resumePhase?: SortOrderInput | SortOrder
     runnerToken?: SortOrderInput | SortOrder
+    pendingFenceTokens?: SortOrder
     expectedBindingVersion?: SortOrder
     appliedBindingVersion?: SortOrderInput | SortOrder
     sourceTargetRef?: SortOrderInput | SortOrder
@@ -173713,6 +173725,7 @@ export namespace Prisma {
     phase?: StringFilter<"DatabaseRestoreExecution"> | string
     resumePhase?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
     runnerToken?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
+    pendingFenceTokens?: StringNullableListFilter<"DatabaseRestoreExecution">
     expectedBindingVersion?: IntFilter<"DatabaseRestoreExecution"> | number
     appliedBindingVersion?: IntNullableFilter<"DatabaseRestoreExecution"> | number | null
     sourceTargetRef?: StringNullableFilter<"DatabaseRestoreExecution"> | string | null
@@ -173736,6 +173749,7 @@ export namespace Prisma {
     phase?: SortOrder
     resumePhase?: SortOrderInput | SortOrder
     runnerToken?: SortOrderInput | SortOrder
+    pendingFenceTokens?: SortOrder
     expectedBindingVersion?: SortOrder
     appliedBindingVersion?: SortOrderInput | SortOrder
     sourceTargetRef?: SortOrderInput | SortOrder
@@ -173767,6 +173781,7 @@ export namespace Prisma {
     phase?: StringWithAggregatesFilter<"DatabaseRestoreExecution"> | string
     resumePhase?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
     runnerToken?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
+    pendingFenceTokens?: StringNullableListFilter<"DatabaseRestoreExecution">
     expectedBindingVersion?: IntWithAggregatesFilter<"DatabaseRestoreExecution"> | number
     appliedBindingVersion?: IntNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | number | null
     sourceTargetRef?: StringNullableWithAggregatesFilter<"DatabaseRestoreExecution"> | string | null
@@ -185055,6 +185070,7 @@ export namespace Prisma {
     phase?: string
     resumePhase?: string | null
     runnerToken?: string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionCreatependingFenceTokensInput | string[]
     expectedBindingVersion: number
     appliedBindingVersion?: number | null
     sourceTargetRef?: string | null
@@ -185079,6 +185095,7 @@ export namespace Prisma {
     phase?: string
     resumePhase?: string | null
     runnerToken?: string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionCreatependingFenceTokensInput | string[]
     expectedBindingVersion: number
     appliedBindingVersion?: number | null
     sourceTargetRef?: string | null
@@ -185101,6 +185118,7 @@ export namespace Prisma {
     phase?: StringFieldUpdateOperationsInput | string
     resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
     runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionUpdatependingFenceTokensInput | string[]
     expectedBindingVersion?: IntFieldUpdateOperationsInput | number
     appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
     sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
@@ -185125,6 +185143,7 @@ export namespace Prisma {
     phase?: StringFieldUpdateOperationsInput | string
     resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
     runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionUpdatependingFenceTokensInput | string[]
     expectedBindingVersion?: IntFieldUpdateOperationsInput | number
     appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
     sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
@@ -185148,6 +185167,7 @@ export namespace Prisma {
     phase?: string
     resumePhase?: string | null
     runnerToken?: string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionCreatependingFenceTokensInput | string[]
     expectedBindingVersion: number
     appliedBindingVersion?: number | null
     sourceTargetRef?: string | null
@@ -185170,6 +185190,7 @@ export namespace Prisma {
     phase?: StringFieldUpdateOperationsInput | string
     resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
     runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionUpdatependingFenceTokensInput | string[]
     expectedBindingVersion?: IntFieldUpdateOperationsInput | number
     appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
     sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
@@ -185193,6 +185214,7 @@ export namespace Prisma {
     phase?: StringFieldUpdateOperationsInput | string
     resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
     runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionUpdatependingFenceTokensInput | string[]
     expectedBindingVersion?: IntFieldUpdateOperationsInput | number
     appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
     sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
@@ -193208,6 +193230,7 @@ export namespace Prisma {
     phase?: SortOrder
     resumePhase?: SortOrder
     runnerToken?: SortOrder
+    pendingFenceTokens?: SortOrder
     expectedBindingVersion?: SortOrder
     appliedBindingVersion?: SortOrder
     sourceTargetRef?: SortOrder
@@ -201375,10 +201398,19 @@ export namespace Prisma {
     update?: XOR<XOR<DatabaseRestoreExecutionUpdateToOneWithWhereWithoutRestoreInput, DatabaseRestoreExecutionUpdateWithoutRestoreInput>, DatabaseRestoreExecutionUncheckedUpdateWithoutRestoreInput>
   }
 
+  export type DatabaseRestoreExecutionCreatependingFenceTokensInput = {
+    set: string[]
+  }
+
   export type DatabaseRestoreCreateNestedOneWithoutExecutionInput = {
     create?: XOR<DatabaseRestoreCreateWithoutExecutionInput, DatabaseRestoreUncheckedCreateWithoutExecutionInput>
     connectOrCreate?: DatabaseRestoreCreateOrConnectWithoutExecutionInput
     connect?: DatabaseRestoreWhereUniqueInput
+  }
+
+  export type DatabaseRestoreExecutionUpdatependingFenceTokensInput = {
+    set?: string[]
+    push?: string | string[]
   }
 
   export type DatabaseRestoreUpdateOneRequiredWithoutExecutionNestedInput = {
@@ -228931,6 +228963,7 @@ export namespace Prisma {
     phase?: string
     resumePhase?: string | null
     runnerToken?: string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionCreatependingFenceTokensInput | string[]
     expectedBindingVersion: number
     appliedBindingVersion?: number | null
     sourceTargetRef?: string | null
@@ -228953,6 +228986,7 @@ export namespace Prisma {
     phase?: string
     resumePhase?: string | null
     runnerToken?: string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionCreatependingFenceTokensInput | string[]
     expectedBindingVersion: number
     appliedBindingVersion?: number | null
     sourceTargetRef?: string | null
@@ -229038,6 +229072,7 @@ export namespace Prisma {
     phase?: StringFieldUpdateOperationsInput | string
     resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
     runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionUpdatependingFenceTokensInput | string[]
     expectedBindingVersion?: IntFieldUpdateOperationsInput | number
     appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
     sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null
@@ -229060,6 +229095,7 @@ export namespace Prisma {
     phase?: StringFieldUpdateOperationsInput | string
     resumePhase?: NullableStringFieldUpdateOperationsInput | string | null
     runnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    pendingFenceTokens?: DatabaseRestoreExecutionUpdatependingFenceTokensInput | string[]
     expectedBindingVersion?: IntFieldUpdateOperationsInput | number
     appliedBindingVersion?: NullableIntFieldUpdateOperationsInput | number | null
     sourceTargetRef?: NullableStringFieldUpdateOperationsInput | string | null

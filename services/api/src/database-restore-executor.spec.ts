@@ -34,6 +34,7 @@ class Journal implements DatabaseRestoreRepository {
       instance: input.instance,
       phase: 'PENDING',
       active: true,
+      pendingFenceTokens: [],
       expectedBindingVersion: binding.version,
       targetId: `target-${id}`,
       snapshot: input.snapshot,
@@ -74,7 +75,7 @@ class Journal implements DatabaseRestoreRepository {
   async checkpoint(id: string, token: string, from: RestorePhase, patch: RestoreCheckpoint) {
     const row = this.rows.get(id)!;
 
-    if (!row.active || row.runnerToken !== token || row.phase !== from) {
+    if (!row.active || row.runnerToken !== token || row.phase !== from || row.pendingFenceTokens.length !== 0) {
       return false;
     }
 
@@ -88,6 +89,9 @@ class Journal implements DatabaseRestoreRepository {
 
     if (row.runnerToken !== token || row.phase !== 'CUTOVER') {
       throw new DatabaseRestoreError('RESTORE_ATTEMPT_STALE');
+    }
+    if (row.pendingFenceTokens.length !== 0) {
+      throw new DatabaseRestoreError('RESTORE_FENCE_UNCONFIRMED');
     }
 
     if (binding.version !== row.expectedBindingVersion) {
@@ -109,6 +113,9 @@ class Journal implements DatabaseRestoreRepository {
     if (row.runnerToken !== token || row.phase !== 'RELEASING') {
       throw new DatabaseRestoreError('RESTORE_ATTEMPT_STALE');
     }
+    if (row.pendingFenceTokens.length !== 0) {
+      throw new DatabaseRestoreError('RESTORE_FENCE_UNCONFIRMED');
+    }
 
     if (binding.version !== row.appliedBindingVersion) {
       throw new DatabaseRestoreError('RESTORE_BINDING_CHANGED');
@@ -129,9 +136,14 @@ class Journal implements DatabaseRestoreRepository {
       return;
     }
 
-    row.resumePhase = row.phase;
+    if (row.phase !== 'RECOVERY_REQUIRED') {
+      row.resumePhase = row.phase;
+    }
 
-    const safe = code !== 'RESTORE_FENCE_UNCONFIRMED' && ['PENDING', 'VALIDATING'].includes(row.phase);
+    const safe =
+      row.pendingFenceTokens.length === 0 &&
+      code !== 'RESTORE_FENCE_UNCONFIRMED' &&
+      ['PENDING', 'VALIDATING'].includes(row.phase);
     row.phase = safe ? 'FAILED' : 'RECOVERY_REQUIRED';
     row.failureCode = code;
     row.restore.status = 'FAILED';
@@ -145,10 +157,11 @@ class Journal implements DatabaseRestoreRepository {
   async resume(id: string, previous: string, next: string) {
     const row = this.rows.get(id)!;
 
-    if (!row.active || row.runnerToken !== previous) {
+    if (!row.active || row.runnerToken !== previous || previous === next) {
       return undefined;
     }
 
+    row.pendingFenceTokens = [...new Set([...row.pendingFenceTokens, previous])];
     row.runnerToken = next;
 
     if (row.phase === 'RECOVERY_REQUIRED') {
@@ -160,6 +173,14 @@ class Journal implements DatabaseRestoreRepository {
     row.restore.error = undefined;
 
     return structuredClone(row);
+  }
+  async acknowledgeFence(id: string, token: string, excluded: string) {
+    const row = this.rows.get(id)!;
+    if (!row.active || row.runnerToken !== token || excluded === token) {
+      return false;
+    }
+    row.pendingFenceTokens = row.pendingFenceTokens.filter((value) => value !== excluded);
+    return true;
   }
 }
 
@@ -251,7 +272,7 @@ function fixture(overrides: Partial<DatabaseRestorePorts> = {}) {
     },
     fenceAttempt: async (input) => {
       calls.push('fence');
-      return scope(input);
+      return { ...scope(input), excludedAttemptToken: input.previousAttemptToken };
     },
     ...overrides,
   };
@@ -532,6 +553,169 @@ describe('durable restore coordinator (explicit driver fixtures)', () => {
     await expect(f.coordinator.request({ instance, targetTimestamp })).rejects.toMatchObject({
       code: 'RESTORE_ALREADY_RUNNING',
     });
+  });
+
+  it('excludes the original attempt after a crash between durable takeover and fencing', async () => {
+    const excluded: string[] = [];
+    const f = fixture({
+      fenceAttempt: async (input) => {
+        excluded.push(input.previousAttemptToken);
+        return { ...scope(input), excludedAttemptToken: input.previousAttemptToken };
+      },
+    });
+    const originalPrepare = f.ports.prepareTarget;
+    let originalStillRunningAtPreparation = false;
+    f.ports.prepareTarget = async (input) => {
+      originalStillRunningAtPreparation = !excluded.includes('attempt-a');
+      return originalPrepare(input);
+    };
+
+    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    await f.repository.claim(requested.id, 'attempt-a');
+    // Durable takeover committed, then its process died before calling the port.
+    await f.repository.resume(requested.id, 'attempt-a', 'attempt-b');
+
+    expect(await f.make().resume(requested.id, 'attempt-b')).toMatchObject({ status: 'COMPLETED' });
+    expect(originalStillRunningAtPreparation).toBe(false);
+    expect(excluded).toEqual(['attempt-a', 'attempt-b']);
+  });
+
+  it('retries an unconfirmed original exclusion before a second recovery can make effects', async () => {
+    const exclusionRequests: string[] = [];
+    const excluded = new Set<string>();
+    let rejectFirstFence = true;
+    const f = fixture({
+      fenceAttempt: async (input) => {
+        exclusionRequests.push(input.previousAttemptToken);
+        if (rejectFirstFence) {
+          rejectFirstFence = false;
+          throw new Error('exclusion was not confirmed');
+        }
+        excluded.add(input.previousAttemptToken);
+        return { ...scope(input), excludedAttemptToken: input.previousAttemptToken };
+      },
+    });
+    const originalPrepare = f.ports.prepareTarget;
+    let originalStillRunningAtPreparation = false;
+    f.ports.prepareTarget = async (input) => {
+      originalStillRunningAtPreparation = !excluded.has('attempt-a');
+      return originalPrepare(input);
+    };
+
+    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    await f.repository.claim(requested.id, 'attempt-a');
+    expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({
+      phase: 'RECOVERY_REQUIRED',
+      failureCode: 'RESTORE_FENCE_UNCONFIRMED',
+    });
+    expect(f.calls).toEqual([]);
+    const second = await f.repository.get(requested.id);
+
+    expect(await f.make().resume(requested.id, second!.runnerToken!)).toMatchObject({ status: 'COMPLETED' });
+    expect(originalStillRunningAtPreparation).toBe(false);
+    expect(exclusionRequests).toEqual(['attempt-a', 'attempt-a', second!.runnerToken!]);
+  });
+
+  it('retains exclusion debt when the fence succeeded but its durable acknowledgement was lost', async () => {
+    const excluded: string[] = [];
+    const f = fixture({
+      fenceAttempt: async (input) => {
+        excluded.push(input.previousAttemptToken);
+        return { ...scope(input), excludedAttemptToken: input.previousAttemptToken };
+      },
+    });
+    const acknowledge = f.repository.acknowledgeFence.bind(f.repository);
+    let loseAcknowledgement = true;
+    f.repository.acknowledgeFence = async (...args) => {
+      if (loseAcknowledgement) {
+        loseAcknowledgement = false;
+        throw new Error('process stopped before acknowledgement committed');
+      }
+      return acknowledge(...args);
+    };
+
+    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    await f.repository.claim(requested.id, 'attempt-a');
+    expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({ phase: 'RECOVERY_REQUIRED' });
+    expect(f.calls).toEqual([]);
+    const current = await f.repository.get(requested.id);
+
+    expect(await f.make().resume(requested.id, current!.runnerToken!)).toMatchObject({ status: 'COMPLETED' });
+    expect(excluded).toEqual(['attempt-a', 'attempt-a', current!.runnerToken!]);
+    expect(f.calls.filter((call) => call === 'target')).toHaveLength(1);
+  });
+
+  it('does not let a superseded recovery acknowledge debt or run a second preparation', async () => {
+    const firstFenceEntered = deferred<void>();
+    const releaseOldFence = deferred<void>();
+    let first = true;
+    const f = fixture({
+      fenceAttempt: async (input) => {
+        if (first) {
+          first = false;
+          firstFenceEntered.resolve();
+          await releaseOldFence.promise;
+        }
+        return { ...scope(input), excludedAttemptToken: input.previousAttemptToken };
+      },
+    });
+    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    await f.repository.claim(requested.id, 'attempt-a');
+    const oldRecovery = f.make().resume(requested.id, 'attempt-a');
+    await firstFenceEntered.promise;
+    const current = await f.repository.get(requested.id);
+
+    expect(await f.make().resume(requested.id, current!.runnerToken!)).toMatchObject({ status: 'COMPLETED' });
+    releaseOldFence.resolve();
+    expect(await oldRecovery).toMatchObject({ status: 'COMPLETED' });
+    expect(f.calls.filter((call) => call === 'target')).toHaveLength(1);
+    expect(f.repository.bindings.get(instance.id)?.version).toBe(1);
+  });
+
+  it('preserves a committed exclusion when its acknowledgement response is lost', async () => {
+    const excluded: string[] = [];
+    const f = fixture({
+      fenceAttempt: async (input) => {
+        excluded.push(input.previousAttemptToken);
+        return { ...scope(input), excludedAttemptToken: input.previousAttemptToken };
+      },
+    });
+    const acknowledge = f.repository.acknowledgeFence.bind(f.repository);
+    let loseResponse = true;
+    f.repository.acknowledgeFence = async (...args) => {
+      const acknowledged = await acknowledge(...args);
+      if (loseResponse) {
+        loseResponse = false;
+        throw new Error('acknowledgement committed but its response was lost');
+      }
+      return acknowledged;
+    };
+
+    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    await f.repository.claim(requested.id, 'attempt-a');
+    expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({ phase: 'RECOVERY_REQUIRED' });
+    expect(f.calls).toEqual([]);
+    const current = await f.repository.get(requested.id);
+    expect(current?.pendingFenceTokens).toEqual([]);
+
+    expect(await f.make().resume(requested.id, current!.runnerToken!)).toMatchObject({ status: 'COMPLETED' });
+    expect(excluded).toEqual(['attempt-a', current!.runnerToken!]);
+    expect(f.calls.filter((call) => call === 'target')).toHaveLength(1);
+  });
+
+  it('keeps debt and blocks effects when the receipt identifies another excluded attempt', async () => {
+    const f = fixture({
+      fenceAttempt: async (input) => ({ ...scope(input), excludedAttemptToken: 'unrelated-attempt' }),
+    });
+    const requested = await f.coordinator.request({ instance, targetTimestamp });
+    await f.repository.claim(requested.id, 'attempt-a');
+
+    expect(await f.make().resume(requested.id, 'attempt-a')).toMatchObject({
+      phase: 'RECOVERY_REQUIRED',
+      failureCode: 'RESTORE_FENCE_UNCONFIRMED',
+    });
+    expect((await f.repository.get(requested.id))?.pendingFenceTokens).toEqual(['attempt-a']);
+    expect(f.calls).toEqual([]);
   });
 
   it('does not release the lock or alter the source secret after an uncertain quiescence', async () => {

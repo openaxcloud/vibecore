@@ -1430,6 +1430,7 @@ exports.Prisma.DatabaseRestoreExecutionScalarFieldEnum = {
   phase: 'phase',
   resumePhase: 'resumePhase',
   runnerToken: 'runnerToken',
+  pendingFenceTokens: 'pendingFenceTokens',
   expectedBindingVersion: 'expectedBindingVersion',
   appliedBindingVersion: 'appliedBindingVersion',
   sourceTargetRef: 'sourceTargetRef',

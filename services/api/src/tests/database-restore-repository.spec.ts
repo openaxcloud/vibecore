@@ -149,6 +149,88 @@ run('restore repository (dedicated local PostgreSQL)', () => {
     return scope;
   }
 
+  async function queuedJournalMutations<First, Second>(
+    operationId: string,
+    first: (candidate: PrismaDatabaseRestoreRepository) => Promise<First>,
+    second: (candidate: PrismaDatabaseRestoreRepository) => Promise<Second>,
+  ): Promise<[First, Second]> {
+    // Separate single-connection pools keep the observed backend PIDs stable.
+    // A third real connection holds the journal row until both mutations have
+    // demonstrably reached PostgreSQL lock waits; no repository method is mocked.
+    const firstClient = createDatabaseClient({ poolMax: 1 });
+    const secondClient = createDatabaseClient({ poolMax: 1 });
+    const gate = new Client({ connectionString: dedicatedUrl });
+    const pending: Promise<unknown>[] = [];
+    let locked = false;
+
+    try {
+      await gate.connect();
+      const [firstBackend, secondBackend] = await Promise.all([
+        firstClient.$queryRaw<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`,
+        secondClient.$queryRaw<Array<{ pid: number }>>`SELECT pg_backend_pid() AS pid`,
+      ]);
+      expect(firstBackend[0].pid).not.toBe(secondBackend[0].pid);
+      await gate.query('BEGIN');
+      locked = true;
+      await gate.query('SELECT "restoreId" FROM "DatabaseRestoreExecution" WHERE "restoreId" = $1 FOR UPDATE', [
+        operationId,
+      ]);
+
+      const waitForDatabaseLock = async (pid: number, operation: Promise<unknown>) => {
+        let settled = false;
+        void operation.then(
+          () => {
+            settled = true;
+          },
+          () => {
+            settled = true;
+          },
+        );
+        const deadline = Date.now() + 5_000;
+
+        while (Date.now() < deadline) {
+          const result = await gate.query<{ blocked: boolean }>(
+            'SELECT cardinality(pg_blocking_pids($1)) > 0 AS blocked',
+            [pid],
+          );
+
+          if (result.rows[0]?.blocked) {
+            return;
+          }
+
+          if (settled) {
+            throw new Error('Journal mutation settled before the real database lock barrier');
+          }
+
+          await new Promise((done) => setTimeout(done, 10));
+        }
+
+        throw new Error('Journal mutation did not reach the real database lock barrier');
+      };
+
+      const firstResult = first(new PrismaDatabaseRestoreRepository(firstClient));
+      pending.push(firstResult);
+      await waitForDatabaseLock(firstBackend[0].pid, firstResult);
+      const secondResult = second(new PrismaDatabaseRestoreRepository(secondClient));
+      pending.push(secondResult);
+      await waitForDatabaseLock(secondBackend[0].pid, secondResult);
+
+      await gate.query('ROLLBACK');
+      locked = false;
+      return await Promise.all([firstResult, secondResult]);
+    } finally {
+      try {
+        if (locked) {
+          await gate.query('ROLLBACK');
+        }
+      } finally {
+        await gate.end();
+        await Promise.allSettled(pending);
+        await Promise.all([firstClient.$disconnect(), secondClient.$disconnect()]);
+      }
+    }
+  }
+
   it('admits exactly one concurrent operation for the same instance', async () => {
     const input = await seed();
     const entered = deferred();
@@ -431,6 +513,192 @@ run('restore repository (dedicated local PostgreSQL)', () => {
       runnerToken: 'new-attempt',
       phase: 'CUTOVER',
       active: true,
+    });
+  });
+
+  it('blocks cutover after two takeovers until every durable predecessor has been excluded', async () => {
+    const input = await seed();
+    const execution = await repository.admit(input);
+    await prepared(execution, 'attempt-a');
+    await repository.resume(execution.restore.id, 'attempt-a', 'attempt-b');
+    // Emulate process death after ownership commit, before any fence call.
+    await repository.resume(execution.restore.id, 'attempt-b', 'attempt-c');
+
+    const reconnected = new PrismaDatabaseRestoreRepository(prisma);
+    await expect(reconnected.cutover(execution.restore.id, 'attempt-c')).rejects.toMatchObject({
+      code: 'RESTORE_FENCE_UNCONFIRMED',
+    });
+    expect(await reconnected.checkpoint(execution.restore.id, 'attempt-c', 'CUTOVER', { phase: 'VERIFYING' })).toBe(
+      false,
+    );
+    expect(await reconnected.acknowledgeFence(execution.restore.id, 'attempt-b', 'attempt-a')).toBe(false);
+    expect(await reconnected.acknowledgeFence(execution.restore.id, 'attempt-c', 'attempt-a')).toBe(true);
+    await expect(reconnected.cutover(execution.restore.id, 'attempt-c')).rejects.toMatchObject({
+      code: 'RESTORE_FENCE_UNCONFIRMED',
+    });
+    expect((await reconnected.get(execution.restore.id))?.pendingFenceTokens).toEqual(['attempt-b']);
+    expect(await reconnected.acknowledgeFence(execution.restore.id, 'attempt-c', 'attempt-b')).toBe(true);
+    // An acknowledgement can be repeated after losing its response.
+    expect(await reconnected.acknowledgeFence(execution.restore.id, 'attempt-c', 'attempt-b')).toBe(true);
+    expect(await reconnected.cutover(execution.restore.id, 'attempt-c')).toMatchObject({
+      phase: 'VERIFYING',
+      appliedBindingVersion: 1,
+      pendingFenceTokens: [],
+    });
+  });
+
+  it('serializes concurrent acknowledgements of A and B by owner C without losing either acknowledgement', async () => {
+    const input = await seed();
+    const execution = await repository.admit(input);
+    const id = execution.restore.id;
+    await prepared(execution, 'attempt-origin');
+    await repository.resume(id, 'attempt-origin', 'attempt-a');
+    await repository.resume(id, 'attempt-a', 'attempt-b');
+    await repository.resume(id, 'attempt-b', 'attempt-c');
+
+    expect(
+      await queuedJournalMutations(
+        id,
+        (candidate) => candidate.acknowledgeFence(id, 'attempt-c', 'attempt-a'),
+        (candidate) => candidate.acknowledgeFence(id, 'attempt-c', 'attempt-b'),
+      ),
+    ).toEqual([true, true]);
+    expect(await repository.get(id)).toMatchObject({
+      runnerToken: 'attempt-c',
+      pendingFenceTokens: ['attempt-origin'],
+      phase: 'CUTOVER',
+      active: true,
+    });
+    expect(await repository.acknowledgeFence(id, 'attempt-b', 'attempt-a')).toBe(false);
+    // Acknowledging A/B must neither resurrect their debts nor erase a third,
+    // still unconfirmed predecessor.
+    await expect(repository.cutover(id, 'attempt-c')).rejects.toMatchObject({
+      code: 'RESTORE_FENCE_UNCONFIRMED',
+    });
+    expect(await repository.acknowledgeFence(id, 'attempt-c', 'attempt-origin')).toBe(true);
+    expect(await repository.cutover(id, 'attempt-c')).toMatchObject({
+      phase: 'VERIFYING',
+      appliedBindingVersion: 1,
+    });
+  });
+
+  it.each(['fail', 'resume'] as const)(
+    'preserves ownership and exclusion debt when fail(A) races resume(A to B), %s queued first',
+    async (firstMutation) => {
+      const input = await seed();
+      const execution = await repository.admit(input);
+      const id = execution.restore.id;
+      await repository.claim(id, 'attempt-a');
+      const fail = (candidate: PrismaDatabaseRestoreRepository) =>
+        candidate.fail(id, 'attempt-a', 'RESTORE_ARCHIVE_INVALID');
+      const resume = (candidate: PrismaDatabaseRestoreRepository) => candidate.resume(id, 'attempt-a', 'attempt-b');
+
+      if (firstMutation === 'fail') {
+        const [, resumed] = await queuedJournalMutations(id, fail, resume);
+        expect(resumed).toBeUndefined();
+        expect(await repository.get(id)).toMatchObject({
+          phase: 'FAILED',
+          active: false,
+          runnerToken: undefined,
+          pendingFenceTokens: [],
+          restore: { status: 'FAILED' },
+        });
+        expect(await repository.acknowledgeFence(id, 'attempt-a', 'unrelated')).toBe(false);
+      } else {
+        const [resumed] = await queuedJournalMutations(id, resume, fail);
+        expect(resumed).toMatchObject({ runnerToken: 'attempt-b', pendingFenceTokens: ['attempt-a'] });
+        expect(await repository.get(id)).toMatchObject({
+          phase: 'PENDING',
+          active: true,
+          runnerToken: 'attempt-b',
+          pendingFenceTokens: ['attempt-a'],
+          restore: { status: 'RUNNING' },
+        });
+        expect(await repository.checkpoint(id, 'attempt-b', 'PENDING', { phase: 'VALIDATING' })).toBe(false);
+        await expect(repository.admit(input)).rejects.toMatchObject({ code: 'RESTORE_ALREADY_RUNNING' });
+      }
+
+      // Neither serialization may change the live binding or its source secret.
+      expect(await store.getDatabaseInstanceByProject(input.project.id)).toMatchObject({ bindingVersion: 0 });
+      expect((await store.getProjectSecret(input.project.id, 'DATABASE_URL'))?.valueEncrypted).toBe(
+        'fixture-cipher-original',
+      );
+    },
+  );
+
+  it('retains all debt and the original resume phase across repeated fence failures', async () => {
+    const input = await seed();
+    const execution = await repository.admit(input);
+    await repository.claim(execution.restore.id, 'attempt-a');
+    await repository.resume(execution.restore.id, 'attempt-a', 'attempt-b');
+    await repository.fail(execution.restore.id, 'attempt-b', 'RESTORE_FENCE_UNCONFIRMED');
+    await repository.fail(execution.restore.id, 'attempt-b', 'RESTORE_FENCE_UNCONFIRMED');
+
+    const recovered = await new PrismaDatabaseRestoreRepository(prisma).resume(
+      execution.restore.id,
+      'attempt-b',
+      'attempt-c',
+    );
+    expect(recovered).toMatchObject({
+      phase: 'PENDING',
+      runnerToken: 'attempt-c',
+      pendingFenceTokens: ['attempt-a', 'attempt-b'],
+    });
+    // Even a normally safe validation error cannot release unconfirmed debt.
+    await repository.fail(execution.restore.id, 'attempt-c', 'RESTORE_ARCHIVE_INVALID');
+    expect(await repository.get(execution.restore.id)).toMatchObject({
+      phase: 'RECOVERY_REQUIRED',
+      resumePhase: 'PENDING',
+      active: true,
+      pendingFenceTokens: ['attempt-a', 'attempt-b'],
+    });
+    await expect(repository.admit(input)).rejects.toMatchObject({ code: 'RESTORE_ALREADY_RUNNING' });
+  });
+
+  it('cannot complete an applied binding while a recovery predecessor remains unconfirmed', async () => {
+    const input = await seed();
+    const execution = await repository.admit(input);
+    await prepared(execution, 'attempt-a');
+    const applied = await repository.cutover(execution.restore.id, 'attempt-a');
+    const scope: RestoreScope = {
+      operationId: execution.restore.id,
+      instanceId: execution.instance.id,
+      projectId: execution.instance.projectId,
+      organizationId: execution.instance.organizationId,
+      environment: execution.instance.environment,
+      attemptToken: 'attempt-a',
+    };
+    expect(
+      await repository.checkpoint(execution.restore.id, 'attempt-a', 'VERIFYING', {
+        phase: 'RELEASING',
+        readback: {
+          ...scope,
+          receiptId: 'fixture-readback',
+          targetId: execution.targetId,
+          bindingVersion: applied.appliedBindingVersion!,
+          systemIdentifier: 'fixture-system',
+          previousPoolClosed: true,
+          newConnection: true,
+          observedReadbackSha256: digest,
+        },
+        release: {
+          ...scope,
+          receiptId: 'fixture-release',
+          targetId: execution.targetId,
+          bindingVersion: applied.appliedBindingVersion!,
+        },
+      }),
+    ).toBe(true);
+    await repository.resume(execution.restore.id, 'attempt-a', 'attempt-b');
+    await expect(repository.complete(execution.restore.id, 'attempt-b')).rejects.toMatchObject({
+      code: 'RESTORE_FENCE_UNCONFIRMED',
+    });
+    expect(await repository.acknowledgeFence(execution.restore.id, 'attempt-b', 'attempt-b')).toBe(false);
+    expect((await repository.get(execution.restore.id))?.active).toBe(true);
+    expect(await repository.acknowledgeFence(execution.restore.id, 'attempt-b', 'attempt-a')).toBe(true);
+    expect(await repository.complete(execution.restore.id, 'attempt-b')).toMatchObject({
+      phase: 'COMPLETED',
+      active: false,
     });
   });
 

@@ -1257,6 +1257,17 @@ export class PrismaApiStore implements ApiStore {
            */
           await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
 
+          /*
+           * Database ownership follows the project in the same transaction.
+           * Reconciliation shares the Project lock and rejects a continuation
+           * captured under the source organization; a fresh destination read
+           * can still finish provisioning. Keep physical targets and bindings.
+           */
+          await tx.databaseInstance.updateMany({
+            where: { projectId: input.projectId },
+            data: { organizationId: input.targetOrganizationId },
+          });
+
           return mapProject(
             await tx.project.update({
               where: { id: input.projectId },
@@ -3229,18 +3240,40 @@ export class PrismaApiStore implements ApiStore {
     region?: string;
     environment?: string;
   }): Promise<DatabaseInstanceRecord> {
-    const row = await this.prisma.databaseInstance.create({
-      data: {
-        projectId: input.projectId,
-        organizationId: input.organizationId,
-        environment: input.environment ?? 'development',
-        retentionDays: input.retentionDays,
-        region: input.region ?? null,
-        pitrEnabled: input.retentionDays > 0,
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Provisioning may have awaited an external provider. Do not persist its
+       * captured organization after a transfer, or silently adopt the new owner.
+       * Transfer and restore admission take this same Project lock first.
+       */
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${input.projectId} FOR UPDATE`;
+      const project = await tx.project.findUnique({ where: { id: input.projectId } });
 
-    return mapDatabaseInstance(row);
+      if (
+        !project ||
+        project.organizationId !== input.organizationId ||
+        project.deletedAt ||
+        project.runtimeDeletionPending
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('DATABASE_PROVISION_STATE_CHANGED')), {
+          statusCode: 409,
+          code: 'DATABASE_PROVISION_STATE_CHANGED',
+        });
+      }
+
+      const row = await tx.databaseInstance.create({
+        data: {
+          projectId: input.projectId,
+          organizationId: input.organizationId,
+          environment: input.environment ?? 'development',
+          retentionDays: input.retentionDays,
+          region: input.region ?? null,
+          pitrEnabled: input.retentionDays > 0,
+        },
+      });
+
+      return mapDatabaseInstance(row);
+    });
   }
 
   async updateDatabaseInstance(

@@ -5,6 +5,7 @@ Ce fichier n'est pas un second registre de statuts.
 
 ## Lire les sources de vérité
 
+- [État du lancement du 20 octobre](docs/reprise/2026-10-20-etat-lancement.md) : livraison de #743/#744, blocages vérifiés de #745 et cinq preuves commerciales encore ouvertes ; accès de recette précisément identifiés.
 - [État du lancement du 19 octobre](docs/reprise/2026-10-19-etat-lancement.md) : fusions, validations de main et état de livraison distingués des preuves en production ; cinq conditions indispensables encore ouvertes.
 - [Vérification avant commercialisation du 18 octobre](docs/reprise/2026-10-18-commercialisation.md) : historique détaillé de la reprise, accès production limité et défaut de ressources reproduit.
 - [Inventaire de reprise du 11 octobre](docs/reprise/2026-10-11-inventaire.md) : conserver les 71 entrées A-1–A-35 et B-1–B-36, leurs preuves et leurs réserves.

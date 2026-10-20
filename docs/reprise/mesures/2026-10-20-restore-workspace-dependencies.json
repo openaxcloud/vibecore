@@ -1,0 +1,713 @@
+{
+  "recordedAt": "2026-10-20T16:00:35.259263+00:00",
+  "status": "local-dependency-resolution-and-node-scripts-typecheck-validated",
+  "baseCommit": "89019cdf1cdbbd622179fdc4b2b4a68ab3219fef",
+  "testedSource": "Detached clone of 89019cdf plus only root package.json and pnpm-lock.yaml; later executor/repository changes and migration0092 are not included.",
+  "worktree": "/workspace/vibecore-restore-clean-install",
+  "ownerWorktree": "/workspace/vibecore-database-restore-executor",
+  "detached": true,
+  "initialState": {
+    "at": "2026-10-20T15:27:25.481931+00:00",
+    "head": "89019cdf1cdbbd622179fdc4b2b4a68ab3219fef",
+    "detached": true,
+    "rootNodeModulesInitiallyAbsent": true,
+    "packageNodeModulesInitiallyAbsent": true,
+    "copiedOnly": [
+      "package.json"
+    ]
+  },
+  "change": {
+    "rootDevDependenciesAdded": {
+      "@vibecore/auth": "workspace:*",
+      "@vibecore/database": "workspace:*",
+      "@vibecore/security": "workspace:*"
+    },
+    "allOtherManifestFieldsUnchanged": true,
+    "rootQaImports": {
+      "scripts/qa/database-restore-physical.ts": [
+        "@vibecore/auth",
+        "@vibecore/database",
+        "@vibecore/security"
+      ],
+      "scripts/qa/database-restore-api-fixture.ts": [
+        "@vibecore/database"
+      ]
+    },
+    "scope": "Resolution and typecheck only; no QA restore script executed"
+  },
+  "lockDelta": {
+    "additions": {
+      "@vibecore/auth": {
+        "specifier": "workspace:*",
+        "version": "link:packages/auth"
+      },
+      "@vibecore/database": {
+        "specifier": "workspace:*",
+        "version": "link:packages/database"
+      },
+      "@vibecore/security": {
+        "specifier": "workspace:*",
+        "version": "link:packages/security"
+      }
+    },
+    "externalPackagesUnchanged": true,
+    "snapshotsUnchanged": true,
+    "allOtherLockDataUnchanged": true
+  },
+  "sourceFiles": [
+    {
+      "path": "package.json",
+      "digest": "23ab46f36eca56b372625e39d88aca528630d31df641a88d55ba353fb748f87b"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "digest": "afda9f10f04d25b263b80d670f194f76c85c4ebdbe97e0c63642719be0bc5fd7"
+    }
+  ],
+  "toolchain": {
+    "node": "24.19.0",
+    "ciNode": "22",
+    "typescript": "5.8.3",
+    "pnpm": "9.14.4",
+    "config": "tsconfig.scripts.json",
+    "configurationChanged": false
+  },
+  "installation": {
+    "store": "/workspace/.onboarding/pnpm-store/v3",
+    "rootAndPackageNodeModulesInitiallyAbsent": true,
+    "manualDependencyLinksCreated": false,
+    "allDependencyLinksCreatedBy": "pnpm",
+    "scriptsIgnored": true,
+    "postinstallExecuted": false,
+    "firstOfflineLockAttempt": "ERR_PNPM_NO_OFFLINE_META; no registry metadata cache; not a network denial",
+    "firstOfflineInstall": "ERR_PNPM_NO_OFFLINE_TARBALL for shell-quote@1.11.0; not a network denial",
+    "completion": "Frozen lock install completed using the existing standard registry and existing proxy environment, then old and final candidate reinstall passed offline.",
+    "registryHost": "registry.npmjs.org",
+    "registryChanged": false,
+    "proxyChanged": false,
+    "alternativeEndpointUsed": false,
+    "registryProgressFinal": "Progress: resolved 2040, reused 2030, downloaded 1, added 2040, done",
+    "globalModuleSearch": "NODE_PATH omitted for old-manifest and final-candidate resolution and typecheck"
+  },
+  "resolution": {
+    "candidate": {
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "v24.19.0",
+      "nodePathPresent": false,
+      "packages": [
+        {
+          "name": "@vibecore/auth",
+          "resolved": "/workspace/vibecore-restore-clean-install/packages/auth/src/index.ts",
+          "realPath": "/workspace/vibecore-restore-clean-install/packages/auth/src/index.ts",
+          "ownWorkspace": true
+        },
+        {
+          "name": "@vibecore/database",
+          "resolved": "/workspace/vibecore-restore-clean-install/packages/database/src/index.ts",
+          "realPath": "/workspace/vibecore-restore-clean-install/packages/database/src/index.ts",
+          "ownWorkspace": true
+        },
+        {
+          "name": "@vibecore/security",
+          "resolved": "/workspace/vibecore-restore-clean-install/packages/security/src/index.ts",
+          "realPath": "/workspace/vibecore-restore-clean-install/packages/security/src/index.ts",
+          "ownWorkspace": true
+        }
+      ]
+    },
+    "old": {
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "v24.19.0",
+      "nodePathPresent": false,
+      "packages": [
+        {
+          "name": "@vibecore/auth",
+          "resolved": null,
+          "code": "MODULE_NOT_FOUND",
+          "ownWorkspace": false
+        },
+        {
+          "name": "@vibecore/database",
+          "resolved": null,
+          "code": "MODULE_NOT_FOUND",
+          "ownWorkspace": false
+        },
+        {
+          "name": "@vibecore/security",
+          "resolved": null,
+          "code": "MODULE_NOT_FOUND",
+          "ownWorkspace": false
+        }
+      ]
+    },
+    "workspaceLinksChecked": 39,
+    "allWorkspaceLinksInsideClone": true
+  },
+  "counterproof": {
+    "oldSourceUnchanged": true,
+    "oldGitStatusClean": true,
+    "oldManifestAndLockFromBase": true,
+    "removedLinksBy": "pnpm frozen offline install, not manual unlink",
+    "diagnostics": [
+      "scripts/qa/database-restore-api-fixture.ts(8,37): error TS2307: Cannot find module '@vibecore/database' or its corresponding type declarations.",
+      "scripts/qa/database-restore-physical.ts(12,27): error TS2307: Cannot find module '@vibecore/auth' or its corresponding type declarations.",
+      "scripts/qa/database-restore-physical.ts(13,59): error TS2307: Cannot find module '@vibecore/database' or its corresponding type declarations.",
+      "scripts/qa/database-restore-physical.ts(14,42): error TS2307: Cannot find module '@vibecore/security' or its corresponding type declarations."
+    ],
+    "candidateTypecheckExitCode": 0,
+    "oldTypecheckExitCode": 2,
+    "restoredCandidateTypecheckExitCode": 0,
+    "finalCandidateDiagnostics": 0
+  },
+  "commands": [
+    {
+      "startedAt": "2026-10-20T15:27:26.994304+00:00",
+      "command": [
+        "/workspace/vibecore-audit-artifacts/tools/bin/pnpm",
+        "install",
+        "--lockfile-only",
+        "--offline",
+        "--ignore-scripts",
+        "--no-frozen-lockfile",
+        "--store-dir",
+        "/workspace/.onboarding/pnpm-store"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 3954786304,
+      "freeDiskBeforeBytes": 16087826432,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072"
+      },
+      "exitCode": 1,
+      "finishedAt": "2026-10-20T15:27:49.370377+00:00",
+      "seconds": 22.379,
+      "sharedPeakMemoryBytes": 4045844480,
+      "freeDiskAfterBytes": 16087818240,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "lockfile-clean"
+    },
+    {
+      "startedAt": "2026-10-20T15:28:27.773281+00:00",
+      "command": [
+        "/workspace/vibecore-audit-artifacts/tools/bin/pnpm",
+        "install",
+        "--lockfile-only",
+        "--ignore-scripts",
+        "--no-frozen-lockfile",
+        "--store-dir",
+        "/workspace/.onboarding/pnpm-store",
+        "--network-concurrency",
+        "1",
+        "--fetch-retries",
+        "0"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 3865939968,
+      "freeDiskBeforeBytes": 16087805952,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072"
+      },
+      "exitCode": 0,
+      "finishedAt": "2026-10-20T15:41:31.657379+00:00",
+      "seconds": 783.884,
+      "sharedPeakMemoryBytes": 4680577024,
+      "freeDiskAfterBytes": 16087252992,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "lockfile-registry"
+    },
+    {
+      "startedAt": "2026-10-20T15:42:39.063541+00:00",
+      "command": [
+        "/workspace/vibecore-audit-artifacts/tools/bin/pnpm",
+        "install",
+        "--frozen-lockfile",
+        "--offline",
+        "--ignore-scripts",
+        "--store-dir",
+        "/workspace/.onboarding/pnpm-store"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 3446906880,
+      "freeDiskBeforeBytes": 16086425600,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072"
+      },
+      "exitCode": 1,
+      "finishedAt": "2026-10-20T15:42:56.687387+00:00",
+      "seconds": 17.624,
+      "sharedPeakMemoryBytes": 3991945216,
+      "freeDiskAfterBytes": 16069570560,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "install-candidate-offline"
+    },
+    {
+      "startedAt": "2026-10-20T15:43:30.162839+00:00",
+      "command": [
+        "/workspace/vibecore-audit-artifacts/tools/bin/pnpm",
+        "install",
+        "--frozen-lockfile",
+        "--ignore-scripts",
+        "--store-dir",
+        "/workspace/.onboarding/pnpm-store",
+        "--network-concurrency",
+        "1",
+        "--fetch-retries",
+        "0"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 3593580544,
+      "freeDiskBeforeBytes": 16069562368,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072"
+      },
+      "exitCode": 0,
+      "finishedAt": "2026-10-20T15:48:45.037793+00:00",
+      "seconds": 314.875,
+      "sharedPeakMemoryBytes": 6033371136,
+      "freeDiskAfterBytes": 13781188608,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "install-candidate-registry"
+    },
+    {
+      "startedAt": "2026-10-20T15:49:16.732174+00:00",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--project",
+        "tsconfig.scripts.json",
+        "--noEmit",
+        "--pretty",
+        "false"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 5543563264,
+      "freeDiskBeforeBytes": 13781172224,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072"
+      },
+      "exitCode": 0,
+      "finishedAt": "2026-10-20T15:51:13.565143+00:00",
+      "seconds": 116.833,
+      "sharedPeakMemoryBytes": 7308443648,
+      "freeDiskAfterBytes": 13781143552,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "typecheck-candidate"
+    },
+    {
+      "startedAt": "2026-10-20T15:51:37.764055+00:00",
+      "command": [
+        "/workspace/vibecore-audit-artifacts/tools/bin/pnpm",
+        "install",
+        "--frozen-lockfile",
+        "--offline",
+        "--ignore-scripts",
+        "--store-dir",
+        "/workspace/.onboarding/pnpm-store"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 5509693440,
+      "freeDiskBeforeBytes": 13781131264,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072",
+        "NODE_PATH": "unset for isolated resolution"
+      },
+      "exitCode": 0,
+      "finishedAt": "2026-10-20T15:51:49.205632+00:00",
+      "seconds": 11.442,
+      "sharedPeakMemoryBytes": 5755744256,
+      "freeDiskAfterBytes": 13781127168,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "install-old-offline"
+    },
+    {
+      "startedAt": "2026-10-20T15:52:06.628551+00:00",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--project",
+        "tsconfig.scripts.json",
+        "--noEmit",
+        "--pretty",
+        "false"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 5502808064,
+      "freeDiskBeforeBytes": 13781114880,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072",
+        "NODE_PATH": "unset for isolated resolution"
+      },
+      "exitCode": 2,
+      "finishedAt": "2026-10-20T15:54:49.893284+00:00",
+      "seconds": 163.265,
+      "sharedPeakMemoryBytes": 7044952064,
+      "freeDiskAfterBytes": 13781078016,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "typecheck-old"
+    },
+    {
+      "startedAt": "2026-10-20T15:55:13.670146+00:00",
+      "command": [
+        "/workspace/vibecore-audit-artifacts/tools/bin/pnpm",
+        "install",
+        "--frozen-lockfile",
+        "--offline",
+        "--ignore-scripts",
+        "--store-dir",
+        "/workspace/.onboarding/pnpm-store"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 5370945536,
+      "freeDiskBeforeBytes": 13781069824,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072",
+        "NODE_PATH": "unset for isolated resolution"
+      },
+      "exitCode": 0,
+      "finishedAt": "2026-10-20T15:55:44.603973+00:00",
+      "seconds": 30.934,
+      "sharedPeakMemoryBytes": 5599297536,
+      "freeDiskAfterBytes": 13781061632,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "install-candidate-final-offline"
+    },
+    {
+      "startedAt": "2026-10-20T15:55:53.921838+00:00",
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--project",
+        "tsconfig.scripts.json",
+        "--noEmit",
+        "--pretty",
+        "false"
+      ],
+      "cwd": "/workspace/vibecore-restore-clean-install",
+      "node": "24.19.0",
+      "pnpm": "9.14.4",
+      "memoryBeforeBytes": 5334413312,
+      "freeDiskBeforeBytes": 13781053440,
+      "eventsBefore": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "installationEnvironment": {
+        "HUSKY": "0",
+        "reason": "Same install setting as CI, no commit hook invoked",
+        "NODE_OPTIONS": "--max-old-space-size=3072",
+        "NODE_PATH": "unset for isolated resolution"
+      },
+      "exitCode": 0,
+      "finishedAt": "2026-10-20T15:59:34.315153+00:00",
+      "seconds": 220.393,
+      "sharedPeakMemoryBytes": 6805975040,
+      "freeDiskAfterBytes": 13780975616,
+      "eventsAfter": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "phase": "typecheck-candidate-final"
+    }
+  ],
+  "resources": {
+    "cgroupLimitBytes": 17179869184,
+    "peakSharedMemoryBytes": 7308443648,
+    "initialFreeDiskBytes": 16087826432,
+    "finalFreeDiskBytes": 13780975616,
+    "oomEventsIncrease": 0,
+    "oomKillEventsIncrease": 0
+  },
+  "limits": [
+    "Postinstall scripts deliberately not executed; ordinary CI remains required for complete installation/build validation.",
+    "Local Node24 differs from CI Node22; no version-equivalence claim.",
+    "No physical restore, provider, payment, client-data or cloud operation executed.",
+    "Proof does not validate subsequent P1 executor/repository/migration0092 modifications.",
+    "No commit, push, PR, merge or deployment performed by this task."
+  ],
+  "artifacts": [
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/initial-clean-worktree.json",
+      "digest": "494c52f313d3481bddb090cfb8b32c4b0a102eba071cf0017b8c10c3ade2f2b6"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/manifest-delta.json",
+      "digest": "9c0416250d2ec4f0cda168158888f3dc5dd68a1149a8f3a60a49a820911cd0fb"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/lock-delta.json",
+      "digest": "3edcbc9f0609a6de4624dba42c4b8a43ee1dd2c89f71c80697e035fab1981108"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/clean-install-start.json",
+      "digest": "ecd154e22d8ca7401efb027142eeb2ee4c0a5e473e8ce980fa89d07668d689b9"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/resolution-candidate.json",
+      "digest": "2547726db1741e44a259576e11fb95363e7681bc7a446e6d539f67bdb6bfd59e"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/resolution-old.json",
+      "digest": "619651c2f52708c6fe6069f605d1234922ebacc26a93a146f706954c3a69dc28"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/resolution-candidate-final.json",
+      "digest": "dfbbe2a54cddf85c619ae42994a3a1b14f17bb6274a8f08d4493ccb8e5149b66"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/registry-preflight.json",
+      "digest": "6601854ae9df3aa65303d594342d71386c7d657f45ef6263c83221a0044633aa"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/workspace-link-isolation.json",
+      "digest": "2af7530d1fa33fc0d6d315fa1246271713ba4c285b46e1364454bfded4193a92"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/lockfile-clean.json",
+      "digest": "a9f480ed7f4c042e7b331a1c6f2ba94856778d6d8d62a41e87271df7e57a3b73"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/lockfile-clean.log",
+      "digest": "f3b2cab448e1d05215084979a2b3f3178946a721e0bb3d1f0b973f9e9cfd58b2"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/lockfile-registry.json",
+      "digest": "cd08ddee89dc9fa69814a1f28f39e2e2a0b6ba7519bb09541f5bed93cf1e5bfa"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/lockfile-registry.log",
+      "digest": "a29879834291bfea531bea555ca300a6f4ab83ec128f08a816a6283d44b955d9"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-candidate-offline.json",
+      "digest": "e1ea456676b3bd3907fafea9c68f324cba41d1486479947ef51d9983795e6a23"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-candidate-offline.log",
+      "digest": "5b16a35d8fa12ef9f5971efa99ad55c22dfd2b5aed457ef492fbffe496a695f5"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-candidate-registry.json",
+      "digest": "a0f7c757efaf03bb73117e4de0f6374698384373c9f3b0da4604825618444a6c"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-candidate-registry.log",
+      "digest": "9600f31b178eb2ee84a1a78fb287bebeb869769c858787a7de6c446fbf924a7a"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/typecheck-candidate.json",
+      "digest": "1b2fdc563feae67a3fae05da681df2a26d63c80e8aa5993cf1abb1a8f0cd6101"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/typecheck-candidate.log",
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-old-offline.json",
+      "digest": "ba56d99215ee7533765147060c70a152a8db3e9e31d16b106519972a1b775dfe"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-old-offline.log",
+      "digest": "97663af9f32c18582ca590aa6af5cff177ad08b5db52aab53556372f74e567ef"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/typecheck-old.json",
+      "digest": "ced05b5d19fea47157003da6f25cbe363c9e8de8381d81c7e348a1859302fcce"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/typecheck-old.log",
+      "digest": "6c5179187a511817dba58111707efeaa1e63006c1ec4885bbee3d33a6644536e"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-candidate-final-offline.json",
+      "digest": "07f5b21d517c3ecf5d792e66d34212cba5f40e9cb89f761697a1222594d8e593"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/install-candidate-final-offline.log",
+      "digest": "1d00156d523d1d2bd7dbfe560c3c5cf6c7151283446a5f61ea234a86a1f5b753"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/typecheck-candidate-final.json",
+      "digest": "aa3997846e1269086e08c830eaee323e189bb0d17e484559e52955d075c8139b"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/typecheck-candidate-final.log",
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/lockfile-generation.log",
+      "digest": "56666317bbd2934854b5849da18a1b32f4ee10118aae715b072ba877507be260"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/run-measured.py",
+      "digest": "4dd596c5b2209442c7c9da7699cdf0e1699a4ad36aac622a512969d6885f3920"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/resolve-from-clean.mjs",
+      "digest": "889721922b80d36a09a81a65338ac86356563f27aeeabe5667c14329b118c48a"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-workspace-dependencies/review-lock.mjs",
+      "digest": "3987c356ab28566f9c9853ec80ba2cc87399d8e61d81496f3669b373ec65cfe2"
+    }
+  ]
+}

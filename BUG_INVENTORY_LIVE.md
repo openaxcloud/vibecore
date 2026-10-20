@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-445 entrées.
+447 entrées.
 
 ## Sans section
 
@@ -555,6 +555,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Reprise commerciale du 2026-10-20 — restauration DB
 
 - [BUG-DB-RESTORE-LATE-PROVISIONING-001](docs/bugs/BUG-DB-RESTORE-LATE-PROVISIONING-001.md) — P1 avant activation du nouvel exécuteur — un retour tardif du provisionneur — 📤 Dispatché : ☑ 20/10 — revue indépendante et contre-épreuve locale des trois continuations. · 💻 Codé : ☐ Candidat local non committé, non fusionné et non déployé à ce relevé. · ✅ Testé live : ☐ Aucun essai de production. La capacité de restauration reste indisponible
+- [BUG-DB-RESTORE-FENCE-DEBT-001](docs/bugs/BUG-DB-RESTORE-FENCE-DEBT-001.md) — P1 avant activation du coordinateur — une seconde reprise peut oublier une — 📤 Dispatché : ☑ 20/10 — revue indépendante de #745 puis deux contre-épreuves du coordinateur. · 💻 Codé : ☐ Correctif local en cours, non committé, non fusionné et non déployé. · ✅ Testé live : ☐ Aucun essai en production. Le coordinateur n'est pas injecté dans le serveur
+- [BUG-DB-TRANSFER-PROVISIONING-001](docs/bugs/BUG-DB-TRANSFER-PROVISIONING-001.md) — P2 — un transfert de projet laisse ses instances de base sous l'ancienne — 📤 Dispatché : ☑ 20/10 — défaut reproduit et correctif vérifié sur deux cas PostgreSQL dédiés. · 💻 Codé : ☐ Candidat local non committé, non fusionné dans `main`, non déployé. · ✅ Testé live : ☐ Aucune preuve de production. Deux cas Prisma/PostgreSQL locaux ont une contre-épreuve rouge→verte.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

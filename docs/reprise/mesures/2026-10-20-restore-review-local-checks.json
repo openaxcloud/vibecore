@@ -1,0 +1,273 @@
+{
+  "scope": "Local review checks; no production or complete physical recovery claim",
+  "checks": [
+    {
+      "label": "restore-review-targeted-tests",
+      "startedAt": "2026-10-20T16:02:08.113977+00:00",
+      "memoryBefore": 4967460864,
+      "command": [
+        "pnpm",
+        "--filter",
+        "@vibecore/api",
+        "exec",
+        "vitest",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "src/database-restore-executor.spec.ts",
+        "src/database-provision-retry.spec.ts",
+        "src/tests/database-restore-integrity.spec.ts",
+        "src/tests/database-restore-routes.spec.ts",
+        "--maxWorkers=1",
+        "--minWorkers=1",
+        "--no-file-parallelism"
+      ],
+      "exitCode": 0,
+      "seconds": 96.36,
+      "peakMemory": 6431027200,
+      "finishedAt": "2026-10-20T16:03:44.473234+00:00",
+      "testSummary": {
+        "passed": 64,
+        "total": 64,
+        "kind": "isolated tests, not UI or cloud"
+      },
+      "logPathLocalOnly": "/workspace/vibecore-audit-artifacts/restore-executor-rebase-20261020/restore-review-targeted-tests.log",
+      "logSha256": "20ea19ae9d35a7a9f40b4e0d81594cffc061d7a842e9ec68e77ae42d0bf93d79"
+    },
+    {
+      "label": "restore-ci-runner-unit-tests",
+      "startedAt": "2026-10-20T16:04:23.007756+00:00",
+      "memoryBefore": 5418909696,
+      "command": [
+        "pnpm",
+        "exec",
+        "vitest",
+        "run",
+        "scripts/qa/database-restore-ci.spec.ts",
+        "--maxWorkers=1",
+        "--minWorkers=1",
+        "--no-file-parallelism"
+      ],
+      "exitCode": 0,
+      "seconds": 77.58,
+      "peakMemory": 5792428032,
+      "finishedAt": "2026-10-20T16:05:40.595327+00:00",
+      "testSummary": {
+        "passed": 29,
+        "total": 29,
+        "kind": "isolated tests, not UI or cloud"
+      },
+      "logPathLocalOnly": "/workspace/vibecore-audit-artifacts/restore-executor-rebase-20261020/restore-ci-runner-unit-tests.log",
+      "logSha256": "b7fd03d9a011e39bfb9fd5d54109c8da02faa7c0d8f0a976c3dd3b7cb2398e9c"
+    },
+    {
+      "label": "prisma-generate-fence-debt",
+      "startedAt": "2026-10-20T16:00:41.157543+00:00",
+      "memoryBefore": 5148266496,
+      "command": [
+        "pnpm",
+        "--filter",
+        "@vibecore/database",
+        "db:generate"
+      ],
+      "exitCode": 0,
+      "seconds": 22.36,
+      "peakMemory": 5535551488,
+      "finishedAt": "2026-10-20T16:01:03.514258+00:00",
+      "logPathLocalOnly": "/workspace/vibecore-audit-artifacts/restore-executor-rebase-20261020/prisma-generate-fence-debt.log",
+      "logSha256": "5a90f379ce666cd9fef5bb8c171d97ec52dbf87dd75f08a4d8c0ffb0922bd66c"
+    },
+    {
+      "label": "p1-api-typecheck-1622",
+      "startedAt": "2026-10-20T16:23:36.917762+00:00",
+      "memoryBefore": 5283127296,
+      "command": [
+        "pnpm",
+        "--filter",
+        "@vibecore/api",
+        "typecheck"
+      ],
+      "exitCode": 0,
+      "seconds": 219.29,
+      "peakMemory": 7216746496,
+      "finishedAt": "2026-10-20T16:27:16.240847+00:00",
+      "logPathLocalOnly": "/workspace/vibecore-audit-artifacts/restore-executor-rebase-20261020/p1-api-typecheck-1622.log",
+      "logSha256": "718f624961f74c4fd1c250bbb5998a10d2016eb5a5aebd418562aee975619db5"
+    },
+    {
+      "label": "p1-scripts-typecheck",
+      "startedAt": "2026-10-20T16:27:27.520353+00:00",
+      "memoryBefore": 5280399360,
+      "command": [
+        "pnpm",
+        "exec",
+        "tsc",
+        "--noEmit",
+        "-p",
+        "tsconfig.scripts.json"
+      ],
+      "exitCode": 0,
+      "seconds": 189.14,
+      "peakMemory": 6971396096,
+      "finishedAt": "2026-10-20T16:30:36.661340+00:00",
+      "logPathLocalOnly": "/workspace/vibecore-audit-artifacts/restore-executor-rebase-20261020/p1-scripts-typecheck.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "p1-api-build",
+      "startedAt": "2026-10-20T16:30:56.375693+00:00",
+      "memoryBefore": 5254856704,
+      "command": [
+        "pnpm",
+        "--filter",
+        "@vibecore/api",
+        "build"
+      ],
+      "exitCode": 0,
+      "seconds": 169.83,
+      "peakMemory": 6927454208,
+      "finishedAt": "2026-10-20T16:33:46.204268+00:00",
+      "logPathLocalOnly": "/workspace/vibecore-audit-artifacts/restore-executor-rebase-20261020/p1-api-build.log",
+      "logSha256": "1b328fbc9ffa23fa409bd4cdae82c284ab55bf955c933696b37ced57ea91dd84"
+    }
+  ],
+  "sourceManifest": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "2b86d6079f7a1b1fd957d456c085b11c3ddb09b00eee31e6493385636e840e89"
+    },
+    {
+      "path": "package.json",
+      "sha256": "23ab46f36eca56b372625e39d88aca528630d31df641a88d55ba353fb748f87b"
+    },
+    {
+      "path": "packages/database/generated/client/edge.js",
+      "sha256": "9fc1b937a22015c98ac387277ec793cde16db33d821903dcf85235d0c9189750"
+    },
+    {
+      "path": "packages/database/generated/client/index-browser.js",
+      "sha256": "9918b8bfd48891f6d60735c361190233452f3e5ef321bfec9fc4089732ea193a"
+    },
+    {
+      "path": "packages/database/generated/client/index.d.ts",
+      "sha256": "e5ae1576f333f8b35f79f0783bfeb2518a2953be3be6e4f60c0d73364a3293c7"
+    },
+    {
+      "path": "packages/database/generated/client/index.js",
+      "sha256": "2a1e71b18f14fe260ef575238555b3807b5bebbf37e55edea79b58885d437dc8"
+    },
+    {
+      "path": "packages/database/generated/client/package.json",
+      "sha256": "c7b78b69e0262ea8a50bd39c0465caca0b6df688d45d9a40c753a7cdd8d2f8d5"
+    },
+    {
+      "path": "packages/database/generated/client/schema.prisma",
+      "sha256": "ff545c054fdb6f47a715d48b4cc6e0c3b3fd6b71394b16b703730694ba7bbd34"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0091_database_restore_journal/migration.sql",
+      "sha256": "41e9742ae655fde851ac73fe226e5d42bfc9266f366b6736eaf2db825e741d18"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0092_database_restore_fence_debt/migration.sql",
+      "sha256": "d090e136fa7d88100ad13da19821a00f51d7fdca6f4dad7b33c16c20c4742cc9"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "sha256": "a089b5b45df6f2a71bcbdd0550587cfb60f08a195291581a356848104b6e8ea2"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "afda9f10f04d25b263b80d670f194f76c85c4ebdbe97e0c63642719be0bc5fd7"
+    },
+    {
+      "path": "scripts/qa/database-restore-api-fixture.ts",
+      "sha256": "be30af145b61fa867120c817047316adaa5bca21248bb4ea87f57a388dc9325d"
+    },
+    {
+      "path": "scripts/qa/database-restore-ci.spec.ts",
+      "sha256": "583312e5d724321626869ce5e707f49a292dd3d336fa0f5770bee21a77280997"
+    },
+    {
+      "path": "scripts/qa/database-restore-ci.ts",
+      "sha256": "f5ea24ef93dfe2f13e78b1fe5a52eba27036c167e4d95a00ad7511459886cf71"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical-fixture.ts",
+      "sha256": "6f4009de023c075af8415e2e6150ba562077416c7e58d4dd47c5c307a1bfe849"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical.ts",
+      "sha256": "907e12de980dd7feff3b5cc732ee8743f0bb04b3a9b36e7f5e4ef972fb20f8a7"
+    },
+    {
+      "path": "scripts/qa/database-restore-qa-app.ts",
+      "sha256": "0047fc262be09659cd7327f5ae7af6afbc93a53eaceaa0f3b8c91244af55560e"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "9134578a0200e601841494d55494321bba4d73d503cc0ab370605fd13e9daf2c"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "30f25f2fae52668466cf02d331bd4dd3052fbb24e12367b0a81488a896544b16"
+    },
+    {
+      "path": "services/api/src/database-provision-retry.spec.ts",
+      "sha256": "5c9c58a8ee4c0ff1aec735f4acfc8979bbb567fbb7b24ac74ac64880700cbf1b"
+    },
+    {
+      "path": "services/api/src/database-restore-binding.ts",
+      "sha256": "adc0d934683f4f6cb84e11d753fad7cb7c00b738259356d44b4828c5ba39928e"
+    },
+    {
+      "path": "services/api/src/database-restore-contract.ts",
+      "sha256": "7728771839519b304001a354a463adbfc12c6288245cd45a5f8551fd42b1f7a0"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.spec.ts",
+      "sha256": "5903afd21932fb9d326053f49815f9bbc31a4d0764a0f79a66b3b850e2ed3d0d"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.ts",
+      "sha256": "c3a2b3885e78a6915d1721b27cff15993eb9c2ecf30559b5e4547bdd7bf9d3c9"
+    },
+    {
+      "path": "services/api/src/database-restore-repository.ts",
+      "sha256": "b58b254c33dfaabc250c967b70165ec5755f088487bf9fcb3851666ba0a174d2"
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "85e33b6fca6e1a763d5d49b30d02164a6e73f5d3ee5b1fcebbc7e4c68891d89b"
+    },
+    {
+      "path": "services/api/src/store.ts",
+      "sha256": "b3a621c7c7ff5f93c25244e0cbaec036ea7e9033d153f75213447422340b3677"
+    },
+    {
+      "path": "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts",
+      "sha256": "f228ea9899469f32b5bc7be37be229faa6c88462157ae532c4a72f1c01f2a4cc"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+      "sha256": "afa5613886122e4fcf84957aefb26d1c7fc8a9a4799ce380634301a10df768ba"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-repository.spec.ts",
+      "sha256": "f7913bb3812f5fe850547d88cf46d60aacd3fa99973c5d9c0468a5582007215f"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-routes.spec.ts",
+      "sha256": "33bcbcc3ff046816d71c63b5544d8b8d941e743cf34e88756b480f3284dd9701"
+    },
+    {
+      "path": "services/api/src/tests/test-api-store.ts",
+      "sha256": "27f8bba0458ab6773614bce1845f29d06a8863cbaccc12bbca13fe8388f7ed55"
+    },
+    {
+      "path": "services/api/vitest.config.ts",
+      "sha256": "88a27a475d07bbe81f4bbfd4c6814d8db712088ec576ca457f186e2a3af40277"
+    }
+  ],
+  "sourcesUnchangedAfterChecks": true
+}
