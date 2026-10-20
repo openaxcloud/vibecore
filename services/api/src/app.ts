@@ -218,6 +218,7 @@ import {
 } from './data-deletion.js';
 import {
   clusterName,
+  RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
   resolveDatabaseTier,
   resolveDefaultDatabaseProvisioner,
   type DatabaseProvisioner,
@@ -33971,8 +33972,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /**
    * Database point-in-time rollback maintenance (Phase 2 executor). Daily cron:
    * prune expired snapshots, take an automatic daily snapshot per active
-   * instance, and advance in-flight restores to COMPLETED when their recovery
-   * cluster is healthy. Entirely inert while DB_ROLLBACK_ENABLED is off (the
+   * instance, and reconcile old restore requests. Cluster readiness alone never
+   * completes an application restore; the missing cutover is an explicit failure.
+   * Entirely inert while DB_ROLLBACK_ENABLED is off (the
    * provisioner is a Noop and no instances exist). Auth = internal secret.
    */
   app.post('/internal/database-maintenance', async (request) => {
@@ -34002,7 +34004,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         snapshotted += 1;
 
         if (provisioner.active) {
-          await provisioner.takeSnapshot({ projectId: instance.projectId, snapshotId: snapshot.id }).catch(() => {});
+          await provisioner
+            .takeSnapshot({ projectId: instance.projectId, snapshotId: snapshot.id, environment: instance.environment })
+            .catch(() => {});
         }
       }
 
@@ -34021,10 +34025,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .catch(() => ({ ready: false }));
 
         if (progress.ready) {
-          await store
-            .updateDatabaseRestore(restore.id, { status: 'COMPLETED', completedAt: new Date().toISOString() })
-            .catch(() => {});
-          restoresAdvanced += 1;
+          // CNPG health proves only recovery-cluster readiness. No application
+          // cutover is implemented; retain the cluster and the original connection.
+          // An old request must fail honestly, never claim the application restored.
+          const updated = await store
+            .updateDatabaseRestore(restore.id, { status: 'FAILED', error: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE })
+            .catch(() => undefined);
+          if (updated?.status === 'FAILED') {
+            restoresAdvanced += 1;
+          }
         }
       }
     }
@@ -35597,8 +35606,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let instance = await store.getDatabaseInstanceByProject(project.id, environment);
 
+    const restoreCapability = {
+      available: resolveDefaultDatabaseProvisioner().restoreAvailable,
+      reason: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
+    };
+
     if (!instance) {
-      return { entitlement, instance: null, snapshots: [], restores: [] };
+      return { entitlement, restoreCapability, instance: null, snapshots: [], restores: [] };
     }
 
     /*
@@ -35636,7 +35650,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store.listDatabaseRestores(instance.id),
     ]);
 
-    return { entitlement, instance, snapshots, restores };
+    return {
+      entitlement,
+      restoreCapability,
+      instance,
+      snapshots,
+      // Historical COMPLETED rows predate any application-cutover verification.
+      // Preserve the stored status, but never present it as verified recovery.
+      restores: restores.map((restore) => ({ ...restore, applicationCutoverVerified: false })),
+    };
   });
 
   app.post('/projects/:projectId/database/restores', async (request, reply) => {
@@ -35656,6 +35678,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .object({
           snapshotId: z.string().min(1).optional(),
           targetTimestamp: z.string().datetime().optional(),
+          environment: z.enum(['development', 'production']).default('development'),
         })
         .refine((value) => Boolean(value.snapshotId || value.targetTimestamp), {
           message: appPublicEnglish('SNAPSHOT_OR_TIMESTAMP_REQUIRED'),
@@ -35663,7 +35686,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.body ?? {},
     );
 
-    const instance = await store.getDatabaseInstanceByProject(project.id);
+    const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
 
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
@@ -35707,6 +35730,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    const provisioner = resolveDefaultDatabaseProvisioner();
+    if (!provisioner.restoreAvailable) {
+      return reply.code(503).send({
+        error: appPublicEnglish('RESTORE_APPLICATION_CUTOVER_UNAVAILABLE'),
+        code: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
+      });
+    }
+
     const restore = await store.createDatabaseRestore({
       databaseInstanceId: instance.id,
       snapshotId: body.snapshotId,
@@ -35715,12 +35746,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     /*
-     * Kick off the recovery cluster (no-op while dormant). The worker
-     * `database.maintenance` job polls it to COMPLETED/FAILED. Best-effort:
-     * failure here just leaves the restore PENDING for the worker to retry.
+     * All current providers refuse admission above. Enabling a future provider
+     * requires an application cutover executor as well as this cluster kickoff;
+     * the maintenance worker must never infer completion from cluster health.
      */
-    const provisioner = resolveDefaultDatabaseProvisioner();
-
     if (provisioner.active) {
       await provisioner
         .startRestore({
@@ -35728,6 +35757,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: project.organizationId,
           restoreId: restore.id,
           targetTimeIso: new Date(targetTimestampMs).toISOString(),
+          environment: instance.environment,
           retentionDays: entitlement.retentionDays,
         })
         .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))
@@ -35876,13 +35906,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const instance = await store.getDatabaseInstanceByProject(project.id);
+    const body = parse(
+      z.object({
+        label: z.string().max(200).optional(),
+        environment: z.enum(['development', 'production']).default('development'),
+      }),
+      request.body ?? {},
+    );
+    const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
 
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
 
-    const body = parse(z.object({ label: z.string().max(200).optional() }), request.body ?? {});
     const expiresAt = new Date(Date.now() + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
 
     const snapshot = await store.createDatabaseSnapshot({
@@ -35897,7 +35933,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (provisioner.active) {
       await provisioner
-        .takeSnapshot({ projectId: project.id, snapshotId: snapshot.id })
+        .takeSnapshot({ projectId: project.id, snapshotId: snapshot.id, environment: instance.environment })
         .catch((error) => request.log?.warn?.({ err: error }, 'db snapshot kickoff failed (non-fatal)'));
     }
 
@@ -35933,8 +35969,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const instance = await store.getDatabaseInstanceByProject(project.id, environment);
 
+    const restoreCapability = {
+      available: resolveDefaultDatabaseProvisioner().restoreAvailable,
+      reason: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
+    };
     if (!instance) {
-      return { entitlement, window: null, recoveryPoints: [] };
+      return { entitlement, restoreCapability, window: null, recoveryPoints: [] };
     }
 
     const nowMs = Date.now();
@@ -35942,9 +35982,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const snapshots = await store.listDatabaseSnapshots(instance.id);
 
     /*
-     * Only snapshots at-or-after the retention floor are restorable — a base
-     * backup older than the window cannot anchor a WAL replay to any in-window
-     * target. Map to a stable recovery-point shape (time range + kind + LSN).
+     * These are retained snapshot records, not verified physical archives.
+     * Listing a record must not imply that restoration is available.
      */
     const recoveryPoints = snapshots
       .filter((snapshot) => Date.parse(snapshot.createdAt) >= floorMs)
@@ -35958,12 +35997,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }));
 
     /*
-     * The continuous restore window: WAL archiving lets a restore target any
-     * instant in `[floor, latest]`. `latest` is the most recent recovery point
-     * (or now, when none exist yet but the instance is live). Only exposed for an
-     * entitled plan; otherwise the window is null (no rollback).
+     * No usable restore window is exposed without an application-cutover
+     * implementation. Retention alone does not prove physical archive coverage.
      */
-    const window = entitlement.allowed
+    const window = entitlement.allowed && restoreCapability.available
       ? {
           earliestMs: floorMs,
           earliest: new Date(floorMs).toISOString(),
@@ -35973,7 +36010,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       : null;
 
-    return { entitlement, window, recoveryPoints };
+    return { entitlement, restoreCapability, window, recoveryPoints };
   });
 
   /**
@@ -36054,6 +36091,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    const provisioner = resolveDefaultDatabaseProvisioner();
+    if (!provisioner.restoreAvailable) {
+      return reply.code(503).send({
+        error: appPublicEnglish('RESTORE_APPLICATION_CUTOVER_UNAVAILABLE'),
+        code: RESTORE_APPLICATION_CUTOVER_UNAVAILABLE,
+      });
+    }
+
     const restore = await store.createDatabaseRestore({
       databaseInstanceId: instance.id,
       snapshotId: body.snapshotId,
@@ -36076,12 +36121,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     /*
-     * Kick off the recovery cluster (Noop while dormant). The worker
-     * `database.maintenance` job polls it to COMPLETED/FAILED. Best-effort:
-     * failure here just leaves the restore PENDING for the worker to retry.
+     * All current providers refuse admission above. Enabling a future provider
+     * requires an application cutover executor as well as this cluster kickoff;
+     * the maintenance worker must never infer completion from cluster health.
      */
-    const provisioner = resolveDefaultDatabaseProvisioner();
-
     if (provisioner.active) {
       await provisioner
         .startRestore({
@@ -36089,6 +36132,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: project.organizationId,
           restoreId: restore.id,
           targetTimeIso: new Date(targetTimestampMs).toISOString(),
+          environment: instance.environment,
           retentionDays: entitlement.retentionDays,
         })
         .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))

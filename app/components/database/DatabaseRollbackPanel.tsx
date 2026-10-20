@@ -49,6 +49,8 @@ interface Snapshot {
 interface Restore {
   id: string;
   status: string;
+  error?: string;
+  applicationCutoverVerified?: boolean;
   targetTimestamp?: string;
   createdAt: string;
 }
@@ -57,6 +59,7 @@ interface PanelData {
   ok: boolean;
   enabled?: boolean;
   entitlement?: Entitlement;
+  restoreCapability?: { available: boolean; reason?: string };
   instance?: DatabaseInstance | null;
   snapshots?: Snapshot[];
   restores?: Restore[];
@@ -93,7 +96,7 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
   const language = resolveDatabaseRollbackLanguage(i18n.resolvedLanguage ?? i18n.language);
   const copy = getDatabaseRollbackCopy(language);
   const loadFetcher = useFetcher<PanelData>();
-  const restoreFetcher = useFetcher<{ ok: boolean; error?: string }>();
+  const restoreFetcher = useFetcher<{ ok: boolean; error?: string; code?: string }>();
   const [target, setTarget] = useState('');
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
@@ -145,6 +148,7 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
 
   const entitlement = data?.entitlement ?? { allowed: false, retentionDays: 0 };
   const instance = data?.instance ?? null;
+  const restoreAvailable = data?.restoreCapability?.available === true;
   const snapshots = data?.snapshots ?? [];
   const restores = data?.restores ?? [];
 
@@ -168,9 +172,11 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-semibold text-bolt-elements-textPrimary">{copy['databaseRollback.title']}</h3>
           <p className="text-sm text-bolt-elements-textSecondary">
-            {entitlement.allowed
-              ? formatDatabaseRetention(entitlement.retentionDays, language)
-              : copy['databaseRollback.entitlement.pro']}
+            {!restoreAvailable
+              ? copy['databaseRollback.restore.unavailable']
+              : entitlement.allowed
+                ? formatDatabaseRetention(entitlement.retentionDays, language)
+                : copy['databaseRollback.entitlement.pro']}
           </p>
         </div>
         {instance ? (
@@ -207,7 +213,7 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
         </button>
       )}
 
-      {entitlement.allowed && instance ? (
+      {entitlement.allowed && instance && restoreAvailable ? (
         <div className="flex flex-col gap-2">
           <label htmlFor="db-restore-target" className="text-sm font-medium text-bolt-elements-textPrimary">
             {copy['databaseRollback.restore.label']}
@@ -234,7 +240,9 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
           </div>
           {restoreFetcher.data?.error ? (
             <p className="text-sm text-bolt-elements-icon-error" role="alert">
-              {copy['databaseRollback.restore.error']}
+              {restoreFetcher.data?.code === 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE'
+                ? copy['databaseRollback.restore.unavailable']
+                : copy['databaseRollback.restore.error']}
             </p>
           ) : null}
         </div>
@@ -275,7 +283,14 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
                 key={restore.id}
                 className="flex min-w-0 flex-wrap justify-between gap-2 text-sm text-bolt-elements-textSecondary"
               >
-                <span>{databaseRollbackStatusLabel(restore.status, language)}</span>
+                <span>
+                  {restore.status === 'COMPLETED' && restore.applicationCutoverVerified !== true
+                    ? copy['databaseRollback.restore.unverified']
+                    : databaseRollbackStatusLabel(restore.status, language)}
+                  {restore.error === 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE'
+                    ? ` — ${copy['databaseRollback.restore.unavailable']}`
+                    : ''}
+                </span>
                 <span>{formatAbsoluteTime(restore.createdAt, language)}</span>
               </li>
             ))}

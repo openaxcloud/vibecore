@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-10-20T10:07:31.964Z",
+  "browser": "154.0.8037.57",
+  "scope": "built application with real local API and PostgreSQL; synthetic metadata only",
+  "physicalRestore": false,
+  "providerOperation": false,
+  "results": [
+    {
+      "viewport": "desktop",
+      "status": 200,
+      "completionUnverified": true,
+      "restoreActionUnavailable": true,
+      "snapshotControlVisible": true,
+      "persistedOnReload": true,
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "viewport": "tablet",
+      "status": 200,
+      "completionUnverified": true,
+      "restoreActionUnavailable": true,
+      "snapshotControlVisible": true,
+      "persistedOnReload": true,
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "viewport": "mobile",
+      "status": 200,
+      "completionUnverified": true,
+      "restoreActionUnavailable": true,
+      "snapshotControlVisible": true,
+      "persistedOnReload": true,
+      "horizontalOverflow": false,
+      "pageErrors": []
+    }
+  ]
+}

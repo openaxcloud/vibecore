@@ -68,6 +68,7 @@ export const remainingApiRoutesEn = {
   PROJECT_IMPORT_FAILED: 'The project archive could not be imported. Please try again.',
   DATABASE_AUTH_REQUIRED: 'You do not have permission to access this project database.',
   DATABASE_PANEL_FAILED: 'The database information could not be loaded. Please try again.',
+  RESTORE_APPLICATION_CUTOVER_UNAVAILABLE: 'Database restoration is unavailable. No restoration was started.',
   DATABASE_REQUEST_FAILED: 'The database operation could not be completed. Please try again.',
   THUMBNAIL_PREVIEW_URL_REQUIRED: 'A preview URL is required.',
   THUMBNAIL_REFRESH_FAILED: 'The project thumbnail could not be refreshed. Please try again.',
@@ -161,6 +162,8 @@ export const remainingApiRoutesFr: RemainingApiRouteCopy = {
   PROJECT_IMPORT_FAILED: 'Impossible d’importer l’archive du projet. Veuillez réessayer.',
   DATABASE_AUTH_REQUIRED: 'Vous n’avez pas l’autorisation d’accéder à la base de données de ce projet.',
   DATABASE_PANEL_FAILED: 'Impossible de charger les informations de la base de données. Veuillez réessayer.',
+  RESTORE_APPLICATION_CUTOVER_UNAVAILABLE:
+    'La restauration de la base est indisponible. Aucune restauration n’a été lancée.',
   DATABASE_REQUEST_FAILED: 'Impossible d’effectuer l’opération sur la base de données. Veuillez réessayer.',
   THUMBNAIL_PREVIEW_URL_REQUIRED: 'Une URL d’aperçu est obligatoire.',
   THUMBNAIL_REFRESH_FAILED: 'Impossible d’actualiser la miniature du projet. Veuillez réessayer.',

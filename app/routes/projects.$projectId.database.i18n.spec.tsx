@@ -109,6 +109,35 @@ afterEach(() => {
 });
 
 describe('project database restore i18n', () => {
+  it('keeps snapshots available but refuses restoration and does not certify old completed requests', () => {
+    renderPage({
+      project: { id: 'project-1', name: 'Project' },
+      enabled: true,
+      entitlement: { allowed: true, retentionDays: 7 },
+      restoreCapability: { available: false },
+      instance: { id: 'db1', status: 'ACTIVE', engine: 'postgres', sizeBytes: 0, retentionDays: 7, pitrEnabled: true },
+      recoveryPoints: [{ id: 'point1', kind: 'manual', timestamp: '2026-10-18T00:00:00.000Z' }],
+      window: null,
+      restores: [
+        {
+          id: 'restore1',
+          status: 'COMPLETED',
+          applicationCutoverVerified: false,
+          createdAt: '2026-10-18T00:00:00.000Z',
+        },
+      ],
+    });
+    expect(screen.getAllByText(/La restauration de la base est actuellement indisponible/u).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText('Instant cible')).toBeNull();
+    expect(screen.getByText('Fin non vérifiée')).toBeTruthy();
+
+    const restoreButton = screen.getByRole('button', { name: /Restaurer à ce point/u }) as HTMLButtonElement;
+    expect(restoreButton.disabled).toBe(true);
+
+    const snapshotButton = screen.getByRole('button', { name: /Créer un instantané/u }) as HTMLButtonElement;
+    expect(snapshotButton.disabled).toBe(false);
+  });
+
   it('keeps fallback, plurals, units, interpolation, and statuses locale-aware', () => {
     const copy = getDatabaseRestoreCopy('fr-FR');
     const oneDay = selectDatabaseRestorePlural(copy, 'databaseRestore.instance.days', 1, 'fr');
@@ -126,6 +155,7 @@ describe('project database restore i18n', () => {
     renderPage({
       project: { id: 'project-1', name: 'Projet client' },
       enabled: true,
+      restoreCapability: { available: true },
       entitlement: { allowed: true, retentionDays: 7 },
       instance: {
         id: 'database-1',

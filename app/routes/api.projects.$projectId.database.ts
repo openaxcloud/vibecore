@@ -16,6 +16,7 @@ interface DatabaseRollbackEntitlement {
 
 interface DatabasePanelResponse {
   entitlement: DatabaseRollbackEntitlement;
+  restoreCapability: { available: boolean; reason?: string };
   instance: {
     id: string;
     status: string;
@@ -88,6 +89,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     return json({ ok: true, intent, ...(payload as Record<string, unknown>) });
   } catch (error) {
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
+
+    if (error instanceof Response && status === 503) {
+      const payload = (await error
+        .clone()
+        .json()
+        .catch(() => undefined)) as { code?: string } | undefined;
+
+      if (payload?.code === 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE') {
+        return remainingApiErrorResponse(request, 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE', status, {
+          extra: { ok: false, status, code: payload.code },
+        });
+      }
+    }
 
     /* Return (not throw) so the fetcher receives the error in fetcher.data and the panel can surface it. */
     return remainingApiErrorResponse(

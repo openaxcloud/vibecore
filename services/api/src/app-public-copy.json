@@ -871,6 +871,10 @@
     "en": "workflow",
     "fr": "workflow"
   },
+  "RESTORE_APPLICATION_CUTOVER_UNAVAILABLE": {
+    "en": "Database restoration is unavailable. No restoration was started.",
+    "fr": "La restauration de la base est indisponible. Aucune restauration n’a été lancée."
+  },
   "ROLLBACK_DISABLED": {
     "en": "Database rollback is not enabled.",
     "fr": "La restauration de la base de données n’est pas activée."
