@@ -1,0 +1,8 @@
+{
+  "recordedAt": "2026-10-20T12:23:42.299779+00:00",
+  "command": "node scripts/i18n/validate-catalogs.mjs",
+  "exitCode": 0,
+  "catalogs": 208,
+  "keysPerLanguage": 18795,
+  "pluralFamilies": 222
+}

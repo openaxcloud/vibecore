@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-10-20T12:30:19.081262+00:00",
+  "reviewer": "review_admission_protocol",
+  "scope": "read-only review of missing-snapshot callback admission, two history actions, dialog and real-source extracted regression contracts",
+  "p0p1Found": false,
+  "notes": [
+    "The FinDeTour entry point can open a dialog without a resolved snapshot; confirm remains disabled and callback refuses without mutations. It does not automatically close that dialog.",
+    "HTTP refusal precedes clearMessages.",
+    "Does not cover the entire mounted component or the separate archived conversation View chat action."
+  ],
+  "sources": {
+    "app/components/chat/BaseChat.tsx": "ebb332022de107aa26d9fb11dc32285025874f5032ec14feffa848ed49ec2f00",
+    "app/components/chat/checkpoint-rollback-client.spec.ts": "2b1f38753490b298e46f504e367ae4971ec4bbf06da21fe7fd0b59912549fdaa"
+  }
+}

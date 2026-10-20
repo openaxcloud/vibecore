@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "stage": "mobile",
+  "recordedAt": "2026-10-20T12:42:11.568Z",
+  "scope": "compiled local UI with real HTTP API/PostgreSQL and synthetic text-only conversation",
+  "noAgentGeneration": true,
+  "noPaidResource": true,
+  "externalRequestsBlocked": 6,
+  "results": [
+    {
+      "viewport": "desktop",
+      "disabled": true,
+      "restorePosts": 0,
+      "conversationReplacementWrites": 0,
+      "unchangedConversationAutosaves": 0,
+      "clearMessageWrites": [],
+      "messagesPreserved": 4,
+      "conversationSha256": "cbe9108633c7b77f50213145b004b89109c1d4d1c53531369d6c11f27659605b",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "viewport": "tablet",
+      "disabled": true,
+      "restorePosts": 0,
+      "conversationReplacementWrites": 0,
+      "unchangedConversationAutosaves": 0,
+      "clearMessageWrites": [],
+      "messagesPreserved": 4,
+      "conversationSha256": "cbe9108633c7b77f50213145b004b89109c1d4d1c53531369d6c11f27659605b",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    },
+    {
+      "viewport": "mobile",
+      "disabled": true,
+      "restorePosts": 0,
+      "conversationReplacementWrites": 0,
+      "unchangedConversationAutosaves": 0,
+      "clearMessageWrites": [],
+      "messagesPreserved": 4,
+      "conversationSha256": "cbe9108633c7b77f50213145b004b89109c1d4d1c53531369d6c11f27659605b",
+      "horizontalOverflow": false,
+      "pageErrors": []
+    }
+  ]
+}

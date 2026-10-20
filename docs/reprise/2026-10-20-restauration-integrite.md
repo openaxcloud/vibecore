@@ -45,7 +45,7 @@ Limites conservées dans ce lot : une ancienne demande dont le cluster n'est pas
 
 Les quatre autres critères restent également ouverts : parcours inscription → agent → exécution → persistance → URL publiée, isolation/quota avec inventaire des anciens workspaces, facturation Stripe TEST de bout en bout, et parcours authentifiés sur mobile/Safari réel. Le catalogue des panneaux n'est pas une recette terminée.
 
-Au relevé du 20 octobre, GitHub est lisible ; main reste `e40edf3`. Le run E2E `39198013106` demeure rouge. La dernière livraison continue réussie reste `39193686200`, commit `bbbcf3239296dfa55d60160aba8e19742136a111`, terminée le 19 octobre à 04:42:20 UTC. Les trois requêtes HEAD vers e-code.ai, app.e-code.ai et api.e-code.ai sont bloquées au CONNECT par le proxy (403, origine non atteinte) : cela ne prouve ni panne applicative ni version servie. Les autorisations de paiement réel, ressource cloud payante et restauration destructive ne sont pas acquises.
+Au relevé initial du 20 octobre, GitHub est lisible ; main était `e40edf3`. À 11:40:32 UTC, #744 est fusionnée normalement en `bc74c395` ; la CI de production réussit à 11:59:01 UTC, mais le verdict E2E agrégé puis la livraison échouent à 12:12 UTC. Les quatre tranches affichent un succès ; les journaux et rapports du verdict final restent refusés par le transport, donc sa cause détaillée reste inconnue. Aucun déploiement réussi déduit. Le run E2E `39198013106` demeure rouge. La dernière livraison continue réussie reste `39193686200`, commit `bbbcf3239296dfa55d60160aba8e19742136a111`, terminée le 19 octobre à 04:42:20 UTC. Les trois requêtes HEAD vers e-code.ai, app.e-code.ai et api.e-code.ai sont bloquées au CONNECT par le proxy (403, origine non atteinte) : cela ne prouve ni panne applicative ni version servie. Les autorisations de paiement réel, ressource cloud payante et restauration destructive ne sont pas acquises.
 
 ## Complément de contre-revue : reprise combinée
 
@@ -96,3 +96,53 @@ non réalisable. Prix, crédits, limites, droits `dbRollbackDays`, produits/prix
 abonnements restent inchangés. Le droit contractuel de rétention ne constitue pas une
 preuve de restauration disponible ; il reste à réconcilier l'offre livrée et les parcours
 Stripe TEST avant lancement. Aucun paiement ni modification de catalogue Stripe exécuté.
+
+
+## Contre-revue complémentaire : checkpoint sans snapshot
+
+Le callback client pouvait sauter le POST lorsqu’un checkpoint ne possédait aucun
+snapshot, puis remplacer la conversation avec `clearMessages:true`. Les deux listes
+rendaient encore son action disponible dès qu’il contenait des messages. La garde
+BFF ne protégeait donc pas ce chemin. Le candidat exige maintenant un identifiant
+de snapshot avant toute requête, état occupé ou écriture mémoire ; les deux actions
+et la confirmation sont désactivées lorsque cet identifiant manque.
+
+Le test exécute le callback et les expressions de disponibilité réels extraits de
+BaseChat, avec frontières réseau/mémoire contrôlées. Sur le source publié `7c103096` :
+12 cas rouges, deux témoins verts. Après correction : 14/14 verts. Le refus du serveur
+conserve la conversation et le témoin fichiers seuls reste opérationnel dans ce test.
+Après rebase sur `bc74c395`, 90 tests ciblés passent dans huit fichiers (dont les
+14 du callback et les 16 du lot Sync fusionné) ; six contrôles d’index passent.
+Les 208 catalogues alignent 18 795 clés par langue. Le build client/serveur termine
+à 12:32:23 UTC en 620,72 s, avec un pic de mémoire commun de 10,73 Go et aucun OOM.
+Les contrôles globaux du hook normal restent obligatoires avant le prochain commit.
+
+La recette du build sur API/Prisma/PostgreSQL réels réussit à 12:42 UTC aux formats
+1440, 820 et 390. Quatre messages synthétiques comprennent un checkpoint ancien et
+des messages plus récents à préserver. Son action est désactivée ; l’activation
+native du bouton désactivé n’ouvre pas de dialogue et ne déclenche aucun POST de
+restauration. Les quatre messages et leur empreinte restent identiques après
+relecture persistée. Le harnais distingue les autosauvegardes identiques d’un
+remplacement de conversation ; aucune des deux n’est observée dans ce dernier
+passage. Aucun débordement horizontal de page ni erreur JavaScript constaté.
+
+Les trois captures ont été inspectées. La troisième action de l’historique présente
+encore un libellé tronqué dans les rangées étroites ; cette recette ne certifie donc
+pas une parité visuelle complète. La capture tablette inclut aussi des conversations
+synthétiques archivées du même projet QA. Six requêtes externes sont refusées sans
+substitution de réponse. Le runtime de cette QA reste indisponible, comme affiché :
+aucune génération d’agent ni exécution d’application n’est revendiquée.
+
+Les tentatives précédentes restent archivées : enveloppe de fixture initialement
+erronée, comptage trop large des autosauvegardes, historique non ouvert après clic
+précoce, puis serveur local arrêté lors d’une reconnexion. Le scénario final attend
+le chargement de la conversation réelle avant l’action, sans délai augmenté. Il ne
+prouve pas la réactivité d’un clic avant la fin de ce chargement.
+
+La sonde BFF compilée repasse ensuite quatre refus combinés réels EN/FR et
+formulaire/JSON à 12:43 UTC : HTTP503 avant écriture, empreintes PostgreSQL inchangées.
+Les objets de sonde sont supprimés. La contre-revue du callback ne relève pas de
+P0/P1 dans ce périmètre ; elle ne couvre pas l’action distincte de consultation d’une
+conversation archivée. Les résultats, captures et hashes exacts portent le préfixe
+`nosnapshot-` dans le répertoire de preuves. Fusion, CI du prochain SHA, livraison et
+validation HTTPS/Safari restent des étapes séparées.

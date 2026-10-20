@@ -1,0 +1,57 @@
+{
+  "recordedAt": "2026-10-20T12:43:40.139Z",
+  "scope": "compiled BFF -> real local HTTP API -> Prisma/PostgreSQL",
+  "cases": [
+    {
+      "language": "fr",
+      "encoding": "form",
+      "status": 503,
+      "code": "CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE",
+      "outcome": "not_started",
+      "persistedStateUnchanged": true
+    },
+    {
+      "language": "fr",
+      "encoding": "json",
+      "status": 503,
+      "code": "CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE",
+      "outcome": "not_started",
+      "persistedStateUnchanged": true
+    },
+    {
+      "language": "en",
+      "encoding": "form",
+      "status": 503,
+      "code": "CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE",
+      "outcome": "not_started",
+      "persistedStateUnchanged": true
+    },
+    {
+      "language": "en",
+      "encoding": "json",
+      "status": 503,
+      "code": "CHECKPOINT_DATABASE_RESTORE_UNAVAILABLE",
+      "outcome": "not_started",
+      "persistedStateUnchanged": true
+    }
+  ],
+  "passed": true,
+  "syntheticMetadataOnly": true,
+  "physicalRestore": false,
+  "providerCalls": false,
+  "beforeStateSha256": "59675921985f3611b05412dd7d2bf23414531bbc7d575f226834d9857accff4d",
+  "afterStateSha256": "59675921985f3611b05412dd7d2bf23414531bbc7d575f226834d9857accff4d",
+  "compared": [
+    "snapshot metadata",
+    "stored synthetic content",
+    "IDE state",
+    "database restore rows",
+    "agent memory metadata",
+    "secret count"
+  ],
+  "limits": [
+    "No physical file or database restore executed",
+    "File-only success and partial failures tested in isolated orchestration tests only",
+    "Agent-memory table empty in this fixture"
+  ]
+}

@@ -12,6 +12,10 @@ L'échec de restauration de la mémoire de l'agent est également journalisé sa
 le succès HTTP. La copie générique « aucune modification » ne prouve pas l'absence de
 mutation lorsqu'une requête a déjà été envoyée.
 
+Contre-revue complémentaire : un checkpoint de conversation sans snapshot reste
+cliquable et saute le POST, puis remplace la mémoire avec `clearMessages:true`.
+Le refus du BFF seul ne protège donc pas ce chemin client.
+
 ## 📤 Dispatché
 
 Contre-revue du 20 octobre reproduite ; correction candidate et tests ajoutés au lot #743.
@@ -22,7 +26,14 @@ Contre-revue du 20 octobre reproduite ; correction candidate et tests ajoutés a
 après lecture autorisée du projet. Il conserve les reprises explicitement fichiers seuls.
 Une reprise des fichiers suivie d'un échec mémoire répond en échec partiel, HTTP502,
 et les erreurs inconnues n'affirment plus que l'état est inchangé. Aucun moteur de
-restauration DB coordonnée n'est livré.
+restauration DB coordonnée n'est livré. Le candidat refuse également les checkpoints
+sans identifiant de snapshot dans le callback, avant toute requête ou sauvegarde
+de mémoire, et désactive leurs actions dans les deux listes et la confirmation.
+Le test du vrai callback donne 12 cas rouges et deux témoins verts sur `7c103096`,
+puis 14/14 verts après correction. Après rebase sur main : 90 tests ciblés verts,
+build client/serveur vert, trois formats du navigateur compilé préservant quatre
+messages après refus du checkpoint sans snapshot. Le hook global et la CI du
+nouveau SHA restent requis ; ces preuves locales ne sont pas une livraison.
 
 ## ✅ Testé live
 
@@ -42,3 +53,9 @@ reste testé avec champ absent, chaîne `false` et booléen JSON `false`.
 
 Suite complémentaire : 55 tests réussis dans cinq fichiers, dont copie d'erreur EN/FR,
 refus non mutateur et résultat partiel. [Contexte et limites](../reprise/2026-10-20-restauration-integrite.md).
+
+Dernière preuve intégrée : contrôles `nosnapshot-` du 20 octobre, 12:42–12:43 UTC.
+Trois captures inspectées, zéro POST de restauration et conversation persistée
+inchangée ; quatre refus BFF réels avec état PostgreSQL inchangé. Le runtime de la QA
+est indisponible ; aucune application générée ou restauration physique revendiquée.
+Un libellé d’action reste tronqué dans les rangées étroites de l’historique.

@@ -1,0 +1,132 @@
+{
+  "recordedAt": "2026-10-20T12:45:09.016994+00:00",
+  "mainBase": "bc74c39534d737ed8ab2c27b491d3d8fb5a209ee",
+  "localHeadBeforeCommit": "768cafe77dfc19f35b3768fe99b148db6bbdadbf",
+  "sourceState": "uncommitted candidate; hashes identify exact tested files",
+  "browser": "Chromium 154.0.8037.57 on Debian 13",
+  "browserCapturesInspected": true,
+  "scope": "missing-snapshot refusal in compiled local UI and combined refusal in compiled BFF with real local API/PostgreSQL",
+  "limits": [
+    "No agent generation or executable application was exercised; QA runtime unavailable as shown in captures",
+    "Six external browser requests were blocked without response substitution",
+    "No physical file/database restoration or Safari/production verification",
+    "The history Review differences label is visually clipped in narrow action rows; page itself has no horizontal overflow",
+    "Tablet also displays archived synthetic conversations from the owned QA project",
+    "First fixture setup used the wrong API envelope; later early history click did not open history; reconnection stopped the local web listener on a subsequent attempt. Those failed records remain archived. Final recipe waits for the persisted recent message before opening history.",
+    "The recipe distinguishes identical conversation autosaves from replacements; the final pass observed zero of either during measured windows"
+  ],
+  "sources": [
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "ebb332022de107aa26d9fb11dc32285025874f5032ec14feffa848ed49ec2f00"
+    },
+    {
+      "path": "app/components/chat/base-chat-panels.spec.ts",
+      "sha256": "63a2e620c6cd82ca831f02462c1e6b8b47cc667bb862de6c04fbaf98f6ec2cba"
+    },
+    {
+      "path": "app/components/chat/base-chat-panels.ts",
+      "sha256": "3b4a044175ff6238d7ea22a365771b48af2a10e8dbf9572f3f827c21abb9ed96"
+    },
+    {
+      "path": "app/components/chat/checkpoint-rollback-client.spec.ts",
+      "sha256": "2b1f38753490b298e46f504e367ae4971ec4bbf06da21fe7fd0b59912549fdaa"
+    },
+    {
+      "path": "app/components/database/DatabaseRollbackPanel.i18n.spec.tsx",
+      "sha256": "d6e6850489d92732d94d99a214c79e7bf30dcd7e4b20b3f2893adacea8f6be35"
+    },
+    {
+      "path": "app/components/database/DatabaseRollbackPanel.tsx",
+      "sha256": "eb26a7773db30269a08816327bd6acbfa9c585daef6d7156245f1cef5858e081"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Pricing.tsx",
+      "sha256": "a4bcded64d610bcebdc2fc53225ca2b18697b62bd846fc18c5f38d3e6e136e18"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/api-runtime-routes.ts",
+      "sha256": "75257e487dcd0dc0732c89d4db40c570cd1db70ee2d1e1426e1775f904e328d0"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/client-visible-errors.ts",
+      "sha256": "0034b2590038a4ef5dc11e1fdf59e86b86f68e7d0cb0f6d0e6213fd1be6ec2b8"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/database-restore.ts",
+      "sha256": "c4eaf1cd6ca62d0913539684a1dcec1d7eda68cd4e2198b762ec19cae0a7185c"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/database-rollback.ts",
+      "sha256": "df04c605696e4ed093533afe32454e26a4aaf52210e0235e9d45daedecdc1976"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/fin-de-tour.ts",
+      "sha256": "4eeb851d88c8966ec68bf5880819584c639a6f83c509b33a4b281b89b360aa71"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/remaining-api-routes.ts",
+      "sha256": "af865a58c33b208b1c83adb9c59e210ea01eacb461959c24227f4ee59d3ea8d5"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.database.restore-error.spec.ts",
+      "sha256": "9d60de36c100eadd0322c958487d15a29fde78a3503834da4ec7901d2d041d25"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.database.ts",
+      "sha256": "b5861f5206909ac7535e1b07ad3212a6966e1d75fe91e64420e900a5dc35c7df"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+      "sha256": "9a4bf7d959a85a1c53a3ee878582c2e743bfa7d8c320d600f3eeab65f9e39bb3"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.ide-panel.snapshot-restore.action.spec.ts",
+      "sha256": "1d7a051a2b560323fc01d8c74517f704f9d9875ffba8347da443f09e4498328d"
+    },
+    {
+      "path": "app/routes/projects.$projectId.database.i18n.spec.tsx",
+      "sha256": "33cc19ff697d1b52b4706c0344a0896c8ec1a4763745f761073bc224f7d68370"
+    },
+    {
+      "path": "app/routes/projects.$projectId.database.tsx",
+      "sha256": "d13261d0b9126190b70df85cc41f735fc3269ceaa7dc87a0a8a598054a53aed5"
+    },
+    {
+      "path": "app/routes/snapshot-restore-database.spec.ts",
+      "sha256": "3ee3fd53566ff8ddc1b3fb3fcd6140dba26b35c79466b8e7b78ed4f01665ecb1"
+    },
+    {
+      "path": "app/routes/snapshot-restore-database.ts",
+      "sha256": "5875915fb61c5504b073ba2ddc493da7e3bc61a3b8d0b49bed26bc28ee54e9d6"
+    },
+    {
+      "path": "packages/billing/src/index.ts",
+      "sha256": "40e4c8d9aa15f9e7ec0cdaaf925bb66ec9fa923acebc8d7450ca524fbec9f772"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "aa18ae83e3a7b3909ab4f0b2c24b5f834b8430cdd7fd339b31f6fa7b39511a4b"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "d061e3eacb59f53e01bc8e49fd5e90c980f8d9637f2f976b4c039cbc46c7f897"
+    },
+    {
+      "path": "services/api/src/database-provisioner.ts",
+      "sha256": "f7702cd9dad3753952c0c5b54607b0b932ee666e769e119e18a701b3889438a4"
+    },
+    {
+      "path": "services/api/src/tests/database-provisioner.spec.ts",
+      "sha256": "74b408096f37879f9e481aa7a584f0f0f109b0461d1d6588b1c1b85149adec23"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+      "sha256": "823807acb253caa519a52a32d6c727b796e22a0350d3d335a3100679aa28766a"
+    },
+    {
+      "path": "services/api/src/tests/database-rollback-routes.spec.ts",
+      "sha256": "eb3a64b83e0591f2f9e2eaac48e3cd1acbda54bc7cf9ec6e9e9c5ff9b746afee"
+    }
+  ]
+}

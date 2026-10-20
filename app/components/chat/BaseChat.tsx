@@ -7659,6 +7659,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      // A conversation-only checkpoint cannot authorize replacing live memory.
+      if (!rollbackTarget.snapshot?.id) {
+        toast.error(t('chat.copy.noFileSnapshotIsAvailableFor_43c662d0'));
+
+        return;
+      }
+
       setRollbackBusy(true);
 
       try {
@@ -7721,7 +7728,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       } finally {
         setRollbackBusy(false);
       }
-    }, [projectId, currentWorkspaceId, language, rollbackDatabase, rollbackTarget]);
+    }, [projectId, currentWorkspaceId, language, rollbackDatabase, rollbackTarget, t]);
 
     const headerPresence = useMemo(
       () => dedupeCollaborationPresence(headerCollaboration.snapshot?.presence ?? []),
@@ -7917,7 +7924,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </label>
             <div className="bolt-project-conversation-history-list">
               {filteredProjectConversationCheckpoints.map((checkpoint) => {
-                const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
+                const rollbackAvailable = Boolean(checkpoint.snapshot?.id);
 
                 return (
                   <article key={checkpoint.id} className="bolt-project-history-checkpoint">
@@ -9765,7 +9772,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </label>
                       <div className="bolt-project-conversation-history-list">
                         {filteredProjectConversationCheckpoints.map((checkpoint) => {
-                          const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
+                          const rollbackAvailable = Boolean(checkpoint.snapshot?.id);
 
                           return (
                             <article key={checkpoint.id} className="bolt-project-history-checkpoint">
@@ -11471,7 +11478,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button
                   type="button"
                   onClick={confirmProjectRollback}
-                  disabled={rollbackBusy}
+                  disabled={rollbackBusy || !rollbackTarget.snapshot?.id}
                   data-testid="rollback-confirm"
                 >
                   {rollbackBusy
