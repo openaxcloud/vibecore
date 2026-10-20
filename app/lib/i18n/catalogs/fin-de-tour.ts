@@ -49,7 +49,7 @@ export const finDeTourEn = {
     'All files in your app will be restored to the state they were in at the time of this checkpoint.',
   'finDeTour.rollbackDialog.database': 'Database',
   'finDeTour.rollbackDialog.databaseDetail':
-    'Your development database will be restored to the time of this checkpoint.',
+    'Combined restoration with the database is unavailable. This action will be refused before any changes. Use Checkpoints to restore files only.',
   'finDeTour.rollbackDialog.memory': 'Agent memory',
   'finDeTour.rollbackDialog.memoryDetail':
     "The Agent's memory will reset to what it knew about your app at the time of this checkpoint.",
@@ -106,7 +106,7 @@ export const finDeTourFr: FinDeTourCopy = {
     'Tous les fichiers de votre application seront remis dans l’état où ils étaient au moment de ce point de restauration.',
   'finDeTour.rollbackDialog.database': 'Base de données',
   'finDeTour.rollbackDialog.databaseDetail':
-    'Votre base de données de développement sera remise à la date de ce point de restauration.',
+    'La restauration combinée avec la base est indisponible. Cette action sera refusée avant toute modification. Utilisez les points de restauration pour restaurer les fichiers seuls.',
   'finDeTour.rollbackDialog.memory': 'Mémoire de l’agent',
   'finDeTour.rollbackDialog.memoryDetail':
     'La mémoire de l’agent sera remise à ce qu’il savait de votre application au moment de ce point de restauration.',

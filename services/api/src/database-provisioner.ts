@@ -98,7 +98,10 @@ export function resolveDatabaseTier(planKey: string | undefined): DatabaseTier {
 
 /** Safe Postgres identifier derived from a (cuid) project id. */
 function pgIdent(prefix: string, projectId: string): string {
-  const safe = projectId.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
+  const safe = projectId
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 40);
 
   return `${prefix}${safe}`;
 }
@@ -377,38 +380,44 @@ export function buildScheduledBackupManifest(projectId: string, environment?: Da
  * pour que la RELECTURE du statut vise exactement l'objet créé — le recalculer
  * à la main ailleurs finirait par diverger et « vérifier » un autre backup.
  */
-export function onDemandBackupName(projectId: string, snapshotId: string): string {
-  return `${clusterName(projectId)}-${snapshotId}`.toLowerCase().slice(0, 53);
+export function onDemandBackupName(projectId: string, snapshotId: string, environment?: DatabaseEnvironment): string {
+  return `${clusterName(projectId, environment)}-${snapshotId}`.toLowerCase().slice(0, 53);
 }
 
-export function buildOnDemandBackupManifest(projectId: string, snapshotId: string): K8sManifest {
+export function buildOnDemandBackupManifest(
+  projectId: string,
+  snapshotId: string,
+  environment?: DatabaseEnvironment,
+): K8sManifest {
   return {
     apiVersion: CNPG_API,
     kind: 'Backup',
     metadata: {
-      name: onDemandBackupName(projectId, snapshotId),
+      name: onDemandBackupName(projectId, snapshotId, environment),
       namespace: DB_NAMESPACE,
       labels: dbLabels(projectId),
     },
-    spec: { cluster: { name: clusterName(projectId) } },
+    spec: { cluster: { name: clusterName(projectId, environment) } },
   };
 }
 
 /**
  * A recovery cluster bootstrapped from the project's backups, replaying WAL to
- * an exact `targetTime` (true PITR). Once healthy, the executor repoints the
- * project's DATABASE_URL at this cluster.
+ * an exact `targetTime`. A healthy recovery cluster is NOT an application
+ * restore: the application cutover executor is not implemented.
  */
 export function buildRestoreClusterManifest(input: {
   projectId: string;
   organizationId?: string;
   restoreId: string;
   targetTimeIso: string;
+  environment?: DatabaseEnvironment;
   backupBucket: string;
   storageGi?: number;
   backupServiceAccount?: string;
 }): K8sManifest {
-  const sourceName = `${clusterName(input.projectId)}-backup`;
+  const sourceCluster = clusterName(input.projectId, input.environment);
+  const sourceName = `${sourceCluster}-backup`;
   const sat = serviceAccountTemplate(input.backupServiceAccount);
 
   return {
@@ -430,7 +439,13 @@ export function buildRestoreClusterManifest(input: {
         },
       },
       externalClusters: [
-        { name: sourceName, barmanObjectStore: buildBarmanObjectStore(input.projectId, input.backupBucket) },
+        {
+          name: sourceName,
+          barmanObjectStore: {
+            ...buildBarmanObjectStore(input.projectId, input.backupBucket),
+            serverName: sourceCluster,
+          },
+        },
       ],
     },
   };
@@ -467,8 +482,12 @@ export interface ProvisionInput {
 }
 
 /** Provisioner contract used by the api routes + scheduler. */
+export const RESTORE_APPLICATION_CUTOVER_UNAVAILABLE = 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE';
+
 export interface DatabaseProvisioner {
   readonly active: boolean;
+  /** Implementation capability, not a flag: no provider currently performs a verified application cutover. */
+  readonly restoreAvailable: boolean;
   provisionInstance(input: ProvisionInput): Promise<ProvisionResult>;
   /**
    * Resolve the project's `DATABASE_URL` once the backend is ready, or undefined if
@@ -480,7 +499,11 @@ export interface DatabaseProvisioner {
     sharedClusterName?: string;
     environment?: DatabaseEnvironment;
   }): Promise<string | undefined>;
-  takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }>;
+  takeSnapshot(input: {
+    projectId: string;
+    snapshotId: string;
+    environment?: DatabaseEnvironment;
+  }): Promise<{ applied: boolean }>;
   /**
    * ÉTAT RÉEL d'un backup, par lecture du `status` du CR `Backup` CNPG.
    *
@@ -495,12 +518,14 @@ export interface DatabaseProvisioner {
   backupStatus(input: {
     projectId: string;
     snapshotId: string;
+    environment?: DatabaseEnvironment;
   }): Promise<{ found: boolean; phase?: string; completed: boolean; error?: string }>;
   startRestore(input: {
     projectId: string;
     organizationId?: string;
     restoreId: string;
     targetTimeIso: string;
+    environment?: DatabaseEnvironment;
     retentionDays: number;
   }): Promise<{ applied: boolean; clusterName: string }>;
   restoreProgress(input: { projectId: string; restoreId: string }): Promise<RestoreProgress>;
@@ -510,6 +535,7 @@ export interface DatabaseProvisioner {
 /** Inert provisioner: the default while the feature is off and in tests. */
 export class NoopProvisioner implements DatabaseProvisioner {
   readonly active = false;
+  readonly restoreAvailable: boolean = false;
 
   async provisionInstance(input: ProvisionInput): Promise<ProvisionResult> {
     return { clusterName: clusterName(input.projectId), applied: false };
@@ -519,7 +545,11 @@ export class NoopProvisioner implements DatabaseProvisioner {
     return undefined;
   }
 
-  async takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }> {
+  async takeSnapshot(input: {
+    projectId: string;
+    snapshotId: string;
+    environment?: DatabaseEnvironment;
+  }): Promise<{ applied: boolean }> {
     return { applied: false };
   }
 
@@ -537,6 +567,7 @@ export class NoopProvisioner implements DatabaseProvisioner {
     organizationId?: string;
     restoreId: string;
     targetTimeIso: string;
+    environment?: DatabaseEnvironment;
     retentionDays: number;
   }): Promise<{ applied: boolean; clusterName: string }> {
     return { applied: false, clusterName: restoreClusterName(input.projectId, input.restoreId) };
@@ -552,6 +583,7 @@ export class NoopProvisioner implements DatabaseProvisioner {
 /** CloudNativePG provisioner — applies the CRs through the injected k8s port. */
 export class CnpgProvisioner implements DatabaseProvisioner {
   readonly active = true;
+  readonly restoreAvailable: boolean = false;
 
   constructor(
     private readonly k8s: K8sApplyPort,
@@ -693,14 +725,18 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     return uri && uri.length > 0 ? uri : undefined;
   }
 
-  async takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }> {
-    await this.k8s.apply(buildOnDemandBackupManifest(input.projectId, input.snapshotId));
+  async takeSnapshot(input: {
+    projectId: string;
+    snapshotId: string;
+    environment?: DatabaseEnvironment;
+  }): Promise<{ applied: boolean }> {
+    await this.k8s.apply(buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment));
 
     return { applied: true };
   }
 
-  async backupStatus(input: { projectId: string; snapshotId: string }) {
-    const name = onDemandBackupName(input.projectId, input.snapshotId);
+  async backupStatus(input: { projectId: string; snapshotId: string; environment?: DatabaseEnvironment }) {
+    const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
     /*
      * Kind `Backup` exactement : le workspace-manager filtre sur une allowlist
      * (`DB_ROLLBACK_KINDS`) et refuse 403 toute autre forme, y compris le nom
@@ -728,6 +764,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     organizationId?: string;
     restoreId: string;
     targetTimeIso: string;
+    environment?: DatabaseEnvironment;
     retentionDays: number;
   }): Promise<{ applied: boolean; clusterName: string }> {
     const manifest = buildRestoreClusterManifest({
@@ -735,6 +772,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
       organizationId: input.organizationId,
       restoreId: input.restoreId,
       targetTimeIso: input.targetTimeIso,
+      environment: input.environment,
       backupBucket: this.backupBucket,
       backupServiceAccount: this.backupServiceAccount,
     });
@@ -749,7 +787,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     // CNPG sets status.phase to 'Cluster in healthy state' and readyInstances>0.
     const phase = cluster?.status?.phase;
     const readyInstances = Number(cluster?.status?.readyInstances ?? 0);
-    const ready = readyInstances > 0 && typeof phase === 'string' && /healthy/i.test(phase);
+    const ready = readyInstances > 0 && typeof phase === 'string' && /^Cluster in healthy state$/i.test(phase);
 
     return { ready, clusterName: name };
   }

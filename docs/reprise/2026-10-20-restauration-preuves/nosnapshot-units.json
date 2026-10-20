@@ -1,0 +1,24 @@
+{
+  "label": "unit-rebased",
+  "startedAt": "2026-10-20T12:19:08.734262+00:00",
+  "memoryBefore": 4249149440,
+  "command": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "--run",
+    "app/components/chat/checkpoint-rollback-client.spec.ts",
+    "app/routes/api.projects.$projectId.ide-panel.snapshot-restore.action.spec.ts",
+    "app/routes/snapshot-restore-database.spec.ts",
+    "app/components/chat/base-chat-panels.spec.ts",
+    "app/routes/api.projects.$projectId.database.restore-error.spec.ts",
+    "app/routes/api.projects.$projectId.ide-panel.integrations-sync.spec.ts",
+    "app/components/database/DatabaseRollbackPanel.i18n.spec.tsx",
+    "app/routes/projects.$projectId.database.i18n.spec.tsx",
+    "--maxWorkers=1",
+    "--minWorkers=1"
+  ],
+  "exitCode": 0,
+  "seconds": 125.92,
+  "peakMemory": 4908900352,
+  "finishedAt": "2026-10-20T12:21:14.653535+00:00"
+}

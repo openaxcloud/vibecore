@@ -1,0 +1,17 @@
+{
+  "label": "index",
+  "startedAt": "2026-10-20T12:25:20.885266+00:00",
+  "memoryBefore": 8896425984,
+  "command": [
+    "node",
+    "node_modules/vitest/vitest.mjs",
+    "--run",
+    "scripts/index-a-jour.spec.mjs",
+    "--maxWorkers=1",
+    "--minWorkers=1"
+  ],
+  "exitCode": 0,
+  "seconds": 17.15,
+  "peakMemory": 9206374400,
+  "finishedAt": "2026-10-20T12:25:38.033550+00:00"
+}

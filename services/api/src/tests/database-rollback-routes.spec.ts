@@ -278,8 +278,8 @@ describe('GET /projects/:projectId/database/recovery-points', () => {
 
     const body = res.json();
     expect(body.entitlement).toEqual({ allowed: true, retentionDays: 28 });
-    expect(body.window.retentionDays).toBe(28);
-    expect(body.window.earliestMs).toBeLessThan(body.window.latestMs);
+    expect(body.window).toBeNull();
+    expect(body.restoreCapability).toEqual({ available: false, reason: 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE' });
 
     // Only the in-window snapshot survives the retention-floor filter.
     expect(body.recoveryPoints.map((p: { id: string }) => p.id)).toEqual(['recent']);
@@ -411,7 +411,7 @@ describe('POST /projects/:projectId/database/restore', () => {
     expect(res.json().code).toBe('SNAPSHOT_NOT_FOUND');
   });
 
-  it('records a PENDING restore for a valid in-window target (202)', async () => {
+  it('refuses a valid in-window target before creating a dormant restore', async () => {
     process.env.DB_ROLLBACK_ENABLED = 'true';
 
     const { app, store, org, project } = await setup();
@@ -427,17 +427,12 @@ describe('POST /projects/:projectId/database/restore', () => {
       payload: { targetTimestamp: target },
     });
 
-    expect(res.statusCode).toBe(202);
-
-    const body = res.json();
-    expect(body.restore.status).toBe('PENDING');
-    expect(body.restore.targetTimestamp).toBe(target);
-
-    // Persisted + scoped to this project's own instance (tenant isolation).
-    expect(await store.listDatabaseRestores('db1')).toHaveLength(1);
+    expect(res.statusCode).toBe(503);
+    expect(res.json().code).toBe('RESTORE_APPLICATION_CUTOVER_UNAVAILABLE');
+    expect(await store.listDatabaseRestores('db1')).toHaveLength(0);
   });
 
-  it('restores to a snapshot by id (targets its creation time)', async () => {
+  it('validates a snapshot but refuses to start without application cutover', async () => {
     process.env.DB_ROLLBACK_ENABLED = 'true';
 
     const { app, store, org, project } = await setup();
@@ -458,8 +453,9 @@ describe('POST /projects/:projectId/database/restore', () => {
       payload: { snapshotId: 'snapA' },
     });
 
-    expect(res.statusCode).toBe(202);
-    expect(res.json().restore.snapshotId).toBe('snapA');
+    expect(res.statusCode).toBe(503);
+    expect(res.json().code).toBe('RESTORE_APPLICATION_CUTOVER_UNAVAILABLE');
+    expect(await store.listDatabaseRestores('db1')).toHaveLength(0);
   });
 
   it('422s when neither snapshotId nor targetTimestamp is provided', async () => {

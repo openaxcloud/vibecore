@@ -17,6 +17,8 @@ export const databaseRestoreEn = {
   'databaseRestore.success.snapshot': 'Snapshot requested — it will appear among the recovery points when ready.',
   'databaseRestore.success.provision': 'Database provisioning requested.',
   'databaseRestore.notAvailable.title': 'Point-in-time restore is not available',
+  'databaseRestore.notAvailable.cutover': 'Database restoration is currently unavailable. No restoration was started.',
+  'databaseRestore.status.unverified': 'Completion unverified',
   'databaseRestore.notAvailable.disabled': 'Managed database rollback is not enabled for this instance yet.',
   'databaseRestore.notAvailable.noInstance_one':
     'Your plan includes a {count}-day recovery window, but no eligible database is provisioned.',
@@ -93,6 +95,9 @@ export const databaseRestoreFr: DatabaseRestoreCopy = {
     'Instantané demandé — il apparaîtra parmi les points de restauration dès qu’il sera prêt.',
   'databaseRestore.success.provision': 'Provisionnement de la base de données demandé.',
   'databaseRestore.notAvailable.title': 'La restauration à un instant précis n’est pas disponible',
+  'databaseRestore.notAvailable.cutover':
+    'La restauration de la base est actuellement indisponible. Aucune restauration n’a été lancée.',
+  'databaseRestore.status.unverified': 'Fin non vérifiée',
   'databaseRestore.notAvailable.disabled':
     'Le retour arrière de la base de données gérée n’est pas encore activé pour cette instance.',
   'databaseRestore.notAvailable.noInstance_one':
@@ -222,6 +227,7 @@ export function databaseRestoreStatusLabel(status: string, copy: DatabaseRestore
     running: 'databaseRestore.status.running',
     in_progress: 'databaseRestore.status.running',
     completed: 'databaseRestore.status.completed',
+    unverified: 'databaseRestore.status.unverified',
     failed: 'databaseRestore.status.failed',
     canceled: 'databaseRestore.status.canceled',
     cancelled: 'databaseRestore.status.canceled',

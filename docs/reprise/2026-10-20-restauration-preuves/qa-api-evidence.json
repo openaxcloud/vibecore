@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-10-20T09:59:39.363Z",
+  "proofLevel": "real HTTP API + Prisma + isolated local PostgreSQL",
+  "results": [
+    {
+      "environment": "development",
+      "action": "read capability and history",
+      "status": 200,
+      "verified": true
+    },
+    {
+      "environment": "development",
+      "action": "restore",
+      "status": 503,
+      "code": "RESTORE_APPLICATION_CUTOVER_UNAVAILABLE"
+    },
+    {
+      "environment": "development",
+      "action": "restores",
+      "status": 503,
+      "code": "RESTORE_APPLICATION_CUTOVER_UNAVAILABLE"
+    },
+    {
+      "environment": "development",
+      "action": "read recovery window",
+      "status": 200,
+      "usableWindow": false
+    },
+    {
+      "environment": "production",
+      "action": "read capability and history",
+      "status": 200,
+      "verified": true
+    },
+    {
+      "environment": "production",
+      "action": "restore",
+      "status": 503,
+      "code": "RESTORE_APPLICATION_CUTOVER_UNAVAILABLE"
+    },
+    {
+      "environment": "production",
+      "action": "restores",
+      "status": 503,
+      "code": "RESTORE_APPLICATION_CUTOVER_UNAVAILABLE"
+    },
+    {
+      "environment": "production",
+      "action": "read recovery window",
+      "status": 200,
+      "usableWindow": false
+    }
+  ],
+  "persistedRestoreRowsUnchanged": true,
+  "projectSecretsUnchanged": true,
+  "projectSecretCountBefore": 0,
+  "projectSecretCountAfter": 0,
+  "physicalRestore": false,
+  "providerConfigured": false,
+  "fixtureRetainedForBrowser": true
+}

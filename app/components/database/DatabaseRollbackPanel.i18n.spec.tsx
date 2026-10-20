@@ -64,6 +64,7 @@ function enabledPanelData() {
     ok: true,
     enabled: true,
     entitlement: { allowed: true, retentionDays: 14 },
+    restoreCapability: { available: true },
     instance: {
       id: 'database-1',
       status: 'RUNNING',
@@ -103,6 +104,54 @@ afterEach(() => {
 });
 
 describe('DatabaseRollbackPanel i18n', () => {
+  it('does not label a historical COMPLETED record as verified', () => {
+    fetcherState.load.data = {
+      ...enabledPanelData(),
+      restores: [
+        { id: 'old', status: 'COMPLETED', applicationCutoverVerified: false, createdAt: '2026-10-18T00:00:00.000Z' },
+      ],
+    };
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <DatabaseRollbackPanel projectId="project-1" />
+      </I18nextProvider>,
+    );
+    expect(screen.getByText('Fin non vérifiée')).toBeTruthy();
+    expect(screen.queryByText('Terminée')).toBeNull();
+  });
+
+  for (const capability of [undefined, { available: false }]) {
+    it(`does not offer restoration when capability is ${capability ? 'unavailable' : 'unknown'}`, () => {
+      fetcherState.load.data = { ...enabledPanelData(), restoreCapability: capability };
+      render(
+        <I18nextProvider i18n={createI18nInstance('fr')}>
+          <DatabaseRollbackPanel projectId="project-1" />
+        </I18nextProvider>,
+      );
+      expect(screen.getByText(/La restauration de la base est actuellement indisponible/u)).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Restaurer' })).toBeNull();
+      expect(screen.queryByText(/jusqu’à 14 jours/u)).toBeNull();
+      expect(fetcherState.restore.submit).not.toHaveBeenCalled();
+    });
+  }
+
+  it('keeps the cutover refusal explicit when stale capability data allowed submission', () => {
+    fetcherState.load.data = enabledPanelData();
+    fetcherState.restore.data = {
+      ok: false,
+      code: 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE',
+      error: 'private details',
+    };
+    render(
+      <I18nextProvider i18n={createI18nInstance('en')}>
+        <DatabaseRollbackPanel projectId="project-1" />
+      </I18nextProvider>,
+    );
+    expect(screen.getByRole('alert').textContent).toContain('Database restoration is currently unavailable');
+    expect(document.body.textContent).not.toContain('private details');
+    expect(screen.getByRole('alert').textContent).not.toContain('Try again');
+  });
+
   it('switches database controls, statuses and formatted sizes live while preserving user labels', async () => {
     fetcherState.load.data = enabledPanelData();
     fetcherState.restore.data = { ok: false, error: 'Private database executor diagnostic.' };

@@ -158,7 +158,6 @@ export default function Pricing() {
       { text: 'Invite up to 50 viewers', included: true },
       { text: 'Work in parallel with up to 10 agents', included: true, highlight: true },
       { text: 'Access to the most powerful models', included: true, highlight: true },
-      { text: '28-day database rollbacks', included: true },
       { text: 'Premium support', included: true },
       { text: 'Everything in Core', included: true },
     ],

@@ -1,0 +1,14 @@
+{
+  "label": "web-build",
+  "startedAt": "2026-10-20T12:22:03.024375+00:00",
+  "memoryBefore": 4165271552,
+  "command": [
+    "python3",
+    "/workspace/vibecore-audit-artifacts/restore-20261020/run-web.py",
+    "build"
+  ],
+  "exitCode": 0,
+  "seconds": 620.72,
+  "peakMemory": 10732818432,
+  "finishedAt": "2026-10-20T12:32:23.745106+00:00"
+}

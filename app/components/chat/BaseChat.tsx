@@ -4252,10 +4252,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [rollbackTarget, setRollbackTarget] = useState<ProjectConversationCheckpoint | null>(null);
 
     /*
-     * RP-CKPT-05 — la feuille Replit ne propose pas de case : le retour
-     * arrière remet TOUJOURS les fichiers, la base de données de
-     * développement et la mémoire de l'agent. Le serveur dit ce qu'il a pu
-     * faire ; un échec de la base remonte en avertissement, jamais en silence.
+     * This dialog requests a combined restore. The server currently refuses
+     * it before any mutation because application database cutover is unavailable.
+     * The Checkpoints panel retains the explicit file-only restore path.
      */
     const rollbackDatabase = true;
     const [rollbackBusy, setRollbackBusy] = useState(false);
@@ -7660,6 +7659,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      // A conversation-only checkpoint cannot authorize replacing live memory.
+      if (!rollbackTarget.snapshot?.id) {
+        toast.error(t('chat.copy.noFileSnapshotIsAvailableFor_43c662d0'));
+
+        return;
+      }
+
       setRollbackBusy(true);
 
       try {
@@ -7722,7 +7728,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       } finally {
         setRollbackBusy(false);
       }
-    }, [projectId, currentWorkspaceId, language, rollbackDatabase, rollbackTarget]);
+    }, [projectId, currentWorkspaceId, language, rollbackDatabase, rollbackTarget, t]);
 
     const headerPresence = useMemo(
       () => dedupeCollaborationPresence(headerCollaboration.snapshot?.presence ?? []),
@@ -7918,7 +7924,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </label>
             <div className="bolt-project-conversation-history-list">
               {filteredProjectConversationCheckpoints.map((checkpoint) => {
-                const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
+                const rollbackAvailable = Boolean(checkpoint.snapshot?.id);
 
                 return (
                   <article key={checkpoint.id} className="bolt-project-history-checkpoint">
@@ -9766,7 +9772,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       </label>
                       <div className="bolt-project-conversation-history-list">
                         {filteredProjectConversationCheckpoints.map((checkpoint) => {
-                          const rollbackAvailable = checkpoint.snapshot || checkpoint.messages.length;
+                          const rollbackAvailable = Boolean(checkpoint.snapshot?.id);
 
                           return (
                             <article key={checkpoint.id} className="bolt-project-history-checkpoint">
@@ -11423,9 +11429,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              * un titre, le message du commit et sa date, « What will be
              * impacted » en trois blocs — Files / Database / Agent memory —,
              * puis Cancel et un bouton bleu. Pas de case à cocher, pas de
-             * capture d'écran fictive : chaque ligne annonce quelque chose que
-             * le serveur fait vraiment (fichiers, base via PITR, mémoire
-             * archivée après le point).
+             * capture d'écran fictive. La ligne Database indique le refus
+             * actuel de l'opération combinée avant toute modification.
              */}
             <div className="bolt-project-rollback-dialog">
               <button
@@ -11473,7 +11478,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button
                   type="button"
                   onClick={confirmProjectRollback}
-                  disabled={rollbackBusy}
+                  disabled={rollbackBusy || !rollbackTarget.snapshot?.id}
                   data-testid="rollback-confirm"
                 >
                   {rollbackBusy

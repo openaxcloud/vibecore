@@ -381,6 +381,8 @@ describe('CnpgProvisioner', () => {
     expect((await prov.restoreProgress({ projectId: 'p1', restoreId: 'r1' })).ready).toBe(false);
     k8s.clusters.set(`Cluster/${name}`, { status: { phase: 'Cluster in healthy state', readyInstances: 1 } });
     expect((await prov.restoreProgress({ projectId: 'p1', restoreId: 'r1' })).ready).toBe(true);
+    k8s.clusters.set(`Cluster/${name}`, { status: { phase: 'Cluster in unhealthy state', readyInstances: 1 } });
+    expect((await prov.restoreProgress({ projectId: 'p1', restoreId: 'r1' })).ready).toBe(false);
   });
 
   it('deletes the cluster + scheduled backup on teardown', async () => {

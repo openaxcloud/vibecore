@@ -1,0 +1,54 @@
+{
+  "base": "e8ede226b3fdadf9b1b62bffb5485d4757712cd2",
+  "state": "local candidate, not merged or deployed",
+  "files": [
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "c946f48fe11e1219adcd33b887b862a2879bed3833acb6586d58e29461867fa0"
+    },
+    {
+      "path": "app/components/chat/base-chat-panels.spec.ts",
+      "sha256": "63a2e620c6cd82ca831f02462c1e6b8b47cc667bb862de6c04fbaf98f6ec2cba"
+    },
+    {
+      "path": "app/components/chat/base-chat-panels.ts",
+      "sha256": "3b4a044175ff6238d7ea22a365771b48af2a10e8dbf9572f3f827c21abb9ed96"
+    },
+    {
+      "path": "app/components/marketing/ecode-exact/pages/Pricing.tsx",
+      "sha256": "a4bcded64d610bcebdc2fc53225ca2b18697b62bd846fc18c5f38d3e6e136e18"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/api-runtime-routes.ts",
+      "sha256": "34caaedb410e6b0ac9925c339fd8d3d6ced1980d2b5f486a4b0e6c510722d895"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/client-visible-errors.ts",
+      "sha256": "0034b2590038a4ef5dc11e1fdf59e86b86f68e7d0cb0f6d0e6213fd1be6ec2b8"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/fin-de-tour.ts",
+      "sha256": "4eeb851d88c8966ec68bf5880819584c639a6f83c509b33a4b281b89b360aa71"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+      "sha256": "315d234c2366418b7f605754d43c9054b54a60bf53b9109bca4ff94ff17c51e6"
+    },
+    {
+      "path": "app/routes/snapshot-restore-database.spec.ts",
+      "sha256": "3ee3fd53566ff8ddc1b3fb3fcd6140dba26b35c79466b8e7b78ed4f01665ecb1"
+    },
+    {
+      "path": "app/routes/snapshot-restore-database.ts",
+      "sha256": "5875915fb61c5504b073ba2ddc493da7e3bc61a3b8d0b49bed26bc28ee54e9d6"
+    },
+    {
+      "path": "packages/billing/src/index.ts",
+      "sha256": "40e4c8d9aa15f9e7ec0cdaaf925bb66ec9fa923acebc8d7450ca524fbec9f772"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.ide-panel.snapshot-restore.action.spec.ts",
+      "sha256": "1d7a051a2b560323fc01d8c74517f704f9d9875ffba8347da443f09e4498328d"
+    }
+  ]
+}

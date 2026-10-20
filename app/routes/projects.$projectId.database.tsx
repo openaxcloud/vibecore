@@ -62,12 +62,20 @@ type RestoreWindow = {
   latest: string;
   retentionDays: number;
 } | null;
-type Restore = { id: string; status: string; targetTimestamp?: string; error?: string; createdAt: string };
+type Restore = {
+  applicationCutoverVerified?: boolean;
+  id: string;
+  status: string;
+  targetTimestamp?: string;
+  error?: string;
+  createdAt: string;
+};
 
 type LoaderData = {
   project: ProjectRecord;
   enabled: boolean;
   entitlement: Entitlement;
+  restoreCapability?: { available: boolean; reason?: string };
   instance: Instance;
   recoveryPoints: RecoveryPoint[];
   window: RestoreWindow;
@@ -120,6 +128,7 @@ export async function loader(args: EnterpriseLoaderArgs) {
     const [panel, points] = await Promise.all([
       apiRequest<{
         entitlement: Entitlement;
+        restoreCapability?: { available: boolean; reason?: string };
         instance: Instance;
         snapshots: RecoveryPoint[];
         restores: Restore[];
@@ -135,6 +144,7 @@ export async function loader(args: EnterpriseLoaderArgs) {
         project: projectResult.project,
         enabled: true,
         entitlement: panel.entitlement,
+        restoreCapability: panel.restoreCapability,
         instance: panel.instance,
         recoveryPoints: points.recoveryPoints,
         window: points.window,
@@ -216,6 +226,20 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       throw error;
     }
 
+    if (isApiResponse(error, 503)) {
+      const payload = (await error
+        .clone()
+        .json()
+        .catch(() => undefined)) as { code?: string } | undefined;
+
+      if (payload?.code === 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE') {
+        return json(
+          { ok: false, code: payload.code, error: copy['databaseRestore.notAvailable.cutover'] },
+          { status: 503 },
+        );
+      }
+    }
+
     return json(
       { ok: false, error: copy['databaseRestore.errors.requestFailed'] },
       { status: isApiResponse(error) ? error.status : 502 },
@@ -240,6 +264,7 @@ export default function ProjectDatabaseRestorePage() {
     project,
     enabled,
     entitlement,
+    restoreCapability,
     instance,
     recoveryPoints,
     window: restoreWindow,
@@ -251,6 +276,7 @@ export default function ProjectDatabaseRestorePage() {
   const busy = navigation.state !== 'idle';
 
   const notAvailable = !enabled || !entitlement.allowed;
+  const restoreAvailable = restoreCapability?.available === true;
 
   const successCopy =
     actionData?.intent === 'restore'
@@ -265,7 +291,11 @@ export default function ProjectDatabaseRestorePage() {
     <ProjectShell
       projectId={project.id}
       title={copy['databaseRestore.title']}
-      description={copy['databaseRestore.description']}
+      description={
+        enabled && !restoreAvailable
+          ? copy['databaseRestore.notAvailable.cutover']
+          : copy['databaseRestore.description']
+      }
     >
       {actionData?.error ? (
         <div
@@ -293,10 +323,21 @@ export default function ProjectDatabaseRestorePage() {
         <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
           <div className="grid min-w-0 gap-6">
             <InstanceCard instance={instance} retentionDays={entitlement.retentionDays} />
-            <RecoveryPointsCard points={recoveryPoints} busy={busy} disabled={!instance} />
+            <RecoveryPointsCard
+              points={recoveryPoints}
+              busy={busy}
+              disabled={!instance}
+              restoreAvailable={restoreAvailable}
+            />
             <RestoreHistoryCard restores={restores} />
           </div>
-          <RestorePanel window={restoreWindow} busy={busy} disabled={!instance} />
+          {restoreAvailable ? (
+            <RestorePanel window={restoreWindow} busy={busy} disabled={!instance} />
+          ) : (
+            <p role="status" className="text-sm text-bolt-elements-textSecondary">
+              {copy['databaseRestore.notAvailable.cutover']}
+            </p>
+          )}
         </div>
       )}
     </ProjectShell>
@@ -408,7 +449,17 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RecoveryPointsCard({ points, busy, disabled }: { points: RecoveryPoint[]; busy: boolean; disabled: boolean }) {
+function RecoveryPointsCard({
+  points,
+  busy,
+  disabled,
+  restoreAvailable,
+}: {
+  points: RecoveryPoint[];
+  busy: boolean;
+  disabled: boolean;
+  restoreAvailable: boolean;
+}) {
   const { i18n } = useTranslation();
   const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
   const copy = getDatabaseRestoreCopy(language);
@@ -456,7 +507,11 @@ function RecoveryPointsCard({ points, busy, disabled }: { points: RecoveryPoint[
               <Form method="post" className="sm:justify-self-end">
                 <input type="hidden" name="intent" value="restore" />
                 <input type="hidden" name="snapshotId" value={point.id} />
-                <ConfirmSubmit busy={busy} disabled={disabled} message={copy['databaseRestore.recovery.confirm']}>
+                <ConfirmSubmit
+                  busy={busy}
+                  disabled={disabled || !restoreAvailable}
+                  message={copy['databaseRestore.recovery.confirm']}
+                >
                   <RotateCcw className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   <span className="min-w-0 whitespace-normal text-left">
                     {copy['databaseRestore.recovery.restore']}
@@ -588,7 +643,13 @@ function RestoreHistoryCard({ restores }: { restores: Restore[] }) {
       <div className="divide-y divide-bolt-elements-borderColor">
         {restores.map((restore) => (
           <article key={restore.id} className="flex flex-wrap items-center gap-3 px-5 py-3 text-sm">
-            <RestoreStatusBadge status={restore.status} />
+            <RestoreStatusBadge
+              status={
+                restore.status === 'COMPLETED' && restore.applicationCutoverVerified !== true
+                  ? 'UNVERIFIED'
+                  : restore.status
+              }
+            />
             <span className="text-bolt-elements-textPrimary">
               {restore.targetTimestamp
                 ? (formatDatabaseRestoreDate(restore.targetTimestamp, language) ??
@@ -604,7 +665,9 @@ function RestoreHistoryCard({ restores }: { restores: Restore[] }) {
             </span>
             {restore.error ? (
               <span className="break-words text-xs text-bolt-elements-icon-error">
-                {copy['databaseRestore.history.safeError']}
+                {restore.error === 'RESTORE_APPLICATION_CUTOVER_UNAVAILABLE'
+                  ? copy['databaseRestore.notAvailable.cutover']
+                  : copy['databaseRestore.history.safeError']}
               </span>
             ) : null}
           </article>

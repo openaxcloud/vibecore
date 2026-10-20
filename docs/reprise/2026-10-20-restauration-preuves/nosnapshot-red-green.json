@@ -1,0 +1,14 @@
+[
+  {
+    "label": "red",
+    "exitCode": 1,
+    "seconds": 36.43,
+    "memoryBefore": 4193116160
+  },
+  {
+    "label": "green",
+    "exitCode": 0,
+    "seconds": 27.83,
+    "memoryBefore": 4190797824
+  }
+]

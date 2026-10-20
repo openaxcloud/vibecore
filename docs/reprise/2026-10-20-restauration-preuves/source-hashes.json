@@ -1,0 +1,96 @@
+{
+  "base": "e40edf3e04217e2d0e96ea1385c0420e18374bac",
+  "sourceHashes": [
+    {
+      "path": "app/components/database/DatabaseRollbackPanel.i18n.spec.tsx",
+      "sha256": "d6e6850489d92732d94d99a214c79e7bf30dcd7e4b20b3f2893adacea8f6be35"
+    },
+    {
+      "path": "app/components/database/DatabaseRollbackPanel.tsx",
+      "sha256": "eb26a7773db30269a08816327bd6acbfa9c585daef6d7156245f1cef5858e081"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/database-restore.ts",
+      "sha256": "c4eaf1cd6ca62d0913539684a1dcec1d7eda68cd4e2198b762ec19cae0a7185c"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/database-rollback.ts",
+      "sha256": "df04c605696e4ed093533afe32454e26a4aaf52210e0235e9d45daedecdc1976"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/remaining-api-routes.ts",
+      "sha256": "af865a58c33b208b1c83adb9c59e210ea01eacb461959c24227f4ee59d3ea8d5"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.database.ts",
+      "sha256": "b5861f5206909ac7535e1b07ad3212a6966e1d75fe91e64420e900a5dc35c7df"
+    },
+    {
+      "path": "app/routes/projects.$projectId.database.i18n.spec.tsx",
+      "sha256": "33cc19ff697d1b52b4706c0344a0896c8ec1a4763745f761073bc224f7d68370"
+    },
+    {
+      "path": "app/routes/projects.$projectId.database.tsx",
+      "sha256": "d13261d0b9126190b70df85cc41f735fc3269ceaa7dc87a0a8a598054a53aed5"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "aa18ae83e3a7b3909ab4f0b2c24b5f834b8430cdd7fd339b31f6fa7b39511a4b"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "d061e3eacb59f53e01bc8e49fd5e90c980f8d9637f2f976b4c039cbc46c7f897"
+    },
+    {
+      "path": "services/api/src/database-provisioner.ts",
+      "sha256": "f7702cd9dad3753952c0c5b54607b0b932ee666e769e119e18a701b3889438a4"
+    },
+    {
+      "path": "services/api/src/tests/database-provisioner.spec.ts",
+      "sha256": "74b408096f37879f9e481aa7a584f0f0f109b0461d1d6588b1c1b85149adec23"
+    },
+    {
+      "path": "services/api/src/tests/database-rollback-routes.spec.ts",
+      "sha256": "eb3a64b83e0591f2f9e2eaac48e3cd1acbda54bc7cf9ec6e9e9c5ff9b746afee"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+      "sha256": "823807acb253caa519a52a32d6c727b796e22a0350d3d335a3100679aa28766a"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.database.restore-error.spec.ts",
+      "sha256": "9d60de36c100eadd0322c958487d15a29fde78a3503834da4ec7901d2d041d25"
+    }
+  ],
+  "proof": "local built application; no production or physical restore verification",
+  "logs": [
+    {
+      "path": "api-tests-final.log",
+      "sha256": "584ffcbc27423cf4a67cea71c671bc72329fba65de2f931f244e4f9ef4a375e4"
+    },
+    {
+      "path": "api-service-final.log",
+      "sha256": "f85aa654ecef11f28c355823208fbece2e7e330cf89e0c2b8228affb833fc0ca"
+    },
+    {
+      "path": "ui-tests.log",
+      "sha256": "2578a6cf504c1e6e0aed46209ad7534733d401c2e245e31729f665b8704f1357"
+    },
+    {
+      "path": "proxy-tests.log",
+      "sha256": "ba4c3cd4e6ba6c05be913ec96de068e922d1f4ade4a5ea513fa2051e2875f539"
+    },
+    {
+      "path": "build-web.log",
+      "sha256": "6c9255216c0c3870e2ce735aa3e38ac557dd3e18afb0aa0155280a0796b1d4c7"
+    },
+    {
+      "path": "build-api.log",
+      "sha256": "31a0a8fad66112dc4d9856d40026df7a001b8733e93a903d2582460f55f08f9d"
+    },
+    {
+      "path": "browser-check-final.log",
+      "sha256": "328a1b2bc29979114d0964244cdf82f83288b79d51e91012544deba96b86b52f"
+    }
+  ]
+}

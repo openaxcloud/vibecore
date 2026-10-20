@@ -6,9 +6,16 @@ export const clientVisibleErrorsEn = {
   'clientErrors.rollback.snapshotMissing': 'Rollback failed: the checkpoint snapshot is no longer available.',
   'clientErrors.rollback.snapshotCorrupted': 'Rollback failed: the checkpoint snapshot is corrupted.',
   'clientErrors.rollback.forbidden': "Rollback failed: you don't have permission to restore this checkpoint.",
+  'clientErrors.rollback.combinedUnavailable':
+    'Combined file and database restoration is unavailable. No changes were made. Use Checkpoints to restore files only.',
+  'clientErrors.rollback.partial':
+    'Files were restored, but agent memory could not be restored. Review the project before continuing.',
+  'clientErrors.rollback.dateRequired':
+    'Select a checkpoint with a valid date to restore agent memory. No changes were made.',
   'clientErrors.rollback.server':
-    'Rollback failed: the server could not restore this checkpoint. No changes were made.',
-  'clientErrors.rollback.generic': 'Rollback failed. No changes were made.',
+    'The server could not confirm the rollback outcome. Review the project before trying again.',
+  'clientErrors.rollback.generic':
+    'The rollback outcome could not be confirmed. Review the project before trying again.',
   'clientErrors.autoApply.fileFallback': 'the file',
   'clientErrors.autoApply.review': "Couldn't apply {file} — review the change.",
   'clientErrors.autoApply.permission': "Couldn't apply {file} — write access was denied.",
@@ -41,9 +48,16 @@ export const clientVisibleErrorsFr: ClientVisibleErrorsCopy = {
     'Restauration impossible : l’instantané du point de contrôle est corrompu.',
   'clientErrors.rollback.forbidden':
     'Restauration impossible : vous n’êtes pas autorisé à restaurer ce point de contrôle.',
+  'clientErrors.rollback.combinedUnavailable':
+    'La restauration combinée des fichiers et de la base est indisponible. Aucune modification n’a été apportée. Utilisez les points de restauration pour restaurer les fichiers seuls.',
+  'clientErrors.rollback.partial':
+    'Les fichiers ont été restaurés, mais la mémoire de l’agent n’a pas pu être restaurée. Vérifiez le projet avant de continuer.',
+  'clientErrors.rollback.dateRequired':
+    'Sélectionnez un point de restauration avec une date valide pour restaurer la mémoire de l’agent. Aucune modification n’a été apportée.',
   'clientErrors.rollback.server':
-    'Restauration impossible : le serveur n’a pas pu restaurer ce point de contrôle. Aucune modification n’a été apportée.',
-  'clientErrors.rollback.generic': 'Restauration impossible. Aucune modification n’a été apportée.',
+    'Le serveur n’a pas pu confirmer le résultat de la restauration. Vérifiez le projet avant de réessayer.',
+  'clientErrors.rollback.generic':
+    'Le résultat de la restauration n’a pas pu être confirmé. Vérifiez le projet avant de réessayer.',
   'clientErrors.autoApply.fileFallback': 'ce fichier',
   'clientErrors.autoApply.review': 'Impossible d’appliquer les modifications à {file} — vérifiez-les.',
   'clientErrors.autoApply.permission':
@@ -99,7 +113,15 @@ export function formatTerminalSpawnFailure(target: TerminalSpawnTarget, language
   ];
 }
 
-export type SnapshotRestoreFailure = 'snapshotMissing' | 'snapshotCorrupted' | 'forbidden' | 'server' | 'generic';
+export type SnapshotRestoreFailure =
+  | 'snapshotMissing'
+  | 'snapshotCorrupted'
+  | 'forbidden'
+  | 'server'
+  | 'generic'
+  | 'combinedUnavailable'
+  | 'partial'
+  | 'dateRequired';
 
 export function formatSnapshotRestoreFailure(failure: SnapshotRestoreFailure, language?: string | null): string {
   return getClientVisibleErrorsCopy(language)[`clientErrors.rollback.${failure}`];
