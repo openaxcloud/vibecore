@@ -2253,24 +2253,27 @@ enum DatabaseInstanceStatus {
 /// gated behind DB_ROLLBACK_ENABLED, so this table is dormant until then.
 /// `retentionDays` is the plan-derived PITR window (Pro = 28).
 model DatabaseInstance {
-  id             String                 @id @default(cuid())
-  projectId      String
-  organizationId String
+  id              String                 @id @default(cuid())
+  projectId       String
+  organizationId  String
   // P2d dev/prod split: a project has a `development` instance (its workspace
   // DB) and, once published, a separate `production` instance. Existing rows
   // backfill to 'development', preserving the prior one-per-project behaviour.
-  environment    String                 @default("development")
-  status         DatabaseInstanceStatus @default(PROVISIONING)
-  engine         String                 @default("postgres")
-  region         String?
-  sizeBytes      BigInt                 @default(0)
-  retentionDays  Int                    @default(7)
-  pitrEnabled    Boolean                @default(false)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
-  project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  snapshots      DatabaseSnapshot[]
-  restores       DatabaseRestore[]
+  environment     String                 @default("development")
+  status          DatabaseInstanceStatus @default(PROVISIONING)
+  engine          String                 @default("postgres")
+  region          String?
+  sizeBytes       BigInt                 @default(0)
+  retentionDays   Int                    @default(7)
+  pitrEnabled     Boolean                @default(false)
+  /// Restore cutover identity; legacy instances retain their original provider target.
+  activeTargetRef String?
+  bindingVersion  Int                    @default(0)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snapshots       DatabaseSnapshot[]
+  restores        DatabaseRestore[]
 
   @@unique([projectId, environment])
   @@index([organizationId])
@@ -2310,22 +2313,52 @@ enum DatabaseRestoreStatus {
 /// window (true PITR). Status moves PENDING → RUNNING → COMPLETED/FAILED. The
 /// restore executor is a later phase; rows can be created dormant for the UI.
 model DatabaseRestore {
-  id                 String                @id @default(cuid())
+  id                 String                    @id @default(cuid())
   databaseInstanceId String
   snapshotId         String?
   targetTimestamp    DateTime?
-  status             DatabaseRestoreStatus @default(PENDING)
+  status             DatabaseRestoreStatus     @default(PENDING)
   requestedByUserId  String?
   error              String?
-  createdAt          DateTime              @default(now())
+  createdAt          DateTime                  @default(now())
   startedAt          DateTime?
   completedAt        DateTime?
-  databaseInstance   DatabaseInstance      @relation(fields: [databaseInstanceId], references: [id], onDelete: Cascade)
+  databaseInstance   DatabaseInstance          @relation(fields: [databaseInstanceId], references: [id], onDelete: Cascade)
+  execution          DatabaseRestoreExecution?
 
   @@index([databaseInstanceId, createdAt])
   @@index([status])
   // "restores requested by user" lookups; was a full-scan (no FK on this column).
   @@index([requestedByUserId])
+}
+
+/// Durable restore journal. Credentials remain encrypted and are never projected
+/// by the restore HTTP routes. A held activeLock is not reclaimed by a timeout.
+model DatabaseRestoreExecution {
+  restoreId                 String          @id
+  activeLock                String?         @unique
+  phase                     String          @default("PENDING")
+  resumePhase               String?
+  runnerToken               String?
+  pendingFenceTokens        String[]        @default([])
+  expectedBindingVersion    Int
+  appliedBindingVersion     Int?
+  sourceTargetRef           String?
+  originalSecretEncrypted   String
+  targetId                  String          @unique
+  targetConnectionEncrypted String?
+  snapshot                  Json?
+  archive                   Json?
+  target                    Json?
+  quiescence                Json?
+  readback                  Json?
+  release                   Json?
+  failureCode               String?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+  restore                   DatabaseRestore @relation(fields: [restoreId], references: [id], onDelete: Cascade)
+
+  @@index([phase, createdAt])
 }
 
 // ---------------------------------------------------------------------------

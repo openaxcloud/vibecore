@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-20T13:57:23.528219+00:00",
+  "from": "e8ede226b3fdadf9b1b62bffb5485d4757712cd2",
+  "to": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+  "retainedStash": "51c888adf62f976e4bffad198f269017f1f2add1",
+  "changedCandidateFiles": [
+    "BUG_INVENTORY_LIVE.md"
+  ],
+  "all26FrozenSourcesByteIdentical": true,
+  "unmerged": false,
+  "deleted": false,
+  "derivedIndexRegenerated": 445,
+  "generatedClient": "No merge conflict; bytes identical to prior official generation. Raw Prisma output retains generated trailing whitespace; not hand formatted."
+}

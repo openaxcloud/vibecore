@@ -1,0 +1,248 @@
+{
+  "recordedAt": "2026-10-20T13:00:36.486774+00:00",
+  "base": "e8ede226b3fdadf9b1b62bffb5485d4757712cd2",
+  "branch": "codex/database-restore-executor-20261020",
+  "uncommitted": true,
+  "merged": false,
+  "deployed": false,
+  "productionRestoreAvailableByDefault": false,
+  "sourcesFrozenForNextPhysicalDrill": true,
+  "sources": [
+    {
+      "path": "packages/database/generated/client/edge.js",
+      "sha256": "d02f1b61aa98bff4bc182b8107c4c85621b08e1485a6cc2dd19e84dc829f84e1"
+    },
+    {
+      "path": "packages/database/generated/client/index-browser.js",
+      "sha256": "e91edf8ec1179005689578241cda5405202e727f15a8b4f6b58d3e838d39c12c"
+    },
+    {
+      "path": "packages/database/generated/client/index.d.ts",
+      "sha256": "296793623642e346b68dfa76f0e751c92d931ee2329ca5a2a39d2d849230249c"
+    },
+    {
+      "path": "packages/database/generated/client/index.js",
+      "sha256": "d72b497280868aa8fc5487f4f9693269c28be92297a33f3cc0ee6d188fd95061"
+    },
+    {
+      "path": "packages/database/generated/client/package.json",
+      "sha256": "0253fb252f9cb3f48b1deb72269ac70438dcc9511051d4506439dac07ca79481"
+    },
+    {
+      "path": "packages/database/generated/client/schema.prisma",
+      "sha256": "e09cad757c170c45cd41e1632528a37a0a289197915189fa0a1aadf8a6eb3db0"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0091_database_restore_journal/migration.sql",
+      "sha256": "41e9742ae655fde851ac73fe226e5d42bfc9266f366b6736eaf2db825e741d18"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "sha256": "a607086e1fe2d8607c9f0dc4db60a3bc013ef525fbe25d78e51952c7a7415145"
+    },
+    {
+      "path": "scripts/qa/database-restore-api-fixture.ts",
+      "sha256": "be30af145b61fa867120c817047316adaa5bca21248bb4ea87f57a388dc9325d"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical-fixture.ts",
+      "sha256": "6f4009de023c075af8415e2e6150ba562077416c7e58d4dd47c5c307a1bfe849"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical.ts",
+      "sha256": "e401e71b1a0cea63fe4ba77b0573dce5f45d2b7a7c8a42c922d3810b327c3eb8"
+    },
+    {
+      "path": "scripts/qa/database-restore-qa-app.ts",
+      "sha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "9134578a0200e601841494d55494321bba4d73d503cc0ab370605fd13e9daf2c"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "30f25f2fae52668466cf02d331bd4dd3052fbb24e12367b0a81488a896544b16"
+    },
+    {
+      "path": "services/api/src/database-provision-retry.spec.ts",
+      "sha256": "5c9c58a8ee4c0ff1aec735f4acfc8979bbb567fbb7b24ac74ac64880700cbf1b"
+    },
+    {
+      "path": "services/api/src/database-restore-binding.ts",
+      "sha256": "adc0d934683f4f6cb84e11d753fad7cb7c00b738259356d44b4828c5ba39928e"
+    },
+    {
+      "path": "services/api/src/database-restore-contract.ts",
+      "sha256": "dcad532749c0422b3672f0fb74bad9bf1d460cd3e079ac767a67c71242f77d58"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.spec.ts",
+      "sha256": "f91942f4292ead04851004bbd51b1d10a48b15522c04eb4abae017f359cc4247"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.ts",
+      "sha256": "b4e610e601525ffbb00201b4c50e8cc271b91934c277f08e2fc863e72299d4b4"
+    },
+    {
+      "path": "services/api/src/database-restore-repository.ts",
+      "sha256": "babd82fb200edcf4a200172b965bf9e16e9a7fe258ee3f4bfcaf9a861dd0cb70"
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "924bf650e839226621cb756a398891f8b30a19eca5834900f9670b6d1fdfc628"
+    },
+    {
+      "path": "services/api/src/store.ts",
+      "sha256": "b3a621c7c7ff5f93c25244e0cbaec036ea7e9033d153f75213447422340b3677"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+      "sha256": "afa5613886122e4fcf84957aefb26d1c7fc8a9a4799ce380634301a10df768ba"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-repository.spec.ts",
+      "sha256": "69814cc256940ffbc3d71fc9274d6dc945d25ea318c97e7734cf1b7cf93d3193"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-routes.spec.ts",
+      "sha256": "6310f808cd12914346dd6eb429a47d1e068d14fd91fd2a85fe53e432e9fe7e0e"
+    },
+    {
+      "path": "services/api/src/tests/test-api-store.ts",
+      "sha256": "27f8bba0458ab6773614bce1845f29d06a8863cbaccc12bbca13fe8388f7ed55"
+    }
+  ],
+  "priorEvidence": [
+    "2026-10-20-restore-executor-candidate.json",
+    "2026-10-20-restore-admission-contention.json"
+  ],
+  "validation": {
+    "targetedUnitAndRoutes": {
+      "result": {
+        "label": "unit-routes-contention-final",
+        "exitCode": 0,
+        "startedAt": "2026-10-20T12:46:07Z",
+        "finishedAt": "2026-10-20T12:46:46Z",
+        "elapsedSeconds": 38.94,
+        "sharedCgroupMemoryBeforeBytes": 5421764608,
+        "sharedCgroupPeakBytes": 6380163072,
+        "command": [
+          "node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--root",
+          "/workspace/vibecore-database-restore-executor/services/api",
+          "--config",
+          "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+          "src/database-restore-executor.spec.ts",
+          "src/tests/database-restore-routes.spec.ts",
+          "src/tests/database-restore-integrity.spec.ts",
+          "src/database-provision-retry.spec.ts",
+          "--maxWorkers=1",
+          "--no-file-parallelism"
+        ]
+      },
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0,
+      "files": 4,
+      "sourceCountCovered": 23
+    },
+    "postgresqlRepository": {
+      "result": {
+        "label": "admission-control-pg-green",
+        "exitCode": 0,
+        "startedAt": "2026-10-20T12:45:55Z",
+        "finishedAt": "2026-10-20T12:46:07Z",
+        "elapsedSeconds": 12.486,
+        "sharedCgroupMemoryBeforeBytes": 5428551680,
+        "sharedCgroupPeakBytes": 5867573248,
+        "command": [
+          "node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--root",
+          "/workspace/vibecore-database-restore-executor/services/api",
+          "--config",
+          "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+          "src/tests/database-restore-repository.spec.ts",
+          "--maxWorkers=1",
+          "--no-file-parallelism"
+        ]
+      },
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0,
+      "files": 1,
+      "scope": "Dedicated disposable loopback PostgreSQL, real Prisma transactions, synthetic tenants and receipts. No physical archive restore in this test suite."
+    },
+    "typecheck": {
+      "result": {
+        "label": "api-qa-typecheck-admission-final",
+        "exitCode": 0,
+        "startedAt": "2026-10-20T12:54:32Z",
+        "finishedAt": "2026-10-20T12:57:17Z",
+        "elapsedSeconds": 165.675,
+        "sharedCgroupMemoryBeforeBytes": 4880228352,
+        "sharedCgroupPeakBytes": 7280922624,
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "-p",
+          "/workspace/vibecore-audit-artifacts/restore-executor/tsconfig.api-qa.json"
+        ]
+      },
+      "typescriptVersion": "5.8.3",
+      "diagnostics": 0,
+      "scope": "All API source and exactly four scripts/qa TypeScript files, including current stable-endpoint fixture and runner expecting 15 PostgreSQL tests."
+    },
+    "build": {
+      "result": {
+        "label": "api-build-admission-final",
+        "exitCode": 0,
+        "startedAt": "2026-10-20T12:57:38Z",
+        "finishedAt": "2026-10-20T12:59:23Z",
+        "elapsedSeconds": 105.51,
+        "sharedCgroupMemoryBeforeBytes": 5051498496,
+        "sharedCgroupPeakBytes": 7765008384,
+        "command": [
+          "/workspace/vibecore-audit-artifacts/tools/bin/pnpm",
+          "--filter",
+          "@vibecore/api",
+          "build"
+        ]
+      },
+      "diagnostics": 0,
+      "scope": "Normal @vibecore/api package build only; no web, Docker image or production build."
+    },
+    "lintNewFiles": {
+      "files": 8,
+      "errors": 9,
+      "warnings": 0,
+      "onlyRule": "no-restricted-imports",
+      "scope": "All remaining diagnostics are the existing root rule requiring the web ~/ alias for relative imports in two API test files and the QA helper. API NodeNext does not define that alias; no suppression or resolver change was added. Not a clean global-lint claim."
+    }
+  },
+  "resources": {
+    "ownedPostgresqlRemoved": true,
+    "ownedPortRefusesConnection": true,
+    "ephemeralCredentialFileRemoved": true,
+    "sharedQaTouched": false,
+    "oomEvents": 0,
+    "ownedHeavyProcessesRemaining": 0
+  },
+  "pending": [
+    "Complete physical drill using these exact sources and stable target endpoint",
+    "Production CNPG/GCS/runtime ports and distributed fencing",
+    "Post-cutover target lifecycle and backups",
+    "All SQL consumers quiesced/reconnected before future availability"
+  ],
+  "limitations": [
+    "No commit, push, merge, deployment, production, customer or Safari claim",
+    "Previous physical attempt 3 remains globally failed; its P2028 cause is not established",
+    "The controlled blocking-lock counterexample produced P2010/57014, not P2028",
+    "QA physical fixture and runner were typed but not executed in this preflight step"
+  ]
+}

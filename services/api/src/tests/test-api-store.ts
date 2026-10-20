@@ -76,6 +76,7 @@ import type {
   ChatShareRecord,
   ProjectStorageObjectRecord,
   DatabaseInstanceRecord,
+  DatabaseProvisioningReconciliation,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
   GalleryListingRecord,
@@ -2117,6 +2118,57 @@ export class TestApiStore implements ApiStore {
     const updated: DatabaseInstanceRecord = { ...instance, ...patch, updatedAt: now() };
     this.databaseInstances.set(instanceId, updated);
 
+    return updated;
+  }
+
+  async reconcileDatabaseProvisioning(input: DatabaseProvisioningReconciliation) {
+    const expected = input.expected;
+    const current = this.databaseInstances.get(expected.id);
+    const project = this.projects.get(expected.projectId);
+    if (
+      !current ||
+      !project ||
+      project.deletedAt ||
+      project.runtimeDeletionPending ||
+      project.organizationId !== expected.organizationId ||
+      expected.status !== 'PROVISIONING' ||
+      current.status !== expected.status ||
+      current.updatedAt !== expected.updatedAt ||
+      current.projectId !== expected.projectId ||
+      current.organizationId !== expected.organizationId ||
+      current.environment !== expected.environment ||
+      current.activeTargetRef ||
+      expected.activeTargetRef ||
+      (current.bindingVersion ?? 0) !== 0 ||
+      (expected.bindingVersion ?? 0) !== 0
+    ) {
+      return undefined;
+    }
+    const key = `${expected.projectId}:${expected.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL'}`;
+    const secret = this.projectSecrets.get(key);
+    if (
+      input.binding &&
+      (secret?.id !== input.binding.expectedSecret?.id ||
+        secret?.valueEncrypted !== input.binding.expectedSecret?.valueEncrypted)
+    ) {
+      return undefined;
+    }
+    const updated: DatabaseInstanceRecord = {
+      ...current,
+      status: input.binding ? 'ACTIVE' : 'PROVISIONING',
+      updatedAt: now(),
+    };
+    if (input.binding) {
+      this.projectSecrets.set(key, {
+        id: secret?.id ?? id('secret'),
+        projectId: expected.projectId,
+        key: expected.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
+        valueEncrypted: input.binding.valueEncrypted,
+        createdAt: secret?.createdAt ?? now(),
+        updatedAt: now(),
+      });
+    }
+    this.databaseInstances.set(expected.id, updated);
     return updated;
   }
 

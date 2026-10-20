@@ -27,6 +27,8 @@ export interface EncryptedColumn {
 export const ENCRYPTED_COLUMNS: readonly EncryptedColumn[] = [
   { model: 'user', column: 'mfaSecretCiphertext', idField: 'id' },
   { model: 'projectSecret', column: 'valueEncrypted', idField: 'id' },
+  { model: 'databaseRestoreExecution', column: 'originalSecretEncrypted', idField: 'restoreId' },
+  { model: 'databaseRestoreExecution', column: 'targetConnectionEncrypted', idField: 'restoreId' },
   { model: 'stripeConfig', column: 'secretKeyEnc', idField: 'id' },
   { model: 'stripeConfig', column: 'webhookSecretEnc', idField: 'id' },
   { model: 'loginProviderConfig', column: 'clientSecretEnc', idField: 'provider' },
@@ -112,7 +114,7 @@ export function assertCorpusMatchesSchema(schemaText = readFileSync(resolveSchem
 /** Minimal shape of the Prisma delegates this sweep needs. */
 type Delegate = {
   findMany(args: unknown): Promise<Array<Record<string, unknown>>>;
-  update(args: unknown): Promise<unknown>;
+  updateMany(args: unknown): Promise<{ count: number }>;
 };
 type PrismaLike = Record<string, Delegate | unknown>;
 
@@ -133,6 +135,8 @@ export interface ColumnRotationResult {
   rotated: number;
   /** Rows whose ciphertext could not be opened — the retired key was dropped too early. */
   unreadable: number;
+  /** Rows changed since the sweep read them; preserved for a later operator retry. */
+  conflicts: number;
 }
 
 /**
@@ -145,7 +149,8 @@ export async function encryptionCorpusStatus(prisma: PrismaLike): Promise<Record
 
   for (const entry of ENCRYPTED_COLUMNS) {
     const rows = await delegate(prisma, entry.model).findMany({
-      where: { [entry.column]: { not: null } },
+      // The corpus includes required and optional strings. Prisma rejects
+      // `not: null` for required strings; filter unusable payloads below.
       select: { [entry.column]: true },
     });
 
@@ -172,23 +177,34 @@ export async function encryptionCorpusStatus(prisma: PrismaLike): Promise<Record
  * A row that cannot be decrypted is COUNTED and skipped, never overwritten — the
  * plaintext is not recoverable, so writing anything over it would destroy the
  * secret. The caller must treat a non-zero `unreadable` as a failed rotation.
+ *
+ * Compare the captured ciphertext when writing: a concurrent credential update
+ * or database cutover must win over the sweep's stale payload. Conflicts are
+ * counted separately and are not retried within this operation. Dry runs do not
+ * attempt writes and therefore report no observed conflicts.
  */
 export async function rotateEncryptedCorpus(
   prisma: PrismaLike,
   options: { batchSize?: number; dryRun?: boolean } = {},
-): Promise<{ columns: ColumnRotationResult[]; rotated: number; unreadable: number }> {
+): Promise<{ columns: ColumnRotationResult[]; rotated: number; unreadable: number; conflicts: number }> {
   const batchSize = options.batchSize && options.batchSize > 0 ? options.batchSize : 500;
   const columns: ColumnRotationResult[] = [];
 
   for (const entry of ENCRYPTED_COLUMNS) {
     const target = delegate(prisma, entry.model);
-    const result: ColumnRotationResult = { model: entry.model, column: entry.column, scanned: 0, rotated: 0, unreadable: 0 };
+    const result: ColumnRotationResult = {
+      model: entry.model,
+      column: entry.column,
+      scanned: 0,
+      rotated: 0,
+      unreadable: 0,
+      conflicts: 0,
+    };
 
     let cursor: unknown;
 
     for (;;) {
       const rows = await target.findMany({
-        where: { [entry.column]: { not: null } },
         select: { [entry.idField]: true, [entry.column]: true },
         orderBy: { [entry.idField]: 'asc' },
         take: batchSize,
@@ -203,6 +219,7 @@ export async function rotateEncryptedCorpus(
         const id = row[entry.idField];
         const value = row[entry.column];
 
+        // Null-only pages must still advance to later non-null payloads.
         cursor = id;
 
         if (typeof value !== 'string' || value.length === 0) {
@@ -222,7 +239,15 @@ export async function rotateEncryptedCorpus(
         }
 
         if (!options.dryRun) {
-          await target.update({ where: { [entry.idField]: id }, data: { [entry.column]: rotatedValue } });
+          const changed = await target.updateMany({
+            where: { [entry.idField]: id, [entry.column]: value },
+            data: { [entry.column]: rotatedValue },
+          });
+
+          if (changed.count !== 1) {
+            result.conflicts += 1;
+            continue;
+          }
         }
 
         // Counted only AFTER the write landed, so a throw mid-sweep never
@@ -242,5 +267,6 @@ export async function rotateEncryptedCorpus(
     columns,
     rotated: columns.reduce((sum, column) => sum + column.rotated, 0),
     unreadable: columns.reduce((sum, column) => sum + column.unreadable, 0),
+    conflicts: columns.reduce((sum, column) => sum + column.conflicts, 0),
   };
 }

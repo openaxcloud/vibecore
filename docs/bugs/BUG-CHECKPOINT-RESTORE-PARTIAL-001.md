@@ -22,7 +22,8 @@ Contre-revue du 20 octobre reproduite ; correction candidate et tests ajoutés a
 
 ## 💻 Codé
 
-❌ Pas encore fusionné. Le candidat refuse la demande combinée avant toute écriture,
+✅ Correctif fusionné par #743 le 20 octobre à 13:31:39 UTC, commit
+`9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828`. Il refuse la demande combinée avant toute écriture,
 après lecture autorisée du projet. Il conserve les reprises explicitement fichiers seuls.
 Une reprise des fichiers suivie d'un échec mémoire répond en échec partiel, HTTP502,
 et les erreurs inconnues n'affirment plus que l'état est inchangé. Aucun moteur de
@@ -32,8 +33,9 @@ de mémoire, et désactive leurs actions dans les deux listes et la confirmation
 Le test du vrai callback donne 12 cas rouges et deux témoins verts sur `7c103096`,
 puis 14/14 verts après correction. Après rebase sur main : 90 tests ciblés verts,
 build client/serveur vert, trois formats du navigateur compilé préservant quatre
-messages après refus du checkpoint sans snapshot. Le hook global et la CI du
-nouveau SHA restent requis ; ces preuves locales ne sont pas une livraison.
+messages après refus du checkpoint sans snapshot. Hook global réussi et 32 contrôles
+GitHub terminés (30 succès, deux sauts) sur la tête exacte `72d2322`. Les contrôles
+de main et le déploiement restent distincts ; aucune preuve HTTPS public disponible.
 
 ## ✅ Testé live
 

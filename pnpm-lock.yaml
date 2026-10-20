@@ -591,6 +591,15 @@ importers:
       '@types/ws':
         specifier: ^8.18.1
         version: 8.18.1
+      '@vibecore/auth':
+        specifier: workspace:*
+        version: link:packages/auth
+      '@vibecore/database':
+        specifier: workspace:*
+        version: link:packages/database
+      '@vibecore/security':
+        specifier: workspace:*
+        version: link:packages/security
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))

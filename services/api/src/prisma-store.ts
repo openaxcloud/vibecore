@@ -5,6 +5,8 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import { guardDatabaseBindingMutation, guardProjectRestoreMutation } from './database-restore-binding.js';
+import { DatabaseRestoreError } from './database-restore-contract.js';
 import { horodatageMessageMonotone } from './horodatage-message.js';
 import {
   CLEARED_LOCKOUT,
@@ -77,6 +79,7 @@ import type {
   ProjectStorageObjectRecord,
   ProjectTemplateRecord,
   DatabaseInstanceRecord,
+  DatabaseProvisioningReconciliation,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
   GalleryListingRecord,
@@ -156,6 +159,8 @@ function mapDatabaseInstance(row: {
   sizeBytes: bigint;
   retentionDays: number;
   pitrEnabled: boolean;
+  activeTargetRef?: string | null;
+  bindingVersion?: number;
   createdAt: Date;
   updatedAt: Date;
 }): DatabaseInstanceRecord {
@@ -170,6 +175,8 @@ function mapDatabaseInstance(row: {
     sizeBytes: Number(row.sizeBytes),
     retentionDays: row.retentionDays,
     pitrEnabled: row.pitrEnabled,
+    activeTargetRef: row.activeTargetRef ?? undefined,
+    bindingVersion: row.bindingVersion ?? 0,
     createdAt: toIso(row.createdAt)!,
     updatedAt: toIso(row.updatedAt)!,
   };
@@ -212,6 +219,7 @@ function mapDatabaseRestore(row: {
   createdAt: Date;
   startedAt: Date | null;
   completedAt: Date | null;
+  execution?: { phase: string } | null;
 }): DatabaseRestoreRecord {
   return {
     id: row.id,
@@ -224,6 +232,12 @@ function mapDatabaseRestore(row: {
     createdAt: toIso(row.createdAt)!,
     startedAt: toIso(row.startedAt),
     completedAt: toIso(row.completedAt),
+    ...(row.execution
+      ? {
+          phase: row.execution.phase,
+          applicationCutoverVerified: row.execution.phase === 'COMPLETED' && row.status === 'COMPLETED',
+        }
+      : {}),
   };
 }
 
@@ -1080,7 +1094,11 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async softDeleteProject(projectId: string) {
-    return mapProject(await this.prisma.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
+      await guardProjectRestoreMutation(tx, projectId);
+      return mapProject(await tx.project.update({ where: { id: projectId }, data: { deletedAt: new Date() } }));
+    });
   }
 
   async restoreProject(projectId: string) {
@@ -1096,6 +1114,7 @@ export class PrismaApiStore implements ApiStore {
         });
       }
 
+      await guardProjectRestoreMutation(tx, projectId);
       return mapProject(await tx.project.update({ where: { id: projectId }, data: { deletedAt: null } }));
     });
   }
@@ -1113,6 +1132,7 @@ export class PrismaApiStore implements ApiStore {
         });
       }
 
+      await guardProjectRestoreMutation(tx, projectId, true);
       const workspaces = await tx.workspace.findMany({
         where: { projectId },
         select: { runtimeAdmissionRequests: true },
@@ -1141,7 +1161,11 @@ export class PrismaApiStore implements ApiStore {
   async hardDeleteProject(projectId: string) {
     // Every child relation declares onDelete: Cascade (AiConversation: SetNull),
     // so a plain delete removes the whole project graph atomically.
-    return mapProject(await this.prisma.project.delete({ where: { id: projectId } }));
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${projectId} FOR UPDATE`;
+      await guardProjectRestoreMutation(tx, projectId, true);
+      return mapProject(await tx.project.delete({ where: { id: projectId } }));
+    });
   }
 
   async transferProject(input: {
@@ -1193,6 +1217,7 @@ export class PrismaApiStore implements ApiStore {
             });
           }
 
+          await guardProjectRestoreMutation(tx, input.projectId, true);
           const workspaces = (await tx.workspace.findMany({ where: { projectId: input.projectId } })).map(mapWorkspace);
 
           if (workspaces.some((workspace) => workspace.runtimeAdmissionRequests?.length)) {
@@ -1231,6 +1256,17 @@ export class PrismaApiStore implements ApiStore {
            * target org re-shares as needed.
            */
           await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
+
+          /*
+           * Database ownership follows the project in the same transaction.
+           * Reconciliation shares the Project lock and rejects a continuation
+           * captured under the source organization; a fresh destination read
+           * can still finish provisioning. Keep physical targets and bindings.
+           */
+          await tx.databaseInstance.updateMany({
+            where: { projectId: input.projectId },
+            data: { organizationId: input.targetOrganizationId },
+          });
 
           return mapProject(
             await tx.project.update({
@@ -1291,12 +1327,14 @@ export class PrismaApiStore implements ApiStore {
     // Omitted scope defaults to production so pre-scope callers keep the same row.
     const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
 
-    return mapEnvVar(
-      await this.prisma.projectEnvVar.upsert({
-        where: { projectId_key_scope: { projectId: input.projectId, key: input.key, scope } },
-        create: { projectId: input.projectId, key: input.key, value: input.value, scope },
-        update: { value: input.value },
-      }),
+    return this.withDatabaseBindingMutation(input.projectId, input.key, async (tx) =>
+      mapEnvVar(
+        await tx.projectEnvVar.upsert({
+          where: { projectId_key_scope: { projectId: input.projectId, key: input.key, scope } },
+          create: { projectId: input.projectId, key: input.key, value: input.value, scope },
+          update: { value: input.value },
+        }),
+      ),
     );
   }
 
@@ -1312,27 +1350,43 @@ export class PrismaApiStore implements ApiStore {
      * find-then-delete raced a concurrent delete into an unhandled P2025; read
      * the row, then deleteMany (count-gated) so a lost race is "already gone".
      */
-    const existing = await this.prisma.projectEnvVar.findUnique({
-      where: { projectId_key_scope: { projectId, key, scope: targetScope } },
+    return this.withDatabaseBindingMutation(projectId, key, async (tx) => {
+      const existing = await tx.projectEnvVar.findUnique({
+        where: { projectId_key_scope: { projectId, key, scope: targetScope } },
+      });
+
+      if (!existing) {
+        return undefined;
+      }
+
+      const deleted = await tx.projectEnvVar.deleteMany({ where: { projectId, key, scope: targetScope } });
+
+      return deleted.count > 0 ? mapEnvVar(existing) : undefined;
     });
-
-    if (!existing) {
-      return undefined;
-    }
-
-    const deleted = await this.prisma.projectEnvVar.deleteMany({ where: { projectId, key, scope: targetScope } });
-
-    return deleted.count > 0 ? mapEnvVar(existing) : undefined;
   }
 
   async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
-    return mapSecret(
-      await this.prisma.projectSecret.upsert({
-        where: { projectId_key: { projectId: input.projectId, key: input.key } },
-        create: { ...input, valueHash: hashToken(input.valueEncrypted) },
-        update: { valueEncrypted: input.valueEncrypted, valueHash: hashToken(input.valueEncrypted) },
-      }),
+    return this.withDatabaseBindingMutation(input.projectId, input.key, async (tx) =>
+      mapSecret(
+        await tx.projectSecret.upsert({
+          where: { projectId_key: { projectId: input.projectId, key: input.key } },
+          create: { ...input, valueHash: hashToken(input.valueEncrypted) },
+          update: { valueEncrypted: input.valueEncrypted, valueHash: hashToken(input.valueEncrypted) },
+        }),
+      ),
     );
+  }
+
+  private async withDatabaseBindingMutation<T>(
+    projectId: string,
+    key: string,
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    if (key !== 'DATABASE_URL' && key !== 'PROD_DATABASE_URL') return operation(this.prisma);
+    return this.prisma.$transaction(async (tx) => {
+      await guardDatabaseBindingMutation(tx, projectId, key);
+      return operation(tx);
+    });
   }
 
   async listProjectSecrets(projectId: string) {
@@ -1865,15 +1919,17 @@ export class PrismaApiStore implements ApiStore {
      * find-then-delete raced a concurrent delete into an unhandled P2025; use a
      * count-gated deleteMany so a lost race is reported as "already gone".
      */
-    const existing = await this.prisma.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
+    return this.withDatabaseBindingMutation(projectId, key, async (tx) => {
+      const existing = await tx.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
 
-    if (!existing) {
-      return undefined;
-    }
+      if (!existing) {
+        return undefined;
+      }
 
-    const deleted = await this.prisma.projectSecret.deleteMany({ where: { projectId, key } });
+      const deleted = await tx.projectSecret.deleteMany({ where: { projectId, key } });
 
-    return deleted.count > 0 ? mapSecret(existing) : undefined;
+      return deleted.count > 0 ? mapSecret(existing) : undefined;
+    });
   }
 
   async addProjectCollaborator(input: { projectId: string; userId: string; roleKey: string; expiresAt?: Date | null }) {
@@ -3153,6 +3209,7 @@ export class PrismaApiStore implements ApiStore {
     const rows = await this.prisma.databaseRestore.findMany({
       where: { databaseInstanceId },
       orderBy: { createdAt: 'desc' },
+      include: { execution: { select: { phase: true } } },
     });
 
     return rows.map(mapDatabaseRestore);
@@ -3183,18 +3240,40 @@ export class PrismaApiStore implements ApiStore {
     region?: string;
     environment?: string;
   }): Promise<DatabaseInstanceRecord> {
-    const row = await this.prisma.databaseInstance.create({
-      data: {
-        projectId: input.projectId,
-        organizationId: input.organizationId,
-        environment: input.environment ?? 'development',
-        retentionDays: input.retentionDays,
-        region: input.region ?? null,
-        pitrEnabled: input.retentionDays > 0,
-      },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Provisioning may have awaited an external provider. Do not persist its
+       * captured organization after a transfer, or silently adopt the new owner.
+       * Transfer and restore admission take this same Project lock first.
+       */
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${input.projectId} FOR UPDATE`;
+      const project = await tx.project.findUnique({ where: { id: input.projectId } });
 
-    return mapDatabaseInstance(row);
+      if (
+        !project ||
+        project.organizationId !== input.organizationId ||
+        project.deletedAt ||
+        project.runtimeDeletionPending
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('DATABASE_PROVISION_STATE_CHANGED')), {
+          statusCode: 409,
+          code: 'DATABASE_PROVISION_STATE_CHANGED',
+        });
+      }
+
+      const row = await tx.databaseInstance.create({
+        data: {
+          projectId: input.projectId,
+          organizationId: input.organizationId,
+          environment: input.environment ?? 'development',
+          retentionDays: input.retentionDays,
+          region: input.region ?? null,
+          pitrEnabled: input.retentionDays > 0,
+        },
+      });
+
+      return mapDatabaseInstance(row);
+    });
   }
 
   async updateDatabaseInstance(
@@ -3216,6 +3295,64 @@ export class PrismaApiStore implements ApiStore {
     return row ? mapDatabaseInstance(row) : undefined;
   }
 
+  async reconcileDatabaseProvisioning(input: DatabaseProvisioningReconciliation) {
+    const expected = input.expected;
+    // This callback only finishes initial provisioning. It cannot reactivate a
+    // suspended/deleted instance or bind any restored target to the old cluster.
+    if (expected.status !== 'PROVISIONING' || expected.activeTargetRef || (expected.bindingVersion ?? 0) !== 0) {
+      return undefined;
+    }
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${expected.projectId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM "DatabaseInstance" WHERE id = ${expected.id} FOR UPDATE`;
+      const project = await tx.project.findUnique({ where: { id: expected.projectId } });
+      if (
+        !project ||
+        project.deletedAt ||
+        project.runtimeDeletionPending ||
+        project.organizationId !== expected.organizationId
+      ) {
+        return undefined;
+      }
+      if (await tx.databaseRestoreExecution.findUnique({ where: { activeLock: expected.id } })) return undefined;
+      const key = expected.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL';
+      if (input.binding) {
+        const secret = await tx.projectSecret.findUnique({
+          where: { projectId_key: { projectId: expected.projectId, key } },
+        });
+        if (
+          (secret?.id ?? undefined) !== input.binding.expectedSecret?.id ||
+          (secret?.valueEncrypted ?? undefined) !== input.binding.expectedSecret?.valueEncrypted
+        ) {
+          return undefined;
+        }
+      }
+      const changed = await tx.databaseInstance.updateMany({
+        where: {
+          id: expected.id,
+          projectId: expected.projectId,
+          organizationId: expected.organizationId,
+          environment: expected.environment,
+          status: 'PROVISIONING',
+          updatedAt: new Date(expected.updatedAt),
+          bindingVersion: 0,
+          activeTargetRef: null,
+        },
+        data: { status: input.binding ? 'ACTIVE' : 'PROVISIONING' },
+      });
+      if (changed.count !== 1) return undefined;
+      if (input.binding) {
+        const valueEncrypted = input.binding.valueEncrypted;
+        await tx.projectSecret.upsert({
+          where: { projectId_key: { projectId: expected.projectId, key } },
+          create: { projectId: expected.projectId, key, valueEncrypted, valueHash: hashToken(valueEncrypted) },
+          update: { valueEncrypted, valueHash: hashToken(valueEncrypted) },
+        });
+      }
+      return mapDatabaseInstance(await tx.databaseInstance.findUniqueOrThrow({ where: { id: expected.id } }));
+    });
+  }
+
   async createDatabaseSnapshot(input: {
     databaseInstanceId: string;
     kind: 'auto' | 'manual';
@@ -3223,17 +3360,27 @@ export class PrismaApiStore implements ApiStore {
     createdByUserId?: string;
     expiresAt?: string;
   }): Promise<DatabaseSnapshotRecord> {
-    const row = await this.prisma.databaseSnapshot.create({
-      data: {
-        databaseInstanceId: input.databaseInstanceId,
-        kind: input.kind,
-        label: input.label ?? null,
-        createdByUserId: input.createdByUserId ?? null,
-        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.databaseInstance.findUniqueOrThrow({ where: { id: input.databaseInstanceId } });
+      await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${before.projectId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM "DatabaseInstance" WHERE id = ${before.id} FOR UPDATE`;
+      const instance = await tx.databaseInstance.findUniqueOrThrow({ where: { id: before.id } });
+      // Legacy backup addressing derives the original cluster name. Refuse to
+      // label an old-cluster backup as a recovery point for the restored target.
+      if (instance.activeTargetRef) throw new DatabaseRestoreError('RESTORE_BACKUP_TARGET_UNAVAILABLE', 503);
+      const active = await tx.databaseRestoreExecution.findUnique({ where: { activeLock: instance.id } });
+      if (active) throw new DatabaseRestoreError('RESTORE_BINDING_LOCKED');
+      const row = await tx.databaseSnapshot.create({
+        data: {
+          databaseInstanceId: input.databaseInstanceId,
+          kind: input.kind,
+          label: input.label ?? null,
+          createdByUserId: input.createdByUserId ?? null,
+          expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        },
+      });
+      return mapDatabaseSnapshot(row);
     });
-
-    return mapDatabaseSnapshot(row);
   }
 
   async pruneExpiredDatabaseSnapshots(nowMs: number): Promise<number> {
@@ -3248,19 +3395,25 @@ export class PrismaApiStore implements ApiStore {
     id: string,
     patch: Partial<Pick<DatabaseRestoreRecord, 'status' | 'error' | 'startedAt' | 'completedAt'>>,
   ): Promise<DatabaseRestoreRecord | undefined> {
-    const row = await this.prisma.databaseRestore
-      .update({
-        where: { id },
-        data: {
-          status: patch.status,
-          error: patch.error,
-          startedAt: patch.startedAt ? new Date(patch.startedAt) : undefined,
-          completedAt: patch.completedAt ? new Date(patch.completedAt) : undefined,
-        },
+    // Legacy maintenance must not write a coordinated journal, including from a
+    // replica without the injected driver. The condition is in the write itself.
+    return this.prisma
+      .$transaction(async (tx) => {
+        const updated = await tx.databaseRestore.updateMany({
+          where: { id, execution: { is: null } },
+          data: {
+            status: patch.status,
+            error: patch.error,
+            startedAt: patch.startedAt ? new Date(patch.startedAt) : undefined,
+            completedAt: patch.completedAt ? new Date(patch.completedAt) : undefined,
+          },
+        });
+        if (updated.count !== 1) return undefined;
+        const row = await tx.databaseRestore.findUnique({ where: { id } });
+
+        return row ? mapDatabaseRestore(row) : undefined;
       })
       .catch(() => undefined);
-
-    return row ? mapDatabaseRestore(row) : undefined;
   }
 
   async listActiveDatabaseInstances(take = 500): Promise<DatabaseInstanceRecord[]> {
@@ -3275,7 +3428,7 @@ export class PrismaApiStore implements ApiStore {
 
   async listPendingDatabaseRestores(take = 100): Promise<DatabaseRestoreRecord[]> {
     const rows = await this.prisma.databaseRestore.findMany({
-      where: { status: { in: ['PENDING', 'RUNNING'] } },
+      where: { status: { in: ['PENDING', 'RUNNING'] }, execution: { is: null } },
       orderBy: { createdAt: 'asc' },
       take,
     });

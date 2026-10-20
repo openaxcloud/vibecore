@@ -2266,6 +2266,9 @@ model DatabaseInstance {
   sizeBytes      BigInt                 @default(0)
   retentionDays  Int                    @default(7)
   pitrEnabled    Boolean                @default(false)
+  /// Restore cutover identity; legacy instances retain their original provider target.
+  activeTargetRef String?
+  bindingVersion Int                    @default(0)
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -2321,11 +2324,41 @@ model DatabaseRestore {
   startedAt          DateTime?
   completedAt        DateTime?
   databaseInstance   DatabaseInstance      @relation(fields: [databaseInstanceId], references: [id], onDelete: Cascade)
+  execution          DatabaseRestoreExecution?
 
   @@index([databaseInstanceId, createdAt])
   @@index([status])
   // "restores requested by user" lookups; was a full-scan (no FK on this column).
   @@index([requestedByUserId])
+}
+
+/// Durable restore journal. Credentials remain encrypted and are never projected
+/// by the restore HTTP routes. A held activeLock is not reclaimed by a timeout.
+model DatabaseRestoreExecution {
+  restoreId                 String   @id
+  activeLock                String?  @unique
+  phase                     String   @default("PENDING")
+  resumePhase               String?
+  runnerToken               String?
+  pendingFenceTokens        String[] @default([])
+  expectedBindingVersion    Int
+  appliedBindingVersion     Int?
+  sourceTargetRef           String?
+  originalSecretEncrypted   String
+  targetId                  String   @unique
+  targetConnectionEncrypted String?
+  snapshot                  Json?
+  archive                   Json?
+  target                    Json?
+  quiescence                Json?
+  readback                  Json?
+  release                   Json?
+  failureCode               String?
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  restore                   DatabaseRestore @relation(fields: [restoreId], references: [id], onDelete: Cascade)
+
+  @@index([phase, createdAt])
 }
 
 // ---------------------------------------------------------------------------

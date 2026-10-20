@@ -1,0 +1,114 @@
+{
+  "scope": "Local PostgreSQL 16.15, real PrismaApiStore methods, synthetic owned fixtures; no HTTP/provider/Kubernetes/production proof.",
+  "sourceBase": "89019cdf1cdbbd622179fdc4b2b4a68ab3219fef",
+  "candidateState": {
+    "committed": false,
+    "mergedToMain": false,
+    "deployed": false,
+    "productionVerified": false
+  },
+  "targetedContract": [
+    "development: transferred DatabaseInstance belongs to destination organization; old source continuation rejected; fresh destination reconciliation succeeds",
+    "production: same ownership contract; other environment preserved"
+  ],
+  "fullSpecCases": 10,
+  "targetedCases": 2,
+  "otherCasesFiltered": 8,
+  "fullSpecRunInThisProof": false,
+  "firstAttempt": {
+    "startedAt": "2026-10-20T16:09:29.884772+00:00",
+    "finishedAt": "2026-10-20T16:10:56.203560+00:00",
+    "wrapperPassed": false,
+    "failedTests": 2,
+    "filtered": 8,
+    "greenExecuted": false,
+    "cause": "Reporter JSON omitted toMatchObject object diff; wrapper expected organizationId in failure text and refused to classify it. This is not reported as a PostgreSQL infrastructure failure.",
+    "sourceRestored": true,
+    "databaseCleanupConfirmed": true,
+    "artifact": "/workspace/vibecore-audit-artifacts/restore-project-transfer/counterprobe-20261020T160929Z-570a0b86/result.json"
+  },
+  "changedAfterFirstAttempt": "Added one explicit organizationId equality assertion ahead of the existing object assertion; existing assertions and timeouts retained. No product change.",
+  "counterproof": {
+    "startedAt": "2026-10-20T16:12:00.316839+00:00",
+    "finishedAt": "2026-10-20T16:13:36.206004+00:00",
+    "red": {
+      "exitCode": 1,
+      "passed": 0,
+      "failed": 2,
+      "filtered": 8,
+      "bothFailuresIdentifyOrganizationMismatch": true
+    },
+    "green": {
+      "exitCode": 0,
+      "passed": 2,
+      "failed": 0,
+      "filtered": 8
+    },
+    "passed": true,
+    "sources": [
+      {
+        "path": "services/api/src/prisma-store.ts",
+        "beforeSha256": "924bf650e839226621cb756a398891f8b30a19eca5834900f9670b6d1fdfc628",
+        "candidateSha256": "85e33b6fca6e1a763d5d49b30d02164a6e73f5d3ee5b1fcebbc7e4c68891d89b"
+      },
+      {
+        "path": "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts",
+        "sha256": "f228ea9899469f32b5bc7be37be229faa6c88462157ae532c4a72f1c01f2a4cc"
+      }
+    ],
+    "candidateRestoredByteIdentically": true,
+    "databaseCleanupConfirmed": true,
+    "artifact": "/workspace/vibecore-audit-artifacts/restore-project-transfer/counterprobe-20261020T161200Z-32fd766b/result.json",
+    "memoryBeforeBytes": 6051774464,
+    "peakMemoryBytes": 6954991616,
+    "memoryAfterBytes": 6380740608,
+    "oomBefore": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+    "oomAfter": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0"
+  },
+  "cleanupScope": "Only a generated marker-owned restore_transfer_probe_<UUID> database was dropped and absence checked. PostgreSQL container ownership remained with review_admission_protocol. Shared QA55439 was not accessed.",
+  "sourceHashes": [
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "85e33b6fca6e1a763d5d49b30d02164a6e73f5d3ee5b1fcebbc7e4c68891d89b"
+    },
+    {
+      "path": "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts",
+      "sha256": "f228ea9899469f32b5bc7be37be229faa6c88462157ae532c4a72f1c01f2a4cc"
+    }
+  ],
+  "runnerArtifacts": [
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-project-transfer/run-counterprobe.py",
+      "sha256": "12f34202d27b34aa775d305fcf65e50f6d625102cefd429d24d099647a1e878d"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-project-transfer/counterprobe-database.mjs",
+      "sha256": "53e9dbe348e0634366190d9d492bce78f6328912d134c4c4ec964bd6dd4edc6f"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-project-transfer/counterprobe-20261020T160929Z-570a0b86/result.json",
+      "sha256": "bc033e9f851a381dd52e17b20ab27055fc052abbc581aeb5ada7845231ce28b1"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-project-transfer/counterprobe-20261020T161200Z-32fd766b/result.json",
+      "sha256": "15658a92da6ef1a127a269095ae5251f1eb92f5999976a3dfe705d98eb78ba4b"
+    }
+  ],
+  "limits": [
+    "The targeted counterproof filtered eight cases; the subsequent full runner executed all ten transfer cases successfully, separately documented.",
+    "Direct provisioning may already have invoked its external provider before stale database metadata creation is refused; this patch does not cancel a cluster apply.",
+    "No deployment, live account, provider call, physical database restore, or HTTP route behavior is asserted by these two store tests."
+  ],
+  "subsequentFullRunner": {
+    "proof": "2026-10-20-restore-ci-postgresql-local.json",
+    "proofSha256": "7c23ff655305835983225c376748405d67cecb68c46ac8dadd129fdd395f8382",
+    "executor": "review_admission_protocol",
+    "startedAt": "2026-10-20T16:14:58.304611+00:00",
+    "endedAt": "2026-10-20T16:15:44.733336+00:00",
+    "totalPassed": 31,
+    "transferPassed": 10,
+    "nonPassed": 0,
+    "sourcesUnchanged": true,
+    "scope": "Same local candidate; no filters/skips/todos; no cloud or production proof."
+  }
+}

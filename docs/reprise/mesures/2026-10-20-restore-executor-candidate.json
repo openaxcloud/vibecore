@@ -1,0 +1,208 @@
+{
+  "recordedAt": "2026-10-20T12:06:37.137218+00:00",
+  "base": "e8ede226b3fdadf9b1b62bffb5485d4757712cd2",
+  "uncommitted": true,
+  "merged": false,
+  "deployed": false,
+  "productionRestoreAvailableByDefault": false,
+  "sources": [
+    {
+      "path": "packages/database/generated/client/edge.js",
+      "sha256": "d02f1b61aa98bff4bc182b8107c4c85621b08e1485a6cc2dd19e84dc829f84e1"
+    },
+    {
+      "path": "packages/database/generated/client/index-browser.js",
+      "sha256": "e91edf8ec1179005689578241cda5405202e727f15a8b4f6b58d3e838d39c12c"
+    },
+    {
+      "path": "packages/database/generated/client/index.d.ts",
+      "sha256": "296793623642e346b68dfa76f0e751c92d931ee2329ca5a2a39d2d849230249c"
+    },
+    {
+      "path": "packages/database/generated/client/index.js",
+      "sha256": "d72b497280868aa8fc5487f4f9693269c28be92297a33f3cc0ee6d188fd95061"
+    },
+    {
+      "path": "packages/database/generated/client/package.json",
+      "sha256": "0253fb252f9cb3f48b1deb72269ac70438dcc9511051d4506439dac07ca79481"
+    },
+    {
+      "path": "packages/database/generated/client/schema.prisma",
+      "sha256": "e09cad757c170c45cd41e1632528a37a0a289197915189fa0a1aadf8a6eb3db0"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0091_database_restore_journal/migration.sql",
+      "sha256": "41e9742ae655fde851ac73fe226e5d42bfc9266f366b6736eaf2db825e741d18"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "sha256": "a607086e1fe2d8607c9f0dc4db60a3bc013ef525fbe25d78e51952c7a7415145"
+    },
+    {
+      "path": "scripts/qa/database-restore-api-fixture.ts",
+      "sha256": "44d532d6983f4d399790a502a4f7c29040554236efce2055d944ccb444277d09"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical-fixture.ts",
+      "sha256": "2e4a28de2f1c2352f9e698abbeb28537270296e9fd3e638c4f2d107cde77567a"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical.ts",
+      "sha256": "9aef4b5b70bf8d486dfed95ba3c61cd4a9b8b8be20918db1565cc466f1a4c6b4"
+    },
+    {
+      "path": "scripts/qa/database-restore-qa-app.ts",
+      "sha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "4de47252aa25d48dcb2b74c0c6df267614d4c6fa532317a6b55a276094deab38"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "30f25f2fae52668466cf02d331bd4dd3052fbb24e12367b0a81488a896544b16"
+    },
+    {
+      "path": "services/api/src/database-provision-retry.spec.ts",
+      "sha256": "5c9c58a8ee4c0ff1aec735f4acfc8979bbb567fbb7b24ac74ac64880700cbf1b"
+    },
+    {
+      "path": "services/api/src/database-restore-binding.ts",
+      "sha256": "46ad4e64dfd712e00071d9af3e5deb435308ab46b7acbcb4bdfac304bae00b52"
+    },
+    {
+      "path": "services/api/src/database-restore-contract.ts",
+      "sha256": "f75378cbce9d1c4fb0f2150e5dfa3af83a40809f003048cc484cd22e6fbb8f96"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.spec.ts",
+      "sha256": "0dd33796736acfa748084f56b66b1979555867d6402641da7cc740ba0e2d3b13"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.ts",
+      "sha256": "00ab24d13192c2433b5da0ccfa04874a7ae16ccf3a329e4ff946d08173e6a2d3"
+    },
+    {
+      "path": "services/api/src/database-restore-repository.ts",
+      "sha256": "76ba2666e95b59a49d7bc9b2dd67b6249b9edb76118501e78a0e55bc21b9ddf0"
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "924bf650e839226621cb756a398891f8b30a19eca5834900f9670b6d1fdfc628"
+    },
+    {
+      "path": "services/api/src/store.ts",
+      "sha256": "b3a621c7c7ff5f93c25244e0cbaec036ea7e9033d153f75213447422340b3677"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+      "sha256": "afa5613886122e4fcf84957aefb26d1c7fc8a9a4799ce380634301a10df768ba"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-repository.spec.ts",
+      "sha256": "04335b9e517f3b30629155a64bcbb3d52ae0659128a892caeaa95977b332775a"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-routes.spec.ts",
+      "sha256": "de0d49dea63edcf9c0145b39b75f842166143213e5ec233d179bb10207a3febd"
+    },
+    {
+      "path": "services/api/src/tests/test-api-store.ts",
+      "sha256": "27f8bba0458ab6773614bce1845f29d06a8863cbaccc12bbca13fe8388f7ed55"
+    }
+  ],
+  "validation": {
+    "legacyContinuationsCounterexample": {
+      "failedExpected": 3,
+      "skippedByNameFilter": 13,
+      "appSourceRestoredByteIdentically": true,
+      "timing": {
+        "label": "legacy-continuations-red",
+        "exitCode": 1,
+        "startedAt": "2026-10-20T12:01:20Z",
+        "finishedAt": "2026-10-20T12:01:42Z",
+        "elapsedSeconds": 22.366,
+        "sharedCgroupMemoryBeforeBytes": 4262043648,
+        "sharedCgroupPeakBytes": 5042360320,
+        "command": [
+          "node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--root",
+          "/workspace/vibecore-database-restore-executor/services/api",
+          "--config",
+          "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+          "src/tests/database-restore-integrity.spec.ts",
+          "-t",
+          "old provisioning response",
+          "--maxWorkers=1",
+          "--no-file-parallelism"
+        ]
+      }
+    },
+    "targetedTests": {
+      "passed": 56,
+      "failed": 0,
+      "skipped": 0,
+      "files": 4,
+      "timing": {
+        "label": "unit-routes-final",
+        "exitCode": 0,
+        "startedAt": "2026-10-20T12:01:48Z",
+        "finishedAt": "2026-10-20T12:02:20Z",
+        "elapsedSeconds": 32.03,
+        "sharedCgroupMemoryBeforeBytes": 4222021632,
+        "sharedCgroupPeakBytes": 5147160576,
+        "command": [
+          "node",
+          "node_modules/vitest/vitest.mjs",
+          "run",
+          "--root",
+          "/workspace/vibecore-database-restore-executor/services/api",
+          "--config",
+          "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+          "src/database-restore-executor.spec.ts",
+          "src/tests/database-restore-routes.spec.ts",
+          "src/tests/database-restore-integrity.spec.ts",
+          "src/database-provision-retry.spec.ts",
+          "--maxWorkers=1",
+          "--no-file-parallelism"
+        ]
+      }
+    },
+    "typecheck": {
+      "typescript": "5.8.3",
+      "scope": "complete API and four QA scripts",
+      "diagnostics": 0,
+      "timing": {
+        "label": "api-qa-typecheck-cas-final",
+        "exitCode": 0,
+        "startedAt": "2026-10-20T12:02:37Z",
+        "finishedAt": "2026-10-20T12:05:03Z",
+        "elapsedSeconds": 146.353,
+        "sharedCgroupMemoryBeforeBytes": 4289564672,
+        "sharedCgroupPeakBytes": 6142984192,
+        "command": [
+          "node",
+          "node_modules/typescript/bin/tsc",
+          "--noEmit",
+          "-p",
+          "/workspace/vibecore-audit-artifacts/restore-executor/tsconfig.api-qa.json"
+        ]
+      }
+    },
+    "postgresqlRepository": {
+      "currentCases": 14,
+      "currentCasesExecuted": false,
+      "previousCasesPassed": 11
+    },
+    "completePhysicalRestore": "not yet proven on this frozen source"
+  },
+  "limitations": [
+    "No default production coordinator or CNPG/GCS/runtime driver",
+    "No distributed driver fencing proven",
+    "No post-cutover backups or restored-target lifecycle supplied",
+    "No production/customer data or Safari evidence",
+    "Routes use Fastify injection and explicit in-memory persistence; loopback provider replies are fixtures"
+  ]
+}

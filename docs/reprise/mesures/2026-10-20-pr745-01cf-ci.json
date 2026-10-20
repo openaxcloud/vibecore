@@ -1,0 +1,207 @@
+{
+  "recordedAt": "2026-10-20T17:35:13.284Z",
+  "revision": "01cf9e9079a42ca9aa29324c8c9845c2f95d21a3",
+  "main": "9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828",
+  "merged": false,
+  "deployed": false,
+  "ci": {
+    "url": "https://github.com/openaxcloud/vibecore/actions/runs/39463004518/job/118766996739",
+    "result": "failure",
+    "integration": {
+      "passed": 2519,
+      "failed": 1,
+      "skipped": 54,
+      "failingTest": "AUDX-010 rotation corpus map > covers every encrypted column the Prisma schema declares",
+      "missingColumns": [
+        "databaseRestoreExecution.originalSecretEncrypted",
+        "databaseRestoreExecution.targetConnectionEncrypted"
+      ]
+    },
+    "dedicatedPostgresqlStep": "skipped after integration failure",
+    "steps": [
+      {
+        "name": "Set up job",
+        "conclusion": "success"
+      },
+      {
+        "name": "Initialize containers",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+        "conclusion": "success"
+      },
+      {
+        "name": "Rollout evidence regression tests",
+        "conclusion": "success"
+      },
+      {
+        "name": "Blocking vulnerability evidence regression tests",
+        "conclusion": "success"
+      },
+      {
+        "name": "Pre-install GitHub Actions identity gate",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+        "conclusion": "success"
+      },
+      {
+        "name": "Install",
+        "conclusion": "success"
+      },
+      {
+        "name": "Helm for installation regression checks",
+        "conclusion": "success"
+      },
+      {
+        "name": "From-scratch installation contracts (rendering and isolated commands)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Strict rollout diagnostics typecheck and bundle reproducibility",
+        "conclusion": "success"
+      },
+      {
+        "name": "Strict security scan evidence typecheck and bundle reproducibility",
+        "conclusion": "success"
+      },
+      {
+        "name": "GitHub Actions pinning regression gate",
+        "conclusion": "success"
+      },
+      {
+        "name": "Prisma validate and generate",
+        "conclusion": "success"
+      },
+      {
+        "name": "Committed Prisma client matches the schema",
+        "conclusion": "success"
+      },
+      {
+        "name": "Lint",
+        "conclusion": "success"
+      },
+      {
+        "name": "I18n catalogs and source regression guard",
+        "conclusion": "success"
+      },
+      {
+        "name": "Typecheck",
+        "conclusion": "success"
+      },
+      {
+        "name": "Exceptions de securite — echeances (annotations sur la PR)",
+        "conclusion": "success"
+      },
+      {
+        "name": "Unit tests",
+        "conclusion": "success"
+      },
+      {
+        "name": "Integration tests",
+        "conclusion": "failure"
+      },
+      {
+        "name": "PostgreSQL restore and ownership regressions",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Build web",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Le chemin critique de la racine reste maigre",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Build admin",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Build services",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Le runbook de déploiement reste exécutable",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Security checks",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Post Run pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+        "conclusion": "success"
+      },
+      {
+        "name": "Stop containers",
+        "conclusion": "success"
+      },
+      {
+        "name": "Complete job",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "qualityGates": {
+    "url": "https://github.com/openaxcloud/vibecore/actions/runs/39463004411/job/118766995377",
+    "result": "failure",
+    "reason": "GitHub check-runs API fetch failed HTTP 500 at 17:15:08 UTC; independent of application tests"
+  },
+  "limits": [
+    "No skipped step counted as passed",
+    "No rerun or protection bypass",
+    "Local authorization patch is later uncommitted source, not validated by this CI revision"
+  ],
+  "e2e": {
+    "url": "https://github.com/openaxcloud/vibecore/actions/runs/39463004588/job/118788166540",
+    "result": "failure",
+    "finishedAt": "2026-10-20T17:47:34Z",
+    "testedMergeCommit": "d5c6f696dfc998e29222b4233276bcc1a2a1e667",
+    "testsReported": 456,
+    "persistentFailures": 4,
+    "flaky": 4,
+    "waived": 6,
+    "specFilesSeen": 75,
+    "specFilesExpected": 75,
+    "shardCollectionJobSuccessIsNotFinalGateSuccess": true,
+    "failureObservations": [
+      {
+        "case": "ide-floating-file-tabs:8",
+        "observed": "Monaco .view-lines absent after5s in allthree attempts; file selection and split not reached"
+      },
+      {
+        "case": "ide-floating-viewport:87",
+        "observed": "Initial/retry2 floating pane absent after French reload after5s; retry1 initial Monaco absent after10s"
+      },
+      {
+        "case": "ide-floating-viewport:202 width768",
+        "observed": "Initial/retry2 back click returned but URL remained French IDE after5s; retry1 initial Monaco absent after10s"
+      },
+      {
+        "case": "ide-floating-viewport:202 width390",
+        "observed": "Same URL failure; editor visible, menus closed, no alert observed; retry1 initial Monaco absent after10s"
+      }
+    ],
+    "limits": [
+      "No cause established; editor/layout/spec/helper files unchanged between base9c8 and head01cf",
+      "Saved traces cover retry1 preconditions, not the later French/back failures",
+      "Network helper did not observe archive, IDE-state, dashboard or Monaco traffic",
+      "No timeout increase, waiver or identical rerun performed"
+    ]
+  }
+}

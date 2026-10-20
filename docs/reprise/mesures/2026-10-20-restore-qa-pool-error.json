@@ -1,0 +1,302 @@
+{
+  "recordedAt": "2026-10-20T13:25:45.662037+00:00",
+  "scope": "Real isolated PostgreSQL permission error and actual QA child-process IPC, before/after the sole QA app change. No mock response. Not a physical restore or production proof.",
+  "uncommitted": true,
+  "merged": false,
+  "deployed": false,
+  "productionSourcesChangedSinceFirstPhysicalSuccess": false,
+  "change": "Use Pool.query for the QA identity SELECT so pg-pool releases its internally acquired client on error before the catch awaits Pool.end. SQL and error contract unchanged.",
+  "ipcTimeoutMs": 15000,
+  "assertionsRelaxed": false,
+  "initializationChanges": {
+    "dockerStartTimeoutSecondsBefore": 30,
+    "dockerStartTimeoutSecondsAfter": 120,
+    "reason": "Align the new probe wrapper with the existing physical fixture, after a preserved infrastructure failure.",
+    "readinessTimeoutSeconds": 30,
+    "readiness": "Authenticated loopback TCP connection and SELECT 1 required before creating the synthetic role."
+  },
+  "preparationFailures": [
+    {
+      "stage": "Docker initialization",
+      "result": {
+        "startedAt": "2026-10-20T13:08:52.828424+00:00",
+        "containerName": "vc-restore-pool-error-c94de6eb64",
+        "image": "sha256:9b05db12a35460fff0587e009f9326e414a53e9484555547f96d214a2ba98ef7",
+        "memoryBeforeBytes": 6200750080,
+        "sharedQaTouched": false,
+        "passed": false,
+        "failedStage": "initialize",
+        "errorType": "TimeoutExpired",
+        "credentialFileRemoved": true,
+        "finishedAt": "2026-10-20T13:09:23.038737+00:00",
+        "source": [
+          {
+            "path": "scripts/qa/database-restore-qa-app.ts",
+            "beforeSha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972",
+            "afterSha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+          }
+        ]
+      },
+      "cleanupFollowup": {
+        "utc": "2026-10-20T13:10:27Z",
+        "container": "vc-restore-pool-error-c94de6eb64",
+        "stateErrorPresent": false,
+        "portBusy": false,
+        "networkMentioned": false,
+        "cleanupExitCode": 0,
+        "ownedContainerAbsent": true
+      },
+      "interpretation": "Infrastructure preparation failed before the SQL/IPC counterexample. The new wrapper initialization timeout was aligned from 30s to the existing physical fixture 120s; IPC remained 15s."
+    },
+    {
+      "stage": "Real SQL permission-error precondition",
+      "result": {
+        "startedAt": "2026-10-20T13:12:33.836391+00:00",
+        "containerName": "vc-restore-pool-error-b3e9dee12c",
+        "image": "sha256:9b05db12a35460fff0587e009f9326e414a53e9484555547f96d214a2ba98ef7",
+        "memoryBeforeBytes": 7061610496,
+        "sharedQaTouched": false,
+        "port": 32782,
+        "passed": false,
+        "failedStage": "before",
+        "errorType": "RuntimeError",
+        "ownedContainerAbsent": true,
+        "cleanupExitCode": 0,
+        "credentialFileRemoved": true,
+        "finishedAt": "2026-10-20T13:13:53.738115+00:00",
+        "source": [
+          {
+            "path": "scripts/qa/database-restore-qa-app.ts",
+            "beforeSha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972",
+            "afterSha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+          }
+        ]
+      },
+      "probe": {
+        "mode": "before",
+        "startedAt": "2026-10-20T13:13:50.205Z",
+        "source": [
+          {
+            "path": "scripts/qa/database-restore-qa-app.ts",
+            "sha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+          }
+        ],
+        "scope": "Real local PostgreSQL permission error and actual QA child process/IPC. No mock response, production or physical restore claim.",
+        "expectedOutcomeObserved": false,
+        "errorKind": "ASSERTION_FAILED",
+        "ownedChildExited": true,
+        "remainingRoleConnections": 0,
+        "ephemeralRoleRemoved": true,
+        "finishedAt": "2026-10-20T13:13:50.395Z"
+      },
+      "interpretation": "Synthetic role alone did not establish the required 42501 error. Actual SQLSTATE was not recorded in this attempt; no child was started. Later authorization permitted REVOKE EXECUTE FROM PUBLIC only in the newly created disposable cluster."
+    },
+    {
+      "stage": "Administrative TCP connection",
+      "result": {
+        "startedAt": "2026-10-20T13:16:00.168363+00:00",
+        "containerName": "vc-restore-pool-error-9cac4d8122",
+        "image": "sha256:9b05db12a35460fff0587e009f9326e414a53e9484555547f96d214a2ba98ef7",
+        "memoryBeforeBytes": 4771901440,
+        "sharedQaTouched": false,
+        "port": 32783,
+        "passed": false,
+        "failedStage": "before",
+        "errorType": "RuntimeError",
+        "ownedContainerAbsent": true,
+        "cleanupExitCode": 0,
+        "credentialFileRemoved": true,
+        "finishedAt": "2026-10-20T13:16:57.901652+00:00",
+        "source": [
+          {
+            "path": "scripts/qa/database-restore-qa-app.ts",
+            "beforeSha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972",
+            "afterSha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+          }
+        ]
+      },
+      "probe": {
+        "mode": "before",
+        "startedAt": "2026-10-20T13:16:54.907Z",
+        "source": [
+          {
+            "path": "scripts/qa/database-restore-qa-app.ts",
+            "sha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+          }
+        ],
+        "scope": "Real local PostgreSQL permission error and actual QA child process/IPC. No mock response, production or physical restore claim.",
+        "expectedOutcomeObserved": false,
+        "errorKind": "PROBE_FAILED",
+        "ownedChildExited": true,
+        "finishedAt": "2026-10-20T13:16:54.944Z"
+      },
+      "interpretation": "Preparation failed before creating a role or child; actual error code was not recorded. Socket pg_isready alone was insufficient as a precondition. Subsequent preparation required authenticated TCP SELECT 1 within the existing 30s readiness bound. No attribution of this failure to a specific server startup phase is claimed."
+    }
+  ],
+  "before": {
+    "mode": "before",
+    "startedAt": "2026-10-20T13:21:35.835Z",
+    "source": [
+      {
+        "path": "scripts/qa/database-restore-qa-app.ts",
+        "sha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+      }
+    ],
+    "scope": "Real local PostgreSQL permission error and actual QA child process/IPC. No mock response, production or physical restore claim.",
+    "readinessErrorCodes": [
+      "UNCLASSIFIED",
+      "UNCLASSIFIED",
+      "ECONNRESET",
+      "UNCLASSIFIED",
+      "UNCLASSIFIED",
+      "ECONNRESET",
+      "UNCLASSIFIED",
+      "UNCLASSIFIED"
+    ],
+    "authenticatedTcpReadiness": true,
+    "functionExecutionDeniedOnDisposableCluster": true,
+    "directSqlState": "42501",
+    "connectElapsedMs": 15006,
+    "connectOutcome": "timeout",
+    "childExit": {
+      "code": null,
+      "signal": "SIGTERM"
+    },
+    "expectedOutcomeObserved": true,
+    "ownedChildExited": true,
+    "remainingRoleConnections": 0,
+    "ephemeralRoleRemoved": true,
+    "finishedAt": "2026-10-20T13:21:56.216Z"
+  },
+  "after": {
+    "mode": "after",
+    "startedAt": "2026-10-20T13:21:59.451Z",
+    "source": [
+      {
+        "path": "scripts/qa/database-restore-qa-app.ts",
+        "sha256": "0047fc262be09659cd7327f5ae7af6afbc93a53eaceaa0f3b8c91244af55560e"
+      }
+    ],
+    "scope": "Real local PostgreSQL permission error and actual QA child process/IPC. No mock response, production or physical restore claim.",
+    "readinessErrorCodes": [],
+    "authenticatedTcpReadiness": true,
+    "functionExecutionDeniedOnDisposableCluster": true,
+    "directSqlState": "42501",
+    "connectElapsedMs": 269,
+    "connectOutcome": "response",
+    "explicitCommandError": "QA_APPLICATION_COMMAND_FAILED",
+    "stopAcknowledged": true,
+    "childExit": {
+      "code": 0,
+      "signal": null
+    },
+    "expectedOutcomeObserved": true,
+    "ownedChildExited": true,
+    "remainingRoleConnections": 0,
+    "ephemeralRoleRemoved": true,
+    "finishedAt": "2026-10-20T13:22:05.945Z"
+  },
+  "runner": {
+    "startedAt": "2026-10-20T13:19:31.120759+00:00",
+    "containerName": "vc-restore-pool-error-8da4bca638",
+    "image": "sha256:9b05db12a35460fff0587e009f9326e414a53e9484555547f96d214a2ba98ef7",
+    "memoryBeforeBytes": 4609867776,
+    "sharedQaTouched": false,
+    "port": 32784,
+    "qaSourcePatched": true,
+    "passed": true,
+    "ownedContainerAbsent": true,
+    "cleanupExitCode": 0,
+    "credentialFileRemoved": true,
+    "finishedAt": "2026-10-20T13:22:10.491479+00:00",
+    "source": [
+      {
+        "path": "scripts/qa/database-restore-qa-app.ts",
+        "beforeSha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972",
+        "afterSha256": "0047fc262be09659cd7327f5ae7af6afbc93a53eaceaa0f3b8c91244af55560e"
+      }
+    ]
+  },
+  "cleanupVerification": {
+    "checkedAt": "2026-10-20T13:23:44.997193+00:00",
+    "port": 32784,
+    "portRefused": true,
+    "portConnectResult": 111,
+    "ownedContainerCount": 0,
+    "dockerCheckExitCode": 0,
+    "memoryBytes": 6385168384,
+    "oomEvents": [
+      "low 0",
+      "high 0",
+      "max 0",
+      "oom 0",
+      "oom_kill 0",
+      "oom_group_kill 0"
+    ]
+  },
+  "typecheck": {
+    "label": "qa-app-pool-error-typecheck",
+    "exitCode": 0,
+    "startedAt": "2026-10-20T13:23:55Z",
+    "finishedAt": "2026-10-20T13:24:06Z",
+    "elapsedSeconds": 11.159,
+    "sharedCgroupMemoryBeforeBytes": 6379843584,
+    "sharedCgroupPeakBytes": 6577844224,
+    "command": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit",
+      "--module",
+      "NodeNext",
+      "--moduleResolution",
+      "NodeNext",
+      "--target",
+      "ES2022",
+      "--lib",
+      "ES2022",
+      "--types",
+      "node",
+      "--skipLibCheck",
+      "true",
+      "--esModuleInterop",
+      "true",
+      "--strict",
+      "true",
+      "scripts/qa/database-restore-qa-app.ts"
+    ]
+  },
+  "formatting": {
+    "command": [
+      "node",
+      "node_modules/prettier/bin/prettier.cjs",
+      "--check",
+      "scripts/qa/database-restore-qa-app.ts"
+    ],
+    "exitCode": 0
+  },
+  "newManifest": {
+    "path": "docs/reprise/mesures/2026-10-20-restore-executor-qa-pool-preflight.json",
+    "sha256": "b8e28307c6d402fe5937804871c3508c4ae1a3519e8f6d0776bf54a7a93b59e3"
+  },
+  "probeArtifacts": [
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-executor/probe-qa-pool-error.mjs",
+      "sha256": "3997cfb6767e18199eafec3bb13c6b8eebcd0e4a3d312cedc25a23ebfb7484c3"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-executor/run-qa-pool-error.py",
+      "sha256": "0d527357223e8809c930ffd3c568c15d24bc2d6f0ca5619d61b43a3f60429591"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-executor/qa-pool-error-original-app.ts",
+      "sha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+    }
+  ],
+  "limits": [
+    "Role creation and EXECUTE revocation were confined to the new disposable PostgreSQL cluster, which was removed; shared QA55439 was not touched.",
+    "The first complete physical success remains attached to the old frozen manifest490427feb4c506854c88252b1b49c1a82a2acc4977152ca567f741cbc79073e1.",
+    "The new full physical drill has not executed at this evidence timestamp. Exactly one of26 frozen source files changed: scripts/qa/database-restore-qa-app.ts.",
+    "The wrapper records memory before execution and later checkpoints, not a continuously sampled peak for this IPC probe.",
+    "No production runtime, CNPG/GCS, distributed fencing, customer data, payment, Safari or commercial RPO/RTO evidence."
+  ]
+}

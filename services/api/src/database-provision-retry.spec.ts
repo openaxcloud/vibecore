@@ -78,9 +78,9 @@ describe('provisionnement de base — le réessai n’est plus muré', () => {
 
     /*
      * La contrainte unique (projectId, environment) interdit une seconde
-     * ligne : la reprise doit passer par `updateDatabaseInstance`, sinon la
-     * création échoue et le projet reste muré.
+     * ligne : la reprise réconcilie conditionnellement l'instance capturée.
+     * Un résultat tardif ne peut pas remettre une cible restaurée en provisionnement.
      */
-    expect(code).toMatch(/provisioningPerime[\s\S]{0,120}updateDatabaseInstance/);
+    expect(code).toMatch(/provisioningPerime[\s\S]{0,120}reconcileDatabaseProvisioning/);
   });
 });

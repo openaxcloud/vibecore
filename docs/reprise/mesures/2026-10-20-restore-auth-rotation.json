@@ -1,0 +1,652 @@
+{
+  "recordedAt": "2026-10-20T17:59:12.233208+00:00",
+  "baselineCommit": "01cf9e9079a42ca9aa29324c8c9845c2f95d21a3",
+  "counterexamples": {
+    "initialOwner": {
+      "receipt": "red-execution.json",
+      "startedAt": "2026-10-20T17:24:55.429925+00:00",
+      "finishedAt": "2026-10-20T17:25:16.208025+00:00",
+      "exitCode": 1,
+      "summary": {
+        "numTotalTests": 27,
+        "numPassedTests": 0,
+        "numFailedTests": 6,
+        "numPendingTests": 21,
+        "success": false
+      },
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/tests/database-restore-repository.spec.ts",
+        "--testNamePattern",
+        "previously authorized organization|transfer commits between authorization and instance read",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=json",
+        "--outputFile=/workspace/vibecore-audit-artifacts/restore-admission-owner-race/red-report.json"
+      ]
+    },
+    "lateMetadataAndLocale": {
+      "receipt": "late-red-execution.json",
+      "startedAt": "2026-10-20T17:35:15.960752+00:00",
+      "finishedAt": "2026-10-20T17:35:39.908569+00:00",
+      "exitCode": 1,
+      "summary": {
+        "numTotalTests": 32,
+        "numPassedTests": 0,
+        "numFailedTests": 6,
+        "numPendingTests": 26,
+        "success": false
+      },
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/tests/database-provisioning-transfer.prisma.spec.ts",
+        "--testNamePattern",
+        "HTTP (final-scope|scope-message)",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=json",
+        "--outputFile=/workspace/vibecore-audit-artifacts/restore-admission-owner-race/late-red-report.json"
+      ]
+    },
+    "independentCiphertextRotation": {
+      "receipt": "crypto-red-execution.json",
+      "startedAt": "2026-10-20T17:40:51.791246+00:00",
+      "finishedAt": "2026-10-20T17:41:09.299139+00:00",
+      "exitCode": 1,
+      "summary": {
+        "numTotalTests": 29,
+        "numPassedTests": 0,
+        "numFailedTests": 2,
+        "numPendingTests": 27,
+        "success": false
+      },
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/tests/database-restore-repository.spec.ts",
+        "--testNamePattern",
+        "independent ciphertext rotation",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=json",
+        "--outputFile=/workspace/vibecore-audit-artifacts/restore-admission-owner-race/crypto-red-report.json"
+      ]
+    },
+    "prismaNullFilter": {
+      "recordedAt": "2026-10-20T17:42:21.309Z",
+      "readonly": true,
+      "dedicatedLoopbackDatabase": true,
+      "valuesEmitted": false,
+      "probes": [
+        {
+          "field": "databaseRestoreExecution.originalSecretEncrypted",
+          "queryAccepted": false,
+          "errorName": "PrismaClientValidationError",
+          "errorCode": null,
+          "argumentNotMustNotBeNull": true,
+          "explicitNullRejected": true
+        },
+        {
+          "field": "databaseRestoreExecution.targetConnectionEncrypted",
+          "queryAccepted": true,
+          "rows": 0
+        },
+        {
+          "field": "projectSecret.valueEncrypted",
+          "queryAccepted": true,
+          "rows": 0
+        }
+      ]
+    },
+    "realCorpusRed": {
+      "executed": false,
+      "executionReceiptExists": false,
+      "reason": "Preparation completed, execution interrupted before launch; the confirmed Prisma filter was corrected before the final green. No red corpus run is claimed."
+    }
+  },
+  "intermediateFailureRetained": {
+    "receipt": "full-execution.json",
+    "passed": 62,
+    "failed": 1,
+    "total": 63,
+    "cause": "Existing transfer-lock fixture omitted newly mandatory expectedOrganizationId; only that fixture was adapted, then its full26-case file passed."
+  },
+  "finalValidation": {
+    "repository": {
+      "receipt": "crypto-full-green-execution.json",
+      "startedAt": "2026-10-20T17:55:14.447105+00:00",
+      "finishedAt": "2026-10-20T17:56:18.454016+00:00",
+      "exitCode": 0,
+      "summary": {
+        "numTotalTests": 30,
+        "numPassedTests": 30,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/tests/database-restore-repository.spec.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=json",
+        "--outputFile=/workspace/vibecore-audit-artifacts/restore-admission-owner-race/crypto-full-green-report.json"
+      ]
+    },
+    "routesAndTransferSeparateRun": {
+      "receipt": "routes-transfer-final-execution.json",
+      "startedAt": "2026-10-20T17:37:48.801866+00:00",
+      "finishedAt": "2026-10-20T17:38:23.326468+00:00",
+      "exitCode": 0,
+      "summary": {
+        "numTotalTests": 42,
+        "numPassedTests": 42,
+        "numFailedTests": 0,
+        "numPendingTests": 0,
+        "success": true
+      },
+      "command": [
+        "node",
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--root",
+        "/workspace/vibecore-database-restore-executor/services/api",
+        "--config",
+        "/workspace/vibecore-database-restore-executor/services/api/vitest.config.ts",
+        "src/tests/database-provisioning-transfer.prisma.spec.ts",
+        "src/tests/database-restore-routes.spec.ts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--reporter=json",
+        "--outputFile=/workspace/vibecore-audit-artifacts/restore-admission-owner-race/routes-transfer-final-report.json"
+      ]
+    },
+    "distinctTests": 72,
+    "single72TestRun": false,
+    "noSkipsInEitherFinalRun": true,
+    "scope": [
+      "30 real Prisma/PostgreSQL repository cases, including the two cipher-equivalence witnesses and one real corpus sweep/CAS/retry case",
+      "32 transfer/provisioning cases and10 route-contract cases in a separate42-case green run",
+      "Real corpus sweep observed SQL CAS conflict against production cutover, preserved winning binding, rotated required and nullable journal fields, then removed old-key references on a fresh retry"
+    ]
+  },
+  "sources": [
+    {
+      "path": "services/api/src/encryption-rotation.ts",
+      "sha256": "749518ebe6dbcbc510e03244b8f0f05b124a0535a7166099507717c60b6901df",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "4c23199c545b22deb26deb16c4fa066f5b69a2e715ec47ac95f0f532200c5310",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "f191f1467e1d37d8466d36d0e826b8917ddbd47209252f7f3a8cced551c23f90",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/database-restore-contract.ts",
+      "sha256": "23c1a025b1efe97dccf823e17ddc1ae8f5dc9f74e7a127218256f55575d06434",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/database-restore-repository.ts",
+      "sha256": "0ac6e935679950d8dcea4dae041b2123e7cf7cca55291dbb164ff5cd0b2d8347",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/database-restore-executor.ts",
+      "sha256": "626c2d325b9e6d5daf697fe70c212fc4e118aeff79ee94a354e9f417fe6edc0a",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/tests/database-restore-repository.spec.ts",
+      "sha256": "8a3650c1188cdee7ab9df458dd91dd6e6667fb20b4731d60107a459ef02b2fce",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/tests/database-restore-routes.spec.ts",
+      "sha256": "08253a0b337dfc3808a7615d5188bf4026a379587e2d32f24522780afc2d8f3b",
+      "matchesFinalRepositoryRun": true
+    },
+    {
+      "path": "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts",
+      "sha256": "5c5f36a10ab0de222f893a1b765e51a3218fd709814158d879ba2ac5dbb54a0c",
+      "matchesFinalRepositoryRun": true
+    }
+  ],
+  "cleanup": {
+    "containerId": "cb5de441bd45b49f987c039dfab8d4192aa3c264ab11cc97c84b30c5740b6a99",
+    "ownerLabel": "restore-owner-c78554145175",
+    "countsStable": true,
+    "ownedVolumesAbsent": true,
+    "dedicatedPortClosed": true,
+    "shared55439ReachableBefore": true,
+    "shared55439ReachableAfter": true,
+    "finishedAt": "2026-10-20T17:58:33.292823+00:00",
+    "ownTableCounts": "0|0|0|0|0",
+    "containerAbsent": true,
+    "credentialsRemoved": true,
+    "memoryAfter": {
+      "bytes": 6456012800,
+      "events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+    }
+  },
+  "limits": [
+    "Dedicated synthetic loopback PostgreSQL only; shared QA55439 unchanged by this agent",
+    "Restore HTTP admission tests use real Fastify auth via app.inject; transfer/provisioning tests use actual loopback HTTP",
+    "Physical driver availability and recovery receipts remain explicit test fixtures; no physical restore, application quiescence, cloud, production, payment or customer data exercised",
+    "No successful red corpus execution is asserted",
+    "The generic local Vitest commands are not the strict CI wrapper, because the dedicated database used separately generated private credentials",
+    "Typecheck, build, hooks and CI remain parent-owned validations; this evidence describes these local tests only"
+  ],
+  "provenance": {
+    "sourceReceiptSha256": "d72a5945311f8e91f2eacf341c75a13f469d0433acb626f8caa39dbb5bfe5144",
+    "environment": "Isolated synthetic loopback PostgreSQL; no customer or cloud target",
+    "commitStatus": "Uncommitted local follow-up to PR745 head01cf at evidence capture",
+    "review": "Independent bounded read-only review of authorization/rotation delta found no further concrete defect at17:56:54 UTC; not a proof of complete platform security"
+  },
+  "additionalLocalValidation": [
+    {
+      "label": "p1-auth-core-green",
+      "startedAt": "2026-10-20T17:33:28.633287+00:00",
+      "memoryBefore": 5585563648,
+      "command": [
+        "pnpm",
+        "--filter",
+        "@vibecore/api",
+        "exec",
+        "vitest",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "src/database-restore-executor.spec.ts",
+        "src/tests/database-provision-retry.spec.ts",
+        "src/tests/database-restore-integrity.spec.ts",
+        "--maxWorkers=1",
+        "--minWorkers=1",
+        "--no-file-parallelism"
+      ],
+      "exitCode": 0,
+      "seconds": 21.66,
+      "peakMemory": 6591098880,
+      "finishedAt": "2026-10-20T17:33:50.296298+00:00",
+      "tests": {
+        "passed": 49,
+        "files": 2,
+        "scope": "33 coordinator and16 integrity tests; a third named nonexistent file was not collected and is not counted"
+      }
+    },
+    {
+      "label": "p1-auth-provision-regressions",
+      "startedAt": "2026-10-20T17:46:53.658043+00:00",
+      "memoryBefore": 5419909120,
+      "command": [
+        "pnpm",
+        "--filter",
+        "@vibecore/api",
+        "exec",
+        "vitest",
+        "run",
+        "--config",
+        "vitest.config.ts",
+        "src/database-provision-retry.spec.ts",
+        "src/database-provision-stuck.spec.ts",
+        "src/databases-provisioning-visible.spec.ts",
+        "--maxWorkers=1",
+        "--minWorkers=1",
+        "--no-file-parallelism"
+      ],
+      "exitCode": 0,
+      "seconds": 10.73,
+      "peakMemory": 5832568832,
+      "finishedAt": "2026-10-20T17:47:04.387357+00:00",
+      "tests": {
+        "passed": 16,
+        "files": 3,
+        "scope": "retry, stuck provisioning, visible provisioning regressions"
+      }
+    },
+    {
+      "label": "p1-auth-rotation-api-build",
+      "startedAt": "2026-10-20T17:57:49.692447+00:00",
+      "memoryBefore": 5329747968,
+      "command": [
+        "pnpm",
+        "--filter",
+        "@vibecore/api",
+        "build"
+      ],
+      "exitCode": 0,
+      "seconds": 63.77,
+      "peakMemory": 7091478528,
+      "finishedAt": "2026-10-20T17:58:53.458674+00:00"
+    }
+  ],
+  "sourceHashesRecheckedAt": "2026-10-20T18:07:05.415854+00:00",
+  "physicalDrill": {
+    "firstAttempt": {
+      "receipt": {
+        "label": "p1-auth-rotation-physical",
+        "startedAt": "2026-10-20T18:02:14.215021+00:00",
+        "memoryBefore": 4669300736,
+        "command": [
+          "env",
+          "NODE_ENV=test",
+          "DB_ROLLBACK_ENABLED=true",
+          "RESTORE_QA_OUTPUT=/workspace/vibecore-audit-artifacts/restore-physical-auth-rotation-20261020",
+          "node",
+          "--import",
+          "tsx",
+          "scripts/qa/database-restore-physical.ts"
+        ],
+        "exitCode": 1,
+        "seconds": 269.68,
+        "peakMemory": 7239180288,
+        "finishedAt": "2026-10-20T18:06:43.893996+00:00"
+      },
+      "result": {
+        "passed": false,
+        "failure": "QA_ASSERTION_FAILED",
+        "recordedAt": "2026-10-20T18:06:43.194Z",
+        "durationMilliseconds": 62909,
+        "scope": "isolated local PostgreSQL physical backup and WAL",
+        "production": false,
+        "initializeMilliseconds": 28230,
+        "physicalBackupVerified": true,
+        "archivedWalPending": 0,
+        "targetTimestamp": "2026-10-20T18:06:08.162Z",
+        "manifestSha256": "a6fb5486f4c8716cd2fe8e1913b02c621cf669e1d1bc2d1341ef14408cafdaba",
+        "originalApplicationSeesPostTargetWrite": true,
+        "archiveSourceIdentityVerified": true,
+        "tamperedArchiveRejected": true,
+        "failedStage": "PostgreSQL repository regressions",
+        "ownedResourcesRemoved": true
+      },
+      "failureDetail": "All30 repository tests passed, but physical runner still required exactly21. Assertion kept and expected count updated to30. No physical success claimed for this run."
+    },
+    "final": {
+      "receipt": {
+        "label": "p1-auth-rotation-physical-count-fixed",
+        "startedAt": "2026-10-20T18:08:04.396913+00:00",
+        "memoryBefore": 4755447808,
+        "command": [
+          "env",
+          "NODE_ENV=test",
+          "DB_ROLLBACK_ENABLED=true",
+          "RESTORE_QA_OUTPUT=/workspace/vibecore-audit-artifacts/restore-physical-auth-rotation-count-fixed-20261020",
+          "node",
+          "--import",
+          "tsx",
+          "scripts/qa/database-restore-physical.ts"
+        ],
+        "exitCode": 0,
+        "seconds": 85.76,
+        "peakMemory": 8213843968,
+        "finishedAt": "2026-10-20T18:09:30.155814+00:00"
+      },
+      "result": {
+        "passed": true,
+        "recordedAt": "2026-10-20T18:09:29.611Z",
+        "durationMilliseconds": 78072,
+        "scope": "isolated local PostgreSQL physical backup and WAL",
+        "production": false,
+        "initializeMilliseconds": 25560,
+        "physicalBackupVerified": true,
+        "archivedWalPending": 0,
+        "targetTimestamp": "2026-10-20T18:08:36.750Z",
+        "manifestSha256": "b5bd8cceecfc51bccdf3458858beb4ae9fcca17bb0d2e319a47d912f61ae7b1c",
+        "originalApplicationSeesPostTargetWrite": true,
+        "archiveSourceIdentityVerified": true,
+        "tamperedArchiveRejected": true,
+        "repositoryTests": {
+          "passed": 30,
+          "database": "isolated restore_control"
+        },
+        "concurrentAdmissionRejected": true,
+        "httpAdmission": {
+          "status": 202,
+          "concurrentStatus": 409
+        },
+        "recoveredRows": [
+          {
+            "id": "base",
+            "value": "before physical backup"
+          },
+          {
+            "id": "target",
+            "value": "included in requested recovery point"
+          }
+        ],
+        "promotedTarget": true,
+        "targetResource": {
+          "targetId": "restore-3882e9ff-b07d-463b-aae0-aa8e6416434c",
+          "container": "vc-restore-qa-c8bfb2a230ca-target"
+        },
+        "quiescedApplicationHttpStatus": 503,
+        "applicationReadback": {
+          "rows": [
+            {
+              "id": "base",
+              "value": "before physical backup"
+            },
+            {
+              "id": "target",
+              "value": "included in requested recovery point"
+            }
+          ],
+          "bindingVersion": 1
+        },
+        "previousPoolClosed": true,
+        "newConnection": true,
+        "releasedApplicationHttpStatus": 200,
+        "coordinatorResult": {
+          "status": "COMPLETED",
+          "phase": "COMPLETED",
+          "applicationCutoverVerified": true
+        },
+        "otherEnvironmentBindingUnchanged": true,
+        "durableJournal": {
+          "status": "COMPLETED",
+          "phase": "COMPLETED",
+          "bindingVersion": 1,
+          "activeLockReleased": true
+        },
+        "apiSqlReadback": {
+          "status": 200,
+          "rowCount": 2,
+          "expectedDigestMatched": true
+        },
+        "targetEndpointUnchangedAfterRestart": true,
+        "targetSurvivesContainerRestart": true,
+        "controlClientReopened": true,
+        "phaseOrder": [
+          "validateArchive",
+          "prepareTarget",
+          "quiesceApplication",
+          "reconnectAndReadback",
+          "releaseApplication"
+        ],
+        "limits": [
+          "Local synthetic read-only probe application and locally cached PostgreSQL only",
+          "Control and application databases are distinct but share the source QA container",
+          "No CNPG, cloud archive, production runtime, billing or customer data",
+          "Distributed worker fencing and quiescence of every production SQL consumer are not proven by this drill"
+        ],
+        "ownedResourcesRemoved": true
+      }
+    },
+    "sourcesFrozenDuringRun": true,
+    "sourceHashesAfter": [
+      {
+        "path": ".github/workflows/ci.yml",
+        "sha256": "2b86d6079f7a1b1fd957d456c085b11c3ddb09b00eee31e6493385636e840e89"
+      },
+      {
+        "path": "package.json",
+        "sha256": "23ab46f36eca56b372625e39d88aca528630d31df641a88d55ba353fb748f87b"
+      },
+      {
+        "path": "packages/database/generated/client/edge.js",
+        "sha256": "9fc1b937a22015c98ac387277ec793cde16db33d821903dcf85235d0c9189750"
+      },
+      {
+        "path": "packages/database/generated/client/index-browser.js",
+        "sha256": "9918b8bfd48891f6d60735c361190233452f3e5ef321bfec9fc4089732ea193a"
+      },
+      {
+        "path": "packages/database/generated/client/index.d.ts",
+        "sha256": "e5ae1576f333f8b35f79f0783bfeb2518a2953be3be6e4f60c0d73364a3293c7"
+      },
+      {
+        "path": "packages/database/generated/client/index.js",
+        "sha256": "2a1e71b18f14fe260ef575238555b3807b5bebbf37e55edea79b58885d437dc8"
+      },
+      {
+        "path": "packages/database/generated/client/package.json",
+        "sha256": "c7b78b69e0262ea8a50bd39c0465caca0b6df688d45d9a40c753a7cdd8d2f8d5"
+      },
+      {
+        "path": "packages/database/generated/client/schema.prisma",
+        "sha256": "ff545c054fdb6f47a715d48b4cc6e0c3b3fd6b71394b16b703730694ba7bbd34"
+      },
+      {
+        "path": "packages/database/prisma/migrations/0091_database_restore_journal/migration.sql",
+        "sha256": "41e9742ae655fde851ac73fe226e5d42bfc9266f366b6736eaf2db825e741d18"
+      },
+      {
+        "path": "packages/database/prisma/migrations/0092_database_restore_fence_debt/migration.sql",
+        "sha256": "d090e136fa7d88100ad13da19821a00f51d7fdca6f4dad7b33c16c20c4742cc9"
+      },
+      {
+        "path": "packages/database/prisma/schema.prisma",
+        "sha256": "a089b5b45df6f2a71bcbdd0550587cfb60f08a195291581a356848104b6e8ea2"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "sha256": "afda9f10f04d25b263b80d670f194f76c85c4ebdbe97e0c63642719be0bc5fd7"
+      },
+      {
+        "path": "scripts/qa/database-restore-api-fixture.ts",
+        "sha256": "be30af145b61fa867120c817047316adaa5bca21248bb4ea87f57a388dc9325d"
+      },
+      {
+        "path": "scripts/qa/database-restore-ci.spec.ts",
+        "sha256": "583312e5d724321626869ce5e707f49a292dd3d336fa0f5770bee21a77280997"
+      },
+      {
+        "path": "scripts/qa/database-restore-ci.ts",
+        "sha256": "f5ea24ef93dfe2f13e78b1fe5a52eba27036c167e4d95a00ad7511459886cf71"
+      },
+      {
+        "path": "scripts/qa/database-restore-physical-fixture.ts",
+        "sha256": "6f4009de023c075af8415e2e6150ba562077416c7e58d4dd47c5c307a1bfe849"
+      },
+      {
+        "path": "scripts/qa/database-restore-physical.ts",
+        "sha256": "e5c671efa49ed89a0c7acf0ba7cd1a7b55c8b3068479cc7029a480df4d20075c"
+      },
+      {
+        "path": "scripts/qa/database-restore-qa-app.ts",
+        "sha256": "0047fc262be09659cd7327f5ae7af6afbc93a53eaceaa0f3b8c91244af55560e"
+      },
+      {
+        "path": "services/api/src/app-public-copy.json",
+        "sha256": "4c23199c545b22deb26deb16c4fa066f5b69a2e715ec47ac95f0f532200c5310"
+      },
+      {
+        "path": "services/api/src/app.ts",
+        "sha256": "f191f1467e1d37d8466d36d0e826b8917ddbd47209252f7f3a8cced551c23f90"
+      },
+      {
+        "path": "services/api/src/database-provision-retry.spec.ts",
+        "sha256": "5c9c58a8ee4c0ff1aec735f4acfc8979bbb567fbb7b24ac74ac64880700cbf1b"
+      },
+      {
+        "path": "services/api/src/database-restore-binding.ts",
+        "sha256": "adc0d934683f4f6cb84e11d753fad7cb7c00b738259356d44b4828c5ba39928e"
+      },
+      {
+        "path": "services/api/src/database-restore-contract.ts",
+        "sha256": "23c1a025b1efe97dccf823e17ddc1ae8f5dc9f74e7a127218256f55575d06434"
+      },
+      {
+        "path": "services/api/src/database-restore-executor.spec.ts",
+        "sha256": "811ed9ccc6ad8c70299a3b4af7cf18e13150faf17dcb4f861e6040b43f10396f"
+      },
+      {
+        "path": "services/api/src/database-restore-executor.ts",
+        "sha256": "626c2d325b9e6d5daf697fe70c212fc4e118aeff79ee94a354e9f417fe6edc0a"
+      },
+      {
+        "path": "services/api/src/database-restore-repository.ts",
+        "sha256": "0ac6e935679950d8dcea4dae041b2123e7cf7cca55291dbb164ff5cd0b2d8347"
+      },
+      {
+        "path": "services/api/src/encryption-rotation.spec.ts",
+        "sha256": "bf38c6080b1ebda1f1d48a4e42e569d467523a9f315fb7db8e2f58f0f9e3eb3e"
+      },
+      {
+        "path": "services/api/src/encryption-rotation.ts",
+        "sha256": "749518ebe6dbcbc510e03244b8f0f05b124a0535a7166099507717c60b6901df"
+      },
+      {
+        "path": "services/api/src/prisma-store.ts",
+        "sha256": "85e33b6fca6e1a763d5d49b30d02164a6e73f5d3ee5b1fcebbc7e4c68891d89b"
+      },
+      {
+        "path": "services/api/src/store.ts",
+        "sha256": "b3a621c7c7ff5f93c25244e0cbaec036ea7e9033d153f75213447422340b3677"
+      },
+      {
+        "path": "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts",
+        "sha256": "5c5f36a10ab0de222f893a1b765e51a3218fd709814158d879ba2ac5dbb54a0c"
+      },
+      {
+        "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+        "sha256": "afa5613886122e4fcf84957aefb26d1c7fc8a9a4799ce380634301a10df768ba"
+      },
+      {
+        "path": "services/api/src/tests/database-restore-repository.spec.ts",
+        "sha256": "8a3650c1188cdee7ab9df458dd91dd6e6667fb20b4731d60107a459ef02b2fce"
+      },
+      {
+        "path": "services/api/src/tests/database-restore-routes.spec.ts",
+        "sha256": "08253a0b337dfc3808a7615d5188bf4026a379587e2d32f24522780afc2d8f3b"
+      },
+      {
+        "path": "services/api/src/tests/test-api-store.ts",
+        "sha256": "27f8bba0458ab6773614bce1845f29d06a8863cbaccc12bbca13fe8388f7ed55"
+      },
+      {
+        "path": "services/api/vitest.config.ts",
+        "sha256": "88a27a475d07bbe81f4bbfd4c6814d8db712088ec576ca457f186e2a3af40277"
+      }
+    ]
+  }
+}

@@ -14,14 +14,14 @@ pas vérifiées ici.
 
 ## 📤 Dispatché
 
-Revue et contre-épreuve de contrat terminées, sans changement produit.
+Revue, contre-épreuves et propagation du contexte intégrées par #743 le 20 octobre.
 
 ## 💻 Codé
 
-❌ Non corrigé. Sources API vérifiées identiques à main `bb70c7b68` puis
-conservées dans la fusion `9d7ff755c`. La correction doit relier environnement
-de l'instance, archive réellement créée et source choisie, sur les deux routes.
-Corriger le seul suffixe sans vérifier les archives existantes serait insuffisant.
+✅ Propagation de l’environnement et de la source Barman fusionnée par #743
+à 13:31:39 UTC, commit `9c8f6bc6d95a97ddf54a52a932a6c07aff4f2828`, avec tests
+de non-régression. Les archives cloud existantes restent à vérifier ; la correction
+du contexte et les tests de manifeste ne prouvent pas leur contenu ni une bascule réelle.
 
 ## ✅ Testé live
 
@@ -45,7 +45,7 @@ versionner une reproduction propre sans secret et ses tests de non-régression,
 avec le correctif ; ne pas ajouter un test connu rouge à main sans résolution.
 
 
-## Reprise du 20 octobre 2026
+## Relevé historique du 20 octobre avant fusion
 
 Correctif candidat dans la branche `codex/restore-completion-integrity-20261019`,
 avec régressions versionnées et contre-épreuves sur main e40. [Périmètre et
@@ -54,3 +54,9 @@ au relevé de rédaction ; aucun test live de restauration.** La capacité compl
 reste indisponible : l'API refuse avant allocation tant que la bascule applicative
 n'est pas implémentée et vérifiée. Le refus honnête n'est pas une restauration
 fonctionnelle et ne clôt pas ce P1 commercial.
+
+## Fusion observée le 20 octobre à 13:31:39 UTC
+
+[Preuve #743 et contrôles du SHA exact](../reprise/mesures/2026-10-20-pr743-result.json).
+La fusion est acquise ; livraison du nouveau main en cours, origine HTTPS inaccessible
+depuis ce workspace. Aucun succès live déduit de cette fusion.

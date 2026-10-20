@@ -1,0 +1,226 @@
+{
+  "recordedAt": "2026-10-20T13:24:35.992065+00:00",
+  "base": "e8ede226b3fdadf9b1b62bffb5485d4757712cd2",
+  "branch": "codex/database-restore-executor-20261020",
+  "uncommitted": true,
+  "merged": false,
+  "deployed": false,
+  "productionRestoreAvailableByDefault": false,
+  "sourcesFrozenForNextPhysicalDrill": true,
+  "previousManifest": {
+    "path": "docs/reprise/mesures/2026-10-20-restore-executor-preflight.json",
+    "sha256": "490427feb4c506854c88252b1b49c1a82a2acc4977152ca567f741cbc79073e1"
+  },
+  "changedSincePreviousManifest": [
+    "scripts/qa/database-restore-qa-app.ts"
+  ],
+  "unchangedSourceCount": 25,
+  "sources": [
+    {
+      "path": "packages/database/generated/client/edge.js",
+      "sha256": "d02f1b61aa98bff4bc182b8107c4c85621b08e1485a6cc2dd19e84dc829f84e1"
+    },
+    {
+      "path": "packages/database/generated/client/index-browser.js",
+      "sha256": "e91edf8ec1179005689578241cda5405202e727f15a8b4f6b58d3e838d39c12c"
+    },
+    {
+      "path": "packages/database/generated/client/index.d.ts",
+      "sha256": "296793623642e346b68dfa76f0e751c92d931ee2329ca5a2a39d2d849230249c"
+    },
+    {
+      "path": "packages/database/generated/client/index.js",
+      "sha256": "d72b497280868aa8fc5487f4f9693269c28be92297a33f3cc0ee6d188fd95061"
+    },
+    {
+      "path": "packages/database/generated/client/package.json",
+      "sha256": "0253fb252f9cb3f48b1deb72269ac70438dcc9511051d4506439dac07ca79481"
+    },
+    {
+      "path": "packages/database/generated/client/schema.prisma",
+      "sha256": "e09cad757c170c45cd41e1632528a37a0a289197915189fa0a1aadf8a6eb3db0"
+    },
+    {
+      "path": "packages/database/prisma/migrations/0091_database_restore_journal/migration.sql",
+      "sha256": "41e9742ae655fde851ac73fe226e5d42bfc9266f366b6736eaf2db825e741d18"
+    },
+    {
+      "path": "packages/database/prisma/schema.prisma",
+      "sha256": "a607086e1fe2d8607c9f0dc4db60a3bc013ef525fbe25d78e51952c7a7415145"
+    },
+    {
+      "path": "scripts/qa/database-restore-api-fixture.ts",
+      "sha256": "be30af145b61fa867120c817047316adaa5bca21248bb4ea87f57a388dc9325d"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical-fixture.ts",
+      "sha256": "6f4009de023c075af8415e2e6150ba562077416c7e58d4dd47c5c307a1bfe849"
+    },
+    {
+      "path": "scripts/qa/database-restore-physical.ts",
+      "sha256": "e401e71b1a0cea63fe4ba77b0573dce5f45d2b7a7c8a42c922d3810b327c3eb8"
+    },
+    {
+      "path": "scripts/qa/database-restore-qa-app.ts",
+      "sha256": "0047fc262be09659cd7327f5ae7af6afbc93a53eaceaa0f3b8c91244af55560e"
+    },
+    {
+      "path": "services/api/src/app-public-copy.json",
+      "sha256": "9134578a0200e601841494d55494321bba4d73d503cc0ab370605fd13e9daf2c"
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "30f25f2fae52668466cf02d331bd4dd3052fbb24e12367b0a81488a896544b16"
+    },
+    {
+      "path": "services/api/src/database-provision-retry.spec.ts",
+      "sha256": "5c9c58a8ee4c0ff1aec735f4acfc8979bbb567fbb7b24ac74ac64880700cbf1b"
+    },
+    {
+      "path": "services/api/src/database-restore-binding.ts",
+      "sha256": "adc0d934683f4f6cb84e11d753fad7cb7c00b738259356d44b4828c5ba39928e"
+    },
+    {
+      "path": "services/api/src/database-restore-contract.ts",
+      "sha256": "dcad532749c0422b3672f0fb74bad9bf1d460cd3e079ac767a67c71242f77d58"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.spec.ts",
+      "sha256": "f91942f4292ead04851004bbd51b1d10a48b15522c04eb4abae017f359cc4247"
+    },
+    {
+      "path": "services/api/src/database-restore-executor.ts",
+      "sha256": "b4e610e601525ffbb00201b4c50e8cc271b91934c277f08e2fc863e72299d4b4"
+    },
+    {
+      "path": "services/api/src/database-restore-repository.ts",
+      "sha256": "babd82fb200edcf4a200172b965bf9e16e9a7fe258ee3f4bfcaf9a861dd0cb70"
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "924bf650e839226621cb756a398891f8b30a19eca5834900f9670b6d1fdfc628"
+    },
+    {
+      "path": "services/api/src/store.ts",
+      "sha256": "b3a621c7c7ff5f93c25244e0cbaec036ea7e9033d153f75213447422340b3677"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-integrity.spec.ts",
+      "sha256": "afa5613886122e4fcf84957aefb26d1c7fc8a9a4799ce380634301a10df768ba"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-repository.spec.ts",
+      "sha256": "69814cc256940ffbc3d71fc9274d6dc945d25ea318c97e7734cf1b7cf93d3193"
+    },
+    {
+      "path": "services/api/src/tests/database-restore-routes.spec.ts",
+      "sha256": "6310f808cd12914346dd6eb429a47d1e068d14fd91fd2a85fe53e432e9fe7e0e"
+    },
+    {
+      "path": "services/api/src/tests/test-api-store.ts",
+      "sha256": "27f8bba0458ab6773614bce1845f29d06a8863cbaccc12bbca13fe8388f7ed55"
+    }
+  ],
+  "validation": {
+    "qaApplicationTypecheck": {
+      "label": "qa-app-pool-error-typecheck",
+      "exitCode": 0,
+      "startedAt": "2026-10-20T13:23:55Z",
+      "finishedAt": "2026-10-20T13:24:06Z",
+      "elapsedSeconds": 11.159,
+      "sharedCgroupMemoryBeforeBytes": 6379843584,
+      "sharedCgroupPeakBytes": 6577844224,
+      "command": [
+        "node",
+        "node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "--module",
+        "NodeNext",
+        "--moduleResolution",
+        "NodeNext",
+        "--target",
+        "ES2022",
+        "--lib",
+        "ES2022",
+        "--types",
+        "node",
+        "--skipLibCheck",
+        "true",
+        "--esModuleInterop",
+        "true",
+        "--strict",
+        "true",
+        "scripts/qa/database-restore-qa-app.ts"
+      ]
+    },
+    "errorPathBefore": {
+      "mode": "before",
+      "startedAt": "2026-10-20T13:21:35.835Z",
+      "source": [
+        {
+          "path": "scripts/qa/database-restore-qa-app.ts",
+          "sha256": "f60eaa538198ec611806b6ee4484a43209768261804594d7c868795783ab4972"
+        }
+      ],
+      "scope": "Real local PostgreSQL permission error and actual QA child process/IPC. No mock response, production or physical restore claim.",
+      "readinessErrorCodes": [
+        "UNCLASSIFIED",
+        "UNCLASSIFIED",
+        "ECONNRESET",
+        "UNCLASSIFIED",
+        "UNCLASSIFIED",
+        "ECONNRESET",
+        "UNCLASSIFIED",
+        "UNCLASSIFIED"
+      ],
+      "authenticatedTcpReadiness": true,
+      "functionExecutionDeniedOnDisposableCluster": true,
+      "directSqlState": "42501",
+      "connectElapsedMs": 15006,
+      "connectOutcome": "timeout",
+      "childExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      },
+      "expectedOutcomeObserved": true,
+      "ownedChildExited": true,
+      "remainingRoleConnections": 0,
+      "ephemeralRoleRemoved": true,
+      "finishedAt": "2026-10-20T13:21:56.216Z"
+    },
+    "errorPathAfter": {
+      "mode": "after",
+      "startedAt": "2026-10-20T13:21:59.451Z",
+      "source": [
+        {
+          "path": "scripts/qa/database-restore-qa-app.ts",
+          "sha256": "0047fc262be09659cd7327f5ae7af6afbc93a53eaceaa0f3b8c91244af55560e"
+        }
+      ],
+      "scope": "Real local PostgreSQL permission error and actual QA child process/IPC. No mock response, production or physical restore claim.",
+      "readinessErrorCodes": [],
+      "authenticatedTcpReadiness": true,
+      "functionExecutionDeniedOnDisposableCluster": true,
+      "directSqlState": "42501",
+      "connectElapsedMs": 269,
+      "connectOutcome": "response",
+      "explicitCommandError": "QA_APPLICATION_COMMAND_FAILED",
+      "stopAcknowledged": true,
+      "childExit": {
+        "code": 0,
+        "signal": null
+      },
+      "expectedOutcomeObserved": true,
+      "ownedChildExited": true,
+      "remainingRoleConnections": 0,
+      "ephemeralRoleRemoved": true,
+      "finishedAt": "2026-10-20T13:22:05.945Z"
+    }
+  },
+  "limits": [
+    "Only QA application SQL client handling changed; all 25 other frozen sources are byte-identical.",
+    "This before/after proof exercises a real local PostgreSQL permission error and QA process IPC, not the full restore chain.",
+    "The prior complete physical drill succeeded on the previous manifest; the next complete drill has not run on this new manifest.",
+    "No production/cloud/customer/Safari proof, no dependency or timeout change."
+  ]
+}

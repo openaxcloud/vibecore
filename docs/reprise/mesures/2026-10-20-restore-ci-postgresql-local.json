@@ -1,0 +1,305 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-20T16:17:57.022612+00:00",
+  "scope": "Local execution of the exact Production CI PostgreSQL restore/ownership runner on a disposable PostgreSQL16 service; no cloud, customer data, payment, production deployment or physical recovery exercise.",
+  "source": {
+    "worktree": "/workspace/vibecore-database-restore-executor",
+    "head": "89019cdf1cdbbd622179fdc4b2b4a68ab3219fef",
+    "dirty": true,
+    "sourceManifest": [
+      {
+        "path": ".github/workflows/ci.yml",
+        "sha256": "2b86d6079f7a1b1fd957d456c085b11c3ddb09b00eee31e6493385636e840e89"
+      },
+      {
+        "path": "scripts/qa/database-restore-ci.ts",
+        "sha256": "f5ea24ef93dfe2f13e78b1fe5a52eba27036c167e4d95a00ad7511459886cf71"
+      },
+      {
+        "path": "scripts/qa/database-restore-ci.spec.ts",
+        "sha256": "583312e5d724321626869ce5e707f49a292dd3d336fa0f5770bee21a77280997"
+      },
+      {
+        "path": "services/api/src/database-restore-contract.ts",
+        "sha256": "7728771839519b304001a354a463adbfc12c6288245cd45a5f8551fd42b1f7a0"
+      },
+      {
+        "path": "services/api/src/database-restore-executor.ts",
+        "sha256": "c3a2b3885e78a6915d1721b27cff15993eb9c2ecf30559b5e4547bdd7bf9d3c9"
+      },
+      {
+        "path": "services/api/src/database-restore-repository.ts",
+        "sha256": "b58b254c33dfaabc250c967b70165ec5755f088487bf9fcb3851666ba0a174d2"
+      },
+      {
+        "path": "services/api/src/prisma-store.ts",
+        "sha256": "85e33b6fca6e1a763d5d49b30d02164a6e73f5d3ee5b1fcebbc7e4c68891d89b"
+      },
+      {
+        "path": "services/api/src/tests/database-restore-repository.spec.ts",
+        "sha256": "f7913bb3812f5fe850547d88cf46d60aacd3fa99973c5d9c0468a5582007215f"
+      },
+      {
+        "path": "services/api/src/tests/database-provisioning-transfer.prisma.spec.ts",
+        "sha256": "f228ea9899469f32b5bc7be37be229faa6c88462157ae532c4a72f1c01f2a4cc"
+      },
+      {
+        "path": "services/api/vitest.config.ts",
+        "sha256": "88a27a475d07bbe81f4bbfd4c6814d8db712088ec576ca457f186e2a3af40277"
+      },
+      {
+        "path": "packages/database/prisma/schema.prisma",
+        "sha256": "a089b5b45df6f2a71bcbdd0550587cfb60f08a195291581a356848104b6e8ea2"
+      },
+      {
+        "path": "packages/database/prisma/migrations/0092_database_restore_fence_debt/migration.sql",
+        "sha256": "d090e136fa7d88100ad13da19821a00f51d7fdca6f4dad7b33c16c20c4742cc9"
+      },
+      {
+        "path": "packages/database/generated/client/index.js",
+        "sha256": "2a1e71b18f14fe260ef575238555b3807b5bebbf37e55edea79b58885d437dc8"
+      },
+      {
+        "path": "packages/database/generated/client/index.d.ts",
+        "sha256": "e5ae1576f333f8b35f79f0783bfeb2518a2953be3be6e4f60c0d73364a3293c7"
+      },
+      {
+        "path": "package.json",
+        "sha256": "23ab46f36eca56b372625e39d88aca528630d31df641a88d55ba353fb748f87b"
+      },
+      {
+        "path": "pnpm-lock.yaml",
+        "sha256": "afda9f10f04d25b263b80d670f194f76c85c4ebdbe97e0c63642719be0bc5fd7"
+      }
+    ],
+    "sourcesByteIdenticalAfterExecution": true
+  },
+  "command": [
+    "node",
+    "--import",
+    "tsx",
+    "scripts/qa/database-restore-ci.ts"
+  ],
+  "environment": {
+    "nodeLocal": "v24.19.0",
+    "nodeCI": "22",
+    "jobEnvironmentExtractedFromWorkflow": true,
+    "environmentKeysOnly": [
+      "API_HOST",
+      "API_PORT",
+      "CI",
+      "DATABASE_URL",
+      "HOME",
+      "HUSKY",
+      "LANG",
+      "NODE_OPTIONS",
+      "PATH",
+      "REDIS_URL"
+    ],
+    "NODE_PATHAbsent": true,
+    "parentNodeHeapMiB": 3072,
+    "childEnvironment": "Runner-defined allowlist; one Vitest worker, no file parallelism.",
+    "credentialValuesRecorded": false
+  },
+  "postgres": {
+    "imageId": "sha256:9b05db12a35460fff0587e009f9326e414a53e9484555547f96d214a2ba98ef7",
+    "pullPolicy": "never",
+    "versionNum": 160015,
+    "recovery": false,
+    "bind": "127.0.0.1",
+    "port": 55432,
+    "memoryLimitBytes": 536870912,
+    "cpuLimit": 1,
+    "ephemeralTmpfs": true,
+    "bindMountsOrVolumes": false,
+    "containerName": "vc-restore-ci-0cc88c87ecdb",
+    "containerId": "4f2034e8f71da62de513fce7f529af755f2ca9a49ebd8c0060c4d6fdf86815f0",
+    "identityAndOwnershipLabelVerified": true,
+    "baselineBeforeRunner": {
+      "nonTemplateDatabaseCount": 2,
+      "probeDatabaseCount": 0,
+      "publicUserTableCount": 0,
+      "activeExternalSessions": 0
+    }
+  },
+  "counterproofP2": {
+    "resultPath": "/workspace/vibecore-audit-artifacts/restore-project-transfer/counterprobe-20261020T161200Z-32fd766b/result.json",
+    "resultSha256": "15658a92da6ef1a127a269095ae5251f1eb92f5999976a3dfe705d98eb78ba4b",
+    "red": {
+      "exitCode": 1,
+      "passed": 0,
+      "failed": 2,
+      "filtered": 8,
+      "bothFailuresIdentifyOrganizationMismatch": true
+    },
+    "green": {
+      "exitCode": 0,
+      "passed": 2,
+      "failed": 0,
+      "filtered": 8
+    },
+    "sourceRestoredByteIdentically": true,
+    "databaseCleanupConfirmed": true,
+    "note": "The eight filtered tests belong only to the two-case counterproof. The subsequent complete runner executes all31 tests without filtering/skipping."
+  },
+  "runner": {
+    "startedAt": "2026-10-20T16:14:58.304611+00:00",
+    "endedAt": "2026-10-20T16:15:44.733336+00:00",
+    "durationSeconds": 46.13,
+    "exitCode": 0,
+    "report": {
+      "event": "RESTORE_POSTGRESQL_CI",
+      "stage": "postgresql-regressions",
+      "processPassed": true,
+      "valid": true,
+      "total": 31,
+      "passed": 31,
+      "nonPassed": 0,
+      "files": [
+        {
+          "file": "src/tests/database-restore-repository.spec.ts",
+          "present": true,
+          "tests": 21,
+          "passed": 21,
+          "nonPassed": 0,
+          "failedTests": [],
+          "valid": true
+        },
+        {
+          "file": "src/tests/database-provisioning-transfer.prisma.spec.ts",
+          "present": true,
+          "tests": 10,
+          "passed": 10,
+          "nonPassed": 0,
+          "failedTests": [],
+          "valid": true
+        }
+      ]
+    },
+    "events": [
+      {
+        "event": "RESTORE_POSTGRESQL_CI",
+        "stage": "service-identity"
+      },
+      {
+        "event": "RESTORE_POSTGRESQL_CI",
+        "stage": "create-dedicated-database",
+        "database": "vibecore_restore_ci_926bd310cb9d3e3caa2026f1cef34158"
+      },
+      {
+        "event": "RESTORE_POSTGRESQL_CI",
+        "stage": "migrate-dedicated-database"
+      },
+      {
+        "event": "RESTORE_POSTGRESQL_CI",
+        "stage": "postgresql-regressions",
+        "files": [
+          "src/tests/database-restore-repository.spec.ts",
+          "src/tests/database-provisioning-transfer.prisma.spec.ts"
+        ]
+      },
+      {
+        "event": "RESTORE_POSTGRESQL_CI",
+        "stage": "postgresql-regressions",
+        "processPassed": true,
+        "valid": true,
+        "total": 31,
+        "passed": 31,
+        "nonPassed": 0,
+        "files": [
+          {
+            "file": "src/tests/database-restore-repository.spec.ts",
+            "present": true,
+            "tests": 21,
+            "passed": 21,
+            "nonPassed": 0,
+            "failedTests": [],
+            "valid": true
+          },
+          {
+            "file": "src/tests/database-provisioning-transfer.prisma.spec.ts",
+            "present": true,
+            "tests": 10,
+            "passed": 10,
+            "nonPassed": 0,
+            "failedTests": [],
+            "valid": true
+          }
+        ]
+      },
+      {
+        "event": "RESTORE_POSTGRESQL_CI",
+        "stage": "complete",
+        "passed": true,
+        "cleanup": "owned-database-removed",
+        "database": "vibecore_restore_ci_926bd310cb9d3e3caa2026f1cef34158"
+      }
+    ],
+    "stderrBytes": 0,
+    "processAbsentAfterCompletion": true
+  },
+  "memory": {
+    "cgroupLimitBytes": 17179869184,
+    "beforeBytes": 6245490688,
+    "peakSampledBytes": 6643961856,
+    "peakSampledGiB": 6.188,
+    "sampleIntervalSeconds": 0.5,
+    "eventsBefore": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+    "eventsAfter": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+    "containerOOMKilled": false
+  },
+  "cleanup": {
+    "verifiedAt": "2026-10-20T16:16:37.041695+00:00",
+    "cid": "4f2034e8f71da62de513fce7f529af755f2ca9a49ebd8c0060c4d6fdf86815f0",
+    "identityAndLabelMatchedBeforeRemoval": true,
+    "databaseStateBeforeRemoval": {
+      "nonTemplateDatabaseCount": 2,
+      "probeDatabaseCount": 0,
+      "publicUserTableCount": 0,
+      "activeExternalSessions": 0
+    },
+    "containerOOMKilled": false,
+    "completedAt": "2026-10-20T16:16:45.842619+00:00",
+    "containerRemoved": true,
+    "matchingLabelContainerCount": 0,
+    "port55432ConnectionRefused": true,
+    "uriFilesRemoved": true,
+    "shared55439SameIdAndRunning": true,
+    "shared55439Id": "23250292c41b",
+    "memoryAfterBytes": 5360254976,
+    "memoryEventsAfter": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n"
+  },
+  "harnessCorrection": "Initial verifier required a Mounts entry for tmpfs. Docker exposed it only in HostConfig.Tmpfs; verified there and in container /proc/mounts. No recreation.",
+  "artifacts": [
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-ci-postgres-27ec5b1b0b1a/container.json",
+      "sha256": "5ad6c4ce6c7c0b1b4d17fac0188152e5dd7f1ec7b03c2880eba077d371e3d053"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-ci-postgres-27ec5b1b0b1a/runner-preflight.json",
+      "sha256": "57c1ea11bde714d0333bff322bb604323a6a39b07fa3b439164859094454c91e"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-ci-postgres-27ec5b1b0b1a/runner.json",
+      "sha256": "cecd30177a1fe98ab698d7748a20c95d5bf95066019a8e3726db70954287db83"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-ci-postgres-27ec5b1b0b1a/runner.stdout.log",
+      "sha256": "82d7e45d2b049df1bd2c237de59c751e6d86fbb605b37b454199e6b17c12934f"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-ci-postgres-27ec5b1b0b1a/runner.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/vibecore-audit-artifacts/restore-ci-postgres-27ec5b1b0b1a/cleanup.json",
+      "sha256": "e4c8da22509644ec990f32a794c87daf62b4ae3e4c5a252b8a2a0b0bda9b9f07"
+    }
+  ],
+  "limitations": [
+    "Local Node24.19.0 differs from CI Node22; this does not substitute for the actual GitHub workflow.",
+    "The local cached image ID was approved and PostgreSQL16.15 verified; no remote registry/image-index verification was performed.",
+    "This validates real PostgreSQL repository and transfer contracts, not a production deployment or a cloud archive restoration.",
+    "The worktree contains the current uncommitted candidate; the exact source manifest is recorded."
+  ]
+}

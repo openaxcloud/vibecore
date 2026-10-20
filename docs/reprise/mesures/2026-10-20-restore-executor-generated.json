@@ -1,0 +1,72 @@
+{
+  "generation": {
+    "label": "prisma-regenerate-final",
+    "startedAt": "2026-10-20T14:22:55.026842+00:00",
+    "memoryBefore": 3304103936,
+    "command": [
+      "pnpm",
+      "--filter",
+      "@vibecore/database",
+      "db:generate"
+    ],
+    "exitCode": 0,
+    "seconds": 17.07,
+    "peakMemory": 3886059520,
+    "finishedAt": "2026-10-20T14:23:12.101319+00:00"
+  },
+  "generatedComparison": {
+    "verifiedAt": "2026-10-20T14:23:23.037170+00:00",
+    "byteIdentical": true,
+    "files": {
+      "packages/database/generated/client/edge.js": "d02f1b61aa98bff4bc182b8107c4c85621b08e1485a6cc2dd19e84dc829f84e1",
+      "packages/database/generated/client/index-browser.js": "e91edf8ec1179005689578241cda5405202e727f15a8b4f6b58d3e838d39c12c",
+      "packages/database/generated/client/index.d.ts": "296793623642e346b68dfa76f0e751c92d931ee2329ca5a2a39d2d849230249c",
+      "packages/database/generated/client/index.js": "d72b497280868aa8fc5487f4f9693269c28be92297a33f3cc0ee6d188fd95061",
+      "packages/database/generated/client/package.json": "0253fb252f9cb3f48b1deb72269ac70438dcc9511051d4506439dac07ca79481",
+      "packages/database/generated/client/schema.prisma": "e09cad757c170c45cd41e1632528a37a0a289197915189fa0a1aadf8a6eb3db0"
+    }
+  },
+  "sourceCheck": {
+    "verifiedAt": "2026-10-20T14:24:20.456700+00:00",
+    "frozenSources": 26,
+    "mismatches": [],
+    "generatedSourcesByteIdentical": true,
+    "deletedFiles": [],
+    "unmergedFiles": []
+  },
+  "indexRegeneration": {
+    "label": "bug-index-regenerate-final",
+    "startedAt": "2026-10-20T14:23:35.270722+00:00",
+    "memoryBefore": 3309289472,
+    "command": [
+      "node",
+      "scripts/migrer-inventaire-bugs.mjs",
+      "--index"
+    ],
+    "exitCode": 0,
+    "seconds": 0.51,
+    "peakMemory": 3309428736,
+    "finishedAt": "2026-10-20T14:23:35.779160+00:00"
+  },
+  "indexTests": {
+    "label": "bug-index-tests-final",
+    "startedAt": "2026-10-20T14:24:02.266597+00:00",
+    "memoryBefore": 3308937216,
+    "command": [
+      "pnpm",
+      "exec",
+      "vitest",
+      "run",
+      "scripts/index-a-jour.spec.mjs",
+      "--maxWorkers=1",
+      "--minWorkers=1"
+    ],
+    "exitCode": 0,
+    "seconds": 21.07,
+    "peakMemory": 3824578560,
+    "finishedAt": "2026-10-20T14:24:23.339317+00:00",
+    "passed": 6
+  },
+  "codeChangesAfterPhysicalDrill": false,
+  "productionRestoreAvailable": false
+}

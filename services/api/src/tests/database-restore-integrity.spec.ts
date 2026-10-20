@@ -4,6 +4,7 @@
  * application cutover or a physical restore, and rejects external HTTP requests.
  */
 import { createServer, type Server } from 'node:http';
+import { encryptJson } from '@vibecore/security';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp } from '../app.js';
 import { clusterName, resolveDefaultDatabaseProvisioner, type K8sManifest } from '../database-provisioner.js';
@@ -17,17 +18,30 @@ let externalRequests = 0;
 let managerOrigin = '';
 let manifests: K8sManifest[] = [];
 let reads: string[] = [];
+let pauseRequest: ((path: string) => Promise<void>) | undefined;
+let connectionUri: string | undefined;
 const realFetch = globalThis.fetch;
 const auth = { authorization: 'Bearer restore-integrity-fixture' };
 const internalAuth = { authorization: 'Bearer restore-integrity-internal-fixture' };
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 
 beforeEach(async () => {
   ready = false;
   externalRequests = 0;
   manifests = [];
   reads = [];
+  pauseRequest = undefined;
+  connectionUri = undefined;
   server = createServer(async (request, response) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
+    await pauseRequest?.(url.pathname);
     response.setHeader('content-type', 'application/json');
     if (request.method === 'POST' && url.pathname === '/databases/apply') {
       let raw = '';
@@ -38,6 +52,10 @@ beforeEach(async () => {
       return;
     }
     reads.push(`${url.pathname}?${url.searchParams}`);
+    if (request.method === 'GET' && url.pathname === '/databases/secret' && connectionUri) {
+      response.end(JSON.stringify({ data: { uri: connectionUri } }));
+      return;
+    }
     if (request.method === 'GET' && url.pathname === '/databases/resource') {
       response.end(
         JSON.stringify({
@@ -121,6 +139,68 @@ async function seed(environment: 'development' | 'production') {
 }
 
 describe('database restore integrity', () => {
+  for (const endpoint of ['databases', 'database', 'database/provision'] as const) {
+    it(`${endpoint}: rejects the old provisioning response after a restored binding became current`, async () => {
+      const { project, instanceId } = await seed('development');
+      const current = store.databaseInstances.get(instanceId)!;
+      const oldTimestamp = new Date(Date.now() - 3600_000).toISOString();
+      store.databaseInstances.set(instanceId, {
+        ...current,
+        status: 'PROVISIONING',
+        createdAt: oldTimestamp,
+        updatedAt: oldTimestamp,
+      });
+      const gate = deferred();
+      const entered = deferred();
+      connectionUri = 'postgresql://fixture:unused@old-database.invalid/app';
+      const gatePath = endpoint === 'database/provision' ? '/databases/apply' : '/databases/secret';
+      pauseRequest = async (path) => {
+        if (path === gatePath) {
+          entered.resolve();
+          await gate.promise;
+        }
+      };
+      const pending = Promise.resolve(
+        app!.inject({
+          method: endpoint === 'database/provision' ? 'POST' : 'GET',
+          url: `/projects/${project.id}/${endpoint}`,
+          headers: auth,
+          ...(endpoint === 'database/provision' ? { payload: {} } : {}),
+        }),
+      );
+      try {
+        await entered.promise;
+        // Explicit persistence fixture, not a physical restore: the PostgreSQL
+        // repository suite separately exercises the actual cutover transaction.
+        const restoredCipher = encryptJson({ value: 'postgresql://fixture:unused@restored-database.invalid/app' });
+        await store.upsertProjectSecret({
+          projectId: project.id,
+          key: 'DATABASE_URL',
+          valueEncrypted: restoredCipher,
+        });
+        store.databaseInstances.set(instanceId, {
+          ...current,
+          status: 'ACTIVE',
+          activeTargetRef: 'restored-fixture-target',
+          bindingVersion: 1,
+          updatedAt: new Date().toISOString(),
+        });
+        gate.resolve();
+        const response = await pending;
+        expect(response.statusCode).toBe(endpoint === 'database/provision' ? 409 : 200);
+        expect(await store.getDatabaseInstanceByProject(project.id)).toMatchObject({
+          status: 'ACTIVE',
+          activeTargetRef: 'restored-fixture-target',
+          bindingVersion: 1,
+        });
+        expect((await store.getProjectSecret(project.id, 'DATABASE_URL'))?.valueEncrypted).toBe(restoredCipher);
+      } finally {
+        gate.resolve();
+        await pending;
+      }
+    });
+  }
+
   it('labels historical completed rows as unverified without rewriting them', async () => {
     const { project, instanceId } = await seed('development');
     const restore = await store.createDatabaseRestore({ databaseInstanceId: instanceId });
