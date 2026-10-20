@@ -1,0 +1,262 @@
+{
+  "recordedAt": "2026-10-20T10:51:23.186054+00:00",
+  "base": "e40edf3e04217e2d0e96ea1385c0420e18374bac",
+  "state": "local candidate; not merged, deployed or verified in production",
+  "scope": "Honest refusal of unavailable integration sync and removal of fabricated webhook delivery metrics; no connector or delivery executor added.",
+  "sourceFiles": [
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "sha256": "d0ee0b34ae3372d57d27f74e81eb09218f33002f49ea6f1c7c7bc379dd75a9ab"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/api-runtime-routes.ts",
+      "sha256": "36c3382d3c6648ef346204182695bd338bb3070a71b6db0d5a0fb932a6902b3d"
+    },
+    {
+      "path": "app/lib/i18n/catalogs/base-chat-ast.ts",
+      "sha256": "826fae54daf4af94e06d21186922f9e2bca0acb54f2de75aa34f1c8f85da3e4b"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.ide-panel.$panel.ts",
+      "sha256": "ffbfc26c22a084e648d85fd29523f3c83fba91dc810e36ffa8bdf6bf5ce1bda5"
+    },
+    {
+      "path": "app/components/chat/integration-sync-honesty.spec.tsx",
+      "sha256": "b59c9b743cee90b454ae759ab9f744052113020ece5bf09fb2c680338a092475"
+    },
+    {
+      "path": "app/routes/api.projects.$projectId.ide-panel.integrations-sync.spec.ts",
+      "sha256": "fe2d522b3eb3331279ea944752e125a0bbe3a9550a7cce43f3005d0247e3cd2b"
+    },
+    {
+      "path": "app/components/chat/BaseChat.ts-nocheck-debt.spec.ts",
+      "sha256": "eff85e299e22215a7167826b2a62ba25168afece745a5d224fbee1f84f15478d"
+    }
+  ],
+  "regressions": [
+    {
+      "name": "Sync BFF",
+      "baselineFailed": 8,
+      "baselinePassed": 2,
+      "scope": "real exported BFF and apiRequest over an explicitly simulated loopback configuration API; no provider"
+    },
+    {
+      "name": "Sync UI",
+      "baselineFailed": 6,
+      "scope": "actual component AST, explicit data and unrelated authentication-card fixtures"
+    },
+    {
+      "name": "Webhook BFF/UI",
+      "baselineFailed": 12,
+      "baselinePassed": 2,
+      "baselineSkipped": 16,
+      "scope": "same explicit fixtures; two permission/activation witnesses pass"
+    }
+  ],
+  "targetedTests": {
+    "passed": 96,
+    "failed": 0,
+    "files": 7,
+    "workers": 1,
+    "scope": "new BFF/UI regression tests, existing BFF/i18n/source guards and generated bug index",
+    "log": "webhook-related-final.log"
+  },
+  "sourceGuard": "The existing three language declaration/use/order assertions are retained; they now use the actual API-key expiry date formatter instead of the removed fabricated metric formatter. Two date-render witnesses added.",
+  "targetedLint": {
+    "files": 7,
+    "errors": 0,
+    "warnings": 0,
+    "scope": "four production files and three affected specs, not repository-wide lint"
+  },
+  "build": {
+    "command": [
+      "pnpm",
+      "run",
+      "build"
+    ],
+    "exitCode": 0,
+    "startedAt": "2026-10-20T10:20:01.861436+00:00",
+    "finishedAt": "2026-10-20T10:29:53.678464+00:00",
+    "heapLimitMiB": 6144,
+    "sourceHashesUnchanged": true,
+    "runtimeMode": "WebContainer default of the standard build; no remote-kubernetes build flag",
+    "sharedMemoryObservedMaxBytes": 11457085440
+  },
+  "realLocalRecipe": {
+    "startedAt": "2026-10-20T10:34:35.851Z",
+    "finishedAt": "2026-10-20T10:35:38.600Z",
+    "browser": "154.0.8037.57",
+    "passed": true,
+    "cases": [
+      {
+        "locale": "en",
+        "name": "desktop",
+        "width": 1440,
+        "height": 1000,
+        "syncDisabled": true,
+        "sync503NoMutation": true,
+        "metricsUnavailable": true,
+        "configurationSurvivesReload": true,
+        "horizontalOverflow": false
+      },
+      {
+        "locale": "fr",
+        "name": "tablet",
+        "width": 820,
+        "height": 1180,
+        "syncDisabled": true,
+        "sync503NoMutation": true,
+        "metricsUnavailable": true,
+        "configurationSurvivesReload": true,
+        "horizontalOverflow": false
+      },
+      {
+        "locale": "fr",
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "syncDisabled": true,
+        "sync503NoMutation": true,
+        "metricsUnavailable": true,
+        "configurationSurvivesReload": true,
+        "horizontalOverflow": false
+      }
+    ],
+    "stack": "compiled web -> real local API -> local PostgreSQL; own new synthetic QA identity/project only; no substituted HTTP response",
+    "verified": [
+      "metadata configuration re-read through actual API",
+      "connect stores no new lastSync",
+      "Sync button disabled and direct BFF POST503 leaves stored state unchanged",
+      "webhook metadata created through the actual form, re-read without successRate",
+      "configuration remains after page reload"
+    ],
+    "externalBrowserRequestsBlocked": 18,
+    "cleanup": {
+      "projectDeleteStatus": 200,
+      "syntheticIdentityRetained": true,
+      "remainingOwnedActiveProcesses": 0,
+      "remainingOwnedZombies": 0
+    },
+    "firstAttempt": "Failed on a mobile-only selector used on desktop, before the target action. Selector corrected to the actual desktop palette; no product/assertion/timeout change. That project was deleted200; its synthetic identity remains explicitly retained."
+  },
+  "sourceRouterReview": {
+    "sourceSha": "e40edf3e04217e2d0e96ea1385c0420e18374bac",
+    "finding": "No delivery executor or metric consumer for the panel state was identified in this bounded source search. Other webhook routes use separate data models. This does not prove absence of external deployed integrations or dynamic consumers.",
+    "distinctRoutes": [
+      {
+        "name": "POST /webhooks/github",
+        "file": "services/api/src/app.ts",
+        "line": 14301,
+        "scope": "Incoming GitHub signature verification and audit; unrelated to panel configuration.",
+        "url": "https://github.com/openaxcloud/vibecore/blob/e40edf3e04217e2d0e96ea1385c0420e18374bac/services/api/src/app.ts#L14301"
+      },
+      {
+        "name": "POST /webhooks/resend",
+        "file": "services/api/src/app.ts",
+        "line": 14412,
+        "scope": "Incoming email provider events; unrelated to panel configuration.",
+        "url": "https://github.com/openaxcloud/vibecore/blob/e40edf3e04217e2d0e96ea1385c0420e18374bac/services/api/src/app.ts#L14412"
+      },
+      {
+        "name": "deliverSiemAbuseSignal",
+        "file": "services/api/src/app.ts",
+        "line": 8896,
+        "scope": "Outgoing signed SIEM delivery using listSiemWebhooks; separate persistence and destination validation.",
+        "url": "https://github.com/openaxcloud/vibecore/blob/e40edf3e04217e2d0e96ea1385c0420e18374bac/services/api/src/app.ts#L8896"
+      },
+      {
+        "name": "POST /orgs/:orgId/siem-webhooks/:webhookId/test",
+        "file": "services/api/src/app.ts",
+        "line": 22410,
+        "scope": "Outgoing SIEM test delivery via fetch and actual response status; not executed in this review.",
+        "url": "https://github.com/openaxcloud/vibecore/blob/e40edf3e04217e2d0e96ea1385c0420e18374bac/services/api/src/app.ts#L22410"
+      }
+    ],
+    "routesExecuted": false
+  },
+  "localEvidenceDirectory": "/workspace/vibecore-audit-artifacts/integration-sync",
+  "limitations": [
+    "No external provider synchronization, OAuth authorization or webhook delivery implemented or verified.",
+    "Saved connected/active configuration does not prove provider access; the rest of the integration hub remains to be exercised.",
+    "Local real QA recipe is distinct from explicitly fixtured unit/BFF tests; neither is production proof.",
+    "All non-loopback browser destinations were blocked; no cloud, payment, customer data, secret value or permission change.",
+    "Standard build uses WebContainer; no runtime command was issued, and remote-kubernetes mode was not exercised.",
+    "No Safari/device/production proof or complete functional acceptance of integrations.",
+    "Full repository typing/lint are not asserted by this evidence; recorded separately by the normal commit hook."
+  ],
+  "focusedVisualFollowUp": {
+    "startedAt": "2026-10-20T10:49:57.996Z",
+    "scope": "focused screenshots of real compiled panel after scrolling; one new own project, existing own synthetic identity",
+    "networkGuard": "all non-loopback browser destinations blocked, no substituted response",
+    "externalBrowserRequestsBlocked": 9,
+    "cases": [
+      {
+        "locale": "en",
+        "name": "desktop",
+        "width": 1440,
+        "height": 1000,
+        "syncDisabled": true,
+        "unverifiedText": true,
+        "webhookMetricsUnavailable": true,
+        "horizontalOverflow": false
+      },
+      {
+        "locale": "fr",
+        "name": "tablet",
+        "width": 820,
+        "height": 1180,
+        "syncDisabled": true,
+        "unverifiedText": true,
+        "webhookMetricsUnavailable": true,
+        "horizontalOverflow": false
+      },
+      {
+        "locale": "fr",
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "syncDisabled": true,
+        "unverifiedText": true,
+        "webhookMetricsUnavailable": true,
+        "horizontalOverflow": false
+      }
+    ],
+    "cleanup": {
+      "projectDeleteStatus": 200,
+      "syntheticIdentityRetained": true,
+      "remainingOwnedActiveProcesses": 0,
+      "remainingOwnedZombies": 0
+    },
+    "browser": "154.0.8037.57",
+    "configurationReread": true,
+    "passed": true,
+    "finishedAt": "2026-10-20T10:50:28.510Z",
+    "captures": [
+      {
+        "path": "focused-captures/en-desktop-sync.png",
+        "sha256": "1da305ec5a5e94e0fdfa8b5bbfa5f6dbc1a5186dc6d4d8510d97e6e83bcd0a1f"
+      },
+      {
+        "path": "focused-captures/en-desktop-webhook.png",
+        "sha256": "500358904d06be9edbd67c1368c5c13bf43137bff45d131d7da9c415799c4ed8"
+      },
+      {
+        "path": "focused-captures/fr-mobile-sync.png",
+        "sha256": "8a15573f4fe4cd0888b003ab48c4acecc8a3d6c2a6787b7817d0eecb76c1ba5e"
+      },
+      {
+        "path": "focused-captures/fr-mobile-webhook.png",
+        "sha256": "4651f30676b1acb6aeadcf3b4f61312504e4424cbd8018c8731d88ee50875b81"
+      },
+      {
+        "path": "focused-captures/fr-tablet-sync.png",
+        "sha256": "8da415f8deaab378c592f3b7c1d81a98ce10b4b6d508182da2407f1808076a7c"
+      },
+      {
+        "path": "focused-captures/fr-tablet-webhook.png",
+        "sha256": "c91643600562f1b5c2bdeae3886561517a160b821de9acd60e2a5b9258b26c94"
+      }
+    ],
+    "inspection": "All six images inspected: targeted rows visible, no secret value or customer row, synthetic configuration only."
+  }
+}

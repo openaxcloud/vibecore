@@ -558,6 +558,11 @@ export const baseChatAstEn = {
   'baseChatAst.workflows.noAgent': 'No agent workflows yet.',
   'baseChatAst.workflows.noCustom': 'No custom workflows yet.',
   'baseChatAst.integrations.lastSync': 'Last sync',
+  'baseChatAst.integrations.syncUnverified': 'Unverified',
+  'baseChatAst.integrations.syncUnavailable': 'Integration sync is unavailable in this panel.',
+  'baseChatAst.integrations.webhookMetricsUnavailable': 'Delivery metrics unavailable',
+  'baseChatAst.integrations.webhookConfigurationOnly':
+    'Endpoint configurations are saved. Event delivery is not verified in this panel.',
   'baseChatAst.integrations.secretStored': 'Secret stored',
   'baseChatAst.integrations.browse': 'Browse integrations',
   'baseChatAst.integrations.createWebhook': 'Create webhook',
@@ -1290,6 +1295,11 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.workflows.noAgent': 'Aucun flux de travail d’agent.',
   'baseChatAst.workflows.noCustom': 'Aucun flux de travail personnalisé.',
   'baseChatAst.integrations.lastSync': 'Dernière synchronisation',
+  'baseChatAst.integrations.syncUnverified': 'Non vérifiée',
+  'baseChatAst.integrations.syncUnavailable': 'La synchronisation des intégrations est indisponible dans ce panneau.',
+  'baseChatAst.integrations.webhookMetricsUnavailable': 'Mesures de livraison indisponibles',
+  'baseChatAst.integrations.webhookConfigurationOnly':
+    'Les configurations des points de réception sont enregistrées. La livraison des événements n’est pas vérifiée dans ce panneau.',
   'baseChatAst.integrations.secretStored': 'Secret enregistré',
   'baseChatAst.integrations.browse': 'Parcourir les intégrations',
   'baseChatAst.integrations.createWebhook': 'Créer un webhook',

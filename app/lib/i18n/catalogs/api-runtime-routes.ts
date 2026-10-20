@@ -104,6 +104,8 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.installRequired': 'installId is required',
   'apiRuntime.panel.unsupportedExtensionAction': 'unsupported extensionAction: {action}',
   'apiRuntime.panel.integrationRequired': 'Select an integration.',
+  'apiRuntime.panel.integrationSyncUnavailable':
+    'Integration sync is unavailable in this panel. No synchronization was started.',
   'apiRuntime.panel.scheduleEmpty': 'Enter a schedule.',
   'apiRuntime.panel.scheduleInvalid': 'The cron schedule is invalid.',
   'apiRuntime.panel.workflowNotArmed': 'Arm this workflow schedule before running it.',
@@ -284,6 +286,8 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.installRequired': 'Sélectionnez une extension installée.',
   'apiRuntime.panel.unsupportedExtensionAction': 'L’action d’extension « {action} » n’est pas prise en charge.',
   'apiRuntime.panel.integrationRequired': 'Sélectionnez une intégration.',
+  'apiRuntime.panel.integrationSyncUnavailable':
+    'La synchronisation des intégrations est indisponible dans ce panneau. Aucune synchronisation n’a été lancée.',
   'apiRuntime.panel.scheduleEmpty': 'Saisissez une planification.',
   'apiRuntime.panel.scheduleInvalid': 'La planification cron est invalide.',
   'apiRuntime.panel.workflowNotArmed': 'Activez la planification de ce workflow avant de l’exécuter.',

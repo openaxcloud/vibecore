@@ -21199,6 +21199,7 @@ function ProjectIntegrationsPanel({
    * `ProjectMonitoringPanel` a déjà reçu ce correctif ; celui-ci était resté.
    */
   const language = resolvedBaseChatLanguage(i18n);
+  const syncAvailable = data.integrationSync?.available === true;
   const state = data.integrationsState ?? {};
   const integrationState = state.integrations ?? {};
   const webhooks = state.webhooks ?? [];
@@ -21358,7 +21359,7 @@ function ProjectIntegrationsPanel({
                 </ul>
                 <small>
                   {selected.connected
-                    ? t('chat.copy.revokingRemovesTheStoredTokenAnd_2da0fa0d')
+                    ? t('baseChatAst.integrations.syncUnavailable')
                     : t('chat.copy.youCanRevokeThisAccessAt_76f2b594')}
                 </small>
               </div>
@@ -21395,9 +21396,9 @@ function ProjectIntegrationsPanel({
                   ],
                   [
                     t('baseChatAst.integrations.lastSync'),
-                    selected.lastSync
-                      ? (formatBaseChatAstDateTime(language, selected.lastSync) ?? t('baseChatAst.status.never'))
-                      : t('baseChatAst.status.never'),
+
+                    // Stored dates were configuration writes, never verified synchronization results.
+                    t('baseChatAst.integrations.syncUnverified'),
                   ],
                   [
                     t('baseChatAst.integrations.secretStored'),
@@ -21447,23 +21448,28 @@ function ProjectIntegrationsPanel({
 
           {activeTab === 'connected' && (
             <section className="bolt-project-integrations-list" data-testid="list-connected">
+              {!syncAvailable && (
+                <p className="text-sm text-bolt-elements-textSecondary" role="status">
+                  {t('baseChatAst.integrations.syncUnavailable')}
+                </p>
+              )}
               {connected.map((item) => (
                 <article key={item.id}>
                   <span className={item.icon} aria-hidden />
                   <div>
                     <strong>{item.name}</strong>
                     <small>
-                      {item.lastSync
-                        ? t('chat.copy.lastSyncValue0_f4f23a01', {
-                            value0: formatBaseChatAstDateTime(language, item.lastSync) ?? '',
-                          })
-                        : t('chat.copy.noSyncYet_d2ba97a9')}
+                      {t('baseChatAst.integrations.lastSync')}: {t('baseChatAst.integrations.syncUnverified')}
                     </small>
                   </div>
                   <form onSubmit={onSubmit}>
                     <input type="hidden" name="intent" value="sync" />
                     <input type="hidden" name="integrationId" value={item.id} />
-                    <PanelButton disabled={busy} variant="outline">
+                    <PanelButton
+                      disabled={busy || !syncAvailable}
+                      variant="outline"
+                      title={!syncAvailable ? t('baseChatAst.integrations.syncUnavailable') : undefined}
+                    >
                       {t('chat.copy.sync_905f6309')}
                     </PanelButton>
                   </form>
@@ -21482,7 +21488,7 @@ function ProjectIntegrationsPanel({
                   variant="compact"
                   icon="i-ph:plugs-connected"
                   title={t('chat.copy.noConnectedIntegrations_b428bc03')}
-                  description={t('chat.copy.connectAServiceToSyncData_643c4e95')}
+                  description={t('baseChatAst.integrations.syncUnavailable')}
                   actionLabel={t('baseChatAst.integrations.browse')}
                   onAction={() => setActiveTab('browse')}
                 />
@@ -21495,7 +21501,7 @@ function ProjectIntegrationsPanel({
               <div className="bolt-project-integrations-section-head">
                 <div>
                   <strong>{t('chat.copy.webhooks_fdfe2da7')}</strong>
-                  <small>{t('chat.copy.outgoingEndpointsPersistedInProjectBackend_e4b52238')}</small>
+                  <small>{t('baseChatAst.integrations.webhookConfigurationOnly')}</small>
                 </div>
                 {/* UNIF-14 — CTA de création sur le PanelButton commun (primary sm, comme « New variable »). */}
                 <PanelButton type="button" size="sm" onClick={() => setShowWebhookForm((value) => !value)}>
@@ -21527,9 +21533,7 @@ function ProjectIntegrationsPanel({
                     <strong>{webhook.name}</strong>
                     <small>{webhook.url}</small>
                     <small>
-                      {(webhook.events ?? []).join(', ')} ·{' '}
-                      {formatBaseChatAstNumber(language, webhook.successRate ?? 100)}
-                      {t('chat.copy.success_319e54bc')}
+                      {(webhook.events ?? []).join(', ')} · {t('baseChatAst.integrations.webhookMetricsUnavailable')}
                     </small>
                   </div>
                   <form onSubmit={onSubmit}>
@@ -21554,7 +21558,7 @@ function ProjectIntegrationsPanel({
                   variant="compact"
                   icon="i-ph:webhooks-logo"
                   title={t('chat.copy.noWebhooksConfigured_8cb1dd66')}
-                  description={t('chat.copy.sendProjectEventsToAnOutgoing_18c07ece')}
+                  description={t('baseChatAst.integrations.webhookConfigurationOnly')}
                   actionLabel={t('baseChatAst.integrations.createWebhook')}
                   onAction={() => setShowWebhookForm(true)}
                 />

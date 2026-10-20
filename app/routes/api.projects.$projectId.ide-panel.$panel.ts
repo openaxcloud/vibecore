@@ -1026,6 +1026,8 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           ...(secrets as any),
           ...(activity as any),
           integrationsState: readIntegrationsState(envVars),
+          integrationSync: { available: false, code: 'INTEGRATION_SYNC_UNAVAILABLE' },
+          webhookDeliveryMetrics: { available: false, code: 'WEBHOOK_DELIVERY_METRICS_UNAVAILABLE' },
         }),
       );
     } catch (error) {
@@ -2537,10 +2539,29 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       );
     }
   } else if (panel === 'integrations') {
+    // Retain the project-scoped read/authorization before exposing the capability.
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
+
+    if (intent === 'sync') {
+      if (!body.integrationId) {
+        throw json(
+          { error: copy['apiRuntime.panel.integrationRequired'], code: 'INTEGRATION_REQUIRED' },
+          { status: 400 },
+        );
+      }
+
+      /*
+       * This hub has no synchronization executor. Do not mutate connection state
+       * or timestamps merely because a user requested an external operation.
+       */
+      return json(
+        { ok: false, error: copy['apiRuntime.panel.integrationSyncUnavailable'], code: 'INTEGRATION_SYNC_UNAVAILABLE' },
+        { status: 503 },
+      );
+    }
+
     const state = readIntegrationsState(envVars);
     const now = new Date().toISOString();
-    const intent = body.intent ?? 'default';
 
     if (intent === 'connect' || intent === 'disconnect') {
       const integrationId = body.integrationId;
@@ -2556,7 +2577,6 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         ...(state.integrations[integrationId] ?? {}),
         connected: intent === 'connect',
         status: intent === 'connect' ? 'active' : undefined,
-        lastSync: intent === 'connect' ? now : undefined,
         config: { organization: body.organization ?? '' },
       };
 
@@ -2577,22 +2597,6 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           body: JSON.stringify({ key: integrationSecretKey(integrationId) }),
         }).catch(() => undefined);
       }
-    } else if (intent === 'sync') {
-      const integrationId = body.integrationId;
-
-      if (!integrationId) {
-        throw json(
-          { error: copy['apiRuntime.panel.integrationRequired'], code: 'INTEGRATION_REQUIRED' },
-          { status: 400 },
-        );
-      }
-
-      state.integrations[integrationId] = {
-        ...(state.integrations[integrationId] ?? {}),
-        connected: true,
-        status: 'active',
-        lastSync: now,
-      };
     } else if (intent === 'create-webhook') {
       const id = randomUUID();
 
@@ -2607,7 +2611,6 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         url: body.url,
         events: events.length ? events : ['all'],
         active: true,
-        successRate: 100,
         createdAt: now,
       });
 
