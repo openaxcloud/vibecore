@@ -4,9 +4,11 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-464 entrées.
+465 entrées.
 
 ## Sans section
+
+- [BUG-NETWORK-DEPENDENCIES-20261021](docs/bugs/BUG-NETWORK-DEPENDENCIES-20261021.md) — Dépendances réseau ws et compression — 📤 Dispatché : ☑ · 💻 Codé : branche isolée · ✅ Testé live : local uniquement
 
 - [BUG-METHODE-MODULE-MORT-002](docs/bugs/BUG-METHODE-MODULE-MORT-002.md) — Suite de -001 : la ligne de base traitée, et le scanner corrigé de DEUX faux positifs. — 📤 Dispatché : ☑ 15/09 · 💻 Codé : ☑ 15/09 · ✅ Testé live : ☐
 - [BUG-WEBKIT-SCROLL-FIL-001](docs/bugs/BUG-WEBKIT-SCROLL-FIL-001.md) — P1 à confirmer — sur WebKit, le fil de l'agent ne se remonte pas : la sonde qui le fait défiler rend `false` 3 FOIS SUR 3 à 768 px — 📤 Dispatché : ☑ 10/09 · 💻 Codé : ☑ 14/09 — cause tranchée, corrigé · ✅ Testé live : ☐
