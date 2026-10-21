@@ -1,0 +1,27 @@
+[
+  {
+    "width": 1440,
+    "opened": {
+      "tag": "BUTTON",
+      "name": "More agent actions",
+      "inMenu": false
+    },
+    "arrow": {
+      "tag": "BUTTON",
+      "name": "More agent actions",
+      "inMenu": false
+    },
+    "tab": {
+      "tag": "BUTTON",
+      "name": "Library, 1 file",
+      "inMenu": false
+    },
+    "escaped": {
+      "tag": "BUTTON",
+      "name": "Library, 1 file",
+      "inMenu": false
+    },
+    "remainsOpenAfterEscape": false,
+    "overflow": false
+  }
+]

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-449 entrées.
+450 entrées.
 
 ## Sans section
 
@@ -559,6 +559,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DB-TRANSFER-PROVISIONING-001](docs/bugs/BUG-DB-TRANSFER-PROVISIONING-001.md) — P2 — un transfert de projet laisse ses instances de base sous l'ancienne — 📤 Dispatché : ☑ 20/10 — défaut reproduit et correctif vérifié sur deux cas PostgreSQL dédiés. · 💻 Codé : ☐ Candidat local non committé, non fusionné dans `main`, non déployé. · ✅ Testé live : ☐ Aucune preuve de production. Deux cas Prisma/PostgreSQL locaux ont une contre-épreuve rouge→verte.
 - [BUG-DB-RESTORE-AUTH-TRANSFER-001](docs/bugs/BUG-DB-RESTORE-AUTH-TRANSFER-001.md) — P1 — l'organisation autorisée par HTTP peut être perdue si un transfert — 📤 Dispatché : ☑ 20/10 — revue indépendante de la tête `01cf9e9079a42ca9aa29324c8c9845c2f95d21a3` · 💻 Codé : ☐ Correction locale, non fusionnée et non déployée. L'organisation autorisée · ✅ Testé live : ☐ Aucun essai en production. Le coordinateur n'est pas injecté dans le serveur
 - [BUG-DB-RESTORE-ROTATION-CORPUS-001](docs/bugs/BUG-DB-RESTORE-ROTATION-CORPUS-001.md) — 📤 Dispatché : 20 octobre 2026 : blocage CI signalé par le parent, puis reproduit localement. · 💻 Codé : Correctif local du corpus : deux entrées utilisant `restoreId`. · ✅ Testé live : Non : aucun essai en production et aucune rotation sur des secrets réels.
+
+## 2026-10-21 — Recette UX locale des panneaux
+
+- [BUG-UX-AGENT-MENU-FOCUS-001](docs/bugs/BUG-UX-AGENT-MENU-FOCUS-001.md) — Le menu desktop « More agent actions » / « Plus d'actions d'agent » s'ouvre — 📤 Dispatché : ☑ lot UX parallèle, branche `fix/panel-ux-accessibility-20261021`. · 💻 Codé : ☐ non intégré à main ; correctif de branche destiné à une PR brouillon, sans fusion autonome. · ✅ Testé live : ☐ aucune certification production. Recette locale : 12/12 parcours navigateur réussis.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

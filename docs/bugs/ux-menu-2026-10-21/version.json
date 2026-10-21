@@ -1,0 +1,16 @@
+{
+  "baseCommit": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "sourceSha256": {
+    "app/components/chat/HeaderOverflowMenu.tsx": "658ea2ea31250dc1d4b282d5e3e9d33568fee21b082fe506fa2072320ba3685f",
+    "tests/e2e/agent-header-menu-keyboard.spec.ts": "70f46d45c39a9e630e0cfbb7f65cb00d25fc1b1e1f1cc53f1042338a77144664"
+  },
+  "buildTreeSha256": "6b47c38c4b6090bd28ecc0e117a05293360f439e658312d545ec46bd68d3341e",
+  "buildFileCount": 2304,
+  "node": "v24.19.0",
+  "browser": "Chromium 154.0.8037.57 system",
+  "appOrigin": "http://127.0.0.1:5196",
+  "apiOrigin": "http://127.0.0.1:3013",
+  "database": "127.0.0.1:55443/vibecore_ux_20261021",
+  "production": false,
+  "networkMocks": false
+}
