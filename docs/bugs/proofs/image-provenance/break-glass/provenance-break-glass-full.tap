@@ -1,0 +1,674 @@
+TAP version 13
+# Subtest: real Helm and jq are required, never silently skipped
+not ok 1 - real Helm and jq are required, never silently skipped
+  ---
+  duration_ms: 7.938318
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:128:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at success (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:27:18)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:129:16)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.start (node:internal/test_runner/test:1242:17)
+    +     at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'version',
+    +     '--short'
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    success (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:27:18)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:129:16)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.start (node:internal/test_runner/test:1242:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    success (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:27:18)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:129:16)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.start (node:internal/test_runner/test:1242:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: actual Bash and jq propagate known source and explicitly reset null source
+ok 2 - actual Bash and jq propagate known source and explicitly reset null source
+  ---
+  duration_ms: 64.342518
+  type: 'test'
+  ...
+# Subtest: workflow arguments reach real Deployment and ConfigMap provenance annotations
+not ok 3 - workflow arguments reach real Deployment and ConfigMap provenance annotations
+  ---
+  duration_ms: 28.338051
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:148:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    +     at file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:150:22
+    +     at temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:149:3)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '-f',
+    +     '/tmp/image-provenance-J7Ef73/saved-values.json',
+    +     '--set-string',
+    +     'global.imageRegistry=example.invalid/synthetic-provenance',
+    +     '--set-string',
+    +     'services.api.imageDigest=sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'services.api.imageSourceSha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    +     '--set-string',
+    +     'services.api.imageSourceDigest=sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImage=example.invalid/synthetic-provenance/workspace-agent@sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceSha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceImage=example.invalid/synthetic-provenance/workspace-agent@sha256:1111111111111111111111111111111111111111111111111111111111111111'
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:150:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:149:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:150:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:149:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+  ...
+# Subtest: saved Helm values retain original provenance on a later release, not the target SHA
+not ok 4 - saved Helm values retain original provenance on a later release, not the target SHA
+  ---
+  duration_ms: 18.499586
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:170:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    +     at file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:172:19
+    +     at temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:171:3)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '-f',
+    +     '/tmp/image-provenance-xHQ2AG/saved-values.json',
+    +     '--set-string',
+    +     'global.imageRegistry=example.invalid/synthetic-provenance',
+    +     '--set-string',
+    +     'services.api.imageDigest=sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'services.api.imageSourceSha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    +     '--set-string',
+    +     'services.api.imageSourceDigest=sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImage=example.invalid/synthetic-provenance/workspace-agent@sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceSha=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceImage=example.invalid/synthetic-provenance/workspace-agent@sha256:1111111111111111111111111111111111111111111111111111111111111111'
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:172:19
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:171:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:172:19
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:171:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+  ...
+# Subtest: null source explicitly erases stale saved provenance for Deployment and workspace agent
+not ok 5 - null source explicitly erases stale saved provenance for Deployment and workspace agent
+  ---
+  duration_ms: 19.334072
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:212:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    +     at file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:225:22
+    +     at temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:213:3)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '-f',
+    +     '/tmp/image-provenance-y21YmL/saved-values.json',
+    +     '--set-string',
+    +     'global.imageRegistry=example.invalid/synthetic-provenance',
+    +     '--set-string',
+    +     'services.api.imageDigest=sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'services.api.imageSourceSha=',
+    +     '--set-string',
+    +     'services.api.imageSourceDigest=',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImage=example.invalid/synthetic-provenance/workspace-agent@sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceSha=',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceImage='
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:225:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:213:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:225:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:213:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+  ...
+# Subtest: real Helm schema rejects malformed SHA in services.api.imageSourceSha
+not ok 6 - real Helm schema rejects malformed SHA in services.api.imageSourceSha
+  ---
+  duration_ms: 2.471104
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:238:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:239:20)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    +     at Test.postRun (node:internal/test_runner/test:1522:19)
+    +     at Test.run (node:internal/test_runner/test:1447:12)
+    +     at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '--set-string',
+    +     'services.api.imageSourceSha=not-a-source-sha'
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:239:20)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:239:20)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+  ...
+# Subtest: real Helm schema rejects malformed SHA in platformEnv.runtime.workspaceAgentImageSourceSha
+not ok 7 - real Helm schema rejects malformed SHA in platformEnv.runtime.workspaceAgentImageSourceSha
+  ---
+  duration_ms: 1.67792
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:238:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:239:20)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    +     at Test.postRun (node:internal/test_runner/test:1522:19)
+    +     at Test.run (node:internal/test_runner/test:1447:12)
+    +     at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceSha=not-a-source-sha'
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:239:20)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:239:20)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+  ...
+# Subtest: actual Bash provenance binding guards reject mismatching or absent digest/image
+ok 8 - actual Bash provenance binding guards reject mismatching or absent digest/image
+  ---
+  duration_ms: 20.813606
+  type: 'test'
+  ...
+# Subtest: actual Bash break-glass replaces A with known B provenance and binding
+ok 9 - actual Bash break-glass replaces A with known B provenance and binding
+  ---
+  duration_ms: 38.176595
+  type: 'test'
+  ...
+# Subtest: actual Bash break-glass clears null and legacy absent source and bindings
+ok 10 - actual Bash break-glass clears null and legacy absent source and bindings
+  ---
+  duration_ms: 45.501867
+  type: 'test'
+  ...
+# Subtest: real Helm break-glass A to known B replaces both provenance bindings
+not ok 11 - real Helm break-glass A to known B replaces both provenance bindings
+  ---
+  duration_ms: 23.059579
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:359:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    +     at file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:361:22
+    +     at temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:360:3)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '-f',
+    +     '/tmp/image-provenance-52efpa/saved-values.json',
+    +     '--set-string',
+    +     'global.imageRegistry=example.invalid/synthetic-provenance',
+    +     '--set-string',
+    +     'services.api.imageDigest=sha256:2222222222222222222222222222222222222222222222222222222222222222',
+    +     '--set-string',
+    +     'services.api.imageSourceSha=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    +     '--set-string',
+    +     'services.api.imageSourceDigest=sha256:2222222222222222222222222222222222222222222222222222222222222222',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImage=example.invalid/synthetic-provenance/workspace-agent@sha256:2222222222222222222222222222222222222222222222222222222222222222',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceSha=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceImage=example.invalid/synthetic-provenance/workspace-agent@sha256:2222222222222222222222222222222222222222222222222222222222222222'
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:361:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:360:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:361:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:360:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+  ...
+# Subtest: real Helm break-glass A to unknown B clears null and legacy provenance
+not ok 12 - real Helm break-glass A to unknown B clears null and legacy provenance
+  ---
+  duration_ms: 19.447245
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:379:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    +     at file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:382:24
+    +     at temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:380:3)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '-f',
+    +     '/tmp/image-provenance-lIyUHs/saved-values.json',
+    +     '--set-string',
+    +     'global.imageRegistry=example.invalid/synthetic-provenance',
+    +     '--set-string',
+    +     'services.api.imageDigest=sha256:2222222222222222222222222222222222222222222222222222222222222222',
+    +     '--set-string',
+    +     'services.api.imageSourceSha=',
+    +     '--set-string',
+    +     'services.api.imageSourceDigest=',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImage=example.invalid/synthetic-provenance/workspace-agent@sha256:2222222222222222222222222222222222222222222222222222222222222222',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceSha=',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImageSourceImage='
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:382:24
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:380:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:382:24
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:380:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+  ...
+# Subtest: real Helm image-only change cannot bind saved A provenance to B
+not ok 13 - real Helm image-only change cannot bind saved A provenance to B
+  ---
+  duration_ms: 3.030321
+  type: 'test'
+  location: '/workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:395:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    helm: spawnSync helm ENOENT
+    + actual - expected
+
+    + Error: spawnSync helm ENOENT
+    +     at Object.spawnSync (node:internal/child_process:1160:20)
+    +     at spawnSync (node:child_process:928:24)
+    +     at run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    +     at render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    +     at file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:397:22
+    +     at temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    +     at TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:396:3)
+    +     at Test.runInAsyncScope (node:async_hooks:227:14)
+    +     at Test.run (node:internal/test_runner/test:1382:25)
+    +     at Test.processPendingSubtests (node:internal/test_runner/test:960:18) {
+    +   code: 'ENOENT',
+    +   errno: -2,
+    +   path: 'helm',
+    +   spawnargs: [
+    +     'template',
+    +     'provenance',
+    +     '/workspace/vibecore-image-provenance/infra/helm/platform',
+    +     '-f',
+    +     '/tmp/image-provenance-Os28V5/saved-values.json',
+    +     '--set-string',
+    +     'global.imageRegistry=example.invalid/synthetic-provenance',
+    +     '--set-string',
+    +     'services.api.imageDigest=sha256:2222222222222222222222222222222222222222222222222222222222222222',
+    +     '--set-string',
+    +     'platformEnv.runtime.workspaceAgentImage=example.invalid/synthetic-provenance/workspace-agent@sha256:2222222222222222222222222222222222222222222222222222222222222222'
+    +   ],
+    +   syscall: 'spawnSync helm'
+    + }
+    - undefined
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  actual:
+  error: 'spawnSync helm ENOENT'
+  stack: |-
+    Object.spawnSync (node:internal/child_process:1160:20)
+    spawnSync (node:child_process:928:24)
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:20:18)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:397:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:396:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+  operator: 'strictEqual'
+  stack: |-
+    run (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:21:10)
+    render (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:75:18)
+    file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:397:22
+    temporary (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///workspace/vibecore-image-provenance/scripts/release-gate/image-provenance-roundtrip.checks.mjs:396:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 4
+# fail 9
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 398.187577

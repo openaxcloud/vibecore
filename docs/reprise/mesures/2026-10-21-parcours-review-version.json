@@ -1,0 +1,34 @@
+{
+  "remoteBase": "80fee0ce7e911a7e161ffed626a4b7310eb1e788",
+  "sourcesSha256": {
+    "app/routes/signup.tsx": "1b7ad6fa4d36d9abe8bdaaca26f55dc7a544bcd1983ba8338a4060ebe0ada8f2",
+    "app/routes/dashboard.tsx": "fa699cbb8880625dda94c6e41b8c4cf620d59aa9fd878bfb7f7e4b2d4b7679f6",
+    "app/lib/dashboard-onboarding.ts": "33d853a2daf61cf7949454b0a044f1a95904168d4f62ec78d54b29b39ce0b407",
+    "app/lib/dashboard-onboarding.spec.ts": "b969a224b3ae0ab9c1a2c84faee378270be6bc912ef86f0015d7420bb246cbd1",
+    "tests/e2e/signup-confirmation-feedback.spec.ts": "a0c13ce1a102d7c557c4c6507dfcb0ef6916103fc777ca3ccc411e5d43d6e917",
+    "tests/e2e/dashboard-publication-readiness.spec.ts": "2afa86b931b1df1bb6f67abfdb58d146a66c19605de7927c9fa0fa6edee6e39b",
+    "playwright.launch-journey.config.ts": "9c5e8c73e7940c098c80a79ea09e66b5ecc7fdaf8ff35af05bb35a88ccce17d8"
+  },
+  "browser": {
+    "passed": 9,
+    "durationSeconds": 49.8,
+    "engine": "Chromium 154.0.8037.57",
+    "formats": 3,
+    "retries": 0,
+    "networkInterception": false
+  },
+  "logicTests": {
+    "passed": 6,
+    "realPublicationProven": false
+  },
+  "baseline": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "deploymentObserved": "QUEUED",
+  "commandExecutionProven": false,
+  "bundleManifest": {
+    "files": 2304,
+    "sha256": "449525ffae19788f9a0f89a6926eafcb92064113c842dba1becd2fb5eed9b7f0",
+    "algorithm": "SHA256 of sorted relative-path + space + file-SHA256 + newline"
+  },
+  "serverEntrySha256": "f4793264655e750a132afba2ad0a7c1e6d552ea38c1c2b204ecf94c7dec6e488",
+  "postTestFormatting": "Only comments and blank lines adjusted in test/config for ESLint; application code unchanged."
+}

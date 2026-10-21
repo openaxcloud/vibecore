@@ -1,0 +1,104 @@
+{
+  "baseSha": "72415499ac45ffb9135026d3d4f0d193e327e9f8",
+  "createdAt": "2026-10-21T13:07:59.048465+00:00",
+  "workingTreeDirty": true,
+  "sources": [
+    {
+      "path": "scripts/release-gate/image-provenance-roundtrip.checks.mjs",
+      "sha256": "cec5c8d7b2612e0b637dfbdca168044a36e48acbd68e6fe2525a4a8be72f247d"
+    },
+    {
+      "path": ".github/workflows/deploy-main.yml",
+      "sha256": "f61d100ab2a0963ab0f214582c84f364c2844bb145270d154c19ec7309477afd"
+    },
+    {
+      "path": ".github/workflows/deploy-break-glass.yml",
+      "sha256": "be60daade1a6a9e46a3d5b14a994cb08d485921b3822a1272a4c9305211902f5"
+    },
+    {
+      "path": "infra/helm/platform/templates/deployments.yaml",
+      "sha256": "2874f8e7fcba917923e9008797830fadef231d15f6deeacf6886ae9810fca5cc"
+    },
+    {
+      "path": "infra/helm/platform/templates/configmap.yaml",
+      "sha256": "d1ee589a2d11db862d51fc98e92daed326a747f1212b97ccdfc1cfc590dac2d2"
+    },
+    {
+      "path": "infra/helm/platform/values.schema.json",
+      "sha256": "ee09da8ec828c1bbb1fad50ddc459fb82ce524023fbb0c1048d9c5ef522ce38e"
+    },
+    {
+      "path": "infra/helm/platform/values.yaml",
+      "sha256": "2fa9c2e7f11a6e3b5abe85cc2fdc500e3d03438d8cbe960c6783335e9e9cca95"
+    },
+    {
+      "path": "scripts/release-gate/release-manifest.mjs",
+      "sha256": "e81f87ec160e9c18d2984bb8bc823a31b052a155502c75f48d3317c3619033ea"
+    }
+  ],
+  "commands": [
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "--test-name-pattern=actual Bash break-glass",
+        "/tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs"
+      ],
+      "exitCode": 1,
+      "log": "docs/bugs/proofs/image-provenance/break-glass/provenance-break-glass-before.tap",
+      "sha256": "707647df0de402760e5c88e04926db3e64e80e8d5934ef6da0db89e41f1a30ed",
+      "summary": ["# tests 2", "# pass 0", "# fail 2", "# skipped 0", "# todo 0"],
+      "rawSha256": "707647df0de402760e5c88e04926db3e64e80e8d5934ef6da0db89e41f1a30ed"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "--test-name-pattern=actual Bash",
+        "scripts/release-gate/image-provenance-roundtrip.checks.mjs"
+      ],
+      "exitCode": 0,
+      "log": "docs/bugs/proofs/image-provenance/break-glass/provenance-break-glass-after.tap",
+      "sha256": "9da938c715694db33935d2e304fd72a7fc1ad695353a18032ab7693462c6200d",
+      "summary": ["# tests 4", "# pass 4", "# fail 0", "# skipped 0", "# todo 0"],
+      "rawSha256": "9da938c715694db33935d2e304fd72a7fc1ad695353a18032ab7693462c6200d"
+    },
+    {
+      "command": [
+        "node",
+        "--test",
+        "--test-reporter=tap",
+        "scripts/release-gate/image-provenance-roundtrip.checks.mjs"
+      ],
+      "exitCode": 1,
+      "log": "docs/bugs/proofs/image-provenance/break-glass/provenance-break-glass-full.tap",
+      "sha256": "76b403dde2ae765a97ca8d7e7730c7576f96b3f4c16486ba18ee15398ffbffa9",
+      "summary": ["# tests 13", "# pass 4", "# fail 9", "# skipped 0", "# todo 0"],
+      "rawSha256": "60622afac4a0d08634bd0efac516c09cce9a7ebe31a787d41c2e520ddebfa590"
+    },
+    {
+      "command": ["./node_modules/.bin/eslint", "scripts/release-gate/image-provenance-roundtrip.checks.mjs"],
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "./node_modules/.bin/prettier",
+        "--check",
+        "scripts/release-gate/image-provenance-roundtrip.checks.mjs",
+        "docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md"
+      ],
+      "exitCode": 0,
+      "output": "Checking formatting...\nAll matched files use Prettier code style!\n"
+    }
+  ],
+  "limitations": [
+    "Helm absent; nine explicit failures, not validated renders.",
+    "Previous official Helm download HTTP403; no retry or alternative download.",
+    "Bash blocks extracted from actual workflows; no helm upgrade or kubectl executed.",
+    "No commit or publication performed by this agent."
+  ],
+  "logNormalization": "Published TAP copies strip trailing whitespace only; rawSha256 records unchanged originals."
+}

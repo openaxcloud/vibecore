@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-462 entrées.
+463 entrées.
 
 ## Sans section
 
@@ -584,6 +584,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## IDE — initialisation et persistance
 
 - [BUG-IDE-AGENT-MENU-SHELL-001](docs/bugs/BUG-IDE-AGENT-MENU-SHELL-001.md) — Le menu agent ouvert dans PendingComposerShell perd son ouverture et son focus — 📤 Dispatché : ☑ — 21 octobre 2026, coordination des PR #749 et #750. · 💻 Codé : ☐ — candidat sur branche locale d'intégration : provider au-dessus des shells, · ✅ Testé live : ☐ — test de remplacement réel rouge avant correction (1 échec/5), puis 5/5
+
+## Sans section
+
+- [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
