@@ -208,7 +208,7 @@
     "chart.js": "^4.4.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
-    "compression": "^1.8.1",
+    "compression": "^1.8.2",
     "date-fns": "^3.6.0",
     "diff": "^5.2.0",
     "dotenv": "^16.4.7",
@@ -271,7 +271,7 @@
     "unist-util-visit": "^5.0.0",
     "use-debounce": "^10.0.4",
     "vite-plugin-node-polyfills": "^0.22.0",
-    "ws": "^8.20.0",
+    "ws": "^8.21.0",
     "zod": "^3.24.1",
     "zustand": "^5.0.3"
   },
@@ -378,7 +378,8 @@
       "vite>esbuild": "0.27.7",
       "bundle-require>esbuild": "0.27.7",
       "importx>esbuild": "0.27.7",
-      "proxy-addr": "^2.0.8"
+      "proxy-addr": "^2.0.8",
+      "ws": "^8.21.0"
     }
   }
 }

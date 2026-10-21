@@ -1,0 +1,5 @@
+Scope: 2 of 36 workspace projects
+services/api typecheck$ tsc --noEmit -p tsconfig.json
+services/workspace-agent typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts
+services/workspace-agent typecheck: Done
+services/api typecheck: Done

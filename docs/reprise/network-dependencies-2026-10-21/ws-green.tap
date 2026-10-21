@@ -1,0 +1,11 @@
+{"scenario":"fragment-limit","error":"WS_ERR_TOO_MANY_BUFFERED_PARTS"}
+✔ real loopback WebSocket rejects excess tiny fragments below maxPayload (146.945261ms)
+✔ real loopback WebSocket preserves ordinary fragmented messages (5.427421ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 159.094816

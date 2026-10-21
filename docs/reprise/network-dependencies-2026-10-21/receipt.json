@@ -1,0 +1,811 @@
+{
+  "baseSha": "883af053f7c1b85bb472fa53c7fa87b4c8051c9b",
+  "state": "candidate source hashes; no claim of clean commit at execution",
+  "node": "24.19.0",
+  "pnpm": "9.14.4",
+  "sources": [
+    {
+      "path": "package.json",
+      "sha256": "646a31449d18938268b05bf98127d5b24b5851ef7fb7fa53afd208aae5ae0911"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "2024b120f3d5f2e942e77aaf4e3f3f6acd76da85fc6808755942ce558f8ca310"
+    },
+    {
+      "path": "services/workspace-agent/package.json",
+      "sha256": "ad0f87cdaf31df94074ed8369ad83a51c6af86aafa21913635916039cd180217"
+    },
+    {
+      "path": "scripts/ws-fragment-security.checks.mjs",
+      "sha256": "07ce18d00d4eddd4d92d0ebc11c811f64d9e5d6eeb5368cb848b9e905ab9e43c"
+    },
+    {
+      "path": "scripts/ws-fragment-security.spec.mjs",
+      "sha256": "e1d3ce91a36a5a5a84ed14cea73a89bfe89e4bcb245f4efd66670262b8f260ee"
+    },
+    {
+      "path": "scripts/compression-close-security.checks.mjs",
+      "sha256": "234fba1a59ed69e5757ef160fd0be11a3ca29f45a719b8af4f1247a26d38caad"
+    },
+    {
+      "path": "scripts/compression-close-security.spec.mjs",
+      "sha256": "eea02a63da84a569b12f7f55985fd4c14458c6e4b03ef307a9886daee69ce7fb"
+    }
+  ],
+  "tests": [
+    {
+      "report": "network-final-targeted.json",
+      "rawSha256": "7c8462aa12c9aeab8c408256c3585654c3faeb21d891f521858476c586eca83e",
+      "success": true,
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "tests": [
+        {
+          "name": "checks native compression cleanup with real HTTP clients and zlib streams",
+          "status": "passed",
+          "durationMs": 302.945923
+        },
+        {
+          "name": "l'index de l'inventaire ne diverge pas de docs/bugs/ chaque fichier du dossier a exactement une ligne dans l\u2019index",
+          "status": "passed",
+          "durationMs": 11.800387999999998
+        },
+        {
+          "name": "l'index de l'inventaire ne diverge pas de docs/bugs/ chaque ligne de l\u2019index pointe vers un fichier qui existe",
+          "status": "passed",
+          "durationMs": 4.125998999999979
+        },
+        {
+          "name": "l'index de l'inventaire ne diverge pas de docs/bugs/ l\u2019identifiant de l\u2019index est celui du frontmatter du fichier",
+          "status": "passed",
+          "durationMs": 32.96100000000001
+        },
+        {
+          "name": "l'index de l'inventaire ne diverge pas de docs/bugs/ le compte annonc\u00e9 en t\u00eate d\u2019index est le compte r\u00e9el",
+          "status": "passed",
+          "durationMs": 9.366213000000016
+        },
+        {
+          "name": "la d\u00e9cision rest\u00e9e hors du tableau est conserv\u00e9e mot pour mot figure dans l'index, \u00e0 la ligne pr\u00e8s",
+          "status": "passed",
+          "durationMs": 2.3569850000000088
+        },
+        {
+          "name": "la d\u00e9cision rest\u00e9e hors du tableau est conserv\u00e9e mot pour mot est annonc\u00e9e comme un r\u00e9sidu, pas gliss\u00e9e dans la liste des entr\u00e9es",
+          "status": "passed",
+          "durationMs": 3.2268060000000105
+        },
+        {
+          "name": "enforces fragment limits with real WebSocket peers",
+          "status": "passed",
+          "durationMs": 371.106005
+        }
+      ]
+    },
+    {
+      "report": "network-api-websockets-run.json",
+      "rawSha256": "b3587b6a418c3834cbc7a41475d3920029e2d7aaf14649eec5f462dc4012f373",
+      "success": true,
+      "passed": 2,
+      "failed": 0,
+      "skipped": 126,
+      "tests": [
+        {
+          "name": "SaaS API authenticates users and returns the current session",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces strict CORS and CSRF for cookie-authenticated mutations",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API refuses to boot in production when the CORS allowlist is missing or dev-default",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API refuses to boot in production when the workspace manager URL is missing or local",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API boots in production when the CORS allowlist is explicit HTTPS origins",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API exposes request ids, correlation ids, synthetic health, and Prometheus metrics",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API persists account profile updates through the API",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API accepts public contact sales requests through the email provider",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API accepts general contact messages (topic instead of company) through the same intake",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rejects a contact intake payload carrying neither company nor topic",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces organization isolation on project resources",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces backend RBAC for member management",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API blocks an admin from escalating a role above their own (owner promotion)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API records audit logs for critical actions",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API verifies email and supports password reset with session revocation",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API applies org session duration policy at login",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API creates, resends, accepts and expires organization invitations",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API never leaks an invitation tokenHash from any of the 5 invitation endpoints",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API throttles invitation resends to once per minute per invite",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API binds invitation acceptance to the invited email (rejects a different user)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces team member quota across invitation acceptance",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API applies custom organization roles to backend RBAC and member lifecycle actions",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API transfers organization ownership atomically and guards the transfer endpoint",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API blocks an org admin from minting a custom role with permissions they do not hold",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API uses well-known authorization URL defaults for Google when only the client id is set",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API GitHub OAuth code exchange falls back to /user/emails when GitHub returns a null email for a private profile",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API GitHub OAuth code exchange uses the email returned by /user without an extra /user/emails request",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API GitHub OAuth code exchange returns OAUTH_PROFILE_INCOMPLETE when GitHub has no usable email and /user/emails fails",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API GitHub OAuth code exchange rejects an OAuth code flow that omits the state parameter (login-CSRF protection)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API completes OAuth, OIDC and SAML login callbacks with account linking",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rejects a SAML assertion whose email domain the organization has NOT verified",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rejects a SAML XML Signature Wrapping attack (injected assertion is not honored)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rejects a replayed SAML assertion (one-time use)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API bootstraps and manages platform administrators with MFA and re-authentication",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces platform admin RBAC and records admin audit logs",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API lists real billing subscriptions and supports audited admin plan overrides",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API redacts scoped audit-log PII (no longer a no-op) and reports a real count",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API requires re-authentication and records admin audit logs for manual abuse events",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API requires re-authentication for dangerous admin actions",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API suspend org blocks workspace start and admin stop workspace action persists state",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns backend project file metadata for workspace file metadata routes",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enables MFA with TOTP and rotates recovery codes",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API requires MFA at login once TOTP is enabled",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API lists sessions and revokes all other devices",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API logs out the current session",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API validates and stores encrypted SSO configs after admin re-authentication",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API provisions SCIM users with hashed tokens",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API exports audit logs as CSV and JSON",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rejects invalid Stripe webhook signatures and processes duplicate events idempotently",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API verifies Resend webhooks, persists delivery events idempotently, and rejects bad signatures",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns 503 from /webhooks/resend when RESEND_WEBHOOK_SECRET is unset",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API blocks quota exceeded actions and allows audited quota overrides",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API plan upgrade updates backend quotas used by protected actions",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API short-circuits FREE and ENTERPRISE checkout without hitting Stripe",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API respects the checkout interval and refuses annual-to-monthly substitution",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API creates Stripe customer portal sessions for existing billing customers",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API lists Stripe invoices for the billing customer",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns an empty invoice list when no billing customer exists",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API maps checkout completed webhooks from checkout metadata when subscription items are absent",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API records cancellation behavior from Stripe subscription deletion",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API scaffolds distinct, template-specific files for each curated template id (from-template)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API supports persistent project CRUD, settings, collaborators and soft delete restore",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API protects concurrent ide-state writes with If-Match / 412 (Phase 0 #4)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API supports realtime collaboration presence, edits, comments, terminal permissions and cleanup",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API mints and reads server-stored, HMAC-signed chat shares (audit M5/M7)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API issues collaboration WebSocket tickets and streams ready state over a dedicated socket",
+          "status": "passed",
+          "durationMs": 520.2491560000008
+        },
+        {
+          "name": "SaaS API imports and exports project zip archives",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API prefers replacement ZIP storage over recovered IDE state files",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API recovers new project scaffold files from persisted storage state when pod-local storage is empty",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API creates and restores snapshots without exposing runtime secrets",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API restores snapshots from durable archive storage when pod-local objects are missing",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API does not scaffold simulated app files before the IDE agent generates real output",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API recovers generated project files from persisted IDE chat state when storage is empty",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API indexes package manifests generated in IDE state even when project storage already has files",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API deploys projects through static, Vercel and Cloud Run providers with redacted logs",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API marks static deployments as FAILED with no URL when the build fails",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns 400 for invalid deployment ids and 404 for unknown deployments on the static serve route",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API persists domain DNS routing options and TLS readiness state",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API refuses domain reads and writes from a member of another organization",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rolls back, redeploys and cancels deployment records",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API tests GitHub import and git operations",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API BUG-AI-002 \u2014 un 403 \u00ab plan \u00bb de la passerelle atteint l\u2019utilisateur au lieu d\u2019un 502 opaque",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API BUG-DB-003 \u2014 joint le statut de l\u2019instance g\u00e9r\u00e9e \u00e0 la connexion qu\u2019elle alimente",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API discovers database connections without exposing secret values",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces RBAC project access for persistent project operations",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API executes AI file tools through the workspace runtime only",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API lists only the current user project AI conversations with a bounded limit",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API attaches AI tool calls to an active project AI conversation transcript",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API passes terminal output through the proxy as single, unwrapped CommandEvent frames",
+          "status": "passed",
+          "durationMs": 274.08570299999974
+        },
+        {
+          "name": "SaaS API resolves a bare project id to the deterministic ws- workspace for every runtime endpoint",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API reports a not-yet-started workspace as stopped instead of crashing on an empty manager body",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API stops a workspace the manager no longer knows and frees the active-workspace quota",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API lets a free-tier user reopen an existing workspace without re-charging the quota",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API blocks AI path traversal and dangerous commands before runtime execution",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces configured AI shell command allow-lists before runtime execution",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API redacts canary secrets from AI runtime tool responses and persisted tool output",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API blocks abusive runtime commands, logs AbuseEvent, and stops the workspace before agent execution",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API executes a package install by dispatching the detected package-manager command to the project workspace",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API installs into the workspace the caller names, not the deterministic per-user pod",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API refuses a workspace id that belongs to a different project",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API defaults to npm install and rejects package specs with shell metacharacters",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns per-port preview URLs for remote runtime ports",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API proxies root preview requests without requiring a trailing wildcard path",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns classified runtime log snapshots for IDE log streams",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API starts isolated runtime workspaces per user for the same shared project",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API forwards decrypted project secret values to the workspace manager on start",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns a controlled 502 when the workspace manager is unavailable",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API runs runtime commands through a local workspace fallback when the manager is unavailable",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API uses the local runtime fallback for commands and ports when the workspace agent is unavailable",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API creates a before-AI snapshot before destructive tools",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API stamps every snapshot of one agent turn with the SAME turnIndex (multi-tool-call turn)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API records chat usage in the AI cost ledger and the usage counters",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API returns matched:false and 0\u00a2 when the model is not in the pricing catalog",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API check-quota returns headroom when within the plan limits",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API check-quota allows BYOK on team and enterprise plans",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API check-quota forces managed keys when ENTERPRISE_FORCE_MANAGED_KEYS=true overrides plan",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API check-quota rejects with 429 when the estimated tokens would exceed the plan",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API cost-summary aggregates AiCostLedger rows by provider/model/day/project",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API cost-summary filters by from/to window",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rejects unauthenticated record-usage requests with 401",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API persists and lists AgentPatchProposal rows across the project lifecycle",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API enforces organization isolation on AgentPatchProposal endpoints",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API persists User.language through PATCH /auth/me and surfaces it on GET",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API persists User.timezone through PATCH /auth/me and surfaces it on GET (audit #10)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API persists and shallow-merges preferences through /user/preferences (audit #3)",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API rejects unsupported language tags on PATCH /auth/me",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API mirrors the persisted language into the vibecore-lang cookie and clears it on null",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "SaaS API does not touch the vibecore-lang cookie when the PATCH omits language",
+          "status": "skipped",
+          "durationMs": null
+        }
+      ]
+    }
+  ],
+  "counterproofs": {
+    "ws": {
+      "before": {
+        "passed": 1,
+        "failed": 1,
+        "exitCode": 1
+      },
+      "after": {
+        "passed": 2,
+        "failed": 0,
+        "exitCode": 0
+      }
+    },
+    "compression": {
+      "before": {
+        "passed": 3,
+        "failed": 3,
+        "exitCode": 1
+      },
+      "after": {
+        "passed": 6,
+        "failed": 0,
+        "exitCode": 0
+      }
+    },
+    "skipped": 0
+  },
+  "logs": [
+    {
+      "path": "compression-close-before.tap",
+      "sha256": "c3c50dd4dc0b4e031a88be34e9031f9be366e38b13de4956583e79e97f645894"
+    },
+    {
+      "path": "ws-red.tap",
+      "sha256": "526f53974a6b60f4d843bef7d85e67323e9f693af11027cab5a9052e66aef001"
+    },
+    {
+      "path": "ws-green.tap",
+      "sha256": "632642e010d3e4c9069e2fbb253911211f823963d77286efe6e05387592a4bb1"
+    },
+    {
+      "path": "compression-close-after.tap",
+      "sha256": "a129e07c034c7117b9be128399ea98c27fee95e578216b7f84dbb28f738e1848"
+    }
+  ],
+  "limits": [
+    "API tests use in-memory storage; real websocket transport but not PostgreSQL validation.",
+    "API nonselected tests are explicitly skipped by title filter.",
+    "No OOM test, production request, native app distribution or deployed image claim.",
+    "Source branch independent of #761; combined assembly still required."
+  ],
+  "productionAudit": {
+    "exitCode": 1,
+    "rawSha256": "3ccff20ab9cfc72532885de648644b3031dfa9618dded64328e6128e809b4b5d",
+    "counts": {
+      "info": 0,
+      "low": 28,
+      "moderate": 108,
+      "high": 70,
+      "critical": 2
+    },
+    "remainingWsCompression": []
+  },
+  "checks": {
+    "typecheck": {
+      "exitCode": 0,
+      "rawSha256": "e2e0affdea4a02f19c5f781101bfd54ef6e923075cdc7923130d18bb5eb4290f"
+    },
+    "targetedGitleaks": {
+      "exitCode": 0,
+      "rawSha256": "7933f22def66335328e98996df08171102c10585763808d2749d630bcad6b9ff"
+    }
+  }
+}
