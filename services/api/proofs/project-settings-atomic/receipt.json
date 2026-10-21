@@ -1,0 +1,55 @@
+{
+  "baseSha": "e02bcab225bdfb53ce501407098543a0a56068e1",
+  "sourceSha256": {
+    "services/api/src/app.ts": "045f324fdd79c8922d242754507e8375ad2d0e5e100926604d08430752286c8f",
+    "services/api/src/store.ts": "05c15b25e8f45cb71b303375c3d4335ddf25031fddaa3e4c5a1774174fc1e537",
+    "services/api/src/prisma-store.ts": "f9fdd4a988a35d075662abef1e8f445149ff5ec684a53da9c206f55335640108",
+    "services/api/src/tests/test-api-store.ts": "b2ec0e88f20d0b2fc34348ee25c24422105fe88ca25594aa4b3d79e2841f4bb6",
+    "services/api/src/project-settings-atomic.integration.spec.ts": "2328b13cf5b555272e65746d1040ad6b09246f65cab7c47c5b492a371b164ba3",
+    "services/api/scripts/verify-project-settings-postgres.sh": "4fa763ab68ee24092b702201411c25c1ff57f0836da2b81847707d08c26a181b"
+  },
+  "logsSha256": {
+    "before-400.log": "d3eb55b6a9ed701e0ad466bffcd8e9349c34e07d532e8d39405e399e15eeb4b2",
+    "green-746.log": "96c29094f31ecf488903cff83f28f0dd15aff174a3fedb776361d3ba2cd47e83",
+    "before-409.log": "a901fa4a084cdfc3e9f6360a0b26790fbf09a5738498f3c79bb2ddb39d8dccd2",
+    "green-atomic.log": "164330aeee3629f94eb51184be1be3a490d10aef62654549381947c8286b53cb"
+  },
+  "precommitExecution": {
+    "sha": "e02bcab225bdfb53ce501407098543a0a56068e1",
+    "dirty": true,
+    "postgresTests": 11,
+    "memoryContractTests": 13,
+    "skipped": 0,
+    "passed": 24,
+    "completedAt": "2026-10-21T06:47:07.020Z"
+  },
+  "exactCommitExecution": "Run the no-skip script after commit; resulting receipt is reported in the PR description. Precommit logs here are tied to source hashes, not to an invented clean SHA.",
+  "lint": {
+    "globalCommand": "node_modules/.bin/eslint --cache --cache-location ./node_modules/.cache/eslint app --format json",
+    "globalErrors": 0,
+    "globalWarnings": 51,
+    "globalExitCode": 0,
+    "globalInputsUnchangedFrom": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+    "newTestExitCode": 0,
+    "appBaselineErrors": 366,
+    "appCurrentErrors": 366,
+    "prismaBaselineErrors": 98,
+    "prismaCurrentErrors": 94,
+    "newPrismaRegionDiagnostics": 0,
+    "storeBaselineErrors": 113,
+    "storeCurrentErrors": 113,
+    "testStoreBaselineErrors": 18,
+    "testStoreCurrentErrors": 18
+  },
+  "commitGate": {
+    "installed": false,
+    "bypassApplied": false,
+    "coreHooksPath": null,
+    "dotGitHooks": "sample hooks only"
+  },
+  "limits": [
+    "Revocation during an already-authorized request is not serialized by the project lock",
+    "No UI, BFF, production, provider, or login certification",
+    "Activity/audit writes after commit are not part of the settings transaction"
+  ]
+}

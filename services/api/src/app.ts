@@ -24937,7 +24937,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let updated = await store.updateProject({ projectId: project.id, ...metadata });
+    const updated = await store.updateProjectSettings({
+      projectId: project.id,
+      organizationId: project.organizationId,
+      slug: normalizedSlug,
+      ...metadata,
+    });
 
     /*
      * F13 slug rename. Normalize to the same canonical form the URL router uses
@@ -24946,7 +24951,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (normalizedSlug !== undefined) {
       if (normalizedSlug !== project.slug) {
-        updated = await store.renameProjectSlug({ projectId: project.id, newSlug: normalizedSlug });
         await store.recordProjectActivity({
           projectId: project.id,
           actorUserId: request.currentUser!.id,

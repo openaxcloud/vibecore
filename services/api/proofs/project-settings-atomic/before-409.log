@@ -1,0 +1,129 @@
+
+ RUN  v3.2.6 /workspace/vibecore/services/api
+
+{"level":30,"time":1792564794460,"pid":4595,"hostname":"e1b6c3a73c58","msg":"Server listening at http://127.0.0.1:34299"}
+{"level":30,"time":1792564794505,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"78377745-84fa-48ba-abf7-eb0736609096","req":{"method":"GET","url":"/projects/cmvhqsnc50008jnpb2dew6ckg/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564794581,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"78377745-84fa-48ba-abf7-eb0736609096","event":"request.completed","requestId":"78377745-84fa-48ba-abf7-eb0736609096","correlationId":"78377745-84fa-48ba-abf7-eb0736609096","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnc50008jnpb2dew6ckg","statusCode":200,"durationSeconds":0.07200002670288086}
+{"level":30,"time":1792564794582,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"78377745-84fa-48ba-abf7-eb0736609096","res":{"statusCode":200},"responseTime":58.683665000018664,"msg":"request completed"}
+{"level":30,"time":1792564794602,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"3b833310-1569-4b69-809b-803b0c9b9e9b","req":{"method":"PATCH","url":"/projects/cmvhqsnc50008jnpb2dew6ckg/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564794650,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"3b833310-1569-4b69-809b-803b0c9b9e9b","event":"request.completed","requestId":"3b833310-1569-4b69-809b-803b0c9b9e9b","correlationId":"3b833310-1569-4b69-809b-803b0c9b9e9b","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnc50008jnpb2dew6ckg","statusCode":409,"durationSeconds":0.046000003814697266}
+{"level":30,"time":1792564794650,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"3b833310-1569-4b69-809b-803b0c9b9e9b","res":{"statusCode":409},"responseTime":46.73095900006592,"msg":"request completed"}
+{"level":30,"time":1792564794656,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"dce03009-71ba-4c9f-b9d8-c39fa8138f7b","req":{"method":"PATCH","url":"/projects/cmvhqsnc50008jnpb2dew6ckg/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564794683,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"dce03009-71ba-4c9f-b9d8-c39fa8138f7b","event":"request.completed","requestId":"dce03009-71ba-4c9f-b9d8-c39fa8138f7b","correlationId":"dce03009-71ba-4c9f-b9d8-c39fa8138f7b","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnc50008jnpb2dew6ckg","statusCode":409,"durationSeconds":0.02700018882751465}
+{"level":30,"time":1792564794683,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"dce03009-71ba-4c9f-b9d8-c39fa8138f7b","res":{"statusCode":409},"responseTime":26.710032999981195,"msg":"request completed"}
+{"level":30,"time":1792564794894,"pid":4595,"hostname":"e1b6c3a73c58","msg":"Server listening at http://127.0.0.1:34725"}
+{"level":30,"time":1792564794897,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"beb34ffa-89c2-44b0-aa90-35bf80882f97","req":{"method":"GET","url":"/projects/cmvhqsnc50008jnpb2dew6ckg/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564794931,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"beb34ffa-89c2-44b0-aa90-35bf80882f97","event":"request.completed","requestId":"beb34ffa-89c2-44b0-aa90-35bf80882f97","correlationId":"beb34ffa-89c2-44b0-aa90-35bf80882f97","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnc50008jnpb2dew6ckg","statusCode":200,"durationSeconds":0.03399991989135742}
+{"level":30,"time":1792564794932,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"beb34ffa-89c2-44b0-aa90-35bf80882f97","res":{"statusCode":200},"responseTime":33.64425399992615,"msg":"request completed"}
+{"level":30,"time":1792564794960,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"da48efde-083a-48f2-a14b-f4bd96103642","req":{"method":"PATCH","url":"/projects/cmvhqsnyi000ijnpbtq9foaro/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795007,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"da48efde-083a-48f2-a14b-f4bd96103642","event":"request.completed","requestId":"da48efde-083a-48f2-a14b-f4bd96103642","correlationId":"da48efde-083a-48f2-a14b-f4bd96103642","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnyi000ijnpbtq9foaro","statusCode":200,"durationSeconds":0.04699993133544922}
+{"level":30,"time":1792564795007,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"da48efde-083a-48f2-a14b-f4bd96103642","res":{"statusCode":200},"responseTime":47.4074879999971,"msg":"request completed"}
+{"level":30,"time":1792564795012,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"10954a12-6074-46f6-8d21-2b7338ddb92a","req":{"method":"PATCH","url":"/projects/cmvhqsnyi000ijnpbtq9foaro/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795036,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"10954a12-6074-46f6-8d21-2b7338ddb92a","event":"request.completed","requestId":"10954a12-6074-46f6-8d21-2b7338ddb92a","correlationId":"10954a12-6074-46f6-8d21-2b7338ddb92a","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnyi000ijnpbtq9foaro","statusCode":200,"durationSeconds":0.023999929428100586}
+{"level":30,"time":1792564795036,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"10954a12-6074-46f6-8d21-2b7338ddb92a","res":{"statusCode":200},"responseTime":23.524488999973983,"msg":"request completed"}
+{"level":30,"time":1792564795135,"pid":4595,"hostname":"e1b6c3a73c58","msg":"Server listening at http://127.0.0.1:43371"}
+{"level":30,"time":1792564795150,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"50e546ab-69c0-4e68-9d8f-82b176a43ef0","req":{"method":"GET","url":"/projects/cmvhqsnyi000ijnpbtq9foaro/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795173,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"50e546ab-69c0-4e68-9d8f-82b176a43ef0","event":"request.completed","requestId":"50e546ab-69c0-4e68-9d8f-82b176a43ef0","correlationId":"50e546ab-69c0-4e68-9d8f-82b176a43ef0","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnyi000ijnpbtq9foaro","statusCode":200,"durationSeconds":0.023000001907348633}
+{"level":30,"time":1792564795173,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"50e546ab-69c0-4e68-9d8f-82b176a43ef0","res":{"statusCode":200},"responseTime":22.32686799997464,"msg":"request completed"}
+{"level":30,"time":1792564795180,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"1ea419ca-154b-4dce-903d-b76c66fd66f6","req":{"method":"PATCH","url":"/projects/cmvhqsnyi000ijnpbtq9foaro/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795221,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"1ea419ca-154b-4dce-903d-b76c66fd66f6","event":"request.completed","requestId":"1ea419ca-154b-4dce-903d-b76c66fd66f6","correlationId":"1ea419ca-154b-4dce-903d-b76c66fd66f6","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnyi000ijnpbtq9foaro","statusCode":200,"durationSeconds":0.0409998893737793}
+{"level":30,"time":1792564795222,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"1ea419ca-154b-4dce-903d-b76c66fd66f6","res":{"statusCode":200},"responseTime":41.41493300010916,"msg":"request completed"}
+{"level":30,"time":1792564795314,"pid":4595,"hostname":"e1b6c3a73c58","msg":"Server listening at http://127.0.0.1:38103"}
+{"level":30,"time":1792564795316,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"a53bf1e7-0b57-4649-bd8d-930e0e131da2","req":{"method":"GET","url":"/projects/cmvhqsnyi000ijnpbtq9foaro/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795365,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"a53bf1e7-0b57-4649-bd8d-930e0e131da2","event":"request.completed","requestId":"a53bf1e7-0b57-4649-bd8d-930e0e131da2","correlationId":"a53bf1e7-0b57-4649-bd8d-930e0e131da2","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsnyi000ijnpbtq9foaro","statusCode":200,"durationSeconds":0.046000003814697266}
+{"level":30,"time":1792564795365,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"a53bf1e7-0b57-4649-bd8d-930e0e131da2","res":{"statusCode":200},"responseTime":47.21708600001875,"msg":"request completed"}
+{"level":30,"time":1792564795379,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"4257fc60-b3ac-4d61-8471-91f8bc39754c","req":{"method":"GET","url":"/projects/cmvhqsoa30011jnpbnsma4eg5/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795380,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"c9cb01a0-cd4f-40f0-9875-7e2a923bbd70","req":{"method":"GET","url":"/projects/cmvhqsoa70012jnpbimax1zgc/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795402,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"4257fc60-b3ac-4d61-8471-91f8bc39754c","event":"request.completed","requestId":"4257fc60-b3ac-4d61-8471-91f8bc39754c","correlationId":"4257fc60-b3ac-4d61-8471-91f8bc39754c","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsoa30011jnpbnsma4eg5","statusCode":200,"durationSeconds":0.023000001907348633}
+{"level":30,"time":1792564795402,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"4257fc60-b3ac-4d61-8471-91f8bc39754c","res":{"statusCode":200},"responseTime":23.332839000038803,"msg":"request completed"}
+{"level":30,"time":1792564795404,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"c9cb01a0-cd4f-40f0-9875-7e2a923bbd70","event":"request.completed","requestId":"c9cb01a0-cd4f-40f0-9875-7e2a923bbd70","correlationId":"c9cb01a0-cd4f-40f0-9875-7e2a923bbd70","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsoa70012jnpbimax1zgc","statusCode":200,"durationSeconds":0.023999929428100586}
+{"level":30,"time":1792564795404,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"c9cb01a0-cd4f-40f0-9875-7e2a923bbd70","res":{"statusCode":200},"responseTime":23.472958000027575,"msg":"request completed"}
+{"level":30,"time":1792564795406,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"0698a62c-b567-42a4-8e27-fdd452ff7061","req":{"method":"PATCH","url":"/projects/cmvhqsoa30011jnpbnsma4eg5/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+{"level":30,"time":1792564795407,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"5e44a257-bf20-47e0-9a8d-c9028549c239","req":{"method":"PATCH","url":"/projects/cmvhqsoa70012jnpbimax1zgc/settings","hostname":"127.0.0.1","remoteAddress":"127.0.0.1"},"msg":"incoming request"}
+stdout | src/project-settings-atomic.integration.spec.ts > atomic project settings — HTTP and PostgreSQL > concurrent claims of one unique slug commit exactly one complete project mutation
+prisma:error 
+Invalid `tx.project.update()` invocation in
+/workspace/vibecore/services/api/src/prisma-store.ts:1019:42
+
+  1016 // canonical URL. Drop it.
+  1017 await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.newSlug } });
+  1018 
+→ 1019 return mapProject(await tx.project.update(
+Unique constraint failed on the fields: (`"organizationId"`, `slug`)
+
+{"level":50,"time":1792564795520,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"0698a62c-b567-42a4-8e27-fdd452ff7061","err":{"type":"PrismaClientKnownRequestError","message":"\nInvalid `tx.project.update()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:1019:42\n\n  1016 // canonical URL. Drop it.\n  1017 await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.newSlug } });\n  1018 \n→ 1019 return mapProject(await tx.project.update(\nUnique constraint failed on the fields: (`\"organizationId\"`, `slug`)","stack":"PrismaClientKnownRequestError: \nInvalid `tx.project.update()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:1019:42\n\n  1016 // canonical URL. Drop it.\n  1017 await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.newSlug } });\n  1018 \n→ 1019 return mapProject(await tx.project.update(\nUnique constraint failed on the fields: (`\"organizationId\"`, `slug`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at /workspace/vibecore/services/api/src/prisma-store.ts:1019:25\n    at Proxy._transactionWithCallback (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:4800)\n    at Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:24949:19)","code":"P2002","meta":{"modelName":"Project","driverAdapterError":{"name":"DriverAdapterError","cause":{"originalCode":"23505","originalMessage":"duplicate key value violates unique constraint \"Project_organizationId_slug_key\"","kind":"UniqueConstraintViolation","constraint":{"fields":["\"organizationId\"","slug"]}}}},"clientVersion":"7.8.0","name":"PrismaClientKnownRequestError"},"route":"/projects/:projectId/settings","code":"P2002","msg":"request failed with server error"}
+{"level":30,"time":1792564795523,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"0698a62c-b567-42a4-8e27-fdd452ff7061","event":"request.completed","requestId":"0698a62c-b567-42a4-8e27-fdd452ff7061","correlationId":"0698a62c-b567-42a4-8e27-fdd452ff7061","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsoa30011jnpbnsma4eg5","statusCode":500,"durationSeconds":0.11700010299682617}
+{"level":30,"time":1792564795523,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"0698a62c-b567-42a4-8e27-fdd452ff7061","res":{"statusCode":500},"responseTime":116.48518600000534,"msg":"request completed"}
+{"level":30,"time":1792564795530,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"5e44a257-bf20-47e0-9a8d-c9028549c239","event":"request.completed","requestId":"5e44a257-bf20-47e0-9a8d-c9028549c239","correlationId":"5e44a257-bf20-47e0-9a8d-c9028549c239","userId":"cmvhqsn9o0000jnpb9y4pjbec","projectId":"cmvhqsoa70012jnpbimax1zgc","statusCode":200,"durationSeconds":0.12299990653991699}
+{"level":30,"time":1792564795530,"pid":4595,"hostname":"e1b6c3a73c58","reqId":"5e44a257-bf20-47e0-9a8d-c9028549c239","res":{"statusCode":200},"responseTime":121.99793499999214,"msg":"request completed"}
+ ❯ src/project-settings-atomic.integration.spec.ts (3 tests | 2 failed) 1694ms
+   × atomic project settings — HTTP and PostgreSQL > rolls back all metadata on repeated 409 collision and leaves no redirect after reconnect 488ms
+     → expected { …(12) } to deeply equal { …(11) }
+   ✓ atomic project settings — HTTP and PostgreSQL > commits metadata, slug and redirect together, supports repetition and rename back  418ms
+   × atomic project settings — HTTP and PostgreSQL > concurrent claims of one unique slug commit exactly one complete project mutation 164ms
+     → expected [ 200, 500 ] to deeply equal [ 200, 409 ]
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/project-settings-atomic.integration.spec.ts > atomic project settings — HTTP and PostgreSQL > rolls back all metadata on repeated 409 collision and leaves no redirect after reconnect
+AssertionError: expected { …(12) } to deeply equal { …(11) }
+
+- Expected
++ Received
+
+  {
+    "createdAt": "2026-10-21T06:39:54.149Z",
+    "deploymentCount": 0,
+-   "description": "Original description",
++   "description": "Rejected",
++   "gitDefaultBranch": "rejected",
+    "id": "cmvhqsnc50008jnpb2dew6ckg",
+-   "name": "Original",
++   "name": "Rejected",
+    "organizationId": "cmvhqsnb20001jnpbihrdclqn",
+    "persistentVolumeClaim": "pvc-cmvhqsnb20001jnpbihrdclqn-panel-f47e65cd-7f75-434f-a6e6-2b30d80f0dcf",
+    "runtimeDeletionPending": false,
+    "slug": "panel-f47e65cd-7f75-434f-a6e6-2b30d80f0dcf",
+    "sourceType": "blank",
+-   "updatedAt": "2026-10-21T06:39:54.149Z",
++   "updatedAt": "2026-10-21T06:39:54.676Z",
+  }
+
+ ❯ src/project-settings-atomic.integration.spec.ts:123:55
+    123|     expect(before.status).toBe(200);
+    124| 
+    125|     for (let attempt = 0; attempt < 2; attempt++) {
+       |                 ^
+    126|       const response = await request('PATCH', path, {
+    127|         name: 'Rejected',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/project-settings-atomic.integration.spec.ts > atomic project settings — HTTP and PostgreSQL > concurrent claims of one unique slug commit exactly one complete project mutation
+AssertionError: expected [ 200, 500 ] to deeply equal [ 200, 409 ]
+
+- Expected
++ Received
+
+  [
+    200,
+-   409,
++   500,
+  ]
+
+ ❯ src/project-settings-atomic.integration.spec.ts:154:49
+    152|     expect((await request('PATCH', path, { slug: project.slug, name: '…
+    153|     await restart();
+    154|     expect((await request('GET', path)).body.project).toMatchObject({ …
+       |                                                 ^
+    155|     expect(await store.prisma.projectSlugRedirect.findMany({ where: { …
+    156|       expect.objectContaining({ oldSlug: slug }),
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  06:39:49
+   Duration  6.35s (transform 2.70s, setup 0ms, collect 4.23s, tests 1.69s, environment 0ms, prepare 90ms)
+

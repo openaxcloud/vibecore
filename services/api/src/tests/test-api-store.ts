@@ -729,6 +729,20 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
+  async updateProjectSettings(input: Parameters<ApiStore['updateProjectSettings']>[0]) {
+    const project = this.projects.get(input.projectId);
+
+    if (!project || project.organizationId !== input.organizationId || project.deletedAt) {
+      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
+    }
+
+    if (input.slug !== undefined) {
+      await this.renameProjectSlug({ projectId: input.projectId, newSlug: input.slug });
+    }
+
+    return this.updateProject(input);
+  }
+
   readonly projectSlugRedirects: Array<{ projectId: string; oldSlug: string; expiresAt: Date }> = [];
 
   async renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }) {

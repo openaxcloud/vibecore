@@ -971,53 +971,84 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  async updateProjectSettings(input: Parameters<ApiStore['updateProjectSettings']>[0]) {
+    return this._persistProjectSettings(input);
+  }
+
   async renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }) {
-    const project = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId } }),
-      'Project not found',
-      'PROJECT_NOT_FOUND',
-    );
+    return this._persistProjectSettings({ projectId: input.projectId, slug: input.newSlug }, input.redirectTtlDays);
+  }
 
-    // No-op rename: don't mint a self-redirect (it would loop the old→new URL
-    // back onto itself) — just hand back the project unchanged.
-    if (project.slug === input.newSlug) {
-      return mapProject(project);
-    }
+  private async _persistProjectSettings(
+    input: Omit<Parameters<ApiStore['updateProjectSettings']>[0], 'organizationId'> & { organizationId?: string },
+    redirectTtlDays = 30,
+  ) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // Serialize changes to this project, including ownership transfers.
+        await tx.$queryRaw`SELECT id FROM "Project" WHERE id = ${input.projectId} FOR UPDATE`;
 
-    // slug is only @@unique within an org, so a bare update would 500 on P2002.
-    // Surface the clash as a typed 409 the route can translate into an inline
-    // "slug already taken" message.
-    const clash = await this.prisma.project.findFirst({
-      where: { organizationId: project.organizationId, slug: input.newSlug, id: { not: project.id } },
-      select: { id: true },
-    });
+        const project = assertFound(
+          await tx.project.findUnique({ where: { id: input.projectId } }),
+          'Project not found',
+          'PROJECT_NOT_FOUND',
+        );
 
-    if (clash) {
-      throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_TAKEN')), {
-        statusCode: 409,
-        code: 'PROJECT_SLUG_TAKEN',
+        if (
+          input.organizationId !== undefined &&
+          (project.organizationId !== input.organizationId || project.deletedAt)
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
+            statusCode: 404,
+            code: 'PROJECT_NOT_FOUND',
+          });
+        }
+
+        const slugChanged = input.slug !== undefined && input.slug !== project.slug;
+
+        const metadata = {
+          name: input.name,
+          description: input.description,
+          gitRepositoryUrl: input.gitRepositoryUrl,
+          gitDefaultBranch: input.gitDefaultBranch,
+        };
+
+        if (!slugChanged && Object.values(metadata).every((value) => value === undefined)) {
+          return mapProject(project);
+        }
+
+        /*
+         * The unique (organizationId, slug) index arbitrates competing projects.
+         * A losing UPDATE aborts the transaction: metadata and redirects cannot
+         * survive the collision, even if both requests started before the winner.
+         */
+        const updated = await tx.project.update({
+          where: { id: project.id },
+          data: { ...metadata, ...(slugChanged ? { slug: input.slug } : {}) },
+        });
+
+        if (slugChanged) {
+          const expiresAt = new Date(Date.now() + redirectTtlDays * 24 * 60 * 60 * 1000);
+          await tx.projectSlugRedirect.upsert({
+            where: { projectId_oldSlug: { projectId: project.id, oldSlug: project.slug } },
+            create: { projectId: project.id, oldSlug: project.slug, expiresAt },
+            update: { expiresAt },
+          });
+          await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.slug } });
+        }
+
+        return mapProject(updated);
       });
+    } catch (error) {
+      if (isPrismaKnownRequestError(error) && error.code === 'P2002') {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_TAKEN')), {
+          statusCode: 409,
+          code: 'PROJECT_SLUG_TAKEN',
+        });
+      }
+
+      throw error;
     }
-
-    const ttlDays = input.redirectTtlDays ?? 30;
-    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-
-    return this.prisma.$transaction(async (tx) => {
-      // Persist old → project redirect (upsert so a re-rename of the same old
-      // slug just refreshes the 30-day window instead of P2002-ing).
-      await tx.projectSlugRedirect.upsert({
-        where: { projectId_oldSlug: { projectId: project.id, oldSlug: project.slug } },
-        create: { projectId: project.id, oldSlug: project.slug, expiresAt },
-        update: { expiresAt },
-      });
-
-      // Renaming BACK to a slug this project previously redirected FROM would
-      // leave a self-redirect (newSlug → this project) that bounces the fresh
-      // canonical URL. Drop it.
-      await tx.projectSlugRedirect.deleteMany({ where: { projectId: project.id, oldSlug: input.newSlug } });
-
-      return mapProject(await tx.project.update({ where: { id: project.id }, data: { slug: input.newSlug } }));
-    });
   }
 
   async resolveProjectSlugRedirect(input: { organizationSlug: string; oldSlug: string; now?: Date }) {
