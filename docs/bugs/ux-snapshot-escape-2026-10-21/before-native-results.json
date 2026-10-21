@@ -1,0 +1,94 @@
+{
+  "results": [
+    {
+      "iteration": 0,
+      "passed": true
+    },
+    {
+      "iteration": 1,
+      "passed": true
+    },
+    {
+      "iteration": 2,
+      "passed": true
+    },
+    {
+      "iteration": 3,
+      "passed": true
+    },
+    {
+      "iteration": 4,
+      "passed": true
+    },
+    {
+      "iteration": 5,
+      "passed": true
+    },
+    {
+      "iteration": 6,
+      "passed": true
+    },
+    {
+      "iteration": 7,
+      "passed": true
+    },
+    {
+      "iteration": 8,
+      "passed": true
+    },
+    {
+      "iteration": 9,
+      "passed": true
+    },
+    {
+      "iteration": 10,
+      "passed": true
+    },
+    {
+      "iteration": 11,
+      "passed": true
+    },
+    {
+      "iteration": 12,
+      "passed": true
+    },
+    {
+      "iteration": 13,
+      "passed": true
+    },
+    {
+      "iteration": 14,
+      "passed": true
+    },
+    {
+      "iteration": 15,
+      "passed": true
+    },
+    {
+      "iteration": 16,
+      "passed": true
+    },
+    {
+      "iteration": 17,
+      "passed": true
+    },
+    {
+      "iteration": 18,
+      "passed": true
+    },
+    {
+      "iteration": 19,
+      "passed": true
+    },
+    {
+      "iteration": 20,
+      "passed": true
+    },
+    {
+      "iteration": 21,
+      "passed": false,
+      "error": "Error: expect(locator).toBeHidden() failed\n\nLocator:  getByRole('dialog', { name: /Escape 1792596164151/ })\nExpected: hidden\nReceived: visible\nTimeout:  5000ms\n\nCall log:\n  - Expect \"to.be.hidden\" with timeout 5000ms\n  - waiting for getByRole('dialog', { name: /Escape 1792596164151/ })\n    9 × locator resolved to <div role=\"dialog\" tabindex=\"-1\" id=\"radix-:r9:\" data-state=\"open\" aria-labelledby=\"radix-:ra:\" aria-describedby=\"radix-:rb:\" class=\"bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none\">…</div>\n      - unexpected value \"visible\"\n"
+    }
+  ],
+  "restoreRequests": []
+}

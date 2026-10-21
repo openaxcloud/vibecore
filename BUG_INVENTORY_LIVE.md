@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-462 entrées.
+463 entrées.
 
 ## Sans section
 
@@ -584,6 +584,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## IDE — initialisation et persistance
 
 - [BUG-IDE-AGENT-MENU-SHELL-001](docs/bugs/BUG-IDE-AGENT-MENU-SHELL-001.md) — Le menu agent ouvert dans PendingComposerShell perd son ouverture et son focus — 📤 Dispatché : ☑ — 21 octobre 2026, coordination des PR #749 et #750. · 💻 Codé : ☐ — candidat sur branche locale d'intégration : provider au-dessus des shells, · ✅ Testé live : ☐ — test de remplacement réel rouge avant correction (1 échec/5), puis 5/5
+
+## Sans section
+
+- [BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001](docs/bugs/BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001.md) — 📤 Dispatché : 21 octobre 2026, revue de #759 : `snapshot-cancel-focus.spec.ts:121`, clavier FR. Le dialogue reste visible pe · 💻 Codé : Branche séparée de #758, base `736ed190d64a980471e5943cf7e0695195f2a691`. La confirmation traite localement Es · ✅ Testé live : Local, build compilé attesté de la recette commune, pas production : test FR inchangé 10/10, puis sonde instru
 
 ## Résidus non tabulaires — reportés mot pour mot
 
