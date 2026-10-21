@@ -1,0 +1,6 @@
+const { test, expect } = require('@playwright/test');
+test('executed success', () => expect(2 + 2).toBe(4));
+test.skip('explicit platform exclusion', () => {});
+test('conditional platform exclusion', () => test.skip(true, 'Fixture explicit exclusion'));
+test('expected failure', () => { test.fail(); expect(false).toBe(true); });
+test('success on retry', ({}, info) => expect(info.retry).toBe(1));
