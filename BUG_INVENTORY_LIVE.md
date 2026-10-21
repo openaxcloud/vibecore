@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-463 entrées.
+465 entrées.
 
 ## Sans section
 
@@ -587,7 +587,15 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Sans section
 
-- [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — Provenance des images réutilisées et restaurées liée à leur digest. — 📤 Dispatché : ☑ 21/10 · 💻 Codé : ☐ PR #757, non fusionnée. · ✅ Testé live : ☐ Aucun rollback de production.
+
+## 2026-10-21 — Fiabilité des recettes IDE
+
+- [BUG-E2E-MOBILE-MENU-NULL-TOUCH-001](docs/bugs/BUG-E2E-MOBILE-MENU-NULL-TOUCH-001.md) — Le scénario `ide-mobile-chrome.spec.ts` des menus Agent/Économique à 390 px mesure séparément le bouton avec `boundingBox()`, puis applique `touchscreen.tap()`  — 📤 Dispatché : ☑ Diagnostic isolé de la fixture mobile, sans modifier les têtes validées #749 et #758. · 💻 Codé : ☐ Pas fusionné dans main. Deux appuis deviennent `Locator.tap()` : déclencheur et entrée du menu. Playwright r · ✅ Testé live : ☐ Aucune livraison ni certification de production. Le canari WebKit de la pilule de retour en bas reste distin
+
+## Sans section
+
+- [BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001](docs/bugs/BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001.md) — 📤 Dispatché : 21 octobre 2026, revue de #759 : `snapshot-cancel-focus.spec.ts:121`, clavier FR. Le dialogue reste visible pe · 💻 Codé : Branche séparée de #758, base `736ed190d64a980471e5943cf7e0695195f2a691`. La confirmation traite localement Es · ✅ Testé live : Local, build compilé attesté de la recette commune, pas production : test FR inchangé 10/10, puis sonde instru
 
 ## Résidus non tabulaires — reportés mot pour mot
 

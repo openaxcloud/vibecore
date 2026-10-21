@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ux-escape
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 34ms
+ ✓ app/components/ui/Dialog.escape.spec.tsx (3 tests) 332ms
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  15:33:09
+   Duration  5.60s (transform 2.18s, setup 89ms, collect 853ms, tests 366ms, environment 587ms, prepare 261ms)
+

@@ -4,6 +4,28 @@ id: BUG-DEPLOY-IMAGE-PROVENANCE-001
 
 # BUG-DEPLOY-IMAGE-PROVENANCE-001 — provenance des images réutilisées
 
+Les rubriques de suivi ci-dessous transcrivent le résumé et les états de l’index
+historique de main `6eb4bf42951057a6aa98e195a05e97211744964f`. Elles permettent
+sa régénération sans perte ; elles ne constituent pas une nouvelle affirmation
+sur l’état actuel de la PR ni une certification de déploiement. Le détail et les
+limites de preuve d’origine restent intégralement conservés plus bas.
+
+## Bug
+
+**Provenance des images réutilisées et restaurées liée à leur digest.**
+
+## 📤 Dispatché
+
+☑ 21/10
+
+## 💻 Codé
+
+☐ PR #757, non fusionnée.
+
+## ✅ Testé live
+
+☐ Aucun rollback de production.
+
 ## Défaut et portée
 
 Base examinée : `4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28`.
