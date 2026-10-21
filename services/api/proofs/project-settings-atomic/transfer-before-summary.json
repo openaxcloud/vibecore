@@ -1,8 +1,14 @@
 {
-  "sourceSha256": {
-    "services/api/src/prisma-store.ts": "f9fdd4a988a35d075662abef1e8f445149ff5ec684a53da9c206f55335640108",
-    "services/api/src/project-settings-atomic.integration.spec.ts": "f5640971b6902d64652def1930aeb68c7a67d606956b0f0c0f08912ac3cd3eb8"
-  },
+  "sourceSha256": [
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "f9fdd4a988a35d075662abef1e8f445149ff5ec684a53da9c206f55335640108"
+    },
+    {
+      "path": "services/api/src/project-settings-atomic.integration.spec.ts",
+      "sha256": "f5640971b6902d64652def1930aeb68c7a67d606956b0f0c0f08912ac3cd3eb8"
+    }
+  ],
   "testExitCode": 1,
   "passed": 5,
   "failed": 1,

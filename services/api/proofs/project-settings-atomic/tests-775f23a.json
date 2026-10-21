@@ -9,15 +9,36 @@
   "testExitCode": 0,
   "total": 24,
   "failed": 0,
-  "sourceSha256": {
-    "services/api/src/app.ts": "045f324fdd79c8922d242754507e8375ad2d0e5e100926604d08430752286c8f",
-    "services/api/src/prisma-store.ts": "f9fdd4a988a35d075662abef1e8f445149ff5ec684a53da9c206f55335640108",
-    "services/api/src/store.ts": "05c15b25e8f45cb71b303375c3d4335ddf25031fddaa3e4c5a1774174fc1e537",
-    "services/api/src/tests/test-api-store.ts": "b2ec0e88f20d0b2fc34348ee25c24422105fe88ca25594aa4b3d79e2841f4bb6",
-    "services/api/src/panel-persistence.integration.spec.ts": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193",
-    "services/api/src/project-settings-atomic.integration.spec.ts": "2328b13cf5b555272e65746d1040ad6b09246f65cab7c47c5b492a371b164ba3",
-    "services/api/scripts/verify-project-settings-postgres.sh": "4fa763ab68ee24092b702201411c25c1ff57f0836da2b81847707d08c26a181b"
-  },
+  "sourceSha256": [
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "045f324fdd79c8922d242754507e8375ad2d0e5e100926604d08430752286c8f"
+    },
+    {
+      "path": "services/api/src/prisma-store.ts",
+      "sha256": "f9fdd4a988a35d075662abef1e8f445149ff5ec684a53da9c206f55335640108"
+    },
+    {
+      "path": "services/api/src/store.ts",
+      "sha256": "05c15b25e8f45cb71b303375c3d4335ddf25031fddaa3e4c5a1774174fc1e537"
+    },
+    {
+      "path": "services/api/src/tests/test-api-store.ts",
+      "sha256": "b2ec0e88f20d0b2fc34348ee25c24422105fe88ca25594aa4b3d79e2841f4bb6"
+    },
+    {
+      "path": "services/api/src/panel-persistence.integration.spec.ts",
+      "sha256": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193"
+    },
+    {
+      "path": "services/api/src/project-settings-atomic.integration.spec.ts",
+      "sha256": "2328b13cf5b555272e65746d1040ad6b09246f65cab7c47c5b492a371b164ba3"
+    },
+    {
+      "path": "services/api/scripts/verify-project-settings-postgres.sh",
+      "sha256": "4fa763ab68ee24092b702201411c25c1ff57f0836da2b81847707d08c26a181b"
+    }
+  ],
   "suites": [
     {
       "file": "services/api/src/panel-persistence.integration.spec.ts",

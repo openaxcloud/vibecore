@@ -38,7 +38,7 @@ const detailed = {
   sha, dirty, testExitCode,
   total: result.numTotalTests, passed: result.numPassedTests,
   failed: result.numFailedTests, skipped: result.numPendingTests, todo: result.numTodoTests,
-  sourceSha256: Object.fromEntries(sourcePaths.map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])),
+  sourceSha256: sourcePaths.map(path => ({ path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') })),
   suites: result.testResults.map(file => ({
     file: relative(process.cwd(), file.name), status: file.status,
     durationMs: file.endTime - file.startTime,

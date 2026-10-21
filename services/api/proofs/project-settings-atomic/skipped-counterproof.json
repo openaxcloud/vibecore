@@ -7,16 +7,40 @@
   "failed": 0,
   "skipped": 12,
   "todo": 0,
-  "sourceSha256": {
-    "src/app.ts": "045f324fdd79c8922d242754507e8375ad2d0e5e100926604d08430752286c8f",
-    "src/prisma-store.ts": "c1fb27176286f72b5eedd29711c686be49e5d679892e65cd9c82091e81045ea6",
-    "src/store.ts": "05c15b25e8f45cb71b303375c3d4335ddf25031fddaa3e4c5a1774174fc1e537",
-    "src/tests/test-api-store.ts": "b2ec0e88f20d0b2fc34348ee25c24422105fe88ca25594aa4b3d79e2841f4bb6",
-    "src/panel-persistence.integration.spec.ts": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193",
-    "src/project-settings-atomic.integration.spec.ts": "f5640971b6902d64652def1930aeb68c7a67d606956b0f0c0f08912ac3cd3eb8",
-    "scripts/verify-project-settings-postgres.sh": "72e7b02d517d4c254a1201ae24a39b12a403e29c3e29f9ccebd34e8f1a84bf3c",
-    "../../.github/workflows/project-settings-postgres.yml": "90852e50aa35e55d0e9ab002504e3a126168144d497babad5ec518213dfb6907"
-  },
+  "sourceSha256": [
+    {
+      "path": "src/app.ts",
+      "sha256": "045f324fdd79c8922d242754507e8375ad2d0e5e100926604d08430752286c8f"
+    },
+    {
+      "path": "src/prisma-store.ts",
+      "sha256": "c1fb27176286f72b5eedd29711c686be49e5d679892e65cd9c82091e81045ea6"
+    },
+    {
+      "path": "src/store.ts",
+      "sha256": "05c15b25e8f45cb71b303375c3d4335ddf25031fddaa3e4c5a1774174fc1e537"
+    },
+    {
+      "path": "src/tests/test-api-store.ts",
+      "sha256": "b2ec0e88f20d0b2fc34348ee25c24422105fe88ca25594aa4b3d79e2841f4bb6"
+    },
+    {
+      "path": "src/panel-persistence.integration.spec.ts",
+      "sha256": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193"
+    },
+    {
+      "path": "src/project-settings-atomic.integration.spec.ts",
+      "sha256": "f5640971b6902d64652def1930aeb68c7a67d606956b0f0c0f08912ac3cd3eb8"
+    },
+    {
+      "path": "scripts/verify-project-settings-postgres.sh",
+      "sha256": "72e7b02d517d4c254a1201ae24a39b12a403e29c3e29f9ccebd34e8f1a84bf3c"
+    },
+    {
+      "path": "../../.github/workflows/project-settings-postgres.yml",
+      "sha256": "90852e50aa35e55d0e9ab002504e3a126168144d497babad5ec518213dfb6907"
+    }
+  ],
   "suites": [
     {
       "file": "src/panel-persistence.integration.spec.ts",

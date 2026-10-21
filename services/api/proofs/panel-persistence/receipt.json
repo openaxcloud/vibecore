@@ -1,10 +1,16 @@
 {
   "baseCommit": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
   "recordedAt": "2026-10-21T06:34:00.171633+00:00",
-  "sourceSha256": {
-    "services/api/src/app.ts": "b4a75ba8046a35b9a60e7f75dec6f7720dbc8a7053a3add1d107e58f33986abd",
-    "services/api/src/panel-persistence.integration.spec.ts": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193"
-  },
+  "sourceSha256": [
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "b4a75ba8046a35b9a60e7f75dec6f7720dbc8a7053a3add1d107e58f33986abd"
+    },
+    {
+      "path": "services/api/src/panel-persistence.integration.spec.ts",
+      "sha256": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193"
+    }
+  ],
   "databaseImage": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
   "before": {
     "realPostgresPassed": 5,
