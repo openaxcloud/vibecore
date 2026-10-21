@@ -1,0 +1,23 @@
+{
+  "base": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "historicalMeasurementsDirty": true,
+  "measurementWindow": "Only first 30 entries of results, exactly 10 rounds; trailing entries are refusals/reconnection validations, excluded from medians.",
+  "files": [
+    {
+      "path": "after-load.json",
+      "sha256": "6dc724f476da4e68a21f25d96a1734199844d6574b7f48787174c1eb7220a119"
+    },
+    {
+      "path": "before-load.json",
+      "sha256": "5905cb74ae5144a1f46de73dcdc71df1256c4d6bfda529e248e203e226e2b2b2"
+    },
+    {
+      "path": "before-tests.json",
+      "sha256": "e729fefcf58b3172a0a7a9ca6a1169a4994a67bf92cb0336bdae77ce22b9db5b"
+    },
+    {
+      "path": "final-tests.json",
+      "sha256": "c0da0295c5909389fc9d1ec92651d675c5fbc9de84eae56d850560364998f3f3"
+    }
+  ]
+}

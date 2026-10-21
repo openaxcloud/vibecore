@@ -1,0 +1,30 @@
+{
+  "sourceState": "uncommitted candidate test files; baseline production source at 4af4dd1a for red run",
+  "exitCode": 1,
+  "total": 3,
+  "passed": 2,
+  "failed": 1,
+  "skipped": 0,
+  "tests": [
+    {
+      "name": "prepares once per status while reading real changed files and revalidates on the next call",
+      "status": "failed",
+      "durationMs": 271.0119450000001,
+      "failures": [
+        "AssertionError: expected [ [ 'git', '--git-dir', \u2026(5) ], \u2026(5) ] to have a length of 2 but got 6"
+      ]
+    },
+    {
+      "name": "rechecks and heals a repository removed after an earlier successful status",
+      "status": "passed",
+      "durationMs": 437.5168800000001,
+      "failures": []
+    },
+    {
+      "name": "still reports detached HEAD and changes using the actual repository",
+      "status": "passed",
+      "durationMs": 192.4276460000001,
+      "failures": []
+    }
+  ]
+}
