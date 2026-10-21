@@ -1063,12 +1063,9 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
       // Le composeur finit de s'armer après son affichage : un premier appui peut tomber trop tôt.
       for (let essai = 0; essai < 3 && !(await menu.isVisible().catch(() => false)); essai += 1) {
-        const boite = await declencheur.boundingBox();
-
-        await page.touchscreen.tap(
-          (boite?.x ?? 0) + (boite?.width ?? 0) / 2,
-          (boite?.y ?? 0) + (boite?.height ?? 0) / 2,
-        );
+        // The shell can replace this button between geometry measurement and touch.
+        // Resolve the actionable target for the touch itself; never fall back to (0, 0).
+        await declencheur.tap();
         await page.waitForTimeout(700);
       }
 
@@ -1114,12 +1111,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
        */
       const entree = menu.locator('button').first();
       const libelleEntree = (await entree.textContent())?.trim() ?? '';
-      const boiteEntree = await entree.boundingBox();
-
-      await page.touchscreen.tap(
-        (boiteEntree?.x ?? 0) + (boiteEntree?.width ?? 0) / 2,
-        (boiteEntree?.y ?? 0) + (boiteEntree?.height ?? 0) / 2,
-      );
+      await entree.tap();
       await page.waitForTimeout(500);
 
       if (selecteur === '.bolt-chatbox-mode-menu') {
