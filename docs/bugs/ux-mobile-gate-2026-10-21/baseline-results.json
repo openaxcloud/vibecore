@@ -1,6 +1,5 @@
 {
   "frontendBuildTreeSha256": "3ce63e8e60bcbd4a4315f562c89835ae9849c49f3b2a45665b01e1e566196eb4",
-  "apiCommit": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
   "stats": {
     "startTime": "2026-10-21T09:08:23.899Z",
     "duration": 415676.541,
@@ -595,5 +594,6 @@
         }
       ]
     }
-  ]
+  ],
+  "backendRevision": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f"
 }

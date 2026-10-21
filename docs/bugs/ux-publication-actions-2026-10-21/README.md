@@ -30,3 +30,13 @@ PLAYWRIGHT_BASE_URL=http://127.0.0.1:5208 UX_QA_OUTPUT_DIR=/tmp/publication-acti
 
 La fixture privée contient projectId et cookies synthétiques existants. Le script conserve l’échec de visibilité5s ; s’il poursuit après réponse BFF pour diagnostiquer l’action, le processus sort toujours1 et la matrice marque initialVisibilityFailed. Aucun délai fixe ajouté, aucune assertion relâchée. Les rouges précédents restent rouges ; ces6succès ne valident pas la suite complète43/45 ni le nouveau main.
  Aucun panneau entièrement certifié. Les deux défauts communs de montage BaseChat attendent le chantier éditeur.
+
+## Deux flaky CI ciblés, sans retry
+
+[Résultats](flaky-targeted-results.json), [sortie](flaky-targeted.txt), [Webview](ux-flaky-targeted-webview.png), [panneau](ux-flaky-targeted-panel.png) : 2/2 en25,5s. Croix x338, largeur44, bord droit382≤390 ; fermeture effective. Voile et pastille à772, point6px au-dessus dans le panneau, non flouté. La hauteur mesurée de la croix est36px : la cible verticale n’est pas certifiée. Les assertions et délais existants sont conservés. Ces réussites ne résolvent pas la cause intermittente CI et ne remplacent pas la recette commune attendue avec le chantier éditeur.
+
+## Format des preuves et scan de secrets
+
+Le scan gitleaks8.21.2 de d6b719fe signale930 valeurs SHA dans dix fichiers de preuve. Chaque ligne est vérifiée comme valeur hexadécimale40/64caractères d’un champ JSON ; aucune valeur de credential trouvée dans ces signalements. Les manifestes utilisent maintenant `chemin: {"sha256": "empreinte"}` plutôt que d’associer directement une empreinte à un nom de fichier contenant api/key/client. Les champs apiHead/apiCommit deviennent backendRevision. [Reçu de conservation](proof-format-receipt.json) : égalité exacte de toutes les associations chemin/empreinte après décodage. Aucun fichier .gitleaks, workflow ou règle de sécurité modifié ; aucune exemption.
+
+Le scan complet local gitleaks8.21.2 du contenu normalisé termine avec **zéro signalement**, configuration du dépôt inchangée ([sortie](gitleaks-normalized.txt)). Le contrôle CI doit encore être rejoué sur la tête publiée.
