@@ -49,8 +49,12 @@ used. Pending HTTP calls are drained after releasing the lock.
 regressions. API typecheck/build and new-test lint pass. Whole-file store lint
 still has the same 98 errors and one warning as the exact base (same rule,
 message and severity multiset); global lint is not claimed green. No lint rule,
-hook, scanner or exemption was disabled. This runner is not yet wired to CI;
-ordinary CI success does not prove execution of its opt-in PostgreSQL tests.
+hook, scanner or exemption was disabled. The dedicated
+`.github/workflows/enterprise-settings-postgres.yml` runs this proof against a
+disposable PostgreSQL service, requires all five cases without skips, checks
+the exact SHA and clean tree, and uploads the reports and SQL observations.
+Only that job's successful receipt proves CI execution of these opt-in tests;
+ordinary CI success alone does not.
 
 No claim is made about all administrative-update/deletion races, production
 validation, frontend completeness, or the unrelated archive latency.
