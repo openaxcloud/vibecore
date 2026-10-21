@@ -1,0 +1,56 @@
+TAP version 13
+# Subtest: actual Bash break-glass replaces A with known B provenance and binding
+not ok 1 - actual Bash break-glass replaces A with known B provenance and binding
+  ---
+  duration_ms: 18.281429
+  type: 'test'
+  location: '/tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:323:1'
+  failureType: 'testCodeFailure'
+  error: 'services.api.imageSourceSha=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    file:///tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:335:14
+    temporary (file:///tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:324:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.start (node:internal/test_runner/test:1242:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: actual Bash break-glass clears null and legacy absent source and bindings
+not ok 2 - actual Bash break-glass clears null and legacy absent source and bindings
+  ---
+  duration_ms: 14.595837
+  type: 'test'
+  location: '/tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:343:1'
+  failureType: 'testCodeFailure'
+  error: 'services.api.imageSourceSha='
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    file:///tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:354:16
+    temporary (file:///tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///tmp/provenance-base-724/scripts/release-gate/image-provenance-roundtrip.checks.mjs:344:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    Test.run (node:internal/test_runner/test:1447:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 147.780488

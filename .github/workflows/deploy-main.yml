@@ -948,10 +948,17 @@ jobs:
                   *@sha256:*) PINNED="${CM_IMAGE##*@}" ;;
                   *:*)        TAG="${CM_IMAGE##*:}" ;;
                 esac
-                SOURCE_SHA=""
+                # Read provenance only when bound to the exact current reference.
+                SOURCE_SHA="$(kubectl -n "${HELM_NAMESPACE}" get configmap \
+                  "${HELM_RELEASE}-vibecore-platform-platform-env" \
+                  -o jsonpath='{.metadata.annotations.vibecore\.dev/workspace-agent-image-source-sha}' 2>/dev/null || echo "")"
+                SOURCE_IMAGE="$(kubectl -n "${HELM_NAMESPACE}" get configmap \
+                  "${HELM_RELEASE}-vibecore-platform-platform-env" \
+                  -o jsonpath='{.metadata.annotations.vibecore\.dev/workspace-agent-image-source-image}' 2>/dev/null || echo "")"
+                if [ "${SOURCE_IMAGE}" != "${CM_IMAGE}" ]; then SOURCE_SHA=""; fi
                 # `sha-<10hex>` is this image's tag convention.
                 CANDIDATE="${TAG#sha-}"
-                if printf '%s' "${CANDIDATE}" | grep -Eq '^[0-9a-f]{10}$'; then
+                if [ -z "${SOURCE_SHA}" ] && printf '%s' "${CANDIDATE}" | grep -Eq '^[0-9a-f]{10}$'; then
                   SOURCE_SHA="$(git rev-parse "${CANDIDATE}" 2>/dev/null || echo "")"
                 fi
                 if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
@@ -1022,6 +1029,11 @@ jobs:
               SOURCE_SHA="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
                 -l "app.kubernetes.io/name=${image}" \
                 -o jsonpath='{.items[0].spec.template.metadata.annotations.vibecore\.dev/image-source-sha}' 2>/dev/null || echo "")"
+              SOURCE_DIGEST="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+                -l "app.kubernetes.io/name=${image}" \
+                -o jsonpath='{.items[0].spec.template.metadata.annotations.vibecore\.dev/image-source-digest}' 2>/dev/null || echo "")"
+              # A source annotation from a different image must never be carried forward.
+              if [ -z "${PINNED}" ] || [ "${SOURCE_DIGEST}" != "${PINNED}" ]; then SOURCE_SHA=""; fi
               if [ -z "${SOURCE_SHA}" ] && printf '%s' "${TAG}" | grep -Eq '^[0-9a-f]{10}$'; then
                 SOURCE_SHA="$(git rev-parse "${TAG}" 2>/dev/null || echo "")"
               fi
@@ -1382,6 +1394,9 @@ jobs:
       # under default values, values-prod.yaml AND legacy stored values
       # (--reuse-values simulation), and that values.schema.json rejects a
       # malformed value. Failing here blocks the deploy.
+      - name: Image provenance roundtrip (real Helm, Bash and jq)
+        run: node --test scripts/release-gate/image-provenance-roundtrip.checks.mjs
+
       - name: Helm render test — rollback flag (blocking)
         run: node scripts/validate-helm-rollback-flag.mjs
 
@@ -1661,8 +1676,13 @@ jobs:
           # Only entries that ARE chart services get a `services.<key>` override —
           # `--set services.workspaceAgent.…` would invent a service the chart has no
           # template for, and helm would happily store it.
-          while read -r service digest tag; do
+          while read -r service digest source_sha tag; do
             SETS+=( --set-string "services.${service}.imageDigest=${digest}" )
+            # Always reset unknown provenance: --reuse-values must not retain an old SHA.
+            SETS+=( --set-string "services.${service}.imageSourceSha=${source_sha/null/}" )
+            SOURCE_DIGEST=""
+            if [ "${source_sha}" != "null" ]; then SOURCE_DIGEST="${digest}"; fi
+            SETS+=( --set-string "services.${service}.imageSourceDigest=${SOURCE_DIGEST}" )
             if [ -n "${tag}" ] && [ "${tag}" != "null" ]; then
               SETS+=( --set-string "services.${service}.imageTag=${tag}" )
             fi
@@ -1671,7 +1691,7 @@ jobs:
           # keep whatever digest the release already stored instead of the one this run
           # verified. Absent means "not marked as non-chart", so include it and let the
           # chart reject an unknown key loudly. Same expression as the break-glass path.
-          done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest) \(.tag // "")"' release-manifest.json)
+          done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest) \(.sourceSha // "null") \(.tag // "")"' release-manifest.json)
 
           # The workspace-agent is not a chart service: it is an image reference the api
           # hands to each workspace pod. Pin it by the digest already resolved, scanned
@@ -1680,6 +1700,11 @@ jobs:
           WSAGENT_DIGEST="$(jq -r '.services[] | select(.service == "workspaceAgent") | .digest' release-manifest.json)"
           if [ -n "${WSAGENT_DIGEST}" ]; then
             SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${REG}/workspace-agent@${WSAGENT_DIGEST}" )
+            WSAGENT_SOURCE_SHA="$(jq -r '.services[] | select(.service == "workspaceAgent") | .sourceSha // ""' release-manifest.json)"
+            SETS+=( --set-string "platformEnv.runtime.workspaceAgentImageSourceSha=${WSAGENT_SOURCE_SHA}" )
+            WSAGENT_SOURCE_IMAGE=""
+            if [ -n "${WSAGENT_SOURCE_SHA}" ]; then WSAGENT_SOURCE_IMAGE="${REG}/workspace-agent@${WSAGENT_DIGEST}"; fi
+            SETS+=( --set-string "platformEnv.runtime.workspaceAgentImageSourceImage=${WSAGENT_SOURCE_IMAGE}" )
           fi
 
           # Repris de main : ces valeurs de configmap sont RÉ-AFFIRMÉES à chaque

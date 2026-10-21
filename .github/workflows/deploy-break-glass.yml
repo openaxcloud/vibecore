@@ -283,18 +283,30 @@ jobs:
           set -euo pipefail
           helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
 
+      - name: Image provenance roundtrip (real Helm, Bash and jq)
+        run: node --test scripts/release-gate/image-provenance-roundtrip.checks.mjs
+
       - name: Helm upgrade to the last-known-good digests
         run: |
           set -euo pipefail
           SETS=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
           # Chart services only: a manifest entry like the workspace-agent is not a
           # `services.<key>` in the chart, and setting one would invent a service.
-          while read -r service digest; do
+          while read -r service digest source_sha; do
             SETS+=( --set-string "services.${service}.imageDigest=${digest}" )
-          done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest)"' release-manifest.json)
+            SETS+=( --set-string "services.${service}.imageSourceSha=${source_sha/null/}" )
+            SOURCE_DIGEST=""
+            if [ "${source_sha}" != "null" ]; then SOURCE_DIGEST="${digest}"; fi
+            SETS+=( --set-string "services.${service}.imageSourceDigest=${SOURCE_DIGEST}" )
+          done < <(jq -r '.services[] | select(.chartService != false) | "\(.service) \(.digest) \(.sourceSha // "null")"' release-manifest.json)
           WSAGENT_DIGEST="$(jq -r '.services[] | select(.service == "workspaceAgent") | .digest' release-manifest.json)"
           if [ -n "${WSAGENT_DIGEST}" ]; then
             SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${REG}/workspace-agent@${WSAGENT_DIGEST}" )
+            WSAGENT_SOURCE_SHA="$(jq -r '.services[] | select(.service == "workspaceAgent") | .sourceSha // ""' release-manifest.json)"
+            SETS+=( --set-string "platformEnv.runtime.workspaceAgentImageSourceSha=${WSAGENT_SOURCE_SHA}" )
+            WSAGENT_SOURCE_IMAGE=""
+            if [ -n "${WSAGENT_SOURCE_SHA}" ]; then WSAGENT_SOURCE_IMAGE="${REG}/workspace-agent@${WSAGENT_DIGEST}"; fi
+            SETS+=( --set-string "platformEnv.runtime.workspaceAgentImageSourceImage=${WSAGENT_SOURCE_IMAGE}" )
           fi
           echo "helm --set args: ${SETS[*]}"
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \

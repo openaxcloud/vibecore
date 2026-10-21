@@ -11,6 +11,12 @@ metadata:
   name: {{ include "vibecore-platform.fullname" . }}-platform-env
   labels:
     app.kubernetes.io/part-of: vibecore
+  {{- $runtime := .Values.platformEnv.runtime }}
+  {{- if and $runtime.workspaceAgentImageSourceSha $runtime.workspaceAgentImageSourceImage (eq $runtime.workspaceAgentImageSourceImage $runtime.workspaceAgentImage) }}
+  annotations:
+    vibecore.dev/workspace-agent-image-source-sha: {{ $runtime.workspaceAgentImageSourceSha | quote }}
+    vibecore.dev/workspace-agent-image-source-image: {{ $runtime.workspaceAgentImageSourceImage | quote }}
+  {{- end }}
 data:
   # In-cluster URL the web/admin pods use to reach the api service. Mirrors
   # the build-time fallback baked into app/lib/enterprise-api.server.ts —
