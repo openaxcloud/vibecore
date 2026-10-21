@@ -1,0 +1,17 @@
+{
+  "button": {
+    "x": 29,
+    "y": 781,
+    "width": 332,
+    "height": 36
+  },
+  "tour": {
+    "x": 7,
+    "y": 529.015625,
+    "width": 376,
+    "height": 306.984375
+  },
+  "focus": true,
+  "hitTarget": false,
+  "coveringTour": true
+}

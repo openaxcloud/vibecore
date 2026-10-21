@@ -45,6 +45,8 @@ export function collectIdeFailureState() {
     databaseEmpty: hasDbText(['No database yet', 'Aucune base de données pour le moment']),
     databaseLoadFailed: hasDbText(['Could not load the databases.', 'Impossible de charger les bases de données.']),
     databaseInnerLoading: Boolean(database?.querySelector('[role="status"]')),
+    securityRows: count('.bolt-panel-row'),
+    gitSourceFields: count('[data-testid="git-tab-pr-source"]'),
     cards: count('[data-testid="db-carte"]'),
     tables: count('[data-testid="db-table"]'),
     statuses: count('[role="status"]'),
@@ -69,7 +71,7 @@ export function collectIdeFailureState() {
   };
 }
 
-type RequestKind = 'env-vars' | 'databases' | 'database-panel';
+type RequestKind = 'env-vars' | 'databases' | 'database-panel' | 'git-panel' | 'security-panel';
 type RequestState = 'awaiting-response' | 'receiving-body' | 'finished' | 'failed';
 type RequestEvidence = {
   id: number;
@@ -107,9 +109,13 @@ function requestKind(url: string): RequestKind | undefined {
       ? 'env-vars'
       : /\/databases$/.test(path)
         ? 'databases'
-        : /\/ide-panel\/database$/.test(path)
+        : /\/ide-panel\/database(?:\.data)?$/.test(path)
           ? 'database-panel'
-          : undefined;
+          : /\/ide-panel\/git(?:\.data)?$/.test(path)
+            ? 'git-panel'
+            : /\/ide-panel\/security(?:\.data)?$/.test(path)
+              ? 'security-panel'
+              : undefined;
   } catch {
     return undefined;
   }

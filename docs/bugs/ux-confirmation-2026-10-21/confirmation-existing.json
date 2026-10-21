@@ -1,0 +1,68 @@
+[
+  {
+    "format": "desktop",
+    "language": "en",
+    "label": "Restore Focus desktop en 1792567813176",
+    "persistedSnapshotLoaded": true,
+    "focusTrap": true,
+    "cancelRestoresFocus": true,
+    "escapeRestoresFocus": true,
+    "restoreRequests": 0,
+    "horizontalOverflow": false
+  },
+  {
+    "format": "desktop",
+    "language": "fr",
+    "label": "Restaurer Focus desktop fr 1792567715849",
+    "persistedSnapshotLoaded": true,
+    "focusTrap": true,
+    "cancelRestoresFocus": true,
+    "escapeRestoresFocus": true,
+    "restoreRequests": 0,
+    "horizontalOverflow": false
+  },
+  {
+    "format": "tablet",
+    "language": "en",
+    "label": "Restore Focus tablet en 1792567728068",
+    "persistedSnapshotLoaded": true,
+    "focusTrap": true,
+    "cancelRestoresFocus": true,
+    "escapeRestoresFocus": true,
+    "restoreRequests": 0,
+    "horizontalOverflow": false
+  },
+  {
+    "format": "tablet",
+    "language": "fr",
+    "label": "Restaurer Focus tablet fr 1792567733522",
+    "persistedSnapshotLoaded": true,
+    "focusTrap": true,
+    "cancelRestoresFocus": true,
+    "escapeRestoresFocus": true,
+    "restoreRequests": 0,
+    "horizontalOverflow": false
+  },
+  {
+    "format": "mobile",
+    "language": "en",
+    "label": "Restore Focus mobile en 1792567739382",
+    "persistedSnapshotLoaded": true,
+    "focusTrap": true,
+    "cancelRestoresFocus": true,
+    "escapeRestoresFocus": true,
+    "restoreRequests": 0,
+    "horizontalOverflow": false
+  },
+  {
+    "format": "mobile",
+    "language": "fr",
+    "label": "Restaurer Focus mobile fr 1792567876703",
+    "persistedSnapshotLoaded": true,
+    "focusTrap": true,
+    "cancelRestoresFocus": true,
+    "escapeRestoresFocus": true,
+    "restoreRequests": 0,
+    "horizontalOverflow": false
+  }
+]

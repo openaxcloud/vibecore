@@ -1,0 +1,554 @@
+[
+  {
+    "requestId": "d033e015-844c-48e6-89f4-c70c81afd618",
+    "at": "2026-10-21T10:18:44.466000+00:00",
+    "method": "POST",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ai/conversations",
+    "status": 201,
+    "durationMs": 482.07545999996364
+  },
+  {
+    "requestId": "fe78847f-142d-4fac-a424-201f41f9f2bc",
+    "at": "2026-10-21T10:18:45.012000+00:00",
+    "method": "PUT",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ai/conversations/cmvhym31w00za7kr0ogyw15zj/transcript",
+    "status": 200,
+    "durationMs": 518.8950650002807
+  },
+  {
+    "requestId": "ee7e0975-a992-4b75-901d-6c669b52007e",
+    "at": "2026-10-21T10:18:45.562000+00:00",
+    "method": "PUT",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ide-state",
+    "status": 200,
+    "durationMs": 508.4491530004889
+  },
+  {
+    "requestId": "dac592b2-a33d-479a-8d34-25a22e583e06",
+    "at": "2026-10-21T10:18:46.091000+00:00",
+    "method": "PUT",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 377.24151699990034
+  },
+  {
+    "requestId": "ff3a60ac-5861-4004-bfed-9de9564b7b06",
+    "at": "2026-10-21T10:18:46.571000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 170.2984310016036
+  },
+  {
+    "requestId": "d41c252c-3c46-4933-8254-5c9dd0ead4d4",
+    "at": "2026-10-21T10:18:46.764000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 115.55769100040197
+  },
+  {
+    "requestId": "f45aa273-3a15-4ceb-85d5-f6fe9929524a",
+    "at": "2026-10-21T10:18:46.758000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/collaborators",
+    "status": 200,
+    "durationMs": 122.14645900018513
+  },
+  {
+    "requestId": "329c46ea-5472-495c-9fc5-d8d820c993e1",
+    "at": "2026-10-21T10:18:46.761000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/workspaces",
+    "status": 200,
+    "durationMs": 118.72385400161147
+  },
+  {
+    "requestId": "be8fc689-b819-4ce5-acfa-2cd8c3147969",
+    "at": "2026-10-21T10:18:46.762000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 144.01262399926782
+  },
+  {
+    "requestId": "db9c5a30-3009-4f23-b8e4-60c1ba8284b7",
+    "at": "2026-10-21T10:18:46.896000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 276.1998149994761
+  },
+  {
+    "requestId": "5946cb96-ce59-4603-a74b-dca258843003",
+    "at": "2026-10-21T10:18:46.896000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/secrets",
+    "status": 200,
+    "durationMs": 278.89283999986947
+  },
+  {
+    "requestId": "36e510ec-d3f7-48f7-b71b-9854d1485a07",
+    "at": "2026-10-21T10:18:46.892000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/settings",
+    "status": 200,
+    "durationMs": 289.0738030001521
+  },
+  {
+    "requestId": "ee994cab-8f4a-4cfa-b186-bb5d8916dd7c",
+    "at": "2026-10-21T10:18:46.946000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/snapshots",
+    "status": 200,
+    "durationMs": 256.6867620013654
+  },
+  {
+    "requestId": "22b13a7e-82eb-4870-b37b-2a9b59650bf5",
+    "at": "2026-10-21T10:18:46.759000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/dashboard",
+    "status": 200,
+    "durationMs": 886.936684999615
+  },
+  {
+    "requestId": "e78f417e-2033-46db-8072-64502cca6eb3",
+    "at": "2026-10-21T10:18:51.024000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/agent-repair-events",
+    "status": 200,
+    "durationMs": 6699.780243000016
+  },
+  {
+    "requestId": "1b2e824e-9bbf-4654-aa3d-7851fde039e2",
+    "at": "2026-10-21T10:18:51.136000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 6865.533779999241
+  },
+  {
+    "requestId": "b5c00bbe-f440-4cd9-8f52-34a5ee471b1b",
+    "at": "2026-10-21T10:18:51.135000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 6868.638667000458
+  },
+  {
+    "requestId": "3ebe31bc-6fce-4450-9cd0-afe06ae76c3c",
+    "at": "2026-10-21T10:18:51.102000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ide-state",
+    "status": 200,
+    "durationMs": 6904.097953001037
+  },
+  {
+    "requestId": "3272557a-35f9-4d3b-8351-4fe184c903ba",
+    "at": "2026-10-21T10:18:51.025000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/agent/routing",
+    "status": 200,
+    "durationMs": 8500.789913000539
+  },
+  {
+    "requestId": "46cb8526-b9d4-4d79-b105-a1bdc501fd1a",
+    "at": "2026-10-21T10:18:56.099000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/agent-patch-proposals",
+    "status": 200,
+    "durationMs": 5228.37220299989
+  },
+  {
+    "requestId": "de48c30e-5a71-406a-a624-660424452eea",
+    "at": "2026-10-21T10:18:58.100000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/settings",
+    "status": 200,
+    "durationMs": 4032.109195999801
+  },
+  {
+    "requestId": "3d17ee38-ac3a-4ae4-a6f2-7b0c3807cd9c",
+    "at": "2026-10-21T10:18:58.105000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/collaboration/ws-ticket",
+    "status": 200,
+    "durationMs": 4168.9579150006175
+  },
+  {
+    "requestId": "158e0067-ac70-4b2b-a52a-1357212540ce",
+    "at": "2026-10-21T10:18:58.104000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 4740.991970000789
+  },
+  {
+    "requestId": "342f9e7e-50c4-408d-8a44-80d6bf842005",
+    "at": "2026-10-21T10:18:58.104000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/secrets",
+    "status": 200,
+    "durationMs": 4851.770477999002
+  },
+  {
+    "requestId": "35096ac8-a88e-4ea4-b569-ef9fa7c880a5",
+    "at": "2026-10-21T10:18:58.105000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/snapshots",
+    "status": 200,
+    "durationMs": 4851.394972998649
+  },
+  {
+    "requestId": "6e037526-d81d-402b-b81a-9eac1d59fe14",
+    "at": "2026-10-21T10:18:58.048000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/export/zip",
+    "status": 200,
+    "durationMs": 10123.356968998909
+  },
+  {
+    "requestId": "05e7cd5b-de7a-4503-a2c8-fed91f5a6e94",
+    "at": "2026-10-21T10:19:01.624000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 6649.617231000215
+  },
+  {
+    "requestId": "71e01e6b-52f9-4c6a-82c8-9459f8b5a96d",
+    "at": "2026-10-21T10:19:01.617000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 6668.076070001349
+  },
+  {
+    "requestId": "7f9f37f3-0462-46c9-8682-e0fbc5629b65",
+    "at": "2026-10-21T10:19:02.386000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ide-state",
+    "status": 200,
+    "durationMs": 6475.288730999455
+  },
+  {
+    "requestId": "b4982a35-f07c-42eb-bfdd-7fa3535fae30",
+    "at": "2026-10-21T10:19:03.120000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/agent-repair-events",
+    "status": 200,
+    "durationMs": 6236.217049000785
+  },
+  {
+    "requestId": "3719c465-5bbc-4867-a15e-63f0b7ec30d0",
+    "at": "2026-10-21T10:19:08.332000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/git/graph",
+    "status": 200,
+    "durationMs": 6704.724845999852
+  },
+  {
+    "requestId": "38b3bd5f-1d79-44c3-a937-22a796dd2036",
+    "at": "2026-10-21T10:19:08.327000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/snapshots",
+    "status": 200,
+    "durationMs": 7137.191392999142
+  },
+  {
+    "requestId": "e734e06e-36b5-4cec-946c-8c8d55595a57",
+    "at": "2026-10-21T10:19:08.326000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/secrets",
+    "status": 200,
+    "durationMs": 7139.849963000044
+  },
+  {
+    "requestId": "51a73a11-a6ab-46be-adfb-5c4291f5f180",
+    "at": "2026-10-21T10:19:08.334000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/workspaces",
+    "status": 200,
+    "durationMs": 7138.999878998846
+  },
+  {
+    "requestId": "437892ff-1537-4c13-bc68-f5793a6bebc5",
+    "at": "2026-10-21T10:19:08.325000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 7149.8231060002
+  },
+  {
+    "requestId": "00f60fb4-f187-44af-bf2d-e7d66d825d22",
+    "at": "2026-10-21T10:19:08.332000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 7144.042100999504
+  },
+  {
+    "requestId": "3dadafa0-d4ea-4aee-ad29-5d26957e6c31",
+    "at": "2026-10-21T10:19:09.446000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 6906.695732999593
+  },
+  {
+    "requestId": "6c6e01cf-8c57-4fb4-88ab-bd379caf3529",
+    "at": "2026-10-21T10:19:08.448000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/agent/routing",
+    "status": 200,
+    "durationMs": 8285.149002999067
+  },
+  {
+    "requestId": "75e35869-619b-4a02-ac6c-aa7b91bb4bb1",
+    "at": "2026-10-21T10:19:12.026000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ide-state",
+    "status": 200,
+    "durationMs": 5191.1055159997195
+  },
+  {
+    "requestId": "5b92b0dd-4939-4f3d-89de-c3656f261839",
+    "at": "2026-10-21T10:19:08.331000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/packages",
+    "status": 200,
+    "durationMs": 9196.040464000776
+  },
+  {
+    "requestId": "874a6ce2-5187-4539-be71-dfae2a7cee24",
+    "at": "2026-10-21T10:19:08.331000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/collaboration",
+    "status": 200,
+    "durationMs": 9220.91288600117
+  },
+  {
+    "requestId": "90dff46a-e07a-465b-bd12-8b0750598d08",
+    "at": "2026-10-21T10:19:08.322000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/databases",
+    "status": 200,
+    "durationMs": 9464.753701999784
+  },
+  {
+    "requestId": "942353cd-8dfe-4f90-afe1-53eea9889286",
+    "at": "2026-10-21T10:19:08.329000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/dashboard",
+    "status": 200,
+    "durationMs": 9528.151202000678
+  },
+  {
+    "requestId": "be6a9783-d955-41ec-920a-122a17cbe459",
+    "at": "2026-10-21T10:19:08.322000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/dashboard",
+    "status": 200,
+    "durationMs": 9535.735903998837
+  },
+  {
+    "requestId": "e925f3aa-353a-47ca-ba46-0d6ff5bb8f14",
+    "at": "2026-10-21T10:19:11.205000+00:00",
+    "method": "PUT",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ide-state",
+    "status": 200,
+    "durationMs": 7379.282031999901
+  },
+  {
+    "requestId": "32f4475d-4d06-4e38-af5f-29810f716c16",
+    "at": "2026-10-21T10:19:16.374000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/snapshots",
+    "status": 200,
+    "durationMs": 3176.1440360005945
+  },
+  {
+    "requestId": "ef03dc5e-a5d4-4906-8b21-1bf940240054",
+    "at": "2026-10-21T10:19:16.756000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 2979.7997639998794
+  },
+  {
+    "requestId": "51dd152b-8580-426e-be08-c7e3df352fa4",
+    "at": "2026-10-21T10:19:17.305000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ai/conversations",
+    "status": 200,
+    "durationMs": 3914.2002570014447
+  },
+  {
+    "requestId": "03f36e66-a8d3-4670-b56a-e9f0d719c582",
+    "at": "2026-10-21T10:19:17.511000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ai/conversations",
+    "status": 200,
+    "durationMs": 3815.591481000185
+  },
+  {
+    "requestId": "d37d4c9d-bfe7-4b41-bd59-20137f024489",
+    "at": "2026-10-21T10:19:17.917000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/agent-repair-events",
+    "status": 200,
+    "durationMs": 3861.321163000539
+  },
+  {
+    "requestId": "40d0492b-dc7c-44a8-ac3c-c713ea903d64",
+    "at": "2026-10-21T10:19:19.582000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 3145.4343560002744
+  },
+  {
+    "requestId": "6e17d5e7-b6d2-40c8-ba62-732f2bfd8c59",
+    "at": "2026-10-21T10:19:19.767000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/settings",
+    "status": 200,
+    "durationMs": 3062.5758239999413
+  },
+  {
+    "requestId": "957cccb9-06b5-4d35-88df-3080962ea324",
+    "at": "2026-10-21T10:19:18.628000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/agent/routing",
+    "status": 200,
+    "durationMs": 4246.991962000728
+  },
+  {
+    "requestId": "a6b076f7-e48d-4e34-934e-ea11124aa26f",
+    "at": "2026-10-21T10:19:19.769000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 3241.1348529998213
+  },
+  {
+    "requestId": "8b9db4e0-c3f9-4fac-9fdc-eeb403340b58",
+    "at": "2026-10-21T10:19:19.769000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/secrets",
+    "status": 200,
+    "durationMs": 3243.5192290004343
+  },
+  {
+    "requestId": "005aa233-711b-4e74-b12e-0430d9839175",
+    "at": "2026-10-21T10:19:21.820000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 2237.6866229996085
+  },
+  {
+    "requestId": "3cae8610-41c5-41b9-8c0b-417bbb8a8048",
+    "at": "2026-10-21T10:19:21.376000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ai/conversations/cmvhym31w00za7kr0ogyw15zj/messages",
+    "status": 200,
+    "durationMs": 3198.9026890005916
+  },
+  {
+    "requestId": "a8c7970d-75d2-4223-a0fa-88a892d41b11",
+    "at": "2026-10-21T10:19:22.754000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/settings",
+    "status": 200,
+    "durationMs": 2501.569842999801
+  },
+  {
+    "requestId": "5d018a90-1d89-468c-aa97-b12a274e5c45",
+    "at": "2026-10-21T10:19:22.936000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk",
+    "status": 200,
+    "durationMs": 2780.9174130000174
+  },
+  {
+    "requestId": "2f67da9d-5e91-43e2-8ee1-594a19a69089",
+    "at": "2026-10-21T10:19:22.756000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 2961.433233000338
+  },
+  {
+    "requestId": "7814243e-de1f-4686-93da-3a5d2525002e",
+    "at": "2026-10-21T10:19:22.756000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/secrets",
+    "status": 200,
+    "durationMs": 2962.652712000534
+  },
+  {
+    "requestId": "5e188455-a3ad-4380-b319-7d80ce9469aa",
+    "at": "2026-10-21T10:19:22.685000+00:00",
+    "method": "PUT",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/ide-state",
+    "status": 200,
+    "durationMs": 3779.7957229986787
+  },
+  {
+    "requestId": "225f9854-b681-4efb-9bf6-9d0a004b9bf2",
+    "at": "2026-10-21T10:19:24.157000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/env-vars",
+    "status": 200,
+    "durationMs": 2394.0680940002203
+  },
+  {
+    "requestId": "71561554-975f-45e9-8545-b3b7dbcaf781",
+    "at": "2026-10-21T10:19:24.157000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/workspaces",
+    "status": 200,
+    "durationMs": 2418.8062039986253
+  },
+  {
+    "requestId": "b8e5c7c8-343b-4164-88cd-860fed9ae4a5",
+    "at": "2026-10-21T10:19:24.156000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/collaboration",
+    "status": 200,
+    "durationMs": 2588.193308999762
+  },
+  {
+    "requestId": "dfa4e5f2-e0b8-4f31-b85b-fea286b59f5c",
+    "at": "2026-10-21T10:19:25.768000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/snapshots",
+    "status": 200,
+    "durationMs": 1127.2955060005188
+  },
+  {
+    "requestId": "95e301da-67a5-4f79-9335-67e64e7d016d",
+    "at": "2026-10-21T10:19:24.156000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/git/graph",
+    "status": 200,
+    "durationMs": 2788.309600999579
+  },
+  {
+    "requestId": "6be252a3-d40f-4a18-bf1e-029f5c5d6b65",
+    "at": "2026-10-21T10:19:24.155000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/packages",
+    "status": 200,
+    "durationMs": 4415.183493999764
+  },
+  {
+    "requestId": "312c2c06-17c4-4921-aae3-6a05cdbfe6c6",
+    "at": "2026-10-21T10:19:24.154000+00:00",
+    "method": "GET",
+    "route": "/projects/cmvhylz5u00z67kr0z70w9bzk/dashboard",
+    "status": 200,
+    "durationMs": 4649.602935999632
+  }
+]

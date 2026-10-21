@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { createDatabaseClient } from '../../packages/database/src/index.ts';
+import { PrismaApiStore } from '../../services/api/src/prisma-store.ts';
+const target = new URL(process.env.DATABASE_URL!);
+assert.equal(target.host, '127.0.0.1:55443');assert.equal(target.pathname,'/vibecore_ux_20261021');
+const prisma=createDatabaseClient();const store=new PrismaApiStore(prisma);const cases: Record<string,unknown>={};
+for(const format of ['desktop','tablet','mobile']) for(const language of ['en','fr']) {
+ const key=`${format}-${language}`,suffix=`${Date.now()}-${key}`;
+ const user=await store.createUser({email:`snapshot-${suffix}@example.invalid`,name:'Synthetic snapshot QA',passwordHash:'disabled-synthetic-login'});
+ await store.updateUser({userId:user.id,emailVerifiedAt:new Date().toISOString()});
+ const org=await store.createOrganization({name:`Synthetic snapshot ${key}`,slug:`snapshot-${suffix}`,ownerUserId:user.id});
+ const project=await store.createProject({organizationId:org.id,name:`Snapshot ${key}`,slug:`snapshot-${key}`});
+ const token=randomBytes(32).toString('hex');await store.createSession({userId:user.id,token,expiresAt:new Date(Date.now()+2*60*60_000)});
+ cases[key]={projectId:project.id,cookies:[{name:'vc_session',value:token,url:'http://127.0.0.1:5197',httpOnly:true,sameSite:'Lax'}]};
+}
+await writeFile('.vibecore/ux-qa/snapshot-final-sessions.json',JSON.stringify({cases}),{mode:0o600});await prisma.$disconnect();console.log('Six isolated synthetic snapshot fixtures ready; normal quotas retained.');

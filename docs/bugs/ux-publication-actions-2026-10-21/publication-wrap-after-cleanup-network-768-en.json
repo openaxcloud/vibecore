@@ -1,0 +1,107 @@
+[
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/snapshots",
+    "status": 200,
+    "ms": 2307,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/overview",
+    "status": 200,
+    "ms": 2308
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/settings",
+    "status": 200,
+    "ms": 2397,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/overview",
+    "status": 200,
+    "ms": 2923
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/deployments",
+    "status": 200,
+    "ms": 2966,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": [
+      {
+        "id": "cmvhyzhl301d07kr08h6v090j",
+        "status": "FAILED",
+        "logCount": 1
+      }
+    ]
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/snapshots",
+    "status": 200,
+    "ms": 3086,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/overview",
+    "status": 200,
+    "ms": 3160
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/settings",
+    "status": 200,
+    "ms": 3162,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/snapshots",
+    "status": 200,
+    "ms": 3299,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/settings",
+    "status": 200,
+    "ms": 3744,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  }
+]

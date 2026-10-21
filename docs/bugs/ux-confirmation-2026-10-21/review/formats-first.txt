@@ -1,0 +1,67 @@
+
+Running 6 tests using 1 worker
+
+(node:306431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:306431) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.7s)
+  ✓  2 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (5.2s)
+(node:307011) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:307011) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (7.7s)
+  ✘  4 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (30.1s)
+(node:310084) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:310084) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (12.1s)
+  ✘  6 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (30.1s)
+
+
+  1) [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#snapshot-label')[22m
+
+
+      57 |     });
+      58 |     await page.goto(`/projects/${projectId}/snapshots?lang=${language}`);
+    > 59 |     await page.locator('#snapshot-label').fill(label);
+         |                                           ^
+      60 |
+      61 |     const createdResponse = page.waitForResponse(
+      62 |       (response) =>
+        at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:59:43
+
+    Error Context: .vibecore/ux-qa/review-results/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--tablet/error-context.md
+
+  2) [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('#snapshot-label')[22m
+
+
+      57 |     });
+      58 |     await page.goto(`/projects/${projectId}/snapshots?lang=${language}`);
+    > 59 |     await page.locator('#snapshot-label').fill(label);
+         |                                           ^
+      60 |
+      61 |     const createdResponse = page.waitForResponse(
+      62 |       (response) =>
+        at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:59:43
+
+    Error Context: .vibecore/ux-qa/review-results/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--mobile/error-context.md
+
+  2 failed
+    [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+    [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+  4 passed (1.6m)

@@ -1,5 +1,5 @@
 import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
 import {
@@ -272,6 +272,7 @@ export function ProductTour({ restartToken, serverSync = false }: { restartToken
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const tourRef = useRef<HTMLDivElement>(null);
   const step = PRODUCT_TOUR_STEPS[stepIndex];
   const stepTitle = copy[step.titleKey];
   const stepDescription = copy[step.descriptionKey];
@@ -395,6 +396,54 @@ export function ProductTour({ restartToken, serverSync = false }: { restartToken
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [dismiss, open]);
 
+  useEffect(() => {
+    const tour = tourRef.current;
+    const shell = tour?.closest<HTMLElement>('.vc-user-area-shell');
+
+    if (!open || !tour || !shell) {
+      return undefined;
+    }
+
+    // Native focus scrolling does not account for the fixed, non-modal card.
+    const revealFocusedControl = () => {
+      const focused = document.activeElement;
+      const card = tour.firstElementChild;
+
+      if (!(focused instanceof HTMLElement) || !shell.contains(focused) || tour.contains(focused) || !card) {
+        return;
+      }
+
+      const controlRect = focused.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+
+      if (
+        controlRect.bottom > cardRect.top &&
+        controlRect.top < cardRect.bottom &&
+        controlRect.right > cardRect.left &&
+        controlRect.left < cardRect.right
+      ) {
+        focused.scrollIntoView({ block: 'center', inline: 'nearest' });
+      }
+    };
+    const measure = () => {
+      shell.style.setProperty('--vc-product-tour-height', `${Math.ceil(tour.getBoundingClientRect().height)}px`);
+      revealFocusedControl();
+    };
+    measure();
+
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : undefined;
+    observer?.observe(tour);
+    window.addEventListener('resize', measure);
+    shell.addEventListener('focusin', revealFocusedControl);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+      shell.removeEventListener('focusin', revealFocusedControl);
+      shell.style.removeProperty('--vc-product-tour-height');
+    };
+  }, [open]);
+
   if (!ready || !open) {
     return null;
   }
@@ -414,7 +463,10 @@ export function ProductTour({ restartToken, serverSync = false }: { restartToken
   };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[80] flex justify-end px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] sm:px-4 sm:pt-4 sm:pb-[calc(env(safe-area-inset-bottom)+16px)]">
+    <div
+      ref={tourRef}
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[80] flex justify-end px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] sm:px-4 sm:pt-4 sm:pb-[calc(env(safe-area-inset-bottom)+16px)]"
+    >
       <aside
         className="vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimary shadow-2xl"
         role="dialog"

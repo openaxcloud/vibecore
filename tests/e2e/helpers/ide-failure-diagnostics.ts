@@ -14,6 +14,8 @@ export const test = base.extend<{ ideDiagnostics: Diagnostics }>({
   ideDiagnostics: [
     async ({ page }, use, testInfo) => {
       const enabled =
+        testInfo.title.startsWith('menu contextuel d’un message :') ||
+        testInfo.title.startsWith('Base de données, « Mes données » :') ||
         testInfo.title === 'la liste des tables n’est pas vide, et chaque ligne est nommée' ||
         testInfo.title === 'le rail liste les tables, les en-têtes portent leur type, la page est annoncée' ||
         testInfo.title === 'existing mobile menu keeps the file reachable after locale and navigation at 390px';

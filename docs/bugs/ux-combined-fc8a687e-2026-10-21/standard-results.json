@@ -1,0 +1,92 @@
+{
+  "buildTreeSha256": "f78327169bc834d59a8dad75975ec121761848df1faec7ff03a35bc53eec3ff0",
+  "stats": {
+    "startTime": "2026-10-21T10:00:31.543Z",
+    "duration": 56152.090000000004,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "line": 76,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 6819,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "line": 146,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 12194,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "line": 76,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 5237,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "line": 146,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 17769,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "line": 8,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 6990,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "line": 8,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration": 3693,
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "backendRevision": "fc8a687e715e6052668ade83474da4aef5f27df9"
+}

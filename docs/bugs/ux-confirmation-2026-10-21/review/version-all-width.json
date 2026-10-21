@@ -1,0 +1,40 @@
+{
+  "baseRefs": [
+    "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+    "c8c871c2585f13238cc02775b64e285b080202c4"
+  ],
+  "buildTreeSha256": "94aa7488e678b90cc2c3f4fd5e0046769c92f08d37dfe2de02e36a2dfde7c438",
+  "sourceTreeSha256": "cfeae79cce54cf3e1de4e71fac47f852ab08e03934d62cf83fa6a47bef5f2157",
+  "sourceFiles": {
+    "app/components/chat/HeaderOverflowMenu.tsx": {
+      "sha256": "658ea2ea31250dc1d4b282d5e3e9d33568fee21b082fe506fa2072320ba3685f"
+    },
+    "app/components/ui/Dialog.tsx": {
+      "sha256": "57dc46471f176dff33a58d5b130cea25c3e54107967cf35ca1ee53e3a032228e"
+    },
+    "app/components/dashboard/ProductTour.tsx": {
+      "sha256": "7c4569aa827e7cd0dc3dfc36741f868007b89fa648872fbcf9de43ea01e8fcf4"
+    },
+    "app/styles/index.scss": {
+      "sha256": "4c5b62e6cc0a2bcfade364c307901aa8188f330b9917e05cfc3cac99921e251c"
+    },
+    "app/routes/projects.$projectId.snapshots.tsx": {
+      "sha256": "f8aa1bba49dd04ed59247048e4ac2898c702f680ee9727a8ce3ec91936c8b2d9"
+    },
+    "app/lib/i18n/catalogs/project-snapshots.ts": {
+      "sha256": "a7107011bb25bd2b4ac3d9cff2c497bb4a0cef228d238e106478c42b6edbfd0f"
+    },
+    "tests/e2e/snapshot-cancel-focus.spec.ts": {
+      "sha256": "65b43b56f0236db127248d8c65b4705b6aba32d3d64ce519d6374b818278d6e9"
+    },
+    "playwright.ux-audit.config.ts": {
+      "sha256": "68d102f39c09cea6864df1d67c8dbd5712f009c5f5354cf7ca301d5e90bca149"
+    }
+  },
+  "fullManifest": "/workspace/ux-artifacts/combined-reviewed-manifest.json",
+  "archive": "/workspace/ux-artifacts/combined-reviewed-build.tar.gz",
+  "browser": "Chromium 154.0.8037.57 (/usr/bin/chromium)",
+  "apiBase": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "productionVerified": false,
+  "archiveSha256": "582a3d7de8fd6a99412728007c53d7df45e60de705fc4c1e323b22839eabcf68"
+}

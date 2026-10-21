@@ -1,6 +1,8 @@
 import { MoreHorizontal } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 
+import { useLayoutHandoffEffect } from './ide-layout-handoff';
+
 import { classNames } from '~/utils/classNames';
 
 export interface HeaderOverflowMenuProps {
@@ -8,6 +10,8 @@ export interface HeaderOverflowMenuProps {
   children: ReactNode;
   label?: string;
   className?: string;
+  state?: { open: boolean; focusedIndex: number };
+  onStateChange?: (state: { open: boolean; focusedIndex: number }) => void;
 }
 
 /**
@@ -17,12 +21,27 @@ export interface HeaderOverflowMenuProps {
  * action (they all live inside the menu). Self-contained: manages its own open
  * state + click-outside/Escape, so the host header keeps its existing hooks.
  */
-export function HeaderOverflowMenu({ children, label = 'More actions', className }: HeaderOverflowMenuProps) {
-  const [open, setOpen] = useState(false);
+export function HeaderOverflowMenu({
+  children,
+  label = 'More actions',
+  className,
+  state: controlledState,
+  onStateChange,
+}: HeaderOverflowMenuProps) {
+  const [localState, setLocalState] = useState({ open: false, focusedIndex: 0 });
+  const state = controlledState ?? localState;
+  const { open } = state;
+  const setState = onStateChange ?? setLocalState;
+
+  const setOpen = (next: boolean | ((previous: boolean) => boolean)) => {
+    const nextOpen = typeof next === 'function' ? next(open) : next;
+    setState({ open: nextOpen, focusedIndex: nextOpen ? state.focusedIndex : 0 });
+  };
+
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const initialFocus = useRef<'first' | 'last'>('first');
+  const initialFocus = useRef<'first' | 'last' | number>(state.focusedIndex);
   const menuId = useId();
 
   const menuButtons = () =>
@@ -33,13 +52,24 @@ export function HeaderOverflowMenu({ children, label = 'More actions', className
     triggerRef.current?.focus();
   };
 
+  useLayoutHandoffEffect(() => {
+    if (open) {
+      const buttons = menuButtons();
+
+      const index =
+        initialFocus.current === 'last'
+          ? buttons.length - 1
+          : initialFocus.current === 'first'
+            ? 0
+            : initialFocus.current;
+      (buttons[index] ?? buttons[0])?.focus();
+    }
+  }, [open]);
+
   useEffect(() => {
     if (!open) {
       return undefined;
     }
-
-    const buttons = menuButtons();
-    (initialFocus.current === 'last' ? buttons.at(-1) : buttons[0])?.focus();
 
     const onPointerDown = (event: PointerEvent) => {
       if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
@@ -102,6 +132,13 @@ export function HeaderOverflowMenu({ children, label = 'More actions', className
       {open ? (
         <div
           ref={menuRef}
+          onFocusCapture={() => {
+            const focusedIndex = menuButtons().findIndex((button) => button === document.activeElement);
+
+            if (focusedIndex >= 0 && focusedIndex !== state.focusedIndex) {
+              setState({ open: true, focusedIndex });
+            }
+          }}
           id={menuId}
           role="menu"
           aria-label={label}

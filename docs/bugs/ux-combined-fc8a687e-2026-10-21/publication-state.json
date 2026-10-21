@@ -1,0 +1,12 @@
+{
+  "status": 200,
+  "requestId": "6749cd2f-9092-40a8-b564-3418cf19c2ef",
+  "projectId": "cmvhyz6ph01cs7kr07sf0drlp",
+  "deployments": [
+    {
+      "id": "cmvhyzhl301d07kr08h6v090j",
+      "status": "FAILED",
+      "logsCount": 1
+    }
+  ]
+}

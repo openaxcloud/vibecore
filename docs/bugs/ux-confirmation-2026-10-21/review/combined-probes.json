@@ -1,0 +1,386 @@
+[
+  {
+    "time": 1792570439.7000356,
+    "load": [
+      2.2138671875,
+      3.11474609375,
+      3.53173828125
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.019
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.012
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570441.9925663,
+    "load": [
+      2.2138671875,
+      3.11474609375,
+      3.53173828125
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.075
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.056
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570444.6686964,
+    "load": [
+      2.51708984375,
+      3.1630859375,
+      3.54541015625
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.044
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 1.256
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570448.3563256,
+    "load": [
+      2.4755859375,
+      3.1435546875,
+      3.537109375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.117
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.946
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570451.5763977,
+    "load": [
+      2.4755859375,
+      3.1435546875,
+      3.537109375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.053
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.083
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570453.882091,
+    "load": [
+      2.83837890625,
+      3.2080078125,
+      3.55615234375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.003
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.006
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570456.0316615,
+    "load": [
+      2.83837890625,
+      3.2080078125,
+      3.55615234375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.002
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.038
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570458.2686968,
+    "load": [
+      2.69091796875,
+      3.1708984375,
+      3.5419921875
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.045
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.228
+    },
+    "connections": [
+      "idle|Client|5",
+      "idle in transaction|Client|5"
+    ]
+  },
+  {
+    "time": 1792570460.7544582,
+    "load": [
+      2.69091796875,
+      3.1708984375,
+      3.5419921875
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.047
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 1.099
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570464.1813152,
+    "load": [
+      2.63525390625,
+      3.1513671875,
+      3.53369140625
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.243
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.326
+    },
+    "connections": [
+      "idle|Client|2",
+      "idle in transaction|Client|8"
+    ]
+  },
+  {
+    "time": 1792570466.9738474,
+    "load": [
+      2.63525390625,
+      3.1513671875,
+      3.53369140625
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.046
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.248
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570469.4526198,
+    "load": [
+      2.423828125,
+      3.0986328125,
+      3.5146484375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.03
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.014
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570471.6995988,
+    "load": [
+      2.423828125,
+      3.0986328125,
+      3.5146484375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.003
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.004
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570473.9320598,
+    "load": [
+      3.43115234375,
+      3.29638671875,
+      3.57666015625
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.018
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.246
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570476.4109771,
+    "load": [
+      3.43115234375,
+      3.29638671875,
+      3.57666015625
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.099
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 1.366
+    },
+    "connections": [
+      "idle|Client|10"
+    ]
+  },
+  {
+    "time": 1792570480.1401274,
+    "load": [
+      3.47705078125,
+      3.30810546875,
+      3.5791015625
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.143
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.421
+    },
+    "connections": [
+      "idle|Client|10",
+      "idle in transaction|Client|1"
+    ]
+  },
+  {
+    "time": 1792570482.9162562,
+    "load": [
+      3.47705078125,
+      3.30810546875,
+      3.5791015625
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.055
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.107
+    },
+    "connections": [
+      "idle|Client|11"
+    ]
+  },
+  {
+    "time": 1792570485.3327825,
+    "load": [
+      3.91943359375,
+      3.40283203125,
+      3.6083984375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.002
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.005
+    },
+    "connections": [
+      "idle|Client|11"
+    ]
+  },
+  {
+    "time": 1792570487.4893894,
+    "load": [
+      3.91943359375,
+      3.40283203125,
+      3.6083984375
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.007
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.005
+    },
+    "connections": [
+      "idle|Client|11"
+    ]
+  },
+  {
+    "time": 1792570489.6884813,
+    "load": [
+      3.845703125,
+      3.39599609375,
+      3.60498046875
+    ],
+    "health": {
+      "status": 200,
+      "seconds": 0.042
+    },
+    "ready": {
+      "status": 200,
+      "seconds": 0.403
+    },
+    "connections": [
+      "idle|Client|9",
+      "idle in transaction|Client|2"
+    ]
+  }
+]

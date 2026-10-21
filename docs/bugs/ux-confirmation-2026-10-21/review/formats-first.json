@@ -1,0 +1,399 @@
+{
+  "config": {
+    "configFile": "/workspace/vibecore/playwright.ux-audit.config.ts",
+    "rootDir": "/workspace/vibecore/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 3600000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/vibecore/.vibecore/ux-qa/review-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "/workspace/vibecore/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "snapshot-cancel-focus.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspace/vibecore/.vibecore/ux-qa/review-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet",
+        "name": "tablet",
+        "testDir": "/workspace/vibecore/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "snapshot-cancel-focus.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspace/vibecore/.vibecore/ux-qa/review-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "/workspace/vibecore/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "snapshot-cancel-focus.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": ".vibecore/ux-qa/review-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "snapshot-cancel-focus.spec.ts",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "snapshot cancellation preserves keyboard position (en)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "keyboard"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3692,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:20:41.208Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "keyboard"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-945dd9c76ed8af5a1f47",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (fr)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "keyboard"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5152,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:20:45.450Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "keyboard"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-cf9e1cc1263c9e465031",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (en)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "touch"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7699,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:20:53.420Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "touch"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-fa2847df594fb0ace0cc",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (fr)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 30098,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts",
+                        "column": 43,
+                        "line": 59
+                      },
+                      "message": "Error: locator.fill: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#snapshot-label')\u001b[22m\n\n\n  57 |     });\n  58 |     await page.goto(`/projects/${projectId}/snapshots?lang=${language}`);\n> 59 |     await page.locator('#snapshot-label').fill(label);\n     |                                           ^\n  60 |\n  61 |     const createdResponse = page.waitForResponse(\n  62 |       (response) =>\n    at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:59:43"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:21:01.740Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/workspace/vibecore/.vibecore/ux-qa/review-results/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--tablet/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-2a308111118500a705b7",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (en)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "touch"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12093,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:21:33.966Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "touch"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-afab91fe93b0bf081040",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (fr)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "timedOut",
+                  "duration": 30113,
+                  "error": {
+                    "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m",
+                    "stack": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                  },
+                  "errors": [
+                    {
+                      "message": "\u001b[31mTest timeout of 30000ms exceeded.\u001b[39m"
+                    },
+                    {
+                      "location": {
+                        "file": "/workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts",
+                        "column": 43,
+                        "line": 59
+                      },
+                      "message": "Error: locator.fill: Test timeout of 30000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#snapshot-label')\u001b[22m\n\n\n  57 |     });\n  58 |     await page.goto(`/projects/${projectId}/snapshots?lang=${language}`);\n> 59 |     await page.locator('#snapshot-label').fill(label);\n     |                                           ^\n  60 |\n  61 |     const createdResponse = page.waitForResponse(\n  62 |       (response) =>\n    at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:59:43"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:21:46.679Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/workspace/vibecore/.vibecore/ux-qa/review-results/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--mobile/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-2a114ea5b7a3079e7aef",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-21T08:20:40.150Z",
+    "duration": 96879.16399999999,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

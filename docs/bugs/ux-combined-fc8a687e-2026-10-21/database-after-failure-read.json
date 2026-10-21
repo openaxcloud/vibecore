@@ -1,0 +1,38 @@
+[
+  {
+    "kind": "env-vars",
+    "status": 200,
+    "requestId": "e2b5296c-4303-41d6-abec-517d92fdec71",
+    "durationMs": 1592.4300790000002,
+    "arrays": {
+      "envVars": {
+        "count": 1,
+        "keys": [
+          "DATABASE_URL"
+        ]
+      }
+    }
+  },
+  {
+    "kind": "databases",
+    "status": 200,
+    "requestId": "123b02f5-f215-43da-9ea0-826342b2324b",
+    "durationMs": 1340.215815,
+    "arrays": {
+      "connections": {
+        "count": 1,
+        "keys": [
+          "DATABASE_URL"
+        ]
+      },
+      "databases": {
+        "count": 0,
+        "keys": []
+      },
+      "environments": {
+        "count": 5,
+        "keys": []
+      }
+    }
+  }
+]

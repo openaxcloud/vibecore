@@ -263,7 +263,7 @@ import { useStore } from '@nanostores/react';
 import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/hooks';
 import { useTextDirection } from '~/lib/i18n/direction';
 import { ChatBox } from './ChatBox';
-import { HeaderOverflowMenu } from './HeaderOverflowMenu';
+import { AgentHeaderMenu } from './AgentHeaderMenu';
 import { platformStateLabel } from './platform-state-label';
 import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -9683,7 +9683,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                        * interactive popovers (presence, branches, share) stay inline
                        * because they don't nest cleanly inside another menu.
                        */}
-                      <HeaderOverflowMenu label={t('chat.copy.moreAgentActions_b515ee74')}>
+                      <AgentHeaderMenu label={t('chat.copy.moreAgentActions_b515ee74')}>
                         <button
                           type="button"
                           role="menuitem"
@@ -9731,7 +9731,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           <Trash2 size={14} strokeWidth={2} aria-hidden />
                           <span>{t('chat.copy.clearHistory_53b5158b')}</span>
                         </button>
-                      </HeaderOverflowMenu>
+                      </AgentHeaderMenu>
                       <HeaderTip label={t('chat.copy.hideAgentPanelCmdL_9b94ba4c')}>
                         <button
                           type="button"

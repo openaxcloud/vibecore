@@ -1,0 +1,45 @@
+{
+  "baseRefs": [
+    "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+    "c8c871c2585f13238cc02775b64e285b080202c4"
+  ],
+  "buildTreeSha256": "3ce63e8e60bcbd4a4315f562c89835ae9849c49f3b2a45665b01e1e566196eb4",
+  "sourceTreeSha256": "4002a31569c3c58366d6f4d4d769388ed9b3cf9cb17f3462f77543101936a41b",
+  "sourceFiles": {
+    "app/components/chat/HeaderOverflowMenu.tsx": {
+      "sha256": "658ea2ea31250dc1d4b282d5e3e9d33568fee21b082fe506fa2072320ba3685f"
+    },
+    "app/components/ui/Dialog.tsx": {
+      "sha256": "57dc46471f176dff33a58d5b130cea25c3e54107967cf35ca1ee53e3a032228e"
+    },
+    "app/components/dashboard/ProductTour.tsx": {
+      "sha256": "2bd49ee9166df99ddad99b082eb14e510fa523aef61b42c4b4aec4922d7c41b8"
+    },
+    "app/styles/index.scss": {
+      "sha256": "4c5b62e6cc0a2bcfade364c307901aa8188f330b9917e05cfc3cac99921e251c"
+    },
+    "app/routes/projects.$projectId.snapshots.tsx": {
+      "sha256": "483a6dce3dacf9d91f2aebcca577c944393a8c2f8249b83868795a45846e7964"
+    },
+    "app/lib/i18n/catalogs/project-snapshots.ts": {
+      "sha256": "a7107011bb25bd2b4ac3d9cff2c497bb4a0cef228d238e106478c42b6edbfd0f"
+    },
+    "tests/e2e/snapshot-cancel-focus.spec.ts": {
+      "sha256": "65b43b56f0236db127248d8c65b4705b6aba32d3d64ce519d6374b818278d6e9"
+    },
+    "playwright.ux-audit.config.ts": {
+      "sha256": "68d102f39c09cea6864df1d67c8dbd5712f009c5f5354cf7ca301d5e90bca149"
+    }
+  },
+  "fullManifest": "/workspace/ux-artifacts/combined-focus-final-manifest.json",
+  "archive": "/workspace/ux-artifacts/combined-focus-final-build.tar.gz",
+  "browser": "Chromium 154.0.8037.57 (/usr/bin/chromium)",
+  "apiBase": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "productionVerified": false,
+  "archiveSha256": "c7f979573a444f23570d1a5c1161434a67498fcc14f3c9dc948f31bf5886c72f",
+  "node": "v24.19.0",
+  "quotaCommit": "5dee7f4e940f867fa29047c6da81dfd1f99f6838",
+  "rootSourceDifferences": [
+    "app/components/chat/HeaderOverflowMenu.tsx (exact #750 source)"
+  ]
+}
