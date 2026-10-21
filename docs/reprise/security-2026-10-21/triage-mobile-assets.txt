@@ -1,0 +1,1 @@
+{"ok":true,"releaseMode":false,"mobileAssets":21,"dependencies":14}

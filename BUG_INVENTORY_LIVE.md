@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-463 entrées.
+464 entrées.
 
 ## Sans section
 
@@ -588,6 +588,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+- [BUG-DEPENDENCY-CRITICAL-20261021](docs/bugs/BUG-DEPENDENCY-CRITICAL-20261021.md) — Quatre alertes critiques Capacitor/Tinypool sur main. — 📤 Dispatché : ☑ 21/10 · 💻 Codé : ☐ Candidat isolé, non fusionné. · ✅ Testé live : ☐ Aucune exploitation ni redistribution native attestée.
 
 ## Résidus non tabulaires — reportés mot pour mot
 

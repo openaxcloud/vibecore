@@ -1,0 +1,60 @@
+{
+  "baseSha": "883af053f7c1b85bb472fa53c7fa87b4c8051c9b",
+  "testedCommit": "ed4ccc15804c7862c5a9ba3de327b4c51148f1b2",
+  "testedTree": "9fd6fbb9fd1419a3543eb9dbddc8428e45ec8d9e",
+  "sources": [
+    {
+      "path": "package.json",
+      "sha256": "66f457415dc131c2536fb8cc82510913ea65dccf4d3e21097422f4a5187f9c2c"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "dff765b151993aa3984a5b63894f674c2f3a61b160d2b702f25f6c932260dbbd"
+    },
+    {
+      "path": "apps/mobile/package.json",
+      "sha256": "125fb1b947ac526d479fd3c534abd90e52cbd5d77da35b495612ac52489d1ebc"
+    },
+    {
+      "path": "apps/mobile/android/capacitor.settings.gradle",
+      "sha256": "49564b066bfb349352c47d27e355cb68803aeae9d28156ea14cb57fac9dc3b03"
+    },
+    {
+      "path": "apps/mobile/ios/App/CapApp-SPM/Package.swift",
+      "sha256": "6361f450a2e19e33b97dca8b3b72cae83f0073ef8beec5d18150625ef40c820a"
+    },
+    {
+      "path": "scripts/tinypool-security.checks.mjs",
+      "sha256": "25ed531bc57e8df33d7e577d6b4e6baf052194358763f7a30f03962380d49278"
+    },
+    {
+      "path": "scripts/tinypool-security.spec.mjs",
+      "sha256": "b92777ddeab53dba3d46938652ab06519a37ecc6c243994ffcad806442eb224a"
+    }
+  ],
+  "tests": {
+    "report": "integration-targeted.json",
+    "sha256": "0e2f4eb6a77b8fee3a16f58fa0cf6382d7526d5b93dcbd1b61814293dcd7ab09",
+    "exitCode": 0,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "productionAudit": {
+    "command": "pnpm 9.14.4 audit --prod --json",
+    "exitCode": 1,
+    "counts": {
+      "info": 0,
+      "low": 28,
+      "moderate": 110,
+      "high": 73,
+      "critical": 0
+    },
+    "rawSha256": "bf279b42183052cc877949b2ce303991856896eea439c8cf8e936209c3baec19"
+  },
+  "limits": [
+    "Original receipt and full unit/typecheck/mobile runs remain bound to original source hashes and base 6eb4bf42.",
+    "New base adds UI changes; only targeted tests rerun locally on this integration. Full CI required on final published SHA.",
+    "No native build/device validation locally; Android build must run in existing Mobile Release workflow."
+  ]
+}

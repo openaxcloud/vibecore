@@ -1,0 +1,2333 @@
+{
+  "sourceSha": "6eb4bf42951057a6aa98e195a05e97211744964f",
+  "command": "pnpm 9.14.4 audit --json",
+  "exitCode": 1,
+  "counts": {
+    "info": 0,
+    "low": 28,
+    "moderate": 129,
+    "high": 98,
+    "critical": 4
+  },
+  "warning": "Advisory metadata devDependencies=0 is not a reliable runtime classification; classify paths against workspace manifests and actual usage. Counts are not proof of exploitation.",
+  "advisories": [
+    {
+      "package": "vite",
+      "advisory": "GHSA-g4jq-h2w9-997c",
+      "severity": "low",
+      "versions": ["5.4.19"],
+      "affected": "<=5.4.19",
+      "patchedAsReported": ">=5.4.20",
+      "url": "https://github.com/advisories/GHSA-g4jq-h2w9-997c",
+      "dependencyPaths": ["apps__admin>vite"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-jqfw-vq24-v9c3",
+      "severity": "low",
+      "versions": ["5.4.19"],
+      "affected": "<=5.4.19",
+      "patchedAsReported": ">=5.4.20",
+      "url": "https://github.com/advisories/GHSA-jqfw-vq24-v9c3",
+      "dependencyPaths": ["apps__admin>vite"]
+    },
+    {
+      "package": "jsondiffpatch",
+      "advisory": "GHSA-33vc-wfww-vjfv",
+      "severity": "moderate",
+      "versions": ["0.6.0"],
+      "affected": "<0.7.2",
+      "patchedAsReported": ">=0.7.2",
+      "url": "https://github.com/advisories/GHSA-33vc-wfww-vjfv",
+      "dependencyPaths": [".>ai>jsondiffpatch"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-93m4-6634-74q7",
+      "severity": "moderate",
+      "versions": ["5.4.19"],
+      "affected": ">=5.2.6 <=5.4.20",
+      "patchedAsReported": ">=5.4.21",
+      "url": "https://github.com/advisories/GHSA-93m4-6634-74q7",
+      "dependencyPaths": ["apps__admin>vite"]
+    },
+    {
+      "package": "nanoid",
+      "advisory": "GHSA-mwcw-c2x4-8c55",
+      "severity": "moderate",
+      "versions": ["3.3.6"],
+      "affected": "<3.3.8",
+      "patchedAsReported": ">=3.3.8",
+      "url": "https://github.com/advisories/GHSA-mwcw-c2x4-8c55",
+      "dependencyPaths": [".>@ai-sdk/mistral>@ai-sdk/provider-utils>nanoid"]
+    },
+    {
+      "package": "ai",
+      "advisory": "GHSA-rwvc-j5jr-mgvh",
+      "severity": "low",
+      "versions": ["4.3.16"],
+      "affected": "<5.0.52",
+      "patchedAsReported": ">=5.0.52",
+      "url": "https://github.com/advisories/GHSA-rwvc-j5jr-mgvh",
+      "dependencyPaths": [".>ai"]
+    },
+    {
+      "package": "@smithy/config-resolver",
+      "advisory": "GHSA-6475-r3vj-m8vf",
+      "severity": "low",
+      "versions": ["4.1.4"],
+      "affected": "<4.4.0",
+      "patchedAsReported": ">=4.4.0",
+      "url": "https://github.com/advisories/GHSA-6475-r3vj-m8vf",
+      "dependencyPaths": [".>@ai-sdk/amazon-bedrock>@aws-sdk/client-bedrock-runtime>@smithy/config-resolver"]
+    },
+    {
+      "package": "elliptic",
+      "advisory": "GHSA-848j-6mx2-7j84",
+      "severity": "low",
+      "versions": ["6.6.1"],
+      "affected": "<=6.6.1",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-848j-6mx2-7j84",
+      "dependencyPaths": [".>crypto-browserify>browserify-sign>elliptic"]
+    },
+    {
+      "package": "@remix-run/router",
+      "advisory": "GHSA-2w69-qvjg-hvjx",
+      "severity": "high",
+      "versions": ["1.23.0"],
+      "affected": "<=1.23.1",
+      "patchedAsReported": ">=1.23.2",
+      "url": "https://github.com/advisories/GHSA-2w69-qvjg-hvjx",
+      "dependencyPaths": [".>remix-utils>@remix-run/cloudflare>@remix-run/server-runtime>@remix-run/router"]
+    },
+    {
+      "package": "diff",
+      "advisory": "GHSA-73rr-hh4g-fpgx",
+      "severity": "low",
+      "versions": ["5.2.0"],
+      "affected": ">=5.0.0 <5.2.2",
+      "patchedAsReported": ">=5.2.2",
+      "url": "https://github.com/advisories/GHSA-73rr-hh4g-fpgx",
+      "dependencyPaths": [".>diff"]
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-mh29-5h37-fv8m",
+      "severity": "moderate",
+      "versions": ["4.1.0"],
+      "affected": ">=4.0.0 <4.1.1",
+      "patchedAsReported": ">=4.1.1",
+      "url": "https://github.com/advisories/GHSA-mh29-5h37-fv8m",
+      "dependencyPaths": [".>@blitz/eslint-plugin>eslint>@eslint/eslintrc>js-yaml"]
+    },
+    {
+      "package": "mdast-util-to-hast",
+      "advisory": "GHSA-4fh9-h7wg-q85m",
+      "severity": "moderate",
+      "versions": ["13.2.0"],
+      "affected": ">=13.0.0 <13.2.1",
+      "patchedAsReported": ">=13.2.1",
+      "url": "https://github.com/advisories/GHSA-4fh9-h7wg-q85m",
+      "dependencyPaths": [".>rehype-stringify>hast-util-to-html>mdast-util-to-hast"]
+    },
+    {
+      "package": "bn.js",
+      "advisory": "GHSA-378v-28hj-76wf",
+      "severity": "moderate",
+      "versions": ["5.2.2"],
+      "affected": ">=5.0.0 <5.2.3",
+      "patchedAsReported": ">=5.2.3",
+      "url": "https://github.com/advisories/GHSA-378v-28hj-76wf",
+      "dependencyPaths": [".>crypto-browserify>browserify-sign>bn.js"]
+    },
+    {
+      "package": "bn.js",
+      "advisory": "GHSA-378v-28hj-76wf",
+      "severity": "moderate",
+      "versions": ["4.12.2"],
+      "affected": "<4.12.3",
+      "patchedAsReported": ">=4.12.3",
+      "url": "https://github.com/advisories/GHSA-378v-28hj-76wf",
+      "dependencyPaths": [".>crypto-browserify>browserify-sign>elliptic>bn.js"]
+    },
+    {
+      "package": "ajv",
+      "advisory": "GHSA-2g4f-4pwh-qvx6",
+      "severity": "moderate",
+      "versions": ["6.12.6"],
+      "affected": "<6.14.0",
+      "patchedAsReported": ">=6.14.0",
+      "url": "https://github.com/advisories/GHSA-2g4f-4pwh-qvx6",
+      "dependencyPaths": [".>@blitz/eslint-plugin>eslint>ajv"]
+    },
+    {
+      "package": "ajv",
+      "advisory": "GHSA-2g4f-4pwh-qvx6",
+      "severity": "moderate",
+      "versions": ["8.17.1"],
+      "affected": ">=7.0.0-alpha.0 <8.18.0",
+      "patchedAsReported": ">=8.18.0",
+      "url": "https://github.com/advisories/GHSA-2g4f-4pwh-qvx6",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-4w7w-66w2-5vf9",
+      "severity": "moderate",
+      "versions": ["5.4.19", "5.4.21"],
+      "affected": "<=6.4.1",
+      "patchedAsReported": ">=6.4.2",
+      "url": "https://github.com/advisories/GHSA-4w7w-66w2-5vf9",
+      "dependencyPaths": [".>vite", "apps__admin>vite", "packages__template-catalog>vitest>vite"]
+    },
+    {
+      "package": "ws",
+      "advisory": "GHSA-58qx-3vcg-4xpx",
+      "severity": "moderate",
+      "versions": ["8.18.0", "8.20.0"],
+      "affected": ">=8.0.0 <8.20.1",
+      "patchedAsReported": ">=8.20.1",
+      "url": "https://github.com/advisories/GHSA-58qx-3vcg-4xpx",
+      "dependencyPaths": [".>wrangler>miniflare>ws", ".>ws"]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-jggg-4jg4-v7c6",
+      "severity": "moderate",
+      "versions": ["8.0.3"],
+      "affected": ">=8.0.0 <8.2.0",
+      "patchedAsReported": ">=8.2.0",
+      "url": "https://github.com/advisories/GHSA-jggg-4jg4-v7c6",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@opentelemetry/otlp-transformer>protobufjs"
+      ]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-jggg-4jg4-v7c6",
+      "severity": "moderate",
+      "versions": ["7.5.6"],
+      "affected": "<=7.5.7",
+      "patchedAsReported": ">=7.5.8",
+      "url": "https://github.com/advisories/GHSA-jggg-4jg4-v7c6",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@grpc/grpc-js>@grpc/proto-loader>protobufjs"
+      ]
+    },
+    {
+      "package": "uuid",
+      "advisory": "GHSA-w5hq-g745-h8pq",
+      "severity": "moderate",
+      "versions": ["9.0.1"],
+      "affected": "<11.1.1",
+      "patchedAsReported": ">=11.1.1",
+      "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+      "dependencyPaths": [".>@ai-sdk/amazon-bedrock>@aws-sdk/client-bedrock-runtime>uuid"]
+    },
+    {
+      "package": "qs",
+      "advisory": "GHSA-q8mj-m7cp-5q26",
+      "severity": "moderate",
+      "versions": ["6.15.1"],
+      "affected": ">=6.11.1 <=6.15.1",
+      "patchedAsReported": ">=6.15.2",
+      "url": "https://github.com/advisories/GHSA-q8mj-m7cp-5q26",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express>qs"]
+    },
+    {
+      "package": "@remix-run/server-runtime",
+      "advisory": "GHSA-8x6r-g9mw-2r78",
+      "severity": "high",
+      "versions": ["2.16.8"],
+      "affected": ">=2.10.0 <2.17.5",
+      "patchedAsReported": ">=2.17.5",
+      "url": "https://github.com/advisories/GHSA-8x6r-g9mw-2r78",
+      "dependencyPaths": [".>remix-utils>@remix-run/cloudflare>@remix-run/server-runtime"]
+    },
+    {
+      "package": "turbo-stream",
+      "advisory": "GHSA-rxv8-25v2-qmq8",
+      "severity": "high",
+      "versions": ["2.4.1"],
+      "affected": "<3.0.0",
+      "patchedAsReported": ">=3.0.0",
+      "url": "https://github.com/advisories/GHSA-rxv8-25v2-qmq8",
+      "dependencyPaths": [".>remix-utils>@remix-run/cloudflare>@remix-run/server-runtime>turbo-stream"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-xrhx-7g5j-rcj5",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.21",
+      "patchedAsReported": ">=4.12.21",
+      "url": "https://github.com/advisories/GHSA-xrhx-7g5j-rcj5",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-3hrh-pfw6-9m5x",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.21",
+      "patchedAsReported": ">=4.12.21",
+      "url": "https://github.com/advisories/GHSA-3hrh-pfw6-9m5x",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-f577-qrjj-4474",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.21",
+      "patchedAsReported": ">=4.12.21",
+      "url": "https://github.com/advisories/GHSA-f577-qrjj-4474",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-2gcr-mfcq-wcc3",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.21",
+      "patchedAsReported": ">=4.12.21",
+      "url": "https://github.com/advisories/GHSA-2gcr-mfcq-wcc3",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-jxxr-4gwj-5jf2",
+      "severity": "moderate",
+      "versions": ["5.0.5"],
+      "affected": ">=5.0.0 <5.0.6",
+      "patchedAsReported": ">=5.0.6",
+      "url": "https://github.com/advisories/GHSA-jxxr-4gwj-5jf2",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "package": "@remix-run/server-runtime",
+      "advisory": "GHSA-h5cw-625j-3rxh",
+      "severity": "moderate",
+      "versions": ["2.16.8"],
+      "affected": "<=2.17.2",
+      "patchedAsReported": ">=2.17.3",
+      "url": "https://github.com/advisories/GHSA-h5cw-625j-3rxh",
+      "dependencyPaths": [".>remix-utils>@remix-run/cloudflare>@remix-run/server-runtime"]
+    },
+    {
+      "package": "esbuild",
+      "advisory": "GHSA-g7r4-m6w7-qqqr",
+      "severity": "low",
+      "versions": ["0.27.3", "0.27.7"],
+      "affected": ">=0.27.3 <0.28.1",
+      "patchedAsReported": ">=0.28.1",
+      "url": "https://github.com/advisories/GHSA-g7r4-m6w7-qqqr",
+      "dependencyPaths": [".>esbuild", ".>wrangler>esbuild"]
+    },
+    {
+      "package": "tmp",
+      "advisory": "GHSA-7c78-jf6q-g5cm",
+      "severity": "high",
+      "versions": ["0.2.6"],
+      "affected": ">=0.2.6 <0.2.7",
+      "patchedAsReported": ">=0.2.7",
+      "url": "https://github.com/advisories/GHSA-7c78-jf6q-g5cm",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>@malept/flatpak-bundler>tmp-promise>tmp"]
+    },
+    {
+      "package": "form-data",
+      "advisory": "GHSA-hmw2-7cc7-3qxx",
+      "severity": "high",
+      "versions": ["4.0.5"],
+      "affected": ">=4.0.0 <4.0.6",
+      "patchedAsReported": ">=4.0.6",
+      "url": "https://github.com/advisories/GHSA-hmw2-7cc7-3qxx",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>electron-publish>form-data"]
+    },
+    {
+      "package": "form-data",
+      "advisory": "GHSA-hmw2-7cc7-3qxx",
+      "severity": "high",
+      "versions": ["2.5.5"],
+      "affected": "<2.5.6",
+      "patchedAsReported": ">=2.5.6",
+      "url": "https://github.com/advisories/GHSA-hmw2-7cc7-3qxx",
+      "dependencyPaths": ["services__api>@google-cloud/storage>retry-request>@types/request>form-data"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-v6wh-96g9-6wx3",
+      "severity": "moderate",
+      "versions": ["5.4.19", "5.4.21"],
+      "affected": "<=6.4.2",
+      "patchedAsReported": ">=6.4.3",
+      "url": "https://github.com/advisories/GHSA-v6wh-96g9-6wx3",
+      "dependencyPaths": [".>vite", "apps__admin>vite", "packages__template-catalog>vitest>vite"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-v6wh-96g9-6wx3",
+      "severity": "moderate",
+      "versions": ["8.0.10"],
+      "affected": ">=8.0.0 <=8.0.15",
+      "patchedAsReported": ">=8.0.16",
+      "url": "https://github.com/advisories/GHSA-v6wh-96g9-6wx3",
+      "dependencyPaths": ["apps__mobile>vite"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-hpcv-96wg-7vj8",
+      "severity": "moderate",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.5",
+      "patchedAsReported": ">=3.4.6",
+      "url": "https://github.com/advisories/GHSA-hpcv-96wg-7vj8",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-r47g-fvhr-h676",
+      "severity": "moderate",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.5",
+      "patchedAsReported": ">=3.4.6",
+      "url": "https://github.com/advisories/GHSA-r47g-fvhr-h676",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-rp9w-3fw7-7cwq",
+      "severity": "moderate",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.6",
+      "patchedAsReported": ">=3.4.7",
+      "url": "https://github.com/advisories/GHSA-rp9w-3fw7-7cwq",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-p88m-4jfj-68fv",
+      "severity": "moderate",
+      "versions": ["6.25.0"],
+      "affected": "<6.27.0",
+      "patchedAsReported": ">=6.27.0",
+      "url": "https://github.com/advisories/GHSA-p88m-4jfj-68fv",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-vxpw-j846-p89q",
+      "severity": "high",
+      "versions": ["6.25.0"],
+      "affected": "<6.27.0",
+      "patchedAsReported": ">=6.27.0",
+      "url": "https://github.com/advisories/GHSA-vxpw-j846-p89q",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-g8m3-5g58-fq7m",
+      "severity": "low",
+      "versions": ["6.25.0"],
+      "affected": "<6.27.0",
+      "patchedAsReported": ">=6.27.0",
+      "url": "https://github.com/advisories/GHSA-g8m3-5g58-fq7m",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-h67p-54hq-rp68",
+      "severity": "moderate",
+      "versions": ["4.1.0"],
+      "affected": ">=4.0.0 <=4.1.1",
+      "patchedAsReported": ">=4.2.0",
+      "url": "https://github.com/advisories/GHSA-h67p-54hq-rp68",
+      "dependencyPaths": [".>@blitz/eslint-plugin>eslint>@eslint/eslintrc>js-yaml"]
+    },
+    {
+      "package": "morgan",
+      "advisory": "GHSA-4vj7-5mj6-jm8m",
+      "severity": "moderate",
+      "versions": ["1.10.1"],
+      "affected": ">=1.2.0 <=1.10.1",
+      "patchedAsReported": ">=1.11.0",
+      "url": "https://github.com/advisories/GHSA-4vj7-5mj6-jm8m",
+      "dependencyPaths": [".>morgan"]
+    },
+    {
+      "package": "ws",
+      "advisory": "GHSA-96hv-2xvq-fx4p",
+      "severity": "high",
+      "versions": ["8.18.0", "8.20.0"],
+      "affected": ">=8.0.0 <8.21.0",
+      "patchedAsReported": ">=8.21.0",
+      "url": "https://github.com/advisories/GHSA-96hv-2xvq-fx4p",
+      "dependencyPaths": [".>wrangler>miniflare>ws", ".>ws"]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-wcpc-wj8m-hjx6",
+      "severity": "high",
+      "versions": ["8.0.3"],
+      "affected": ">=8.0.0 <=8.4.0",
+      "patchedAsReported": ">=8.4.1",
+      "url": "https://github.com/advisories/GHSA-wcpc-wj8m-hjx6",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@opentelemetry/otlp-transformer>protobufjs"
+      ]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-wcpc-wj8m-hjx6",
+      "severity": "high",
+      "versions": ["7.5.6"],
+      "affected": "<=7.6.0",
+      "patchedAsReported": ">=7.6.1",
+      "url": "https://github.com/advisories/GHSA-wcpc-wj8m-hjx6",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@grpc/grpc-js>@grpc/proto-loader>protobufjs"
+      ]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-f38q-mgvj-vph7",
+      "severity": "moderate",
+      "versions": ["8.0.3"],
+      "affected": ">=8.0.0 <=8.5.0",
+      "patchedAsReported": ">=8.6.0",
+      "url": "https://github.com/advisories/GHSA-f38q-mgvj-vph7",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@opentelemetry/otlp-transformer>protobufjs"
+      ]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-f38q-mgvj-vph7",
+      "severity": "moderate",
+      "versions": ["7.5.6"],
+      "affected": "<=7.6.2",
+      "patchedAsReported": ">=7.6.3",
+      "url": "https://github.com/advisories/GHSA-f38q-mgvj-vph7",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@grpc/grpc-js>@grpc/proto-loader>protobufjs"
+      ]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-fx2h-pf6j-xcff",
+      "severity": "high",
+      "versions": ["5.4.19", "5.4.21"],
+      "affected": "<=6.4.2",
+      "patchedAsReported": ">=6.4.3",
+      "url": "https://github.com/advisories/GHSA-fx2h-pf6j-xcff",
+      "dependencyPaths": [".>vite", "apps__admin>vite", "packages__template-catalog>vitest>vite"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-fx2h-pf6j-xcff",
+      "severity": "high",
+      "versions": ["8.0.10"],
+      "affected": ">=8.0.0 <=8.0.15",
+      "patchedAsReported": ">=8.0.16",
+      "url": "https://github.com/advisories/GHSA-fx2h-pf6j-xcff",
+      "dependencyPaths": ["apps__mobile>vite"]
+    },
+    {
+      "package": "@babel/core",
+      "advisory": "GHSA-4x5r-pxfx-6jf8",
+      "severity": "low",
+      "versions": ["7.28.0"],
+      "affected": "<=7.29.0",
+      "patchedAsReported": ">=7.29.6",
+      "url": "https://github.com/advisories/GHSA-4x5r-pxfx-6jf8",
+      "dependencyPaths": [".>@react-router/dev>@babel/core"]
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-3jxr-9vmj-r5cp",
+      "severity": "high",
+      "versions": ["5.0.5"],
+      "affected": ">=3.0.0 <5.0.7",
+      "patchedAsReported": ">=5.0.7",
+      "url": "https://github.com/advisories/GHSA-3jxr-9vmj-r5cp",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-52cp-r559-cp3m",
+      "severity": "high",
+      "versions": ["4.1.0"],
+      "affected": ">=4.0.0 <4.3.0",
+      "patchedAsReported": ">=4.3.0",
+      "url": "https://github.com/advisories/GHSA-52cp-r559-cp3m",
+      "dependencyPaths": [".>@blitz/eslint-plugin>eslint>@eslint/eslintrc>js-yaml"]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-j3f2-48v5-ccww",
+      "severity": "moderate",
+      "versions": ["8.0.3"],
+      "affected": ">=8.0.0 <=8.6.5",
+      "patchedAsReported": ">=8.6.6",
+      "url": "https://github.com/advisories/GHSA-j3f2-48v5-ccww",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@opentelemetry/otlp-transformer>protobufjs"
+      ]
+    },
+    {
+      "package": "protobufjs",
+      "advisory": "GHSA-j3f2-48v5-ccww",
+      "severity": "moderate",
+      "versions": ["7.5.6"],
+      "affected": ">=7.5.0 <=7.6.4",
+      "patchedAsReported": ">=7.6.5",
+      "url": "https://github.com/advisories/GHSA-j3f2-48v5-ccww",
+      "dependencyPaths": [
+        ".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@grpc/grpc-js>@grpc/proto-loader>protobufjs"
+      ]
+    },
+    {
+      "package": "body-parser",
+      "advisory": "GHSA-v422-hmwv-36x6",
+      "severity": "low",
+      "versions": ["2.2.2"],
+      "affected": ">=2.0.0 <2.3.0",
+      "patchedAsReported": ">=2.3.0",
+      "url": "https://github.com/advisories/GHSA-v422-hmwv-36x6",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express>body-parser"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-rv63-4mwf-qqc2",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.25",
+      "patchedAsReported": ">=4.12.25",
+      "url": "https://github.com/advisories/GHSA-rv63-4mwf-qqc2",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-wgpf-jwqj-8h8p",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.25",
+      "patchedAsReported": ">=4.12.25",
+      "url": "https://github.com/advisories/GHSA-wgpf-jwqj-8h8p",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-88fw-hqm2-52qc",
+      "severity": "high",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.25",
+      "patchedAsReported": ">=4.12.25",
+      "url": "https://github.com/advisories/GHSA-88fw-hqm2-52qc",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-wwfh-h76j-fc44",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.25",
+      "patchedAsReported": ">=4.12.25",
+      "url": "https://github.com/advisories/GHSA-wwfh-h76j-fc44",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-j6c9-x7qj-28xf",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.25",
+      "patchedAsReported": ">=4.12.25",
+      "url": "https://github.com/advisories/GHSA-j6c9-x7qj-28xf",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-xgm2-5f3f-mvvc",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": ">=4.3.3 <4.12.27",
+      "patchedAsReported": ">=4.12.27",
+      "url": "https://github.com/advisories/GHSA-xgm2-5f3f-mvvc",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-hvrm-45r6-mjfj",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": ">=4.11.8 <4.12.27",
+      "patchedAsReported": ">=4.12.27",
+      "url": "https://github.com/advisories/GHSA-hvrm-45r6-mjfj",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-w62v-xxxg-mg59",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": ">=4.0.0 <4.12.27",
+      "patchedAsReported": ">=4.12.27",
+      "url": "https://github.com/advisories/GHSA-w62v-xxxg-mg59",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "@opentelemetry/propagator-jaeger",
+      "advisory": "GHSA-45rx-2jwx-cxfr",
+      "severity": "high",
+      "versions": ["2.7.1"],
+      "affected": "<2.9.0",
+      "patchedAsReported": ">=2.9.0",
+      "url": "https://github.com/advisories/GHSA-45rx-2jwx-cxfr",
+      "dependencyPaths": [".>@opentelemetry/sdk-node>@opentelemetry/propagator-jaeger"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-v2hh-gcrm-f6hx",
+      "severity": "high",
+      "versions": ["3.1.2"],
+      "affected": ">=3.0.0 <=3.1.3",
+      "patchedAsReported": ">=3.1.4",
+      "url": "https://github.com/advisories/GHSA-v2hh-gcrm-f6hx",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "sharp",
+      "advisory": "GHSA-f88m-g3jw-g9cj",
+      "severity": "high",
+      "versions": ["0.34.5"],
+      "affected": "<0.35.0",
+      "patchedAsReported": ">=0.35.0",
+      "url": "https://github.com/advisories/GHSA-f88m-g3jw-g9cj",
+      "dependencyPaths": [".>wrangler>miniflare>sharp"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-cmwh-pvxp-8882",
+      "severity": "moderate",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.10",
+      "patchedAsReported": ">=3.4.11",
+      "url": "https://github.com/advisories/GHSA-cmwh-pvxp-8882",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-vxr8-fq34-vvx9",
+      "severity": "low",
+      "versions": ["3.4.2"],
+      "affected": "<3.4.9",
+      "patchedAsReported": ">=3.4.9",
+      "url": "https://github.com/advisories/GHSA-vxr8-fq34-vvx9",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-gvmj-g25r-r7wr",
+      "severity": "low",
+      "versions": ["3.4.2"],
+      "affected": ">=3.0.0 <=3.4.7",
+      "patchedAsReported": ">=3.4.8",
+      "url": "https://github.com/advisories/GHSA-gvmj-g25r-r7wr",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-x4vx-rjvf-j5p4",
+      "severity": "low",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.6",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-x4vx-rjvf-j5p4",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-76mc-f452-cxcm",
+      "severity": "moderate",
+      "versions": ["3.4.2"],
+      "affected": "<3.4.7",
+      "patchedAsReported": ">=3.4.7",
+      "url": "https://github.com/advisories/GHSA-76mc-f452-cxcm",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "react-router",
+      "advisory": "GHSA-wrjc-x8rr-h8h6",
+      "severity": "moderate",
+      "versions": ["6.30.4"],
+      "affected": ">=6.0.0 <7.18.0",
+      "patchedAsReported": ">=7.18.0",
+      "url": "https://github.com/advisories/GHSA-wrjc-x8rr-h8h6",
+      "dependencyPaths": [".>remix-utils>@remix-run/react>react-router"]
+    },
+    {
+      "package": "react-router",
+      "advisory": "GHSA-337j-9hxr-rhxg",
+      "severity": "moderate",
+      "versions": ["6.30.4"],
+      "affected": ">=6.4.0 <7.18.0",
+      "patchedAsReported": ">=7.18.0",
+      "url": "https://github.com/advisories/GHSA-337j-9hxr-rhxg",
+      "dependencyPaths": [".>remix-utils>@remix-run/react>react-router"]
+    },
+    {
+      "package": "find-my-way",
+      "advisory": "GHSA-c96f-x56v-gq3h",
+      "severity": "high",
+      "versions": ["9.5.0"],
+      "affected": "<=9.6.0",
+      "patchedAsReported": ">=9.7.0",
+      "url": "https://github.com/advisories/GHSA-c96f-x56v-gq3h",
+      "dependencyPaths": [".>fastify>find-my-way"]
+    },
+    {
+      "package": "builder-util-runtime",
+      "advisory": "GHSA-p2f4-r6v6-j797",
+      "severity": "high",
+      "versions": ["9.3.1", "9.5.1"],
+      "affected": "<9.7.0",
+      "patchedAsReported": ">=9.7.0",
+      "url": "https://github.com/advisories/GHSA-p2f4-r6v6-j797",
+      "dependencyPaths": [".>electron-builder>builder-util-runtime", ".>electron-updater>builder-util-runtime"]
+    },
+    {
+      "package": "app-builder-lib",
+      "advisory": "GHSA-7g7r-gx96-252g",
+      "severity": "high",
+      "versions": ["26.8.1"],
+      "affected": "<26.15.0",
+      "patchedAsReported": ">=26.15.0",
+      "url": "https://github.com/advisories/GHSA-7g7r-gx96-252g",
+      "dependencyPaths": [".>electron-builder>app-builder-lib"]
+    },
+    {
+      "package": "valibot",
+      "advisory": "GHSA-5qjj-4xww-7phc",
+      "severity": "moderate",
+      "versions": ["1.2.0"],
+      "affected": "<=1.4.1",
+      "patchedAsReported": ">=1.4.2",
+      "url": "https://github.com/advisories/GHSA-5qjj-4xww-7phc",
+      "dependencyPaths": [".>@react-router/dev>valibot", "packages__database>prisma>@prisma/dev>valibot"]
+    },
+    {
+      "package": "re2",
+      "advisory": "GHSA-ff84-5f28-78qj",
+      "severity": "moderate",
+      "versions": ["1.24.1"],
+      "affected": "<=1.25.1",
+      "patchedAsReported": ">=1.25.2",
+      "url": "https://github.com/advisories/GHSA-ff84-5f28-78qj",
+      "dependencyPaths": ["services__api>re2"]
+    },
+    {
+      "package": "re2",
+      "advisory": "GHSA-6hxr-mr5r-9836",
+      "severity": "moderate",
+      "versions": ["1.24.1"],
+      "affected": "<=1.25.1",
+      "patchedAsReported": ">=1.25.2",
+      "url": "https://github.com/advisories/GHSA-6hxr-mr5r-9836",
+      "dependencyPaths": ["services__api>re2"]
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-mh99-v99m-4gvg",
+      "severity": "high",
+      "versions": ["5.0.5"],
+      "affected": ">=4.0.0 <5.0.8",
+      "patchedAsReported": ">=5.0.8",
+      "url": "https://github.com/advisories/GHSA-mh99-v99m-4gvg",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "package": "postcss",
+      "advisory": "GHSA-fxqj-rqcc-2cmp",
+      "severity": "moderate",
+      "versions": ["8.5.14"],
+      "affected": "<=8.5.22",
+      "patchedAsReported": ">=8.5.23",
+      "url": "https://github.com/advisories/GHSA-fxqj-rqcc-2cmp",
+      "dependencyPaths": [".>unocss>@unocss/postcss>postcss"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-8xcm-r25x-g524",
+      "severity": "moderate",
+      "versions": ["6.25.0"],
+      "affected": "<6.28.0",
+      "patchedAsReported": ">=6.28.0",
+      "url": "https://github.com/advisories/GHSA-8xcm-r25x-g524",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-7p8r-x3mc-p8w7",
+      "severity": "high",
+      "versions": ["3.1.2"],
+      "affected": ">=3.0.0 <3.1.5",
+      "patchedAsReported": ">=3.1.5",
+      "url": "https://github.com/advisories/GHSA-7p8r-x3mc-p8w7",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "ip-address",
+      "advisory": "GHSA-mwp4-54f8-5fhr",
+      "severity": "high",
+      "versions": ["10.2.0"],
+      "affected": "<=10.3.0",
+      "patchedAsReported": ">=10.3.1",
+      "url": "https://github.com/advisories/GHSA-mwp4-54f8-5fhr",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express-rate-limit>ip-address"]
+    },
+    {
+      "package": "ip-address",
+      "advisory": "GHSA-4xrf-jv44-h6hh",
+      "severity": "moderate",
+      "versions": ["10.2.0"],
+      "affected": ">=10.1.1 <=10.2.1",
+      "patchedAsReported": ">=10.2.2",
+      "url": "https://github.com/advisories/GHSA-4xrf-jv44-h6hh",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express-rate-limit>ip-address"]
+    },
+    {
+      "package": "ip-address",
+      "advisory": "GHSA-22jq-vg5j-6vgg",
+      "severity": "moderate",
+      "versions": ["10.2.0"],
+      "affected": ">=10.1.1 <=10.2.0",
+      "patchedAsReported": ">=10.2.1",
+      "url": "https://github.com/advisories/GHSA-22jq-vg5j-6vgg",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express-rate-limit>ip-address"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-m8rv-5g2x-5cg5",
+      "severity": "moderate",
+      "versions": ["6.25.0"],
+      "affected": "<6.28.0",
+      "patchedAsReported": ">=6.28.0",
+      "url": "https://github.com/advisories/GHSA-m8rv-5g2x-5cg5",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-v3r7-h72x-cjcm",
+      "severity": "moderate",
+      "versions": ["6.25.0"],
+      "affected": "<6.28.0",
+      "patchedAsReported": ">=6.28.0",
+      "url": "https://github.com/advisories/GHSA-v3r7-h72x-cjcm",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-8j4g-w8fx-2239",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.12.34",
+      "patchedAsReported": ">=4.12.34",
+      "url": "https://github.com/advisories/GHSA-8j4g-w8fx-2239",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-rgw5-rvv9-x895",
+      "severity": "high",
+      "versions": ["5.0.5"],
+      "affected": ">=4.0.0 <5.0.9",
+      "patchedAsReported": ">=5.0.9",
+      "url": "https://github.com/advisories/GHSA-rgw5-rvv9-x895",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "package": "@remix-run/router",
+      "advisory": "GHSA-2j2x-hqr9-3h42",
+      "severity": "moderate",
+      "versions": ["1.23.0"],
+      "affected": ">=1.3.0 <1.23.3",
+      "patchedAsReported": ">=1.23.3",
+      "url": "https://github.com/advisories/GHSA-2j2x-hqr9-3h42",
+      "dependencyPaths": [".>remix-utils>@remix-run/cloudflare>@remix-run/server-runtime>@remix-run/router"]
+    },
+    {
+      "package": "electron",
+      "advisory": "GHSA-r4w5-6pfg-jxp5",
+      "severity": "moderate",
+      "versions": ["42.0.0"],
+      "affected": ">=42.0.0-alpha.1 <42.5.1",
+      "patchedAsReported": ">=42.5.1",
+      "url": "https://github.com/advisories/GHSA-r4w5-6pfg-jxp5",
+      "dependencyPaths": [".>electron"]
+    },
+    {
+      "package": "electron",
+      "advisory": "GHSA-9f4c-93c8-jc8g",
+      "severity": "high",
+      "versions": ["42.0.0"],
+      "affected": ">=42.0.0-alpha.1 <42.0.1",
+      "patchedAsReported": ">=42.0.1",
+      "url": "https://github.com/advisories/GHSA-9f4c-93c8-jc8g",
+      "dependencyPaths": [".>electron"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-35p6-xmwp-9g52",
+      "severity": "low",
+      "versions": ["6.25.0"],
+      "affected": "<6.27.0",
+      "patchedAsReported": ">=6.27.0",
+      "url": "https://github.com/advisories/GHSA-35p6-xmwp-9g52",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "mermaid",
+      "advisory": "GHSA-c4c3-pg64-4m4v",
+      "severity": "low",
+      "versions": ["11.15.0"],
+      "affected": ">=11.0.0-alpha.1 <11.16.1",
+      "patchedAsReported": ">=11.16.1",
+      "url": "https://github.com/advisories/GHSA-c4c3-pg64-4m4v",
+      "dependencyPaths": [".>mermaid"]
+    },
+    {
+      "package": "mermaid",
+      "advisory": "GHSA-6x64-9x62-f2gx",
+      "severity": "moderate",
+      "versions": ["11.15.0"],
+      "affected": ">=11.0.0-alpha.1 <11.16.1",
+      "patchedAsReported": ">=11.16.1",
+      "url": "https://github.com/advisories/GHSA-6x64-9x62-f2gx",
+      "dependencyPaths": [".>mermaid"]
+    },
+    {
+      "package": "mermaid",
+      "advisory": "GHSA-3rrr-jr9j-h3q3",
+      "severity": "moderate",
+      "versions": ["11.15.0"],
+      "affected": ">=11.5.0 <11.16.1",
+      "patchedAsReported": ">=11.16.1",
+      "url": "https://github.com/advisories/GHSA-3rrr-jr9j-h3q3",
+      "dependencyPaths": [".>mermaid"]
+    },
+    {
+      "package": "mermaid",
+      "advisory": "GHSA-2v8p-3f2j-5mp7",
+      "severity": "moderate",
+      "versions": ["11.15.0"],
+      "affected": ">=11.0.0-alpha.1 <11.16.1",
+      "patchedAsReported": ">=11.16.1",
+      "url": "https://github.com/advisories/GHSA-2v8p-3f2j-5mp7",
+      "dependencyPaths": [".>mermaid"]
+    },
+    {
+      "package": "mermaid",
+      "advisory": "GHSA-rhh3-jpg6-66xh",
+      "severity": "moderate",
+      "versions": ["11.15.0"],
+      "affected": ">=11.6.0 <11.16.1",
+      "patchedAsReported": ">=11.16.1",
+      "url": "https://github.com/advisories/GHSA-rhh3-jpg6-66xh",
+      "dependencyPaths": [".>mermaid"]
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-5p4m-2wfm-xmqj",
+      "severity": "high",
+      "versions": ["4.1.0"],
+      "affected": ">=4.0.0 <4.3.1",
+      "patchedAsReported": ">=4.3.1",
+      "url": "https://github.com/advisories/GHSA-5p4m-2wfm-xmqj",
+      "dependencyPaths": [".>@blitz/eslint-plugin>eslint>@eslint/eslintrc>js-yaml"]
+    },
+    {
+      "package": "re2",
+      "advisory": "GHSA-j4r3-hg7j-8chg",
+      "severity": "moderate",
+      "versions": ["1.24.1"],
+      "affected": "<=1.26.0",
+      "patchedAsReported": ">=1.26.1",
+      "url": "https://github.com/advisories/GHSA-j4r3-hg7j-8chg",
+      "dependencyPaths": ["services__api>re2"]
+    },
+    {
+      "package": "re2",
+      "advisory": "GHSA-8hcv-x26h-mcgp",
+      "severity": "moderate",
+      "versions": ["1.24.1"],
+      "affected": "<=1.25.0",
+      "patchedAsReported": ">=1.25.1",
+      "url": "https://github.com/advisories/GHSA-8hcv-x26h-mcgp",
+      "dependencyPaths": ["services__api>re2"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-55q2-fjhq-7xh7",
+      "severity": "moderate",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.12",
+      "patchedAsReported": ">=3.4.13",
+      "url": "https://github.com/advisories/GHSA-55q2-fjhq-7xh7",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "react-router",
+      "advisory": "GHSA-qwww-vcr4-c8h2",
+      "severity": "high",
+      "versions": ["7.18.0"],
+      "affected": ">=7.12.0 <7.18.2",
+      "patchedAsReported": ">=7.18.2",
+      "url": "https://github.com/advisories/GHSA-qwww-vcr4-c8h2",
+      "dependencyPaths": [".>react-router"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-f23p-vx2j-j53r",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": ">=3.8.0 <4.12.34",
+      "patchedAsReported": ">=4.12.34",
+      "url": "https://github.com/advisories/GHSA-f23p-vx2j-j53r",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-79qm-7rj5-m7r9",
+      "severity": "low",
+      "versions": ["4.12.18"],
+      "affected": ">=4.7.0 <4.12.34",
+      "patchedAsReported": ">=4.12.34",
+      "url": "https://github.com/advisories/GHSA-79qm-7rj5-m7r9",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-54fx-42gc-7vw4",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": ">=4.12.0 <4.12.34",
+      "patchedAsReported": ">=4.12.34",
+      "url": "https://github.com/advisories/GHSA-54fx-42gc-7vw4",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "nanoid",
+      "advisory": "GHSA-28wg-ghj8-5hjv",
+      "severity": "high",
+      "versions": ["3.3.11", "3.3.6"],
+      "affected": "<3.3.16",
+      "patchedAsReported": ">=3.3.16",
+      "url": "https://github.com/advisories/GHSA-28wg-ghj8-5hjv",
+      "dependencyPaths": [".>@ai-sdk/mistral>@ai-sdk/provider-utils>nanoid", ".>unocss>@unocss/postcss>postcss>nanoid"]
+    },
+    {
+      "package": "@hono/node-server",
+      "advisory": "GHSA-frvp-7c67-39w9",
+      "severity": "moderate",
+      "versions": ["1.19.14"],
+      "affected": "<1.19.15",
+      "patchedAsReported": ">=1.19.15",
+      "url": "https://github.com/advisories/GHSA-frvp-7c67-39w9",
+      "dependencyPaths": [".>prisma>@prisma/dev>@hono/node-server"]
+    },
+    {
+      "package": "extract-zip",
+      "advisory": "GHSA-jmr9-qjv8-65gv",
+      "severity": "high",
+      "versions": ["2.0.1"],
+      "affected": "<=2.0.1",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-jmr9-qjv8-65gv",
+      "dependencyPaths": [".>electron>extract-zip"]
+    },
+    {
+      "package": "nanoid",
+      "advisory": "GHSA-2v37-7h3g-55p8",
+      "severity": "high",
+      "versions": ["3.3.11", "3.3.6"],
+      "affected": "<3.3.18",
+      "patchedAsReported": ">=3.3.18",
+      "url": "https://github.com/advisories/GHSA-2v37-7h3g-55p8",
+      "dependencyPaths": [".>@ai-sdk/mistral>@ai-sdk/provider-utils>nanoid", ".>unocss>@unocss/postcss>postcss>nanoid"]
+    },
+    {
+      "package": "postcss",
+      "advisory": "GHSA-r28c-9q8g-f849",
+      "severity": "high",
+      "versions": ["8.5.14"],
+      "affected": "<=8.5.17",
+      "patchedAsReported": ">=8.5.18",
+      "url": "https://github.com/advisories/GHSA-r28c-9q8g-f849",
+      "dependencyPaths": [".>unocss>@unocss/postcss>postcss"]
+    },
+    {
+      "package": "deepmerge-ts",
+      "advisory": "GHSA-ggr8-5vv4-36mx",
+      "severity": "high",
+      "versions": ["7.1.5"],
+      "affected": "<8.0.0",
+      "patchedAsReported": ">=8.0.0",
+      "url": "https://github.com/advisories/GHSA-ggr8-5vv4-36mx",
+      "dependencyPaths": [".>prisma>@prisma/config>deepmerge-ts"]
+    },
+    {
+      "package": "jsondiffpatch",
+      "advisory": "GHSA-j4fx-xxwh-2485",
+      "severity": "high",
+      "versions": ["0.6.0"],
+      "affected": "<0.7.6",
+      "patchedAsReported": ">=0.7.6",
+      "url": "https://github.com/advisories/GHSA-j4fx-xxwh-2485",
+      "dependencyPaths": [".>ai>jsondiffpatch"]
+    },
+    {
+      "package": "browserslist",
+      "advisory": "GHSA-c83g-rgw3-j3cx",
+      "severity": "high",
+      "versions": ["4.25.1", "4.28.2"],
+      "affected": "<=4.28.6",
+      "patchedAsReported": ">=4.28.7",
+      "url": "https://github.com/advisories/GHSA-c83g-rgw3-j3cx",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>eslint-plugin-unicorn>core-js-compat>browserslist",
+        ".>@react-router/dev>@babel/core>@babel/helper-compilation-targets>browserslist"
+      ]
+    },
+    {
+      "package": "browserslist",
+      "advisory": "GHSA-73wf-gq98-2v4g",
+      "severity": "high",
+      "versions": ["4.25.1", "4.28.2"],
+      "affected": "<=4.28.6",
+      "patchedAsReported": ">=4.28.7",
+      "url": "https://github.com/advisories/GHSA-73wf-gq98-2v4g",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>eslint-plugin-unicorn>core-js-compat>browserslist",
+        ".>@react-router/dev>@babel/core>@babel/helper-compilation-targets>browserslist"
+      ]
+    },
+    {
+      "package": "mysql2",
+      "advisory": "GHSA-3f6p-5ww8-9rcr",
+      "severity": "high",
+      "versions": ["3.15.3"],
+      "affected": "<3.22.0",
+      "patchedAsReported": ">=3.22.0",
+      "url": "https://github.com/advisories/GHSA-3f6p-5ww8-9rcr",
+      "dependencyPaths": [".>prisma>mysql2"]
+    },
+    {
+      "package": "@opentelemetry/core",
+      "advisory": "GHSA-8988-4f7v-96qf",
+      "severity": "moderate",
+      "versions": ["2.7.0", "2.7.1"],
+      "affected": "<2.8.0",
+      "patchedAsReported": ">=2.8.0",
+      "url": "https://github.com/advisories/GHSA-8988-4f7v-96qf",
+      "dependencyPaths": [
+        ".>@opentelemetry/auto-instrumentations-node>@opentelemetry/core",
+        ".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-amqplib>@opentelemetry/core"
+      ]
+    },
+    {
+      "package": "nanoid",
+      "advisory": "GHSA-xwg4-73v4-xw9w",
+      "severity": "high",
+      "versions": ["3.3.11", "3.3.6"],
+      "affected": "<3.3.12",
+      "patchedAsReported": ">=3.3.12",
+      "url": "https://github.com/advisories/GHSA-xwg4-73v4-xw9w",
+      "dependencyPaths": [".>@ai-sdk/mistral>@ai-sdk/provider-utils>nanoid", ".>unocss>@unocss/postcss>postcss>nanoid"]
+    },
+    {
+      "package": "@humanfs/node",
+      "advisory": "GHSA-p498-v437-472g",
+      "severity": "moderate",
+      "versions": ["0.16.6"],
+      "affected": "<0.16.8",
+      "patchedAsReported": ">=0.16.8",
+      "url": "https://github.com/advisories/GHSA-p498-v437-472g",
+      "dependencyPaths": [".>@blitz/eslint-plugin>eslint>@humanfs/node"]
+    },
+    {
+      "package": "qs",
+      "advisory": "GHSA-x5fp-wj9c-mxmx",
+      "severity": "moderate",
+      "versions": ["6.15.1"],
+      "affected": ">=6.14.2 <=6.15.3",
+      "patchedAsReported": ">=6.16.0",
+      "url": "https://github.com/advisories/GHSA-x5fp-wj9c-mxmx",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express>qs"]
+    },
+    {
+      "package": "qs",
+      "advisory": "GHSA-4mjr-xmp4-gh2g",
+      "severity": "moderate",
+      "versions": ["6.15.1"],
+      "affected": ">=2.2.5 <6.16.0",
+      "patchedAsReported": ">=6.16.0",
+      "url": "https://github.com/advisories/GHSA-4mjr-xmp4-gh2g",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express>qs"]
+    },
+    {
+      "package": "fastify",
+      "advisory": "GHSA-w2qp-rph6-63g4",
+      "severity": "moderate",
+      "versions": ["5.8.5"],
+      "affected": "<5.12.1",
+      "patchedAsReported": ">=5.12.1",
+      "url": "https://github.com/advisories/GHSA-w2qp-rph6-63g4",
+      "dependencyPaths": [".>fastify"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-6gmq-8vp8-gcm6",
+      "severity": "moderate",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-6gmq-8vp8-gcm6",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-6gmq-8vp8-gcm6",
+      "severity": "moderate",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-6gmq-8vp8-gcm6",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "fastify",
+      "advisory": "GHSA-3m5p-2c4r-xxw2",
+      "severity": "moderate",
+      "versions": ["5.8.5"],
+      "affected": ">=5.8.3 <5.12.1",
+      "patchedAsReported": ">=5.12.1",
+      "url": "https://github.com/advisories/GHSA-3m5p-2c4r-xxw2",
+      "dependencyPaths": [".>fastify"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-f65p-4m7j-42xc",
+      "severity": "high",
+      "versions": ["3.1.2"],
+      "affected": ">=3.0.0 <3.1.6",
+      "patchedAsReported": ">=3.1.6",
+      "url": "https://github.com/advisories/GHSA-f65p-4m7j-42xc",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-fph4-wmhf-6fwf",
+      "severity": "high",
+      "versions": ["3.1.2"],
+      "affected": ">=3.1.2 <3.1.6",
+      "patchedAsReported": ">=3.1.6",
+      "url": "https://github.com/advisories/GHSA-fph4-wmhf-6fwf",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-jqff-g426-hqxp",
+      "severity": "high",
+      "versions": ["3.1.2"],
+      "affected": ">=3.0.0 <3.1.6",
+      "patchedAsReported": ">=3.1.6",
+      "url": "https://github.com/advisories/GHSA-jqff-g426-hqxp",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "mysql2",
+      "advisory": "GHSA-rgwj-5xj2-c3m3",
+      "severity": "moderate",
+      "versions": ["3.15.3", "3.22.3"],
+      "affected": "<=3.23.0",
+      "patchedAsReported": ">=3.23.1",
+      "url": "https://github.com/advisories/GHSA-rgwj-5xj2-c3m3",
+      "dependencyPaths": [".>mysql2", ".>prisma>mysql2"]
+    },
+    {
+      "package": "fflate",
+      "advisory": "GHSA-px8p-9vwx-vf98",
+      "severity": "moderate",
+      "versions": ["0.8.2"],
+      "affected": ">=0.8.0 <0.8.3",
+      "patchedAsReported": ">=0.8.3",
+      "url": "https://github.com/advisories/GHSA-px8p-9vwx-vf98",
+      "dependencyPaths": [".>jspdf>fflate"]
+    },
+    {
+      "package": "immutable",
+      "advisory": "GHSA-xvcm-6775-5m9r",
+      "severity": "high",
+      "versions": ["5.1.5"],
+      "affected": ">=5.0.0-beta.1 <5.1.8",
+      "patchedAsReported": ">=5.1.8",
+      "url": "https://github.com/advisories/GHSA-xvcm-6775-5m9r",
+      "dependencyPaths": [".>sass-embedded>immutable"]
+    },
+    {
+      "package": "react-router-dom",
+      "advisory": "GHSA-jjmj-jmhj-qwj2",
+      "severity": "moderate",
+      "versions": ["6.30.4"],
+      "affected": ">=6.30.2 <=6.30.5",
+      "patchedAsReported": ">=6.30.6",
+      "url": "https://github.com/advisories/GHSA-jjmj-jmhj-qwj2",
+      "dependencyPaths": [".>remix-utils>@remix-run/react>react-router-dom"]
+    },
+    {
+      "package": "@ai-sdk/provider-utils",
+      "advisory": "GHSA-866g-f22w-33x8",
+      "severity": "low",
+      "versions": ["1.0.2", "1.0.20", "2.0.2", "2.0.5", "2.1.2", "2.2.8"],
+      "affected": "<3.0.28",
+      "patchedAsReported": ">=3.0.28",
+      "url": "https://github.com/advisories/GHSA-866g-f22w-33x8",
+      "dependencyPaths": [
+        ".>@ai-sdk/amazon-bedrock>@ai-sdk/provider-utils",
+        ".>@ai-sdk/anthropic>@ai-sdk/provider-utils",
+        ".>@ai-sdk/cohere>@ai-sdk/provider-utils",
+        ".>@ai-sdk/deepseek>@ai-sdk/provider-utils",
+        ".>@ai-sdk/mistral>@ai-sdk/provider-utils",
+        ".>@openrouter/ai-sdk-provider>@ai-sdk/provider-utils"
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-6mj3-qw4j-hgrw",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0-beta.1 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-6mj3-qw4j-hgrw",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "vitest",
+      "advisory": "GHSA-82fw-gwwq-j7x9",
+      "severity": "moderate",
+      "versions": ["3.2.6", "4.1.5"],
+      "affected": ">=2.1.0 <4.1.11",
+      "patchedAsReported": ">=4.1.11",
+      "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+      "dependencyPaths": [".>vitest", "apps__mobile>vitest", "packages__template-catalog>vitest"]
+    },
+    {
+      "package": "@vitest/mocker",
+      "advisory": "GHSA-82fw-gwwq-j7x9",
+      "severity": "moderate",
+      "versions": ["3.2.6", "4.1.5"],
+      "affected": ">=2.1.0 <4.1.11",
+      "patchedAsReported": ">=4.1.11",
+      "url": "https://github.com/advisories/GHSA-82fw-gwwq-j7x9",
+      "dependencyPaths": [".>vitest>@vitest/mocker", "apps__mobile>vitest>@vitest/mocker"]
+    },
+    {
+      "package": "extract-zip",
+      "advisory": "GHSA-7pqw-9j4j-h8q3",
+      "severity": "high",
+      "versions": ["2.0.1"],
+      "affected": "<=2.0.1",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-7pqw-9j4j-h8q3",
+      "dependencyPaths": [".>electron>extract-zip"]
+    },
+    {
+      "package": "baseline-browser-mapping",
+      "advisory": "GHSA-w5vr-8v7q-w6rv",
+      "severity": "moderate",
+      "versions": ["2.10.27"],
+      "affected": ">=2.0.0 <2.11.0",
+      "patchedAsReported": ">=2.11.0",
+      "url": "https://github.com/advisories/GHSA-w5vr-8v7q-w6rv",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>eslint-plugin-unicorn>core-js-compat>browserslist>baseline-browser-mapping"
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-g53g-w8rj-fmg7",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0-beta.9 <=0.9.10",
+      "patchedAsReported": ">=0.9.11",
+      "url": "https://github.com/advisories/GHSA-g53g-w8rj-fmg7",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-w2rr-34g9-rvrj",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.10",
+      "patchedAsReported": ">=0.9.11",
+      "url": "https://github.com/advisories/GHSA-w2rr-34g9-rvrj",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-4w3w-2rp5-g8jm",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.10",
+      "patchedAsReported": ">=0.9.11",
+      "url": "https://github.com/advisories/GHSA-4w3w-2rp5-g8jm",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-c7q8-3ch8-vqpv",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-c7q8-3ch8-vqpv",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-c7q8-3ch8-vqpv",
+      "severity": "high",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-c7q8-3ch8-vqpv",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-27p8-2357-5qqv",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-27p8-2357-5qqv",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-27p8-2357-5qqv",
+      "severity": "high",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-27p8-2357-5qqv",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-3px3-54cx-rmw9",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-3px3-54cx-rmw9",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-vr34-hp96-76pp",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.10 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-vr34-hp96-76pp",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-6h8r-xr42-gp59",
+      "severity": "moderate",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-6h8r-xr42-gp59",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-6h8r-xr42-gp59",
+      "severity": "moderate",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-6h8r-xr42-gp59",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-8344-3jmq-59r6",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-8344-3jmq-59r6",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-8344-3jmq-59r6",
+      "severity": "high",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-8344-3jmq-59r6",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-x4fp-j954-r2f4",
+      "severity": "high",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-x4fp-j954-r2f4",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-965w-775f-mr7g",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-965w-775f-mr7g",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-965w-775f-mr7g",
+      "severity": "high",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-965w-775f-mr7g",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-93r5-fhx6-vmg9",
+      "severity": "high",
+      "versions": ["0.9.10"],
+      "affected": ">=0.9.0 <=0.9.11",
+      "patchedAsReported": ">=0.9.12",
+      "url": "https://github.com/advisories/GHSA-93r5-fhx6-vmg9",
+      "dependencyPaths": ["services__api>@xmldom/xmldom"]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "advisory": "GHSA-93r5-fhx6-vmg9",
+      "severity": "high",
+      "versions": ["0.8.14"],
+      "affected": ">=0.7.0 <=0.8.14",
+      "patchedAsReported": ">=0.8.15",
+      "url": "https://github.com/advisories/GHSA-93r5-fhx6-vmg9",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>plist>@xmldom/xmldom"]
+    },
+    {
+      "package": "sharp",
+      "advisory": "GHSA-rgj7-g3m4-5g8c",
+      "severity": "high",
+      "versions": ["0.34.5"],
+      "affected": "<0.35.4",
+      "patchedAsReported": ">=0.35.4",
+      "url": "https://github.com/advisories/GHSA-rgj7-g3m4-5g8c",
+      "dependencyPaths": [".>wrangler>miniflare>sharp"]
+    },
+    {
+      "package": "js-yaml",
+      "advisory": "GHSA-2883-xcg3-v3hh",
+      "severity": "high",
+      "versions": ["4.1.0"],
+      "affected": ">=4.0.0 <4.3.2",
+      "patchedAsReported": ">=4.3.2",
+      "url": "https://github.com/advisories/GHSA-2883-xcg3-v3hh",
+      "dependencyPaths": [".>@blitz/eslint-plugin>eslint>@eslint/eslintrc>js-yaml"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-gqvv-2mrq-wpjv",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.13.5",
+      "patchedAsReported": ">=4.13.5",
+      "url": "https://github.com/advisories/GHSA-gqvv-2mrq-wpjv",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-g6gw-c38x-mqfc",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.13.5",
+      "patchedAsReported": ">=4.13.5",
+      "url": "https://github.com/advisories/GHSA-g6gw-c38x-mqfc",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-crvj-82cr-hjcx",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.13.5",
+      "patchedAsReported": ">=4.13.5",
+      "url": "https://github.com/advisories/GHSA-crvj-82cr-hjcx",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "morgan",
+      "advisory": "GHSA-jxfw-x594-9x9m",
+      "severity": "moderate",
+      "versions": ["1.10.1"],
+      "affected": "<1.12.0",
+      "patchedAsReported": ">=1.12.0",
+      "url": "https://github.com/advisories/GHSA-jxfw-x594-9x9m",
+      "dependencyPaths": [".>morgan"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-4c8g-83qw-93j6",
+      "severity": "high",
+      "versions": ["3.1.2"],
+      "affected": ">=3.0.0 <3.1.3",
+      "patchedAsReported": ">=3.1.3",
+      "url": "https://github.com/advisories/GHSA-4c8g-83qw-93j6",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "immutable",
+      "advisory": "GHSA-v56q-mh7h-f735",
+      "severity": "high",
+      "versions": ["5.1.5"],
+      "affected": ">=5.0.0-beta.1 <5.1.8",
+      "patchedAsReported": ">=5.1.8",
+      "url": "https://github.com/advisories/GHSA-v56q-mh7h-f735",
+      "dependencyPaths": [".>sass-embedded>immutable"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-3wwx-pv8p-q78v",
+      "severity": "moderate",
+      "versions": ["6.25.0"],
+      "affected": ">=6.25.0 <6.28.1",
+      "patchedAsReported": ">=6.28.1",
+      "url": "https://github.com/advisories/GHSA-3wwx-pv8p-q78v",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "morgan",
+      "advisory": "GHSA-9f6g-j8ch-79g4",
+      "severity": "moderate",
+      "versions": ["1.10.1"],
+      "affected": "<1.12.1",
+      "patchedAsReported": ">=1.12.1",
+      "url": "https://github.com/advisories/GHSA-9f6g-j8ch-79g4",
+      "dependencyPaths": [".>morgan"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-qw65-cvwx-89v3",
+      "severity": "high",
+      "versions": ["3.1.2"],
+      "affected": ">=3.0.0 <3.1.7",
+      "patchedAsReported": ">=3.1.7",
+      "url": "https://github.com/advisories/GHSA-qw65-cvwx-89v3",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "ip-address",
+      "advisory": "GHSA-rpw4-54j3-4h4q",
+      "severity": "moderate",
+      "versions": ["10.2.0"],
+      "affected": "<=10.5.0",
+      "patchedAsReported": ">=10.5.1",
+      "url": "https://github.com/advisories/GHSA-rpw4-54j3-4h4q",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express-rate-limit>ip-address"]
+    },
+    {
+      "package": "ip-address",
+      "advisory": "GHSA-2vr4-cq9g-pvrc",
+      "severity": "moderate",
+      "versions": ["10.2.0"],
+      "affected": ">=10.2.0 <=10.5.0",
+      "patchedAsReported": ">=10.5.1",
+      "url": "https://github.com/advisories/GHSA-2vr4-cq9g-pvrc",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express-rate-limit>ip-address"]
+    },
+    {
+      "package": "electron",
+      "advisory": "GHSA-hq2x-r82h-9wj4",
+      "severity": "high",
+      "versions": ["42.0.0"],
+      "affected": ">=42.0.0-alpha.1 <42.5.2",
+      "patchedAsReported": ">=42.5.2",
+      "url": "https://github.com/advisories/GHSA-hq2x-r82h-9wj4",
+      "dependencyPaths": [".>electron"]
+    },
+    {
+      "package": "electron",
+      "advisory": "GHSA-gr2m-v5gq-v685",
+      "severity": "high",
+      "versions": ["42.0.0"],
+      "affected": ">=42.0.0-alpha.1 <42.9.2",
+      "patchedAsReported": ">=42.9.2",
+      "url": "https://github.com/advisories/GHSA-gr2m-v5gq-v685",
+      "dependencyPaths": [".>electron"]
+    },
+    {
+      "package": "electron",
+      "advisory": "GHSA-j84w-jfhq-vhvj",
+      "severity": "high",
+      "versions": ["42.0.0"],
+      "affected": ">=42.0.0-alpha.1 <42.9.2",
+      "patchedAsReported": ">=42.9.2",
+      "url": "https://github.com/advisories/GHSA-j84w-jfhq-vhvj",
+      "dependencyPaths": [".>electron"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-r53p-7pc4-xj5r",
+      "severity": "low",
+      "versions": ["6.25.0"],
+      "affected": "<6.28.1",
+      "patchedAsReported": ">=6.28.1",
+      "url": "https://github.com/advisories/GHSA-r53p-7pc4-xj5r",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "undici",
+      "advisory": "GHSA-rfgv-xxqx-mfg5",
+      "severity": "high",
+      "versions": ["6.25.0"],
+      "affected": ">=6.7.0 <6.28.1",
+      "patchedAsReported": ">=6.28.1",
+      "url": "https://github.com/advisories/GHSA-rfgv-xxqx-mfg5",
+      "dependencyPaths": [".>electron>@electron/get>undici"]
+    },
+    {
+      "package": "fast-uri",
+      "advisory": "GHSA-hrr3-gc8f-f4qj",
+      "severity": "moderate",
+      "versions": ["3.1.2"],
+      "affected": ">=3.0.0 <3.1.8",
+      "patchedAsReported": ">=3.1.8",
+      "url": "https://github.com/advisories/GHSA-hrr3-gc8f-f4qj",
+      "dependencyPaths": [".>prisma>@prisma/dev>@prisma/streams-local>ajv>fast-uri"]
+    },
+    {
+      "package": "ip-address",
+      "advisory": "GHSA-j6r3-76f7-8jcv",
+      "severity": "moderate",
+      "versions": ["10.2.0"],
+      "affected": "<=10.7.0",
+      "patchedAsReported": ">=10.7.1",
+      "url": "https://github.com/advisories/GHSA-j6r3-76f7-8jcv",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express-rate-limit>ip-address"]
+    },
+    {
+      "package": "ip-address",
+      "advisory": "GHSA-h3mg-xc3c-68pw",
+      "severity": "moderate",
+      "versions": ["10.2.0"],
+      "affected": "<=10.7.0",
+      "patchedAsReported": ">=10.7.1",
+      "url": "https://github.com/advisories/GHSA-h3mg-xc3c-68pw",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk>express-rate-limit>ip-address"]
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-q2hr-2g5m-vwhr",
+      "severity": "moderate",
+      "versions": ["5.0.5"],
+      "affected": ">=4.0.0 <5.0.12",
+      "patchedAsReported": ">=5.0.12",
+      "url": "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-qhr7-859c-m2p7",
+      "severity": "high",
+      "versions": ["5.0.5"],
+      "affected": ">=4.0.0 <5.0.11",
+      "patchedAsReported": ">=5.0.11",
+      "url": "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "advisory": "GHSA-6j4f-fj2g-mc7p",
+      "severity": "high",
+      "versions": ["5.0.5"],
+      "affected": ">=4.0.0 <5.0.10",
+      "patchedAsReported": ">=5.0.10",
+      "url": "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p",
+      "dependencyPaths": [
+        ".>@blitz/eslint-plugin>@typescript-eslint/eslint-plugin>@typescript-eslint/type-utils>@typescript-eslint/typescript-estree>minimatch>brace-expansion"
+      ]
+    },
+    {
+      "package": "@grpc/grpc-js",
+      "advisory": "GHSA-m9gg-hp2v-232j",
+      "severity": "high",
+      "versions": ["1.14.4"],
+      "affected": ">=1.14.0 <1.14.5",
+      "patchedAsReported": ">=1.14.5",
+      "url": "https://github.com/advisories/GHSA-m9gg-hp2v-232j",
+      "dependencyPaths": [".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@grpc/grpc-js"]
+    },
+    {
+      "package": "@grpc/grpc-js",
+      "advisory": "GHSA-f596-whhp-79r4",
+      "severity": "low",
+      "versions": ["1.14.4"],
+      "affected": ">=1.14.0 <1.14.5",
+      "patchedAsReported": ">=1.14.5",
+      "url": "https://github.com/advisories/GHSA-f596-whhp-79r4",
+      "dependencyPaths": [".>@opentelemetry/sdk-node>@opentelemetry/exporter-logs-otlp-grpc>@grpc/grpc-js"]
+    },
+    {
+      "package": "fastify",
+      "advisory": "GHSA-4mh8-r7rc-xpvc",
+      "severity": "moderate",
+      "versions": ["5.8.5"],
+      "affected": "<5.12.5",
+      "patchedAsReported": ">=5.12.5",
+      "url": "https://github.com/advisories/GHSA-4mh8-r7rc-xpvc",
+      "dependencyPaths": [".>fastify"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-hxh3-vqpv-xpqv",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": "<4.13.7",
+      "patchedAsReported": ">=4.13.7",
+      "url": "https://github.com/advisories/GHSA-hxh3-vqpv-xpqv",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "fastify",
+      "advisory": "GHSA-667r-xxjv-c9mm",
+      "severity": "high",
+      "versions": ["5.8.5"],
+      "affected": "<5.12.2",
+      "patchedAsReported": ">=5.12.2",
+      "url": "https://github.com/advisories/GHSA-667r-xxjv-c9mm",
+      "dependencyPaths": [".>fastify"]
+    },
+    {
+      "package": "fastify",
+      "advisory": "GHSA-p68q-wchp-6fh7",
+      "severity": "high",
+      "versions": ["5.8.5"],
+      "affected": ">=4.0.0 <5.12.2",
+      "patchedAsReported": ">=5.12.2",
+      "url": "https://github.com/advisories/GHSA-p68q-wchp-6fh7",
+      "dependencyPaths": [".>fastify"]
+    },
+    {
+      "package": "fastify",
+      "advisory": "GHSA-hwr6-493r-vm6h",
+      "severity": "high",
+      "versions": ["5.8.5"],
+      "affected": "<5.12.2",
+      "patchedAsReported": ">=5.12.2",
+      "url": "https://github.com/advisories/GHSA-hwr6-493r-vm6h",
+      "dependencyPaths": [".>fastify"]
+    },
+    {
+      "package": "fastify",
+      "advisory": "GHSA-9q9j-q6p8-xq58",
+      "severity": "high",
+      "versions": ["5.8.5"],
+      "affected": "<5.12.2",
+      "patchedAsReported": ">=5.12.2",
+      "url": "https://github.com/advisories/GHSA-9q9j-q6p8-xq58",
+      "dependencyPaths": [".>fastify"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-c2j3-45gr-mqc4",
+      "severity": "low",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.11",
+      "patchedAsReported": ">=3.4.12",
+      "url": "https://github.com/advisories/GHSA-c2j3-45gr-mqc4",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "http-cache-semantics",
+      "advisory": "GHSA-ch52-4w7c-c8xp",
+      "severity": "high",
+      "versions": ["4.2.0"],
+      "affected": "<=4.2.0",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-ch52-4w7c-c8xp",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>@electron/get>got>cacheable-request>http-cache-semantics"]
+    },
+    {
+      "package": "braces",
+      "advisory": "GHSA-vfj7-8cjw-p6xm",
+      "severity": "high",
+      "versions": ["3.0.3"],
+      "affected": "<=3.0.3",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-vfj7-8cjw-p6xm",
+      "dependencyPaths": [".>fast-glob>micromatch>braces"]
+    },
+    {
+      "package": "sprintf-js",
+      "advisory": "GHSA-hp3w-g68c-fv3c",
+      "severity": "moderate",
+      "versions": ["1.1.3"],
+      "affected": "<=1.1.3",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-hp3w-g68c-fv3c",
+      "dependencyPaths": [".>electron-builder>app-builder-lib>@electron/get>global-agent>roarr>sprintf-js"]
+    },
+    {
+      "package": "dompurify",
+      "advisory": "GHSA-6688-9rhm-gjv2",
+      "severity": "low",
+      "versions": ["3.4.2"],
+      "affected": "<=3.4.15",
+      "patchedAsReported": ">=3.4.16",
+      "url": "https://github.com/advisories/GHSA-6688-9rhm-gjv2",
+      "dependencyPaths": [".>jspdf>dompurify"]
+    },
+    {
+      "package": "katex",
+      "advisory": "GHSA-238p-pmpm-9mq7",
+      "severity": "low",
+      "versions": ["0.16.46"],
+      "affected": ">=0.11.0 <0.18.2",
+      "patchedAsReported": ">=0.18.2",
+      "url": "https://github.com/advisories/GHSA-238p-pmpm-9mq7",
+      "dependencyPaths": [".>katex"]
+    },
+    {
+      "package": "source-map-js",
+      "advisory": "GHSA-68fv-2mgg-jv7q",
+      "severity": "high",
+      "versions": ["1.2.1"],
+      "affected": ">=1.0.0 <1.2.2",
+      "patchedAsReported": ">=1.2.2",
+      "url": "https://github.com/advisories/GHSA-68fv-2mgg-jv7q",
+      "dependencyPaths": [".>sass-embedded>sass-embedded-all-unknown>sass>source-map-js"]
+    },
+    {
+      "package": "compression",
+      "advisory": "GHSA-vc2v-76pw-4v95",
+      "severity": "high",
+      "versions": ["1.8.1"],
+      "affected": "<1.8.2",
+      "patchedAsReported": ">=1.8.2",
+      "url": "https://github.com/advisories/GHSA-vc2v-76pw-4v95",
+      "dependencyPaths": [".>compression"]
+    },
+    {
+      "package": "@capacitor/ios",
+      "advisory": "GHSA-rvm3-566m-v7fv",
+      "severity": "critical",
+      "versions": ["8.3.1"],
+      "affected": ">=8.0.0 <=8.3.4",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-rvm3-566m-v7fv",
+      "dependencyPaths": ["apps__mobile>@capacitor/ios"]
+    },
+    {
+      "package": "@capacitor/android",
+      "advisory": "GHSA-rvm3-566m-v7fv",
+      "severity": "critical",
+      "versions": ["8.3.1"],
+      "affected": ">=8.0.0 <=8.3.4",
+      "patchedAsReported": "<0.0.0",
+      "url": "https://github.com/advisories/GHSA-rvm3-566m-v7fv",
+      "dependencyPaths": ["apps__mobile>@capacitor/android"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-pg",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.69.0"],
+      "affected": "<0.73.0",
+      "patchedAsReported": ">=0.73.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-pg"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-mysql2",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.63.0"],
+      "affected": "<0.67.0",
+      "patchedAsReported": ">=0.67.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-mysql2"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-knex",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.61.0"],
+      "affected": "<0.65.0",
+      "patchedAsReported": ">=0.65.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-knex"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-mysql",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.63.0"],
+      "affected": "<0.67.0",
+      "patchedAsReported": ">=0.67.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-mysql"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-mongoose",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.63.0"],
+      "affected": "<0.67.0",
+      "patchedAsReported": ">=0.67.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-mongoose"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-oracledb",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.42.0"],
+      "affected": "<0.46.0",
+      "patchedAsReported": ">=0.46.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-oracledb"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-tedious",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.36.0"],
+      "affected": "<0.40.0",
+      "patchedAsReported": ">=0.40.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-tedious"]
+    },
+    {
+      "package": "@opentelemetry/instrumentation-cassandra-driver",
+      "advisory": "GHSA-qqmp-wf37-98f9",
+      "severity": "moderate",
+      "versions": ["0.62.0"],
+      "affected": "<0.66.0",
+      "patchedAsReported": ">=0.66.0",
+      "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+      "dependencyPaths": [".>@opentelemetry/auto-instrumentations-node>@opentelemetry/instrumentation-cassandra-driver"]
+    },
+    {
+      "package": "fast-copy",
+      "advisory": "GHSA-jggr-w7fw-pc2j",
+      "severity": "moderate",
+      "versions": ["4.0.3"],
+      "affected": ">=4.0.0 <4.1.0",
+      "patchedAsReported": ">=4.1.0",
+      "url": "https://github.com/advisories/GHSA-jggr-w7fw-pc2j",
+      "dependencyPaths": [".>pino-pretty>fast-copy"]
+    },
+    {
+      "package": "tinypool",
+      "advisory": "GHSA-5gmw-xhrv-c9v3",
+      "severity": "critical",
+      "versions": ["1.1.1"],
+      "affected": "<=2.1.0",
+      "patchedAsReported": ">=2.1.1",
+      "url": "https://github.com/advisories/GHSA-5gmw-xhrv-c9v3",
+      "dependencyPaths": [".>vitest>tinypool"]
+    },
+    {
+      "package": "tinypool",
+      "advisory": "GHSA-85c8-ppgw-ccpr",
+      "severity": "critical",
+      "versions": ["1.1.1"],
+      "affected": "<2.1.2",
+      "patchedAsReported": ">=2.1.2",
+      "url": "https://github.com/advisories/GHSA-85c8-ppgw-ccpr",
+      "dependencyPaths": [".>vitest>tinypool"]
+    },
+    {
+      "package": "sharp",
+      "advisory": "GHSA-wq5f-xc86-pv6w",
+      "severity": "high",
+      "versions": ["0.34.5"],
+      "affected": "<0.35.5",
+      "patchedAsReported": ">=0.35.5",
+      "url": "https://github.com/advisories/GHSA-wq5f-xc86-pv6w",
+      "dependencyPaths": [".>wrangler>miniflare>sharp"]
+    },
+    {
+      "package": "pbkdf2",
+      "advisory": "GHSA-477h-4r7f-fvrx",
+      "severity": "moderate",
+      "versions": ["3.1.3"],
+      "affected": "<=3.1.6",
+      "patchedAsReported": ">=3.1.7",
+      "url": "https://github.com/advisories/GHSA-477h-4r7f-fvrx",
+      "dependencyPaths": [".>crypto-browserify>pbkdf2"]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "advisory": "GHSA-6qxp-vccf-f47h",
+      "severity": "high",
+      "versions": ["1.29.0"],
+      "affected": ">=1.12.0 <1.31.0",
+      "patchedAsReported": ">=1.31.0",
+      "url": "https://github.com/advisories/GHSA-6qxp-vccf-f47h",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk"]
+    },
+    {
+      "package": "electron",
+      "advisory": "GHSA-9qh4-3jw8-366w",
+      "severity": "high",
+      "versions": ["42.0.0"],
+      "affected": ">=42.0.0-alpha.1 <42.9.2",
+      "patchedAsReported": ">=42.9.2",
+      "url": "https://github.com/advisories/GHSA-9qh4-3jw8-366w",
+      "dependencyPaths": [".>electron"]
+    },
+    {
+      "package": "hono",
+      "advisory": "GHSA-5r4p-p66f-jhc7",
+      "severity": "moderate",
+      "versions": ["4.12.18"],
+      "affected": ">=4.12.4 <4.13.11",
+      "patchedAsReported": ">=4.13.11",
+      "url": "https://github.com/advisories/GHSA-5r4p-p66f-jhc7",
+      "dependencyPaths": [".>prisma>@prisma/dev>hono"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-698v-4r3x-3vcv",
+      "severity": "moderate",
+      "versions": ["5.4.19", "5.4.21"],
+      "affected": "<=6.4.3",
+      "patchedAsReported": ">=6.4.4",
+      "url": "https://github.com/advisories/GHSA-698v-4r3x-3vcv",
+      "dependencyPaths": [".>vite", "apps__admin>vite", "packages__template-catalog>vitest>vite"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-698v-4r3x-3vcv",
+      "severity": "moderate",
+      "versions": ["8.0.10"],
+      "affected": ">=8.0.0 <=8.1.5",
+      "patchedAsReported": ">=8.1.6",
+      "url": "https://github.com/advisories/GHSA-698v-4r3x-3vcv",
+      "dependencyPaths": ["apps__mobile>vite"]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "advisory": "GHSA-22jm-h49p-29qw",
+      "severity": "high",
+      "versions": ["1.29.0"],
+      "affected": ">=1.24.0 <1.32.0",
+      "patchedAsReported": ">=1.32.0",
+      "url": "https://github.com/advisories/GHSA-22jm-h49p-29qw",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk"]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "advisory": "GHSA-6prh-2h8m-c8cw",
+      "severity": "moderate",
+      "versions": ["1.29.0"],
+      "affected": "<1.32.0",
+      "patchedAsReported": ">=1.32.0",
+      "url": "https://github.com/advisories/GHSA-6prh-2h8m-c8cw",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk"]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "advisory": "GHSA-46jr-4wx8-v453",
+      "severity": "high",
+      "versions": ["1.29.0"],
+      "affected": ">=1.3.0 <1.32.0",
+      "patchedAsReported": ">=1.32.0",
+      "url": "https://github.com/advisories/GHSA-46jr-4wx8-v453",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-r825-w8mm-5pxw",
+      "severity": "moderate",
+      "versions": ["5.4.19", "5.4.21"],
+      "affected": "<=6.4.3",
+      "patchedAsReported": ">=6.4.4",
+      "url": "https://github.com/advisories/GHSA-r825-w8mm-5pxw",
+      "dependencyPaths": [".>vite", "apps__admin>vite", "packages__template-catalog>vitest>vite"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-r825-w8mm-5pxw",
+      "severity": "moderate",
+      "versions": ["8.0.10"],
+      "affected": ">=8.0.0 <=8.1.5",
+      "patchedAsReported": ">=8.1.6",
+      "url": "https://github.com/advisories/GHSA-r825-w8mm-5pxw",
+      "dependencyPaths": ["apps__mobile>vite"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-587h-7wmj-h5pm",
+      "severity": "high",
+      "versions": ["5.4.19", "5.4.21"],
+      "affected": "<=6.4.3",
+      "patchedAsReported": ">=6.4.4",
+      "url": "https://github.com/advisories/GHSA-587h-7wmj-h5pm",
+      "dependencyPaths": [".>vite", "apps__admin>vite", "packages__template-catalog>vitest>vite"]
+    },
+    {
+      "package": "vite",
+      "advisory": "GHSA-587h-7wmj-h5pm",
+      "severity": "high",
+      "versions": ["8.0.10"],
+      "affected": ">=8.0.0 <=8.1.5",
+      "patchedAsReported": ">=8.1.6",
+      "url": "https://github.com/advisories/GHSA-587h-7wmj-h5pm",
+      "dependencyPaths": ["apps__mobile>vite"]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "advisory": "GHSA-rvq5-wwqv-78pq",
+      "severity": "moderate",
+      "versions": ["1.29.0"],
+      "affected": ">=1.6.0 <1.32.0",
+      "patchedAsReported": ">=1.32.0",
+      "url": "https://github.com/advisories/GHSA-rvq5-wwqv-78pq",
+      "dependencyPaths": [".>@modelcontextprotocol/sdk"]
+    }
+  ]
+}

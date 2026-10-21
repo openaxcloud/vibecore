@@ -1,0 +1,20 @@
+
+> @vibecore/mobile@ build:web /workspace/vibecore-dependency-triage/apps/mobile
+> vite build
+
+vite v8.0.10 building client environment for production...
+[2K
+transforming...✓ 642 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  2.16 kB │ gzip: 0.76 kB
+dist/assets/index-Bsp16ydL.css   2.47 kB │ gzip: 0.99 kB
+dist/assets/web-bq5G3TSd.js      0.12 kB │ gzip: 0.12 kB
+dist/assets/web-BPdlrGBK.js      0.36 kB │ gzip: 0.24 kB
+dist/assets/web-BnWAb5Nl.js      0.36 kB │ gzip: 0.25 kB
+dist/assets/web-DzpangiZ.js      0.84 kB │ gzip: 0.40 kB
+dist/assets/web-DzyrQN_B.js      0.89 kB │ gzip: 0.45 kB
+dist/assets/web-DTgFbbtr.js      8.45 kB │ gzip: 2.82 kB
+dist/assets/index-DNj4L1sY.js   24.27 kB │ gzip: 8.97 kB
+
+✓ built in 690ms
