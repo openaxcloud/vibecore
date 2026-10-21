@@ -1,0 +1,11 @@
+
+ RUN  v3.2.6 /workspace/vibecore-dependency-triage
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 141ms
+ ✓ scripts/tinypool-security.spec.mjs (1 test) 1037ms
+   ✓ runs both prototype-pollution regressions with real Tinypool workers  1031ms
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  16:26:35
+   Duration  11.52s (transform 5.28s, setup 204ms, collect 93ms, tests 1.18s, environment 1ms, prepare 459ms)

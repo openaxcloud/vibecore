@@ -1,0 +1,12 @@
+
+> @vibecore/mobile@ test /workspace/vibecore-dependency-triage/apps/mobile
+> vitest run
+
+
+ RUN  v4.1.5 /workspace/vibecore-dependency-triage/apps/mobile
+
+
+ Test Files  4 passed (4)
+      Tests  29 passed (29)
+   Start at  16:23:16
+   Duration  5.52s (transform 1.01s, setup 0ms, import 2.08s, tests 209ms, environment 8.62s)
