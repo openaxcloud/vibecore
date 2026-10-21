@@ -45,7 +45,7 @@ Le premier contrôle de contenu sur `/files` était faux : cette route renvoie d
 ## Corrections
 
 1. Inscription : une confirmation de mot de passe différente reçoit le vrai `400 AUTH_PASSWORD_MISMATCH`, associe l'erreur au champ et y place le focus après chaque soumission, y compris répétée. EN/FR ; aucun composant partagé modifié.
-2. Dashboard : la checklist n'appelle plus « publié » un déploiement `QUEUED`, `BUILDING`, `FAILED` ou `CANCELED`. Seul `READY` compte. Le test soumet un vrai déploiement local dont la commande échoue, puis vérifie l'état réel et la checklist.
+2. Dashboard : la checklist n'appelle plus « publié » un déploiement `QUEUED`, `BUILDING`, `FAILED` ou `CANCELED`. Seul `READY` compte. Le test soumet un vrai déploiement local avec la commande `exit 1`, prévue pour échouer si elle est exécutée, puis vérifie l'état réel et la checklist. L'état observé lors de cette recette est `QUEUED` : aucune exécution de cette commande ni échec de build n'est démontré.
 
 Limite restante du dashboard : la sonde regarde uniquement le projet le plus récemment modifié. Une publication réussie d'un ancien projet peut être oubliée. Diagnostic signalé, non élargi à une recherche N+1 dans ce correctif.
 
@@ -70,7 +70,7 @@ Limite restante du dashboard : la sonde regarde uniquement le projet le plus ré
 ## Validation et coordination
 
 - Build de production local : succès, servi ensuite par `react-router-serve` avec API locale explicite.
-- Playwright : **9/9**, aucun retry, 30 s par test et assertions à 5 s, Chromium système ; desktop 1440×900, tablette 1194×834, mobile 393×851. [Journal exact](mesures/2026-10-21-parcours-playwright.txt).
+- Playwright : **9 exécutions réussies sur 9**, soit trois scénarios (confirmation EN, confirmation FR, checklist publication) sur trois formats, avec un seul moteur Chromium ; aucun retry, 30 s par test et assertions à 5 s, Chromium système ; desktop 1440×900, tablette 1194×834, mobile 393×851. [Journal exact](mesures/2026-10-21-parcours-playwright.txt).
 - Parcours navigateur indépendant : inscription → dashboard ; nouvelle connexion après suppression des seuls cookies locaux → dashboard ; accès au formulaire de création. [Résultats](mesures/2026-10-21-parcours-navigateur.json), [capture inscription](mesures/2026-10-21-parcours-inscription.png), [capture création](mesures/2026-10-21-parcours-creation.png), inspectées visuellement.
 - 44 tests unitaires ciblés signup/login/onboarding passent ; ils ne remplacent pas les mesures réelles ci-dessus.
 - ESLint ciblé et Prettier : succès sur les fichiers modifiés ; `git diff --check` passe.

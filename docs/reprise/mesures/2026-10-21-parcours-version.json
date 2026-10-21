@@ -32,7 +32,11 @@
     "passed": 9,
     "failed": 0,
     "realApi": true,
-    "networkInterception": false
+    "networkInterception": false,
+    "scenarioCount": 3,
+    "browserEngineCount": 1,
+    "observedDeploymentState": "QUEUED",
+    "buildCommandExecutionProven": false
   },
   "unitTests": {
     "passed": 44,
