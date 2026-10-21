@@ -16,6 +16,7 @@ import {
   statsFromUsage,
   type ProjectCard,
 } from '~/components/dashboard/SaaSLayout';
+import { hasReadyDeployment } from '~/lib/dashboard-onboarding';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, isForbiddenApiResponse, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { userAreaEn, userAreaFr } from '~/lib/i18n/catalogs/user-area';
@@ -113,12 +114,15 @@ async function onboardingSignals(
       }
 
       try {
-        const result = await apiRequest<{ deployments?: unknown[] }>(
+        const result = await apiRequest<{ deployments?: Array<{ status: string }> }>(
           request,
           `/projects/${mostRecentProjectId}/deployments`,
         );
 
-        return { complete: Array.isArray(result?.deployments) && result.deployments.length > 0, unavailable: false };
+        return {
+          complete: hasReadyDeployment(result?.deployments),
+          unavailable: false,
+        };
       } catch {
         return { complete: false, unavailable: true };
       }

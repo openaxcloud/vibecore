@@ -1,0 +1,43 @@
+
+Running 1 test using 1 worker
+
+(node:27772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding (10.8s)
+
+
+  1) [desktop] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveAttribute[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  getByRole('region', { name: 'Get set up' }).getByRole('progressbar', { name: 'Setup progress' })
+    Expected: [32m"1"[39m
+    Received: [31m"2"[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toHaveAttribute" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('region', { name: 'Get set up' }).getByRole('progressbar', { name: 'Setup progress' })[22m
+    [2m    4 × locator resolved to <div aria-valuemin="0" aria-valuemax="3" aria-valuenow="2" role="progressbar" aria-label="Setup progress" class="h-[6px] w-[120px] overflow-hidden rounded-full bg-bolt-elements-background-depth-3">…</div>[22m
+    [2m      - unexpected value "2"[22m
+
+
+      60 |   const setup = page.getByRole('region', { name: 'Get set up' });
+      61 |
+    > 62 |   await expect(setup.getByRole('progressbar', { name: 'Setup progress' })).toHaveAttribute('aria-valuenow', '1');
+         |                                                                            ^
+      63 |   await expect(setup.getByRole('link', { name: 'Deploy', exact: true })).toHaveAttribute(
+      64 |     'href',
+      65 |     `/projects/${project.id}/deployments`,
+        at /workspace/vibecore/tests/e2e/dashboard-publication-readiness.spec.ts:62:76
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/launch-journey/dashboard-publication-read-66478-mplete-dashboard-onboarding-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/launch-journey/dashboard-publication-read-66478-mplete-dashboard-onboarding-desktop/error-context.md
+
+  1 failed
+    [desktop] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding

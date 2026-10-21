@@ -1,0 +1,118 @@
+
+Running 3 tests using 1 worker
+
+(node:26425) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26425) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding (30.7s)
+(node:27040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27040) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (en) (12.8s)
+(node:27373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:27373) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (fr) (11.9s)
+
+
+  1) [desktop] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveAttribute[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  getByRole('region', { name: 'Get set up' }).getByRole('progressbar', { name: 'Setup progress' })
+    Expected: [32m"1"[39m
+    Received: [31m"2"[39m
+
+    Call log:
+    [2m  - Expect "toHaveAttribute" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('region', { name: 'Get set up' }).getByRole('progressbar', { name: 'Setup progress' })[22m
+    [2m    2 × locator resolved to <div aria-valuemin="0" aria-valuemax="3" aria-valuenow="2" role="progressbar" aria-label="Setup progress" class="h-[6px] w-[120px] overflow-hidden rounded-full bg-bolt-elements-background-depth-3">…</div>[22m
+    [2m      - unexpected value "2"[22m
+
+
+      60 |   const setup = page.getByRole('region', { name: 'Get set up' });
+      61 |
+    > 62 |   await expect(setup.getByRole('progressbar', { name: 'Setup progress' })).toHaveAttribute('aria-valuenow', '1');
+         |                                                                            ^
+      63 |   await expect(setup.getByRole('link', { name: 'Deploy', exact: true })).toHaveAttribute(
+      64 |     'href',
+      65 |     `/projects/${project.id}/deployments`,
+        at /workspace/vibecore/tests/e2e/dashboard-publication-readiness.spec.ts:62:76
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/launch-journey/dashboard-publication-read-66478-mplete-dashboard-onboarding-desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/launch-journey/dashboard-publication-read-66478-mplete-dashboard-onboarding-desktop/error-context.md
+
+  2) [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (en)
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeFocused[2m([22m[2m)[22m failed
+
+    Locator:  locator('input[name="confirmPassword"]')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeFocused" with timeout 5000ms[22m
+    [2m  - waiting for locator('input[name="confirmPassword"]')[22m
+    [2m    8 × locator resolved to <input required="" minlength="8" type="password" name="confirmPassword" autocomplete="new-password" placeholder="Re-enter the same password" class="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"/>[22m
+    [2m      - unexpected value "inactive"[22m
+
+
+      37 |       expect(response.status()).toBe(400);
+      38 |       expect(await response.text()).toContain('AUTH_PASSWORD_MISMATCH');
+    > 39 |       await expect(confirmation).toBeFocused();
+         |                                  ^
+      40 |       await expect(confirmation).toHaveAttribute('aria-invalid', 'true');
+      41 |       await expect(confirmation).toHaveAttribute('aria-describedby', 'signup-confirm-password-error');
+      42 |
+        at /workspace/vibecore/tests/e2e/signup-confirmation-feedback.spec.ts:39:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/launch-journey/signup-confirmation-feedba-dbf5d-s-and-focuses-the-field-en--desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/launch-journey/signup-confirmation-feedba-dbf5d-s-and-focuses-the-field-en--desktop/error-context.md
+
+  3) [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (fr)
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeFocused[2m([22m[2m)[22m failed
+
+    Locator:  locator('input[name="confirmPassword"]')
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeFocused" with timeout 5000ms[22m
+    [2m  - waiting for locator('input[name="confirmPassword"]')[22m
+    [2m    8 × locator resolved to <input required="" minlength="8" type="password" name="confirmPassword" autocomplete="new-password" placeholder="Saisissez à nouveau le même mot de passe" class="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"/>[22m
+    [2m      - unexpected value "inactive"[22m
+
+
+      37 |       expect(response.status()).toBe(400);
+      38 |       expect(await response.text()).toContain('AUTH_PASSWORD_MISMATCH');
+    > 39 |       await expect(confirmation).toBeFocused();
+         |                                  ^
+      40 |       await expect(confirmation).toHaveAttribute('aria-invalid', 'true');
+      41 |       await expect(confirmation).toHaveAttribute('aria-describedby', 'signup-confirm-password-error');
+      42 |
+        at /workspace/vibecore/tests/e2e/signup-confirmation-feedback.spec.ts:39:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/launch-journey/signup-confirmation-feedba-7e1d6-s-and-focuses-the-field-fr--desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/launch-journey/signup-confirmation-feedba-7e1d6-s-and-focuses-the-field-fr--desktop/error-context.md
+
+  3 failed
+    [desktop] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding
+    [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (en)
+    [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (fr)

@@ -12,12 +12,13 @@ import {
   Sparkles,
   User as UserIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
+import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
 import { AUTH_HERO_STATS } from '~/lib/auth-hero-stats';
 import {
   apiRequest,
@@ -271,6 +272,16 @@ export default function SignupPage() {
     ? t(SIGNUP_FEEDBACK_KEYS[actionData.errorCode], actionData.errorParams)
     : undefined;
 
+  const confirmationError = actionData?.errorCode === 'AUTH_PASSWORD_MISMATCH' ? error : undefined;
+  const confirmationRef = useRef<HTMLInputElement>(null);
+
+  // A fresh action result also restores focus after repeated failed submissions.
+  useEffect(() => {
+    if (actionData?.errorCode === 'AUTH_PASSWORD_MISMATCH') {
+      confirmationRef.current?.focus();
+    }
+  }, [actionData]);
+
   return (
     <AuthScreen
       eyebrow={t('auth.signup.eyebrow')}
@@ -403,11 +414,14 @@ export default function SignupPage() {
           <span className="relative mt-2 block">
             <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
+              ref={confirmationRef}
+              id="signup-confirm-password"
               name="confirmPassword"
               type={showConfirmPassword ? 'text' : 'password'}
               autoComplete="new-password"
               required
-              minLength={8}
+              minLength={PASSWORD_MIN_LENGTH}
+              {...fieldErrorProps('signup-confirm-password', confirmationError)}
               placeholder={t('auth.common.samePasswordPlaceholder')}
               className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
             />
@@ -420,6 +434,7 @@ export default function SignupPage() {
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </span>
+          <FieldError fieldId="signup-confirm-password" error={confirmationError} />
         </label>
 
         {showOrgField ? (

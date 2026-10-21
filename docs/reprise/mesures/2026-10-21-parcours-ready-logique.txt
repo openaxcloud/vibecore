@@ -1,0 +1,9 @@
+
+ RUN  v3.2.6 /workspace/vibecore
+
+ ✓ app/lib/dashboard-onboarding.spec.ts (6 tests) 7ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  06:51:17
+   Duration  4.81s (transform 2.37s, setup 36ms, collect 42ms, tests 7ms, environment 0ms, prepare 115ms)

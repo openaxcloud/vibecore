@@ -1,0 +1,26 @@
+
+Running 9 tests using 1 worker
+
+(node:29936) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29936) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding (4.2s)
+  ✓  2 [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (en) (4.5s)
+  ✓  3 [desktop] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (fr) (4.2s)
+(node:30419) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30419) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [tablet] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding (4.2s)
+  ✓  5 [tablet] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (en) (4.4s)
+  ✓  6 [tablet] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (fr) (4.4s)
+(node:30886) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30886) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  7 [mobile] › tests/e2e/dashboard-publication-readiness.spec.ts:4:1 › a real pending or failed deployment does not complete dashboard onboarding (4.7s)
+  ✓  8 [mobile] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (en) (5.1s)
+  ✓  9 [mobile] › tests/e2e/signup-confirmation-feedback.spec.ts:7:3 › signup confirmation failure identifies and focuses the field (fr) (6.3s)
+
+  9 passed (49.8s)

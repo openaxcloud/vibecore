@@ -1,0 +1,82 @@
+[
+  {
+    "step": "registration",
+    "status": 201
+  },
+  {
+    "step": "login",
+    "status": 200
+  },
+  {
+    "step": "billing-read",
+    "status": 200
+  },
+  {
+    "step": "project-create",
+    "status": 201
+  },
+  {
+    "step": "save-import",
+    "status": 200
+  },
+  {
+    "step": "save-readback",
+    "status": 200
+  },
+  {
+    "step": "save-content-match",
+    "passed": false
+  },
+  {
+    "step": "deployment-submit",
+    "status": 202
+  },
+  {
+    "step": "deployment-readback",
+    "status": 200
+  },
+  {
+    "step": "deployment-states",
+    "states": [
+      {
+        "id": "cmvhqhmyk001u0zqwo9y0h84n",
+        "status": "QUEUED",
+        "url": null
+      }
+    ]
+  },
+  {
+    "step": "save-export-content-match",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "step": "runtime-start",
+    "status": 502,
+    "code": "WORKSPACE_MANAGER_UNAVAILABLE",
+    "error": "Workspace manager is unavailable"
+  },
+  {
+    "step": "billing-catalogue",
+    "status": 200,
+    "plans": [
+      {
+        "key": "free",
+        "monthlyCents": 0
+      },
+      {
+        "key": "enterprise",
+        "monthlyCents": 0
+      },
+      {
+        "key": "pro",
+        "monthlyCents": 2900
+      },
+      {
+        "key": "team",
+        "monthlyCents": 9900
+      }
+    ],
+    "subscriptionPresent": false
+  }
+]
