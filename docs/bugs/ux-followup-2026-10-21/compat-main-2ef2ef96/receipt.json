@@ -1,0 +1,72 @@
+{
+  "headUnchanged": "24eea25f3e5b73cad7499ec6d43b8ff21e8e57c3",
+  "base": "2ef2ef964e59d165b4a641e6737495010ed73778",
+  "tree": "a10821715e54cfe764cd8d02cc2334f2c0742c3d",
+  "published": false,
+  "inventoryEntries": 466,
+  "sourceManifestSha256": "84156e145c0b8561ce2121803e22115ebbeac1181414e553d2bc5de8589c8bb4",
+  "compiledManifestSha256": "2d9d0d8dc099ca9a35bf427b0efa3928da75711d49348d1737f20817f2b68419",
+  "archiveSha256": "0688a78f00b9bb573774a279329592af75fa95f68263235da7b049b8d976b926",
+  "node": "24.19.0",
+  "pnpm": "9.14.4",
+  "buildExit": 0,
+  "typecheckExit": 0,
+  "unit": {
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browserWithFixtures": {
+    "confirmations": 6,
+    "menus": 12,
+    "ideFull": 45,
+    "uniquePassed": 63,
+    "failed": 0,
+    "retry": 0,
+    "skipped": 0
+  },
+  "priorRunsPreserved": {
+    "withoutFixtures": {
+      "passed": 11,
+      "failed": 7,
+      "reason": "auth/register returned429 after10 registrations; assertions failed before UI navigation"
+    },
+    "ideInitialSelection": {
+      "passed": 5,
+      "skipped": 1,
+      "reason": "DATABASE_URL absent; omitted case subsequently passed using dedicated local PostgreSQL"
+    }
+  },
+  "nativeProbes": {
+    "pty": {
+      "actualShellExit": 0,
+      "expectedOutput": true
+    },
+    "re2": {
+      "nativeLoad": true,
+      "regexMatch": true
+    }
+  },
+  "limitations": [
+    "Local proofs only; no production certification",
+    "Native PTY probe does not certify terminal UI",
+    "No repository assertions, timeouts, quotas, security or product code changed",
+    "Initial typecheck subprocess picked system pnpm; explicit pnpm9 PATH fixed invocation; original failure log retained"
+  ],
+  "ideFullStats": {
+    "startTime": "2026-10-21T17:47:39.692Z",
+    "duration": 223923.968,
+    "expected": 45,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "publicationComments": [
+    "https://github.com/openaxcloud/vibecore/pull/763#issuecomment-6322665736",
+    "https://github.com/openaxcloud/vibecore/pull/763#issuecomment-6322760851"
+  ],
+  "visualInspection": [
+    "mobile FR cancellation: restore button and focus ring visible",
+    "mobile FR Agent menu: labels and all actions visible"
+  ]
+}

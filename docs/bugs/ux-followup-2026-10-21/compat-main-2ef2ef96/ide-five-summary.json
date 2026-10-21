@@ -1,0 +1,84 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T17:45:53.182Z",
+    "duration": 21064.689,
+    "expected": 5,
+    "skipped": 1,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "menu contextuel d’un message : une barre d’icônes de 44 px, chaque action nommée ; Sécurité : une paire par ligne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 5349
+        }
+      ]
+    },
+    {
+      "title": "Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2923
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : les menus « Agent » et « Économique » se rendent hors du composeur, visibles à l’écran",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4764
+        }
+      ]
+    },
+    {
+      "title": "Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3089
+        }
+      ]
+    },
+    {
+      "title": "panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3437
+        }
+      ]
+    },
+    {
+      "title": "le rail liste les tables, les en-têtes portent leur type, la page est annoncée",
+      "project": "chromium",
+      "status": "skipped",
+      "runs": [
+        {
+          "status": "skipped",
+          "retry": 0,
+          "duration": 130
+        }
+      ]
+    }
+  ]
+}
