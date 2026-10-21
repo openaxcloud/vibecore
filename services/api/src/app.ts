@@ -38113,7 +38113,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     command: z.string().max(4000).optional(),
     workflowId: z.number().int().optional(),
     cron: z.string().min(1).max(200),
-    timezone: z.string().min(1).max(64).default('UTC'),
+    timezone: z
+      .string()
+      .min(1)
+      .max(64)
+      .refine((timeZone) => {
+        try {
+          new Intl.DateTimeFormat('en', { timeZone });
+          return true;
+        } catch {
+          return false;
+        }
+      })
+      .default('UTC'),
 
     /*
      * The machine-size CATALOGUE is owned by another workstream; this endpoint
@@ -38299,9 +38311,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('SCHEDULED_TASK_NOT_FOUND'), code: 'SCHEDULED_TASK_NOT_FOUND' });
     }
 
+    const enabled = body.enabled ?? current.enabled;
+
+    /*
+     * Preserve a legacy empty command only while disabled and not explicitly rewritten.
+     * This permits safe recovery without allowing activation or a new empty command.
+     */
+    if (
+      current.kind === 'DEPLOYMENT' &&
+      !(body.command ?? current.command).trim() &&
+      (enabled || body.command !== undefined)
+    ) {
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('SCHEDULED_TASK_NO_COMMAND'), code: 'SCHEDULED_TASK_NO_COMMAND' });
+    }
+
     const cron = body.cron ?? current.cron;
     const timezone = body.timezone ?? current.timezone;
-    const enabled = body.enabled ?? current.enabled;
     const planKey = await scheduledTaskPlanKey(project.organizationId);
 
     const schedule = validateSchedule({
