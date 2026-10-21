@@ -1,0 +1,63 @@
+{
+  "baseCommit": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "branch": "test/parcours-lancement-20261021",
+  "sourceSha256": {
+    "app/routes/signup.tsx": "1b7ad6fa4d36d9abe8bdaaca26f55dc7a544bcd1983ba8338a4060ebe0ada8f2",
+    "app/routes/dashboard.tsx": "bd9ee8d4eaec2e5f6d05fcebea524d6787aa0dad39f5286f2b09eb922e80502d",
+    "tests/e2e/signup-confirmation-feedback.spec.ts": "c69a7e57a785eee6429a82b9b6d098a76152216cd48d9bf242cbf03e359c7ec3",
+    "tests/e2e/dashboard-publication-readiness.spec.ts": "2afa86b931b1df1bb6f67abfdb58d146a66c19605de7927c9fa0fa6edee6e39b"
+  },
+  "buildServerSha256": "c5c8201ba29a9e0879038e68dd9fecccd76f2e795ca84abe6ddb662eadd2b90d",
+  "node": "24.19.0",
+  "playwright": "1.59.1",
+  "browser": "system Chromium 154.0.8037.57",
+  "viewports": [
+    [
+      1440,
+      900
+    ],
+    [
+      1194,
+      834
+    ],
+    [
+      393,
+      851
+    ]
+  ],
+  "retries": 0,
+  "testTimeoutMs": 30000,
+  "assertionTimeoutMs": 5000,
+  "browserTests": {
+    "passed": 9,
+    "failed": 0,
+    "realApi": true,
+    "networkInterception": false
+  },
+  "unitTests": {
+    "passed": 44,
+    "files": [
+      "signup.spec.ts",
+      "login.spec.ts",
+      "onboarding.spec.ts"
+    ]
+  },
+  "build": "passed",
+  "targetedLint": "passed",
+  "format": "passed",
+  "fullWorkspaceTypecheck": "not certified; targeted web and scripts checks only",
+  "developmentRuns": [
+    {
+      "passed": 4,
+      "failed": 2,
+      "reason": "initial navigation timeouts during server startup"
+    },
+    {
+      "passed": 4,
+      "failed": 2,
+      "reason": "loading screen / elapsed test budget on dev server"
+    }
+  ],
+  "finalWebTypecheck": "passed",
+  "scriptsTypecheck": "passed after restoring existing workspace symlinks"
+}

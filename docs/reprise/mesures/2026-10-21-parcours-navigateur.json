@@ -1,0 +1,14 @@
+[
+  {
+    "step": "browser-registration-dashboard",
+    "passed": true
+  },
+  {
+    "step": "browser-login-dashboard",
+    "passed": true
+  },
+  {
+    "step": "browser-new-project-composer",
+    "passed": true
+  }
+]

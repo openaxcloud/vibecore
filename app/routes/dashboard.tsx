@@ -113,12 +113,17 @@ async function onboardingSignals(
       }
 
       try {
-        const result = await apiRequest<{ deployments?: unknown[] }>(
+        const result = await apiRequest<{ deployments?: Array<{ status: string }> }>(
           request,
           `/projects/${mostRecentProjectId}/deployments`,
         );
 
-        return { complete: Array.isArray(result?.deployments) && result.deployments.length > 0, unavailable: false };
+        return {
+          complete:
+            Array.isArray(result?.deployments) &&
+            result.deployments.some((deployment) => deployment.status === 'READY'),
+          unavailable: false,
+        };
       } catch {
         return { complete: false, unavailable: true };
       }
