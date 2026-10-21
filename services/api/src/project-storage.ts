@@ -1169,6 +1169,10 @@ export class GitCliProvider implements GitProvider {
   private async git(projectId: string, args: string[], workspaceId?: string, raw = false) {
     await this.ensureRepository(projectId, workspaceId);
 
+    return this._gitInPreparedRepository(projectId, args, workspaceId, raw);
+  }
+
+  private async _gitInPreparedRepository(projectId: string, args: string[], workspaceId?: string, raw = false) {
     const result = await execFile(
       'git',
       [
@@ -1304,6 +1308,12 @@ export class GitCliProvider implements GitProvider {
     await this.materializeWorkingTree(projectId, files, workspaceId);
 
     /*
+     * Prepare once for this status operation, not once for each Git query.
+     * The next operation still validates the repository and can repair it.
+     */
+    await this.ensureRepository(projectId, workspaceId);
+
+    /*
      * `symbolic-ref` fails both when HEAD is detached and when the repo is
      * broken. Distinguish the two so the IDE can render a real detached-HEAD
      * warning instead of silently claiming "main": when detached, report the
@@ -1313,16 +1323,26 @@ export class GitCliProvider implements GitProvider {
     let detached = false;
 
     try {
-      branch = await this.git(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId);
+      branch = await this._gitInPreparedRepository(projectId, ['symbolic-ref', '--short', 'HEAD'], workspaceId);
     } catch {
-      const headSha = await this.git(projectId, ['rev-parse', '--short', 'HEAD'], workspaceId).catch(() => '');
+      const headSha = await this._gitInPreparedRepository(
+        projectId,
+        ['rev-parse', '--short', 'HEAD'],
+        workspaceId,
+      ).catch(() => '');
 
       if (headSha) {
         branch = headSha;
         detached = true;
       }
     }
-    const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId, true);
+    const porcelain = await this._gitInPreparedRepository(
+      projectId,
+      ['status', '--porcelain=v1', '-uall'],
+      workspaceId,
+      true,
+    );
+
     const statusLines = porcelain.split('\n').filter(Boolean);
 
     /*
@@ -1347,7 +1367,7 @@ export class GitCliProvider implements GitProvider {
       .filter((line) => ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU'].includes(line.slice(0, 2)))
       .map((line) => ({ path: statusPath(line), status: line.slice(0, 2) }));
 
-    const aheadBehind = await this.git(
+    const aheadBehind = await this._gitInPreparedRepository(
       projectId,
       ['rev-list', '--left-right', '--count', '@{upstream}...HEAD'],
       workspaceId,
