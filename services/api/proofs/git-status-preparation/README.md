@@ -66,3 +66,19 @@ root lint, scanner and CI results are reported separately in the draft PR.
 If the repository disappears during one status operation, that call may fail;
 the next call revalidates it. Concurrent repository mutation is not made atomic
 by this change. Editor-level before/after validation remains coordinated work.
+
+## Concurrency and exact-source follow-up
+
+Three additional tests use real Git behind a FIFO barrier (no sleep or substituted
+output): two statuses in flight; a paused status with repository invalidation
+and repair by another provider; invalidation without repair, yielding an error
+followed by repair on the next call. Seven focused tests pass without skips.
+
+The historical 105.03 ms median belongs to source hash
+`39c7648297649885f69f34ed717de2e5fb454982aaf06eb1a10439b1aa60c8a8`,
+not final source `4406b41ddec27c82289f330271ffd705478789d3d303d2b061d414871e8c10f9`.
+`historical-after.patch` reconstructs that exact file from base 4af4dd1a;
+its SHA-256 was checked against after-load.json. This recovers the measured
+production file, not the whole historical dirty tree. A separate alternating
+comparison on clean exact commits is reported in the PR and supersedes the
+historical latency comparison. The 8.86 s editor incident remains unresolved.

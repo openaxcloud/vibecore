@@ -9,10 +9,20 @@ import { GitCliProvider } from './project-storage.js';
 const execFile = promisify(execFileCallback);
 const previousStorage = process.env.PROJECT_STORAGE_DIR;
 const previousTrace = process.env.GIT_TRACE2_EVENT;
+const gateVariables = ['PATH', 'STATUS_REAL_GIT', 'STATUS_GATE_DIR'];
+const previousGateEnvironment = gateVariables.map((key) => [key, process.env[key]] as const);
 
 let temporary: string | undefined;
 
 afterEach(async () => {
+  for (const [key, value] of previousGateEnvironment) {
+    if (value === undefined) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
+  }
+
   if (previousStorage === undefined) {
     delete process.env.PROJECT_STORAGE_DIR;
   } else {
@@ -29,6 +39,40 @@ afterEach(async () => {
     await rm(temporary, { recursive: true, force: true });
   }
 });
+
+/*
+ * The wrapper only gates the first porcelain command, then execs actual Git.
+ * FIFOs establish ordering without replacing any command output or sleeping.
+ */
+async function gateNextStatus() {
+  const { stdout } = await execFile('sh', ['-c', 'command -v git']);
+  const directory = join(temporary!, 'gate');
+  await mkdir(directory);
+  await execFile('mkfifo', [join(directory, 'ready'), join(directory, 'release')]);
+  await writeFile(
+    join(directory, 'git'),
+    `#!/bin/sh
+case " $* " in
+  *" status --porcelain=v1 "*)
+    if mkdir "$STATUS_GATE_DIR/claimed" 2>/dev/null; then
+      printf 'ready\\n' > "$STATUS_GATE_DIR/ready"
+      read -r permit < "$STATUS_GATE_DIR/release"
+    fi
+    ;;
+esac
+exec "$STATUS_REAL_GIT" "$@"
+`,
+    { mode: 0o755 },
+  );
+  process.env.STATUS_REAL_GIT = stdout.trim();
+  process.env.STATUS_GATE_DIR = directory;
+  process.env.PATH = `${directory}:${process.env.PATH}`;
+
+  return {
+    ready: readFile(join(directory, 'ready'), 'utf8'),
+    release: () => writeFile(join(directory, 'release'), 'continue\n'),
+  };
+}
 
 async function fixture() {
   temporary = await mkdtemp(join(tmpdir(), 'git-status-preparation-'));
@@ -111,4 +155,65 @@ it('repairs identity and workspace exclusion again on the next status', async ()
   expect((await execFile('git', ['config', 'user.name'], { cwd: root })).stdout.trim()).toBe('You');
   expect((await execFile('git', ['config', 'user.email'], { cwd: root })).stdout.trim()).toBe('you@vibecore.local');
   expect(await readFile(exclude, 'utf8')).toContain(marker);
+});
+
+it('reads the same actual changes with two status operations in flight', async () => {
+  const { provider, root } = await fixture();
+  await writeFile(join(root, 'README.md'), 'Concurrent edit\n');
+
+  const gate = await gateNextStatus();
+  const first = provider.status('project');
+  await gate.ready;
+
+  try {
+    const second = await provider.status('project');
+    expect(second.fileStatuses).toEqual([{ path: 'README.md', status: 'M' }]);
+  } finally {
+    await gate.release();
+  }
+  expect((await first).fileStatuses).toEqual([{ path: 'README.md', status: 'M' }]);
+});
+
+it('observes a concurrent repair after invalidation during status without cached readiness', async () => {
+  const { provider, root } = await fixture();
+  const gate = await gateNextStatus();
+  const first = provider.status('project');
+  await gate.ready;
+
+  try {
+    await rm(join(root, '.git'), { recursive: true });
+    await mkdir(join(root, '.git'));
+
+    const repaired = await new GitCliProvider().status('project');
+    expect(repaired.branch).toBe('main');
+    expect(repaired.changedFiles).toEqual(['README.md']);
+  } finally {
+    await gate.release();
+  }
+  expect((await first).changedFiles).toEqual(['README.md']);
+  await provider.commit({ projectId: 'project', message: 'After concurrent repair', files: [] });
+  expect((await new GitCliProvider().status('project')).changedFiles).toEqual([]);
+});
+
+it('fails honestly when invalidated mid-status and repairs on the next operation', async () => {
+  const { provider, root } = await fixture();
+  const gate = await gateNextStatus();
+
+  const first = provider.status('project').then(
+    (status) => ({ status, error: undefined }),
+    (error: Error) => ({ status: undefined, error }),
+  );
+  await gate.ready;
+
+  try {
+    await rm(join(root, '.git'), { recursive: true });
+    await mkdir(join(root, '.git'));
+  } finally {
+    await gate.release();
+  }
+
+  const result = await first;
+  expect(result.status).toBeUndefined();
+  expect(result.error).toBeInstanceOf(Error);
+  expect((await provider.status('project')).changedFiles).toEqual(['README.md']);
 });
