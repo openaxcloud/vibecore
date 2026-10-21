@@ -1,0 +1,13 @@
+
+Running 2 tests using 1 worker
+
+(node:786482) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:786482) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+UX_WEBVIEW_CLOSE_GEOMETRY {"x":338,"y":597,"width":44,"height":36}
+  ✓  1 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1619:3 › chrome de l’IDE sur téléphone — 390 › Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment (13.7s)
+UX_PANEL_BOTTOM_GEOMETRY {"hautVoile":772,"hautPastille":772,"dansLePanneau":true,"floute":false}
+  ✓  2 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1905:3 › chrome de l’IDE sur téléphone — 390 › panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte (6.9s)
+
+  2 passed (25.5s)

@@ -1,0 +1,16 @@
+[
+  {
+    "lang": "en",
+    "status": 429,
+    "message": "quotaExceeded",
+    "snapshotsBefore": 5,
+    "snapshotsAfter": 5
+  },
+  {
+    "lang": "fr",
+    "status": 429,
+    "message": "quotaExceeded",
+    "snapshotsBefore": 5,
+    "snapshotsAfter": 5
+  }
+]

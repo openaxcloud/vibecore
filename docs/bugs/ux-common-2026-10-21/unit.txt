@@ -1,0 +1,17 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ux-common
+
+ ✓ app/lib/ide/initial-project-archive.spec.ts (8 tests) 166ms
+ ✓ app/components/database/DatabaseWorkbench.initial-data.spec.tsx (8 tests) 470ms
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 64ms
+ ✓ app/components/chat/ComposerToolsState.spec.tsx (7 tests) 1292ms
+   ✓ keeps the real palette, edited draft and selected section across component replacement  621ms
+ ✓ app/components/chat/AgentHeaderMenu.spec.tsx (5 tests) 380ms
+ ✓ app/routes/ide-overview-stream-lifecycle.spec.ts (5 tests) 41ms
+ ✓ app/routes/ide-chat-preload.spec.ts (3 tests) 71ms
+ ✓ app/components/chat/project-layout-save.spec.ts (4 tests) 16ms
+
+ Test Files  8 passed (8)
+      Tests  46 passed (46)
+   Start at  11:59:08
+   Duration  10.58s (transform 3.25s, setup 457ms, collect 6.46s, tests 2.50s, environment 3.69s, prepare 1.30s)

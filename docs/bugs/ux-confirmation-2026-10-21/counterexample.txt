@@ -1,0 +1,70 @@
+
+Running 2 tests using 1 worker
+
+(node:110653) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:110653) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (14.3s)
+(node:112088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:112088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (30.4s)
+
+
+  1) [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeFocused[2m([22m[2m)[22m failed
+
+    Locator:  getByRole('button', { name: 'Restore Focus desktop en 1792567444235', exact: true })
+    Expected: focused
+    Received: inactive
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - Expect "toBeFocused" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('button', { name: 'Restore Focus desktop en 1792567444235', exact: true })[22m
+    [2m    8 × locator resolved to <button type="button" data-size="default" data-vc-button="true" data-variant="outline" aria-label="Restore Focus desktop en 1792567444235" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderColor bg-transparent hover:bg-bolt-elements-background-depth-2 hover:text-bo…>…</button>[22m
+    [2m      - unexpected value "inactive"[22m
+
+
+       95 |     await expect(dialog).toBeHidden();
+       96 |     await page.screenshot({ path: info.outputPath(`cancel-${language}.png`) });
+    >  97 |     await expect(opener).toBeFocused();
+          |                          ^
+       98 |     await page.keyboard.press('Enter');
+       99 |     await expect(dialog).toBeVisible();
+      100 |     await page.keyboard.press('Escape');
+        at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:97:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    .vibecore/ux-qa/snapshot-before/snapshot-cancel-focus-snap-95f16-erves-keyboard-position-en--desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: .vibecore/ux-qa/snapshot-before/snapshot-cancel-focus-snap-95f16-erves-keyboard-position-en--desktop/error-context.md
+
+  2) [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForResponse: Test timeout of 30000ms exceeded.
+
+      56 |     await page.goto(`/projects/${projectId}/snapshots?lang=${language}`);
+      57 |     await page.locator('#snapshot-label').fill(label);
+    > 58 |     const createdResponse = page.waitForResponse(
+         |                                  ^
+      59 |       (response) =>
+      60 |         response.request().method() === 'POST' &&
+      61 |         new URL(response.url()).pathname.startsWith(`/projects/${projectId}/snapshots`),
+        at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:58:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    .vibecore/ux-qa/snapshot-before/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--desktop/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: .vibecore/ux-qa/snapshot-before/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--desktop/error-context.md
+
+  2 failed
+    [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) 
+    [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 

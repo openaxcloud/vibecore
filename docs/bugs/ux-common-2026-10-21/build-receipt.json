@@ -1,0 +1,12 @@
+{
+  "sourceGitTree": "f31f6d5b0b8bd60b619c0aa70abdd80e2323b4ee",
+  "sourceCount": 5023,
+  "buildCount": 2306,
+  "buildTreeSha256": "2fd5c14211537d998558da154d9ff128855ee182b86e6ff41ba8c36583ad8b4d",
+  "archiveSha256": "f60754791b6847a3e52a1d9ec4c54870e0cf0e6131bbdf561d514c38f940bcbc",
+  "nodeVersion": "v24.19.0",
+  "localOnly": true,
+  "externalProviderCallsValidated": false,
+  "chromiumVersion": "Chromium 154.0.8037.57 built on Debian GNU/Linux 13 (trixie)",
+  "pnpmVersion": "9.14.4"
+}

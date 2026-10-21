@@ -1,0 +1,83 @@
+
+Running 18 tests using 1 worker
+
+(node:806360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:806360) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (5.3s)
+  ✓   2 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (en) (7.4s)
+  ✓   3 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (4.9s)
+  ✓   4 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (fr) (9.4s)
+  ✓   5 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.5s)
+  ✓   6 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (4.0s)
+(node:807268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:807268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (7.2s)
+  ✓   8 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (en) (11.7s)
+  ✘   9 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (5.8s)
+(node:807819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:807819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  10 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (fr) (7.0s)
+  ✓  11 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.5s)
+  ✓  12 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.4s)
+(node:808260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:808260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (4.6s)
+(node:808500) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:808500) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  14 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (en) (6.3s)
+  ✓  15 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (4.8s)
+  ✓  16 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (fr) (6.1s)
+  ✓  17 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.0s)
+  ✓  18 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.2s)
+
+
+  1) [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr)
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 44
+    Received:    43.4305419921875
+
+      108 |       await expect(options).toBeVisible();
+      109 |       await expect(agent).toBeVisible();
+    > 110 |       expect(await agent.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+          |                                                                                         ^
+      111 |     } else {
+      112 |       const label = language === 'en' ? 'More agent actions' : "Plus d'actions d'agent";
+      113 |       const trigger = page.getByRole('button', { name: label, exact: true });
+        at tests/e2e/agent-header-menu-keyboard.spec.ts:110:89
+
+    Error Context: ../ux-artifacts/common-749-750-753/formats/results/agent-header-menu-keyboard-f3f13--and-compact-navigation-fr--tablet/error-context.md
+
+  2) [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en)
+
+    Error: expect(received).toBeGreaterThanOrEqual(expected)
+
+    Expected: >= 44
+    Received:    43.4305419921875
+
+      108 |       await expect(options).toBeVisible();
+      109 |       await expect(agent).toBeVisible();
+    > 110 |       expect(await agent.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+          |                                                                                         ^
+      111 |     } else {
+      112 |       const label = language === 'en' ? 'More agent actions' : "Plus d'actions d'agent";
+      113 |       const trigger = page.getByRole('button', { name: label, exact: true });
+        at tests/e2e/agent-header-menu-keyboard.spec.ts:110:89
+
+    Error Context: ../ux-artifacts/common-749-750-753/formats/results/agent-header-menu-keyboard-b7926--and-compact-navigation-en--mobile/error-context.md
+
+  2 failed
+    [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr)
+    [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en)
+  16 passed (1.8m)

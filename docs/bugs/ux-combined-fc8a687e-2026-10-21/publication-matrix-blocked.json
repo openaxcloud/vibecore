@@ -1,0 +1,17 @@
+{
+  "buildTreeSha256": "f78327169bc834d59a8dad75975ec121761848df1faec7ff03a35bc53eec3ff0",
+  "status": "incomplete",
+  "firstCase": {
+    "width": 390,
+    "language": "fr",
+    "stage": "View logs button visible after opening Deployments",
+    "expectTimeoutMs": 5000,
+    "passed": false
+  },
+  "completedCases": 0,
+  "notReachedCases": 5,
+  "newDeploymentCreated": false,
+  "retried": false,
+  "apiReadAfterFailure": "publication-state.json",
+  "cause": "not established"
+}

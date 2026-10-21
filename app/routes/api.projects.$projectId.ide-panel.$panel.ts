@@ -351,12 +351,19 @@ function streamOverviewPanel(request: Request, projectId: string, project: unkno
   let closed = false;
   let sending = false;
 
+  let close = () => {};
+
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      const close = () => {
-        closed = true;
+      close = () => {
+        if (closed) {
+          return;
+        }
 
-        if (interval) {
+        closed = true;
+        request.signal.removeEventListener('abort', close);
+
+        if (interval !== undefined) {
           clearInterval(interval);
           interval = undefined;
         }
@@ -364,7 +371,19 @@ function streamOverviewPanel(request: Request, projectId: string, project: unkno
         try {
           controller.close();
         } catch {
-          // The client may already have closed the stream.
+          // The reader may already have canceled the stream.
+        }
+      };
+
+      const enqueue = (event: string, data: unknown) => {
+        if (closed) {
+          return;
+        }
+
+        try {
+          controller.enqueue(encoder.encode(encodeServerSentEvent(event, data)));
+        } catch {
+          close();
         }
       };
 
@@ -377,32 +396,28 @@ function streamOverviewPanel(request: Request, projectId: string, project: unkno
 
         try {
           const envelope = await loadOverviewPanelEnvelope(request, projectId, project, language);
-
-          if (!closed) {
-            controller.enqueue(encoder.encode(encodeServerSentEvent('overview', envelope)));
-          }
+          enqueue('overview', envelope);
         } catch (error) {
-          if (!closed) {
-            controller.enqueue(
-              encoder.encode(encodeServerSentEvent('error', panelEnvelopeError('overview', project, error, language))),
-            );
-          }
+          enqueue('error', panelEnvelopeError('overview', project, error, language));
         } finally {
           sending = false;
         }
       };
 
       request.signal.addEventListener('abort', close, { once: true });
-      void send();
+
+      // The client can leave while the loader awaits the project authorization.
+      if (request.signal.aborted) {
+        close();
+        return;
+      }
+
+      // Install first so even an abort during the initial load clears the timer.
       interval = setInterval(() => void send(), OVERVIEW_STREAM_INTERVAL_MS);
+      void send();
     },
     cancel() {
-      closed = true;
-
-      if (interval) {
-        clearInterval(interval);
-        interval = undefined;
-      }
+      close();
     },
   });
 

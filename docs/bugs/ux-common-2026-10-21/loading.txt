@@ -1,0 +1,21 @@
+
+Running 10 tests using 1 worker
+
+(node:803474) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:803474) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › tests/e2e/agent-menu-shell-handoff.spec.ts:11:5 › agent menu survives shell replacement (en, open) (7.5s)
+  ✓   2 [chromium] › tests/e2e/agent-menu-shell-handoff.spec.ts:11:5 › agent menu survives shell replacement (en, closed) (7.4s)
+  ✓   3 [chromium] › tests/e2e/agent-menu-shell-handoff.spec.ts:11:5 › agent menu survives shell replacement (fr, open) (8.9s)
+  ✓   4 [chromium] › tests/e2e/agent-menu-shell-handoff.spec.ts:11:5 › agent menu survives shell replacement (fr, closed) (9.4s)
+DATABASE_CONTEXT_QA_CLEANUP {"bindingStatus":200,"projectStatus":200}
+  ✓   5 [chromium] › tests/e2e/database-loading-context.spec.ts:11:3 › database keeps en context while its real initial response is pending (12.1s)
+DATABASE_CONTEXT_QA_CLEANUP {"bindingStatus":200,"projectStatus":200}
+  ✓   6 [chromium] › tests/e2e/database-loading-context.spec.ts:11:3 › database keeps fr context while its real initial response is pending (12.9s)
+  ✓   7 [chromium] › tests/e2e/design-palette-shell-handoff.spec.ts:11:5 › design palette survives shell replacement (en, open) (6.3s)
+  ✓   8 [chromium] › tests/e2e/design-palette-shell-handoff.spec.ts:11:5 › design palette survives shell replacement (en, closed) (5.3s)
+  ✓   9 [chromium] › tests/e2e/design-palette-shell-handoff.spec.ts:11:5 › design palette survives shell replacement (fr, open) (5.5s)
+  ✓  10 [chromium] › tests/e2e/design-palette-shell-handoff.spec.ts:11:5 › design palette survives shell replacement (fr, closed) (4.9s)
+
+  10 passed (1.4m)

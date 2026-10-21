@@ -4332,6 +4332,14 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   min-height: 44px;
 }
 
+.vc-user-area-shell:has(.vc-product-tour) {
+  padding-bottom: var(--vc-product-tour-height, 0px);
+
+  :is(button, input, textarea, select, a, [tabindex]):not(.vc-product-tour *) {
+    scroll-margin-bottom: var(--vc-product-tour-height, 0px);
+  }
+}
+
 .vc-app-shell-grid {
   transition: grid-template-columns 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -18705,6 +18713,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-publication-carte-entete {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -18735,6 +18744,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-publication-carte-actions {
   display: flex;
+  flex-shrink: 0;
   margin-inline-start: auto;
   gap: 6px;
 }
@@ -18858,6 +18868,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-publication-echec-actions {
   display: flex;
+  flex-wrap: wrap;
   width: 100%;
   gap: 8px;
 }

@@ -1,0 +1,9 @@
+Vérification de la session active…
+Publier
+Connexion saine
+
+Chargement de publier…
+
+Préparation des panneaux, des signaux de l’environnement d’exécution et des données de l’espace de travail.
+
+Chargement d’E-Code…

@@ -1,0 +1,644 @@
+{
+  "buildTreeSha256": "f78327169bc834d59a8dad75975ec121761848df1faec7ff03a35bc53eec3ff0",
+  "stats": {
+    "startTime": "2026-10-21T10:15:25.970Z",
+    "duration": 914621.223,
+    "expected": 43,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "barre du bas : l\u2019onglet actif est enti\u00e8rement visible dans sa bande",
+      "line": 317,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:15:27.523Z",
+          "duration": 7846,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "\u00e9tat de d\u00e9part de l\u2019Agent : chaque action enti\u00e8re, la puce du composeur enti\u00e8re",
+      "line": 347,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:15:36.047Z",
+          "duration": 11858,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Journaux : trois rang\u00e9es, actions en ic\u00f4nes accessibles, statut et niveaux entiers",
+      "line": 375,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:15:47.973Z",
+          "duration": 14976,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "feuille \u00ab + \u00bb : titres 13 px, descriptions 12 px enti\u00e8res, une colonne",
+      "line": 417,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:16:03.043Z",
+          "duration": 13031,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "D\u00e9bogueur : l\u00e9gendes 11 px, texte 12 px, bouton d\u2019en-t\u00eate entier sur sa ligne",
+      "line": 459,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:16:16.149Z",
+          "duration": 17911,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Webview : barre d\u2019adresse compacte, journaux \u00e0 12 px sans d\u00e9bordement",
+      "line": 520,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:16:34.106Z",
+          "duration": 21134,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "fil de l\u2019agent : le chemin de fichier entier, repli\u00e9 ; le r\u00e9sum\u00e9 de commande \u00e0 32 px dans le flux",
+      "line": 575,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:16:55.263Z",
+          "duration": 26756,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Param\u00e8tres, Variables, \u00c9diteur : bande d\u2019onglets compacte, boutons deux par rang\u00e9e, pastille Historique visible",
+      "line": 659,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:17:22.080Z",
+          "duration": 20294,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "menu contextuel d\u2019un message : une barre d\u2019ic\u00f4nes de 44 px, chaque action nomm\u00e9e ; S\u00e9curit\u00e9 : une paire par ligne",
+      "line": 765,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:17:42.423Z",
+          "duration": 51095,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Base de donn\u00e9es, \u00ab Mes donn\u00e9es \u00bb : le studio prend la hauteur de son contenu, sans d\u00e9filement interne",
+      "line": 876,
+      "project": "chromium",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "startTime": "2026-10-21T10:18:33.602Z",
+          "duration": 50487,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "D\u00e9ploiements \u00ab G\u00e9rer \u00bb : les actions d\u2019un d\u00e9ploiement se partagent la ligne",
+      "line": 932,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:19:26.062Z",
+          "duration": 13434,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Int\u00e9grations : ic\u00f4nes visibles ; Extensions : pastilles de domaine enti\u00e8res",
+      "line": 995,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:19:40.338Z",
+          "duration": 15774,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran",
+      "line": 1042,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:19:56.178Z",
+          "duration": 12505,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : la feuille prend l\u2019\u00e9cran sur t\u00e9l\u00e9phone, et s\u2019arr\u00eate \u00e0 760 px centr\u00e9e sur tablette",
+      "line": 1140,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:20:08.735Z",
+          "duration": 8604,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "fil de l\u2019agent : en remontant, le texte garde sa largeur et la pastille \u00ab descendre \u00bb est centr\u00e9e au-dessus de la zone de saisie",
+      "line": 1209,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:20:17.401Z",
+          "duration": 24674,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "menu contextuel sur le dernier message : la barre reste au-dessus de la zone de saisie, et le fil ne bouge pas",
+      "line": 1295,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:20:42.120Z",
+          "duration": 21309,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : le menu \u00ab \u2022\u2022\u2022 \u00bb se rend hors du composeur, entier, et chacune de ses entr\u00e9es s\u2019ouvre dans l\u2019\u00e9cran \u2014 t\u00e9l\u00e9phone 390",
+      "line": 1398,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:21:03.483Z",
+          "duration": 23466,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : le menu \u00ab \u2022\u2022\u2022 \u00bb se rend hors du composeur, entier, et chacune de ses entr\u00e9es s\u2019ouvre dans l\u2019\u00e9cran \u2014 tablette 820",
+      "line": 1398,
+      "project": "chromium",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "startTime": "2026-10-21T10:21:26.991Z",
+          "duration": 24430,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Webview : l\u2019URL se lit en 13 px et s\u2019\u00e9dite \u00e0 16 px ; les journaux se referment",
+      "line": 1619,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:21:53.339Z",
+          "duration": 20492,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "s\u00e9lecteur d\u2019onglets : les raccourcis du bas sont plus petits que les onglets, et tous de m\u00eame taille",
+      "line": 1702,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:22:14.554Z",
+          "duration": 15704,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "s\u00e9lecteur d\u2019onglets : la croix de fermeture se peint dans la couleur du contenu \u2014 th\u00e8me light",
+      "line": 1742,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:22:30.302Z",
+          "duration": 10836,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "s\u00e9lecteur d\u2019onglets : la croix de fermeture se peint dans la couleur du contenu \u2014 th\u00e8me dark",
+      "line": 1742,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:22:41.190Z",
+          "duration": 14214,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "dict\u00e9e vocale : l\u2019appui dit qu\u2019on \u00e9coute, garde le texte tap\u00e9, et l\u2019interface se remet au repos quand le moteur s\u2019arr\u00eate seul",
+      "line": 1828,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:22:55.466Z",
+          "duration": 7029,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "panneaux d\u2019outils : le contenu reste net jusqu\u2019au bord haut de la barre du bas \u2014 pas de bande morte",
+      "line": 1903,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:23:02.548Z",
+          "duration": 16959,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "barre du bas : les onglets fixes sont centr\u00e9s entre le s\u00e9lecteur et \u00ab + \u00bb \u2014 430 px",
+      "line": 1960,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:23:19.540Z",
+          "duration": 12534,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "barre du bas : les onglets fixes sont centr\u00e9s entre le s\u00e9lecteur et \u00ab + \u00bb \u2014 390 px",
+      "line": 1960,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:23:32.160Z",
+          "duration": 19897,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "panneau Agent, \u00e9tat de d\u00e9part : la carte \u00ab Agent pr\u00eat \u00bb se pose sous l\u2019en-t\u00eate, sans bande vide",
+      "line": 2002,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:23:52.096Z",
+          "duration": 23656,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "fil de l\u2019agent : le premier message se pose sous l\u2019en-t\u00eate, sans bande morte et sans \u00eatre rogn\u00e9",
+      "line": 2038,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:24:15.802Z",
+          "duration": 17219,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "menu d\u2019un message : un seul \u00e0 la fois, pos\u00e9 au-dessus de la ligne, ferm\u00e9 au d\u00e9filement",
+      "line": 2092,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:24:33.061Z",
+          "duration": 16921,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "fin de tour \u00e0 la Replit : \u00ab Worked for \u00bb et \u00ab Checkpoint made \u00bb sous la r\u00e9ponse, au-dessus de la zone de saisie ; retour arri\u00e8re ; \u00ab Changes \u00bb ouvre le commit",
+      "line": 2152,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:24:50.014Z",
+          "duration": 26690,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "onglet Secrets : en-t\u00eate sur une ligne, filtre, ajout en ligne, puces cl\u00e9 / valeur / \u22ee et menu de ligne \u2014 parit\u00e9 Replit",
+      "line": 2328,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:25:16.748Z",
+          "duration": 15064,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans d\u00e9filement interne",
+      "line": 2501,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:25:31.838Z",
+          "duration": 10243,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "appui long pr\u00e8s du bord droit : le menu et ses libell\u00e9s fran\u00e7ais restent dans l\u2019\u00e9cran, sans infobulle",
+      "line": 2573,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:25:42.129Z",
+          "duration": 21424,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "\u00ab Effacer l\u2019historique \u00bb ouvre une conversation neuve, et elle le reste au rechargement",
+      "line": 2616,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:26:03.584Z",
+          "duration": 36160,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "un tour stream\u00e9 ne recr\u00e9e pas le markdown des messages d\u00e9j\u00e0 affich\u00e9s",
+      "line": 2726,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:26:39.785Z",
+          "duration": 15657,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "elle se peint sur le fil, et sur rien d\u2019autre",
+      "line": 2881,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:26:55.485Z",
+          "duration": 21924,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "le fil reste masqu\u00e9 pendant le chargement interrompu de Preview \u00e0 390px",
+      "line": 2956,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:27:17.468Z",
+          "duration": 41779,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "le fil reste masqu\u00e9 pendant le chargement interrompu de Preview \u00e0 768px",
+      "line": 2956,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:27:59.280Z",
+          "duration": 27243,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "le bloc se rend aux bonnes tailles, sans rien d\u00e9border",
+      "line": 3077,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:28:26.563Z",
+          "duration": 14466,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "le bloc se rend aux bonnes tailles, sans rien d\u00e9border",
+      "line": 3077,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:28:41.051Z",
+          "duration": 14621,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "titres et boutons tiennent sur une ligne \u00e0 390 px",
+      "line": 3176,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:28:55.703Z",
+          "duration": 17511,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "les gabarits portent un prix calcul\u00e9, et les gestes sont ceux qui existent",
+      "line": 3276,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:29:13.261Z",
+          "duration": 18890,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "depuis n\u2019importe quel panneau, la demande bascule sur le panneau Agent",
+      "line": 3341,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:29:32.198Z",
+          "duration": 8261,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "la liste des tables n\u2019est pas vide, et chaque ligne est nomm\u00e9e",
+      "line": 3412,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:29:40.503Z",
+          "duration": 22146,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "le rail liste les tables, les en-t\u00eates portent leur type, la page est annonc\u00e9e",
+      "line": 3496,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T10:30:02.683Z",
+          "duration": 37452,
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "backendRevision": "fc8a687e715e6052668ade83474da4aef5f27df9"
+}

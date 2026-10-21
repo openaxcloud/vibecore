@@ -1,0 +1,52 @@
+[
+  {
+    "lang": "en",
+    "gesture": "outside click on composer",
+    "passed": true
+  },
+  {
+    "lang": "en",
+    "gesture": "focus leaves menu",
+    "passed": true
+  },
+  {
+    "lang": "en",
+    "gesture": "Shift+Tab",
+    "passed": true,
+    "focus": {
+      "tag": "BUTTON",
+      "label": "Conversation history",
+      "text": ""
+    }
+  },
+  {
+    "lang": "en",
+    "gesture": "menu opens shared confirmation, cancel preserves conversation and restores trigger focus",
+    "passed": true
+  },
+  {
+    "lang": "fr",
+    "gesture": "outside click on composer",
+    "passed": true
+  },
+  {
+    "lang": "fr",
+    "gesture": "focus leaves menu",
+    "passed": true
+  },
+  {
+    "lang": "fr",
+    "gesture": "Shift+Tab",
+    "passed": true,
+    "focus": {
+      "tag": "BUTTON",
+      "label": "Historique des conversations",
+      "text": ""
+    }
+  },
+  {
+    "lang": "fr",
+    "gesture": "menu opens shared confirmation, cancel preserves conversation and restores trigger focus",
+    "passed": true
+  }
+]

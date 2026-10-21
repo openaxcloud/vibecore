@@ -1,0 +1,52 @@
+{
+  "listening": "rgb(220, 38, 38)",
+  "immediate": {
+    "at": 4058.019999999553,
+    "pressed": "false",
+    "active": false,
+    "color": "rgb(220, 38, 38)",
+    "transitionProperty": "all",
+    "transitionDuration": "0.15s",
+    "animations": [
+      {
+        "property": "background-color",
+        "state": "running",
+        "currentTime": 0
+      },
+      {
+        "property": "border-bottom-color",
+        "state": "running",
+        "currentTime": 0
+      },
+      {
+        "property": "border-left-color",
+        "state": "running",
+        "currentTime": 0
+      },
+      {
+        "property": "border-right-color",
+        "state": "running",
+        "currentTime": 0
+      },
+      {
+        "property": "border-top-color",
+        "state": "running",
+        "currentTime": 0
+      },
+      {
+        "property": "color",
+        "state": "running",
+        "currentTime": 0
+      }
+    ]
+  },
+  "finished": {
+    "at": 4234.9399999994785,
+    "pressed": "false",
+    "active": false,
+    "color": "rgb(17, 24, 39)",
+    "transitionProperty": "all",
+    "transitionDuration": "0.15s",
+    "animations": []
+  }
+}

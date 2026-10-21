@@ -1,0 +1,23 @@
+
+Running 6 tests using 1 worker
+
+(node:348541) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:348541) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (6.4s)
+  ✓  2 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (5.2s)
+(node:348776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:348776) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.9s)
+  ✓  4 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.8s)
+(node:349028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:349028) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.3s)
+  ✓  6 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.8s)
+
+  6 passed (33.5s)

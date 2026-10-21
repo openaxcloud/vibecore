@@ -1,0 +1,154 @@
+{
+  "buildTreeSha256": "2fd5c14211537d998558da154d9ff128855ee182b86e6ff41ba8c36583ad8b4d",
+  "backendRevision": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28",
+  "stats": {
+    "startTime": "2026-10-21T12:11:48.526Z",
+    "duration": 83465.173,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "agent menu survives shell replacement (en, open)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:11:50.334Z",
+          "duration": 7497,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu survives shell replacement (en, closed)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:11:58.498Z",
+          "duration": 7425,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu survives shell replacement (fr, open)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:12:05.999Z",
+          "duration": 8915,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu survives shell replacement (fr, closed)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:12:14.962Z",
+          "duration": 9374,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "database keeps en context while its real initial response is pending",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:12:24.450Z",
+          "duration": 12062,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "database keeps fr context while its real initial response is pending",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:12:36.594Z",
+          "duration": 12925,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "design palette survives shell replacement (en, open)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:12:49.634Z",
+          "duration": 6283,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "design palette survives shell replacement (en, closed)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:12:55.951Z",
+          "duration": 5298,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "design palette survives shell replacement (fr, open)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:13:01.294Z",
+          "duration": 5534,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "design palette survives shell replacement (fr, closed)",
+      "line": 11,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:13:06.855Z",
+          "duration": 4892,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

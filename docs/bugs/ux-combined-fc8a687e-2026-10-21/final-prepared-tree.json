@@ -1,0 +1,10 @@
+{
+  "buildSourceTree": "79afec9ee816fc6fdb797890b0b7448a3e60d037",
+  "preparedTreeAfterTestCorrection": "74ae43124298a9c9831f7cb02abf0cd4fbe54a87",
+  "productBuildUnchanged": true,
+  "buildTreeSha256": "f78327169bc834d59a8dad75975ec121761848df1faec7ff03a35bc53eec3ff0",
+  "testFile": "tests/e2e/ide-mobile-chrome.spec.ts",
+  "testSha256": "24fdca1982c8723c2c114e981e93f59461ab002b1c5be2231e86ffef38a84441",
+  "configSha256": "984d85188d0f1bf59e8fcb5aa3f41d62ccfc7d05042107860da311e5ba4d4ee9",
+  "preparedTreeWithDiagnosticDocs": "2095037b7d36d4dc18e2324bd6e7e2d2e94782f6"
+}

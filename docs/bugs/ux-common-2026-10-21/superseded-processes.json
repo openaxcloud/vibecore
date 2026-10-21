@@ -1,0 +1,10 @@
+{
+  "terminatedOldApiAndFrontend": [
+    513488,
+    772156
+  ],
+  "newApiPid": 794709,
+  "reason": "Previous recipes finished and archived; no browser tests active",
+  "signal": "SIGTERM",
+  "frontendFinalSignal": "SIGKILL after confirmed SIGTERM did not exit"
+}

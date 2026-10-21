@@ -1,0 +1,375 @@
+{
+  "config": {
+    "configFile": "/workspace/vibecore/playwright.ux-audit.config.ts",
+    "rootDir": "/workspace/vibecore/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 3600000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/vibecore/.vibecore/ux-qa/review-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "desktop",
+        "name": "desktop",
+        "testDir": "/workspace/vibecore/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "snapshot-cancel-focus.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspace/vibecore/.vibecore/ux-qa/review-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "tablet",
+        "name": "tablet",
+        "testDir": "/workspace/vibecore/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "snapshot-cancel-focus.spec.ts"
+        ],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/workspace/vibecore/.vibecore/ux-qa/review-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "mobile",
+        "name": "mobile",
+        "testDir": "/workspace/vibecore/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "snapshot-cancel-focus.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": ".vibecore/ux-qa/review-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "snapshot-cancel-focus.spec.ts",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "snapshot cancellation preserves keyboard position (en)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "keyboard"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6428,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:38:12.588Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "keyboard"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-945dd9c76ed8af5a1f47",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (fr)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "keyboard"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "desktop",
+              "projectName": "desktop",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5224,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:38:19.830Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "keyboard"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-cf9e1cc1263c9e465031",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (en)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "touch"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3925,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:38:26.373Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "touch"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-fa2847df594fb0ace0cc",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (fr)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "touch"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "tablet",
+              "projectName": "tablet",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3764,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:38:30.771Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "touch"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-2a308111118500a705b7",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (en)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "touch"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3341,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:38:36.126Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "touch"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-afab91fe93b0bf081040",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        },
+        {
+          "title": "snapshot cancellation preserves keyboard position (fr)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "input-mode",
+                  "description": "touch"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "mobile",
+              "projectName": "mobile",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3762,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:38:39.884Z",
+                  "annotations": [
+                    {
+                      "type": "input-mode",
+                      "description": "touch"
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "c20b5a3e45128ae420ba-2a114ea5b7a3079e7aef",
+          "file": "snapshot-cancel-focus.spec.ts",
+          "line": 8,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-21T08:38:10.323Z",
+    "duration": 33530.129,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "productBaseHead": "2b68724f6ed2e9be6702138aebfac6e2579c630b",
+  "productChange": {
+    "path": "app/styles/index.scss",
+    "sha256": "249d658dac158b9422565f5ee1e569a1a2e73c9e6581344c0f0134a974954a6f"
+  },
+  "menuHead": "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+  "sourceFilesCompared": 4980,
+  "buildFiles": 2304,
+  "expectedOverlay": [
+    "app/components/chat/HeaderOverflowMenu.tsx"
+  ],
+  "unexpectedDifferences": [],
+  "buildTreeSha256": "241de187a98047cded75517835b0e4d94665cd30b3e54368ee00d41f9857e22c",
+  "sourceTreeSha256": "b473f44366afea988216a40b83c143abf6f5b998ce9236d1f3e68caa79ff1271",
+  "manifestSha256": "04ba6cbc2deea64242ed478376cb1e0eb533a3acbe4bb0622f3fa206d7949167",
+  "archiveSha256": "ef86a0ed32f073c067d388f54ecbeb38b272ed6d522e6d4fe15f83c6a83822c1",
+  "backendRevision": "2d37c65eb94046c55813625a3c2cc648ae9df57b"
+}

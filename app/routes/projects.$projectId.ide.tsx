@@ -1,4 +1,5 @@
 import { useStore } from '@nanostores/react';
+import { getResponsiveLayoutState, preloadDesktopCodeEditor } from '@vibecore/editor';
 import {
   Activity,
   AlertTriangle,
@@ -43,6 +44,8 @@ import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
+import { AgentMenuProvider } from '~/components/chat/AgentHeaderMenu';
+import { ComposerToolsProvider } from '~/components/chat/ComposerToolsState';
 import { IdePaletteProvider } from '~/components/chat/IdePaletteState';
 import { PendingComposerShell } from '~/components/chat/PendingComposerShell';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
@@ -60,7 +63,49 @@ import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/worksp
 import { workbenchStore } from '~/lib/stores/workbench';
 import { projectIdePath, withProjectSearch } from '~/utils/project-url';
 
-const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
+/*
+ * Start the engine while the route is loading, before React hydrates the IDE
+ * shell. Waiting for its effects puts Monaco behind all hydration work.
+ */
+if (
+  typeof window !== 'undefined' &&
+  getResponsiveLayoutState(window.innerWidth, window.innerHeight, {
+    coarsePointer: window.matchMedia('(pointer: coarse)').matches || window.navigator.maxTouchPoints > 0,
+  }).isDesktop
+) {
+  void preloadDesktopCodeEditor().catch((error) => {
+    console.error('Unable to preload the desktop editor for the IDE route', error);
+  });
+}
+
+(globalThis as any).__vibecoreStartupMark?.('ide-route-evaluated');
+
+let projectIdeChatImport: Promise<{ default: typeof import('~/components/chat/Chat.client').Chat }> | undefined;
+
+function loadProjectIdeChat() {
+  return (projectIdeChatImport ??= import('~/components/chat/Chat.client')
+    .then((module) => {
+      (globalThis as any).__vibecoreStartupMark?.('chat-module-resolved');
+      return { default: module.Chat };
+    })
+    .catch((error) => {
+      // Release the application promise; only a later consumer can request another import.
+      projectIdeChatImport = undefined;
+      throw error;
+    }));
+}
+
+/*
+ * Fetch the interactive shell alongside Monaco, before hydration asks React.lazy
+ * for it. Both the preload and React consume the same module promise.
+ */
+if (typeof window !== 'undefined') {
+  void loadProjectIdeChat().catch((error) => {
+    console.error('Unable to preload the interactive IDE shell', error);
+  });
+}
+
+const ProjectIdeChat = lazy(loadProjectIdeChat);
 
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
@@ -149,29 +194,41 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
-            <main className="h-dvh pt-9">
-              <ClientOnly fallback={optimisticShell}>
-                {() => (
-                  <ZoneErrorBoundary
-                    zone="editor"
-                    title={copy['projectIde.boundaryTitle']}
-                    boundaryId={`project:${projectId}:ide`}
-                  >
-                    <Suspense fallback={optimisticShell}>
-                      <ProjectIdeChat
-                        forceWorkbench
-                        projectIdeMode
-                        projectId={projectId}
-                        projectUrl={projectUrl}
-                        initialIdePanels={initialIdePanels}
-                      />
-                    </Suspense>
-                  </ZoneErrorBoundary>
-                )}
-              </ClientOnly>
-            </main>
-          </IdePaletteProvider>
+          <AgentMenuProvider
+            projectId={projectId}
+            workspaceId={currentWorkspaceId}
+            windowId={searchParams.get('peWindow') || 'window-main'}
+          >
+            <ComposerToolsProvider
+              projectId={projectId}
+              workspaceId={currentWorkspaceId}
+              windowId={searchParams.get('peWindow') || 'window-main'}
+            >
+              <IdePaletteProvider projectId={projectId} windowId={searchParams.get('peWindow') || 'window-main'}>
+                <main className="h-dvh pt-9">
+                  <ClientOnly fallback={optimisticShell}>
+                    {() => (
+                      <ZoneErrorBoundary
+                        zone="editor"
+                        title={copy['projectIde.boundaryTitle']}
+                        boundaryId={`project:${projectId}:ide`}
+                      >
+                        <Suspense fallback={optimisticShell}>
+                          <ProjectIdeChat
+                            forceWorkbench
+                            projectIdeMode
+                            projectId={projectId}
+                            projectUrl={projectUrl}
+                            initialIdePanels={initialIdePanels}
+                          />
+                        </Suspense>
+                      </ZoneErrorBoundary>
+                    )}
+                  </ClientOnly>
+                </main>
+              </IdePaletteProvider>
+            </ComposerToolsProvider>
+          </AgentMenuProvider>
         </div>
       </ProjectWorkspaceProvider>
     </CurrentWorkspaceProvider>

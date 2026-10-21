@@ -1,0 +1,10 @@
+{
+  "file": "tests/e2e/ide-mobile-chrome.spec.ts",
+  "beforeRef": "f06923ff4c7aa4ce71e9b0e9af0584c0ca39f7a8",
+  "beforeSha256": "b318df882c1b884b25038e3a9493d7c3f98fd50993173c706f63a45a6c66780e",
+  "afterSha256": "24fdca1982c8723c2c114e981e93f59461ab002b1c5be2231e86ffef38a84441",
+  "conditionUnchanged": "computed color must differ from listening color",
+  "change": "Use locator auto-retrying CSS assertion within the existing expect timeout",
+  "fixedWaitAdded": false,
+  "productSourceChanged": false
+}

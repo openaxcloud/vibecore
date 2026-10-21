@@ -384,6 +384,25 @@ describe('project snapshots i18n', () => {
     expect(projectSnapshotsErrorMessage('conflict', 'fr')).toContain('restauré en toute sécurité');
   });
 
+  it.each([
+    ['QUOTA_EXCEEDED', 'quotaExceeded'],
+    ['RATE_LIMITED', 'rateLimited'],
+    [undefined, 'rateLimited'],
+  ] as const)('distinguishes quota exhaustion from request throttling (%s)', async (code, expected) => {
+    apiRequestMock.mockRejectedValueOnce(
+      new Response(JSON.stringify({ code, error: 'Upstream detail' }), { status: 429 }),
+    );
+
+    const response = await runAction({ intent: 'create', label: 'Quota proof' });
+    expect(response.init?.status).toBe(429);
+    expect(response.data?.errorCode).toBe(expected);
+    expect(projectSnapshotsErrorMessage(expected, 'fr')).toContain(
+      expected === 'quotaExceeded' ? 'quota' : 'instantanés',
+    );
+    expect(projectSnapshotsErrorMessage('quotaExceeded', 'en')).not.toContain('Wait');
+    expect(projectSnapshotsErrorMessage('quotaExceeded', 'fr')).not.toContain('patientez');
+  });
+
   it('rejects a malformed restore preview as a recoverable safe error', async () => {
     apiRequestMock.mockResolvedValueOnce({
       preview: {

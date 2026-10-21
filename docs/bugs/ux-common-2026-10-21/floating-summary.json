@@ -1,0 +1,70 @@
+{
+  "buildTreeSha256": "2fd5c14211537d998558da154d9ff128855ee182b86e6ff41ba8c36583ad8b4d",
+  "backendRevision": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28",
+  "stats": {
+    "startTime": "2026-10-21T12:13:47.757Z",
+    "duration": 84224.169,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "opening a file in a floating pane updates its tabs and survives docking",
+      "line": 8,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:13:49.217Z",
+          "duration": 14299,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "floating pane stays reachable through resize, mobile menus, navigation and locale",
+      "line": 87,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:14:04.139Z",
+          "duration": 32146,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "existing mobile menu keeps the file reachable after locale and navigation at 768px",
+      "line": 202,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:14:36.308Z",
+          "duration": 20029,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "existing mobile menu keeps the file reachable after locale and navigation at 390px",
+      "line": 202,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:14:56.354Z",
+          "duration": 15441,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

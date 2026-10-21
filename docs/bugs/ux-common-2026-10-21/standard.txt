@@ -1,0 +1,15 @@
+
+Running 6 tests using 1 worker
+
+(node:813123) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:813123) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (5.9s)
+  ✓  2 [chromium] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (11.1s)
+  ✓  3 [chromium] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (7.8s)
+  ✓  4 [chromium] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (12.1s)
+  ✓  5 [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.6s)
+  ✓  6 [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.2s)
+
+  6 passed (45.8s)

@@ -1,0 +1,195 @@
+{
+  "reason": "Explicit digest records; no secret-scan configuration changes or exemptions",
+  "priorFindings": 930,
+  "allClassifiedAsHexDigestValues": true,
+  "files": [
+    {
+      "path": "docs/bugs/ux-publication-actions-2026-10-21/after-manifest.json",
+      "beforeFileSha256": "370b2ea7c604420c0e272638ae072e1b6d9a0cd98d3a7dba35fac034e713733a",
+      "afterFileSha256": "167bfa7598e9a97a76e0100368ece91c8b4a493c9da6ebef92aacf0d8de31702",
+      "changes": [
+        {
+          "field": "sourceFiles",
+          "entries": 4996,
+          "decodedEquality": true
+        },
+        {
+          "field": "buildFiles",
+          "entries": 2304,
+          "decodedEquality": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-mobile-gate-2026-10-21/baseline-results.json",
+      "beforeFileSha256": "89e1948535e73fc4540348253f9d4c907b1a7ebf98427db427fc288bd90826e4",
+      "afterFileSha256": "c3442bb96f7c3793e9b9a56a6d99b8ff21c7f335957ef08e467fe77086019df6",
+      "changes": [
+        {
+          "renamedField": "apiCommit",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-mobile-gate-2026-10-21/manifest.json",
+      "beforeFileSha256": "04ba6cbc2deea64242ed478376cb1e0eb533a3acbe4bb0622f3fa206d7949167",
+      "afterFileSha256": "91ca6ab87732d320daf7712e06970e66fd00c4235671b490e3d7d8e7d36e8364",
+      "changes": [
+        {
+          "field": "sourceFiles",
+          "entries": 4980,
+          "decodedEquality": true
+        },
+        {
+          "field": "buildFiles",
+          "entries": 2304,
+          "decodedEquality": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-mobile-gate-2026-10-21/comparison.json",
+      "beforeFileSha256": "a2bc8dea4ca83d083188dacee94da6413b57d676a54116ad54ce239728eca143",
+      "afterFileSha256": "39994e4752fe9349df2e793efdd22d5559aa65824272fc9c96633763ed9c4d48",
+      "changes": [
+        {
+          "renamedField": "apiHead",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-mobile-gate-2026-10-21/final-results.json",
+      "beforeFileSha256": "2bc012a45b05823956dcab8710d1cf1f98bb94f235a6a1ef3ecfe30da54061ec",
+      "afterFileSha256": "439aa3b25e37c33514e6c7ce5aa40fdf330c71d23a4fab444341a81d75ae07d3",
+      "changes": [
+        {
+          "renamedField": "apiCommit",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-combined-fc8a687e-2026-10-21/formats-results.json",
+      "beforeFileSha256": "d8e78a08376788a6dc77acac6e2d748b149655ee706bfa361a8a25098c56181e",
+      "afterFileSha256": "7a6051398c150ba8ff208b9785a1adf0ed74cb7f0e7c79d0e1984ad49af062da",
+      "changes": [
+        {
+          "renamedField": "apiHead",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-combined-fc8a687e-2026-10-21/mobile-final-results.json",
+      "beforeFileSha256": "960dec284dbdf22670861d2a40db7389311368cae08b2c3ad9e7a2de12a9d5c3",
+      "afterFileSha256": "719f779b7c20c70e8c1cdb4e900790ca2c913024ed35ae94f8d357db12fe0647",
+      "changes": [
+        {
+          "renamedField": "apiHead",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-combined-fc8a687e-2026-10-21/mobile-first-results.json",
+      "beforeFileSha256": "840da504b98d1d05c341dd4ae2bf2da6b97d19ab71d7a50f6b0f2958fdece81e",
+      "afterFileSha256": "6f5a499ccccba1505db60a2c3912011ef695fb1fdae8d22ba1bad89dcb37aa36",
+      "changes": [
+        {
+          "renamedField": "apiHead",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-combined-fc8a687e-2026-10-21/manifest.json",
+      "beforeFileSha256": "b1d88fd318cce5fd3fc8a0caf93fdb5e945818834b079b904bbc9e19cd8a7acd",
+      "afterFileSha256": "d7c2246d0f20b6bae6cef2483e6c6428e426ce4b78a5daf209fcf66f956ea72a",
+      "changes": [
+        {
+          "field": "sourceFiles",
+          "entries": 4996,
+          "decodedEquality": true
+        },
+        {
+          "field": "buildFiles",
+          "entries": 2304,
+          "decodedEquality": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-combined-fc8a687e-2026-10-21/voice-targeted-results.json",
+      "beforeFileSha256": "771e9443bc53d402ff3dea24fd083a92031214697a6566cd7cafdddc542e473c",
+      "afterFileSha256": "87d2f6473dc79192653ec9265199cc0f954f757137df01e1b5d5b1bbf2ac955f",
+      "changes": [
+        {
+          "renamedField": "apiHead",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-combined-fc8a687e-2026-10-21/standard-results.json",
+      "beforeFileSha256": "34821ad9de36ff9c14a013f35f3cce02f89c6160b36308c0a6e8ca93f6d19157",
+      "afterFileSha256": "3ea733e4b6bef6842ab65e7f595a0aa10d20821cb283de60051375e76a765114",
+      "changes": [
+        {
+          "renamedField": "apiHead",
+          "to": "backendRevision",
+          "valuePreserved": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-confirmation-2026-10-21/review/full-build-source-manifest.json",
+      "beforeFileSha256": "b85ba16abe3cb67a81d7cfab9371ca60b2c8332c065d8c36b02398b241c9d340",
+      "afterFileSha256": "a9e1ac17baa4b615370a8710556b018b5d690a1a8275dd9aacb00e0fbc4fe7e2",
+      "changes": [
+        {
+          "field": "sourceFiles",
+          "entries": 4980,
+          "decodedEquality": true
+        },
+        {
+          "field": "buildFiles",
+          "entries": 2304,
+          "decodedEquality": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-confirmation-2026-10-21/review/version-all-width.json",
+      "beforeFileSha256": "2ea51d4da01f0d76d7e786cc395a31b0ad82c16d5c8ff3b70c9b947043a0351b",
+      "afterFileSha256": "b7bcc0c8984ad0199a249bfe73641107c9544fabb6fa7a2c1a937b07547c41c8",
+      "changes": [
+        {
+          "field": "sourceFiles",
+          "entries": 8,
+          "decodedEquality": true
+        }
+      ]
+    },
+    {
+      "path": "docs/bugs/ux-confirmation-2026-10-21/review/version.json",
+      "beforeFileSha256": "8daef791bc191a3f1c7eed6680ad429794472a7a677c3b257117dfbadf2e505c",
+      "afterFileSha256": "bde6e6658e61d7020e5ae5483531b3d6a37e60a17b07e02bf7572bbedb4792f0",
+      "changes": [
+        {
+          "field": "sourceFiles",
+          "entries": 8,
+          "decodedEquality": true
+        }
+      ]
+    }
+  ]
+}

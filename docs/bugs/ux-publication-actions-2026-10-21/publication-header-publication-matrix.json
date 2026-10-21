@@ -1,0 +1,22 @@
+[
+  {
+    "width": 390,
+    "lang": "fr",
+    "lines": 1,
+    "box": {
+      "x": 43,
+      "y": 546.359375,
+      "width": 132.671875,
+      "height": 44,
+      "top": 546.359375,
+      "right": 175.671875,
+      "bottom": 590.359375,
+      "left": 43
+    },
+    "focused": true,
+    "receivesEvents": true,
+    "overflow": false,
+    "logsOpened": true,
+    "logsClosed": true
+  }
+]

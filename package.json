@@ -3,7 +3,9 @@
   "description": "E-Code — AI-powered full-stack web development in the browser",
   "private": true,
   "license": "MIT",
-  "sideEffects": false,
+  "sideEffects": [
+    "./app/lib/ide/initial-project-archive.ts"
+  ],
   "type": "module",
   "version": "1.0.0",
   "author": {
