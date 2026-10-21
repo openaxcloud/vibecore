@@ -1025,6 +1025,19 @@ function releaseDesktopModel(model: MonacoTypes.editor.ITextModel) {
   }
 }
 
+let desktopEditorModule: Promise<typeof import('monaco-editor/esm/vs/editor/editor.api')> | undefined;
+
+/** Begin loading the desktop engine independently of file hydration/selection. */
+export function preloadDesktopCodeEditor() {
+  desktopEditorModule ??= import('monaco-editor/esm/vs/editor/editor.api').catch((error) => {
+    // A failed preload must not poison a later mount or explicit panel retry.
+    desktopEditorModule = undefined;
+    throw error;
+  });
+
+  return desktopEditorModule;
+}
+
 export function DesktopCodeEditor({
   value,
   filePath,
@@ -1122,7 +1135,7 @@ export function DesktopCodeEditor({
 
     let disposed = false;
 
-    void import('monaco-editor/esm/vs/editor/editor.api')
+    void preloadDesktopCodeEditor()
       .then((monaco) => {
         if (disposed || !containerRef.current) {
           return;
