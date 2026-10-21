@@ -1,0 +1,9 @@
+{
+  "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderColor bg-transparent hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary text-bolt-elements-textPrimary dark:border-bolt-elements-borderColorActive h-9 px-4 py-2 !h-auto min-h-9 !whitespace-normal break-words py-2 text-center leading-tight\" data-vc-button=\"true\" data-variant=\"outline\" data-size=\"default\">Annuler</button>",
+  "dialogs": [
+    {
+      "state": "open",
+      "id": "radix-:r9:"
+    }
+  ]
+}

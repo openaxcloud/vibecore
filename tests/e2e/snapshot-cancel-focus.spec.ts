@@ -115,11 +115,13 @@ for (const language of ['en', 'fr'] as const) {
       )
       .toBe(true);
     await page.screenshot({ path: info.outputPath(`cancel-${language}.png`) });
-    await page.keyboard.press('Enter');
-    await expect(dialog).toBeVisible();
-    await page.keyboard.press('Escape');
-    await expect(dialog).toBeHidden();
-    await expect(opener).toBeFocused();
+    for (let reopening = 0; reopening < 20; reopening++) {
+      await page.keyboard.press('Enter');
+      await expect(dialog).toBeVisible();
+      await page.keyboard.press('Escape');
+      await expect(dialog).toBeHidden();
+      await expect(opener).toBeFocused();
+    }
     expect(restoredRequests).toEqual([]);
     await expect(page.locator('#snapshot-label')).toBeEnabled();
 

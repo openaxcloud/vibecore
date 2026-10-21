@@ -1,0 +1,3683 @@
+[
+  {
+    "kind": "listener-before",
+    "t": 15367.569999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15367.589999999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15367.604999996722,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 70,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15367.634999997914,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 70,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15387.959999997169,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15389.134999997914,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15389.689999997616,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15389.98999999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15390.39999999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15390.714999999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15390.974999997765,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15391.504999998957,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15391.89999999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15392.479999996722,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 15574.334999997169,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 71,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 15628.329999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 15628.439999997616,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15628.474999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15628.5,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15628.52499999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15628.535000000149,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15628.569999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15628.584999997169,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15628.604999996722,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15628.619999997318,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 71,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15628.654999997467,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 71,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15647.929999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15648.564999997616,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15648.944999996573,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15649.319999996573,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15649.625,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15649.979999996722,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15650.254999998957,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15650.599999997765,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15650.869999997318,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15651.184999998659,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 15839.035000000149,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 72,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 15922.17499999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 15922.384999997914,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15922.42499999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15922.449999999255,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15922.484999999404,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15922.509999997914,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15922.54999999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15922.574999999255,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15922.604999996722,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 15922.629999998957,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 72,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 15922.904999997467,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 72,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15953.129999998957,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15954.535000000149,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15955.224999997765,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15955.904999997467,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15956.479999996722,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15957.219999998808,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15958.375,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15959.11499999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 15959.73999999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 15961.654999997467,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 16139.679999999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 73,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 16191.89999999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 16192.144999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16192.194999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16192.214999999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16192.244999997318,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16192.254999998957,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16192.375,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16192.48999999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16192.51499999687,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16192.52499999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 73,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16192.559999998659,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 73,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16207.410000000149,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16208.375,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16209.375,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16210.189999997616,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16210.73999999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16211.369999997318,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16212.104999996722,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16212.964999999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16213.709999997169,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16214.669999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 16310.544999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 74,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 16372.894999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 16373.099999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16373.129999998957,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16373.144999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16373.169999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16373.189999997616,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16373.214999999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16373.234999999404,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16373.29999999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16373.319999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 74,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16373.354999996722,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 74,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16398.30999999866,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16399,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16399.519999999553,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16399.904999997467,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16400.379999998957,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16400.654999997467,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16401,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16401.414999999106,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16401.724999997765,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16402.594999998808,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 16475.579999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 75,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 16547.074999999255,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 16549.164999999106,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16549.234999999404,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16549.254999998957,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16549.314999997616,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16549.329999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16549.36499999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16549.379999998957,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16549.41000000015,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16549.419999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 75,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16549.884999997914,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 75,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16579.96499999985,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16580.539999999106,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16581.21499999985,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16581.609999999404,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16582.45999999717,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16582.73999999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16583.379999998957,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16583.66000000015,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16583.919999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16584.47999999672,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 16675.204999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 76,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 16728.484999999404,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 16728.609999999404,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16728.63999999687,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16728.66000000015,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16728.68499999866,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16728.699999999255,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16728.72999999672,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16728.744999997318,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16728.769999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16728.78500000015,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 76,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16728.824999999255,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 76,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16753.419999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16754.419999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16754.794999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16755.734999999404,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16756.384999997914,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16756.794999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16757.224999997765,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16757.61499999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16758.02499999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16758.319999996573,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 16844.10499999672,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 77,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 16933.88999999687,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 16934.169999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16934.22999999672,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16934.254999998957,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16934.319999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16934.349999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16934.384999997914,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16934.41000000015,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16934.439999997616,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 16934.45999999717,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 77,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 16934.529999997467,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 77,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16957.949999999255,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16958.64999999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16959.044999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16959.35499999672,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16959.969999998808,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16960.484999999404,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16961.244999997318,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16961.54999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 16961.96499999985,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 16962.23999999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 17075.394999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 78,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 17134.91000000015,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 17135.099999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17135.129999998957,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17135.144999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17135.17499999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17135.189999997616,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17135.224999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17135.23999999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17135.26499999687,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17135.304999999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 78,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17135.344999998808,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 78,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17152.199999999255,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17152.814999997616,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17153.43499999866,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17153.83999999985,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17154.429999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17154.76499999687,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17155.04999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17155.484999999404,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17155.849999997765,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17156.41000000015,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 17315.664999999106,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 79,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 17375.58999999985,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 17377.099999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17377.359999999404,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17377.814999997616,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17377.849999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17377.869999997318,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17377.89999999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17378.04999999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17378.419999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17378.444999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 79,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17378.484999999404,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 79,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17399.93499999866,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17400.54999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17401.029999997467,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17401.394999999553,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17401.679999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17401.949999999255,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17402.419999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17402.86499999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17403.329999998212,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17403.61499999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 17578.844999998808,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 80,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 17627.169999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 17628.18499999866,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17628.319999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17628.35499999672,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17628.414999999106,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17628.444999996573,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17628.47999999672,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17628.5,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17628.529999997467,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17628.54999999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 80,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17628.594999998808,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 80,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17649.679999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17650.41000000015,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17650.794999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17651.234999999404,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17651.579999998212,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17651.849999997765,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17652.259999997914,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17652.564999997616,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17652.83499999717,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17653.47999999672,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 17804.05999999866,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 81,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 17849.594999998808,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 17849.704999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17849.72999999672,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17849.744999997318,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17849.77499999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17849.78500000015,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17849.80999999866,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17849.829999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17849.849999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 17849.86499999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 81,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 17849.894999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 81,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17875.819999996573,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17877.884999997914,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17878.66000000015,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17880.144999999553,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17882.43499999866,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17883.574999999255,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17885.259999997914,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17886.68499999866,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 17887.52499999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 17888.189999997616,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 18023.08499999717,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 82,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 18076.419999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 18076.519999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18076.544999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18076.579999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18076.60499999672,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18076.625,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18076.64999999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18076.66000000015,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18076.68499999866,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18076.699999999255,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 82,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18076.83499999717,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 82,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 18098.064999997616,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 18098.53500000015,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 10,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 18099.079999998212,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 18099.554999999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 9,
+    "target": "BODY",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 18099.914999999106,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 18100.48999999836,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 3,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 18100.80999999866,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 18101.17499999702,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 6,
+    "target": "document",
+    "prevented": true
+  },
+  {
+    "kind": "listener-before",
+    "t": 18101.669999998063,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-after",
+    "t": 18102.02499999851,
+    "active": "<body class=\"h-full w-full\" style=\"\"><main class=\"vc-user-area-shell min-h-[100dvh] bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary\" style=\"\"><a href=\"#main-content\" class=\"fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg",
+    "dialogs": [],
+    "id": 5,
+    "target": "window",
+    "prevented": true
+  },
+  {
+    "kind": "listener-added",
+    "t": 18198.769999999553,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 83,
+    "target": "document",
+    "capture": true
+  },
+  {
+    "kind": "escape-capture",
+    "t": 18249.914999999106,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ]
+  },
+  {
+    "kind": "listener-before",
+    "t": 18250.08499999717,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18250.119999997318,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 1,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18250.13999999687,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18250.17499999702,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 2,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18250.18499999866,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18250.224999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 4,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18250.23999999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18250.375,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 7,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18250.39999999851,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 83,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18250.419999998063,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 83,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18250.439999997616,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 10,
+    "target": "BODY",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18250.474999997765,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 10,
+    "target": "BODY",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18250.48999999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 9,
+    "target": "BODY",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18251.579999998212,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 9,
+    "target": "BODY",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18251.68499999866,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 3,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18251.71499999985,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 3,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18251.73999999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 6,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18251.86499999836,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 6,
+    "target": "document",
+    "prevented": false
+  },
+  {
+    "kind": "listener-before",
+    "t": 18251.884999997914,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 5,
+    "target": "window",
+    "prevented": false
+  },
+  {
+    "kind": "listener-after",
+    "t": 18251.904999997467,
+    "active": "<button class=\"inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 border border-bolt-elements-borderC",
+    "dialogs": [
+      {
+        "state": "open",
+        "id": "radix-:r9:",
+        "visible": true
+      }
+    ],
+    "id": 5,
+    "target": "window",
+    "prevented": false
+  }
+]
