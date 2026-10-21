@@ -1,0 +1,3 @@
+
+> @vibecore/mobile@ typecheck /workspace/vibecore-dependency-triage/apps/mobile
+> tsc --noEmit
