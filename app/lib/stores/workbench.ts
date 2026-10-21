@@ -1,6 +1,7 @@
 /* eslint-disable import/order */
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
 import { createSingleFlight } from '~/lib/ide/single-flight';
+import { requestProjectArchive, takeInitialProjectArchive } from '~/lib/ide/initial-project-archive';
 import type { CommandEvent, CommandRequest, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
 import fileSaver from 'file-saver';
 import Cookies from 'js-cookie';
@@ -111,11 +112,6 @@ type PreviewCommand = {
   label: string;
   cwd?: string;
   setupCommands?: PreviewCommand[];
-};
-type ProjectExportResponse = {
-  archive?: {
-    base64?: string;
-  };
 };
 export type PreviewServerState = {
   status: 'idle' | 'static' | 'starting' | 'running' | 'stopping' | 'error';
@@ -243,6 +239,7 @@ const PROJECT_STORAGE_SYNC_EXCLUDED_FILES = new Set(['package-lock.json', 'pnpm-
 const PROJECT_STORAGE_SYNC_MAX_FILE_BYTES = 512_000;
 const PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES = 4_000_000;
 const PROJECT_ARCHIVE_TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
+const PROJECT_ARCHIVE_DECODE_CONCURRENCY = 4;
 const hotData = import.meta.hot?.data ?? {};
 
 /*
@@ -824,18 +821,15 @@ export class WorkbenchStore {
   }
 
   async #loadProjectStorageFilesUncoalesced(projectId: string, binding: number) {
-    const savesBeforeRequest = new Map(this.#projectStorageSaveVersions);
+    const prefetched = takeInitialProjectArchive(projectId);
 
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/export/zip`, {
-      credentials: 'include',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      throw Object.assign(new Error(), { code: 'PROJECT_FILE_ARCHIVE_HTTP_ERROR', status: response.status });
-    }
-
-    const payload = (await response.json()) as ProjectExportResponse;
+    /*
+     * The speculative transport started before this store was ready. Any local
+     * write already recorded may therefore postdate its snapshot. Protect those
+     * writes too; ordinary later reloads retain their existing version boundary.
+     */
+    const savesBeforeRequest = new Map(prefetched ? [] : this.#projectStorageSaveVersions);
+    const payload = await (prefetched ?? requestProjectArchive(projectId));
 
     if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
       return false;
@@ -847,7 +841,10 @@ export class WorkbenchStore {
       return false;
     }
 
+    (globalThis as any).__vibecoreStartupMark?.('archive-decode-start');
+
     const files = await this.#projectStorageFilesFromArchive(archiveBase64);
+    (globalThis as any).__vibecoreStartupMark?.('archive-decode-ready');
 
     if (this.#projectId !== projectId || this.#projectStorageBinding !== binding) {
       return false;
@@ -895,30 +892,51 @@ export class WorkbenchStore {
 
   async #projectStorageFilesFromArchive(archiveBase64: string): Promise<ProjectStorageFile[]> {
     const zip = await JSZip.loadAsync(archiveBase64, { base64: true });
-    const files: ProjectStorageFile[] = [];
+    const entries = Object.values(zip.files).filter((entry) => !entry.dir);
+    const files = new Array<ProjectStorageFile>(entries.length);
 
-    for (const entry of Object.values(zip.files)) {
-      if (entry.dir) {
-        continue;
+    let nextIndex = 0;
+    let failed = false;
+
+    /*
+     * JSZip yields to the browser scheduler while reading each entry. Serial
+     * awaits multiplied those waits during IDE hydration: nine tiny files took
+     * over one second while React rendered between reads. Overlap a bounded
+     * number of streams, preserving archive order and limiting working buffers.
+     * The caller still publishes files only after the complete archive succeeds.
+     */
+    const decodeNext = async () => {
+      while (!failed) {
+        const index = nextIndex++;
+
+        if (index >= entries.length) {
+          return;
+        }
+
+        const entry = entries[index];
+
+        try {
+          const bytes = await entry.async('uint8array');
+
+          /*
+           * Binary entries (image/font/etc.) retain their base64 representation:
+           * FileTree copy/duplicate reads it back with base64ToUint8Array.
+           */
+          const decoded = decodeArchiveEntry(
+            bytes,
+            (input) => PROJECT_ARCHIVE_TEXT_DECODER.decode(input),
+            uint8ArrayToBase64,
+          );
+
+          files[index] = { path: entry.name, content: decoded.content, isBinary: decoded.isBinary };
+        } catch (error) {
+          failed = true;
+          throw error;
+        }
       }
+    };
 
-      const bytes = await entry.async('uint8array');
-
-      /*
-       * Binary entries (image/font/etc.) are kept as base64 instead of dropped:
-       * the FileTree copy/duplicate path reads isBinary entries via
-       * base64ToUint8Array(content), so empty content produced a 0-byte file and
-       * the asset could never render. Standard base64 (atob-decodable) matches
-       * that reader.
-       */
-      const decoded = decodeArchiveEntry(
-        bytes,
-        (input) => PROJECT_ARCHIVE_TEXT_DECODER.decode(input),
-        uint8ArrayToBase64,
-      );
-
-      files.push({ path: entry.name, content: decoded.content, isBinary: decoded.isBinary });
-    }
+    await Promise.all(Array.from({ length: Math.min(PROJECT_ARCHIVE_DECODE_CONCURRENCY, entries.length) }, decodeNext));
 
     return files;
   }
@@ -2277,6 +2295,8 @@ export class WorkbenchStore {
   }
 
   setDocuments(files: FileMap) {
+    (globalThis as any).__vibecoreStartupMark?.('documents-set');
+
     /*
      * Pass the dirty set so the editor keeps unsaved edits instead of resetting
      * them to on-disk content when the file tree updates for any reason.
@@ -2390,6 +2410,7 @@ export class WorkbenchStore {
   }
 
   setSelectedFile(filePath: string | undefined) {
+    (globalThis as any).__vibecoreStartupMark?.('selection-set');
     this.#editorStore.setSelectedFile(filePath);
     void this.#rafraichirDepuisLeRuntime(filePath);
   }

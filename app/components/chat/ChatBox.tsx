@@ -30,6 +30,7 @@ import { WebSearch } from './WebSearch.client';
 import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
 import { createPortal } from 'react-dom';
+import { useComposerToolsMenu } from './ComposerToolsState';
 import { cibleFeuilleMobile } from './feuille-mobile';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
@@ -160,7 +161,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       ? copy['chatBox.enhance.emptyHint']
       : copy['chatBox.enhance.readyHint'];
 
-  const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
+  const [isToolsMenuOpen, setIsToolsMenuOpen] = useComposerToolsMenu();
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
   const toolsPanelRef = React.useRef<HTMLDivElement>(null);
 

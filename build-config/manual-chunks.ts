@@ -6,6 +6,11 @@
  * regression test rather than a comment. See BUG-PERF-LOAD.
  */
 export function manualChunks(id: string): string | undefined {
+  // This root dependency must remain independent of the workbench/React module graph.
+  if (id.endsWith('/app/lib/ide/initial-project-archive.ts')) {
+    return 'ide-archive-bootstrap';
+  }
+
   /*
    * Vite's virtual preload helper (`__vitePreload`) must NEVER be
    * co-located with a heavy vendor chunk. Every chunk that performs a

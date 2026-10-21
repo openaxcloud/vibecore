@@ -2,7 +2,7 @@
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { createElement } from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
-import { DesktopCodeEditor } from './index.js';
+import { DesktopCodeEditor, preloadDesktopCodeEditor } from './index.js';
 
 type TestUri = { path: string; toString: () => string };
 type TestModel = {
@@ -133,6 +133,9 @@ afterEach(() => {
 });
 
 it('initializes the latest document after a delayed import and ignores an unmounted editor', async () => {
+  const preload = preloadDesktopCodeEditor();
+  expect(preloadDesktopCodeEditor()).toBe(preload);
+  expect(pendingMonaco.created).toHaveLength(0);
   const onChange = vi.fn();
   const onSave = vi.fn();
   const props = (filePath: string, value: string) => ({ filePath, value, onChange, onSave });
@@ -147,6 +150,7 @@ it('initializes the latest document after a delayed import and ignores an unmoun
   await act(async () => {
     pendingMonaco.release();
     await pendingMonaco.ready;
+    await preload;
   });
   expect(pendingMonaco.created).toHaveLength(1);
 

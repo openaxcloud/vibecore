@@ -64,6 +64,7 @@ for (const [locale, title] of [
 
     let requestedAt = 0;
     let initialRequests = 0;
+    let listRequests = 0;
 
     const panelPath = `/api/projects/${projectId}/ide-panel/database`;
 
@@ -98,6 +99,10 @@ for (const [locale, title] of [
 
       await page.route('**/api/projects/*/ide-panel/database*', (route) => {
         const url = new URL(route.request().url());
+
+        if (route.request().method() === 'GET' && url.pathname === panelPath && !url.searchParams.has('schemaKey')) {
+          listRequests += 1;
+        }
 
         if (
           released ||
@@ -168,6 +173,7 @@ for (const [locale, title] of [
         contentType: 'image/png',
       });
       expect(responses.every((response) => response.unchanged)).toBe(true);
+      expect(listRequests, 'the child must reuse the parent response').toBe(1);
       await card.click();
 
       const tables = panel.getByTestId('db-table');
@@ -176,6 +182,7 @@ for (const [locale, title] of [
       await testInfo.attach('real-response-evidence', {
         body: JSON.stringify({
           initialRequests,
+          listRequests,
           requestedMs: requestedAt - startedAt,
           responses,
           tablesReadyMs: Date.now() - startedAt,
