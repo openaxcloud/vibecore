@@ -1,0 +1,26 @@
+{
+  "confirmation-fixed": {
+    "base": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f + Dialog.tsx patch",
+    "buildTreeSha256": "5034f17f28270a525b5cdbfecf1fec4698f67401cf7d8aae4218693be72b2664",
+    "sourceTreeSha256": "1065b9f44730973d612daa0cd32ac54e58904bd73c924d3796d757fc61c23ac3",
+    "buildFileCount": 2304,
+    "artifact": "/workspace/ux-artifacts/confirmation-fixed-build.tar.gz",
+    "artifactSha256": "f0cb130de8d8660cfab99e2150101db90e6982f5aa72c40ca56858ede373da77",
+    "manifest": "/workspace/ux-artifacts/confirmation-fixed-manifest.json",
+    "manifestSha256": "b151beb40e10f7d019bc0b737cf789727610d3b411aae975767e95ab68902121"
+  },
+  "menu-750": {
+    "base": "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+    "buildTreeSha256": "65656d477a6c10ba36d7267235bfa5474d1bd5f4a552d63aaeeb07ef8d5c2506",
+    "sourceTreeSha256": "b83896cc600f1f37cf305252f924824dd1b837449addad295d4addaa89656198",
+    "buildFileCount": 2304,
+    "artifact": "/workspace/ux-artifacts/menu-750-build.tar.gz",
+    "artifactSha256": "24981ffee7261aa6d066f2aaf3755cebf369e1a7e2f9b1f5e6220324c4484d41",
+    "manifest": "/workspace/ux-artifacts/menu-750-manifest.json",
+    "manifestSha256": "844a320d84d03256cf898f309fb659c80737cc91fe42cce7a3e113932deb069d"
+  },
+  "changedSourceSha256": {
+    "app/components/ui/Dialog.tsx": "57dc46471f176dff33a58d5b130cea25c3e54107967cf35ca1ee53e3a032228e",
+    "tests/e2e/snapshot-cancel-focus.spec.ts": "8468c00db88eebb42437c9f0bb0972508f9dd73b7e58f5b2f51d6e157b3a6d00"
+  }
+}

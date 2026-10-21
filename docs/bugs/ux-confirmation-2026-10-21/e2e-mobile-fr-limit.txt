@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+(node:132227) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:132227) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (30.4s)
+
+
+  1) [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('button', { name: 'Restaurer Focus mobile fr 1792567876703', exact: true })
+    Expected: visible
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('button', { name: 'Restaurer Focus mobile fr 1792567876703', exact: true })[22m
+
+
+      70 |       exact: true,
+      71 |     });
+    > 72 |     await expect(opener).toBeVisible();
+         |                          ^
+      73 |     await page.reload();
+      74 |     await expect(opener).toBeVisible();
+      75 |     await opener.focus();
+        at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:72:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    .vibecore/ux-qa/snapshot-results/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: .vibecore/ux-qa/snapshot-results/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--mobile/error-context.md
+
+  1 failed
+    [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 

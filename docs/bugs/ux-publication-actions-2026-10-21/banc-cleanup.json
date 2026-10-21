@@ -1,0 +1,115 @@
+[
+  {
+    "port": 5193,
+    "pids": [
+      2581
+    ],
+    "log": "/tmp/ux-web.log",
+    "signal": "SIGTERM",
+    "stillAlive": []
+  },
+  {
+    "port": 5194,
+    "pids": [
+      7927
+    ],
+    "log": "/tmp/ux-web-after.log",
+    "signal": "SIGTERM",
+    "stillAlive": []
+  },
+  {
+    "port": 5196,
+    "pids": [
+      14980
+    ],
+    "log": "/tmp/ux-web-final.log",
+    "signal": "SIGTERM",
+    "stillAlive": []
+  },
+  {
+    "port": 5197,
+    "pids": [
+      93518
+    ],
+    "log": "/tmp/ux-dialog-server.log",
+    "signal": "SIGKILL after SIGTERM did not exit",
+    "stillAlive": [
+      93518
+    ]
+  },
+  {
+    "port": 5199,
+    "pids": [
+      234925
+    ],
+    "log": "/tmp/ux-combined-tour-server.log",
+    "signal": "SIGKILL after SIGTERM did not exit",
+    "stillAlive": [
+      234925
+    ]
+  },
+  {
+    "port": 5200,
+    "pids": [
+      258957
+    ],
+    "log": "/tmp/ux-tour-frozen-server.log",
+    "signal": "SIGKILL after SIGTERM did not exit",
+    "stillAlive": [
+      258957
+    ]
+  },
+  {
+    "port": 5201,
+    "pids": [
+      278046
+    ],
+    "log": "/tmp/ux-combined-final-server.log",
+    "signal": "SIGKILL after SIGTERM did not exit",
+    "stillAlive": [
+      278046
+    ]
+  },
+  {
+    "port": 5202,
+    "pids": [
+      303298
+    ],
+    "log": "/tmp/ux-combined-reviewed-server.log",
+    "signal": "SIGKILL after SIGTERM did not exit",
+    "stillAlive": [
+      303298
+    ]
+  },
+  {
+    "port": 5203,
+    "pids": [
+      348452
+    ],
+    "log": "/tmp/ux-combined-focus-server.log",
+    "signal": "SIGKILL after SIGTERM did not exit",
+    "stillAlive": [
+      348452
+    ]
+  },
+  {
+    "port": 5206,
+    "pids": [
+      413164
+    ],
+    "log": "/tmp/ux-mobile-gate-748-frontend.log",
+    "signal": "SIGKILL after SIGTERM did not exit",
+    "stillAlive": [
+      413164
+    ]
+  },
+  {
+    "port": 5207,
+    "pids": [
+      520451
+    ],
+    "log": "/tmp/ux-integration-frontend.log",
+    "signal": "SIGKILL after prior SIGTERM did not exit",
+    "stillAlive": []
+  }
+]

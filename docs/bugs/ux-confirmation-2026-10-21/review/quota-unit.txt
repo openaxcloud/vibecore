@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore
+
+ ✓ app/routes/projects.$projectId.snapshots.isReauthRedirect.spec.ts (4 tests) 11ms
+ ✓ app/routes/projects.$projectId.snapshots.i18n.spec.tsx (13 tests) 589ms
+   ✓ project snapshots i18n > renders the complete French surface, localized units and preserved user identifiers  359ms
+
+ Test Files  2 passed (2)
+      Tests  17 passed (17)
+   Start at  07:56:25
+   Duration  9.26s (transform 3.71s, setup 128ms, collect 1.37s, tests 599ms, environment 1.04s, prepare 409ms)
+

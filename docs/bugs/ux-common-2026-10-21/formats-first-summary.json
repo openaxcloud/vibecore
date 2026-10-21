@@ -1,0 +1,266 @@
+{
+  "buildTreeSha256": "2fd5c14211537d998558da154d9ff128855ee182b86e6ff41ba8c36583ad8b4d",
+  "backendRevision": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28",
+  "stats": {
+    "startTime": "2026-10-21T12:15:36.390Z",
+    "duration": 109608.718,
+    "expected": 16,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "line": 76,
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:15:37.606Z",
+          "duration": 5285,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "line": 146,
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:15:43.435Z",
+          "duration": 7406,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "line": 76,
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:15:50.882Z",
+          "duration": 4859,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "line": 146,
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:15:55.780Z",
+          "duration": 9401,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "line": 76,
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:16:14.018Z",
+          "duration": 7194,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "line": 146,
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:16:21.752Z",
+          "duration": 11728,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "line": 76,
+      "project": "tablet",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "startTime": "2026-10-21T12:16:33.515Z",
+          "duration": 5811,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "line": 146,
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:16:40.367Z",
+          "duration": 7050,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "line": 76,
+      "project": "mobile",
+      "status": "unexpected",
+      "results": [
+        {
+          "status": "failed",
+          "startTime": "2026-10-21T12:16:55.865Z",
+          "duration": 4592,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "line": 146,
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:17:01.850Z",
+          "duration": 6291,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "line": 76,
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:17:08.473Z",
+          "duration": 4832,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "line": 146,
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:17:13.330Z",
+          "duration": 6062,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "line": 8,
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:16:05.262Z",
+          "duration": 3458,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "line": 8,
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:16:08.759Z",
+          "duration": 3980,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "line": 8,
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:16:47.820Z",
+          "duration": 3512,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "line": 8,
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:16:51.365Z",
+          "duration": 3384,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "line": 8,
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:17:19.501Z",
+          "duration": 3031,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "line": 8,
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:17:22.553Z",
+          "duration": 3232,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

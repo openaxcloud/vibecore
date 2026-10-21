@@ -1,0 +1,18 @@
+{
+  "buildTreeSha256": "110e569ee6bd6abf043c608d891868fe814b02f863bec671639d70a6ae51ff6a",
+  "archiveSha256": "444451976a16484d45f21c7bb469cc1c4fdac52617208549a78d1267a5a36328",
+  "sourceFiles": 4996,
+  "buildFiles": 2304,
+  "sourceDifferenceFromPreviousBuild": [
+    "app/styles/index.scss"
+  ],
+  "recipeSha256": "28e9ba722b091bc752cb84b62bad15ac4c9e8ed9a608795c82c7ef8d8ad4cae2",
+  "results": {
+    "passed": 6,
+    "failed": 0,
+    "initialVisibilityFailures": 0
+  },
+  "previousAttemptsPreserved": true,
+  "baseMain": "fc8a687e715e6052668ade83474da4aef5f27df9",
+  "newMainInspectedNotExecuted": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28"
+}

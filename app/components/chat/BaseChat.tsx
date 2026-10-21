@@ -41,7 +41,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { EditorAdapter } from '@vibecore/editor';
+import { EditorAdapter, preloadDesktopCodeEditor } from '@vibecore/editor';
 import {
   BarElement,
   CategoryScale,
@@ -263,7 +263,7 @@ import { useStore } from '@nanostores/react';
 import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/hooks';
 import { useTextDirection } from '~/lib/i18n/direction';
 import { ChatBox } from './ChatBox';
-import { HeaderOverflowMenu } from './HeaderOverflowMenu';
+import { AgentHeaderMenu } from './AgentHeaderMenu';
 import { platformStateLabel } from './platform-state-label';
 import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -2627,6 +2627,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     panelNavigationRef.current = panelNavigation;
 
     const layout = useResponsiveLayout();
+
+    useEffect(() => {
+      if (projectIdeMode && layout.isDesktop) {
+        /*
+         * Load the engine alongside the archive and layout, not after a file is selected.
+         * The editor's mount still owns model creation and reports an import failure.
+         */
+        void preloadDesktopCodeEditor().catch((error) => {
+          console.error('Failed to preload the Monaco editor module', error);
+        });
+      }
+    }, [projectIdeMode, layout.isDesktop]);
+
     const textDirection = useTextDirection();
 
     /*
@@ -5502,8 +5515,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       }, PROJECT_IDE_STATE_RESTORE_FALLBACK_MS);
 
+      (globalThis as any).__vibecoreStartupMark?.('layout-restore-requested');
       getProjectIdeMemory(projectId, currentWorkspaceId)
         .then((memory) => {
+          (globalThis as any).__vibecoreStartupMark?.('layout-memory-ready');
+
           if (cancelled) {
             return;
           }
@@ -5685,6 +5701,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * jamais à l'entrée de l'opération.
            */
           gardeDeRestauration.current.reussir(projectId);
+          (globalThis as any).__vibecoreStartupMark?.('layout-restored');
           restoredProjectSelectionScope.current = { projectId, workspaceId: currentWorkspaceId };
         })
         .catch((error) => {
@@ -6006,64 +6023,73 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     useEffect(() => {
-      if (!projectIdeMode || !projectId || !projectStateReady) {
-        return undefined;
+      const restoredScope = restoredProjectSelectionScope.current;
+
+      if (
+        !projectIdeMode ||
+        !projectId ||
+        !projectStateReady ||
+        restoredScope?.projectId !== projectId ||
+        restoredScope.workspaceId !== currentWorkspaceId
+      ) {
+        return;
       }
 
-      const saveTimer = window.setTimeout(() => {
-        /*
-         * RPL-IDE-001.1 — persist this window's layout slice, merging the
-         * per-window map so sibling windows opened in other tabs survive.
-         */
-        const existingWindows = getProjectIdeMemorySync(projectId, currentWorkspaceId)?.ui?.projectEditorWindows ?? {};
+      /*
+       * Persist the local snapshot in this effect, before navigation can unmount
+       * the shell. saveProjectIdeMemory already debounces the network PUT and
+       * flushes on pagehide; a second timer here loses changes before either
+       * safeguard ever receives them.
+       *
+       * RPL-IDE-001.1 — persist this window's layout slice, merging the
+       * per-window map so sibling windows opened in other tabs survive.
+       */
+      const existingWindows = getProjectIdeMemorySync(projectId, currentWorkspaceId)?.ui?.projectEditorWindows ?? {};
 
-        const windowSlice = {
-          paneTree,
-          activePaneId,
-          floatingPanes,
-          updatedAt: new Date().toISOString(),
-        };
+      const windowSlice = {
+        paneTree,
+        activePaneId,
+        floatingPanes,
+        updatedAt: new Date().toISOString(),
+      };
 
-        saveProjectIdeMemory(
-          projectId,
-          {
-            ui: {
-              // Une sélection en attente des fichiers n'est pas une désélection.
-              selectedFile: projectSelectionToPersist(selectedFile, pendingProjectSelectedFile.current),
-              currentView,
-              rightPanelOpen,
-              rightPanelMode,
-              rightPanelWidth,
-              workspaceTabs,
-              activeWorkspacePanel,
+      saveProjectIdeMemory(
+        projectId,
+        {
+          ui: {
+            // Une sélection en attente des fichiers n'est pas une désélection.
+            selectedFile: projectSelectionToPersist(selectedFile, pendingProjectSelectedFile.current),
+            currentView,
+            rightPanelOpen,
+            rightPanelMode,
+            rightPanelWidth,
+            workspaceTabs,
+            activeWorkspacePanel,
 
-              /*
-               * Only the primary window owns the legacy top-level fields; a
-               * secondary window must never clobber window-main's tree.
-               */
-              ...(isSecondaryProjectEditorWindow ? {} : { paneTree, activePaneId, floatingPanes }),
-              projectEditorWindows: { ...existingWindows, [projectEditorWindowId]: windowSlice },
-              agentWidth,
-              terminalBottomOpen,
-              terminalBottomHeight,
-              cursorPositions,
-              scrollPositions,
-              recentTabIds,
-              closedTabs,
-              mobilePanel,
-              editorMinimapEnabled,
-              lockedItems: backendLockedItems,
-              deletedPaths: backendDeletedPaths,
-              showWorkbench: true,
-            },
+            /*
+             * Only the primary window owns the legacy top-level fields; a
+             * secondary window must never clobber window-main's tree.
+             */
+            ...(isSecondaryProjectEditorWindow ? {} : { paneTree, activePaneId, floatingPanes }),
+            projectEditorWindows: { ...existingWindows, [projectEditorWindowId]: windowSlice },
+            agentWidth,
+            terminalBottomOpen,
+            terminalBottomHeight,
+            cursorPositions,
+            scrollPositions,
+            recentTabIds,
+            closedTabs,
+            mobilePanel,
+            editorMinimapEnabled,
+            lockedItems: backendLockedItems,
+            deletedPaths: backendDeletedPaths,
+            showWorkbench: true,
           },
-          currentWorkspaceId,
-        ).catch((error) => {
-          console.error('Failed to persist project IDE state', error);
-        });
-      }, 1000);
-
-      return () => window.clearTimeout(saveTimer);
+        },
+        currentWorkspaceId,
+      ).catch((error) => {
+        console.error('Failed to persist project IDE state', error);
+      });
     }, [
       projectIdeMode,
       projectId,
@@ -9657,7 +9683,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                        * interactive popovers (presence, branches, share) stay inline
                        * because they don't nest cleanly inside another menu.
                        */}
-                      <HeaderOverflowMenu label={t('chat.copy.moreAgentActions_b515ee74')}>
+                      <AgentHeaderMenu label={t('chat.copy.moreAgentActions_b515ee74')}>
                         <button
                           type="button"
                           role="menuitem"
@@ -9705,7 +9731,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           <Trash2 size={14} strokeWidth={2} aria-hidden />
                           <span>{t('chat.copy.clearHistory_53b5158b')}</span>
                         </button>
-                      </HeaderOverflowMenu>
+                      </AgentHeaderMenu>
                       <HeaderTip label={t('chat.copy.hideAgentPanelCmdL_9b94ba4c')}>
                         <button
                           type="button"
@@ -22093,7 +22119,7 @@ function ProjectDatabasePanel({
       {connections.length === 0 && !hasManagedDatabase ? (
         <DatabaseConnectionOnboarding onSubmit={onSubmit} busy={busy} />
       ) : null}
-      {projectId ? <DatabaseWorkbench projectId={projectId} /> : null}
+      {projectId ? <DatabaseWorkbench projectId={projectId} initialData={data} /> : null}
     </div>
   );
 }

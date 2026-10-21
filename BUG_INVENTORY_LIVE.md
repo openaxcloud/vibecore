@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-450 entrées.
+463 entrées.
 
 ## Sans section
 
@@ -560,7 +560,34 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DB-RESTORE-AUTH-TRANSFER-001](docs/bugs/BUG-DB-RESTORE-AUTH-TRANSFER-001.md) — P1 — l'organisation autorisée par HTTP peut être perdue si un transfert — 📤 Dispatché : ☑ 20/10 — revue indépendante de la tête `01cf9e9079a42ca9aa29324c8c9845c2f95d21a3` · 💻 Codé : ☐ Correction locale, non fusionnée et non déployée. L'organisation autorisée · ✅ Testé live : ☐ Aucun essai en production. Le coordinateur n'est pas injecté dans le serveur
 - [BUG-DB-RESTORE-ROTATION-CORPUS-001](docs/bugs/BUG-DB-RESTORE-ROTATION-CORPUS-001.md) — 📤 Dispatché : 20 octobre 2026 : blocage CI signalé par le parent, puis reproduit localement. · 💻 Codé : Correctif local du corpus : deux entrées utilisant `restoreId`. · ✅ Testé live : Non : aucun essai en production et aucune rotation sur des secrets réels.
 
-- [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — Provenance des images réutilisées et restaurées liée à leur digest. — 📤 Dispatché : ☑ 21/10 · 💻 Codé : ☐ PR #757, non fusionnée. · ✅ Testé live : ☐ Aucun rollback de production.
+## 2026-10-21 — Recette UX locale des panneaux
+
+- [BUG-UX-AGENT-MENU-FOCUS-001](docs/bugs/BUG-UX-AGENT-MENU-FOCUS-001.md) — Le menu desktop « More agent actions » / « Plus d'actions d'agent » s'ouvre — 📤 Dispatché : ☑ lot UX parallèle, branche `fix/panel-ux-accessibility-20261021`. · 💻 Codé : ☐ non intégré à main ; correctif de branche destiné à une PR brouillon, sans fusion autonome. · ✅ Testé live : ☐ aucune certification production. Recette locale : 12/12 parcours navigateur réussis.
+
+## IDE — initialisation et persistance
+
+- [BUG-IDE-LAYOUT-SAVE-UNMOUNT-001](docs/bugs/BUG-IDE-LAYOUT-SAVE-UNMOUNT-001.md) — Le timer de sauvegarde du layout dans `BaseChat.tsx` attend une seconde avant — 📤 Dispatché : ☑ — 21 octobre 2026, reprise indépendante Monaco/layout depuis main · 💻 Codé : ☐ — candidat sur branche dédiée, non fusionné. Suppression du timer extérieur ; · ✅ Testé live : ☐ — aucune production ni recette complète certifiée. La contre-épreuve exécute
+- [BUG-IDE-MONACO-STARTUP-WATERFALL-001](docs/bugs/BUG-IDE-MONACO-STARTUP-WATERFALL-001.md) — L'éditeur desktop ne commence à importer Monaco qu'après l'arrivée et la — 📤 Dispatché : ☑ — 21 octobre 2026, reprise indépendante des deux E2E bloquants. · 💻 Codé : ☐ — candidat non fusionné : préchargement dès l'évaluation de la route IDE desktop, avant React et parallèle · ✅ Testé live : ☐ — production non testée. Le test unitaire d'import retardé a échoué sur le
+- [BUG-IDE-OVERVIEW-STREAM-001](docs/bugs/BUG-IDE-OVERVIEW-STREAM-001.md) — Le loader overview attend le projet avant de créer son flux SSE. Si le client — 📤 Dispatché : ☑ — 21 octobre 2026, diagnostic des E2E Monaco et restauration du layout. · 💻 Codé : ☐ — candidat local : contrôle du signal déjà annulé, nettoyage commun · ✅ Testé live : ☐ — régression exécutant la vraie fonction extraite par AST : trois échecs
+
+## Sans section
+
+- [BUG-UX-DATABASE-SEQUENTIAL-LOAD-001](docs/bugs/BUG-UX-DATABASE-SEQUENTIAL-LOAD-001.md) — 📤 Dispatché : Constat UX sur main `fc8a687e` + #750 + #753 : premier BFF terminé en 200 après environ 24 s, puis second BFF · 💻 Codé : Correctif local proposé, non publié et non fusionné. `ProjectDatabasePanel` reçoit la réponse normalisée mais · ✅ Testé live : Non certifié. Huit tests de composant couvrent affichage immédiat, état vide réel, montage autonome, rafraîchi
+- [BUG-UX-PALETTE-INITIALIZATION-001](docs/bugs/BUG-UX-PALETTE-INITIALIZATION-001.md) — 📤 Dispatché : Recette UX sur main fc8a687e + #750 + #753 : disparition observée à 820 px. La sonde locale `design-palette-sh · 💻 Codé : Correctif local : `ComposerToolsProvider` garde l'ouverture du menu, la palette, sa section et son brouillon a · ✅ Testé live : Recette navigateur du correctif en attente. Aucune certification production ni résolution de l'ensemble du dém
+- [BUG-UX-CONFIRMATION-FOCUS-001](docs/bugs/BUG-UX-CONFIRMATION-FOCUS-001.md) — 📤 Dispatché : Lot UX du 21 octobre 2026, distinct de #750. Base : `4af4dd1a0ba14473affb2ee7fdeabbac23b1274f`. · 💻 Codé : Correctif préparé sur `audit/panel-actions-20261021`, pas intégré sur main. · ✅ Testé live : Validation locale uniquement ; aucune validation production revendiquée. PostgreSQL dédié `vibecore_ux_2026102
+- [BUG-UX-SNAPSHOT-QUOTA-001](docs/bugs/BUG-UX-SNAPSHOT-QUOTA-001.md) — 📤 Dispatché : Revue #753 du 21 octobre 2026, après HTTP 429 réel sur une organisation synthétique ayant cinq instantanés. · 💻 Codé : Correctif sur la branche de #753, non intégré à main. assertQuota émet QUOTA_EXCEEDED ; enterprise-api.server · ✅ Testé live : Production non vérifiée. Dix-sept tests de route passent, dont les contrats QUOTA_EXCEEDED, RATE_LIMITED et 42
+- [BUG-UX-TOUR-OCCLUSION-001](docs/bugs/BUG-UX-TOUR-OCCLUSION-001.md) — 📤 Dispatché : Revue #753 du 21 octobre 2026. ProductTour explicitement autorisé, autres chemins dashboard/signup réservés. · 💻 Codé : Correctif sur la branche de #753, non intégré à main : mesurer le panneau fixe et réserver du défilement dans · ✅ Testé live : Production non vérifiée. Avant : focus DOM sur Créer en mobile 390×844 mais centre recouvert par ProductTour.
+- [BUG-API-ENTERPRISE-SETTINGS-RACE-001](docs/bugs/BUG-API-ENTERPRISE-SETTINGS-RACE-001.md) — 📤 Dispatché : Revue UX #753, transmis pour prise en charge par le chantier API. Backend local main `4af4dd1a0ba14473affb2ee7 · 💻 Codé : Non corrigé dans le lot UX. Ne pas changer les règles de sécurité pour supprimer cette erreur : elle se produi · ✅ Testé live : Reproduit lors d’un chargement réel de `/projects/:id/snapshots?lang=fr`, avec un seul worker navigateur. Les
+- [BUG-UX-PUBLICATION-LOG-WRAP-001](docs/bugs/BUG-UX-PUBLICATION-LOG-WRAP-001.md) — 📤 Dispatché : Audit UX local du 21 octobre 2026 après reprise complète de ide-mobile-chrome.spec.ts. Ce cas était omis par t · 💻 Codé : Correction préparée : flex-wrap sur le seul groupe .bolt-publication-echec-actions. Les boutons passent à la l · ✅ Testé live : Avant : 44/45 tests locaux, sans retry ni omission. À 390×844 FR, Voir les journaux est mesuré à 116,7×44px et
+- [BUG-UX-PUBLICATION-HEADER-OVERFLOW-001](docs/bugs/BUG-UX-PUBLICATION-HEADER-OVERFLOW-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+
+## IDE — initialisation et persistance
+
+- [BUG-IDE-AGENT-MENU-SHELL-001](docs/bugs/BUG-IDE-AGENT-MENU-SHELL-001.md) — Le menu agent ouvert dans PendingComposerShell perd son ouverture et son focus — 📤 Dispatché : ☑ — 21 octobre 2026, coordination des PR #749 et #750. · 💻 Codé : ☐ — candidat sur branche locale d'intégration : provider au-dessus des shells, · ✅ Testé live : ☐ — test de remplacement réel rouge avant correction (1 échec/5), puis 5/5
+
+## Sans section
+
+- [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 

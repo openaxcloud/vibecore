@@ -1,0 +1,13 @@
+
+Running 4 tests using 1 worker
+
+(node:805141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:805141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/ide-floating-file-tabs.spec.ts:8:1 › opening a file in a floating pane updates its tabs and survives docking (14.3s)
+  ✓  2 [chromium] › tests/e2e/ide-floating-viewport.spec.ts:87:1 › floating pane stays reachable through resize, mobile menus, navigation and locale (32.1s)
+  ✓  3 [chromium] › tests/e2e/ide-floating-viewport.spec.ts:202:3 › existing mobile menu keeps the file reachable after locale and navigation at 768px (20.0s)
+  ✓  4 [chromium] › tests/e2e/ide-floating-viewport.spec.ts:202:3 › existing mobile menu keeps the file reachable after locale and navigation at 390px (15.4s)
+
+  4 passed (1.4m)

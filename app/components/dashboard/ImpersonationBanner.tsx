@@ -51,6 +51,7 @@ export function ImpersonationBanner() {
   useEffect(() => {
     if (!requestedStatus.current && status.state === 'idle' && status.data === undefined) {
       requestedStatus.current = true;
+      (globalThis as any).__vibecoreStartupMark?.('session-indicator-requested');
       status.load('/api/impersonation');
     }
   }, [status.data, status.load, status.state]);
@@ -69,6 +70,8 @@ export function ImpersonationBanner() {
       </span>
     );
   }
+
+  (globalThis as any).__vibecoreStartupMark?.('session-indicator-resolved');
 
   if (!status.data.impersonatedBy) {
     return null;

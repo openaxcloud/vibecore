@@ -1,0 +1,16 @@
+import json,time,os,urllib.request,urllib.error,subprocess
+from pathlib import Path
+samples=[]
+for _ in range(20):
+ row={'time':time.time(),'load':os.getloadavg()}
+ for route in ['health','ready']:
+  start=time.monotonic()
+  try:
+   with urllib.request.urlopen('http://127.0.0.1:3013/'+route,timeout=3) as r: status=r.status
+  except urllib.error.HTTPError as e:status=e.code
+  except Exception as e:status=type(e).__name__
+  row[route]={'status':status,'seconds':round(time.monotonic()-start,3)}
+ result=subprocess.run(['docker','exec','vibecore-ux-20261021-pg','psql','-U','vibecore','-d','vibecore_ux_20261021','-At','-c',"select coalesce(state,'none'),coalesce(wait_event_type,'none'),count(*) from pg_stat_activity where datname='vibecore_ux_20261021' and pid<>pg_backend_pid() group by 1,2"],capture_output=True,text=True,timeout=5)
+ row['connections']=result.stdout.strip().splitlines();samples.append(row)
+ Path('/workspace/ux-artifacts/combined-probes.json').write_text(json.dumps(samples,indent=2))
+ time.sleep(2)

@@ -1,0 +1,35 @@
+
+Running 18 tests using 1 worker
+
+(node:810321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:810321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (6.9s)
+  ✓   2 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (10.5s)
+  ✓   3 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (6.0s)
+  ✓   4 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (10.4s)
+  ✓   5 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.9s)
+  ✓   6 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (4.1s)
+(node:811203) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:811203) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   7 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (5.5s)
+  ✓   8 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (8.0s)
+  ✓   9 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (5.5s)
+  ✓  10 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (11.8s)
+  ✓  11 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (4.5s)
+  ✓  12 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.2s)
+(node:812167) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:812167) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  13 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (5.6s)
+  ✓  14 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (6.4s)
+  ✓  15 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (5.5s)
+  ✓  16 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (7.4s)
+  ✓  17 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.4s)
+  ✓  18 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.2s)
+
+  18 passed (2.0m)

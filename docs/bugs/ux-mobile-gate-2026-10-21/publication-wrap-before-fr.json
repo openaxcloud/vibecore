@@ -1,0 +1,25 @@
+{
+  "lines": 2,
+  "button": {
+    "x": 230.265625,
+    "y": 494.9375,
+    "width": 116.734375,
+    "height": 44,
+    "top": 494.9375,
+    "right": 347,
+    "bottom": 538.9375,
+    "left": 230.265625
+  },
+  "actions": {
+    "x": 43,
+    "y": 494.9375,
+    "width": 304,
+    "height": 44,
+    "top": 494.9375,
+    "right": 347,
+    "bottom": 538.9375,
+    "left": 43
+  },
+  "font": "13px",
+  "overflow": false
+}

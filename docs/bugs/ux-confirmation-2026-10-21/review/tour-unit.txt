@@ -1,0 +1,16 @@
+
+ RUN  v3.2.6 /workspace/vibecore
+
+stderr | app/components/dashboard/ProductTour.spec.tsx > ProductTour > opens on first use, preserves progress, and resumes from the help action
+react-i18next:: useTranslation: You will need to pass in an i18next instance by using initReactI18next { code: 'NO_I18NEXT_INSTANCE' }
+
+ ✓ app/components/dashboard/ProductTour.spec.tsx (9 tests) 813ms
+   ✓ ProductTour > opens on first use, preserves progress, and resumes from the help action  429ms
+ ✓ app/components/dashboard/ProductTour.i18n.spec.tsx (3 tests) 758ms
+   ✓ ProductTour i18n > renders every step, control, and accessibility label in French  610ms
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  07:53:19
+   Duration  11.80s (transform 5.32s, setup 171ms, collect 2.19s, tests 1.57s, environment 2.80s, prepare 638ms)
+

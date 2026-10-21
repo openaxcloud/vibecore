@@ -209,7 +209,14 @@ function UsageCard({
   );
 }
 
-export function DatabaseWorkbench({ projectId }: { projectId: string }) {
+type DatabaseWorkbenchProps = { projectId: string; initialData?: unknown };
+
+export function DatabaseWorkbench(props: DatabaseWorkbenchProps) {
+  // A project change must discard local selections and responses from its predecessor.
+  return <ProjectDatabaseWorkbench key={props.projectId} {...props} />;
+}
+
+function ProjectDatabaseWorkbench({ projectId, initialData }: DatabaseWorkbenchProps) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getDatabaseStudioCopy(language);
@@ -257,6 +264,31 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
    * l'identité qui compte est `base` (le projet), pas l'objet fetcher.
    */
   const loadedBaseRef = useRef<string | null>(null);
+  const requestedRef = useRef(false);
+  const initialDataAtRequestRef = useRef(initialData);
+  const dataBeforeRequestRef = useRef(initialData);
+
+  function loadDatabases() {
+    dataBeforeRequestRef.current = data;
+    requestedRef.current = true;
+    initialDataAtRequestRef.current = initialData;
+    fetcher.load(base);
+  }
+
+  /*
+   * A later parent response (for example after onboarding) supersedes the
+   * child's previous response. A child refresh keeps real data while pending,
+   * but an idle request without a response must still expose the recovery UI.
+   */
+  let data = initialData;
+
+  if (initialData === initialDataAtRequestRef.current) {
+    if (requestedRef.current && fetcher.state !== 'idle') {
+      data = dataBeforeRequestRef.current;
+    } else if (fetcher.data !== undefined || requestedRef.current) {
+      data = fetcher.data;
+    }
+  }
 
   useEffect(() => {
     if (loadedBaseRef.current === base) {
@@ -264,10 +296,13 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
     }
 
     loadedBaseRef.current = base;
-    fetcher.load(base);
+
+    if (initialData === undefined) {
+      loadDatabases();
+    }
 
     // `fetcher` est volontairement absent : son identité change à chaque rendu.
-  }, [base]);
+  }, [base, initialData]);
 
   // Après un provisionnement réussi, recharger le panneau UNE fois.
   const handledProvisionRef = useRef<unknown>(null);
@@ -280,14 +315,14 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
     }
 
     handledProvisionRef.current = data;
-    fetcher.load(base);
+    loadDatabases();
 
     // `fetcher` est volontairement absent : son identité change à chaque rendu.
   }, [provisionFetcher.state, provisionFetcher.data, base]);
 
   const provisioning = provisionFetcher.state !== 'idle';
 
-  const environments = useMemo(() => readEnvironments(fetcher.data, copy), [fetcher.data, copy]);
+  const environments = useMemo(() => readEnvironments(data, copy), [data, copy]);
   const active = environments.find((e) => e.key === openKey) ?? null;
   const loading = fetcher.state !== 'idle';
 
@@ -342,8 +377,8 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
    */
   const loadFailed =
     fetcher.state === 'idle' &&
-    ((Boolean(fetcher.data) && typeof container(fetcher.data).error === 'string' && environments.length === 0) ||
-      (loadAttempted && fetcher.data === undefined));
+    ((Boolean(data) && typeof container(data).error === 'string' && environments.length === 0) ||
+      (loadAttempted && data === undefined));
 
   // Root view — Dev/Prod usage cards.
   if (!active) {
@@ -353,7 +388,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
           <DatabaseHeading />
           <button
             type="button"
-            onClick={() => fetcher.load(base)}
+            onClick={loadDatabases}
             disabled={loading}
             className="inline-flex min-h-11 items-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-center text-[13px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:opacity-60"
           >
@@ -395,7 +430,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             </div>
           </aside>
         ) : null}
-        {loading && fetcher.data === undefined ? (
+        {loading && data === undefined ? (
           <div className="grid gap-3 sm:grid-cols-2" role="status" aria-live="polite">
             <span className="sr-only">{copy['databaseWorkbench.loading']}</span>
             {[0, 1].map((index) => (
@@ -432,7 +467,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             </p>
             <button
               type="button"
-              onClick={() => fetcher.load(base)}
+              onClick={loadDatabases}
               className="inline-flex min-h-11 items-center justify-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-[13px] font-medium text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
             >
               {copy['databaseWorkbench.retry']}
@@ -542,7 +577,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
           <DatabaseSettings
             name={active.name}
             active
-            connectionString={readConnectionString(fetcher.data, active.key)}
+            connectionString={readConnectionString(data, active.key)}
             reveler={() => revelerUnSecret(projectId, active.key)}
             storageUsedBytes={tailleOccupee}
             storageQuotaBytes={active.quotaBytes}

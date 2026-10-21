@@ -1,9 +1,10 @@
 import * as RadixPopover from '@radix-ui/react-popover';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { IconButton } from './IconButton';
 import { seedColorSchemeState } from './color-scheme-state';
+import { useDesignPaletteState } from '~/components/chat/ComposerToolsState';
 import {
   formatDesignPaletteCopy,
   formatDesignPaletteNumber,
@@ -45,35 +46,55 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
     formatDesignPaletteCopy(template, values);
 
   const resolvedTriggerLabel = triggerLabel ?? copy['designPalette.trigger'];
-  const initialState = seedColorSchemeState(designScheme);
-  const [palette, setPalette] = useState<{ [key: string]: string }>(initialState.palette);
-  const [features, setFeatures] = useState<string[]>(initialState.features);
-  const [font, setFont] = useState<string[]>(initialState.font);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<DesignPaletteSection>('colors');
 
-  // Re-seed local editing state from the current designScheme prop.
+  const [{ palette, features, font, open: isDialogOpen, activeSection }, setPaletteState] =
+    useDesignPaletteState(designScheme);
+
+  const setIsDialogOpen = React.useCallback(
+    (value: React.SetStateAction<boolean>) => {
+      setPaletteState((previous) => ({
+        ...previous,
+        open: typeof value === 'function' ? value(previous.open) : value,
+      }));
+    },
+    [setPaletteState],
+  );
+
+  const setActiveSection = (section: DesignPaletteSection) =>
+    setPaletteState((previous) => ({ ...previous, activeSection: section }));
+
   const resetLocalState = React.useCallback(() => {
-    const next = seedColorSchemeState(designScheme);
-    setPalette(next.palette);
-    setFeatures(next.features);
-    setFont(next.font);
-  }, [designScheme]);
+    setPaletteState((previous) => ({ ...previous, ...seedColorSchemeState(designScheme) }));
+  }, [designScheme, setPaletteState]);
 
+  /*
+   * A shell replacement must not discard an open dialog's unfinished edits.
+   * Closed dialogs still follow their saved scheme, and opening reseeds below.
+   */
   useEffect(() => {
-    resetLocalState();
-  }, [resetLocalState]);
+    if (!isDialogOpen) {
+      resetLocalState();
+    }
+  }, [isDialogOpen, resetLocalState]);
 
   const handleColorChange = (role: string, value: string) => {
-    setPalette((prev) => ({ ...prev, [role]: value }));
+    setPaletteState((previous) => ({ ...previous, palette: { ...previous.palette, [role]: value } }));
   };
 
   const handleFeatureToggle = (key: string) => {
-    setFeatures((prev) => (prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]));
+    setPaletteState((previous) => ({
+      ...previous,
+      features: previous.features.includes(key)
+        ? previous.features.filter((feature) => feature !== key)
+        : [...previous.features, key],
+    }));
   };
 
   const handleFontToggle = (key: string) => {
-    setFont((prev) => (prev.includes(key) ? prev.filter((f) => f !== key) : [...prev, key]));
+    setPaletteState((previous) => ({
+      ...previous,
+      font: previous.font.includes(key) ? previous.font.filter((font) => font !== key) : [...previous.font, key],
+    }));
   };
 
   const handleSave = () => {
@@ -82,9 +103,7 @@ export const ColorSchemeDialog: React.FC<ColorSchemeDialogProps> = ({
   };
 
   const handleReset = () => {
-    setPalette(defaultDesignScheme.palette);
-    setFeatures(defaultDesignScheme.features);
-    setFont(defaultDesignScheme.font);
+    setPaletteState((previous) => ({ ...previous, ...seedColorSchemeState(defaultDesignScheme) }));
   };
 
   const isMenuTrigger = triggerVariant === 'menu';

@@ -1,0 +1,29 @@
+
+Running 12 tests using 1 worker
+
+(node:26162) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26162) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (6.4s)
+  ✓   2 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (en) (12.1s)
+  ✓   3 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (8.8s)
+  ✓   4 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (fr) (14.8s)
+(node:28489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28489) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (6.4s)
+  ✓   6 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (en) (8.2s)
+  ✓   7 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (6.8s)
+  ✓   8 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (fr) (15.0s)
+(node:30821) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30821) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (12.3s)
+  ✓  10 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (en) (10.5s)
+  ✓  11 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (7.9s)
+  ✓  12 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:146:3 › agent menu actions and theme persistence (fr) (12.0s)
+
+  12 passed (2.1m)

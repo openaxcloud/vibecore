@@ -1,0 +1,31 @@
+{
+  "url": "http://127.0.0.1:5207/projects/cmvhyz6ph01cs7kr07sf0drlp/ide?lang=en",
+  "ms": 12440,
+  "network": [
+    {
+      "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/snapshots",
+      "status": 200,
+      "ms": 7626,
+      "keys": [
+        "panel",
+        "project",
+        "status",
+        "data"
+      ],
+      "deployments": []
+    },
+    {
+      "path": "/api/projects/cmvhyz6ph01cs7kr07sf0drlp/ide-panel/settings",
+      "status": 200,
+      "ms": 11077,
+      "keys": [
+        "panel",
+        "project",
+        "status",
+        "data"
+      ],
+      "deployments": []
+    }
+  ],
+  "buttonCount": 0
+}

@@ -1,0 +1,123 @@
+{
+  "samples": [
+    {
+      "label": "ide-ready",
+      "elapsedMs": 17478,
+      "state": {
+        "mobilePanel": "chat",
+        "databaseTabActive": false,
+        "databaseMounted": false,
+        "databaseVisible": false,
+        "databaseOuterBusy": false,
+        "databaseHeadingPresent": false,
+        "databaseHeadingVisible": false,
+        "databasePanelInUrl": false,
+        "databaseEmpty": false,
+        "databaseLoadFailed": false,
+        "databaseInnerLoading": false,
+        "securityRows": 0,
+        "gitSourceFields": 0,
+        "cards": 0,
+        "tables": 0,
+        "statuses": 4,
+        "alerts": 0,
+        "moreMenu": 0,
+        "tabSwitcher": 0,
+        "codeEditors": 0,
+        "editorTabs": []
+      },
+      "observedAtMs": 17581
+    },
+    {
+      "label": "database-selected",
+      "elapsedMs": 19946,
+      "state": {
+        "mobilePanel": "deploy",
+        "databaseTabActive": true,
+        "databaseMounted": true,
+        "databaseVisible": true,
+        "databaseOuterBusy": true,
+        "databaseHeadingPresent": true,
+        "databaseHeadingVisible": true,
+        "databasePanelInUrl": false,
+        "databaseEmpty": false,
+        "databaseLoadFailed": false,
+        "databaseInnerLoading": false,
+        "securityRows": 0,
+        "gitSourceFields": 0,
+        "cards": 0,
+        "tables": 0,
+        "statuses": 3,
+        "alerts": 0,
+        "moreMenu": 0,
+        "tabSwitcher": 0,
+        "codeEditors": 0,
+        "editorTabs": []
+      },
+      "observedAtMs": 20048
+    },
+    {
+      "label": "failure",
+      "elapsedMs": 49993,
+      "state": {
+        "mobilePanel": "deploy",
+        "databaseTabActive": true,
+        "databaseMounted": true,
+        "databaseVisible": true,
+        "databaseOuterBusy": false,
+        "databaseHeadingPresent": true,
+        "databaseHeadingVisible": true,
+        "databasePanelInUrl": true,
+        "databaseEmpty": false,
+        "databaseLoadFailed": false,
+        "databaseInnerLoading": true,
+        "securityRows": 0,
+        "gitSourceFields": 0,
+        "cards": 0,
+        "tables": 0,
+        "statuses": 3,
+        "alerts": 0,
+        "moreMenu": 0,
+        "tabSwitcher": 0,
+        "codeEditors": 0,
+        "editorTabs": []
+      },
+      "observedAtMs": 50017
+    }
+  ],
+  "responses": [
+    {
+      "kind": "database-panel",
+      "status": 200,
+      "elapsedMs": 43910
+    }
+  ],
+  "requests": [
+    {
+      "id": 1,
+      "kind": "database-panel",
+      "method": "GET",
+      "startedAtMs": 19844,
+      "state": "finished",
+      "status": 200,
+      "responseAtMs": 43910,
+      "finishedAtMs": 43916
+    },
+    {
+      "id": 2,
+      "kind": "database-panel",
+      "method": "GET",
+      "startedAtMs": 48715,
+      "state": "awaiting-response"
+    }
+  ],
+  "pendingRequests": [
+    {
+      "id": 2,
+      "kind": "database-panel",
+      "state": "awaiting-response",
+      "ageMs": 1303
+    }
+  ],
+  "droppedRequests": 0
+}

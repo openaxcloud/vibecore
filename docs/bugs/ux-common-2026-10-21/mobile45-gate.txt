@@ -1,0 +1,16 @@
+  fichiers de specs attendus : 1
+  fichiers de specs vus      : 1
+E2E gate — waiver expires 2026-11-04 (15 day(s) left)
+  tests reported : 45
+  failing        : 0
+  waiver policy entries: 6
+  waived failures      : 0
+  flaky (passed on retry): 0
+
+⚠ waived entries that did not appear in this report (renamed or moved?):
+    - rpl-ide-live-proof.spec.ts › RPL-IDE live proof (light)
+    - rpl-ide-live-proof.spec.ts › RPL-IDE live proof (dark)
+    - ide-panel-smoke.spec.ts › desktop IDE renders every panel in-place without stale missing-import errors or full reloads
+    - mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to iphone-se
+
+✔ gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04.

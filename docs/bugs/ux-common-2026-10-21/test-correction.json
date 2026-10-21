@@ -1,0 +1,11 @@
+{
+  "builtTree": "f31f6d5b0b8bd60b619c0aa70abdd80e2323b4ee",
+  "testedTree": "5f5ca94ae24d2b387b4e5fd07b62ffccd47fb3f5",
+  "productDifferences": [],
+  "testFile": "tests/e2e/agent-header-menu-keyboard.spec.ts",
+  "sha256": "e7d92543d2d2e4e1a5b2ae9c2bc7e7544460d2504d2c02ad7dabd5ec78ccd6b2",
+  "originalHeightAssertionUnchanged": true,
+  "addedCondition": "await expect(agent).toHaveCSS('transform', 'none')",
+  "explicitTimeoutAdded": false,
+  "fixedDelayAdded": false
+}

@@ -1,0 +1,15 @@
+{
+  "patchSha256": "78f27a505f94a2e0b15c716674635a60cc24bd42eda58dab0acebb87bd0ef9ac",
+  "reconstructedOn": "e41a39790776bbcd910cba2b19a9ac33a7b7f439 + e996671e600322a5c5df8f70f4ad8f4cfe766707 HeaderOverflowMenu",
+  "expectedBlobs": {
+    "app/components/chat/AgentHeaderMenu.spec.tsx": "5c356921b16fdc3d96262e821f916bac51c3eb65",
+    "app/components/chat/AgentHeaderMenu.tsx": "9d6523ee2237629745997f5f10e587a8a230296e",
+    "app/components/chat/BaseChat.tsx": "498daf6bed2cb78b92068a583ac45dc34b53b1fa",
+    "app/components/chat/HeaderOverflowMenu.tsx": "9d5d945e3c7d133fb4363135f91462dc1d603d5d",
+    "app/routes/projects.$projectId.ide.tsx": "7510519e1fa3da1b5968c88a2adc4608b753fa45",
+    "docs/bugs/BUG-IDE-AGENT-MENU-SHELL-001.md": "5f27129e6065b8da8a19b39ca414ab7c1562e63b",
+    "tests/e2e/agent-menu-shell-handoff.spec.ts": "ce0af7e5ddb3ed5a056cd4c745cbf805213069b6"
+  },
+  "allSevenEqual": true,
+  "patchRouteIndexHeaderIsHistorical": true
+}

@@ -1,0 +1,13 @@
+{
+  "viewport": [
+    390,
+    844
+  ],
+  "label": "Tour visible 1792578730454",
+  "createWhileTourOpen": true,
+  "focusedButtonHitVisible": true,
+  "cancelFocusVisible": true,
+  "laterPersisted": true,
+  "closePersisted": true,
+  "paddingRemoved": true
+}

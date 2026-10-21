@@ -1,0 +1,36 @@
+[
+  {
+    "initialRequests": 1,
+    "listRequests": 1,
+    "requestedMs": 3589,
+    "responses": [
+      {
+        "status": 200,
+        "bytes": 2895,
+        "upstreamReadyMs": 3837,
+        "unchanged": true,
+        "deliveredMs": 10160
+      }
+    ],
+    "tablesReadyMs": 10964,
+    "tableCount": 129,
+    "locale": "en"
+  },
+  {
+    "initialRequests": 1,
+    "listRequests": 1,
+    "requestedMs": 4241,
+    "responses": [
+      {
+        "status": 200,
+        "bytes": 2895,
+        "upstreamReadyMs": 4684,
+        "unchanged": true,
+        "deliveredMs": 10697
+      }
+    ],
+    "tablesReadyMs": 11830,
+    "tableCount": 129,
+    "locale": "fr"
+  }
+]

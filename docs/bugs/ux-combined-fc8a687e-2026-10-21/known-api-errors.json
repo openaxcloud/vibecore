@@ -1,0 +1,26 @@
+[
+  {
+    "requestId": "483f0932-5fc1-483a-a26a-4ec7458af7b0",
+    "route": "/agent-memory",
+    "method": "GET",
+    "errorCode": "AGENT_MEMORY_UNCONFIGURED",
+    "at": 1792577017872,
+    "status": 503
+  },
+  {
+    "requestId": "6b36570f-d628-4610-a297-f00def92f342",
+    "route": "/agent-memory/preferences",
+    "method": "GET",
+    "errorCode": "AGENT_MEMORY_UNCONFIGURED",
+    "at": 1792577018007,
+    "status": 503
+  },
+  {
+    "requestId": "d1dbbd2d-3a7d-4154-ab2b-23b1309f762a",
+    "route": "/projects/cmvhy2nui00dd7kr0wyayd8wm/databases/schema",
+    "method": "GET",
+    "errorCode": "ECONNREFUSED",
+    "at": 1792577024765,
+    "status": 500
+  }
+]

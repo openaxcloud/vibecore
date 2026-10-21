@@ -1,0 +1,70 @@
+{
+  "buildTreeSha256": "2fd5c14211537d998558da154d9ff128855ee182b86e6ff41ba8c36583ad8b4d",
+  "refs": {
+    "main": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28",
+    "ux": "cef42091af8525a1d07ea06b7f70f953d69b0740",
+    "editor": "e41a39790776bbcd910cba2b19a9ac33a7b7f439",
+    "menu": "e996671e600322a5c5df8f70f4ad8f4cfe766707"
+  },
+  "menuPatchSha256": "78f27a505f94a2e0b15c716674635a60cc24bd42eda58dab0acebb87bd0ef9ac",
+  "frontendBase": "http://127.0.0.1:5209",
+  "backendBase": "http://127.0.0.1:3016",
+  "legacyStaticSourceLabels": [
+    "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+    "f06923ff4c7aa4ce71e9b0e9af0584c0ca39f7a8",
+    "fc8a687e715e6052668ade83474da4aef5f27df9"
+  ],
+  "metadataCorrection": "Recipe endpoints were updated before execution; static source labels were inherited. Provenance above comes from the attested served build and API. Results unchanged.",
+  "results": [
+    {
+      "lang": "en",
+      "gesture": "outside click on composer",
+      "passed": true
+    },
+    {
+      "lang": "en",
+      "gesture": "focus leaves menu",
+      "passed": true
+    },
+    {
+      "lang": "en",
+      "gesture": "Shift+Tab",
+      "passed": true,
+      "focus": {
+        "tag": "BUTTON",
+        "label": "Conversation history",
+        "text": ""
+      }
+    },
+    {
+      "lang": "en",
+      "gesture": "menu opens shared confirmation, cancel preserves conversation and restores trigger focus",
+      "passed": true
+    },
+    {
+      "lang": "fr",
+      "gesture": "outside click on composer",
+      "passed": true
+    },
+    {
+      "lang": "fr",
+      "gesture": "focus leaves menu",
+      "passed": true
+    },
+    {
+      "lang": "fr",
+      "gesture": "Shift+Tab",
+      "passed": true,
+      "focus": {
+        "tag": "BUTTON",
+        "label": "Historique des conversations",
+        "text": ""
+      }
+    },
+    {
+      "lang": "fr",
+      "gesture": "menu opens shared confirmation, cancel preserves conversation and restores trigger focus",
+      "passed": true
+    }
+  ]
+}

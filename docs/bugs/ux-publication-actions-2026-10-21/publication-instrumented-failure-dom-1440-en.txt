@@ -1,0 +1,77 @@
+WORKSPACE
+Synthetic combined UX desktop-en
+›
+PROJECT
+Chrome mobile
+›
+BRANCH
+main
+Resources
+Invite
+Run
+Republish
+Connection healthy
+Library
+Ctrl+P
+7
+Search
+Git
+Packages
+Database
+Secrets
+Deployments
+Monitoring
+Settings
+Ctrl+,
+All tools
+Ctrl+T
+README.md
+×
+Webview
+Publish
+×
+Publish
+
+Loading publish…
+
+Preparing panels, runtime signals, and workspace data.
+
+Library
+7 files
+Search
+src
+App.tsx
+main.tsx
+styles.css
+index.html
+package.json
+README.md
+vite.config.ts
+Project assistant
+1
+Get preview running
+Improve project/README.md
+Add a feature
+Prepare deploy
+Agent
+Power
+
+The right balance.
+
+Reconnecting
+Git
+main
+0↑ 0↓
+Problems
+0
+0
+Workspace
+Starting
+Preview
+Detecting
+Dev: starting
+Ln 1, Col 1
+Spaces: 2
+UTF-8
+Markdown
+Loading E-Code…

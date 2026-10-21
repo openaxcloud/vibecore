@@ -1,0 +1,125 @@
+[
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/snapshots",
+    "status": 200,
+    "ms": 2500,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/overview",
+    "status": 200,
+    "ms": 2502
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/settings",
+    "status": 200,
+    "ms": 2512,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/deployments",
+    "status": 200,
+    "ms": 2913,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": [
+      {
+        "id": "cmvi2mmwj00l479r0j5bmjmlt",
+        "status": "FAILED",
+        "logCount": 1
+      }
+    ]
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/snapshots",
+    "status": 200,
+    "ms": 3434,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/overview",
+    "status": 200,
+    "ms": 3435
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/settings",
+    "status": 200,
+    "ms": 3455,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/deployments",
+    "status": 200,
+    "ms": 3768,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": [
+      {
+        "id": "cmvi2mmwj00l479r0j5bmjmlt",
+        "status": "FAILED",
+        "logCount": 1
+      }
+    ]
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/snapshots",
+    "status": 200,
+    "ms": 3882,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/overview",
+    "status": 200,
+    "ms": 3888
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/settings",
+    "status": 200,
+    "ms": 3937,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  }
+]

@@ -1,0 +1,31 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T11:06:59.505Z",
+    "duration": 25503.083,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "measurements": {
+    "webviewClose": {
+      "x": 338,
+      "width": 44,
+      "height": 36,
+      "right": 382,
+      "viewport": 390
+    },
+    "panelBottom": {
+      "overlayTop": 772,
+      "pillTop": 772,
+      "pointInPanel": true,
+      "blur": false
+    }
+  },
+  "retries": 0,
+  "limits": [
+    "Local successes do not establish CI flake cause",
+    "Close button measured height36; vertical touch target not certified"
+  ],
+  "testInstrumentation": "Only console geometry and screenshots added; assertions and existing delays unchanged"
+}

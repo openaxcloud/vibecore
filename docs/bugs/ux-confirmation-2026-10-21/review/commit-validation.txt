@@ -1,0 +1,207 @@
+🔍 Running pre-commit hook to check the code looks good... 🔍
+Checking if pnpm is available...
+Scanning staged changes for secrets...
+⚠️  gitleaks not installed — skipping local secret scan (CI will still block).
+   Install: https://github.com/gitleaks/gitleaks#installing (e.g. 'brew install gitleaks').
+Running typecheck...
+
+> vibecore@1.0.0 typecheck /workspace/vibecore
+> node scripts/typecheck.mjs
+
+[typecheck] web app
+[typecheck] web app passed in 178.7s
+[typecheck] node scripts
+[typecheck] node scripts passed in 54.4s
+[typecheck] IDE browser test helpers
+[typecheck] IDE browser test helpers passed in 5.3s
+[typecheck] electron main
+[typecheck] electron main passed in 2.4s
+[typecheck] electron preload
+[typecheck] electron preload passed in 2.2s
+[typecheck] workspace packages
+Scope: 34 of 36 workspace projects
+apps/admin typecheck$ tsc --noEmit
+packages/auth typecheck$ tsc --noEmit
+packages/audit typecheck$ tsc --noEmit
+packages/billing typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/audit typecheck: Done
+packages/config typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/auth typecheck: Done
+packages/connector-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/billing typecheck: Done
+packages/database typecheck$ tsc --noEmit
+packages/config typecheck: Done
+packages/editor typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts src/index.spec.ts src/desktop-editor.spec.ts src/mobile-editor.spec.tsx src/monaco-editor-ambient.d.ts
+packages/connector-sdk typecheck: Done
+packages/k8s-client typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+apps/admin typecheck: Done
+packages/observability typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/k8s-client typecheck: Done
+packages/quota typecheck$ tsc --noEmit
+packages/quota typecheck: Done
+packages/rbac typecheck$ tsc --noEmit
+packages/editor typecheck: Done
+packages/runtime-contract typecheck$ tsc --noEmit
+packages/observability typecheck: Done
+packages/sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/rbac typecheck: Done
+packages/security typecheck$ tsc --noEmit
+packages/sdk typecheck: Done
+packages/shared typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/index.ts
+packages/runtime-contract typecheck: Done
+packages/template-catalog typecheck$ tsc --noEmit
+packages/template-catalog typecheck: Done
+packages/ui typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022,DOM --jsx react-jsx --strict true --skipLibCheck true src/index.ts
+packages/shared typecheck: Done
+packages/workspace-sdk typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+packages/security typecheck: Done
+services/preview-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+packages/ui typecheck: Done
+packages/workspace-sdk typecheck: Done
+services/preview-proxy typecheck: Done
+packages/database typecheck: Done
+packages/runtime-webcontainer typecheck$ tsc --noEmit
+packages/runtime-remote typecheck$ tsc --noEmit
+packages/sandbox-runtime typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts
+apps/mobile typecheck$ tsc --noEmit
+packages/sandbox-runtime typecheck: Done
+services/ai-gateway typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/server.ts
+packages/runtime-remote typecheck: Done
+services/api typecheck$ tsc --noEmit -p tsconfig.json
+packages/runtime-webcontainer typecheck: Done
+services/connector-proxy typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --strict true src/app.ts src/server.ts
+apps/mobile typecheck: Done
+services/screenshotter typecheck$ tsc --noEmit -p tsconfig.json
+services/screenshotter typecheck: Done
+services/worker typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/index.ts src/enqueue-cli.ts
+services/worker typecheck: Done
+services/workspace-agent typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/app.ts src/server.ts
+services/ai-gateway typecheck: Done
+services/workspace-agent typecheck: Done
+services/connector-proxy typecheck: Done
+services/api typecheck: Done
+services/workspace-manager typecheck$ tsc --noEmit --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true src/manager.ts src/app.ts src/server.ts src/prisma-store.ts
+services/workspace-manager typecheck: Done
+[typecheck] workspace packages passed in 162.0s
+Running lint...
+
+> vibecore@1.0.0 lint /workspace/vibecore
+> eslint --cache --cache-location ./node_modules/.cache/eslint app
+
+
+/workspace/vibecore/app/components/chat/SupabaseConnection.helpers.spec.ts
+  43:72  warning  Unexpected empty method 'logError'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/chat/agent-power-boites-non-ecrasables.spec.tsx
+  50:23  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/chat/assistant-message-empty.spec.tsx
+  35:30  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  48:30  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  57:99  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  80:30  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/chat/feuille-hors-du-composeur.spec.tsx
+  47:58  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/database/DatabaseStudio.tsx
+  205:24  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/deploy/gestes-publication.spec.ts
+  95:48  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/ui/CodeBlock.tsx
+  40:55  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/ui/FilterChip.sur-teinte.spec.tsx
+  32:58  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  50:58  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  63:56  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/ui/GlowingEffect.spec.tsx
+   75:71  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  119:71  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/components/workbench/Preview.journaux-lisibles.spec.tsx
+  52:99  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/.server/llm/chaine-de-generation.deadline.spec.ts
+  44:36  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/.server/llm/chaine-de-generation.ts
+   71:36  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  162:40  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/.server/llm/progression-a-solder.spec.ts
+  24:49  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  69:49  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/.server/tours-en-cours.spec.ts
+  54:97  warning  Unexpected empty method 'journal'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/hooks/useFeatures.spec.tsx
+  24:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/import-delai.spec.ts
+  44:40  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/runtime/confirm-write.spec.ts
+  49:75  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/services/importExportService.spec.ts
+  25:28  warning  Unexpected empty async method 'setSnapshot'     @typescript-eslint/no-empty-function
+  26:31  warning  Unexpected empty async method 'deleteSnapshot'  @typescript-eslint/no-empty-function
+  30:27  warning  Unexpected empty async method 'deleteChat'      @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/stores/files.conflit-sortie.spec.ts
+  33:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  34:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/stores/files.reload-content.spec.ts
+  24:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  25:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/stores/files.watch-process.spec.ts
+  32:20  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  34:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/stores/theme.toggle.spec.ts
+  35:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  67:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/lib/stores/workbench.reloaded-actions.spec.ts
+  796:37  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/routes/api.chat.deadline-cablage.spec.ts
+  61:13  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/routes/auth.oauth.$provider.callback.spec.ts
+  102:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/logger.spec.ts
+  8:68  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/shell-interactive-gate.spec.ts
+   55:60  warning  Unexpected empty method 'write'  @typescript-eslint/no-empty-function
+  145:60  warning  Unexpected empty method 'write'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/shell.spec.ts
+  31:12  warning  Unexpected empty method 'resize'   @typescript-eslint/no-empty-function
+  32:10  warning  Unexpected empty method 'kill'     @typescript-eslint/no-empty-function
+  80:13  warning  Unexpected empty method 'reset'    @typescript-eslint/no-empty-function
+  81:13  warning  Unexpected empty method 'write'    @typescript-eslint/no-empty-function
+  85:26  warning  Unexpected empty method 'dispose'  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/toast-batcher.spec.ts
+  119:33  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  129:34  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  135:38  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+
+/workspace/vibecore/app/utils/url.ts
+  104:47  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+✖ 51 problems (0 errors, 51 warnings)
+
+👍 All checks passed! Committing changes...
+[audit/panel-actions-20261021 5dee7f4e9] fix(snapshots): distinguish quota exhaustion from rate limits
+ 3 files changed, 42 insertions(+), 4 deletions(-)
