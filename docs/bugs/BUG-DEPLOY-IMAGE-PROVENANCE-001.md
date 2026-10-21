@@ -1,3 +1,7 @@
+---
+id: BUG-DEPLOY-IMAGE-PROVENANCE-001
+---
+
 # BUG-DEPLOY-IMAGE-PROVENANCE-001 — provenance des images réutilisées
 
 ## Défaut et portée
