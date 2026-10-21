@@ -1,0 +1,195 @@
+{
+  "sha": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "source": {
+    "path": "services/api/src/project-storage.ts",
+    "sha256": "40e412d2bf558118f64ba0b725fbb14938ffd3699a6d2d3647debb4e285cc7fc"
+  },
+  "rounds": 10,
+  "wallMs": 1770.7769669999989,
+  "cpuMicros": {
+    "user": 671422,
+    "system": 825147
+  },
+  "gitProcesses": 120,
+  "repositoryProbes": 30,
+  "configurationProcesses": 60,
+  "results": [
+    {
+      "route": "/health",
+      "milliseconds": 15.224169000000074,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 105.3713029999999,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 220.99791000000005,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 9.35801900000024,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 66.32677599999988,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 193.5297700000001,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 32.04414999999972,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 95.63237300000037,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 217.45322400000077,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 10.603044999999838,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 51.05869400000029,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 165.7203410000002,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 10.04982100000052,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 49.59807400000045,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 182.08077299999968,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 9.221639000000323,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 58.5534090000001,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 148.98324700000012,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 7.661239000000023,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 58.37896700000056,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 166.7853610000002,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 13.579435000000558,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 73.79428000000007,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 175.0928640000002,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 6.782288999999764,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 51.597616000000016,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 148.9152209999993,
+      "status": 200
+    },
+    {
+      "route": "/health",
+      "milliseconds": 7.933253999999579,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 50.0462150000003,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 150.25242500000058,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 20.87996899999962,
+      "status": 404
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 17.43810399999893,
+      "status": 404
+    },
+    {
+      "route": "/projects/:projectId/git/status",
+      "milliseconds": 126.72134399999959,
+      "status": 200
+    },
+    {
+      "route": "/projects/:projectId/export/zip",
+      "milliseconds": 42.19717899999887,
+      "status": 200
+    }
+  ],
+  "persistenceAfterReconnect": true,
+  "foreignOrganizationRefusals": 2,
+  "exitCode": 0,
+  "limitations": [
+    "Isolated local workload, not reproduction of the editor CPU profile or original 8.86 seconds.",
+    "CPU usage measures this API process only, not child Git processes or host contention."
+  ]
+}

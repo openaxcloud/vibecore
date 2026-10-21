@@ -1,0 +1,262 @@
+{
+  "sourceState": "uncommitted candidate sources; final clean SHA validation reported separately",
+  "exitCode": 0,
+  "total": 42,
+  "passed": 42,
+  "failed": 0,
+  "skipped": 0,
+  "tests": [
+    {
+      "name": "prepares once per status while reading real changed files and revalidates on the next call",
+      "status": "passed",
+      "durationMs": 451.79005100000006,
+      "failures": []
+    },
+    {
+      "name": "rechecks and heals a repository removed after an earlier successful status",
+      "status": "passed",
+      "durationMs": 458.17287199999987,
+      "failures": []
+    },
+    {
+      "name": "still reports detached HEAD and changes using the actual repository",
+      "status": "passed",
+      "durationMs": 248.67357600000014,
+      "failures": []
+    },
+    {
+      "name": "repairs identity and workspace exclusion again on the next status",
+      "status": "passed",
+      "durationMs": 614.4063369999999,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider.createPullRequest rejects with an honest NOT_SUPPORTED error instead of crashing",
+      "status": "passed",
+      "durationMs": 4.802091000001383,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider.commit raises a friendly typed error when there is nothing to commit",
+      "status": "passed",
+      "durationMs": 492.99491599999965,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider workspace isolation does not traverse into the platform repository when a project has no git directory",
+      "status": "passed",
+      "durationMs": 457.82878899999923,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider workspace isolation keeps git graph API scoped to a newly created project workspace",
+      "status": "passed",
+      "durationMs": 1707.856659000001,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider workspace isolation keeps git history isolated between two workspaces of the same project",
+      "status": "passed",
+      "durationMs": 812.8822529999998,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider workspace isolation keeps a commit in one workspace out of another workspace of the same project",
+      "status": "passed",
+      "durationMs": 1235.015625,
+      "failures": []
+    },
+    {
+      "name": "an edit saved in the editor is visible to Git reports the edited file as changed instead of \"0 changes\"",
+      "status": "passed",
+      "durationMs": 710.3694460000002,
+      "failures": []
+    },
+    {
+      "name": "an edit saved in the editor is visible to Git reports the first changed path in full, not missing its first character",
+      "status": "passed",
+      "durationMs": 219.46646899999996,
+      "failures": []
+    },
+    {
+      "name": "an edit saved in the editor is visible to Git sees a file created in the editor that the working tree never had",
+      "status": "passed",
+      "durationMs": 194.85430399999996,
+      "failures": []
+    },
+    {
+      "name": "an edit saved in the editor is visible to Git commits the caller files rather than dying on an unchanged tree",
+      "status": "passed",
+      "durationMs": 259.20410600000014,
+      "failures": []
+    },
+    {
+      "name": "an edit saved in the editor is visible to Git leaves the tree untouched when the files are identical, so polling status is not a write storm",
+      "status": "passed",
+      "durationMs": 221.486805,
+      "failures": []
+    },
+    {
+      "name": "Git remote routes configures origin and persists the project remote URL",
+      "status": "passed",
+      "durationMs": 787.0603869999995,
+      "failures": []
+    },
+    {
+      "name": "Git remote routes rejects unsafe remote file:///etc/passwd before touching the git provider",
+      "status": "passed",
+      "durationMs": 328.2670870000002,
+      "failures": []
+    },
+    {
+      "name": "Git remote routes rejects unsafe remote git@localhost:acme/app.git before touching the git provider",
+      "status": "passed",
+      "durationMs": 346.617878,
+      "failures": []
+    },
+    {
+      "name": "Git remote routes rejects unsafe remote git@127.0.0.1:acme/app.git before touching the git provider",
+      "status": "passed",
+      "durationMs": 644.1871250000004,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider self-heals an invalid .git (PANEL_BACKEND_UNAVAILABLE fix) does not throw on an empty/corrupt .git \u2014 status + branches self-heal, and the edited file shows as changed",
+      "status": "passed",
+      "durationMs": 152.20116300000018,
+      "failures": []
+    },
+    {
+      "name": "GitCliProvider self-heals an invalid .git (PANEL_BACKEND_UNAVAILABLE fix) initialises a project that has no .git at all (status returns real changes)",
+      "status": "passed",
+      "durationMs": 52.30109900000002,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment conflict-file refuses to read through a repo-planted symlink",
+      "status": "passed",
+      "durationMs": 14.89290300000016,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment conflict-file still reads an ordinary file",
+      "status": "passed",
+      "durationMs": 8.777259999999842,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment mark-resolved refuses to write through a repo-planted symlink",
+      "status": "passed",
+      "durationMs": 5.336518999999953,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment restore refuses to write through a symlink that survives the tree clear",
+      "status": "passed",
+      "durationMs": 8.735850000000028,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment writeFiles refuses to write through a repo-planted symlink",
+      "status": "passed",
+      "durationMs": 3.3366770000000088,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment importZip refuses to write through a symlink that survives the tree clear",
+      "status": "passed",
+      "durationMs": 23.319024000000127,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment refuses a dangling symlink instead of creating the file outside the root",
+      "status": "passed",
+      "durationMs": 4.802112000000079,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment refuses to write through a symlinked parent directory",
+      "status": "passed",
+      "durationMs": 5.9460149999999885,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment allows a normal write into a workspace whose root does not exist yet",
+      "status": "passed",
+      "durationMs": 7.186298000000079,
+      "failures": []
+    },
+    {
+      "name": "AUDX-001 project-storage symlink containment listFiles does not read the target of a symlink",
+      "status": "passed",
+      "durationMs": 4.161824000000024,
+      "failures": []
+    },
+    {
+      "name": "filesFromZipBase64 bounds decompression (zip-bomb defence) round-trips a normal archive",
+      "status": "passed",
+      "durationMs": 13.423179999999775,
+      "failures": []
+    },
+    {
+      "name": "filesFromZipBase64 bounds decompression (zip-bomb defence) rejects an archive with too many entries",
+      "status": "passed",
+      "durationMs": 536.4777650000015,
+      "failures": []
+    },
+    {
+      "name": "filesFromZipBase64 bounds decompression (zip-bomb defence) rejects an archive entry larger than the per-file cap",
+      "status": "passed",
+      "durationMs": 1079.6483849999986,
+      "failures": []
+    },
+    {
+      "name": "binary file preservation (#16/#38) detectBinaryBuffer flags binary and passes text",
+      "status": "passed",
+      "durationMs": 219.52796099999978,
+      "failures": []
+    },
+    {
+      "name": "binary file preservation (#16/#38) encodeFileBuffer/decodeFileContent round-trip binary losslessly",
+      "status": "passed",
+      "durationMs": 0.42760900000030233,
+      "failures": []
+    },
+    {
+      "name": "binary file preservation (#16/#38) round-trips a binary file through archive \u2192 zip \u2192 decode without corruption",
+      "status": "passed",
+      "durationMs": 2.77512999999999,
+      "failures": []
+    },
+    {
+      "name": "binary file preservation (#16/#38) writes + reads back a binary file through LocalProjectStorage without corruption",
+      "status": "passed",
+      "durationMs": 34.3870509999997,
+      "failures": []
+    },
+    {
+      "name": "LocalProjectStorage.restoreSnapshot preserves secondary workspaces keeps `.vibecore-workspaces/<id>/` intact when the primary tree is restored",
+      "status": "passed",
+      "durationMs": 245.4083550000014,
+      "failures": []
+    },
+    {
+      "name": "LocalProjectStorage.restoreSnapshot preserves secondary workspaces listFiles on the primary tree does not leak secondary workspace contents",
+      "status": "passed",
+      "durationMs": 7.0575559999997495,
+      "failures": []
+    },
+    {
+      "name": "LocalProjectStorage workspace-scoped writes writes manifest files into the secondary workspace tree, not the primary",
+      "status": "passed",
+      "durationMs": 19.183779999999388,
+      "failures": []
+    },
+    {
+      "name": "git commit endpoint syncs the manifest to the targeted workspace tree writes the persisted IDE manifest into the secondary workspace before committing",
+      "status": "passed",
+      "durationMs": 1572.4535589999996,
+      "failures": []
+    }
+  ]
+}

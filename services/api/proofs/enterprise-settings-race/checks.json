@@ -1,0 +1,167 @@
+{
+  "base": "fc8a687e715e6052668ade83474da4aef5f27df9",
+  "prismaStoreLint": {
+    "baseErrors": 98,
+    "finalErrors": 98,
+    "baseWarnings": 1,
+    "finalWarnings": 1,
+    "sameRuleMessageSeverityMultiset": true
+  },
+  "newTestLintExit": 0,
+  "apiTypecheckExit": 0,
+  "apiBuildExit": 0,
+  "runtimeMockScanExit": 0,
+  "gitleaksExit": 0,
+  "gitleaksFindings": 0,
+  "envGate": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0,
+    "tests": [
+      {
+        "name": ".env.example \u2014 l\u2019\u00e9cart avec le code doit rester nul la sonde lit bien le code ET le fichier \u2014 sinon les cas suivants ne mesurent rien",
+        "status": "passed",
+        "durationMs": 657.4725420000001
+      },
+      {
+        "name": ".env.example \u2014 l\u2019\u00e9cart avec le code doit rester nul chaque variable lue par le code est document\u00e9e",
+        "status": "passed",
+        "durationMs": 1017.191284
+      },
+      {
+        "name": ".env.example \u2014 l\u2019\u00e9cart avec le code doit rester nul AUCUNE VALEUR R\u00c9ELLE dans les fichiers d\u2019exemple \u2014 ils sont versionn\u00e9s",
+        "status": "passed",
+        "durationMs": 2.540654000000359
+      },
+      {
+        "name": ".env.example \u2014 l\u2019\u00e9cart avec le code doit rester nul les secrets g\u00e9n\u00e9rables le sont par un script, pas \u00e0 la main",
+        "status": "passed",
+        "durationMs": 0.7155800000000454
+      }
+    ]
+  },
+  "memoryContractRegressions": {
+    "total": 23,
+    "passed": 20,
+    "failed": 0,
+    "skipped": 3,
+    "tests": [
+      {
+        "name": "sessionIdleTimeoutMs defaults to 72h and honours a valid override",
+        "status": "passed",
+        "durationMs": 5.107393000000002
+      },
+      {
+        "name": "sessionIdleTimeoutMs clamps a too-small value to the 1-minute floor and rejects garbage",
+        "status": "passed",
+        "durationMs": 2.4079889999999295
+      },
+      {
+        "name": "sessionIdleTimeoutMs supports an explicit disable (still bounded by the absolute expiry elsewhere)",
+        "status": "passed",
+        "durationMs": 0.21866799999997966
+      },
+      {
+        "name": "isSessionIdleExpired is false within the window, true once the window elapses",
+        "status": "passed",
+        "durationMs": 0.3542340000000195
+      },
+      {
+        "name": "isSessionIdleExpired never expires when the idle timeout is disabled (Infinity)",
+        "status": "passed",
+        "durationMs": 0.14422099999990223
+      },
+      {
+        "name": "shouldRefreshActivity (throttle) refreshes only once the stored value drifts past the throttle window",
+        "status": "passed",
+        "durationMs": 0.5262149999999792
+      },
+      {
+        "name": "session idle timeout \u2014 real Postgres a session idle past the timeout is rejected \u2014 store + HTTP",
+        "status": "skipped",
+        "durationMs": null
+      },
+      {
+        "name": "session idle timeout \u2014 real Postgres touchSession refreshes lastActiveAt and is throttled",
+        "status": "skipped",
+        "durationMs": null
+      },
+      {
+        "name": "session idle timeout \u2014 real Postgres concurrent heartbeats are safe (no error, session stays valid & fresh)",
+        "status": "skipped",
+        "durationMs": null
+      },
+      {
+        "name": "session idle timeout (endpoint) rejects a session left idle past the timeout (before its absolute expiry)",
+        "status": "passed",
+        "durationMs": 742.2023329999993
+      },
+      {
+        "name": "session idle timeout (endpoint) activity within the window keeps the session alive (heartbeat extends it)",
+        "status": "passed",
+        "durationMs": 251.6894000000002
+      },
+      {
+        "name": "session idle timeout (endpoint) a failed activity-write fails OPEN (request still 200) and never revives an idle session",
+        "status": "passed",
+        "durationMs": 168.45388300000013
+      },
+      {
+        "name": "session idle timeout (endpoint) the absolute expiry still applies independently of activity (idle disabled)",
+        "status": "passed",
+        "durationMs": 103.31137299999955
+      },
+      {
+        "name": "session idle timeout (endpoint) an idle-expired session is indistinguishable from a garbage token (no enumeration)",
+        "status": "passed",
+        "durationMs": 147.6725749999996
+      },
+      {
+        "name": "POST /orgs/:orgId/sso/:type/test OIDC: returns passing checks when discovery is reachable and complete, never echoing secrets",
+        "status": "passed",
+        "durationMs": 969.8745129999998
+      },
+      {
+        "name": "POST /orgs/:orgId/sso/:type/test OIDC: fails the discovery check when required fields are missing (no secret leak)",
+        "status": "passed",
+        "durationMs": 379.6324429999995
+      },
+      {
+        "name": "POST /orgs/:orgId/sso/:type/test OIDC: an SSRF host (link-local metadata IP) is blocked and never fetched",
+        "status": "passed",
+        "durationMs": 251.9613870000012
+      },
+      {
+        "name": "POST /orgs/:orgId/sso/:type/test SAML: validates stored config and reachability without echoing the certificate",
+        "status": "passed",
+        "durationMs": 201.92156299999988
+      },
+      {
+        "name": "POST /orgs/:orgId/sso/:type/test returns 404 when no provider of that type is configured",
+        "status": "passed",
+        "durationMs": 160.10053300000072
+      },
+      {
+        "name": "SSO enforcement (7-day grace + owner exemption) PUT enforcement persists and computes a grace deadline 7 days out",
+        "status": "passed",
+        "durationMs": 197.79578299999957
+      },
+      {
+        "name": "SSO enforcement (7-day grace + owner exemption) re-enabling does not reset an already-running grace window",
+        "status": "passed",
+        "durationMs": 152.83012400000007
+      },
+      {
+        "name": "SSO enforcement (7-day grace + owner exemption) blocks a non-owner member password login once the grace window has elapsed, but exempts the owner",
+        "status": "passed",
+        "durationMs": 277.6946110000008
+      },
+      {
+        "name": "SSO enforcement (7-day grace + owner exemption) allows member password login while still inside the grace window",
+        "status": "passed",
+        "durationMs": 188.14520300000004
+      }
+    ]
+  }
+}

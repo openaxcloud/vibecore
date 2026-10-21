@@ -4174,9 +4174,20 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async getEnterpriseSettings(organizationId: string) {
-    const settings = await this.prisma.enterpriseOrganizationSettings.upsert({
-      where: { organizationId },
-      create: {
+    const where = { organizationId };
+    const existing = await this.prisma.enterpriseOrganizationSettings.findUnique({ where });
+
+    if (existing) {
+      return mapEnterpriseSettings(existing);
+    }
+
+    /*
+     * Concurrent first reads must not race through Prisma's empty-update upsert.
+     * PostgreSQL resolves the insert conflict without overwriting existing policy.
+     */
+    await this.prisma.enterpriseOrganizationSettings.createMany({
+      skipDuplicates: true,
+      data: {
         organizationId,
         ipAllowlist: [],
         // MFA optional everywhere (Avi's decision): default an org to NOT forcing
@@ -4187,8 +4198,10 @@ export class PrismaApiStore implements ApiStore {
         dataRetentionDays: 365,
         legalHoldEnabled: false,
       },
-      update: {},
     });
+
+    const settings = await this.prisma.enterpriseOrganizationSettings.findUniqueOrThrow({ where });
+
     return mapEnterpriseSettings(settings);
   }
 
