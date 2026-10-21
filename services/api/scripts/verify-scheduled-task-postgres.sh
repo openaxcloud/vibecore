@@ -32,13 +32,13 @@ const sourcePaths = [
   'src/app.ts', 'src/prisma-store.ts', 'src/scheduled-tasks-repository.ts',
   'src/scheduled-task-persistence.integration.spec.ts', 'src/scheduled-tasks.ts',
   'src/scheduled-tasks.spec.ts', 'src/scheduled-tasks-cron.spec.ts',
-  'scripts/verify-scheduled-task-postgres.sh',
+  'scripts/verify-scheduled-task-postgres.sh', '../../.github/workflows/scheduled-task-postgres.yml',
 ];
 const detailed = {
   sha, dirty, testExitCode,
   total: result.numTotalTests, passed: result.numPassedTests,
   failed: result.numFailedTests, skipped: result.numPendingTests, todo: result.numTodoTests,
-  sourceSha256: Object.fromEntries(sourcePaths.map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])),
+  sources: sourcePaths.map(path => ({ path, sha256: createHash('sha256').update(readFileSync(path)).digest('hex') })),
   suites: result.testResults.map(file => ({
     file: relative(process.cwd(), file.name), status: file.status,
     durationMs: file.endTime - file.startTime,
@@ -55,17 +55,21 @@ assert.equal(result.numFailedTests, 0);
 assert.equal(result.numPendingTests, 0);
 assert.equal(result.numTodoTests, 0);
 assert.equal(result.numPassedTests, result.numTotalTests);
+assert.equal(result.numTotalTests, 59);
 const postgres = result.testResults.filter(file => /scheduled-task-persistence\.integration\.spec\.ts$/.test(file.name));
 assert.equal(postgres.length, 1);
-assert.equal(postgres.flatMap(file => file.assertionResults).length, 5);
+assert.equal(postgres.flatMap(file => file.assertionResults).length, 7);
 for (const file of postgres) {
   for (const test of file.assertionResults) assert.equal(test.status, 'passed', test.fullName);
 }
 const receipt = {
   sha, dirty, testExitCode, testReportSha256,
-  postgresTests: 5,
-  schedulerRegressionTests: result.numPassedTests - 5,
+  postgresTests: 7,
+  schedulerRegressionTests: result.numPassedTests - 7,
   skipped: result.numPendingTests,
+  todo: result.numTodoTests,
+  failed: result.numFailedTests,
+  total: result.numTotalTests,
   passed: result.numPassedTests,
   completedAt: new Date().toISOString(),
 };

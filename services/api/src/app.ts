@@ -38311,7 +38311,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('SCHEDULED_TASK_NOT_FOUND'), code: 'SCHEDULED_TASK_NOT_FOUND' });
     }
 
-    if (current.kind === 'DEPLOYMENT' && !(body.command ?? current.command).trim()) {
+    const enabled = body.enabled ?? current.enabled;
+
+    /*
+     * Preserve a legacy empty command only while disabled and not explicitly rewritten.
+     * This permits safe recovery without allowing activation or a new empty command.
+     */
+    if (
+      current.kind === 'DEPLOYMENT' &&
+      !(body.command ?? current.command).trim() &&
+      (enabled || body.command !== undefined)
+    ) {
       return reply
         .code(400)
         .send({ error: appPublicEnglish('SCHEDULED_TASK_NO_COMMAND'), code: 'SCHEDULED_TASK_NO_COMMAND' });
@@ -38319,7 +38329,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const cron = body.cron ?? current.cron;
     const timezone = body.timezone ?? current.timezone;
-    const enabled = body.enabled ?? current.enabled;
     const planKey = await scheduledTaskPlanKey(project.organizationId);
 
     const schedule = validateSchedule({

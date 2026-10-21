@@ -222,4 +222,72 @@ describe.skipIf(!enabled)('scheduled task configuration — real HTTP and Postgr
     expect(await store.prisma.scheduledTask.count({ where: { projectId } })).toBe(0);
     expect(await store.prisma.scheduledTaskRun.count({ where: { projectId } })).toBe(0);
   });
+
+  async function legacyTask(enabled: boolean, verify: () => Promise<void>) {
+    const created = await request('POST', `/projects/${projectId}/scheduled-tasks`, config);
+    expect(created.status).toBe(201);
+    taskId = created.body.task!.id;
+
+    // Actual legacy row state, created before update validation existed.
+    await store.prisma.scheduledTask.update({
+      where: { id: taskId },
+      data: { command: '   ', enabled, nextRunAt: enabled ? new Date(Date.now() + 3600000) : null },
+    });
+    await restart();
+
+    try {
+      await verify();
+    } finally {
+      await store.prisma.scheduledTaskRun.deleteMany({ where: { taskId } });
+      await store.prisma.scheduledTask.deleteMany({ where: { id: taskId, projectId } });
+    }
+  }
+
+  it('disables a legacy enabled blank-command task repeatedly and persists recovery after reconnect', async () => {
+    await legacyTask(true, async () => {
+      const path = `/projects/${projectId}/scheduled-tasks/${taskId}`;
+      const before = await readTask();
+      expect((await request('PATCH', path, { enabled: false }, 1)).status).toBe(404);
+      expect((await request('PATCH', path, { name: 'Unsafe active rename' })).status).toBe(400);
+      await restart();
+      expect(await readTask()).toEqual(before);
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        expect((await request('PATCH', path, { enabled: false })).status).toBe(200);
+      }
+      await restart();
+      expect(await readTask()).toMatchObject({ command: '   ', enabled: false, nextRunAt: null });
+      expect(await store.prisma.scheduledTaskRun.count({ where: { taskId } })).toBe(0);
+    });
+  });
+
+  it('allows renaming a disabled legacy task but requires a repaired command before reactivation', async () => {
+    await legacyTask(false, async () => {
+      const path = `/projects/${projectId}/scheduled-tasks/${taskId}`;
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        expect((await request('PATCH', path, { name: 'Disabled legacy task' })).status).toBe(200);
+      }
+      await restart();
+
+      const before = await readTask();
+      expect(before).toMatchObject({ name: 'Disabled legacy task', command: '   ', enabled: false, nextRunAt: null });
+
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const rejected = await request('PATCH', path, { enabled: true });
+        expect(rejected.status).toBe(400);
+        expect(rejected.body.code).toBe('SCHEDULED_TASK_NO_COMMAND');
+        expect((await request('PATCH', path, { command: '', enabled: false })).status).toBe(400);
+      }
+      await restart();
+      expect(await readTask()).toEqual(before);
+      expect((await request('PATCH', path, { command: 'printf repaired', enabled: true })).status).toBe(200);
+      await restart();
+
+      const repaired = await readTask();
+      expect(repaired).toMatchObject({ command: 'printf repaired', enabled: true });
+      expect(Date.parse(repaired.nextRunAt!)).toBeGreaterThan(Date.now());
+      expect(await store.prisma.scheduledTaskRun.count({ where: { taskId } })).toBe(0);
+    });
+  });
 });

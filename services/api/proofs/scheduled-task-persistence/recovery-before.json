@@ -1,0 +1,66 @@
+{
+  "baseSha": "b07d9158dff65059012a074210ea45e2134d416f",
+  "testExitCode": 1,
+  "passed": 5,
+  "failed": 2,
+  "skipped": 0,
+  "todo": 0,
+  "sources": [
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "08596840e5bdefd528194eedac746227156de679092696a9329eab3577893a56"
+    },
+    {
+      "path": "services/api/src/scheduled-task-persistence.integration.spec.ts",
+      "sha256": "98188f8817136faa1dd92ceb778cea2e54c9c84adfbf98944523b2c21417b0dd"
+    }
+  ],
+  "tests": [
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL creates a disabled schedule and persists it after reconnect; invalid creation writes nothing",
+      "status": "passed",
+      "durationMs": 1097.4537629999977,
+      "failureMessages": []
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL rejects a blank deployment command on update without changing any persisted fields",
+      "status": "passed",
+      "durationMs": 543.3151519999992,
+      "failureMessages": []
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL persists edits and repeats, rejects invalid cron/timezone and cross-organization access",
+      "status": "passed",
+      "durationMs": 897.5544010000012,
+      "failureMessages": []
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL persists enable/disable and preserves the next run when only renaming",
+      "status": "passed",
+      "durationMs": 1173.8506680000028,
+      "failureMessages": []
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL deletes persistently and refuses repeated deletion",
+      "status": "passed",
+      "durationMs": 477.99335000000065,
+      "failureMessages": []
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL disables a legacy enabled blank-command task repeatedly and persists recovery after reconnect",
+      "status": "failed",
+      "durationMs": 783.5157940000026,
+      "failureMessages": [
+        "AssertionError: expected 400 to be 200 // Object.is equality\n    at services/api/src/scheduled-task-persistence.integration.spec.ts:253:75\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at legacyTask (services/api/src/scheduled-task-persistence.integration.spec.ts:237:7)\n    at services/api/src/scheduled-task-persistence.integration.spec.ts:245:5\n    at file://node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+      ]
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL allows renaming a disabled legacy task but requires a repaired command before reactivation",
+      "status": "failed",
+      "durationMs": 560.1162299999996,
+      "failureMessages": [
+        "AssertionError: expected 400 to be 200 // Object.is equality\n    at services/api/src/scheduled-task-persistence.integration.spec.ts:265:89\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at legacyTask (services/api/src/scheduled-task-persistence.integration.spec.ts:237:7)\n    at services/api/src/scheduled-task-persistence.integration.spec.ts:262:5\n    at file://node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+      ]
+    }
+  ]
+}
