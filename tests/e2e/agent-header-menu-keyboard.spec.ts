@@ -107,6 +107,8 @@ for (const language of ['en', 'fr'] as const) {
       await expect(agent).toHaveAttribute('aria-pressed', 'true');
       await expect(options).toBeVisible();
       await expect(agent).toBeVisible();
+      // A tap animates scale; measure the settled control with the same 44px requirement.
+      await expect(agent).toHaveCSS('transform', 'none');
       expect(await agent.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
     } else {
       const label = language === 'en' ? 'More agent actions' : "Plus d'actions d'agent";

@@ -137,3 +137,7 @@ sur la transcription persistée et ne contient aucun sommeil ni interception ré
 
 Ce lot ne certifie aucun panneau entier : 20 panneaux sur 31 restent sans recette
 d'action documentée. Aucun doublon supprimé, aucun changement esthétique général.
+
+## Complément de recette commune — 21 octobre 2026
+
+[Recette commune avec #749, #753 et le patch de continuité fourni par l’éditeur](ux-common-2026-10-21/README.md). Le premier passage menu/dialogue donne 16/18 : deux mesures sont prises pendant la transition de réduction au toucher. Une assertion préalable de transform none est ajoutée, sans changer le seuil de 44 px, les budgets ni le produit. Le passage corrigé donne 18/18 ; Chromium standard 6/6 ; continuité menu/palette et chargement DB 10/10. La tête #750 est synchronisée avec main pour conserver les workflows et scripts PostgreSQL cohérents. Ces résultats ne constituent ni une fusion ni une certification de panneau complet.

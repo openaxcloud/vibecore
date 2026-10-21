@@ -108,6 +108,8 @@ if (daysLeft > MAX_WINDOW_DAYS) {
 
 const results = new Map();
 const flaky = [];
+const globalErrors = [];
+const incomplete = [];
 
 function walk(suites, trail, vusDansCeRapport) {
   for (const suite of suites ?? []) {
@@ -130,6 +132,34 @@ function walk(suites, trail, vusDansCeRapport) {
        * unique within a spec.
        */
       const key = `${file} › ${titlePath}`;
+
+      const tests = spec.tests ?? [];
+
+      if (tests.length === 0) {
+        incomplete.push(`${key}: no reported test variants`);
+      }
+
+      for (const test of tests) {
+        // Only an explicit expected skip exempts a test from execution.
+        if (test.expectedStatus === 'skipped') {
+          continue;
+        }
+
+        const attempts = test.results ?? [];
+        const last = attempts.at(-1);
+
+        if (
+          attempts.length === 0 ||
+          test.status === 'skipped' ||
+          !['passed', 'failed', 'timedOut'].includes(last?.status)
+        ) {
+          incomplete.push(
+            `${key} [${test.projectName ?? test.projectId ?? 'unknown project'}]: ` +
+              `expected=${test.expectedStatus ?? 'unspecified'}, outcome=${test.status}, ` +
+              `attempts=${attempts.length}, last=${last?.status ?? 'none'}`,
+          );
+        }
+      }
 
       /*
        * `flaky` means Playwright retried and the test went green. That is not a
@@ -174,7 +204,11 @@ const fichiersVus = new Set();
  */
 const specCible = (process.env.E2E_SPEC ?? '').trim();
 
-for (const report of reports) {
+for (const [index, report] of reports.entries()) {
+  for (const error of report.errors ?? []) {
+    globalErrors.push(`report ${index + 1}: ${error.message ?? error.value ?? 'unspecified global error'}`);
+  }
+
   const vusDansCeRapport = new Set();
   walk(report.suites, [], vusDansCeRapport);
 
@@ -260,7 +294,7 @@ if (fichiersManquants.length > 0) {
     `${fichiersManquants.length} fichier(s) de specs n'ont été joués par AUCUNE tranche :\n` +
       fichiersManquants.map((f) => `    - ${f}`).join('\n') +
       '\n  Couverture amputée. Causes habituelles : le dénominateur de `--shard` ne ' +
-      "correspond pas au nombre de tranches, ou des specs ont été ajoutés sans que la " +
+      'correspond pas au nombre de tranches, ou des specs ont été ajoutés sans que la ' +
       'matrice suive.',
   );
 }
@@ -298,8 +332,19 @@ const unknownWaivers = waived.filter((entry) => !results.has(normaliseKey(entry.
 console.log(`E2E gate — waiver expires ${expires} (${daysLeft} day(s) left)`);
 console.log(`  tests reported : ${results.size}`);
 console.log(`  failing        : ${failed.length}`);
-console.log(`  waived         : ${waived.length}`);
+console.log(`  waiver policy entries: ${waived.length}`);
+console.log(`  waived failures      : ${failed.filter((key) => waivedKeys.has(key)).length}`);
 console.log(`  flaky (passed on retry): ${flaky.length}`);
+
+if (globalErrors.length) {
+  console.error('\n✖ global report errors (cannot be waived):');
+  globalErrors.forEach((error) => console.error(`    - ${error}`));
+}
+
+if (incomplete.length) {
+  console.error('\n✖ incomplete test execution (cannot be waived):');
+  incomplete.forEach((test) => console.error(`    - ${test}`));
+}
 
 if (flaky.length) {
   console.log('\n⚠ passed only after a retry — real instability, worth diagnosing:');
@@ -321,7 +366,7 @@ if (unwaivedFailures.length) {
   unwaivedFailures.forEach((key) => console.error(`    - ${key}`));
 }
 
-if (staleWaivers.length || unwaivedFailures.length) {
+if (globalErrors.length || incomplete.length || staleWaivers.length || unwaivedFailures.length) {
   process.exit(1);
 }
 

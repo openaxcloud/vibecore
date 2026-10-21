@@ -1,0 +1,186 @@
+[
+  {
+    "width": 768,
+    "lang": "fr",
+    "during": {
+      "at": 5060.285000000149,
+      "height": 43.945068359375,
+      "cssHeight": "44px",
+      "transform": "matrix(0.998752, 0, 0, 0.998752, 0, 0)",
+      "active": false,
+      "animations": [
+        {
+          "type": "CSSTransition",
+          "property": "transform",
+          "state": "running",
+          "currentTime": 100.00000000000054
+        }
+      ]
+    },
+    "settled": {
+      "at": 5082.195000000298,
+      "height": 44,
+      "cssHeight": "44px",
+      "transform": "none",
+      "active": false,
+      "animations": []
+    },
+    "gesture": [
+      {
+        "phase": "pointerdown",
+        "at": 4756.060000002384,
+        "height": 44,
+        "cssHeight": "44px",
+        "transform": "none",
+        "active": false,
+        "animations": []
+      },
+      {
+        "phase": "pointerup",
+        "at": 4756.679999999702,
+        "height": 44,
+        "cssHeight": "44px",
+        "transform": "none",
+        "active": false,
+        "animations": []
+      },
+      {
+        "phase": "frame-after-pointerup",
+        "at": 4867.47500000149,
+        "height": 44,
+        "cssHeight": "44px",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)",
+        "active": true,
+        "animations": [
+          {
+            "property": "transform",
+            "state": "running",
+            "currentTime": 0
+          },
+          {
+            "property": "background-color",
+            "state": "running",
+            "currentTime": 0
+          },
+          {
+            "property": "box-shadow",
+            "state": "running",
+            "currentTime": 0
+          },
+          {
+            "property": "color",
+            "state": "running",
+            "currentTime": 0
+          }
+        ]
+      },
+      {
+        "phase": "animations-finished",
+        "at": 5044.230000000447,
+        "height": 43.84423828125,
+        "cssHeight": "44px",
+        "transform": "matrix(0.996461, 0, 0, 0.996461, 0, 0)",
+        "active": false,
+        "animations": [
+          {
+            "property": "transform",
+            "state": "running",
+            "currentTime": 83.33300000000054
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "width": 390,
+    "lang": "en",
+    "during": {
+      "at": 5046.905000001192,
+      "height": 43.945068359375,
+      "cssHeight": "44px",
+      "transform": "matrix(0.998752, 0, 0, 0.998752, 0, 0)",
+      "active": false,
+      "animations": [
+        {
+          "type": "CSSTransition",
+          "property": "transform",
+          "state": "running",
+          "currentTime": 99.9990000000004
+        }
+      ]
+    },
+    "settled": {
+      "at": 5069.52499999851,
+      "height": 44,
+      "cssHeight": "44px",
+      "transform": "none",
+      "active": false,
+      "animations": []
+    },
+    "gesture": [
+      {
+        "phase": "pointerdown",
+        "at": 4706.285000000149,
+        "height": 44,
+        "cssHeight": "44px",
+        "transform": "none",
+        "active": false,
+        "animations": []
+      },
+      {
+        "phase": "pointerup",
+        "at": 4708.620000001043,
+        "height": 44,
+        "cssHeight": "44px",
+        "transform": "none",
+        "active": false,
+        "animations": []
+      },
+      {
+        "phase": "frame-after-pointerup",
+        "at": 4854.605000000447,
+        "height": 44,
+        "cssHeight": "44px",
+        "transform": "matrix(1, 0, 0, 1, 0, 0)",
+        "active": true,
+        "animations": [
+          {
+            "property": "transform",
+            "state": "running",
+            "currentTime": 0
+          },
+          {
+            "property": "background-color",
+            "state": "running",
+            "currentTime": 0
+          },
+          {
+            "property": "box-shadow",
+            "state": "running",
+            "currentTime": 0
+          },
+          {
+            "property": "color",
+            "state": "running",
+            "currentTime": 0
+          }
+        ]
+      },
+      {
+        "phase": "animations-finished",
+        "at": 5021.160000000149,
+        "height": 43.8443603515625,
+        "cssHeight": "44px",
+        "transform": "matrix(0.996462, 0, 0, 0.996462, 0, 0)",
+        "active": false,
+        "animations": [
+          {
+            "property": "transform",
+            "state": "running",
+            "currentTime": 83.33400000000069
+          }
+        ]
+      }
+    ]
+  }
+]

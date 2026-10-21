@@ -1,0 +1,102 @@
+[
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/snapshots",
+    "status": 200,
+    "ms": 2306,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/overview",
+    "status": 200,
+    "ms": 2307
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/settings",
+    "status": 200,
+    "ms": 2393,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/deployments",
+    "status": 200,
+    "ms": 2838,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": [
+      {
+        "id": "cmvi2mmwj00l479r0j5bmjmlt",
+        "status": "FAILED",
+        "logCount": 1
+      }
+    ]
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/snapshots",
+    "status": 200,
+    "ms": 2879,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/overview",
+    "status": 200,
+    "ms": 2974
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/settings",
+    "status": 200,
+    "ms": 2989,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/snapshots",
+    "status": 200,
+    "ms": 3172,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  },
+  {
+    "path": "/api/projects/cmvi2mjyy00kt79r0icx9imvf/ide-panel/settings",
+    "status": 200,
+    "ms": 3366,
+    "keys": [
+      "panel",
+      "project",
+      "status",
+      "data"
+    ],
+    "deployments": []
+  }
+]

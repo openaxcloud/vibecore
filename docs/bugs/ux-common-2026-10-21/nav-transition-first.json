@@ -1,0 +1,42 @@
+[
+  {
+    "width": 768,
+    "lang": "fr",
+    "during": {
+      "at": 4861.789999999106,
+      "height": 44,
+      "cssHeight": "44px",
+      "transform": "none",
+      "active": false,
+      "animations": []
+    },
+    "settled": {
+      "at": 4862.065000001341,
+      "height": 44,
+      "cssHeight": "44px",
+      "transform": "none",
+      "active": false,
+      "animations": []
+    }
+  },
+  {
+    "width": 390,
+    "lang": "en",
+    "during": {
+      "at": 4615.974999997765,
+      "height": 44,
+      "cssHeight": "44px",
+      "transform": "none",
+      "active": false,
+      "animations": []
+    },
+    "settled": {
+      "at": 4616.125,
+      "height": 44,
+      "cssHeight": "44px",
+      "transform": "none",
+      "active": false,
+      "animations": []
+    }
+  }
+]

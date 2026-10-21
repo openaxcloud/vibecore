@@ -1,0 +1,367 @@
+{
+  "sha": "b07d9158dff65059012a074210ea45e2134d416f",
+  "dirty": true,
+  "testExitCode": 0,
+  "total": 59,
+  "passed": 52,
+  "failed": 0,
+  "skipped": 7,
+  "todo": 0,
+  "sources": [
+    {
+      "path": "src/app.ts",
+      "sha256": "1f8fc9959ecae2802a7e5fcf0fd9cb485d0d8053770a15a5e2fab5367bf8dfef"
+    },
+    {
+      "path": "src/prisma-store.ts",
+      "sha256": "85e33b6fca6e1a763d5d49b30d02164a6e73f5d3ee5b1fcebbc7e4c68891d89b"
+    },
+    {
+      "path": "src/scheduled-tasks-repository.ts",
+      "sha256": "61f4277804c580f63901927359bbe1efdd2de04f1f01c922ded4266b55355abd"
+    },
+    {
+      "path": "src/scheduled-task-persistence.integration.spec.ts",
+      "sha256": "90666e76cc1ebae4b4831bb6b1273faabfe972d4bbc081063912824e89aa6280"
+    },
+    {
+      "path": "src/scheduled-tasks.ts",
+      "sha256": "d0ae35519ec6bdf362c9b92e726a17b02aa3f2f784180533f5b792b9ee2c9b1b"
+    },
+    {
+      "path": "src/scheduled-tasks.spec.ts",
+      "sha256": "a602815a2d3affbbe3d3578df0a4d1bdfe8430dbe152f42871a219b52e1fa48c"
+    },
+    {
+      "path": "src/scheduled-tasks-cron.spec.ts",
+      "sha256": "86c38032a1dfb43e473dd157a01f236f9ae3d970ac0bc2cc6022b5fe6e2f9cd9"
+    },
+    {
+      "path": "scripts/verify-scheduled-task-postgres.sh",
+      "sha256": "a3c15f34a675c08c9329367117d80e2b19e5a98bc25d11c34458b5585674eceb"
+    },
+    {
+      "path": "../../.github/workflows/scheduled-task-postgres.yml",
+      "sha256": "8fcfd5d310c295c34b4346f14e35c605a4c8246093932bfa8eed9c0f432de20f"
+    }
+  ],
+  "suites": [
+    {
+      "file": "src/scheduled-task-persistence.integration.spec.ts",
+      "status": "passed",
+      "durationMs": 0,
+      "tests": [
+        {
+          "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL creates a disabled schedule and persists it after reconnect; invalid creation writes nothing",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL rejects a blank deployment command on update without changing any persisted fields",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL persists edits and repeats, rejects invalid cron/timezone and cross-organization access",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL persists enable/disable and preserves the next run when only renaming",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL deletes persistently and refuses repeated deletion",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL disables a legacy enabled blank-command task repeatedly and persists recovery after reconnect",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL allows renaming a disabled legacy task but requires a repaired command before reactivation",
+          "status": "skipped",
+          "durationMs": null
+        }
+      ]
+    },
+    {
+      "file": "src/scheduled-tasks-cron.spec.ts",
+      "status": "passed",
+      "durationMs": 139.28271484375,
+      "tests": [
+        {
+          "name": "parseCron accepts a standard 5-field expression",
+          "status": "passed",
+          "durationMs": 7.613530999999966
+        },
+        {
+          "name": "parseCron accepts ranges, lists, steps and names",
+          "status": "passed",
+          "durationMs": 1.005877000000055
+        },
+        {
+          "name": "parseCron treats day-of-week 7 as Sunday",
+          "status": "passed",
+          "durationMs": 0.44243200000005345
+        },
+        {
+          "name": "parseCron expands @aliases",
+          "status": "passed",
+          "durationMs": 2.954531000000088
+        },
+        {
+          "name": "parseCron rejects the wrong number of fields",
+          "status": "passed",
+          "durationMs": 1.3447819999998956
+        },
+        {
+          "name": "parseCron rejects out-of-range and inverted values",
+          "status": "passed",
+          "durationMs": 1.6843200000000706
+        },
+        {
+          "name": "parseCron rejects a zero or negative step",
+          "status": "passed",
+          "durationMs": 0.9244830000000093
+        },
+        {
+          "name": "nextCronRun fires strictly after `from`, on the minute",
+          "status": "passed",
+          "durationMs": 81.43622200000004
+        },
+        {
+          "name": "nextCronRun does not return `from` itself even when `from` matches",
+          "status": "passed",
+          "durationMs": 0.7171519999999418
+        },
+        {
+          "name": "nextCronRun rolls to the next day, month and year",
+          "status": "passed",
+          "durationMs": 0.5927899999999227
+        },
+        {
+          "name": "nextCronRun honours day-of-month",
+          "status": "passed",
+          "durationMs": 0.2584229999999934
+        },
+        {
+          "name": "nextCronRun honours day-of-week (2026-07-14 is a Tuesday)",
+          "status": "passed",
+          "durationMs": 0.19783200000006218
+        },
+        {
+          "name": "nextCronRun unions day-of-month and day-of-week when BOTH are restricted (classic cron)",
+          "status": "passed",
+          "durationMs": 0.22394499999995787
+        },
+        {
+          "name": "nextCronRun finds a leap day",
+          "status": "passed",
+          "durationMs": 0.43880699999999706
+        },
+        {
+          "name": "nextCronRun returns null for an impossible date",
+          "status": "passed",
+          "durationMs": 5.2280779999998686
+        },
+        {
+          "name": "nextCronRun returns null for an invalid expression",
+          "status": "passed",
+          "durationMs": 0.6170860000001994
+        },
+        {
+          "name": "nextCronRun \u2014 timezones interprets the cron in the task timezone, not UTC",
+          "status": "passed",
+          "durationMs": 0.8282639999999901
+        },
+        {
+          "name": "nextCronRun \u2014 timezones tracks a DST fall-back: the same wall clock maps to a different UTC instant",
+          "status": "passed",
+          "durationMs": 0.47742300000004434
+        },
+        {
+          "name": "nextCronRun \u2014 timezones skips a wall time that does not exist in the spring-forward gap",
+          "status": "passed",
+          "durationMs": 0.32608699999991586
+        },
+        {
+          "name": "nextCronRun \u2014 timezones falls back to UTC for an unknown timezone rather than never firing",
+          "status": "passed",
+          "durationMs": 0.45233299999995324
+        },
+        {
+          "name": "zonedWallTimeToUtc returns null inside the DST gap",
+          "status": "passed",
+          "durationMs": 0.34164899999996123
+        },
+        {
+          "name": "zonedWallTimeToUtc resolves a normal wall time",
+          "status": "passed",
+          "durationMs": 0.32381599999985156
+        },
+        {
+          "name": "minIntervalMinutes measures the tightest cadence a schedule can produce",
+          "status": "passed",
+          "durationMs": 20.114924999999857
+        },
+        {
+          "name": "minIntervalMinutes catches a schedule that is dense within an hour but sparse overall",
+          "status": "passed",
+          "durationMs": 2.502917000000025
+        },
+        {
+          "name": "describeCron reports the next run for a valid expression",
+          "status": "passed",
+          "durationMs": 5.5850430000000415
+        },
+        {
+          "name": "describeCron reports the error for an invalid expression",
+          "status": "passed",
+          "durationMs": 0.2826959999999872
+        }
+      ]
+    },
+    {
+      "file": "src/scheduled-tasks.spec.ts",
+      "status": "passed",
+      "durationMs": 1456.41357421875,
+      "tests": [
+        {
+          "name": "validateSchedule rejects an invalid cron",
+          "status": "passed",
+          "durationMs": 5.073585000000094
+        },
+        {
+          "name": "validateSchedule rejects a schedule that is too frequent for the plan",
+          "status": "passed",
+          "durationMs": 507.32228699999996
+        },
+        {
+          "name": "validateSchedule accepts the same cron on a plan that allows it",
+          "status": "passed",
+          "durationMs": 473.816816
+        },
+        {
+          "name": "validateSchedule accepts an hourly cron on free",
+          "status": "passed",
+          "durationMs": 64.26650500000005
+        },
+        {
+          "name": "plan limits floors an unknown plan at the free tier",
+          "status": "passed",
+          "durationMs": 0.8947210000001178
+        },
+        {
+          "name": "resolveMachineSize maps a known size to cpu/ram",
+          "status": "passed",
+          "durationMs": 8.486304999999902
+        },
+        {
+          "name": "resolveMachineSize degrades an unknown size to the smallest tier rather than billing zero",
+          "status": "passed",
+          "durationMs": 0.5775380000000041
+        },
+        {
+          "name": "clampTimeoutSeconds / truncateLogs clamps the timeout into a sane band",
+          "status": "passed",
+          "durationMs": 0.30565699999988283
+        },
+        {
+          "name": "clampTimeoutSeconds / truncateLogs keeps short logs verbatim and truncates runaway output",
+          "status": "passed",
+          "durationMs": 0.8369600000000901
+        },
+        {
+          "name": "ScheduledTaskService.tick really runs the command and records a SUCCESS run with the real output",
+          "status": "passed",
+          "durationMs": 32.1164490000001
+        },
+        {
+          "name": "ScheduledTaskService.tick advances nextRunAt so the same tick is never claimed twice",
+          "status": "passed",
+          "durationMs": 3.8173699999997552
+        },
+        {
+          "name": "ScheduledTaskService.tick gives the tick to exactly ONE of two racing replicas",
+          "status": "passed",
+          "durationMs": 9.741708000000017
+        },
+        {
+          "name": "ScheduledTaskService.tick records a FAILED run with the exit code and stops on the failing step",
+          "status": "passed",
+          "durationMs": 4.514249000000291
+        },
+        {
+          "name": "ScheduledTaskService.tick does NOT retry a failed run by default (Replit parity)",
+          "status": "passed",
+          "durationMs": 2.2336770000001707
+        },
+        {
+          "name": "ScheduledTaskService.tick re-arms a failed run soon when the task opts into retries",
+          "status": "passed",
+          "durationMs": 2.492526999999882
+        },
+        {
+          "name": "ScheduledTaskService.tick skips the tick (FORBID) when the previous run is still going, and says so",
+          "status": "passed",
+          "durationMs": 38.919478000000254
+        },
+        {
+          "name": "ScheduledTaskService.tick allows overlap when the task opts in",
+          "status": "passed",
+          "durationMs": 60.74013699999978
+        },
+        {
+          "name": "ScheduledTaskService.tick times out a run that outlives its timeout, and never starts the next step",
+          "status": "passed",
+          "durationMs": 12.388928999999735
+        },
+        {
+          "name": "ScheduledTaskService.tick bills the real duration at the machine size, once, with a per-run idempotency key",
+          "status": "passed",
+          "durationMs": 30.431019000000106
+        },
+        {
+          "name": "ScheduledTaskService.tick still records the run when billing throws",
+          "status": "passed",
+          "durationMs": 3.6670289999997294
+        },
+        {
+          "name": "ScheduledTaskService.tick fails the run cleanly when the scheduled workflow no longer exists",
+          "status": "passed",
+          "durationMs": 3.1311549999995805
+        },
+        {
+          "name": "ScheduledTaskService.tick runs every step of a workflow in order",
+          "status": "passed",
+          "durationMs": 39.95352799999955
+        },
+        {
+          "name": "ScheduledTaskService.runNow / cancelRun / reapStuckRuns runs a task on demand and tags the run as manual",
+          "status": "passed",
+          "durationMs": 5.141780000000836
+        },
+        {
+          "name": "ScheduledTaskService.runNow / cancelRun / reapStuckRuns refuses a manual run while one is in flight (FORBID)",
+          "status": "passed",
+          "durationMs": 1.34035700000004
+        },
+        {
+          "name": "ScheduledTaskService.runNow / cancelRun / reapStuckRuns keeps a canceled run CANCELED even if the exec later returns success",
+          "status": "passed",
+          "durationMs": 0.8498180000005959
+        },
+        {
+          "name": "ScheduledTaskService.runNow / cancelRun / reapStuckRuns fails a run orphaned by a restarted executor",
+          "status": "passed",
+          "durationMs": 0.413459999999759
+        }
+      ]
+    }
+  ],
+  "proofVerifierExitCode": 1
+}

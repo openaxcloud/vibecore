@@ -1,0 +1,2 @@
+import config from '../../playwright.mobile-gate-audit.config';
+export default {...config,testDir:'../../tests/e2e',testMatch:['agent-menu-shell-handoff.spec.ts','design-palette-shell-handoff.spec.ts','database-loading-context.spec.ts'],outputDir:'/workspace/ux-artifacts/common-749-750-753/loading-results',reporter:[['list'],['json',{outputFile:'/workspace/ux-artifacts/common-749-750-753/loading-results.json'}]]};

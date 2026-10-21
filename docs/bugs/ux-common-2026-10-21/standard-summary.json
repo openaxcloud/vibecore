@@ -1,0 +1,98 @@
+{
+  "buildTreeSha256": "2fd5c14211537d998558da154d9ff128855ee182b86e6ff41ba8c36583ad8b4d",
+  "backendRevision": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28",
+  "stats": {
+    "startTime": "2026-10-21T12:25:52.369Z",
+    "duration": 45823.906,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "line": 76,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:25:53.458Z",
+          "duration": 5923,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "line": 148,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:25:59.875Z",
+          "duration": 11129,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "line": 76,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:26:11.031Z",
+          "duration": 7842,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "line": 148,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:26:18.910Z",
+          "duration": 12124,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "line": 8,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:26:31.161Z",
+          "duration": 3650,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "line": 8,
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "startTime": "2026-10-21T12:26:34.835Z",
+          "duration": 3183,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

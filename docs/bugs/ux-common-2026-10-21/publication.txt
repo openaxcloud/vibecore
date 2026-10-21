@@ -1,0 +1,6 @@
+PASS 390 fr: label, focus hit-test, logs opened/closed
+PASS 390 en: label, focus hit-test, logs opened/closed
+PASS 768 fr: label, focus hit-test, logs opened/closed
+PASS 768 en: label, focus hit-test, logs opened/closed
+PASS 1440 fr: label, focus hit-test, logs opened/closed
+PASS 1440 en: label, focus hit-test, logs opened/closed
