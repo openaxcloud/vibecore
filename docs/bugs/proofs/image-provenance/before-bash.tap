@@ -1,0 +1,60 @@
+TAP version 13
+# Subtest: actual Bash and jq propagate known source and explicitly reset null source
+not ok 1 - actual Bash and jq propagate known source and explicitly reset null source
+  ---
+  duration_ms: 20.702416
+  type: 'test'
+  location: '/tmp/provenance-base-4e/scripts/release-gate/image-provenance-roundtrip.checks.mjs:133:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+
+      assert.ok(known.includes(`services.api.imageSourceSha=${original}`))
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    file:///tmp/provenance-base-4e/scripts/release-gate/image-provenance-roundtrip.checks.mjs:136:12
+    temporary (file:///tmp/provenance-base-4e/scripts/release-gate/image-provenance-roundtrip.checks.mjs:37:12)
+    TestContext.<anonymous> (file:///tmp/provenance-base-4e/scripts/release-gate/image-provenance-roundtrip.checks.mjs:134:3)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.start (node:internal/test_runner/test:1242:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: actual Bash provenance binding guards reject mismatching or absent digest/image
+not ok 2 - actual Bash provenance binding guards reject mismatching or absent digest/image
+  ---
+  duration_ms: 0.46859
+  type: 'test'
+  location: '/tmp/provenance-base-4e/scripts/release-gate/image-provenance-roundtrip.checks.mjs:250:1'
+  failureType: 'testCodeFailure'
+  error: 'workflow must bind the source to the current image'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///tmp/provenance-base-4e/scripts/release-gate/image-provenance-roundtrip.checks.mjs:263:12)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1382:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+    Test.postRun (node:internal/test_runner/test:1522:19)
+    node:internal/test_runner/test:1285:31
+    node:internal/process/task_queues:151:7
+    AsyncResource.runInAsyncScope (node:async_hooks:227:14)
+    AsyncResource.runMicrotask (node:internal/process/task_queues:148:8)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 116.033954

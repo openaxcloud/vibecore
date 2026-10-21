@@ -1,0 +1,70 @@
+{
+  "baseSha": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28",
+  "branchBaseSha": "6bc561901261c34b41b1c6bf7b948345fc89f31b",
+  "sources": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "sha256": "cc684f841e95116699d20ef297eb6369f62b2ddbd8c8f9144cad659a29da3236"
+    },
+    {
+      "path": ".github/workflows/deploy-main.yml",
+      "sha256": "3dbd54bc16a938daec499b4f669dfb79757b4728ad5c688eb93b9426b19f5767"
+    },
+    {
+      "path": "infra/helm/platform/templates/configmap.yaml",
+      "sha256": "d3fafc64b8448c495e13ab34244b7ab303dc9ab07eb00a007e80b3ffcb44ab2f"
+    },
+    {
+      "path": "infra/helm/platform/templates/deployments.yaml",
+      "sha256": "960d347c8303cf30dd8dc54f88d1a0aa9fca176ffb64efec02b590f16c9476fb"
+    },
+    {
+      "path": "infra/helm/platform/values.schema.json",
+      "sha256": "8d28a1dfb140aa23b071e37b1b119f2ed9a3ad34dcef659c3afd1152ae0a8fae"
+    },
+    {
+      "path": "scripts/release-gate/image-provenance-roundtrip.checks.mjs",
+      "sha256": "66230d4aea7c75f36c820bb40b0e2efc684376514b2470c4be26988600473ad7"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/bugs/proofs/image-provenance/after-bash.tap",
+      "sha256": "aea557181d1eb51ff83f65efb9c11b6b8d01eb9991f9cca53896e58dec3f6084",
+      "rawSha256": "aea557181d1eb51ff83f65efb9c11b6b8d01eb9991f9cca53896e58dec3f6084"
+    },
+    {
+      "path": "docs/bugs/proofs/image-provenance/before-bash.tap",
+      "sha256": "ddd1ebda6541c16c6f38c91ff23841342bf9fced6c84cbb3a03cf1ee81c555dc",
+      "rawSha256": "84cfde796ee58a6a8d3846a1fd49ff470ccc626d75efdec83a2267bc652a3528"
+    },
+    {
+      "path": "docs/bugs/proofs/image-provenance/full-local-missing-helm.tap",
+      "sha256": "8c6d4ad40398ada3f557b209134f71acf95d30ccb31be72a9b4a969a8b7a52af",
+      "rawSha256": "05a7d257acb878a88c9497e05790a25fcad8070859f140e94b74f47ab921efcf"
+    }
+  ],
+  "results": {
+    "beforeBash": {
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0,
+      "exitCode": 1
+    },
+    "afterBash": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0
+    },
+    "fullLocal": {
+      "passed": 2,
+      "failed": 6,
+      "skipped": 0,
+      "exitCode": 1,
+      "reason": "helm absent ENOENT; official download HTTP403; no alternative attempted"
+    }
+  },
+  "scope": "Real Bash/jq and source guards; Helm rendering not validated locally; no cluster or signature validation claimed.",
+  "logNormalization": "Published TAP copies strip trailing whitespace only. rawSha256 records the unchanged local original; assertions, durations and statuses retained."
+}

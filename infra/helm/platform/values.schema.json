@@ -23,6 +23,11 @@
             "type": "string",
             "pattern": "^(|sha256:[0-9a-f]{64})$",
             "description": "Per-service immutable image digest; overrides global.imageDigest. Set by the deploy workflow from the digest it built, scanned and verified."
+          },
+          "imageSourceSha": {
+            "type": "string",
+            "pattern": "^(|[0-9a-f]{40})$",
+            "description": "Exact source commit of this image; empty means unknown. Never stamp a reused image with the current release SHA."
           }
         }
       }
@@ -44,6 +49,11 @@
               "type": "string",
               "enum": ["0", "1"],
               "description": "P104 / SEC-8 two-phase activation interlock. '0' (chart default, fail-closed) = the api refuses to ACTIVATE deployment password protection (503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED); '1' = activation open. Enforcement of an already-protected deployment is never gated by this flag, and un-protecting (mode=public) stays allowed at '0'. Only deploy-main.yml sets '1', and only after the last pre-cutover pod is gone and its last public max-age=60 response has expired. Any other value (including '' or a bare boolean) is rejected at upgrade time."
+            },
+            "workspaceAgentImageSourceSha": {
+              "type": "string",
+              "pattern": "^(|[0-9a-f]{40})$",
+              "description": "Exact source commit of this image; empty means unknown. Never stamp a reused image with the current release SHA."
             }
           }
         }

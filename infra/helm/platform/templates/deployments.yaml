@@ -72,6 +72,7 @@ spec:
         */}}
         {{- with (default "" $svc.imageSourceSha) }}
         vibecore.dev/image-source-sha: {{ . | quote }}
+        vibecore.dev/image-source-digest: {{ $imageDigest | quote }}
         {{- end }}
       labels:
         app.kubernetes.io/name: {{ kebabcase $name }}
