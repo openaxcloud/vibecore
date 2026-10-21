@@ -1,0 +1,73 @@
+
+Running 2 tests using 1 worker
+
+(node:279055) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:279055) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (30.2s)
+(node:281606) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:281606) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (11.7s)
+
+
+  1) [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForResponse: Test timeout of 30000ms exceeded.
+
+      59 |     await page.locator('#snapshot-label').fill(label);
+      60 |
+    > 61 |     const createdResponse = page.waitForResponse(
+         |                                  ^
+      62 |       (response) =>
+      63 |         response.request().method() === 'POST' &&
+      64 |         new URL(response.url()).pathname.startsWith(`/projects/${projectId}/snapshots`),
+        at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:61:34
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('button', { name: 'Create snapshot', exact: true })[22m
+    [2m    - locator resolved to <button type="submit" aria-busy="false" data-size="default" data-vc-button="true" data-variant="default" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] disabled:pointer-events-none disabled:opacity-50 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover h-9 px-4…>Create snapshot</button>[22m
+    [2m  - attempting click action[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <h2 id="vc-product-tour-title" class="mt-1 break-words text-lg font-semibold leading-6">Navigate your workspace</h2> from <div class="pointer-events-none fixed inset-x-0 bottom-0 z-[80] flex justify-end px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] sm:px-4 sm:pt-4 sm:pb-[calc(env(safe-area-inset-bottom)+16px)]">…</div> subtree intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible, enabled and stable[22m
+    [2m      - element is visible, enabled and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <h2 id="vc-product-tour-title" class="mt-1 break-words text-lg font-semibold leading-6">Navigate your workspace</h2> from <div class="pointer-events-none fixed inset-x-0 bottom-0 z-[80] flex justify-end px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] sm:px-4 sm:pt-4 sm:pb-[calc(env(safe-area-inset-bottom)+16px)]">…</div> subtree intercepts pointer events[22m
+    [2m    - retrying click action[22m
+    [2m      - waiting 100ms[22m
+    [2m    49 × waiting for element to be visible, enabled and stable[22m
+    [2m       - element is visible, enabled and stable[22m
+    [2m       - scrolling into view if needed[22m
+    [2m       - done scrolling[22m
+    [2m       - <h2 id="vc-product-tour-title" class="mt-1 break-words text-lg font-semibold leading-6">Navigate your workspace</h2> from <div class="pointer-events-none fixed inset-x-0 bottom-0 z-[80] flex justify-end px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] sm:px-4 sm:pt-4 sm:pb-[calc(env(safe-area-inset-bottom)+16px)]">…</div> subtree intercepts pointer events[22m
+    [2m     - retrying click action[22m
+    [2m       - waiting 500ms[22m
+    [2m    - waiting for element to be visible, enabled and stable[22m
+
+
+      66 |     await page
+      67 |       .getByRole('button', { name: language === 'fr' ? 'Créer l’instantané' : 'Create snapshot', exact: true })
+    > 68 |       .click();
+         |        ^
+      69 |     expect([200, 202, 302, 303]).toContain((await createdResponse).status());
+      70 |
+      71 |     const opener = page.getByRole('button', {
+        at /workspace/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:68:8
+
+    Error Context: .vibecore/ux-qa/review-results/snapshot-cancel-focus-snap-95f16-erves-keyboard-position-en--chromium/error-context.md
+
+  1 failed
+    [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) 
+  1 passed (45.1s)

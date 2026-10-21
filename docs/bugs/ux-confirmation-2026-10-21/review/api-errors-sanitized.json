@@ -1,0 +1,107 @@
+[
+  {
+    "time": 1792569645814,
+    "reqId": "630c9b7b-a31c-4316-86b4-344dfa3f5788",
+    "route": "/projects/:projectId/dashboard",
+    "msg": "request failed with server error",
+    "error": "timeout exceeded when trying to connect"
+  },
+  {
+    "time": 1792569645817,
+    "reqId": "872a0b9f-2124-4dcf-a360-049e335de072",
+    "route": "/projects/:projectId/workspaces",
+    "msg": "request failed with server error",
+    "error": "timeout exceeded when trying to connect"
+  },
+  {
+    "time": 1792569645822,
+    "reqId": "542b4fd4-1dc5-4447-9efa-bf631388db51",
+    "route": "/projects/:projectId/dashboard",
+    "msg": "request failed with server error",
+    "error": "timeout exceeded when trying to connect"
+  },
+  {
+    "time": 1792569645825,
+    "reqId": "f17fa57c-29fd-40d9-a088-b941118899cd",
+    "route": "/projects/:projectId/git/graph",
+    "msg": "request failed with server error",
+    "error": "timeout exceeded when trying to connect"
+  },
+  {
+    "time": 1792569645829,
+    "reqId": "9f1ca512-0eb9-4131-b126-6aea6fbf25f3",
+    "route": "/projects/:projectId/workspaces",
+    "msg": "request failed with server error",
+    "error": "timeout exceeded when trying to connect"
+  },
+  {
+    "time": 1792569645834,
+    "reqId": "461b9451-72d8-4ffa-9280-b6d828244dae",
+    "route": "/projects/:projectId/workspaces",
+    "msg": "request failed with server error",
+    "error": "timeout exceeded when trying to connect"
+  },
+  {
+    "time": 1792569645839,
+    "reqId": "b5a6ab46-7f1e-482a-b4a0-3ae157ddc8f9",
+    "route": "/projects/:projectId/workspaces",
+    "msg": "request failed with server error",
+    "error": "timeout exceeded when trying to connect"
+  },
+  {
+    "time": 1792570441604,
+    "reqId": "2cd8257c-6256-4492-933d-3326f5d81829",
+    "route": "/projects/:projectId/snapshots",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  },
+  {
+    "time": 1792570474327,
+    "reqId": "9c0cb03b-9b64-4180-8b41-217705166753",
+    "route": "/projects/:projectId/snapshots",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  },
+  {
+    "time": 1792570842088,
+    "reqId": "046c754d-920e-4c17-a6f2-0f085cb5c9db",
+    "route": "/projects/:projectId/snapshots",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  },
+  {
+    "time": 1792570845682,
+    "reqId": "4bf78724-79b4-45f0-83ff-80dd57ab27e6",
+    "route": "/projects/:projectId/snapshots",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  },
+  {
+    "time": 1792570855782,
+    "reqId": "86e9142c-5526-412d-b6e9-1ebd54e11fd3",
+    "route": "/projects/:projectId/snapshots",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  },
+  {
+    "time": 1792570862167,
+    "reqId": "89e803d5-5eef-4a73-91c8-c1c41c97e2f9",
+    "route": "/projects/:projectId",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  },
+  {
+    "time": 1792570897447,
+    "reqId": "6e45e13c-7e54-4ae5-8e83-4f64d9e40421",
+    "route": "/projects/:projectId/snapshots",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  },
+  {
+    "time": 1792570907063,
+    "reqId": "769140ed-defc-4615-9e8b-f27748a61688",
+    "route": "/projects/:projectId",
+    "msg": "request failed with server error",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)"
+  }
+]

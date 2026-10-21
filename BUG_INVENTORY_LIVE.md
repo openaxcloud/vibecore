@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-450 entrées.
+453 entrées.
 
 ## Sans section
 
@@ -562,7 +562,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Sans section
 
-- [undefined](docs/bugs/BUG-UX-CONFIRMATION-FOCUS-001.md) — 📤 Dispatché : Lot UX du 21 octobre 2026, distinct de #750. Base : `4af4dd1a0ba14473affb2ee7fdeabbac23b1274f`. · 💻 Codé : Correctif préparé sur `audit/panel-actions-20261021`, pas intégré sur main. · ✅ Testé live : Validation locale uniquement ; aucune validation production revendiquée. PostgreSQL dédié `vibecore_ux_2026102
+- [BUG-UX-CONFIRMATION-FOCUS-001](docs/bugs/BUG-UX-CONFIRMATION-FOCUS-001.md) — 📤 Dispatché : Lot UX du 21 octobre 2026, distinct de #750. Base : `4af4dd1a0ba14473affb2ee7fdeabbac23b1274f`. · 💻 Codé : Correctif préparé sur `audit/panel-actions-20261021`, pas intégré sur main. · ✅ Testé live : Validation locale uniquement ; aucune validation production revendiquée. PostgreSQL dédié `vibecore_ux_2026102
+- [BUG-UX-SNAPSHOT-QUOTA-001](docs/bugs/BUG-UX-SNAPSHOT-QUOTA-001.md) — 📤 Dispatché : Revue #753 du 21 octobre 2026, après HTTP 429 réel sur une organisation synthétique ayant cinq instantanés. · 💻 Codé : Correctif sur la branche de #753, non intégré à main. assertQuota émet QUOTA_EXCEEDED ; enterprise-api.server · ✅ Testé live : Production non vérifiée. Dix-sept tests de route passent, dont les contrats QUOTA_EXCEEDED, RATE_LIMITED et 42
+- [BUG-UX-TOUR-OCCLUSION-001](docs/bugs/BUG-UX-TOUR-OCCLUSION-001.md) — 📤 Dispatché : Revue #753 du 21 octobre 2026. ProductTour explicitement autorisé, autres chemins dashboard/signup réservés. · 💻 Codé : Correctif sur la branche de #753, non intégré à main : mesurer le panneau fixe et réserver du défilement dans · ✅ Testé live : Production non vérifiée. Avant : focus DOM sur Créer en mobile 390×844 mais centre recouvert par ProductTour.
+- [BUG-API-ENTERPRISE-SETTINGS-RACE-001](docs/bugs/BUG-API-ENTERPRISE-SETTINGS-RACE-001.md) — 📤 Dispatché : Revue UX #753, transmis pour prise en charge par le chantier API. Backend local main `4af4dd1a0ba14473affb2ee7 · 💻 Codé : Non corrigé dans le lot UX. Ne pas changer les règles de sécurité pour supprimer cette erreur : elle se produi · ✅ Testé live : Reproduit lors d’un chargement réel de `/projects/:id/snapshots?lang=fr`, avec un seul worker navigateur. Les
 
 ## Résidus non tabulaires — reportés mot pour mot
 

@@ -1,10 +1,14 @@
+---
+id: BUG-UX-CONFIRMATION-FOCUS-001
+---
+
 # Annuler une confirmation perd le focus clavier
 
 ## 📤 Dispatché
 
 Lot UX du 21 octobre 2026, distinct de #750. Base : `4af4dd1a0ba14473affb2ee7fdeabbac23b1274f`.
 Périmètre produit : `app/components/ui/Dialog.tsx`, uniquement les consommateurs de `ConfirmationDialog`.
-Dashboard/signup, Monaco, BaseChat et CI inchangés. Pas de fusion automatique.
+Signup, Monaco, BaseChat et CI inchangés. La revue suivante autorise explicitement ProductTour, documenté séparément. Pas de fusion automatique.
 
 ## 💻 Codé
 
@@ -33,7 +37,7 @@ Une première construction a échoué sur une erreur de syntaxe pendant la rédu
 
 Une passe sur l'organisation partagée a atteint son quota mensuel de cinq instantanés : HTTP 429 réel, message UI « Too many snapshot requests were sent. Wait a moment and try again. ». Le conseil d'attendre est inadapté à ce quota ; défaut transmis pour coordination, sans modifier les quotas ni répéter cette action refusée sur cette organisation. Les fixtures de la recette ont ensuite été isolées par scénario, chacune gardant les quotas normaux.
 
-Une passe concurrente avec les contre-épreuves a rencontré des erreurs API 500 et des dépassements de délai avant le formulaire ; `/health` a dépassé cinq secondes. Après arrêt des anciens serveurs web et fin de la concurrence, `/health` est revenu à HTTP 200 en 70 ms. PostgreSQL ne montrait aucun verrou bloquant. Ces erreurs ne sont pas attribuées au correctif Dialog et ne valent pas validation.
+Une passe concurrente avec les contre-épreuves a rencontré des erreurs API 500 et des dépassements de délai avant le formulaire ; `/health` a dépassé cinq secondes. Après la fin de la concurrence, `/health` est revenu à HTTP 200 en 70 ms. PostgreSQL ne montrait aucun verrou bloquant. Ces erreurs ne sont pas attribuées au correctif Dialog et ne valent pas validation.
 
 ### Résultats du correctif
 
@@ -51,9 +55,11 @@ Le build corrigé est construit depuis main avec le seul changement produit Dial
 
 Résultats structurés : [confirmation-existing.json](ux-confirmation-2026-10-21/confirmation-existing.json). Recette exécutée : [confirmation-recipe.cjs.txt](ux-confirmation-2026-10-21/confirmation-recipe.cjs.txt), Chromium système et sessions synthétiques locales, sans interception réseau. Les captures `after-dialog-*` et `after-cancel-*` couvrent les six combinaisons. La contre-épreuve desktop EN sur #750 échoue exactement sur le focus après annulation ; captures `before-*` et [journal](ux-confirmation-2026-10-21/counterexample.txt). L'essai de contre-épreuve FR a dépassé son délai avant d'atteindre cette assertion, et n'est donc pas une deuxième reproduction probante.
 
-**La recette E2E complète création → rechargement → confirmation n'est pas entièrement verte en une passe.** La passe en série a réussi 4/6 cas ; desktop EN a ensuite réussi seul (10 s). Mobile FR a réellement obtenu un 201 à la création, puis dépassé les 30 s avant la fin du rechargement (GET initial 10,49 s, POST 13,28 s, GET suivant 4,16 s, plus le rendu). Le contrôle séparé de sa confirmation persistée a ensuite réussi. Les journaux `e2e-combined.txt`, `e2e-desktop-en.txt`, `e2e-mobile-fr-limit.txt` gardent ces distinctions. Aucun timeout augmenté, assertion retirée, quota exempté ou retry automatique.
+**La recette E2E complète création → rechargement → confirmation n'est pas entièrement verte en une passe.** La passe en série a réussi 4/6 cas ; desktop EN a ensuite réussi seul (10 s). Mobile FR a réellement obtenu un 201 à la création, puis dépassé les 30 s en attendant le nouveau bouton Restaurer, AVANT page.reload() (GET initial 10,49 s, POST 13,28 s, GET suivant 4,16 s, plus le rendu). Le contrôle séparé de sa confirmation persistée a ensuite réussi. Les journaux `e2e-combined.txt`, `e2e-desktop-en.txt`, `e2e-mobile-fr-limit.txt` gardent ces distinctions. Aucun timeout augmenté, assertion retirée, quota exempté ou retry automatique.
 
-Le journal API confirme des erreurs `API_ERROR: timeout exceeded when trying to connect` au pool PostgreSQL lors des passages en surcharge. Ce point reste à examiner avec le chantier serveur. Les validations de focus réussies ne certifient pas les performances ni la disponibilité de l'API.
+**Correction de la revue :** la passe `e2e-combined.txt` mobile FR est bloquée par ProductTour qui intercepte le clic Créer (environ 50 tentatives Playwright). Ce défaut est distinct des erreurs serveur. La matrice précédente prouve le focus DOM seulement : la capture mobile FR montre le bouton couvert, et ne prouve donc pas sa visibilité. Le test local initial sélectionnait le toucher par nom de projet ; le profil CI `chromium` sans toucher n’était pas couvert. La correction utilise désormais `info.project.use.hasTouch` et vérifie aussi la capacité réelle du navigateur. Voir la [recette de revue](ux-confirmation-2026-10-21/review/README.md).
+
+Le journal API confirme des erreurs `API_ERROR: timeout exceeded when trying to connect` au pool PostgreSQL lors des passages en surcharge. Le chantier serveur a reproduit le mécanisme avec dix connexions volontairement saturées, sans fuite ni verrou démontré. Cela ne prouve pas la cause dans ce banc. Un /health lent suggère aussi une surcharge hôte/processus/transport. Les validations de focus réussies ne certifient pas les performances ni la disponibilité de l'API.
 
 ### Compléments de #750, tête inchangée
 

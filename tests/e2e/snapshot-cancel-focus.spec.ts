@@ -12,7 +12,9 @@ for (const language of ['en', 'fr'] as const) {
       expect(new URL(baseURL).hostname).toBe('127.0.0.1');
 
       const fixtures = JSON.parse(await readFile(process.env.UX_QA_SESSION_FILE, 'utf8'));
-      const fixture = fixtures.cases?.[`${info.project.name}-${language}`] ?? fixtures;
+      const width = page.viewportSize()?.width ?? 1440;
+      const fixtureProfile = width >= 1200 ? 'desktop' : width >= 600 ? 'tablet' : 'mobile';
+      const fixture = fixtures.cases?.[`${fixtureProfile}-${language}`] ?? fixtures;
       await context.addCookies(fixture.cookies);
       projectId = fixture.projectId;
     } else {
@@ -87,7 +89,11 @@ for (const language of ['en', 'fr'] as const) {
     await expect(cancel).toBeFocused();
     await page.screenshot({ path: info.outputPath(`dialog-${language}.png`) });
 
-    if (info.project.name === 'desktop') {
+    const hasTouch = Boolean(info.project.use.hasTouch);
+    expect(await page.evaluate(() => navigator.maxTouchPoints > 0)).toBe(hasTouch);
+    info.annotations.push({ type: 'input-mode', description: hasTouch ? 'touch' : 'keyboard' });
+
+    if (!hasTouch) {
       await page.keyboard.press('Enter');
     } else {
       await cancel.tap();
@@ -95,6 +101,19 @@ for (const language of ['en', 'fr'] as const) {
 
     await expect(dialog).toBeHidden();
     await expect(opener).toBeFocused();
+    await expect
+      .poll(() =>
+        opener.evaluate((element) => {
+          const rect = element.getBoundingClientRect();
+          const x = rect.left + rect.width / 2;
+          const y = rect.top + rect.height / 2;
+
+          return (
+            x >= 0 && y >= 0 && x < innerWidth && y < innerHeight && element.contains(document.elementFromPoint(x, y))
+          );
+        }),
+      )
+      .toBe(true);
     await page.screenshot({ path: info.outputPath(`cancel-${language}.png`) });
     await page.keyboard.press('Enter');
     await expect(dialog).toBeVisible();

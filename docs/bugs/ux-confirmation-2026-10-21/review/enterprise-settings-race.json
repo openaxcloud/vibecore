@@ -1,0 +1,226 @@
+[
+  {
+    "utc": "2026-10-21T08:14:01.554000+00:00",
+    "reqId": "2cd8257c-6256-4492-933d-3326f5d81829",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0aql0003tpr0lqcur6xv/snapshots"
+  },
+  {
+    "utc": "2026-10-21T08:14:01.604000+00:00",
+    "reqId": "2cd8257c-6256-4492-933d-3326f5d81829",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId/snapshots",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:14:01.605000+00:00",
+    "reqId": "2cd8257c-6256-4492-933d-3326f5d81829",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 0.04999995231628418
+  },
+  {
+    "utc": "2026-10-21T08:14:01.605000+00:00",
+    "reqId": "2cd8257c-6256-4492-933d-3326f5d81829",
+    "message": "request completed",
+    "status": 500
+  },
+  {
+    "utc": "2026-10-21T08:14:33.345000+00:00",
+    "reqId": "9c0cb03b-9b64-4180-8b41-217705166753",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0arm0008tpr06d4gkl7o/snapshots"
+  },
+  {
+    "utc": "2026-10-21T08:14:34.327000+00:00",
+    "reqId": "9c0cb03b-9b64-4180-8b41-217705166753",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId/snapshots",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:14:34.328000+00:00",
+    "reqId": "9c0cb03b-9b64-4180-8b41-217705166753",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 0.9830000400543213
+  },
+  {
+    "utc": "2026-10-21T08:14:34.328000+00:00",
+    "reqId": "9c0cb03b-9b64-4180-8b41-217705166753",
+    "message": "request completed",
+    "status": 500
+  },
+  {
+    "utc": "2026-10-21T08:20:42.050000+00:00",
+    "reqId": "046c754d-920e-4c17-a6f2-0f085cb5c9db",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0cbc0003wrr01gto7iun/snapshots"
+  },
+  {
+    "utc": "2026-10-21T08:20:42.088000+00:00",
+    "reqId": "046c754d-920e-4c17-a6f2-0f085cb5c9db",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId/snapshots",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:20:42.091000+00:00",
+    "reqId": "046c754d-920e-4c17-a6f2-0f085cb5c9db",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 0.03900003433227539
+  },
+  {
+    "utc": "2026-10-21T08:20:42.091000+00:00",
+    "reqId": "046c754d-920e-4c17-a6f2-0f085cb5c9db",
+    "message": "request completed",
+    "status": 500
+  },
+  {
+    "utc": "2026-10-21T08:20:45.661000+00:00",
+    "reqId": "4bf78724-79b4-45f0-83ff-80dd57ab27e6",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0ccn0008wrr094lg67xq/snapshots"
+  },
+  {
+    "utc": "2026-10-21T08:20:45.682000+00:00",
+    "reqId": "4bf78724-79b4-45f0-83ff-80dd57ab27e6",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId/snapshots",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:20:45.683000+00:00",
+    "reqId": "4bf78724-79b4-45f0-83ff-80dd57ab27e6",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 0.021000146865844727
+  },
+  {
+    "utc": "2026-10-21T08:20:45.683000+00:00",
+    "reqId": "4bf78724-79b4-45f0-83ff-80dd57ab27e6",
+    "message": "request completed",
+    "status": 500
+  },
+  {
+    "utc": "2026-10-21T08:20:54.613000+00:00",
+    "reqId": "86e9142c-5526-412d-b6e9-1ebd54e11fd3",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0cdi000dwrr09nusv6st/snapshots"
+  },
+  {
+    "utc": "2026-10-21T08:20:55.782000+00:00",
+    "reqId": "86e9142c-5526-412d-b6e9-1ebd54e11fd3",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId/snapshots",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:20:55.784000+00:00",
+    "reqId": "86e9142c-5526-412d-b6e9-1ebd54e11fd3",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 1.1699998378753662
+  },
+  {
+    "utc": "2026-10-21T08:20:55.784000+00:00",
+    "reqId": "86e9142c-5526-412d-b6e9-1ebd54e11fd3",
+    "message": "request completed",
+    "status": 500
+  },
+  {
+    "utc": "2026-10-21T08:21:02.048000+00:00",
+    "reqId": "89e803d5-5eef-4a73-91c8-c1c41c97e2f9",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0ce9000iwrr0refz0ryj"
+  },
+  {
+    "utc": "2026-10-21T08:21:02.167000+00:00",
+    "reqId": "89e803d5-5eef-4a73-91c8-c1c41c97e2f9",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:21:02.170000+00:00",
+    "reqId": "89e803d5-5eef-4a73-91c8-c1c41c97e2f9",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 0.11899995803833008
+  },
+  {
+    "utc": "2026-10-21T08:21:02.170000+00:00",
+    "reqId": "89e803d5-5eef-4a73-91c8-c1c41c97e2f9",
+    "message": "request completed",
+    "status": 500
+  },
+  {
+    "utc": "2026-10-21T08:21:35.132000+00:00",
+    "reqId": "6e45e13c-7e54-4ae5-8e83-4f64d9e40421",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0cfa000nwrr02oyy8b4d/snapshots"
+  },
+  {
+    "utc": "2026-10-21T08:21:37.447000+00:00",
+    "reqId": "6e45e13c-7e54-4ae5-8e83-4f64d9e40421",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId/snapshots",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:21:37.448000+00:00",
+    "reqId": "6e45e13c-7e54-4ae5-8e83-4f64d9e40421",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 2.315999984741211
+  },
+  {
+    "utc": "2026-10-21T08:21:37.448000+00:00",
+    "reqId": "6e45e13c-7e54-4ae5-8e83-4f64d9e40421",
+    "message": "request completed",
+    "status": 500
+  },
+  {
+    "utc": "2026-10-21T08:21:46.970000+00:00",
+    "reqId": "769140ed-defc-4615-9e8b-f27748a61688",
+    "message": "incoming request",
+    "method": "GET",
+    "url": "/projects/cmvhu0ch1000swrr0e657b7ls"
+  },
+  {
+    "utc": "2026-10-21T08:21:47.063000+00:00",
+    "reqId": "769140ed-defc-4615-9e8b-f27748a61688",
+    "message": "request failed with server error",
+    "route": "/projects/:projectId",
+    "error": "\nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)",
+    "stack": "PrismaClientKnownRequestError: \nInvalid `this.prisma.enterpriseOrganizationSettings.upsert()` invocation in\n/workspace/vibecore/services/api/src/prisma-store.ts:4177:71\n\n  4174 }\n  4175 \n  4176 async getEnterpriseSettings(organizationId: string) {\n\u2192 4177   const settings = await this.prisma.enterpriseOrganizationSettings.upsert(\nUnique constraint failed on the fields: (`\"organizationId\"`)\n    at zr.handleRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:8286)\n    at zr.handleAndLogRequestError (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7581)\n    at zr.request (/workspace/vibecore/packages/database/generated/client/runtime/client.js:69:7288)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async a (/workspace/vibecore/packages/database/generated/client/runtime/client.js:79:6862)\n    at async PrismaApiStore.getEnterpriseSettings (/workspace/vibecore/services/api/src/prisma-store.ts:4177:22)\n    at async Object.<anonymous> (/workspace/vibecore/services/api/src/app.ts:12067:24)"
+  },
+  {
+    "utc": "2026-10-21T08:21:47.065000+00:00",
+    "reqId": "769140ed-defc-4615-9e8b-f27748a61688",
+    "event": "request.completed",
+    "status": 500,
+    "durationSeconds": 0.09399986267089844
+  },
+  {
+    "utc": "2026-10-21T08:21:47.065000+00:00",
+    "reqId": "769140ed-defc-4615-9e8b-f27748a61688",
+    "message": "request completed",
+    "status": 500
+  }
+]

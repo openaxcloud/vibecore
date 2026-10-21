@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import { writeFile } from 'node:fs/promises';
+import { createDatabaseClient } from '../../packages/database/src/index.ts';
+import { PrismaApiStore } from '../../services/api/src/prisma-store.ts';
+import { LocalProjectStorage } from '../../services/api/src/project-storage.ts';
+import { buildApiApp } from '../../services/api/src/app.ts';
+
+const target = new URL(process.env.DATABASE_URL!);
+assert.equal(target.hostname, '127.0.0.1');
+assert.equal(target.port, '55443');
+assert.equal(target.pathname, '/vibecore_ux_20261021');
+assert.notEqual(process.env.NODE_ENV, 'production');
+assert.ok(!process.env.STRIPE_SECRET_KEY && !process.env.WORKSPACE_MANAGER_URL);
+const prisma = createDatabaseClient();
+const store = new PrismaApiStore(prisma);
+const user = await store.createUser({ email: `ux-${Date.now()}@example.invalid`, name: 'Synthetic UX QA', passwordHash: 'disabled-synthetic-ux-login' });
+await store.updateUser({ userId: user.id, emailVerifiedAt: new Date().toISOString() });
+const organization = await store.createOrganization({ name: 'Synthetic UX QA', slug: `ux-${Date.now()}`, ownerUserId: user.id });
+const project = await store.createProject({ organizationId: organization.id, name: 'UX interaction audit', slug: 'ux-interaction-audit' });
+const token = randomBytes(32).toString('hex');
+await store.createSession({ userId: user.id, token, expiresAt: new Date(Date.now() + 2 * 60 * 60_000) });
+const storage = new LocalProjectStorage();
+await storage.writeFiles(project.id, [{ path: 'README.md', content: '# Synthetic UX audit\nNo provider or runtime is provisioned.\n' }]);
+const originalFetch = globalThis.fetch;
+globalThis.fetch = (request, init) => {
+  const url = new URL(request instanceof Request ? request.url : String(request));
+  assert.ok(['127.0.0.1', 'localhost'].includes(url.hostname), 'QA_EXTERNAL_HTTP_FORBIDDEN');
+  return originalFetch(request, init);
+};
+const app = await buildApiApp({ store, projectStorage: storage, emailProvider: { async send() { throw new Error('QA_EMAIL_FORBIDDEN'); } } });
+await app.listen({ host: '127.0.0.1', port: 3013 });
+await writeFile('.vibecore/ux-qa/session.json', JSON.stringify({ projectId: project.id, cookies: [{ name: 'vc_session', value: token, url: 'http://127.0.0.1:5193', httpOnly: true, sameSite: 'Lax' }] }), { mode: 0o600 });
+console.log('UX synthetic PostgreSQL/API fixture ready on loopback port 3013');
