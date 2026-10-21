@@ -18713,6 +18713,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-publication-carte-entete {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -18743,6 +18744,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-publication-carte-actions {
   display: flex;
+  flex-shrink: 0;
   margin-inline-start: auto;
   gap: 6px;
 }

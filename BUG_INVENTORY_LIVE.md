@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-456 entrées.
+457 entrées.
 
 ## Sans section
 
@@ -569,6 +569,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-UX-PUBLICATION-LOG-WRAP-001](docs/bugs/BUG-UX-PUBLICATION-LOG-WRAP-001.md) — 📤 Dispatché : Audit UX local du 21 octobre 2026 après reprise complète de ide-mobile-chrome.spec.ts. Ce cas était omis par t · 💻 Codé : Correction préparée : flex-wrap sur le seul groupe .bolt-publication-echec-actions. Les boutons passent à la l · ✅ Testé live : Avant : 44/45 tests locaux, sans retry ni omission. À 390×844 FR, Voir les journaux est mesuré à 116,7×44px et
 - [BUG-UX-DATABASE-SEQUENTIAL-LOAD-001](docs/bugs/BUG-UX-DATABASE-SEQUENTIAL-LOAD-001.md) — 📤 Dispatché : Recette combinée main fc8a687e + #750 e996671 + #753 f06923ff. Dépendance à coordonner avec le chantier BaseCh · 💻 Codé : Non corrigé. `ProjectDatabasePanel` reçoit `data` mais monte `DatabaseWorkbench` avec le seul `projectId`. Le · ✅ Testé live : Reproduit localement au deuxième passage complet : le bouton DATABASE_URL est absent avant toute mesure de hau
 - [BUG-UX-PALETTE-INITIALIZATION-001](docs/bugs/BUG-UX-PALETTE-INITIALIZATION-001.md) — 📤 Dispatché : Recette combinée main fc8a687e + #750 e996671 + #753 f06923ff. Dépendance au chantier éditeur/BaseChat ; ne pa · 💻 Codé : Non corrigé. Ne pas remplacer le geste par un force-click ou attendre arbitrairement plus longtemps. La dispar · ✅ Testé live : Reproduit localement dans le cas du menu ••• à 820 px : après l’ouverture de Design palette et un appui à l’in
+- [BUG-UX-PUBLICATION-HEADER-OVERFLOW-001](docs/bugs/BUG-UX-PUBLICATION-HEADER-OVERFLOW-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 
 ## Résidus non tabulaires — reportés mot pour mot
 
