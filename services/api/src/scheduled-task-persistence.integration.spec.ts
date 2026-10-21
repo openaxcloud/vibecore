@@ -105,6 +105,8 @@ describe.skipIf(!enabled)('scheduled task configuration — real HTTP and Postgr
 
     if (store) {
       // Only IDs created by this run; never reset a database or remove shared roles.
+      await store.prisma.scheduledTaskRun.deleteMany({ where: { projectId: projectId ?? 'not-created' } });
+      await store.prisma.scheduledTask.deleteMany({ where: { projectId: projectId ?? 'not-created' } });
       await store.prisma.project.deleteMany({ where: { id: projectId ?? 'not-created' } });
       await store.prisma.organization.deleteMany({ where: { id: { in: organizations } } });
       await store.prisma.user.deleteMany({ where: { id: { in: users } } });
