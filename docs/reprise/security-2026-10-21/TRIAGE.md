@@ -82,3 +82,9 @@ Le typecheck a passé ses cinq sections initiales ; la section workspace a
 également passé après la même correction de PATH. Les journaux initiaux et les
 reprises sont conservés dans le reçu. Mobile : 29/29, typecheck, build web,
 validation des assets et synchronisation Gradle/SPM réussis.
+
+## Assemblage avec main après #758
+
+La branche intègre `883af053f7c1b85bb472fa53c7fa87b4c8051c9b` sans modifier son UI. Le seul conflit était le compteur dérivé : 464 fiches, union préservée. `integration-receipt.json` rattache les 7 tests ciblés réussis (zéro saut) au commit et à l’arbre assemblés ; les essais globaux précédents restent attribués à leurs sources initiales. Une CI sur la nouvelle tête est nécessaire.
+
+L’audit production candidat termine avec 0 critique, 73 high, 110 moderate et 28 low (exit 1 pour les vulnérabilités restantes), contre 2 critiques sur la base. Le compteur global reste 0 critique et 98 high ; ceci ne certifie pas l’absence de vulnérabilité exploitable.
