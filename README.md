@@ -99,7 +99,7 @@ Let's get you up and running with the stable version of E-Code!
 
 ### Option 1: Node.js
 
-Node.js is required to run the application.
+Node.js 22.12.0 or newer is required for this workspace. CI and the web production image use Node.js 22; local validation also runs on Node.js 24. Node.js 18 and 20 are not supported by the complete workspace toolchain (including Capacitor CLI and mobile Vite). This requirement does not change independently packaged service container runtimes.
 
 1. Visit the [Node.js Download Page](https://nodejs.org/en/download/)
 2. Download the "LTS" (Long Term Support) version for your operating system

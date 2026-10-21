@@ -39,10 +39,14 @@ Sources primaires :
 - [Tinypool options run](https://github.com/advisories/GHSA-85c8-ppgw-ccpr) : correctif 2.1.2.
 - [Tinypool 2.0](https://github.com/tinylibs/tinypool/releases/tag/v2.0.0) : abandon de Node 18 ; CI du dépôt sur Node 22.
 
-La déclaration racine `engines.node >=18.18.0` ne constitue pas une preuve de
-compatibilité Node 18 : Tinypool 2 ne la conserve pas. Ce candidat est validé
-localement sur Node 24 et doit passer la CI Node 22 ; aucune validation Node 18
-n'est revendiquée.
+Le contrat racine est corrigé en `engines.node >=22.12.0` et le README annonce
+ce minimum. Capacitor CLI 8.5.3 exige >=22 ; Vite mobile 8.0.10 exige
+^20.19.0 ou >=22.12.0 ; Tinypool 2.1.2 exige ^20 ou >=22. La combinaison
+explique ce minimum, au lieu de promettre Node 18. CI et Dockerfile web utilisent
+Node 22 ; les images des services indépendants ne sont pas modifiées. Le test
+`node-workspace-compatibility.spec.mjs` compare le contrat aux engines des outils
+réellement installés et refuse Node 18/20/22.0. Les tests locaux restent exécutés
+sur Node 24 ; le succès réel Node 22 doit être confirmé par la CI finale.
 
 Le candidat rapporte 0 critical, 98 high, 130 moderate et 28 low. La moderate
 supplémentaire est un chemin `@capacitor/cli > xcode > uuid@7.0.3` vers

@@ -111,7 +111,7 @@
     "platform:services-built": "node scripts/check-every-chart-service-is-built.mjs"
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "@ai-sdk/amazon-bedrock": "1.0.6",
