@@ -1,0 +1,10 @@
+{
+  "atUtc": "2026-10-21T10:18:23.737330+00:00",
+  "stoppedSupersededLocalApiPorts": [
+    3013,
+    3014
+  ],
+  "activeApiPort": 3015,
+  "activeBrowserTestRestarted": false,
+  "reason": "Earlier local runs completed and archived; release duplicate server resources"
+}

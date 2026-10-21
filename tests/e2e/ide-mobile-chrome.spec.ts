@@ -1887,7 +1887,8 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await page.evaluate(() => (window as any).__sr.at(-1)._emettre('end'));
     await expect(micro).toHaveAttribute('aria-pressed', 'false');
     await expect(champ).not.toHaveAttribute('placeholder', /Listening/);
-    expect(await micro.evaluate((el) => getComputedStyle(el).color)).not.toBe(couleurEcoute);
+    // The existing CSS transition outlives the aria state change; observe its visual result.
+    await expect(micro).not.toHaveCSS('color', couleurEcoute);
 
     // Un seul appui relance — pas un stop() dans le vide, puis un troisième appui.
     await micro.tap();

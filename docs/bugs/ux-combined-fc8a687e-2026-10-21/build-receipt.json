@@ -1,0 +1,14 @@
+{
+  "refs": {
+    "base": "fc8a687e715e6052668ade83474da4aef5f27df9",
+    "menu": "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+    "panels": "f06923ff4c7aa4ce71e9b0e9af0584c0ca39f7a8"
+  },
+  "sourceTreeSha256": "4d3093e495d7fda123e0dbe9db4a7de3524fc320ee8456e5306c187da6d1a591",
+  "buildTreeSha256": "f78327169bc834d59a8dad75975ec121761848df1faec7ff03a35bc53eec3ff0",
+  "manifestSha256": "b1d88fd318cce5fd3fc8a0caf93fdb5e945818834b079b904bbc9e19cd8a7acd",
+  "archiveSha256": "60d274ff9b3af95ec4b0fddbf84698fec54061c40c84e40e4c4b775b8ae8bf17",
+  "sources": 4996,
+  "buildFiles": 2304,
+  "unexpectedDifferences": []
+}

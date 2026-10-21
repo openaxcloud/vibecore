@@ -1,0 +1,98 @@
+[
+  {
+    "version": "base",
+    "fixture": "completed",
+    "exitCode": 0,
+    "gateSha256": "49c9686771c470507999d2300563a3abd40dec17d82be1285db427c64a40fa2b",
+    "reportSha256": "f5999c807273a46bb7c485c25ae0bf5c41d987ca412e0160ebffba30b11ed257",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 5\n  failing        : 0\n  waived         : 6\n  flaky (passed on retry): 1\n\n\u26a0 passed only after a retry \u2014 real instability, worth diagnosing:\n    - sample.spec.cjs \u203a success on retry\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04.\n"
+  },
+  {
+    "version": "base",
+    "fixture": "serial",
+    "exitCode": 1,
+    "gateSha256": "49c9686771c470507999d2300563a3abd40dec17d82be1285db427c64a40fa2b",
+    "reportSha256": "18b457fc26388070167848e63ff5a1f28006108f2abfaa051e25ca5acf13dead",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 2\n  failing        : 1\n  waived         : 6\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2716 failing tests that are NOT waived:\n    - sample.spec.cjs \u203a serial dependency \u203a fails before dependent test\n"
+  },
+  {
+    "version": "base",
+    "fixture": "timeout",
+    "exitCode": 0,
+    "gateSha256": "49c9686771c470507999d2300563a3abd40dec17d82be1285db427c64a40fa2b",
+    "reportSha256": "832564f0a527a04cc1557657e2b56459f6b73cab5dca583c60c831751a2f98f3",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 2\n  failing        : 0\n  waived         : 6\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04.\n"
+  },
+  {
+    "version": "base",
+    "fixture": "teardown",
+    "exitCode": 0,
+    "gateSha256": "49c9686771c470507999d2300563a3abd40dec17d82be1285db427c64a40fa2b",
+    "reportSha256": "420adfa1684706f352e8e16239315b81af47f2c724e0762c9977b1318125c1cf",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 1\n  failing        : 0\n  waived         : 6\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04.\n"
+  },
+  {
+    "version": "base",
+    "fixture": "serial-isolated-skip",
+    "exitCode": 0,
+    "gateSha256": "49c9686771c470507999d2300563a3abd40dec17d82be1285db427c64a40fa2b",
+    "reportSha256": "6ef4e675c102b394eba4e7f3e0c840f6d9d4f666fc0b5ede2da6e41126659d55",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 1\n  failing        : 0\n  waived         : 6\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04.\n"
+  },
+  {
+    "version": "base",
+    "fixture": "timeout-isolated-skip",
+    "exitCode": 0,
+    "gateSha256": "49c9686771c470507999d2300563a3abd40dec17d82be1285db427c64a40fa2b",
+    "reportSha256": "0e0c1f34af9592fde5098a63ed8f09dbdda5d20f0554e09351ae106d4dbaabcd",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 1\n  failing        : 0\n  waived         : 6\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04.\n"
+  },
+  {
+    "version": "candidate",
+    "fixture": "completed",
+    "exitCode": 0,
+    "gateSha256": "6068ab62a4793778c84ecbb1eac8ef9e880cc176ef83854216f43ae16cad862a",
+    "reportSha256": "f5999c807273a46bb7c485c25ae0bf5c41d987ca412e0160ebffba30b11ed257",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 5\n  failing        : 0\n  waiver policy entries: 6\n  waived failures      : 0\n  flaky (passed on retry): 1\n\n\u26a0 passed only after a retry \u2014 real instability, worth diagnosing:\n    - sample.spec.cjs \u203a success on retry\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2714 gate passes: 0 failure(s), all covered by the waiver expiring 2026-11-04.\n"
+  },
+  {
+    "version": "candidate",
+    "fixture": "serial",
+    "exitCode": 1,
+    "gateSha256": "6068ab62a4793778c84ecbb1eac8ef9e880cc176ef83854216f43ae16cad862a",
+    "reportSha256": "18b457fc26388070167848e63ff5a1f28006108f2abfaa051e25ca5acf13dead",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 2\n  failing        : 1\n  waiver policy entries: 6\n  waived failures      : 0\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2716 incomplete test execution (cannot be waived):\n    - sample.spec.cjs \u203a serial dependency \u203a not executed after dependency failure []: expected=passed, outcome=skipped, attempts=1, last=skipped\n\n\u2716 failing tests that are NOT waived:\n    - sample.spec.cjs \u203a serial dependency \u203a fails before dependent test\n"
+  },
+  {
+    "version": "candidate",
+    "fixture": "timeout",
+    "exitCode": 1,
+    "gateSha256": "6068ab62a4793778c84ecbb1eac8ef9e880cc176ef83854216f43ae16cad862a",
+    "reportSha256": "832564f0a527a04cc1557657e2b56459f6b73cab5dca583c60c831751a2f98f3",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 2\n  failing        : 0\n  waiver policy entries: 6\n  waived failures      : 0\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2716 global report errors (cannot be waived):\n    - report 1: Timed out waiting 1.5s for the test suite to run\n    - report 1: Timed out waiting 1.5s for the teardown for test suite to run\n\n\u2716 incomplete test execution (cannot be waived):\n    - sample.spec.cjs \u203a unfinished operation at global deadline []: expected=passed, outcome=skipped, attempts=1, last=skipped\n    - sample.spec.cjs \u203a not reached before global deadline []: expected=passed, outcome=skipped, attempts=0, last=none\n"
+  },
+  {
+    "version": "candidate",
+    "fixture": "teardown",
+    "exitCode": 1,
+    "gateSha256": "6068ab62a4793778c84ecbb1eac8ef9e880cc176ef83854216f43ae16cad862a",
+    "reportSha256": "420adfa1684706f352e8e16239315b81af47f2c724e0762c9977b1318125c1cf",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 1\n  failing        : 0\n  waiver policy entries: 6\n  waived failures      : 0\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2716 global report errors (cannot be waived):\n    - report 1: Error: Fixture global teardown failed\n"
+  },
+  {
+    "version": "candidate",
+    "fixture": "serial-isolated-skip",
+    "exitCode": 1,
+    "gateSha256": "6068ab62a4793778c84ecbb1eac8ef9e880cc176ef83854216f43ae16cad862a",
+    "reportSha256": "6ef4e675c102b394eba4e7f3e0c840f6d9d4f666fc0b5ede2da6e41126659d55",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 1\n  failing        : 0\n  waiver policy entries: 6\n  waived failures      : 0\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2716 incomplete test execution (cannot be waived):\n    - sample.spec.cjs \u203a not executed after dependency failure []: expected=passed, outcome=skipped, attempts=1, last=skipped\n"
+  },
+  {
+    "version": "candidate",
+    "fixture": "timeout-isolated-skip",
+    "exitCode": 1,
+    "gateSha256": "6068ab62a4793778c84ecbb1eac8ef9e880cc176ef83854216f43ae16cad862a",
+    "reportSha256": "0e0c1f34af9592fde5098a63ed8f09dbdda5d20f0554e09351ae106d4dbaabcd",
+    "output": "  fichiers de specs attendus : 1\n  fichiers de specs vus      : 1\nE2E gate \u2014 waiver expires 2026-11-04 (15 day(s) left)\n  tests reported : 1\n  failing        : 0\n  waiver policy entries: 6\n  waived failures      : 0\n  flaky (passed on retry): 0\n\n\u26a0 waived entries that did not appear in this report (renamed or moved?):\n    - ide-mobile-chrome.spec.ts \u203a agent \u2014 la pastille \u00ab descendre \u00bb ne d\u00e9borde sur aucun autre panneau \u203a elle se peint sur le fil, et sur rien d\u2019autre\n    - ide-mobile-chrome.spec.ts \u203a chrome de l\u2019IDE sur t\u00e9l\u00e9phone \u2014 390 \u203a zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (light)\n    - rpl-ide-live-proof.spec.ts \u203a RPL-IDE live proof (dark)\n    - ide-panel-smoke.spec.ts \u203a desktop IDE renders every panel in-place without stale missing-import errors or full reloads\n    - mobile-device-matrix.spec.ts \u203a compact IDE shell device matrix \u203a adapts to iphone-se\n\n\u2716 incomplete test execution (cannot be waived):\n    - sample.spec.cjs \u203a not reached before global deadline []: expected=passed, outcome=skipped, attempts=0, last=none\n"
+  }
+]

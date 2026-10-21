@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-454 entrées.
+456 entrées.
 
 ## Sans section
 
@@ -567,6 +567,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-UX-TOUR-OCCLUSION-001](docs/bugs/BUG-UX-TOUR-OCCLUSION-001.md) — 📤 Dispatché : Revue #753 du 21 octobre 2026. ProductTour explicitement autorisé, autres chemins dashboard/signup réservés. · 💻 Codé : Correctif sur la branche de #753, non intégré à main : mesurer le panneau fixe et réserver du défilement dans · ✅ Testé live : Production non vérifiée. Avant : focus DOM sur Créer en mobile 390×844 mais centre recouvert par ProductTour.
 - [BUG-API-ENTERPRISE-SETTINGS-RACE-001](docs/bugs/BUG-API-ENTERPRISE-SETTINGS-RACE-001.md) — 📤 Dispatché : Revue UX #753, transmis pour prise en charge par le chantier API. Backend local main `4af4dd1a0ba14473affb2ee7 · 💻 Codé : Non corrigé dans le lot UX. Ne pas changer les règles de sécurité pour supprimer cette erreur : elle se produi · ✅ Testé live : Reproduit lors d’un chargement réel de `/projects/:id/snapshots?lang=fr`, avec un seul worker navigateur. Les
 - [BUG-UX-PUBLICATION-LOG-WRAP-001](docs/bugs/BUG-UX-PUBLICATION-LOG-WRAP-001.md) — 📤 Dispatché : Audit UX local du 21 octobre 2026 après reprise complète de ide-mobile-chrome.spec.ts. Ce cas était omis par t · 💻 Codé : Correction préparée : flex-wrap sur le seul groupe .bolt-publication-echec-actions. Les boutons passent à la l · ✅ Testé live : Avant : 44/45 tests locaux, sans retry ni omission. À 390×844 FR, Voir les journaux est mesuré à 116,7×44px et
+- [BUG-UX-DATABASE-SEQUENTIAL-LOAD-001](docs/bugs/BUG-UX-DATABASE-SEQUENTIAL-LOAD-001.md) — 📤 Dispatché : Recette combinée main fc8a687e + #750 e996671 + #753 f06923ff. Dépendance à coordonner avec le chantier BaseCh · 💻 Codé : Non corrigé. `ProjectDatabasePanel` reçoit `data` mais monte `DatabaseWorkbench` avec le seul `projectId`. Le · ✅ Testé live : Reproduit localement au deuxième passage complet : le bouton DATABASE_URL est absent avant toute mesure de hau
+- [BUG-UX-PALETTE-INITIALIZATION-001](docs/bugs/BUG-UX-PALETTE-INITIALIZATION-001.md) — 📤 Dispatché : Recette combinée main fc8a687e + #750 e996671 + #753 f06923ff. Dépendance au chantier éditeur/BaseChat ; ne pa · 💻 Codé : Non corrigé. Ne pas remplacer le geste par un force-click ou attendre arbitrairement plus longtemps. La dispar · ✅ Testé live : Reproduit localement dans le cas du menu ••• à 820 px : après l’ouverture de Design palette et un appui à l’in
 
 ## Résidus non tabulaires — reportés mot pour mot
 

@@ -1,0 +1,5 @@
+const { test, expect } = require('@playwright/test');
+test.describe.serial('serial dependency', () => {
+  test('fails before dependent test', () => expect(false).toBe(true));
+  test('not executed after dependency failure', () => expect(true).toBe(true));
+});

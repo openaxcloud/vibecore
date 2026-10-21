@@ -1,0 +1,11 @@
+{
+  "branchBaseHead": "f06923ff4c7aa4ce71e9b0e9af0584c0ca39f7a8",
+  "integratedMain": "fc8a687e715e6052668ade83474da4aef5f27df9",
+  "sourceFilesCompared": 4996,
+  "missing": [],
+  "expectedSeparateDependency": {
+    "path": "app/components/chat/HeaderOverflowMenu.tsx",
+    "ref": "e996671e600322a5c5df8f70f4ad8f4cfe766707"
+  },
+  "unexpectedDifferences": []
+}

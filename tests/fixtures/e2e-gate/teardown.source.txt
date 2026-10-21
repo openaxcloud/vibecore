@@ -1,0 +1,2 @@
+const { test, expect } = require('@playwright/test');
+test('success before teardown error', () => expect(true).toBe(true));
