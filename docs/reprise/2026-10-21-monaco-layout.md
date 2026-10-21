@@ -3,6 +3,9 @@
 Base vérifiée : `4af4dd1a0ba14473affb2ee7fdeabbac23b1274f` (#745).
 Branche : `fix/monaco-layout-ci-20261021`. Aucune fusion ni livraison de ce lot.
 La coordination demande une PR brouillon et une validation combinée avant fusion.
+PR brouillon : https://github.com/openaxcloud/vibecore/pull/749. Premier commit
+publié : `0c4a3dacb402efb2626891664c5d38e2a42b2653`, arbre local et distant
+vérifiés identiques : `28e014996f851a2bdd52babdfcba5da225e1ff42`.
 
 ## Inventaire préservé
 
@@ -59,7 +62,8 @@ mais son téléchargement vers l'exécuteur est également refusé.
 
 ## Candidat et preuves locales
 
-Monaco est préchargé dès le montage d'un shell IDE desktop, en parallèle de
+Monaco est préchargé dès l'évaluation de la route IDE desktop, avant React ;
+l'effet du shell réutilise cette promesse (et couvre un passage au desktop), en parallèle de
 l'archive et de la restauration. Le widget reste responsable de ses modèles ;
 les pages hors IDE et les formats CodeMirror ne déclenchent pas ce préchargement.
 Le second timer de sauvegarde du layout est retiré ; la portée restaurée est
@@ -72,8 +76,21 @@ Les 4 tests Monaco de main passent. Le premier candidat de préchargement a
 échoué au test d'import retardé ; une promesse unique partagée par préchargement
 et montage corrige cette différence, puis les 4 cas Monaco repassent au vert.
 Les builds intermédiaires ont été interrompus explicitement pour cette retouche
-et pour remettre les dépendances au niveau du lockfile. Le passage combiné final donne 54/54 tests verts (7 fichiers) ; le build final
-et les hooks globaux restent en cours au moment de ce checkpoint. Aucun E2E candidat vert n'est encore revendiqué.
+et pour remettre les dépendances au niveau du lockfile. Le passage combiné donne
+54/54 tests verts (7 fichiers) ; build production, typecheck global et lint global
+passent pour `0c4a3dacb`. Les hooks normaux n'ont pas été contournés.
+
+Premier passage navigateur candidat : 2 succès, 1 flaky, 1 échec persistant,
+404,5 s. Floating-file-tabs échoue encore trois fois avant les gestes ; viewport
+échoue après réancrage à la fin du budget de 90 s, puis avant Monaco, puis passe
+entièrement au troisième essai. Les deux cas mobiles passent au premier essai.
+Ce passage a chevauché le lint global ; cette contention limite la comparaison.
+Un second passage file-tabs échoue aussi trois fois ; son début chevauche le
+dernier cas mobile, ses retries n'ont plus de lint ni autre navigateur concurrent.
+Les traces montrent bien l'import Monaco désormais parallèle à l'archive, mais
+son démarrage après les effets React laisse encore trop peu de temps. Retouche :
+le démarrer dès l'évaluation du module de route, avant hydratation. Nouveau build
+et validation navigateur en cours. Aucun E2E fiable ni correctif livré revendiqué.
 
 Preuves de cet environnement : `/workspace/monaco-layout-evidence/` :
 `baseline-build.log`, `baseline-browser.json`, `baseline-browser/` (traces de

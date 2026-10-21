@@ -17,7 +17,7 @@ ligne 63 avant les gestes flottants, avec Chromium système dans cet environneme
 
 ## 💻 Codé
 
-☐ — candidat non fusionné : préchargement dans le shell IDE desktop, parallèle
+☐ — candidat non fusionné : préchargement dès l'évaluation de la route IDE desktop, avant React et parallèle
 à l'hydratation des fichiers ; promesse partagée avec les montages de widgets,
 réinitialisée après rejet. La création des modèles et leur synchronisation
 restent dans le widget. Pas de changement des délais/assertions/exemptions E2E.

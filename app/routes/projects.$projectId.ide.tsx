@@ -1,4 +1,5 @@
 import { useStore } from '@nanostores/react';
+import { getResponsiveLayoutState, preloadDesktopCodeEditor } from '@vibecore/editor';
 import {
   Activity,
   AlertTriangle,
@@ -59,6 +60,21 @@ import { ProjectWorkspaceProvider } from '~/lib/runtime/ProjectWorkspaceProvider
 import { isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { projectIdePath, withProjectSearch } from '~/utils/project-url';
+
+/*
+ * Start the engine while the route is loading, before React hydrates the IDE
+ * shell. Waiting for its effects puts Monaco behind all hydration work.
+ */
+if (
+  typeof window !== 'undefined' &&
+  getResponsiveLayoutState(window.innerWidth, window.innerHeight, {
+    coarsePointer: window.matchMedia('(pointer: coarse)').matches || window.navigator.maxTouchPoints > 0,
+  }).isDesktop
+) {
+  void preloadDesktopCodeEditor().catch((error) => {
+    console.error('Unable to preload the desktop editor for the IDE route', error);
+  });
+}
 
 const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
 
