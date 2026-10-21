@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-462 entrées.
+463 entrées.
 
 ## Sans section
 
@@ -584,6 +584,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## IDE — initialisation et persistance
 
 - [BUG-IDE-AGENT-MENU-SHELL-001](docs/bugs/BUG-IDE-AGENT-MENU-SHELL-001.md) — Le menu agent ouvert dans PendingComposerShell perd son ouverture et son focus — 📤 Dispatché : ☑ — 21 octobre 2026, coordination des PR #749 et #750. · 💻 Codé : ☐ — candidat sur branche locale d'intégration : provider au-dessus des shells, · ✅ Testé live : ☐ — test de remplacement réel rouge avant correction (1 échec/5), puis 5/5
+
+## 2026-10-21 — Fiabilité des recettes IDE
+
+- [BUG-E2E-MOBILE-MENU-NULL-TOUCH-001](docs/bugs/BUG-E2E-MOBILE-MENU-NULL-TOUCH-001.md) — Le scénario `ide-mobile-chrome.spec.ts` des menus Agent/Économique à 390 px mesure séparément le bouton avec `boundingBox()`, puis applique `touchscreen.tap()`  — 📤 Dispatché : ☑ Diagnostic isolé de la fixture mobile, sans modifier les têtes validées #749 et #758. · 💻 Codé : ☐ Pas fusionné dans main. Deux appuis deviennent `Locator.tap()` : déclencheur et entrée du menu. Playwright r · ✅ Testé live : ☐ Aucune livraison ni certification de production. Le canari WebKit de la pilule de retour en bas reste distin
 
 ## Résidus non tabulaires — reportés mot pour mot
 

@@ -1,0 +1,67 @@
+{
+  "baseCommit": "736ed190d64a980471e5943cf7e0695195f2a691",
+  "productChanged": false,
+  "browser": "system Chromium 154.0.8037.57 (not CI exact browser)",
+  "runs": {
+    "mobile-flake-baseline": {
+      "stats": {
+        "startTime": "2026-10-21T14:30:10.147Z",
+        "duration": 60752.047999999995,
+        "expected": 5,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "reportSha256": "426323b31fe9537e0cfe973736cc4f9a0396a069c55a43d11c07100c89c9bf0e"
+    },
+    "mobile-flake-diagnostic-repeat20": {
+      "stats": {
+        "startTime": "2026-10-21T14:36:38.332Z",
+        "duration": 410079.00100000005,
+        "expected": 19,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 1
+      },
+      "reportSha256": "138aa0362ae2e57e8619e197775d161f860912ff0e51661ce7e6e73c01eefd07"
+    },
+    "mobile-flake-fixed-repeat20": {
+      "stats": {
+        "startTime": "2026-10-21T14:44:36.632Z",
+        "duration": 266988.315,
+        "expected": 20,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "reportSha256": "bbfc8d1825bbb5efb443cad7a34104040c5e46c1735f1430912a9debabe2b330"
+    },
+    "mobile-flake-fixed-original5": {
+      "stats": {
+        "startTime": "2026-10-21T14:49:14.581Z",
+        "duration": 82278.111,
+        "expected": 5,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "reportSha256": "fb9adebd339105dcf7460087a9646f6c1a6443fb92dd8a11bac4172331450785"
+    }
+  },
+  "redTrace": {
+    "sha256": "88e1de43782adc4fcc39ea3b9f5fb49465a0d57d6a31e1c614a7ee5247873415",
+    "repeatIndex": 11,
+    "sequence": [
+      "Bounding box of .bolt-chatbox-mode-trigger",
+      "touchscreenTap x=0 y=0",
+      "pointerdown/click target button-back",
+      "main page navigation /ide -> /dashboard",
+      "next mode-trigger boundingBox times out within original 150000 ms test budget"
+    ]
+  },
+  "limits": [
+    "CI trace transfer refused; not retried",
+    "WebKit scroll-pill flake unresolved",
+    "Local successes do not prove absence of every intermittent product failure"
+  ]
+}
