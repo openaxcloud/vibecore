@@ -1,0 +1,103 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T16:55:47.592Z",
+    "duration": 62372.038,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "desktop",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 9384
+        }
+      ]
+    },
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "desktop",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 8750
+        }
+      ]
+    },
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "tablet",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 8073
+        }
+      ]
+    },
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "tablet",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 11324
+        }
+      ]
+    },
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "mobile",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 9723
+        }
+      ]
+    },
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "mobile",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 8813
+        }
+      ]
+    }
+  ],
+  "sourceTree": "6328177594f4ed3df64d316c54a2a9960892b777",
+  "omittedFromPublicReport": [
+    "absolute local paths",
+    "runner environment",
+    "attachments with private filesystem paths"
+  ],
+  "globalErrorCount": 0
+}

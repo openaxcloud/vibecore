@@ -1,0 +1,23 @@
+{
+  "productCommit": "d7fd27fdc2bdea60415a4f68746a0e72a1cf5772",
+  "tree": "6328177594f4ed3df64d316c54a2a9960892b777",
+  "buildExitCode": 0,
+  "typecheckExitCode": 0,
+  "lint": {
+    "exitCode": 0,
+    "errors": 0,
+    "warnings": 52
+  },
+  "unit": {
+    "files": 10,
+    "passed": 55,
+    "failed": 0,
+    "skipped": 0
+  },
+  "gitleaksStaged": {
+    "exitCode": 0,
+    "findings": 0,
+    "binary": "existing /tmp installation; no new download"
+  },
+  "hooks": "normal pre-commit, not bypassed"
+}
