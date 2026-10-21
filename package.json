@@ -376,7 +376,8 @@
       "vite>esbuild": "0.27.7",
       "bundle-require>esbuild": "0.27.7",
       "importx>esbuild": "0.27.7",
-      "proxy-addr": "^2.0.8"
+      "proxy-addr": "^2.0.8",
+      "tinypool": "2.1.2"
     }
   }
 }

@@ -1,0 +1,194 @@
+{
+  "baseSha": "6eb4bf42951057a6aa98e195a05e97211744964f",
+  "state": "candidate working tree; source file hashes bind these results, not a claimed clean commit",
+  "sources": [
+    {
+      "path": "package.json",
+      "sha256": "9c3fc95f693e4daed4305d34b87672dd3c221cf4f5cc178d3aa506169af5276e"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "sha256": "dff765b151993aa3984a5b63894f674c2f3a61b160d2b702f25f6c932260dbbd"
+    },
+    {
+      "path": "apps/mobile/package.json",
+      "sha256": "125fb1b947ac526d479fd3c534abd90e52cbd5d77da35b495612ac52489d1ebc"
+    },
+    {
+      "path": "apps/mobile/android/capacitor.settings.gradle",
+      "sha256": "49564b066bfb349352c47d27e355cb68803aeae9d28156ea14cb57fac9dc3b03"
+    },
+    {
+      "path": "apps/mobile/ios/App/CapApp-SPM/Package.swift",
+      "sha256": "6361f450a2e19e33b97dca8b3b72cae83f0073ef8beec5d18150625ef40c820a"
+    },
+    {
+      "path": "scripts/tinypool-security.checks.mjs",
+      "sha256": "25ed531bc57e8df33d7e577d6b4e6baf052194358763f7a30f03962380d49278"
+    },
+    {
+      "path": "scripts/tinypool-security.spec.mjs",
+      "sha256": "b92777ddeab53dba3d46938652ab06519a37ecc6c243994ffcad806442eb224a"
+    }
+  ],
+  "audit": {
+    "pnpm": "9.14.4",
+    "before": {
+      "info": 0,
+      "low": 28,
+      "moderate": 129,
+      "high": 98,
+      "critical": 4
+    },
+    "after": {
+      "info": 0,
+      "low": 28,
+      "moderate": 130,
+      "high": 98,
+      "critical": 0
+    },
+    "beforeExit": 1,
+    "afterExit": 1,
+    "beforeJsonSha256": "59f84530bf2f2f377a05aeca93990b4c0633065354eb927c03bcca4a59636f35",
+    "afterJsonSha256": "2a9731e9bb62da51f29ec0c41d56cbc732d33f95ededa9e74186c0f7c098ee9a",
+    "baselineProductionOnly": {
+      "counts": {
+        "info": 0,
+        "low": 28,
+        "moderate": 110,
+        "high": 73,
+        "critical": 2
+      },
+      "exit": 1,
+      "sha256": "e89e4c59b415836efef8c72c204e3a205764e58c5fadaf657280860056374ba2",
+      "command": "pnpm 9.14.4 audit --prod --json on exact base manifests and lockfile"
+    }
+  },
+  "tinypool": {
+    "beforeVersion": "1.1.1",
+    "afterVersion": "2.1.2",
+    "before": {
+      "passed": 0,
+      "failed": 2,
+      "skipped": 0,
+      "exit": 1
+    },
+    "after": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "exit": 0
+    },
+    "scope": "real local workers after controlled prototype pollution; not evidence of remote product exploitation"
+  },
+  "mobile": {
+    "resolvedVersion": "8.5.3",
+    "testsPassed": 29,
+    "typecheck": "passed",
+    "webBuild": "passed",
+    "nativeSync": "reported success; stdout preserved after transport interruption",
+    "androidCompile": "not yet run",
+    "iosCompile": "not run",
+    "deviceRecipe": "not run",
+    "distribution": "not performed"
+  },
+  "logs": [
+    {
+      "path": "tinypool-before-final.tap",
+      "sha256": "6477e069c09e5ccf4ca454f80be00c19b4efb2afe06152d57a4d3c694b424a6e",
+      "originalSha256": "09c34e22eb2009c501a0d4b0111f8f28f7f43e5ad86aeb981de5a05fc4be8d2e",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "tinypool-after-final.tap",
+      "sha256": "36b44d22f63f1324cd502c453a1ad4261e6377beb5fe6a5e47a776428b4cb2a2",
+      "originalSha256": "36b44d22f63f1324cd502c453a1ad4261e6377beb5fe6a5e47a776428b4cb2a2",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "triage-mobile-build.txt",
+      "sha256": "3e4f7ef27c1bb92cf401d4ae49ffb39be9edc66da053fb4a5f483d7f4081e7ee",
+      "originalSha256": "22198bc1ae07f973f287b1e58368bd38d55371a0b5dcdf4d7fc561407789d25a",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "triage-mobile-sync.txt",
+      "sha256": "9ec124991cb18fa92b0bc57e616c448879b5af0bac4761ff0dcddc3ab1d1318e",
+      "originalSha256": "9ec124991cb18fa92b0bc57e616c448879b5af0bac4761ff0dcddc3ab1d1318e",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "triage-mobile-tests.txt",
+      "sha256": "26c68dd3181c83a02d8bb2b51d047ba6d83d5bb28de11ffb5aac221ffe2075b0",
+      "originalSha256": "bdfe3ab7160d96718c82c5e69f2afb79fc0c11c6e7f5c5964ac9d05322b38f09",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "triage-mobile-typecheck.txt",
+      "sha256": "bbf1e17f08b481183e9f24fbeedd3dabc492d86348c1b2fd07f9335d7a5c2d55",
+      "originalSha256": "b34617eff6b1b173ee84b8c00e19242dc545ee89a186ebd8636f146fb81c9517",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "triage-mobile-assets.txt",
+      "sha256": "32083a763a0a2ae7e2bac7f54b52f67c37e1e01fe0fc751522bee58c9e098997",
+      "originalSha256": "32083a763a0a2ae7e2bac7f54b52f67c37e1e01fe0fc751522bee58c9e098997",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "pnpm9-replay.json",
+      "sha256": "8094ef127d36c3155917d5e7e2c541152a757e10ef2be21d3975c2e681aa2a02",
+      "originalSha256": "e044e3a859d1cffc3ff8d270acb97a5c01bf3dbb6374845cefe37d660f009310",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "typecheck-first.txt",
+      "sha256": "2301807f62cd5ae3bddaed083d6d4a3aa320d14c33e734ec1134f7a14eaecacf",
+      "originalSha256": "2301807f62cd5ae3bddaed083d6d4a3aa320d14c33e734ec1134f7a14eaecacf",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "typecheck-workspace-pnpm9.txt",
+      "sha256": "48506f2a2ba13d896f8afb554bef34e9836df8b0b9f37bb8503f1db6b7187d81",
+      "originalSha256": "48506f2a2ba13d896f8afb554bef34e9836df8b0b9f37bb8503f1db6b7187d81",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    },
+    {
+      "path": "targeted-tests.txt",
+      "sha256": "0dc4aa92951e3aa57cee974bc4d2ad911a4496aee0c586b8d1f6cb0bc0feb1b9",
+      "originalSha256": "9537d657fdd01b46356ffc372c3164ec59d08f03c85da8cf66b51d0c69dd0892",
+      "normalization": "trailing whitespace and trailing blank lines only"
+    }
+  ],
+  "typecheck": {
+    "firstInvocation": "five sections passed; workspace failed because nested global pnpm11 attempted installation into unavailable home path",
+    "workspaceReplay": "exact recursive workspace command with pnpm9.14.4 passed, exit0",
+    "noTimeoutChanges": true
+  },
+  "rootUnit": {
+    "firstRun": {
+      "numTotalTests": 9876,
+      "numPassedTests": 9867,
+      "numFailedTests": 2,
+      "numPendingTests": 7,
+      "numTodoTests": 0,
+      "success": false
+    },
+    "firstRunReportSha256": "345d95399242db429a7f61ca2138ade87e9223d1b871d001c29b8125f8b745f2",
+    "failedFiles": [
+      "tests/guards/admin-dependances-production.spec.ts",
+      "app/lib/runtime/vite-hmr-config.compilation.spec.ts"
+    ],
+    "cause": "nested global pnpm11; unavailable default home store; test source unchanged",
+    "pnpm9Replay": {
+      "numTotalTests": 13,
+      "numPassedTests": 13,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTodoTests": 0,
+      "success": true
+    },
+    "pnpm9ReplayExit": 0,
+    "note": "Replay overlaps previously passed cases; do not sum both run counts."
+  }
+}
