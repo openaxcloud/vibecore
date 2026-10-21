@@ -1,0 +1,372 @@
+{
+  "config": {
+    "configFile": "<fixture-root>/completed/playwright.config.cjs",
+    "rootDir": "<fixture-root>/completed",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "<fixture-root>/completed/output",
+        "repeatEach": 1,
+        "retries": 1,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "<fixture-root>/completed",
+        "testIgnore": [],
+        "testMatch": [
+          "sample.spec.cjs"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "sample.spec.cjs",
+      "file": "sample.spec.cjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "executed success",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:55:38.111Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8aa1cfe786b44e0de529-38e4f4568fb507bd7834",
+          "file": "sample.spec.cjs",
+          "line": 2,
+          "column": 1
+        },
+        {
+          "title": "explicit platform exclusion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "<fixture-root>/completed/sample.spec.cjs",
+                    "line": 3,
+                    "column": 6
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 0,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:55:38.147Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "<fixture-root>/completed/sample.spec.cjs",
+                        "line": 3,
+                        "column": 6
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8aa1cfe786b44e0de529-b7360fb61757af6c015d",
+          "file": "sample.spec.cjs",
+          "line": 3,
+          "column": 6
+        },
+        {
+          "title": "conditional platform exclusion",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "Fixture explicit exclusion",
+                  "location": {
+                    "file": "<fixture-root>/completed/sample.spec.cjs",
+                    "line": 4,
+                    "column": 51
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 1,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:55:38.147Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Fixture explicit exclusion",
+                      "location": {
+                        "file": "<fixture-root>/completed/sample.spec.cjs",
+                        "line": 4,
+                        "column": 51
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "8aa1cfe786b44e0de529-7184c3461055ba55ec1f",
+          "file": "sample.spec.cjs",
+          "line": 4,
+          "column": 1
+        },
+        {
+          "title": "expected failure",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [
+                {
+                  "type": "fail",
+                  "location": {
+                    "file": "<fixture-root>/completed/sample.spec.cjs",
+                    "line": 5,
+                    "column": 39
+                  }
+                }
+              ],
+              "expectedStatus": "failed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 8,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at <fixture-root>/completed/sample.spec.cjs:5:61",
+                    "location": {
+                      "file": "<fixture-root>/completed/sample.spec.cjs",
+                      "column": 61,
+                      "line": 5
+                    },
+                    "snippet": "  3 | test.skip('explicit platform exclusion', () => {});\n  4 | test('conditional platform exclusion', () => test.skip(true, 'Fixture explicit exclusion'));\n> 5 | test('expected failure', () => { test.fail(); expect(false).toBe(true); });\n    |                                                             ^\n  6 | test('success on retry', ({}, info) => expect(info.retry).toBe(1));\n  7 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "<fixture-root>/completed/sample.spec.cjs",
+                        "column": 61,
+                        "line": 5
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  3 | test.skip('explicit platform exclusion', () => {});\n  4 | test('conditional platform exclusion', () => test.skip(true, 'Fixture explicit exclusion'));\n> 5 | test('expected failure', () => { test.fail(); expect(false).toBe(true); });\n    |                                                             ^\n  6 | test('success on retry', ({}, info) => expect(info.retry).toBe(1));\n  7 |\n    at <fixture-root>/completed/sample.spec.cjs:5:61"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:55:38.162Z",
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "location": {
+                        "file": "<fixture-root>/completed/sample.spec.cjs",
+                        "line": 5,
+                        "column": 39
+                      }
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "<fixture-root>/completed/output/sample-expected-failure/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "<fixture-root>/completed/sample.spec.cjs",
+                    "column": 61,
+                    "line": 5
+                  }
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8aa1cfe786b44e0de529-268e05f1c449c763ae4d",
+          "file": "sample.spec.cjs",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "success on retry",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at <fixture-root>/completed/sample.spec.cjs:6:59",
+                    "location": {
+                      "file": "<fixture-root>/completed/sample.spec.cjs",
+                      "column": 59,
+                      "line": 6
+                    },
+                    "snippet": "  4 | test('conditional platform exclusion', () => test.skip(true, 'Fixture explicit exclusion'));\n  5 | test('expected failure', () => { test.fail(); expect(false).toBe(true); });\n> 6 | test('success on retry', ({}, info) => expect(info.retry).toBe(1));\n    |                                                           ^\n  7 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "<fixture-root>/completed/sample.spec.cjs",
+                        "column": 59,
+                        "line": 6
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\n  4 | test('conditional platform exclusion', () => test.skip(true, 'Fixture explicit exclusion'));\n  5 | test('expected failure', () => { test.fail(); expect(false).toBe(true); });\n> 6 | test('success on retry', ({}, info) => expect(info.retry).toBe(1));\n    |                                                           ^\n  7 |\n    at <fixture-root>/completed/sample.spec.cjs:6:59"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:55:38.195Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "<fixture-root>/completed/output/sample-success-on-retry/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "<fixture-root>/completed/sample.spec.cjs",
+                    "column": 59,
+                    "line": 6
+                  }
+                },
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 1,
+                  "startTime": "2026-10-21T08:55:38.989Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "flaky"
+            }
+          ],
+          "id": "8aa1cfe786b44e0de529-a90d4d1f14dc1a11a884",
+          "file": "sample.spec.cjs",
+          "line": 6,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-21T08:55:37.352Z",
+    "duration": 1688.497,
+    "expected": 2,
+    "skipped": 2,
+    "unexpected": 0,
+    "flaky": 1
+  }
+}

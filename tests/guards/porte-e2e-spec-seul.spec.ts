@@ -27,7 +27,20 @@ function rapport(tests: Array<{ titre: string; statut: 'expected' | 'unexpected'
       {
         title: SPEC,
         file: SPEC,
-        specs: tests.map(({ titre, statut }) => ({ title: titre, file: SPEC, tests: [{ status: statut }] })),
+        specs: tests.map(({ titre, statut }) => ({
+          title: titre,
+          file: SPEC,
+          tests: [
+            {
+              status: statut,
+              expectedStatus: 'passed',
+              results:
+                statut === 'flaky'
+                  ? [{ status: 'failed' }, { status: 'passed' }]
+                  : [{ status: statut === 'unexpected' ? 'failed' : 'passed' }],
+            },
+          ],
+        })),
         suites: [],
       },
     ],
