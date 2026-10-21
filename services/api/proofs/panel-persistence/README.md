@@ -4,7 +4,7 @@ Base : `4af4dd1a0ba14473affb2ee7fdeabbac23b1274f` (#745), vérifiée par fetch G
 
 ## Frontière réelle
 
-`fetch` HTTP sur socket localhost → Fastify → authentification par sessions persistées → Prisma → PostgreSQL 16 avec pgvector. Deux utilisateurs, deux organisations et un projet synthétiques sont créés par le store réel. Les sessions sont semées en base, sans simuler le middleware ; le parcours connexion/mot de passe n'est pas testé. Aucun fournisseur injecté, aucun TestApiStore et aucun mock dans la recette. Les tests de contrat préexistants sont comptés séparément.
+`fetch` HTTP sur socket localhost → Fastify → authentification par sessions persistées → Prisma → PostgreSQL 16 avec pgvector. Deux utilisateurs, deux organisations et un projet synthétiques sont créés par le store réel. Les sessions sont semées en base, sans simuler le middleware ; le parcours connexion/mot de passe n'est pas testé. Aucun fournisseur injecté : identité, autorisations et persistance utilisent le store PostgreSQL réel. Les tests de contrat préexistants sont comptés séparément.
 
 Chaque reconnexion ferme le serveur et le client Prisma puis instancie un autre serveur et un autre client. Cela prouve la persistance hors instance applicative ; ce n'est ni un redémarrage physique de PostgreSQL ni une reconnexion navigateur. Les six tests forment un parcours ordonné ; exécuter le fichier entier, sans sélection d'un seul cas.
 

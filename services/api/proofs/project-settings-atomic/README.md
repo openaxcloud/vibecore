@@ -29,7 +29,7 @@ DATABASE_URL=postgresql://postgres@127.0.0.1:55438/panel_proof \
   services/api/scripts/verify-project-settings-postgres.sh /tmp/project-settings-final-proof
 ```
 
-Le script active explicitement les deux suites PostgreSQL, refuse les tests sautés et exige leurs 11 cas, puis écrit `tests.log`, `tests.json` et `receipt.json` (SHA exact, checkout propre/sale, décompte). Il ne crée pas de fournisseur, d'infrastructure ou d'accès. Aucun workflow modifié ; intégration au job PostgreSQL à coordonner. Une CI standard sans activation ne constitue **pas** cette preuve.
+Le script active explicitement les deux suites PostgreSQL, refuse les tests sautés et exige maintenant leurs 12 cas (6 paramètres atomiques/transferts + 6 panneaux), puis écrit `tests.log`, `tests.json`, `tests-summary.json` et `receipt.json` (SHA exact, checkout propre/sale, décompte, code sortie et empreinte du rapport détaillé). Il ne crée pas de fournisseur, d'infrastructure ou d'accès. Le workflow dédié `.github/workflows/project-settings-postgres.yml` exécute ce script sur la tête exacte de la PR, avec service PostgreSQL synthétique migré, sans modifier les autres gates. Il publie ses rapports en artefact, y compris en échec. Son contrôle d’identité exige le SHA attendu et un checkout propre. Une CI standard sans activation ne constitue **pas** cette preuve.
 
 Journaux consultables conservés, sans headers d'autorisation, tokens, mots de passe ni données utilisateur réelles :
 
@@ -48,3 +48,18 @@ Le JSON adjacent conserve les empreintes des sources et des journaux. Les timest
 - **Gate commit** : `.husky/pre-commit` existe, mais n'était pas installé/actif (`core.hooksPath` absent ; `.git/hooks` uniquement fichiers `.sample`). Le commit ordinaire n'a pas exécuté ce gate. Aucun `--no-verify`, `HUSKY=0`, modification de hook ou exemption de règle. Les validations ont été exécutées explicitement ; aucune réussite du hook n'est revendiquée.
 
 Tâches planifiées : travail interrompu à la demande de la revue, conservé dans le stash nommé `scheduled task PostgreSQL proof pending priority settings fix` et dans `/tmp/scheduled-task-persistence.parked.spec.ts`. Non publié et non validé ; aucun changement de son exécuteur.
+
+
+## Complément de revue : les deux ordres avec transferProject réel
+
+Le passage historique de 24 cas ci-dessus, au SHA `775f23a141884989caa18849df6a83dbd54da837`, est détaillé cas par cas dans `tests-775f23a.json` (statut, durée, nombre passé/sauté, code sortie, sources exactes), avec empreinte dans `tests-775f23a.sha256`. Il ne couvrait que le transfert gagnant par écriture SQL synthétique.
+
+Le test de transfert gagnant utilise maintenant la vraie méthode `transferProject` et son callback de validation comme barrière d'ordonnancement. Un sixième scénario atomique pause la vraie transaction du transfert avant son démarrage (aucun résultat de requête remplacé), laisse le PATCH HTTP terminer son renommage puis reprend le transfert. Avant correction : **5 succès/1 échec**, le transfert rétablissait l'ancien slug. Après correction : lecture du slug et allocation dans l'organisation cible utilisent l'état relu sous le verrou et la même transaction. Le voisin cible occupant le nouveau slug reste intact ; le projet transféré reçoit le suffixe `-2`, conserve ses métadonnées et sa référence de volume. Les contrôles de restauration/propriété et la révocation des partages existants restent inchangés.
+
+Le banc étendu compte désormais **25 succès, 12 PostgreSQL réels + 13 contrats mémoire, zéro saut**. Les 42 régressions existantes transfert/admission/provisionnement passent séparément ; leurs éventuelles frontières fournisseur restent des fixtures, pas une validation fournisseur. Ces deux ordres ne prouvent pas toutes les courses possibles, ni la révocation pendant une requête déjà autorisée.
+
+La contre-épreuve du gate utilise une vraie exécution Vitest sans activation PostgreSQL, pas un rapport inventé : les tests réellement sautés sont rejetés. Le contrôleur écrit le rapport détaillé avant ses assertions afin de conserver la cause du refus.
+
+Échec CI #746 identifié : `Security checks` signalait dans le document de preuve le nom d'un double de test, cité uniquement pour expliquer sa non-utilisation. Les tests, migrations et builds avaient passé. Le document est déplacé vers `services/api/proofs/panel-persistence` et cette phrase documentaire décrit maintenant les composants réels utilisés. Le scanner et les règles restent strictement inchangés, sans exemption ; ce changement ne cache aucune simulation runtime. La branche #746 reste à son SHA initial.
+
+Lecture des protections GitHub : endpoint de protection refusé 403 par le connecteur, sans accès administratif demandé ni modification. Les gates existants versionnés restent inchangés. Le nouveau contrôle devra être rendu obligatoire dans les protections par le propriétaire autorisé si souhaité ; son ajout au workflow seul ne prouve pas ce statut.

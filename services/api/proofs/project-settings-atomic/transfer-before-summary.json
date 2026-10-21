@@ -1,0 +1,51 @@
+{
+  "sourceSha256": {
+    "services/api/src/prisma-store.ts": "f9fdd4a988a35d075662abef1e8f445149ff5ec684a53da9c206f55335640108",
+    "services/api/src/project-settings-atomic.integration.spec.ts": "f5640971b6902d64652def1930aeb68c7a67d606956b0f0c0f08912ac3cd3eb8"
+  },
+  "testExitCode": 1,
+  "passed": 5,
+  "failed": 1,
+  "skipped": 0,
+  "suites": [
+    {
+      "file": "services/api/src/project-settings-atomic.integration.spec.ts",
+      "status": "failed",
+      "durationMs": 2247.084716796875,
+      "tests": [
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL rolls back all metadata on repeated 409 collision and leaves no redirect after reconnect",
+          "status": "passed",
+          "durationMs": 766.8533520000001
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL commits metadata, slug and redirect together, supports repetition and rename back",
+          "status": "passed",
+          "durationMs": 513.2713440000007
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL concurrent claims of one unique slug commit exactly one complete project mutation",
+          "status": "passed",
+          "durationMs": 308.59854500000074
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL rejects stale organization scope after a transfer wins the project row lock",
+          "status": "passed",
+          "durationMs": 335.04669400000057
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL keeps a completed rename when the real transfer starts its transaction later",
+          "status": "failed",
+          "durationMs": 69.20520699999906
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL keeps projects:write checks after role downgrade and membership revocation",
+          "status": "passed",
+          "durationMs": 253.0847900000008
+        }
+      ]
+    }
+  ],
+  "expected": "The transfer allocates the slug from the completed rename; the target collision produces the -2 suffix.",
+  "observed": "The real transfer restores its stale before-transfer slug after the PATCH has committed."
+}
