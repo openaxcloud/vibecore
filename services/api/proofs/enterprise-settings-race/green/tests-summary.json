@@ -1,0 +1,62 @@
+{
+  "sha": "fc8a687e715e6052668ade83474da4aef5f27df9",
+  "dirty": true,
+  "testExitCode": 0,
+  "total": 5,
+  "passed": 5,
+  "failed": 0,
+  "skipped": 0,
+  "todo": 0,
+  "sourceSha256": [
+    {
+      "path": "src/app.ts",
+      "sha256": "eeadb5985abfc9e67f74e1bec0a7611e45da66d03f6cf366a75325d4b124a4c0"
+    },
+    {
+      "path": "src/prisma-store.ts",
+      "sha256": "388b842a67c903bf7e074960710d45ba7e9d07cf8a5e81826871e6933622c32f"
+    },
+    {
+      "path": "src/enterprise-settings-postgres.integration.spec.ts",
+      "sha256": "1a3560a3d0b556685e53dfd0b68ecd4cee052362112db5aa6df37af227ad7a1e"
+    },
+    {
+      "path": "scripts/verify-enterprise-settings-postgres.sh",
+      "sha256": "adfee49dc7a94af40465d0d210cd2f95c82262f52ab474072adc32c454304a17"
+    }
+  ],
+  "suites": [
+    {
+      "file": "src/enterprise-settings-postgres.integration.spec.ts",
+      "status": "passed",
+      "durationMs": 1663.3447265625,
+      "tests": [
+        {
+          "name": "enterprise settings with real PostgreSQL and HTTP serves both first GETs during concurrent insertion, repeated on three fresh organizations",
+          "status": "passed",
+          "durationMs": 1022.0329349999993
+        },
+        {
+          "name": "enterprise settings with real PostgreSQL and HTTP preserves every existing setting and updatedAt across concurrent reads and reconnection",
+          "status": "passed",
+          "durationMs": 176.857066999999
+        },
+        {
+          "name": "enterprise settings with real PostgreSQL and HTTP refuses foreign organization access to a fresh organization without returning project data",
+          "status": "passed",
+          "durationMs": 213.45203799999945
+        },
+        {
+          "name": "enterprise settings with real PostgreSQL and HTTP preserves preconfigured owner settings while refusing foreign organization access",
+          "status": "passed",
+          "durationMs": 157.1454279999998
+        },
+        {
+          "name": "enterprise settings with real PostgreSQL and HTTP propagates a real foreign-key failure instead of returning fabricated defaults",
+          "status": "passed",
+          "durationMs": 88.34462900000108
+        }
+      ]
+    }
+  ]
+}

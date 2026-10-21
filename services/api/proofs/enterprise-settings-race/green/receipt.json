@@ -1,0 +1,11 @@
+{
+  "sha": "fc8a687e715e6052668ade83474da4aef5f27df9",
+  "dirty": true,
+  "testExitCode": 0,
+  "testReportSha256": "ed99e63813c1439ec865ea4db5c0507de5d6112cf2eb3bcf07fd4f81738e6e87",
+  "postgresTests": 5,
+  "observationsSha256": "213f88f0d0166c0bca67a219adb855b19be6bfe7ff4002ee7bcd708bf0f612d6",
+  "skipped": 0,
+  "passed": 5,
+  "completedAt": "2026-10-21T09:59:53.193Z"
+}
