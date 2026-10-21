@@ -237,15 +237,28 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   });
 }
 
-function actionError(error: unknown, snapshotId?: string) {
+async function actionError(error: unknown, snapshotId?: string) {
   if (isReauthRedirect(error)) {
     throw error;
   }
 
   const status = error instanceof Response ? error.status : 503;
 
+  const payload =
+    error instanceof Response
+      ? await error
+          .clone()
+          .json()
+          .catch(() => null)
+      : null;
+
+  const code =
+    payload && typeof payload === 'object' && 'code' in payload && typeof payload.code === 'string'
+      ? payload.code
+      : undefined;
+
   const errorCode =
-    error instanceof Response ? projectSnapshotsErrorCodeForStatus(error.status) : ('unavailable' as const);
+    error instanceof Response ? projectSnapshotsErrorCodeForStatus(error.status, code) : ('unavailable' as const);
 
   return json(snapshotId ? { errorCode, snapshotId } : { errorCode }, { status });
 }

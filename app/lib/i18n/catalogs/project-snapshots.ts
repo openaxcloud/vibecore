@@ -74,6 +74,8 @@ export const projectSnapshotsEn = {
   'projectSnapshots.error.forbidden': 'You do not have permission to complete this snapshot action.',
   'projectSnapshots.error.notFound': 'This snapshot is no longer available. Reload the list and try again.',
   'projectSnapshots.error.conflict': 'This snapshot can no longer be restored safely. Reload the list and try again.',
+  'projectSnapshots.error.quotaExceeded':
+    'The snapshot quota for this workspace has been reached. Check usage and plan limits.',
   'projectSnapshots.error.rateLimited': 'Too many snapshot requests were sent. Wait a moment and try again.',
   'projectSnapshots.error.rejected': 'The snapshot action was rejected. Check your request and try again.',
   'projectSnapshots.error.unavailable': 'Snapshots are temporarily unavailable. Please try again in a moment.',
@@ -150,6 +152,8 @@ export const projectSnapshotsFr: ProjectSnapshotsCopy = {
   'projectSnapshots.error.notFound': 'Cet instantané n’est plus disponible. Rechargez la liste, puis réessayez.',
   'projectSnapshots.error.conflict':
     'Cet instantané ne peut plus être restauré en toute sécurité. Rechargez la liste, puis réessayez.',
+  'projectSnapshots.error.quotaExceeded':
+    'Le quota d’instantanés de cet espace est atteint. Consultez l’utilisation et les limites de l’offre.',
   'projectSnapshots.error.rateLimited':
     'Trop de demandes concernant les instantanés ont été envoyées. Patientez un instant, puis réessayez.',
   'projectSnapshots.error.rejected': 'L’action sur l’instantané a été refusée. Vérifiez votre demande, puis réessayez.',
@@ -164,6 +168,7 @@ export type ProjectSnapshotsErrorCode =
   | 'forbidden'
   | 'notFound'
   | 'conflict'
+  | 'quotaExceeded'
   | 'rateLimited'
   | 'rejected'
   | 'unavailable';
@@ -175,6 +180,7 @@ const errorKeys: Readonly<Record<ProjectSnapshotsErrorCode, ProjectSnapshotsKey>
   forbidden: 'projectSnapshots.error.forbidden',
   notFound: 'projectSnapshots.error.notFound',
   conflict: 'projectSnapshots.error.conflict',
+  quotaExceeded: 'projectSnapshots.error.quotaExceeded',
   rateLimited: 'projectSnapshots.error.rateLimited',
   rejected: 'projectSnapshots.error.rejected',
   unavailable: 'projectSnapshots.error.unavailable',
@@ -289,7 +295,7 @@ export function projectSnapshotDisplayLabel(
   return label ?? projectSnapshotKindLabel(kind, language);
 }
 
-export function projectSnapshotsErrorCodeForStatus(status: number): ProjectSnapshotsErrorCode {
+export function projectSnapshotsErrorCodeForStatus(status: number, code?: string): ProjectSnapshotsErrorCode {
   if (status === 403) {
     return 'forbidden';
   }
@@ -303,7 +309,7 @@ export function projectSnapshotsErrorCodeForStatus(status: number): ProjectSnaps
   }
 
   if (status === 429) {
-    return 'rateLimited';
+    return code === 'QUOTA_EXCEEDED' ? 'quotaExceeded' : 'rateLimited';
   }
 
   return status >= 500 ? 'unavailable' : 'rejected';
