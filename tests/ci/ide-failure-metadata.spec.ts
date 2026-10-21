@@ -119,6 +119,25 @@ function response(req: Request, status = 200): Response {
 }
 
 describe('IDE failure network evidence', () => {
+  it.each([
+    ['database.data', 'database-panel'],
+    ['git', 'git-panel'],
+    ['git.data', 'git-panel'],
+    ['security', 'security-panel'],
+    ['security.data', 'security-panel'],
+  ])('records the %s panel without exposing its URL', (panel, kind) => {
+    const diagnostics = createIdeRequestDiagnostics(100, () => 110);
+    const req = request(`https://app.example/api/projects/private-project/ide-panel/${panel}?token=PRIVATE_SENTINEL`);
+    diagnostics.onRequest(req);
+    diagnostics.onResponse(response(req, 503));
+    diagnostics.onRequestFinished(req);
+    const snapshot = diagnostics.snapshot();
+
+    expect(snapshot.requests).toMatchObject([{ kind, status: 503, state: 'finished' }]);
+    expect(JSON.stringify(snapshot)).not.toContain('private-project');
+    expect(JSON.stringify(snapshot)).not.toContain('PRIVATE_SENTINEL');
+  });
+
   it('distinguishes no request, awaiting headers and receiving an unfinished body', () => {
     let now = 100;
 

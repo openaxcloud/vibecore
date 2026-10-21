@@ -1,0 +1,31 @@
+Accessibility Tests	pass	3m55s	https://github.com/openaxcloud/vibecore/actions/runs/39572477774/job/119129818821
+Audit français — pertinence	pass	16s	https://github.com/openaxcloud/vibecore/actions/runs/39572477765/job/119129817699
+Audit français — verdict	pass	3s	https://github.com/openaxcloud/vibecore/actions/runs/39572477765/job/119139458133
+Canari iOS WebKit (non bloquant)	pass	6m25s	https://github.com/openaxcloud/vibecore/actions/runs/39572477634/job/119129946740
+CodeQL Analysis (javascript)	pass	6m31s	https://github.com/openaxcloud/vibecore/actions/runs/39572477761/job/119129817037
+CodeQL Analysis (typescript)	pass	7m26s	https://github.com/openaxcloud/vibecore/actions/runs/39572477761/job/119129817482
+Dependency Vulnerability Scan	pass	3m54s	https://github.com/openaxcloud/vibecore/actions/runs/39572477761/job/119129817387
+E2E tranche 1/4	pass	24m18s	https://github.com/openaxcloud/vibecore/actions/runs/39572477634/job/119129946899
+E2E tranche 2/4	pass	12m15s	https://github.com/openaxcloud/vibecore/actions/runs/39572477634/job/119129946790
+E2E tranche 3/4	pass	10m34s	https://github.com/openaxcloud/vibecore/actions/runs/39572477634/job/119129946841
+E2E tranche 4/4	pass	5m21s	https://github.com/openaxcloud/vibecore/actions/runs/39572477634/job/119129946826
+Install, test, build, scan	pass	15m7s	https://github.com/openaxcloud/vibecore/actions/runs/39572477659/job/119129816974
+PR Size Check	pass	20s	https://github.com/openaxcloud/vibecore/actions/runs/39572477774/job/119129818864
+Performance Audit	pass	4m12s	https://github.com/openaxcloud/vibecore/actions/runs/39572477774/job/119129818822
+Perimetre des changements	pass	16s	https://github.com/openaxcloud/vibecore/actions/runs/39572477634/job/119129817025
+Playwright desktop-1024	pass	10m35s	https://github.com/openaxcloud/vibecore/actions/runs/39572477765/job/119129947095
+Playwright desktop-1440	pass	13m57s	https://github.com/openaxcloud/vibecore/actions/runs/39572477765/job/119129947204
+Playwright local stack	pass	16s	https://github.com/openaxcloud/vibecore/actions/runs/39572477634/job/119143234154
+Playwright mobile-390	pass	12m2s	https://github.com/openaxcloud/vibecore/actions/runs/39572477765/job/119129947124
+Playwright tablet-768	pass	12m48s	https://github.com/openaxcloud/vibecore/actions/runs/39572477765/job/119129947057
+Quality Analysis	pass	8m5s	https://github.com/openaxcloud/vibecore/actions/runs/39572477774/job/119129818491
+Quality Gates	pass	14m54s	https://github.com/openaxcloud/vibecore/actions/runs/39572477715/job/119129816912
+Release Validation	pass	10s	https://github.com/openaxcloud/vibecore/actions/runs/39572477715/job/119136372910
+Secret scan (gitleaks, blocking)	pass	33s	https://github.com/openaxcloud/vibecore/actions/runs/39572477761/job/119129817560
+Secrets Detection	pass	48s	https://github.com/openaxcloud/vibecore/actions/runs/39572477761/job/119129817652
+Validate PR Title	pass	3s	https://github.com/openaxcloud/vibecore/actions/runs/39572510486/job/119129925786
+linux desktop build	pass	11m20s	https://github.com/openaxcloud/vibecore/actions/runs/39572477695/job/119129817008
+macos desktop build	pass	17m42s	https://github.com/openaxcloud/vibecore/actions/runs/39572477695/job/119129817571
+windows desktop build	pass	20m10s	https://github.com/openaxcloud/vibecore/actions/runs/39572477695/job/119129817514
+Draft desktop release	skipping	0	https://github.com/openaxcloud/vibecore/actions/runs/39572477695/job/119138762050
+Security Review Required	skipping	0	https://github.com/openaxcloud/vibecore/actions/runs/39572477715/job/119129818736

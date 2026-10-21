@@ -1,0 +1,17 @@
+{
+  "productHead": "2b68724f6ed2e9be6702138aebfac6e2579c630b",
+  "menuHead": "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+  "sourceFilesCompared": 4980,
+  "compiledFiles": 2304,
+  "missingPaths": [],
+  "unexpectedDifferences": [],
+  "expectedOverlay": {
+    "path": "app/components/chat/HeaderOverflowMenu.tsx",
+    "sourceRef": "e996671e600322a5c5df8f70f4ad8f4cfe766707",
+    "sha256": "658ea2ea31250dc1d4b282d5e3e9d33568fee21b082fe506fa2072320ba3685f"
+  },
+  "sourceTreeSha256": "4002a31569c3c58366d6f4d4d769388ed9b3cf9cb17f3462f77543101936a41b",
+  "buildTreeSha256": "3ce63e8e60bcbd4a4315f562c89835ae9849c49f3b2a45665b01e1e566196eb4",
+  "manifestSha256": "b85ba16abe3cb67a81d7cfab9371ca60b2c8332c065d8c36b02398b241c9d340",
+  "comparedAtUtc": "2026-10-21T09:04:18.645888+00:00"
+}

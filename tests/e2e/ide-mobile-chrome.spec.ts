@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import JSZip from 'jszip';
 import { requireDatabaseSetup } from './helpers/ide-db-setup';
 import { expect, test } from './helpers/ide-failure-diagnostics';
@@ -31,29 +32,48 @@ const CHEMIN_PROFOND = 'src/components/very/deep/directory/structure/ProductCard
 
 async function preparerUnProjet(request: APIRequestContext, options: { fil: boolean; long?: boolean }) {
   const suffixe = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  let localAuth: { token: string; organization: { id: string } } | undefined;
+
+  if (process.env.UX_QA_AUTH_FILE) {
+    expect(new URL(appBaseUrl).hostname).toBe('127.0.0.1');
+    expect(new URL(apiBaseUrl).hostname).toBe('127.0.0.1');
+
+    const pool = JSON.parse(await readFile(process.env.UX_QA_AUTH_FILE, 'utf8'));
+    const index = Array.from(test.info().title).reduce((sum, character) => sum + character.charCodeAt(0), 0);
+    const fixture = pool[index % pool.length];
+    const token = fixture.cookies.find((cookie: { name: string }) => cookie.name === 'vc_session').value;
+    const existing = await request.get(`${apiBaseUrl}/projects/${fixture.projectId}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    expect(existing.ok(), `Local fixture access: HTTP ${existing.status()}`).toBe(true);
+    localAuth = { token, organization: { id: (await existing.json()).project.organizationId } };
+  }
 
   let dernier = '';
 
   for (let essai = 0; essai < 4; essai += 1) {
-    const inscription = await request.post(`${apiBaseUrl}/auth/register`, {
-      data: {
-        email: `chrome-${suffixe}-${essai}@local.test`,
-        password: 'Password123!',
-        name: 'Chrome mobile',
-        organizationName: `Chrome mobile ${suffixe}-${essai}`,
-      },
-    });
+    const inscription = localAuth
+      ? undefined
+      : await request.post(`${apiBaseUrl}/auth/register`, {
+          data: {
+            email: `chrome-${suffixe}-${essai}@local.test`,
+            password: 'Password123!',
+            name: 'Chrome mobile',
+            organizationName: `Chrome mobile ${suffixe}-${essai}`,
+          },
+        });
 
-    dernier = await inscription.text();
+    dernier = inscription ? await inscription.text() : '';
 
-    if (inscription.ok()) {
-      const auth = JSON.parse(dernier) as { token: string; organization: { id: string } };
+    if (localAuth || inscription?.ok()) {
+      const auth = localAuth ?? (JSON.parse(dernier) as { token: string; organization: { id: string } });
       const entetes = { authorization: `Bearer ${auth.token}` };
 
       const projet = await request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
         headers: entetes,
         data: { name: 'Chrome mobile' },
       });
+      expect(projet.ok(), `Project setup: HTTP ${projet.status()}`).toBe(true);
 
       const projectId = (await projet.json()).project.id as string;
 
@@ -64,58 +84,65 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
           headers: entetes,
           data: { title: 'Chrome mobile' },
         });
+        expect(conversation.ok(), `Conversation setup: HTTP ${conversation.status()}`).toBe(true);
 
         conversationId = (await conversation.json()).conversation.id as string;
 
-        await request.put(`${apiBaseUrl}/projects/${projectId}/ai/conversations/${conversationId}/transcript`, {
-          headers: entetes,
-          data: {
-            messages: [
-              // Un fil LONG quand le test doit remonter la conversation : à 390 px, deux messages ne défilent pas.
-              ...(options.long
-                ? Array.from({ length: 5 }, (_, i) => [
-                    {
-                      clientId: `u0${i}`,
-                      role: 'user',
-                      content: `Analysez les derniers journaux de l'environnement d'exécution, identifiez la cause première et corrigez le projet afin que l'aperçu s'exécute correctement (${i}).`,
-                    },
-                    {
-                      clientId: `a0${i}`,
-                      role: 'assistant',
-                      content: `Tour ${i} : un catalogue, un panier, une page produit, et une longue explication qui occupe plusieurs lignes pour que le fil défile réellement sur un téléphone.`,
-                    },
-                  ]).flat()
-                : []),
-              { clientId: 'u1', role: 'user', content: 'Ajoute une page de contact.' },
-              {
-                clientId: 'a1',
-                role: 'assistant',
-                content:
-                  'La page de contact est créée.\n\n' +
-                  '<boltArtifact id="contact" title="Page de contact">' +
-                  `<boltAction type="file" filePath="${CHEMIN_PROFOND}">// contact\n</boltAction>` +
-                  '<boltAction type="shell">pnpm install && pnpm add zod</boltAction>' +
-                  '</boltArtifact>',
-              },
-            ],
+        const transcript = await request.put(
+          `${apiBaseUrl}/projects/${projectId}/ai/conversations/${conversationId}/transcript`,
+          {
+            headers: entetes,
+            data: {
+              messages: [
+                // Un fil LONG quand le test doit remonter la conversation : à 390 px, deux messages ne défilent pas.
+                ...(options.long
+                  ? Array.from({ length: 5 }, (_, i) => [
+                      {
+                        clientId: `u0${i}`,
+                        role: 'user',
+                        content: `Analysez les derniers journaux de l'environnement d'exécution, identifiez la cause première et corrigez le projet afin que l'aperçu s'exécute correctement (${i}).`,
+                      },
+                      {
+                        clientId: `a0${i}`,
+                        role: 'assistant',
+                        content: `Tour ${i} : un catalogue, un panier, une page produit, et une longue explication qui occupe plusieurs lignes pour que le fil défile réellement sur un téléphone.`,
+                      },
+                    ]).flat()
+                  : []),
+                { clientId: 'u1', role: 'user', content: 'Ajoute une page de contact.' },
+                {
+                  clientId: 'a1',
+                  role: 'assistant',
+                  content:
+                    'La page de contact est créée.\n\n' +
+                    '<boltArtifact id="contact" title="Page de contact">' +
+                    `<boltAction type="file" filePath="${CHEMIN_PROFOND}">// contact\n</boltAction>` +
+                    '<boltAction type="shell">pnpm install && pnpm add zod</boltAction>' +
+                    '</boltArtifact>',
+                },
+              ],
+            },
           },
-        });
-        await request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
+        );
+        expect(transcript.ok(), `Transcript setup: HTTP ${transcript.status()}`).toBe(true);
+        const ideState = await request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
           headers: entetes,
           data: { state: { chat: { metadata: { aiConversationId: conversationId } } } },
         });
+        expect(ideState.ok(), `IDE state setup: HTTP ${ideState.status()}`).toBe(true);
 
         // Une connexion nommée suffit au panneau Base de données pour montrer le studio (capture 13:07).
-        await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+        const database = await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
           headers: entetes,
           data: { key: 'DATABASE_URL', value: 'postgres://e2e:e2e@127.0.0.1:5432/e2e' },
         });
+        await requireDatabaseSetup(database, projectId, 'postgres://e2e:e2e@127.0.0.1:5432/e2e');
       }
 
       return { token: auth.token, projectId, conversationId };
     }
 
-    if (inscription.status() === 429 && essai < 3) {
+    if (inscription?.status() === 429 && essai < 3) {
       await new Promise((resoudre) => setTimeout(resoudre, 11_000));
       continue;
     }
@@ -738,9 +765,11 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
   test('menu contextuel d’un message : une barre d’icônes de 44 px, chaque action nommée ; Sécurité : une paire par ligne', async ({
     page,
     request,
+    ideDiagnostics,
   }) => {
     test.setTimeout(200_000);
     await ouvrirIde(page, request, { fil: true });
+    ideDiagnostics.mark('ide-ready');
 
     // Capture 12:18 : quatre icônes muettes. L'appui long est un `contextmenu` pour le moteur.
     const ligne = page.locator('.bolt-chat-message-row').nth(1);
@@ -790,6 +819,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     // Capture 12:19 : « Modérée / 0 active » sur 120 px par ligne.
     await ouvrirOutil(page, 'security');
+    ideDiagnostics.mark('security-selected');
 
     const lignes = page.locator('.bolt-panel-row');
 
@@ -814,6 +844,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     // Git, capture 13:08 : deux champs « main » sans libellé visible au-dessus.
     await ouvrirOutil(page, 'git');
+    ideDiagnostics.mark('git-selected');
 
     const source = page.getByTestId('git-tab-pr-source');
 
@@ -845,10 +876,13 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
   test('Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne', async ({
     page,
     request,
+    ideDiagnostics,
   }) => {
     test.setTimeout(150_000);
     await ouvrirIde(page, request, { fil: true });
+    ideDiagnostics.mark('ide-ready');
     await ouvrirOutil(page, 'database');
+    ideDiagnostics.mark('database-selected');
 
     // La liste « Toutes les bases de données » d'abord : la carte DATABASE_URL ouvre l'atelier.
     await page
