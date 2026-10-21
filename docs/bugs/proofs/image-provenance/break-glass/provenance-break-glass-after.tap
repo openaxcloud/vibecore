@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: actual Bash and jq propagate known source and explicitly reset null source
+ok 1 - actual Bash and jq propagate known source and explicitly reset null source
+  ---
+  duration_ms: 34.730751
+  type: 'test'
+  ...
+# Subtest: actual Bash provenance binding guards reject mismatching or absent digest/image
+ok 2 - actual Bash provenance binding guards reject mismatching or absent digest/image
+  ---
+  duration_ms: 18.690185
+  type: 'test'
+  ...
+# Subtest: actual Bash break-glass replaces A with known B provenance and binding
+ok 3 - actual Bash break-glass replaces A with known B provenance and binding
+  ---
+  duration_ms: 17.427791
+  type: 'test'
+  ...
+# Subtest: actual Bash break-glass clears null and legacy absent source and bindings
+ok 4 - actual Bash break-glass clears null and legacy absent source and bindings
+  ---
+  duration_ms: 48.230606
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 243.304829

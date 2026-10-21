@@ -28,6 +28,11 @@
             "type": "string",
             "pattern": "^(|[0-9a-f]{40})$",
             "description": "Exact source commit of this image; empty means unknown. Never stamp a reused image with the current release SHA."
+          },
+          "imageSourceDigest": {
+            "type": "string",
+            "pattern": "^(|sha256:[0-9a-f]{64})$",
+            "description": "Digest associated with imageSourceSha. A different current image suppresses provenance annotations."
           }
         }
       }
@@ -54,6 +59,10 @@
               "type": "string",
               "pattern": "^(|[0-9a-f]{40})$",
               "description": "Exact source commit of this image; empty means unknown. Never stamp a reused image with the current release SHA."
+            },
+            "workspaceAgentImageSourceImage": {
+              "type": "string",
+              "description": "Exact image reference associated with workspaceAgentImageSourceSha; mismatch suppresses provenance annotations."
             }
           }
         }

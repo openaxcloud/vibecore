@@ -65,6 +65,7 @@
       "reason": "helm absent ENOENT; official download HTTP403; no alternative attempted"
     }
   },
-  "scope": "Real Bash/jq and source guards; Helm rendering not validated locally; no cluster or signature validation claimed.",
-  "logNormalization": "Published TAP copies strip trailing whitespace only. rawSha256 records the unchanged local original; assertions, durations and statuses retained."
+  "scope": "Initial main-path checks at sourceCommitSha only; later break-glass correction has separate evidence. Real Bash/jq and source guards; Helm rendering not validated locally; no cluster or signature validation claimed.",
+  "logNormalization": "Published TAP copies strip trailing whitespace only. rawSha256 records the unchanged local original; assertions, durations and statuses retained.",
+  "sourceCommitSha": "72415499ac45ffb9135026d3d4f0d193e327e9f8"
 }

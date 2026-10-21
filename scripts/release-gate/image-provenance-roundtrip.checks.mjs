@@ -67,10 +67,10 @@ function overrides(directory, services) {
   return output.split('\0').filter(Boolean);
 }
 
-function render(directory, services, savedValues = {}) {
+function render(directory, services, savedValues = {}, makeOverrides = overrides) {
   writeFileSync(path.join(directory, 'saved-values.json'), JSON.stringify(savedValues));
 
-  const args = overrides(directory, services);
+  const args = makeOverrides(directory, services);
 
   const result = run(helm, [
     'template',
@@ -173,10 +173,11 @@ test('saved Helm values retain original provenance on a later release, not the t
     assert.equal(first.result.status, 0, first.result.stderr);
 
     const saved = {
-      services: { api: { imageSourceSha: original, imageDigest: digest } },
+      services: { api: { imageSourceSha: original, imageSourceDigest: digest, imageDigest: digest } },
       platformEnv: {
         runtime: {
           workspaceAgentImageSourceSha: original,
+          workspaceAgentImageSourceImage: `${registry}/workspace-agent@${digest}`,
           workspaceAgentImage: `${registry}/workspace-agent@${digest}`,
         },
       },
@@ -211,10 +212,11 @@ test('saved Helm values retain original provenance on a later release, not the t
 test('null source explicitly erases stale saved provenance for Deployment and workspace agent', () =>
   temporary((directory) => {
     const saved = {
-      services: { api: { imageSourceSha: original, imageDigest: otherDigest } },
+      services: { api: { imageSourceSha: original, imageSourceDigest: otherDigest, imageDigest: otherDigest } },
       platformEnv: {
         runtime: {
           workspaceAgentImageSourceSha: original,
+          workspaceAgentImageSourceImage: `${registry}/workspace-agent@${otherDigest}`,
           workspaceAgentImage: `${registry}/workspace-agent@${otherDigest}`,
         },
       },
@@ -274,3 +276,137 @@ test('actual Bash provenance binding guards reject mismatching or absent digest/
     );
   }
 });
+
+function breakGlassOverrides(directory, services) {
+  const source = readFileSync(path.join(root, '.github/workflows/deploy-break-glass.yml'), 'utf8');
+
+  const start = source.indexOf(
+    '          while read -r service digest',
+    source.indexOf('- name: Helm upgrade to the last-known-good digests'),
+  );
+
+  const end = source.indexOf('          echo "helm --set args:', start);
+  assert.ok(start >= 0 && end > start, 'actual break-glass argument block exists');
+
+  const block = source.slice(start, end).replace(/^          /gm, '');
+  writeFileSync(path.join(directory, 'release-manifest.json'), JSON.stringify({ services }));
+
+  return success('bash', ['-c', `set -euo pipefail\nSETS=()\n${block}\nprintf '%s\\0' "\${SETS[@]}"`], {
+    cwd: directory,
+    env: { ...process.env, REG: registry },
+  })
+    .split('\0')
+    .filter(Boolean);
+}
+
+function savedOrigin() {
+  return {
+    services: { api: { imageDigest: digest, imageSourceSha: original, imageSourceDigest: digest } },
+    platformEnv: {
+      runtime: {
+        workspaceAgentImage: `${registry}/workspace-agent@${digest}`,
+        workspaceAgentImageSourceSha: original,
+        workspaceAgentImageSourceImage: `${registry}/workspace-agent@${digest}`,
+      },
+    },
+  };
+}
+
+function replacement(sourceSha) {
+  return entries(sourceSha).map((entry) => ({ ...entry, digest: otherDigest }));
+}
+
+function legacyReplacement() {
+  return replacement(null).map(({ sourceSha: _sourceSha, ...entry }) => entry);
+}
+
+test('actual Bash break-glass replaces A with known B provenance and binding', () =>
+  temporary((directory) => {
+    const args = breakGlassOverrides(directory, replacement(target));
+
+    for (const expected of [
+      `services.api.imageDigest=${otherDigest}`,
+      `services.api.imageSourceSha=${target}`,
+      `services.api.imageSourceDigest=${otherDigest}`,
+      `platformEnv.runtime.workspaceAgentImage=${registry}/workspace-agent@${otherDigest}`,
+      `platformEnv.runtime.workspaceAgentImageSourceSha=${target}`,
+      `platformEnv.runtime.workspaceAgentImageSourceImage=${registry}/workspace-agent@${otherDigest}`,
+    ]) {
+      assert.ok(args.includes(expected), expected);
+    }
+    assert.equal(
+      args.some((arg) => arg.startsWith('services.workspaceAgent.')),
+      false,
+    );
+  }));
+
+test('actual Bash break-glass clears null and legacy absent source and bindings', () =>
+  temporary((directory) => {
+    for (const services of [replacement(null), legacyReplacement()]) {
+      const args = breakGlassOverrides(directory, services);
+
+      for (const expected of [
+        'services.api.imageSourceSha=',
+        'services.api.imageSourceDigest=',
+        'platformEnv.runtime.workspaceAgentImageSourceSha=',
+        'platformEnv.runtime.workspaceAgentImageSourceImage=',
+      ]) {
+        assert.ok(args.includes(expected), expected);
+      }
+    }
+  }));
+
+test('real Helm break-glass A to known B replaces both provenance bindings', () =>
+  temporary((directory) => {
+    const rendered = render(directory, replacement(target), savedOrigin(), breakGlassOverrides);
+    assert.equal(rendered.result.status, 0, rendered.result.stderr);
+    assert.deepEqual(observed(rendered.documents), {
+      source: target,
+      boundDigest: otherDigest,
+      image: `${registry}/api@${otherDigest}`,
+      agentSource: target,
+      agentBinding: `${registry}/workspace-agent@${otherDigest}`,
+      agentImage: `${registry}/workspace-agent@${otherDigest}`,
+    });
+    assert.equal(
+      rendered.documents.some(
+        (d) => /^kind: Deployment$/m.test(d) && /app\.kubernetes\.io\/name: workspace-agent/.test(d),
+      ),
+      false,
+    );
+  }));
+
+test('real Helm break-glass A to unknown B clears null and legacy provenance', () =>
+  temporary((directory) => {
+    for (const services of [replacement(null), legacyReplacement()]) {
+      const rendered = render(directory, services, savedOrigin(), breakGlassOverrides);
+      assert.equal(rendered.result.status, 0, rendered.result.stderr);
+      assert.deepEqual(observed(rendered.documents), {
+        source: undefined,
+        boundDigest: undefined,
+        image: `${registry}/api@${otherDigest}`,
+        agentSource: undefined,
+        agentBinding: undefined,
+        agentImage: `${registry}/workspace-agent@${otherDigest}`,
+      });
+    }
+  }));
+
+test('real Helm image-only change cannot bind saved A provenance to B', () =>
+  temporary((directory) => {
+    const rendered = render(directory, [], savedOrigin(), () => [
+      '--set-string',
+      `services.api.imageDigest=${otherDigest}`,
+      '--set-string',
+      `platformEnv.runtime.workspaceAgentImage=${registry}/workspace-agent@${otherDigest}`,
+    ]);
+    assert.equal(rendered.result.status, 0, rendered.result.stderr);
+    assert.deepEqual(observed(rendered.documents), {
+      source: undefined,
+      boundDigest: undefined,
+      image: `${registry}/api@${otherDigest}`,
+      agentSource: undefined,
+      agentBinding: undefined,
+      agentImage: `${registry}/workspace-agent@${otherDigest}`,
+    });
+  }));

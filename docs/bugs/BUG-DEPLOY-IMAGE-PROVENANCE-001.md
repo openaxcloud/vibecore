@@ -92,3 +92,42 @@ complet au SHA final.
 un cluster. Ce banc ne prouve ni un `helm upgrade --reuse-values` en production,
 ni la lecture kubectl, ni la correspondance des `imageIDs` de pods actifs.
 Ces preuves appartiennent aux contrôles de déploiement et à leurs artefacts.
+
+## Complément de revue : chemin break-glass et liaison persistée
+
+La revue de `72415499ac45ffb9135026d3d4f0d193e327e9f8` a identifié un
+chemin oublié : `deploy-break-glass.yml` remplaçait le digest avec
+`--reuse-values` sans remplacer ni effacer le SHA. Le chart pouvait alors
+associer automatiquement l'ancien SHA A à l'image B. La première preuve à
+huit tests ci-dessus ne couvrait pas ce chemin et reste conservée telle quelle.
+
+Le banc compte désormais treize tests, sans affaiblir les huit précédents.
+Cinq tests supplémentaires exercent :
+
+9. Bash/jq réels du bloc break-glass : digest B, SHA B distinct de A et liaisons
+   explicites pour Deployment et workspace-agent.
+10. Même bloc avec `sourceSha: null` puis champ absent (manifeste historique) :
+    effacement explicite des deux SHA et des deux liaisons.
+11. Rendu Helm réel de A vers B connu avec anciennes valeurs A sauvegardées.
+12. Rendu Helm réel de A vers B inconnu, champ absent et null ; aucune annotation
+    de provenance conservée et références d'images B exactes.
+13. Ancien outil changeant uniquement les images : les valeurs sauvegardées SHA A
+    et liaison A ne peuvent pas être réattribuées à B par le chart.
+
+Le chart conserve désormais une liaison explicite dans les valeurs et n'émet
+la provenance que si cette liaison correspond à l'image actuelle. Les valeurs
+sauvegardées des tests incluent ces liaisons. Le test break-glass vérifie aussi
+que le workspace-agent n'acquiert pas de Deployment.
+
+Contre-épreuve locale sur l'arbre exact `72415499`, avec le nouveau banc copié :
+les deux nouveaux tests Bash échouent (0/2, zéro saut, code 1), car les arguments
+`imageSourceSha` sont absents. Sur les corrections, les quatre tests Bash
+réussissent (4/4, zéro saut, code 0). La suite complète donne 4 réussites et
+9 échecs, zéro saut, code 1 : les neuf échecs signalent Helm absent. Les rendus
+Helm supplémentaires restent donc à valider par la CI, sans faux exécutable,
+sans téléchargement alternatif et sans rollback réel. Les nouveaux journaux
+et le reçu sont distincts de la preuve initiale à huit tests.
+
+Les journaux de cette correction et leurs empreintes sont publiés dans
+[`proofs/image-provenance/break-glass/receipt.json`](proofs/image-provenance/break-glass/receipt.json).
+Le reçu initial reste rattaché à `72415499` et ne valide pas le chemin break-glass.
