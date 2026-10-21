@@ -15,6 +15,7 @@ test('a real pending or failed deployment does not complete dashboard onboarding
   }
 
   const suffix = randomUUID();
+
   const registration = await request.post(`${apiBaseUrl}/auth/register`, {
     data: {
       email: `publication-${suffix}@local.test`,
@@ -28,6 +29,7 @@ test('a real pending or failed deployment does not complete dashboard onboarding
 
   const auth = (await registration.json()) as { token: string; organization: { id: string } };
   const headers = { authorization: `Bearer ${auth.token}` };
+
   const projectResponse = await request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers,
     data: { name: `Publication readiness ${suffix}` },
@@ -36,6 +38,7 @@ test('a real pending or failed deployment does not complete dashboard onboarding
   expect(projectResponse.ok(), `project creation returned ${projectResponse.status()}`).toBe(true);
 
   const { project } = (await projectResponse.json()) as { project: { id: string } };
+
   const deploymentResponse = await request.post(`${apiBaseUrl}/projects/${project.id}/deployments`, {
     headers,
     data: { provider: 'static', buildCommand: 'exit 1', timeoutSeconds: 30 },
