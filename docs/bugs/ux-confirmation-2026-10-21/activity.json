@@ -1,0 +1,35 @@
+[
+  {
+    "width": 1440,
+    "height": 900,
+    "initial": 100,
+    "emptyText": "Aucune activité ne correspond aux filtres actuels.",
+    "errorText": "Impossible de charger le panneau de l’IDE. Réessayez.\nRéessayer",
+    "searchClear": true,
+    "keyboardExpandCollapse": true,
+    "offlineRecovery": true,
+    "horizontalOverflow": false
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "initial": 100,
+    "emptyText": "Aucune activité ne correspond aux filtres actuels.",
+    "errorText": "Impossible de charger le panneau de l’IDE. Réessayez.\nRéessayer",
+    "searchClear": true,
+    "keyboardExpandCollapse": true,
+    "offlineRecovery": true,
+    "horizontalOverflow": false
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "initial": 100,
+    "emptyText": "Aucune activité ne correspond aux filtres actuels.",
+    "errorText": "Impossible de charger le panneau de l’IDE. Réessayez.\nRéessayer",
+    "searchClear": true,
+    "keyboardExpandCollapse": true,
+    "offlineRecovery": true,
+    "horizontalOverflow": false
+  }
+]

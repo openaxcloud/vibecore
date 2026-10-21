@@ -143,9 +143,11 @@ interface DialogProps {
   showCloseButton?: boolean;
   onClose?: () => void;
   onBackdrop?: () => void;
+  restoreOpenerFocus?: boolean;
 }
 
-export const Dialog = memo(({ children, className, showCloseButton = true, onClose, onBackdrop }: DialogProps) => {
+export const Dialog = memo((props: DialogProps) => {
+  const { children, className, showCloseButton = true, onClose, onBackdrop, restoreOpenerFocus = false } = props;
   const language = useDialogLanguage();
   const sharedCopy = getDataSettingsCopy(language).sharedDialog;
 
@@ -156,6 +158,7 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
    * dismissal if it moved more than a few px.
    */
   const backdropDownRef = useRef<{ x: number; y: number } | null>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
 
   return (
     <RadixDialog.Portal>
@@ -183,7 +186,27 @@ export const Dialog = memo(({ children, className, showCloseButton = true, onClo
           }}
         />
       </RadixDialog.Overlay>
-      <RadixDialog.Content asChild>
+      <RadixDialog.Content
+        asChild
+        onOpenAutoFocus={
+          restoreOpenerFocus
+            ? () => {
+                openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+              }
+            : undefined
+        }
+        onCloseAutoFocus={
+          restoreOpenerFocus
+            ? (event) => {
+                // Controlled confirmations have no Radix Trigger to receive focus.
+                if (openerRef.current?.isConnected) {
+                  event.preventDefault();
+                  openerRef.current.focus();
+                }
+              }
+            : undefined
+        }
+      >
         <motion.div
           className={classNames(
             'bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none',
@@ -285,7 +308,7 @@ export function ConfirmationDialog({
 
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog showCloseButton={false}>
+      <Dialog showCloseButton={false} restoreOpenerFocus>
         <div className="p-6 bg-bolt-elements-background-depth-2 relative z-10">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="mb-4">{description}</DialogDescription>
