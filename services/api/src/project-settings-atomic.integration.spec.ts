@@ -204,10 +204,15 @@ describe.skipIf(!enabled)('atomic project settings — HTTP and PostgreSQL', () 
       locked = resolve;
     });
 
-    const transfer = store.prisma.$transaction(async (tx) => {
-      await tx.project.update({ where: { id: project.id }, data: { organizationId: organizations[1] } });
-      locked();
-      await gate;
+    const transfer = store.transferProject({
+      projectId: project.id,
+      targetOrganizationId: organizations[1],
+      expectedSourceOrganizationId: organizations[0],
+      validateRuntimeOwnership: async (workspaces) => {
+        expect(workspaces).toHaveLength(0);
+        locked();
+        await gate;
+      },
     });
     await ready;
 
@@ -253,6 +258,97 @@ describe.skipIf(!enabled)('atomic project settings — HTTP and PostgreSQL', () 
     expect((await request('PATCH', path, { name: 'New owner' }, 1)).status).toBe(200);
     await restart();
     expect((await request('GET', path, undefined, 1)).body.project).toMatchObject({ name: 'New owner' });
+  });
+
+  it('keeps a completed rename when the real transfer starts its transaction later', async () => {
+    const project = await newProject(`before-transfer-${randomUUID()}`);
+    const renamedSlug = `renamed-before-transfer-${randomUUID()}`;
+
+    const occupied = await store.createProject({
+      organizationId: organizations[1],
+      name: 'Target neighbor',
+      slug: renamedSlug,
+    });
+    projectIds.push(occupied.id);
+
+    let release!: () => void;
+    let entered!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const ready = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+
+    /*
+     * Schedule the real transfer just before its real Prisma transaction.
+     * No query result is replaced: this exposes pre-transaction stale reads.
+     */
+    const gatedClient = new Proxy(store.prisma, {
+      get(target, property, receiver) {
+        if (property === '$transaction') {
+          return async (...args: unknown[]) => {
+            entered();
+            await gate;
+
+            return Reflect.apply(target.$transaction, target, args);
+          };
+        }
+
+        return Reflect.get(target, property, receiver);
+      },
+    });
+    const transfer = new PrismaApiStore(gatedClient).transferProject({
+      projectId: project.id,
+      targetOrganizationId: organizations[1],
+      expectedSourceOrganizationId: organizations[0],
+    });
+
+    const outcome = transfer.then(
+      (value) => ({ value, error: undefined }),
+      (error) => ({ value: undefined, error }),
+    );
+    await Promise.race([
+      ready,
+      outcome.then(() => {
+        throw new Error('Transfer settled before the transaction barrier');
+      }),
+    ]);
+
+    try {
+      const renamed = await request('PATCH', `/projects/${project.id}/settings`, {
+        slug: renamedSlug,
+        name: 'Rename committed first',
+        description: 'Keep this edit',
+      });
+      expect(renamed.status).toBe(200);
+      expect(renamed.body.project).toMatchObject({ slug: renamedSlug, name: 'Rename committed first' });
+    } finally {
+      release();
+    }
+
+    const transferred = await outcome;
+    expect(transferred.error).toBeUndefined();
+    expect(transferred.value?.slug).toBe(`${renamedSlug}-2`);
+    expect(transferred.value).toMatchObject({
+      organizationId: organizations[1],
+      slug: `${renamedSlug}-2`,
+      name: 'Rename committed first',
+      description: 'Keep this edit',
+      persistentVolumeClaim: project.persistentVolumeClaim,
+    });
+    await restart();
+    expect((await request('GET', `/projects/${project.id}/settings`, undefined, 1)).body.project).toMatchObject({
+      slug: `${renamedSlug}-2`,
+      name: 'Rename committed first',
+      description: 'Keep this edit',
+    });
+    expect((await request('PATCH', `/projects/${project.id}/settings`, { name: 'Stale owner' })).status).toBe(404);
+    expect(await store.prisma.projectSlugRedirect.findMany({ where: { projectId: project.id } })).toEqual([
+      expect.objectContaining({ oldSlug: project.slug }),
+    ]);
+    expect((await store.getProject(occupied.id))?.slug).toBe(renamedSlug);
   });
 
   it('keeps projects:write checks after role downgrade and membership revocation', async () => {

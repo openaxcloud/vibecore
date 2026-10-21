@@ -913,12 +913,16 @@ export class PrismaApiStore implements ApiStore {
     }
   }
 
-  private async nextProjectSlug(organizationId: string, baseSlug: string) {
+  private async nextProjectSlug(
+    organizationId: string,
+    baseSlug: string,
+    client: Pick<DatabaseClient, 'project'> = this.prisma,
+  ) {
     let candidate = baseSlug;
     let suffix = 2;
 
     while (
-      await this.prisma.project.findUnique({
+      await client.project.findUnique({
         where: { organizationId_slug: { organizationId, slug: candidate } },
         select: { id: true },
       })
@@ -1205,12 +1209,6 @@ export class PrismaApiStore implements ApiStore {
     expectedSourceOrganizationId?: string;
     validateRuntimeOwnership?: (workspaces: WorkspaceRecord[]) => Promise<void>;
   }) {
-    const current = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId }, select: { slug: true } }),
-      'Project not found',
-      'PROJECT_NOT_FOUND',
-    );
-
     /*
      * The slug is only unique within an org, so the target org may already have a
      * project with this slug — a bare update would then violate
@@ -1221,8 +1219,6 @@ export class PrismaApiStore implements ApiStore {
      * orphan that volume.
      */
     for (let attempt = 0; ; attempt += 1) {
-      const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug);
-
       try {
         return await this.prisma.$transaction(async (tx) => {
           /*
@@ -1231,17 +1227,19 @@ export class PrismaApiStore implements ApiStore {
            * in this transaction; an expired callback cannot mutate via a main pool.
            */
           const owners = await tx.$queryRaw<
-            Array<{ organizationId: string; runtimeDeletionPending: boolean }>
-          >`SELECT "organizationId", "runtimeDeletionPending" FROM "Project" WHERE "id" = ${input.projectId} FOR UPDATE`;
+            Array<{ organizationId: string; runtimeDeletionPending: boolean; slug: string }>
+          >`SELECT "organizationId", "runtimeDeletionPending", "slug" FROM "Project" WHERE "id" = ${input.projectId} FOR UPDATE`;
 
-          if (owners[0]?.runtimeDeletionPending) {
+          const current = assertFound(owners[0], 'Project not found', 'PROJECT_NOT_FOUND');
+
+          if (current.runtimeDeletionPending) {
             throw Object.assign(new Error(appPublicEnglish('PROJECT_DELETION_PENDING')), {
               statusCode: 409,
               code: 'PROJECT_DELETION_PENDING',
             });
           }
 
-          if (input.expectedSourceOrganizationId && owners[0]?.organizationId !== input.expectedSourceOrganizationId) {
+          if (input.expectedSourceOrganizationId && current.organizationId !== input.expectedSourceOrganizationId) {
             throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
               statusCode: 409,
               code: 'WORKSPACE_PROJECT_MISMATCH',
@@ -1259,6 +1257,13 @@ export class PrismaApiStore implements ApiStore {
           }
 
           await input.validateRuntimeOwnership?.(workspaces);
+
+          /*
+           * A settings rename may have committed before this transfer acquired
+           * the row lock. Allocate from the locked row, on this transaction,
+           * instead of overwriting that rename with a pre-transaction snapshot.
+           */
+          const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug, tx);
 
           /*
            * Revoke all explicit ProjectCollaborator grants on transfer. They were
