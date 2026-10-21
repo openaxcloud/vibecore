@@ -1,0 +1,118 @@
+{
+  "config": {
+    "configFile": "<fixture-root>/teardown/playwright.config.cjs",
+    "rootDir": "<fixture-root>/teardown",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": "<fixture-root>/teardown/teardown.cjs",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "<fixture-root>/teardown/output",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "<fixture-root>/teardown",
+        "testIgnore": [],
+        "testMatch": [
+          "sample.spec.cjs"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "sample.spec.cjs",
+      "file": "sample.spec.cjs",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "success before teardown error",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:55:45.060Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "8aa1cfe786b44e0de529-59b5966871440a74b2bf",
+          "file": "sample.spec.cjs",
+          "line": 2,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "message": "Error: Fixture global teardown failed",
+      "stack": "Error: Fixture global teardown failed\n    at module.exports (<fixture-root>/teardown/teardown.cjs:1:32)",
+      "location": {
+        "file": "<fixture-root>/teardown/teardown.cjs",
+        "column": 32,
+        "line": 1
+      },
+      "snippet": "   at teardown.cjs:1\n\n> 1 | module.exports = () => { throw new Error('Fixture global teardown failed'); };\n    |                                ^\n  2 |"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-10-21T08:55:44.240Z",
+    "duration": 953.56,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,288 @@
+[
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "5ed2d630-36af-4148-b5cd-fd5ad9f79236",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 6.918157999999494,
+      "listFiles": 0.7495509999998831,
+      "ideState": 1.30905200000052,
+      "materialize": 14.101592999999411,
+      "zip": 3.150379000000612,
+      "persist": 17.007832000000235,
+      "activity": 5.081531000000723,
+      "audit": 4.281074999999873
+    },
+    "totalMs": 53.15852900000027,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "6b3283f8-ddba-422e-9c0e-691c7bb90401",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 7.065817000000607,
+      "listFiles": 1.3484609999995882,
+      "ideState": 1.1169369999997798,
+      "materialize": 0.09710799999993469,
+      "zip": 0.4990159999997559,
+      "persist": 3.100268000000142,
+      "activity": 2.4354670000002443,
+      "audit": 2.908508000000438
+    },
+    "totalMs": 18.70461299999988,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "061468f0-7bfc-46ca-a43b-835019bfa2f1",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 4.172317999999905,
+      "listFiles": 1.0173460000005434,
+      "ideState": 1.6860750000005282,
+      "materialize": 0.010752999999567692,
+      "zip": 0.6518930000002001,
+      "persist": 2.883904999999686,
+      "activity": 2.2585760000001756,
+      "audit": 1.8274270000001707
+    },
+    "totalMs": 14.576237999999648,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "c3c26758-b8da-41fc-a79d-06dbec1fa483",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 3.57716900000014,
+      "listFiles": 1.4342630000001009,
+      "ideState": 0.9767460000002757,
+      "materialize": 0.01159300000017538,
+      "zip": 0.4093199999997523,
+      "persist": 3.1023830000003727,
+      "activity": 2.010764999999992,
+      "audit": 2.363205999999991
+    },
+    "totalMs": 13.95344699999987,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "c6f4edba-92b5-4683-bbfb-195584073a57",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 3.957502000000204,
+      "listFiles": 1.3418879999999263,
+      "ideState": 0.7764589999997042,
+      "materialize": 0.011355000000548898,
+      "zip": 0.6308659999995143,
+      "persist": 3.3225970000003144,
+      "activity": 3.104091999999582,
+      "audit": 2.5495890000001964
+    },
+    "totalMs": 15.816643000000113,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "b8061e5a-440e-45a6-bfc9-57b9218c9add",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 5.502126000000317,
+      "listFiles": 0.9396740000001955,
+      "ideState": 1.0250990000004094,
+      "materialize": 0.028529999999591382,
+      "zip": 0.4412819999997737,
+      "persist": 2.784114000000045,
+      "activity": 2.0731540000006135,
+      "audit": 2.289361999999528
+    },
+    "totalMs": 15.145728999999847,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "1a451b67-a496-432a-a81e-25abbfbdbd59",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 3.7992659999999887,
+      "listFiles": 0.7473120000004201,
+      "ideState": 1.3495179999999891,
+      "materialize": 0.008888999999726366,
+      "zip": 0.31681900000057794,
+      "persist": 2.3640559999994366,
+      "activity": 2.718684000000394,
+      "audit": 1.8700109999999768
+    },
+    "totalMs": 13.239760999999817,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "2f78c0ff-c3f5-47c5-a1d4-1f03a97caa15",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 6.333507999999711,
+      "listFiles": 1.5729300000002695,
+      "ideState": 1.3288080000002083,
+      "materialize": 0.008424999999988358,
+      "zip": 0.37576999999964755,
+      "persist": 4.259068000000298,
+      "activity": 2.627141999999367,
+      "audit": 2.1263959999996587
+    },
+    "totalMs": 18.696498999999676,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "6130079e-45f0-42d6-89bd-22e0a2c8ae27",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 2.9150700000000143,
+      "listFiles": 1.3998689999998533,
+      "ideState": 0.9448320000001331,
+      "materialize": 0.00941899999997986,
+      "zip": 0.4333169999999882,
+      "persist": 5.467768999999862,
+      "activity": 4.491181000000324,
+      "audit": 3.1495969999996305
+    },
+    "totalMs": 18.866705999999795,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "838732cf-ed7a-4046-9b26-626083b32240",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 3.2139710000001287,
+      "listFiles": 0.98261199999979,
+      "ideState": 0.7915139999995517,
+      "materialize": 0.010983999999552907,
+      "zip": 0.27048500000000786,
+      "persist": 2.3150260000002163,
+      "activity": 1.5912859999998545,
+      "audit": 2.119289000000208
+    },
+    "totalMs": 11.358038000000306,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "a69fd71e-5b39-41c7-a0da-0fe4cf9639a1",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 5.439064999999573,
+      "listFiles": 1.3602300000002288,
+      "ideState": 0.8198859999993147,
+      "materialize": 0.006535999999869091,
+      "zip": 0.2873280000003433,
+      "persist": 3.3188630000004196,
+      "activity": 2.927853000000141,
+      "audit": 2.2838409999994838
+    },
+    "totalMs": 16.522342000000208,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "cff4a4b2-6b40-476d-82d1-90cdb5bfcce2",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 12.293273999999656,
+      "listFiles": 4.693314999999529,
+      "ideState": 1.5899150000004738,
+      "materialize": 0.013914999999542488,
+      "zip": 0.3411969999997382,
+      "persist": 16.817737000000307,
+      "activity": 15.92099700000017,
+      "audit": 5.424545000000762
+    },
+    "totalMs": 57.166769999999815,
+    "fileCount": 2,
+    "archiveBytes": 240
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "83afdaed-cf1a-47d6-9d0d-f5c0a35c0a59",
+    "outcome": "failed",
+    "stage": "authorize",
+    "timingsMs": {
+      "authorize": 3.840877999999975
+    },
+    "totalMs": 3.853269000000182
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "4b7c5382-a9ae-4b8c-8620-09cb8ec5fa4b",
+    "outcome": "failed",
+    "stage": "authorize",
+    "timingsMs": {
+      "authorize": 2.7382900000002337
+    },
+    "totalMs": 2.7561279999999897
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "a2ab839b-158b-41a8-a94d-e583e342271b",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 4.4767549999996845,
+      "listFiles": 1.7359519999999975,
+      "ideState": 7.721437000000151,
+      "materialize": 398.5820510000003,
+      "zip": 13.494376000000557,
+      "persist": 37.09475099999963,
+      "activity": 3.688035000000127,
+      "audit": 3.893927000000076
+    },
+    "totalMs": 470.8648550000007,
+    "fileCount": 200,
+    "archiveBytes": 839002
+  },
+  {
+    "event": "project.export_zip.timing",
+    "reqId": "c7e31d59-25f3-4f05-ac9d-4c3b411b1041",
+    "outcome": "success",
+    "stage": "audit",
+    "timingsMs": {
+      "authorize": 4.561392000000524,
+      "listFiles": 145.73795100000007,
+      "ideState": 6.421730000000025,
+      "materialize": 0.3066239999998288,
+      "zip": 17.68316700000014,
+      "persist": 45.97695599999952,
+      "activity": 6.061670000000049,
+      "audit": 4.930046000000402
+    },
+    "totalMs": 232.03876200000013,
+    "fileCount": 200,
+    "archiveBytes": 839002
+  }
+]

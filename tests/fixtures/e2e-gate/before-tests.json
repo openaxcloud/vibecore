@@ -1,0 +1,70 @@
+{
+  "base": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "exitCode": 1,
+  "passed": 1,
+  "failed": 7,
+  "tests": [
+    {
+      "name": "rejects an actual global teardown error even when every test passed",
+      "status": "failed",
+      "durationMs": 96.64473199999998,
+      "failureMessages": [
+        "AssertionError: expected +0 to be 1 // Object.is equality\n    at /workspace/vibecore/tests/guards/e2e-report-completeness.spec.ts:47:25\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at runSuite (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n    at runFiles (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1787:3)"
+      ]
+    },
+    {
+      "name": "rejects actual suite and teardown global deadlines",
+      "status": "failed",
+      "durationMs": 93.24512199999998,
+      "failureMessages": [
+        "AssertionError: expected +0 to be 1 // Object.is equality\n    at /workspace/vibecore/tests/guards/e2e-report-completeness.spec.ts:54:25\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at runSuite (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n    at runFiles (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1787:3)"
+      ]
+    },
+    {
+      "name": "rejects unexecuted expected-pass case from serial independently of other errors",
+      "status": "failed",
+      "durationMs": 66.84654899999998,
+      "failureMessages": [
+        "AssertionError: expected +0 to be 1 // Object.is equality\n    at /workspace/vibecore/tests/guards/e2e-report-completeness.spec.ts:66:25\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:861:59\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at runSuite (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)"
+      ]
+    },
+    {
+      "name": "rejects unexecuted expected-pass case from timeout independently of other errors",
+      "status": "failed",
+      "durationMs": 65.33835700000009,
+      "failureMessages": [
+        "AssertionError: expected +0 to be 1 // Object.is equality\n    at /workspace/vibecore/tests/guards/e2e-report-completeness.spec.ts:66:25\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:861:59\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at runSuite (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)"
+      ]
+    },
+    {
+      "name": "cannot waive missing execution or erase it with a later passing report",
+      "status": "failed",
+      "durationMs": 58.39074700000003,
+      "failureMessages": [
+        "AssertionError: expected +0 to be 1 // Object.is equality\n    at /workspace/vibecore/tests/guards/e2e-report-completeness.spec.ts:77:25\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at runSuite (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n    at runFiles (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1787:3)"
+      ]
+    },
+    {
+      "name": "accepts actual explicit skips, expected failures and a retry success",
+      "status": "passed",
+      "durationMs": 56.32316700000001,
+      "failureMessages": []
+    },
+    {
+      "name": "preserves an explicit waiver for an executed failure and reports matched counts",
+      "status": "failed",
+      "durationMs": 86.12384099999997,
+      "failureMessages": [
+        "AssertionError: expected '  fichiers de specs attendus : 1\\n  f\u2026' to contain 'waiver policy entries: 2'\n    at /workspace/vibecore/tests/guards/e2e-report-completeness.spec.ts:94:25\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at runSuite (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n    at runFiles (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1787:3)"
+      ]
+    },
+    {
+      "name": "does not treat a spec with no reported test variants as executed",
+      "status": "failed",
+      "durationMs": 68.76414499999998,
+      "failureMessages": [
+        "AssertionError: expected +0 to be 1 // Object.is equality\n    at /workspace/vibecore/tests/guards/e2e-report-completeness.spec.ts:102:25\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:155:11\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:26\n    at file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1897:20\n    at new Promise (<anonymous>)\n    at runWithTimeout (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1863:10)\n    at runTest (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1574:12)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at runSuite (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1729:8)\n    at runFiles (file:///workspace/vibecore/node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:1787:3)"
+      ]
+    }
+  ]
+}
