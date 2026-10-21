@@ -16,6 +16,7 @@ import { estCheminPublic } from './lib/i18n/surfaces';
  * hydration mismatch (#418) → full client-render fallback (#423).
  */
 function hydrater() {
+  (globalThis as any).__vibecoreStartupMark?.('hydrate-requested');
   startTransition(() => {
     hydrateRoot(document, <HydratedRouter />);
   });
@@ -39,6 +40,8 @@ function hydrater() {
  * Seuls les chemins publics listés obtiennent le régime allégé, et ils vont
  * chercher le reste dès que le navigateur est au repos.
  */
+(globalThis as any).__vibecoreStartupMark?.('entry-module-evaluated');
+
 const lang = document.documentElement.lang;
 
 cablerLeChargeurDeSecours();
@@ -49,6 +52,7 @@ chargerLesCataloguesDuDocument(lang, window.location.pathname).then(demarrer, (e
 });
 
 function demarrer() {
+  (globalThis as any).__vibecoreStartupMark?.('catalogues-ready');
   hydrater();
 
   if (estCheminPublic(window.location.pathname)) {

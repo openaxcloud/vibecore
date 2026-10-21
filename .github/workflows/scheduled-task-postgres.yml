@@ -1,0 +1,88 @@
+name: Scheduled task PostgreSQL
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scheduled-task-postgres:
+    name: Scheduled task PostgreSQL (7 real scenarios, no skips)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b # pg16 multi-platform index, same as Production CI
+        env:
+          POSTGRES_DB: panel_proof
+          POSTGRES_USER: vibecore
+          POSTGRES_PASSWORD: vibecore
+        ports: ['55438:5432']
+        options: >-
+          --health-cmd "pg_isready -U vibecore -d panel_proof"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      CI: true
+      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55438/panel_proof
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Pre-install action identity gate
+        run: node scripts/validate-github-actions-pinned.bundle.mjs --allow-temporary-exceptions
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 9.14.4
+          run_install: false
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate client and migrate the disposable database
+        run: |
+          pnpm --filter @vibecore/database db:generate
+          git diff --exit-code -- packages/database/generated
+          pnpm --filter @vibecore/database db:deploy
+
+      - name: Require all 7 PostgreSQL scenarios and zero skipped tests
+        run: sh services/api/scripts/verify-scheduled-task-postgres.sh "$RUNNER_TEMP/scheduled-task-proof"
+
+      - name: Verify the exact tested commit and publish the receipt
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync, appendFileSync } from 'node:fs';
+          const receipt = JSON.parse(readFileSync(`${process.env.RUNNER_TEMP}/scheduled-task-proof/receipt.json`, 'utf8'));
+          assert.equal(receipt.sha, process.env.EXPECTED_SHA);
+          assert.equal(receipt.dirty, false);
+          assert.equal(receipt.postgresTests, 7);
+          assert.equal(receipt.skipped, 0);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n\`\`\`json\n${JSON.stringify(receipt, null, 2)}\n\`\`\`\n`);
+          JS
+
+      - name: Preserve test evidence, including failed runs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: scheduled-task-postgres-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/scheduled-task-proof/tests.log
+            ${{ runner.temp }}/scheduled-task-proof/tests.json
+            ${{ runner.temp }}/scheduled-task-proof/tests-summary.json
+            ${{ runner.temp }}/scheduled-task-proof/receipt.json
+          if-no-files-found: error
+          retention-days: 7

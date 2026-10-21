@@ -1,0 +1,180 @@
+{
+  "config": {
+    "configFile": "<fixture-root>/serial/playwright.config.cjs",
+    "rootDir": "<fixture-root>/serial",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "<fixture-root>/serial/output",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "<fixture-root>/serial",
+        "testIgnore": [],
+        "testMatch": [
+          "sample.spec.cjs"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "sample.spec.cjs",
+      "file": "sample.spec.cjs",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "serial dependency",
+          "file": "sample.spec.cjs",
+          "line": 2,
+          "column": 15,
+          "specs": [
+            {
+              "title": "fails before dependent test",
+              "ok": false,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "failed",
+                      "duration": 7,
+                      "error": {
+                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m",
+                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n    at <fixture-root>/serial/sample.spec.cjs:3:59",
+                        "location": {
+                          "file": "<fixture-root>/serial/sample.spec.cjs",
+                          "column": 59,
+                          "line": 3
+                        },
+                        "snippet": "  1 | const { test, expect } = require('@playwright/test');\n  2 | test.describe.serial('serial dependency', () => {\n> 3 |   test('fails before dependent test', () => expect(false).toBe(true));\n    |                                                           ^\n  4 |   test('not executed after dependency failure', () => expect(true).toBe(true));\n  5 | });\n  6 |"
+                      },
+                      "errors": [
+                        {
+                          "location": {
+                            "file": "<fixture-root>/serial/sample.spec.cjs",
+                            "column": 59,
+                            "line": 3
+                          },
+                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  1 | const { test, expect } = require('@playwright/test');\n  2 | test.describe.serial('serial dependency', () => {\n> 3 |   test('fails before dependent test', () => expect(false).toBe(true));\n    |                                                           ^\n  4 |   test('not executed after dependency failure', () => expect(true).toBe(true));\n  5 | });\n  6 |\n    at <fixture-root>/serial/sample.spec.cjs:3:59"
+                        }
+                      ],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-21T08:55:40.808Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "error-context",
+                          "contentType": "text/markdown",
+                          "path": "<fixture-root>/serial/output/sample-serial-dependency-fails-before-dependent-test/error-context.md"
+                        }
+                      ],
+                      "errorLocation": {
+                        "file": "<fixture-root>/serial/sample.spec.cjs",
+                        "column": 59,
+                        "line": 3
+                      }
+                    }
+                  ],
+                  "status": "unexpected"
+                }
+              ],
+              "id": "8aa1cfe786b44e0de529-4bba3e12b36980d97640",
+              "file": "sample.spec.cjs",
+              "line": 3,
+              "column": 3
+            },
+            {
+              "title": "not executed after dependency failure",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "",
+                  "projectName": "",
+                  "results": [
+                    {
+                      "workerIndex": -1,
+                      "parallelIndex": -1,
+                      "status": "skipped",
+                      "duration": 0,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-10-21T08:55:40.843Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "8aa1cfe786b44e0de529-18303d6e6f631da28dea",
+              "file": "sample.spec.cjs",
+              "line": 4,
+              "column": 3
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-21T08:55:40.056Z",
+    "duration": 801.578,
+    "expected": 0,
+    "skipped": 1,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

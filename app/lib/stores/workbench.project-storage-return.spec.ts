@@ -3,6 +3,7 @@
 import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { WorkbenchStore } from './workbench';
+import { prefetchInitialProjectArchive } from '~/lib/ide/initial-project-archive';
 
 const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
@@ -140,6 +141,155 @@ describe('project storage hydration after returning to the IDE', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('reads independent entries concurrently with a bounded working set and preserves archive order', async () => {
+    const { store } = setup();
+    const started: number[] = [];
+    const releases: Array<() => void> = [];
+
+    let active = 0;
+    let peak = 0;
+
+    const entries = Array.from({ length: 9 }, (_, index) => {
+      const gate = new Promise<void>((resolve) => {
+        releases.push(resolve);
+      });
+      return {
+        name: `file-${index}.txt`,
+        dir: false,
+        async: vi.fn(async () => {
+          started.push(index);
+          peak = Math.max(peak, ++active);
+          await gate;
+          active--;
+
+          return new TextEncoder().encode(`document ${index}`);
+        }),
+      };
+    });
+    vi.spyOn(JSZip, 'loadAsync').mockResolvedValue({
+      files: Object.fromEntries(entries.map((entry) => [entry.name, entry])),
+    } as unknown as JSZip);
+    stubArchive(async () => new Response(JSON.stringify({ archive: { base64: 'controlled archive' } })));
+
+    const pending = store.loadProjectStorageFiles();
+
+    try {
+      await vi.waitFor(() => expect(started).toHaveLength(4));
+      expect(store.files.get()).toEqual({});
+
+      for (const index of [3, 2, 1, 0]) {
+        releases[index]();
+      }
+      await vi.waitFor(() => expect(started).toHaveLength(8));
+
+      for (const index of [7, 6, 5, 4]) {
+        releases[index]();
+      }
+      await vi.waitFor(() => expect(started).toHaveLength(9));
+      releases[8]();
+      expect(await pending).toBe(true);
+      expect(peak).toBe(4);
+
+      const files = Object.entries(store.files.get()).filter(([, file]) => file?.type === 'file');
+      expect(files.map(([name]) => name)).toEqual(entries.map((entry) => `/home/project/${entry.name}`));
+
+      for (let index = 0; index < entries.length; index++) {
+        expect(files[index][1]).toMatchObject({ content: `document ${index}`, isBinary: false });
+      }
+    } finally {
+      releases.forEach((release) => release());
+      await pending;
+    }
+  });
+
+  it('keeps binary bytes and Unicode text from a real archive while skipping directories', async () => {
+    const { store } = setup();
+    const zip = new JSZip();
+    const binary = new Uint8Array([0, 255, 137, 80, 0, 42]);
+    zip.folder('empty');
+    zip.file('image.bin', binary);
+    zip.file('unicode.txt', 'été 日本語 🧪');
+    stubArchive(
+      async () => new Response(JSON.stringify({ archive: { base64: await zip.generateAsync({ type: 'base64' }) } })),
+    );
+    expect(await store.loadProjectStorageFiles()).toBe(true);
+    expect(store.files.get()['/home/project/image.bin']).toMatchObject({
+      content: Buffer.from(binary).toString('base64'),
+      isBinary: true,
+    });
+    expect(store.files.get()['/home/project/unicode.txt']).toMatchObject({ content: 'été 日本語 🧪', isBinary: false });
+  });
+
+  it('leaves the existing documents intact when one archive entry cannot be decoded', async () => {
+    const { store } = setup();
+    stubArchive(() => archive('last complete archive'));
+    await store.loadProjectStorageFiles();
+
+    const before = store.files.get();
+
+    let release!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const read = vi.fn(async (index: number) => {
+      if (index === 0) {
+        throw new Error('corrupt entry');
+      }
+
+      await gate;
+
+      return new TextEncoder().encode('partial result');
+    });
+    const entries = Array.from({ length: 9 }, (_, index) => ({
+      name: `file-${index}.txt`,
+      dir: false,
+      async: () => read(index),
+    }));
+    vi.spyOn(JSZip, 'loadAsync').mockResolvedValue({
+      files: Object.fromEntries(entries.map((entry) => [entry.name, entry])),
+    } as unknown as JSZip);
+
+    try {
+      await expect(store.loadProjectStorageFiles()).rejects.toThrow('corrupt entry');
+      expect(read).toHaveBeenCalledTimes(4);
+    } finally {
+      release();
+    }
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(read).toHaveBeenCalledTimes(4);
+    expect(store.files.get()).toBe(before);
+    expect(store.currentDocument.get()?.value).toBe('last complete archive');
+  });
+
+  it('protects writes made after early transport starts and still fetches fresh data on a later reload', async () => {
+    const { store, projectId } = setup();
+
+    let release!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const downloads = stubArchive(async () => {
+      await gate;
+      return archive('older remote content');
+    });
+    void prefetchInitialProjectArchive(projectId);
+    expect(await store.createFile(path, 'newer local content')).toBe(true);
+
+    const pending = store.loadProjectStorageFiles();
+    release();
+    expect(await pending).toBe(true);
+    expect(downloads).toHaveBeenCalledOnce();
+    expect(store.files.get()[path]).toMatchObject({ content: 'newer local content' });
+
+    downloads.mockResolvedValueOnce(await archive('new remote update'));
+    expect(await store.loadProjectStorageFiles()).toBe(true);
+    expect(downloads).toHaveBeenCalledTimes(2);
+    expect(store.files.get()[path]).toMatchObject({ content: 'new remote update' });
   });
 
   it('rehydrates after a runtime rebind before the former 30-second cooldown expires', async () => {

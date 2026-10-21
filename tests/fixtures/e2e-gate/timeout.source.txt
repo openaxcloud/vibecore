@@ -1,0 +1,3 @@
+const { test } = require('@playwright/test');
+test('unfinished operation at global deadline', async () => { await new Promise(() => {}); });
+test('not reached before global deadline', () => {});

@@ -1,0 +1,46 @@
+{
+  "baseSha": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "testExitCode": 1,
+  "passed": 3,
+  "failed": 2,
+  "skipped": 0,
+  "todo": 0,
+  "appSha256": "f191f1467e1d37d8466d36d0e826b8917ddbd47209252f7f3a8cced551c23f90",
+  "testSha256": "7862adc62d6b4b0523da648722ae0799b2f98561cfee04b8541f4bacd22baaa0",
+  "tests": [
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL creates a disabled schedule and persists it after reconnect; invalid creation writes nothing",
+      "status": "passed",
+      "durationMs": 754.3622780000005,
+      "failureMessages": []
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL rejects a blank deployment command on update without changing any persisted fields",
+      "status": "failed",
+      "durationMs": 143.10565399999905,
+      "failureMessages": [
+        "AssertionError: expected 200 to be 400 // Object.is equality\n    at services/api/src/scheduled-task-persistence.integration.spec.ts:153:31\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file://node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+      ]
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL persists edits and repeats, rejects invalid cron/timezone and cross-organization access",
+      "status": "failed",
+      "durationMs": 238.1745439999977,
+      "failureMessages": [
+        "AssertionError: expected 200 to be 400 // Object.is equality\n    at services/api/src/scheduled-task-persistence.integration.spec.ts:176:7\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at file://node_modules/.pnpm/@vitest+runner@3.2.6/node_modules/@vitest/runner/dist/chunk-hooks.js:752:20"
+      ]
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL persists enable/disable and preserves the next run when only renaming",
+      "status": "passed",
+      "durationMs": 908.2528029999994,
+      "failureMessages": []
+    },
+    {
+      "name": "scheduled task configuration \u2014 real HTTP and PostgreSQL deletes persistently and refuses repeated deletion",
+      "status": "passed",
+      "durationMs": 214.85776400000032,
+      "failureMessages": []
+    }
+  ]
+}

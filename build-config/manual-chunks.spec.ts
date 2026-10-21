@@ -28,6 +28,10 @@ import { manualChunks } from './manual-chunks';
 const NM = '/app/node_modules';
 
 describe('manualChunks — heavy vendor chunks must not leak onto every page', () => {
+  it('keeps the early archive transport independent of the IDE UI graph', () => {
+    expect(manualChunks('/workspace/vibecore/app/lib/ide/initial-project-archive.ts')).toBe('ide-archive-bootstrap');
+  });
+
   it("keeps Vite's preload helper out of any heavy vendor chunk", () => {
     // Vite 5 ids the virtual helper as `\0vite/preload-helper.js`.
     expect(manualChunks('\0vite/preload-helper.js')).toBe('vendor-vite-helpers');
@@ -45,9 +49,7 @@ describe('manualChunks — heavy vendor chunks must not leak onto every page', (
   it('still groups the real JS of those packages as before', () => {
     expect(manualChunks(`${NM}/@xterm/xterm/lib/xterm.mjs`)).toBe('vendor-terminal');
     expect(manualChunks(`${NM}/monaco-editor/esm/vs/editor/editor.api.js`)).toBe('vendor-monaco-core');
-    expect(manualChunks(`${NM}/monaco-editor/esm/vs/language/json/monaco.contribution.js`)).toBe(
-      'vendor-monaco-json',
-    );
+    expect(manualChunks(`${NM}/monaco-editor/esm/vs/language/json/monaco.contribution.js`)).toBe('vendor-monaco-json');
     expect(manualChunks(`${NM}/@codemirror/state/dist/index.js`)).toBe('vendor-codemirror');
     expect(manualChunks(`${NM}/@lezer/common/dist/index.js`)).toBe('vendor-codemirror');
     expect(manualChunks(`${NM}/lucide-react/dist/esm/lucide-react.js`)).toBe('vendor-icons');

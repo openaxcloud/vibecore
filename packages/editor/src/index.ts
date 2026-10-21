@@ -1029,11 +1029,17 @@ let desktopEditorModule: Promise<typeof import('monaco-editor/esm/vs/editor/edit
 
 /** Begin loading the desktop engine independently of file hydration/selection. */
 export function preloadDesktopCodeEditor() {
-  desktopEditorModule ??= import('monaco-editor/esm/vs/editor/editor.api').catch((error) => {
-    // A failed preload must not poison a later mount or explicit panel retry.
-    desktopEditorModule = undefined;
-    throw error;
-  });
+  (globalThis as any).__vibecoreStartupMark?.('monaco-import-requested');
+  desktopEditorModule ??= import('monaco-editor/esm/vs/editor/editor.api')
+    .then((module) => {
+      (globalThis as any).__vibecoreStartupMark?.('monaco-import-resolved');
+      return module;
+    })
+    .catch((error) => {
+      // A failed preload must not poison a later mount or explicit panel retry.
+      desktopEditorModule = undefined;
+      throw error;
+    });
 
   return desktopEditorModule;
 }
@@ -1135,6 +1141,7 @@ export function DesktopCodeEditor({
 
     let disposed = false;
 
+    (globalThis as any).__vibecoreStartupMark?.('monaco-effect-mounted');
     void preloadDesktopCodeEditor()
       .then((monaco) => {
         if (disposed || !containerRef.current) {
@@ -1186,6 +1193,7 @@ export function DesktopCodeEditor({
           },
         });
 
+        (globalThis as any).__vibecoreStartupMark?.('monaco-create-start');
         const editor = monaco.editor.create(containerRef.current, {
           model: currentModel,
           readOnly,
@@ -1234,6 +1242,7 @@ export function DesktopCodeEditor({
           padding: { top: 12, bottom: 12 },
         });
 
+        (globalThis as any).__vibecoreStartupMark?.('monaco-create-ready');
         editorRef.current = editor;
 
         /*

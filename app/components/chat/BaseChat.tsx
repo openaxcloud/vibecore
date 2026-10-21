@@ -5515,8 +5515,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       }, PROJECT_IDE_STATE_RESTORE_FALLBACK_MS);
 
+      (globalThis as any).__vibecoreStartupMark?.('layout-restore-requested');
       getProjectIdeMemory(projectId, currentWorkspaceId)
         .then((memory) => {
+          (globalThis as any).__vibecoreStartupMark?.('layout-memory-ready');
+
           if (cancelled) {
             return;
           }
@@ -5698,6 +5701,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * jamais à l'entrée de l'opération.
            */
           gardeDeRestauration.current.reussir(projectId);
+          (globalThis as any).__vibecoreStartupMark?.('layout-restored');
           restoredProjectSelectionScope.current = { projectId, workspaceId: currentWorkspaceId };
         })
         .catch((error) => {
@@ -22115,7 +22119,7 @@ function ProjectDatabasePanel({
       {connections.length === 0 && !hasManagedDatabase ? (
         <DatabaseConnectionOnboarding onSubmit={onSubmit} busy={busy} />
       ) : null}
-      {projectId ? <DatabaseWorkbench projectId={projectId} /> : null}
+      {projectId ? <DatabaseWorkbench projectId={projectId} initialData={data} /> : null}
     </div>
   );
 }

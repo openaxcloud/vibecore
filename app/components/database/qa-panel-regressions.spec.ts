@@ -51,7 +51,11 @@ describe('BUG-QA-DB-IDE-BRICK-001 — un provisionnement échoué ne bloque plus
   const code = codeOnly(dbWorkbench);
 
   it('un chargement terminé SANS donnée compte comme un échec affichable', () => {
-    expect(code).toMatch(/loadAttempted && fetcher\.data === undefined/);
+    /*
+     * The displayed response now also accepts the parent's completed request.
+     * The component test exercises a failed refresh and the real retry button.
+     */
+    expect(code).toMatch(/loadAttempted && data === undefined/);
   });
 
   it('une réponse portant une erreur reste affichée dès le premier rendu', () => {

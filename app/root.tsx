@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import { discardInitialProjectArchiveExcept, initialArchiveProject } from './lib/ide/initial-project-archive';
 import { useStore } from '@nanostores/react';
 import EcodeBootMark from './components/brand/EcodeBootMark';
 import type { LinksFunction, MetaFunction } from 'react-router';
@@ -532,6 +533,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const frameworkContext = useContext(UNSAFE_FrameworkContext);
   const dataRouterState = useContext(UNSAFE_DataRouterStateContext);
+  const archiveProjectId = dataRouterState?.errors ? undefined : initialArchiveProject(matches);
+
+  useEffect(() => {
+    discardInitialProjectArchiveExcept(archiveProjectId);
+  }, [archiveProjectId]);
+
   const language = resolveDocumentLanguage(matches);
 
   const navigatorLocaleFallback = matches.some((match) => {
@@ -567,7 +574,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const alternateOpenGraphLocale = language === 'en' ? 'fr_FR' : 'en_US';
 
   return (
-    <html lang={language} dir={language === 'ar' ? 'rtl' : 'ltr'} data-theme="dark" suppressHydrationWarning>
+    <html
+      lang={language}
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+      data-theme="dark"
+      data-vibecore-project-archive={archiveProjectId}
+      suppressHydrationWarning
+    >
       <head>
         <meta charSet="utf-8" />
         {/*
