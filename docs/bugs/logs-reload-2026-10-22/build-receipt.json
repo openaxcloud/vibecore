@@ -1,0 +1,14 @@
+{
+  "sha": "ddfdb38cfc9d671c74c127474e901b49505072f2",
+  "tree": "457e3fa767cbb0635211a7b525673a6cce327c75",
+  "buildStartedOnMatchingIndexTree": true,
+  "sources": 9465,
+  "compiledCount": 2307,
+  "gitBlobsCompared": 9465,
+  "sourceDifferences": [],
+  "sourceManifestSha256": "8e3f415f3f58a259cf986b98dc5f52c60e7ec98dc2fdfe1bfdb5fc6329439837",
+  "compiledManifestSha256": "57b61529a438bdf514e7da8f30e56ec8d77a634b2d60f8e29b9699df5e468d1c",
+  "archiveSha256": "0534930b72004c9aab6aa7f9e259049171b4ec8618bd1fcd0ae1f40cb2e21113",
+  "buildExitCode": 0,
+  "baseUrl": "http://127.0.0.1:5227"
+}

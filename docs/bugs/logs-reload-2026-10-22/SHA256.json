@@ -1,0 +1,50 @@
+[
+  {
+    "path": "README.md",
+    "sha256": "db02a71b261f4e2f7570d3da798e43003dc1f44d4bad623725c99befb641c8e5"
+  },
+  {
+    "path": "baseline-after-reload-1024.png",
+    "sha256": "d8a4e98c8164a1be54235cfc4a913c4d67811ddf8723de03f795eb376103a188"
+  },
+  {
+    "path": "baseline-after-reload-1440.png",
+    "sha256": "9dd81eb2798d9dee1db33af305cb9a5399085881056e022d52ffcf58b5d598f4"
+  },
+  {
+    "path": "baseline-summary.json",
+    "sha256": "55cff1dcdce4bca6deebc866d50a004d80cb9ff3df4b227f28d2163304f769ed"
+  },
+  {
+    "path": "build-receipt.json",
+    "sha256": "3978c569e7091839c49c29f763672ad46bcae2df916b649b273de5ffecde0346"
+  },
+  {
+    "path": "compiled.json",
+    "sha256": "57b61529a438bdf514e7da8f30e56ec8d77a634b2d60f8e29b9699df5e468d1c"
+  },
+  {
+    "path": "final-after-reload-1024.png",
+    "sha256": "722184ac489b4ab5faa9e1e2da16869740339c8c9350eb294c8144d2a9117ef2"
+  },
+  {
+    "path": "final-after-reload-1440.png",
+    "sha256": "d1e967d9e02a9f4f44b34cd3c83297cbeb36aa14aac50035d0f6c198390f9dd5"
+  },
+  {
+    "path": "final-summary.json",
+    "sha256": "af85a8d5852bebb448067070d8c02a4373e319c572e98d7dac70ae14b458dee2"
+  },
+  {
+    "path": "playwright.config.ts.txt",
+    "sha256": "51b4b07cf35a6bbbf7454ec780733c2c7148f4c070a9d8c19fc9623dd34c1ba5"
+  },
+  {
+    "path": "served-asset.json",
+    "sha256": "f545e6943c58feb69f55a4da52f20ebf1161a4d6910278fe4279432ec05c8394"
+  },
+  {
+    "path": "sources.json",
+    "sha256": "8e3f415f3f58a259cf986b98dc5f52c60e7ec98dc2fdfe1bfdb5fc6329439837"
+  }
+]

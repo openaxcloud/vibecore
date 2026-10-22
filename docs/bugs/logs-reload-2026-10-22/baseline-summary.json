@@ -1,0 +1,68 @@
+{
+  "commit": "838684f007255fb0f91177f5e1598940ad084fca",
+  "rawReportSha256": "7334cd580652a77691e7938309b327145c551146496b157a5424008f2c764096",
+  "stats": {
+    "startTime": "2026-10-22T12:41:13.379Z",
+    "duration": 21026.729000000003,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "suite": "Logs reload at 1440px",
+      "title": "Clear then Reload restores real System logs without reloading the page",
+      "status": "failed",
+      "retry": 0,
+      "durationMs": 9946,
+      "observations": {
+        "initial-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-counts": {
+          "before": 5,
+          "afterReload": 0
+        }
+      }
+    },
+    {
+      "suite": "Logs reload at 1024px",
+      "title": "Clear then Reload restores real System logs without reloading the page",
+      "status": "failed",
+      "retry": 0,
+      "durationMs": 8675,
+      "observations": {
+        "initial-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-counts": {
+          "before": 5,
+          "afterReload": 0
+        }
+      }
+    }
+  ]
+}
