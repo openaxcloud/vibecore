@@ -163,3 +163,213 @@ describe('FilesStore.reloadFromRuntime — un rafraîchissement demandé répare
     expect(fileTree).toContain("workbenchStore.loadRuntimeFiles('.', { reparer: true }).catch(");
   });
 });
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
+
+  return { promise, resolve, reject };
+}
+
+describe('reload overlapping runtime writes', () => {
+  const path = '/home/project/audit.txt';
+  const nodes = (content: string) => [{ type: 'file' as const, name: 'audit.txt', path: 'audit.txt', content }];
+
+  const setup = () => {
+    const runtime = makeRuntime(nodes('old disk'));
+    Object.assign(runtime, { mode: 'test', writeFile: vi.fn(async () => undefined) });
+
+    const store = new FilesStore(runtime);
+    store.files.set({ [path]: { type: 'file', content: 'old disk', isBinary: false } });
+
+    return { runtime, store };
+  };
+
+  it.each(['pending', 'completed', 'failed'] as const)(
+    'preserves the correct save state when listing resolves with save %s',
+    async (state) => {
+      const { runtime, store } = setup();
+      const write = deferred<void>();
+      const started = deferred<void>();
+      const listing = deferred<ReturnType<typeof nodes>>();
+      vi.mocked(runtime.writeFile).mockImplementationOnce(() => {
+        started.resolve();
+        return write.promise;
+      });
+      vi.mocked(runtime.listFiles).mockImplementationOnce(() => listing.promise);
+
+      try {
+        const save = store.saveFile(path, 'draft');
+        const failure = state === 'failed' ? expect(save).rejects.toThrow('write rejected') : undefined;
+        await started.promise;
+
+        const reload = store.reloadFromRuntime();
+
+        if (state === 'completed') {
+          write.resolve();
+          await save;
+        }
+
+        if (state === 'failed') {
+          write.reject(new Error('write rejected'));
+          await failure;
+        }
+
+        listing.resolve(nodes('old disk'));
+        await reload;
+        expect(store.files.get()[path]).toMatchObject({ content: state === 'failed' ? 'old disk' : 'draft' });
+
+        if (state === 'pending') {
+          write.resolve();
+          await save;
+        }
+
+        vi.mocked(runtime.listFiles).mockResolvedValueOnce(nodes('later external write'));
+        await store.reloadFromRuntime();
+        expect(store.files.get()[path]).toMatchObject({ content: 'later external write' });
+      } finally {
+        store.dispose();
+      }
+    },
+  );
+
+  it('preserves a mutation made after the listing started', async () => {
+    const { runtime, store } = setup();
+    const listing = deferred<ReturnType<typeof nodes>>();
+    vi.mocked(runtime.listFiles).mockImplementationOnce(() => listing.promise);
+
+    try {
+      const reload = store.reloadFromRuntime();
+      await store.saveFile(path, 'newer save');
+      listing.resolve(nodes('old disk'));
+      await reload;
+      expect(store.files.get()[path]).toMatchObject({ content: 'newer save' });
+    } finally {
+      store.dispose();
+    }
+  });
+
+  it.each(['same adapter', 'new adapter'] as const)(
+    'does not apply a listing across a %s scope reset',
+    async (kind) => {
+      const { runtime, store } = setup();
+      const listing = deferred<ReturnType<typeof nodes>>();
+      vi.mocked(runtime.listFiles).mockImplementationOnce(() => listing.promise);
+
+      try {
+        const reload = store.reloadFromRuntime();
+        store.setRuntime(kind === 'same adapter' ? runtime : makeRuntime(nodes('project B')));
+        store.files.set({ [path]: { type: 'file', content: 'project B', isBinary: false } });
+        listing.resolve(nodes('project A'));
+        await reload;
+        expect(store.files.get()[path]).toMatchObject({ content: 'project B' });
+      } finally {
+        store.dispose();
+      }
+    },
+  );
+
+  it('preserves the second optimistic save while the first queue entry completes', async () => {
+    const { runtime, store } = setup();
+    const first = deferred<void>();
+    const second = deferred<void>();
+    const startedFirst = deferred<void>();
+    const startedSecond = deferred<void>();
+    vi.mocked(runtime.writeFile)
+      .mockImplementationOnce(() => {
+        startedFirst.resolve();
+        return first.promise;
+      })
+      .mockImplementationOnce(() => {
+        startedSecond.resolve();
+        return second.promise;
+      });
+
+    try {
+      const saveOne = store.saveFile(path, 'first');
+      await startedFirst.promise;
+
+      const saveTwo = store.saveFile(path, 'second');
+      first.resolve();
+      await saveOne;
+      await startedSecond.promise;
+      await store.reloadFromRuntime();
+      expect(store.files.get()[path]).toMatchObject({ content: 'second' });
+      second.resolve();
+      await saveTwo;
+      expect(store.files.get()[path]).toMatchObject({ content: 'second' });
+    } finally {
+      store.dispose();
+    }
+  });
+  it('does not let an old pending save shield the new scope from its own runtime listing', async () => {
+    const { runtime, store } = setup();
+    const write = deferred<void>();
+    const started = deferred<void>();
+    vi.mocked(runtime.writeFile).mockImplementationOnce(() => {
+      started.resolve();
+      return write.promise;
+    });
+
+    try {
+      const save = store.saveFile(path, 'A draft');
+      const rejected = expect(save).rejects.toMatchObject({ code: 'FILE_SAVE_SCOPE_CHANGED' });
+      await started.promise;
+      store.setRuntime(runtime);
+      store.files.set({ [path]: { type: 'file', content: 'B cached', isBinary: false } });
+      vi.mocked(runtime.listFiles).mockResolvedValueOnce(nodes('B fresh disk'));
+      await store.reloadFromRuntime();
+      expect(store.files.get()[path]).toMatchObject({ content: 'B fresh disk' });
+      write.resolve();
+      await rejected;
+      expect(store.files.get()[path]).toMatchObject({ content: 'B fresh disk' });
+    } finally {
+      store.dispose();
+    }
+  });
+  it('starts a new-scope save without waiting for the old scope write at the same path', async () => {
+    const { runtime, store } = setup();
+    const oldWrite = deferred<void>();
+    const oldStarted = deferred<void>();
+    vi.mocked(runtime.writeFile).mockImplementationOnce(() => {
+      oldStarted.resolve();
+      return oldWrite.promise;
+    });
+
+    const nextRuntime = makeRuntime(nodes('B disk'));
+    const nextWrite = deferred<void>();
+    Object.assign(nextRuntime, { mode: 'test', writeFile: vi.fn(() => nextWrite.promise) });
+
+    try {
+      const saveA = store.saveFile(path, 'A draft');
+      const rejectedA = expect(saveA).rejects.toMatchObject({ code: 'FILE_SAVE_SCOPE_CHANGED' });
+      await oldStarted.promise;
+      store.setRuntime(nextRuntime);
+      store.files.set({ [path]: { type: 'file', content: 'B disk', isBinary: false } });
+
+      const saveB = store.saveFile(path, 'B draft');
+
+      // Drain the already-scheduled promise jobs, without releasing A or adding a timer.
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect.soft(nextRuntime.writeFile).toHaveBeenCalledWith('audit.txt', 'B draft');
+      oldWrite.resolve();
+      await rejectedA;
+      await Promise.resolve();
+      await store.reloadFromRuntime();
+
+      // A's finally must not delete the queue entry protecting B's pending write.
+      expect(store.files.get()[path]).toMatchObject({ content: 'B draft' });
+      nextWrite.resolve();
+      await expect(saveB).resolves.toBe('B draft');
+    } finally {
+      store.dispose();
+    }
+  });
+});

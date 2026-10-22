@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-476 entrées.
+477 entrées.
 
 ## Sans section
 
@@ -607,6 +607,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DESKTOP-PROBLEMS-ROUTE-001](docs/bugs/BUG-DESKTOP-PROBLEMS-ROUTE-001.md) — Sur desktop, ouvrir un projet avec `?panel=problems` affiche l'éditeur README au lieu du panneau Problems. Le registre `IDE_WORKSPACE_PANELS` accepte cette rout — 📤 Dispatché : ☑ 22 octobre 2026 — diagnostic et correctif ciblé préparés dans le lot desktop, sur la base `18745bd04f77e4d9f · 💻 Codé : ☐ — correctif local préparé, non commité et non intégré à main. Ajout de `problems` au modèle des outils et à · ✅ Testé live : ☐ — défaut reproduit sur le build local compilé et attesté ; validation navigateur du build corrigé encore en
 - [BUG-RUNTIME-SAVE-DURABILITY-20261022](docs/bugs/BUG-RUNTIME-SAVE-DURABILITY-20261022.md) — 📤 Dispatché : Correction API isolée depuis main 18745bd04f77e4d9fc6353d61bd4d17a3822f94e. PUT files/write et POST files aval · 💻 Codé : Branche fix/api-durable-runtime-save, non fusionnée. Refus sans manifeste complet, erreur explicite après succ · ✅ Testé live : Non testé en production. Tests locaux API avec agent HTTP simulé, pannes de persistance et ZIP serveur réel ;
 - [BUG-AGENT-PATCH-FAILURE-START-001](docs/bugs/BUG-AGENT-PATCH-FAILURE-START-001.md) — P1 — une proposition IA échouée perd sa cause et ne bloque pas le démarrage différé. — 📤 Dispatché : ☑ 22/10 — lot distinct du démarrage i18n et de la PR #763. · 💻 Codé : ☐ — candidat en branche ; aucune fusion dans main revendiquée. · ✅ Testé live : ☐ — pas de modification ni de réparation du projet utilisateur ; pas de validation Kubernetes complète.
+- [BUG-IDE-RELOAD-DURING-SAVE-001](docs/bugs/BUG-IDE-RELOAD-DURING-SAVE-001.md) — 📤 Dispatché : 22 octobre 2026 : diagnostic séparé sur la base exacte 6fa009b9180f8add2e6a60e5e3be52e4155336e3. Le signal CI · 💻 Codé : Correction en cours dans une branche distincte ; non intégrée à main. Ne pas confondre cette course dans un mê · ✅ Testé live : Non certifié. Une contre-épreuve unitaire déterministe reproduit un défaut : publication optimiste du brouillo
 
 ## Résidus non tabulaires — reportés mot pour mot
 

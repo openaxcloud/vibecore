@@ -129,7 +129,7 @@ export class FilesStore {
    * has committed — otherwise two concurrent saves both pass the optimistic
    * remote-content check and last-write-wins silently drops one writer's content.
    */
-  #saveQueues: Map<string, Promise<unknown>> = new Map();
+  #saveQueues: Map<string, { promise: Promise<unknown>; binding: number }> = new Map();
 
   /**
    * Map of files that matches the state of the active runtime.
@@ -294,12 +294,17 @@ export class FilesStore {
 
   async reloadFromRuntime(rootPath = '.', options: { reparer?: boolean } = {}) {
     const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
     const filesBeforeListing = this.files.get();
+
+    const savingBeforeListing = new Set(
+      [...this.#saveQueues].filter(([, save]) => save.binding === binding).map(([path]) => path),
+    );
 
     // `reparer` : rafraîchissement demandé par l'utilisateur → le runtime distant réconcilie d'abord (BUG-IDE-007).
     const nodes = await runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
 
-    if (this.#runtime !== runtime) {
+    if (this.#runtime !== runtime || this.#runtimeBinding !== binding) {
       return;
     }
 
@@ -361,7 +366,15 @@ export class FilesStore {
      * still adopts the runtime contents normally.
      */
     for (const path of new Set([...Object.keys(filesBeforeListing), ...Object.keys(currentFiles)])) {
-      if (filesBeforeListing[path] !== currentFiles[path]) {
+      /*
+       * A listing may start after optimistic publication but before the disk write completes.
+       * Also retain saves that completed while this listing was in flight.
+       */
+      if (
+        filesBeforeListing[path] !== currentFiles[path] ||
+        savingBeforeListing.has(path) ||
+        this.#saveQueues.get(path)?.binding === binding
+      ) {
         if (currentFiles[path]) {
           nextFiles[path] = currentFiles[path];
         } else {
@@ -895,21 +908,21 @@ export class FilesStore {
      * Chain on any in-flight write for this path so same-file saves run strictly
      * one-at-a-time (the optimistic concurrency check is otherwise racy).
      */
-    const previous = this.#saveQueues.get(filePath) ?? Promise.resolve();
-
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
+    const queued = this.#saveQueues.get(filePath);
+    const previous = queued?.binding === binding ? queued.promise : Promise.resolve();
 
     const run = previous
       .catch(() => undefined)
       .then(() => this.#saveFileImpl(filePath, content, options, runtime, binding));
 
-    this.#saveQueues.set(filePath, run);
+    this.#saveQueues.set(filePath, { promise: run, binding });
 
     try {
       return await run;
     } finally {
-      if (this.#saveQueues.get(filePath) === run) {
+      if (this.#saveQueues.get(filePath)?.promise === run) {
         this.#saveQueues.delete(filePath);
       }
     }

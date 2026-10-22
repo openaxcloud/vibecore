@@ -703,4 +703,46 @@ describe('project storage hydration after returning to the IDE', () => {
     expect(store.files.get()[path]).toMatchObject({ content: 'project B' });
     expect(store.currentDocument.get()?.value).toBe('project B');
   });
+  it('preserves an optimistically saved draft when a runtime listing starts during the pending write', async () => {
+    const { store } = setup();
+    runtimeFiles.set('audit.txt', 'old disk');
+    stubArchive(() => archive('old disk'));
+    await store.loadProjectStorageFiles();
+    store.setSelectedFile(path);
+    store.setCurrentDocumentContent('new draft');
+
+    let release!: () => void;
+    let started!: () => void;
+
+    const writeStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.spyOn(runtimeAdapterMock, 'writeFile').mockImplementationOnce(async (filePath, content) => {
+      started();
+      await gate;
+      runtimeFiles.set(filePath, content);
+    });
+
+    const pendingSave = store.saveFile(path);
+    await writeStarted;
+    expect(store.files.get()[path]).toMatchObject({ content: 'new draft' });
+
+    // Listing starts after optimistic publication, while the actual write is still pending.
+    await store.loadRuntimeFiles();
+    expect.soft(store.files.get()[path]).toMatchObject({ content: 'new draft' });
+    expect(store.currentDocument.get()).toMatchObject({ value: 'new draft' });
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    release();
+    await expect(pendingSave).resolves.toBe('new draft');
+    expect(runtimeFiles.get('audit.txt')).toBe('new draft');
+    expect(store.unsavedFiles.get().has(path)).toBe(false);
+    expect.soft(store.files.get()[path]).toMatchObject({ content: 'new draft' });
+
+    // A later ordinary document reconciliation must agree with the successful save.
+    store.setDocuments(store.files.get());
+    expect(store.currentDocument.get()).toMatchObject({ value: 'new draft' });
+  });
 });
