@@ -19,3 +19,9 @@ Reproductions locales Chromium, projets synthétiques, 22 octobre à 07:29:02 et
 Cause inconnue. La palette globale est portée par des `useState` locaux de `BaseChat`, contrairement aux palettes par panneau gérées par `IdePaletteProvider`. Le remplacement possible de `PendingComposerShell` par `ChatImpl` est une hypothèse à instrumenter ; aucun événement de remontage ni fermeture externe n’a encore été corrélé à ces erreurs. Il faut conserver les événements de montage, les gestes et l’état de la palette pour établir la cause avant correction. Aucune certification production.
 
 Preuves : [navigation-echo](./ux-followup-2026-10-21/main-18cf-docking/navigation-echo/README.md), rapports `navigation-first-state-id.json` et `palette-preparation-second-red.json` avec empreintes des originaux locaux. Corps et en-têtes réseau, sessions et cookies exclus.
+
+## Nouveau lot desktop — reproduction contrôlée
+
+Base `18745bd04f77e4d9fc6353d61bd4d17a3822f94e`, produit compilé identique au build attesté `edb558bc`. À1440×900, la vraie requête GET ide-state est retenue puis continuée sans réponse simulée : All tools ouvre la palette, la recherche Database est saisie, puis le témoin DOM de la coque disparaît et le champ de recherche disparaît pendant les5s de l’assertion, sans geste de fermeture. Captures avant/après inspectées. Le cas1024 a échoué à sa préparation par rail absent et ne prouve pas ce défaut à cette largeur ; la palette après montage passe clavier aux deux largeurs.
+
+Correctif local en cours dans le fournisseur de palette déjà porté par la route : état global partagé entre coques, remis à zéro à la sortie de route ou au changement projet/fenêtre. Aucun changement au flux de patches #765. Pas encore de recette verte du nouveau build, pas de livraison revendiquée.

@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { IdePaletteProvider, useIdePalette, useRetainIdePalettes } from './IdePaletteState';
+import { IdePaletteProvider, useGlobalIdePalette, useIdePalette, useRetainIdePalettes } from './IdePaletteState';
 
 afterEach(cleanup);
 
@@ -134,5 +134,121 @@ describe('IDE palette lifetime', () => {
     fireEvent.click(view.getByText('Open pane-main'));
     view.rerender(<Palette key="second" />);
     expect(view.queryByLabelText('Query pane-main')).toBeNull();
+  });
+});
+
+function GlobalPalette() {
+  const palette = useGlobalIdePalette();
+  return (
+    <section>
+      <button
+        onClick={() => {
+          palette.setCommandPaletteOpen(true);
+          palette.setCommandPaletteMode('spotlight');
+          palette.setCommandPaletteQuery('Database');
+          palette.setCommandPaletteIndex(2);
+          palette.setSpotlightProjectName('Synthetic project');
+        }}
+      >
+        Open global
+      </button>
+      <button onClick={() => palette.setCommandPaletteOpen(false)}>Close global</button>
+      <output aria-label="Global state">
+        {JSON.stringify({
+          open: palette.commandPaletteOpen,
+          mode: palette.commandPaletteMode,
+          query: palette.commandPaletteQuery,
+          index: palette.commandPaletteIndex,
+          spotlight: palette.spotlightProjectName,
+        })}
+      </output>
+    </section>
+  );
+}
+
+const defaultGlobalState = { open: false, mode: 'all', query: '', index: 0, spotlight: '' };
+
+const readGlobal = (view: ReturnType<typeof render>) =>
+  JSON.parse(view.getByLabelText('Global state').textContent ?? '{}');
+
+describe('global IDE palette lifetime', () => {
+  it('preserves opening, mode, search, selected index and spotlight across shell replacement', () => {
+    const tree = (instance: string) => (
+      <IdePaletteProvider projectId="p1" windowId="main">
+        <GlobalPalette key={instance} />
+      </IdePaletteProvider>
+    );
+
+    const view = render(tree('shell'));
+    fireEvent.click(view.getByText('Open global'));
+
+    const original = view.getByLabelText('Global state');
+    view.rerender(tree('chat'));
+    expect(original.isConnected).toBe(false);
+    expect(readGlobal(view)).toEqual({
+      open: true,
+      mode: 'spotlight',
+      query: 'Database',
+      index: 2,
+      spotlight: 'Synthetic project',
+    });
+  });
+
+  it('does not reopen after explicit closure and a subsequent shell replacement', () => {
+    const tree = (instance: string) => (
+      <IdePaletteProvider projectId="p1" windowId="main">
+        <GlobalPalette key={instance} />
+      </IdePaletteProvider>
+    );
+
+    const view = render(tree('shell'));
+    fireEvent.click(view.getByText('Open global'));
+    fireEvent.click(view.getByText('Close global'));
+    view.rerender(tree('chat'));
+    expect(readGlobal(view).open).toBe(false);
+    fireEvent.click(view.getByText('Open global'));
+    expect(readGlobal(view).open).toBe(true);
+  });
+
+  it.each(['project', 'window'] as const)('clears all state across a %s change, including return', (dimension) => {
+    const tree = (scope: string) => (
+      <IdePaletteProvider
+        projectId={dimension === 'project' ? scope : 'p1'}
+        windowId={dimension === 'window' ? scope : 'main'}
+      >
+        <GlobalPalette />
+      </IdePaletteProvider>
+    );
+
+    const view = render(tree('a'));
+    fireEvent.click(view.getByText('Open global'));
+    view.rerender(tree('b'));
+    expect(readGlobal(view)).toEqual(defaultGlobalState);
+    view.rerender(tree('a'));
+    expect(readGlobal(view)).toEqual(defaultGlobalState);
+  });
+
+  it('drops global state when leaving the route and returning', () => {
+    const tree = (
+      <IdePaletteProvider projectId="p1" windowId="main">
+        <GlobalPalette />
+      </IdePaletteProvider>
+    );
+
+    const view = render(tree);
+    fireEvent.click(view.getByText('Open global'));
+    view.rerender(<div>Another route</div>);
+    view.rerender(tree);
+    expect(readGlobal(view)).toEqual(defaultGlobalState);
+  });
+
+  it('supports local fallback without leaking state across unmounts', () => {
+    const view = render(<GlobalPalette key="first" />);
+    fireEvent.click(view.getByText('Open global'));
+    expect(readGlobal(view).query).toBe('Database');
+    fireEvent.click(view.getByText('Close global'));
+    expect(readGlobal(view).open).toBe(false);
+    view.rerender(<GlobalPalette key="second" />);
+    expect(readGlobal(view)).toEqual(defaultGlobalState);
   });
 });

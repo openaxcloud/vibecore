@@ -162,7 +162,7 @@ import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
-import { useIdePalette, useRetainIdePalettes } from './IdePaletteState';
+import { useGlobalIdePalette, useIdePalette, useRetainIdePalettes } from './IdePaletteState';
 import {
   deposerDisposition,
   lireDispositionTransmise,
@@ -3879,19 +3879,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [bottomTerminalView, setBottomTerminalView] = useState<ProjectBottomTerminalView>('terminal');
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
-    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
-    /*
-     * RPL-IDE-001.8 — `spotlight` is a fourth mode of the same palette engine:
-     * it shows every section (files, tools, commands, open tabs) and adds a
-     * project header, and it is what the app name in the topbar opens.
-     */
-    const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files' | 'spotlight'>('all');
-    const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
-
-    /** RPL-IDE-001.8 — project name shown in the Spotlight header, sent by the topbar. */
-    const [spotlightProjectName, setSpotlightProjectName] = useState('');
-    const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
+    // Keep an open global palette and its search through the loading-shell handoff.
+    const {
+      commandPaletteOpen,
+      setCommandPaletteOpen,
+      commandPaletteMode,
+      setCommandPaletteMode,
+      commandPaletteQuery,
+      setCommandPaletteQuery,
+      spotlightProjectName,
+      setSpotlightProjectName,
+      commandPaletteIndex,
+      setCommandPaletteIndex,
+      commandPaletteReturnFocusRef,
+    } = useGlobalIdePalette();
 
     /*
      * BUG-MOB-PALETTE-KEYBOARD-001 — sur un appareil purement tactile, ne PAS
@@ -3911,11 +3913,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * Restore focus to whatever was focused when the palette opened, once it
      * closes — so keyboard users aren't dumped at the top of the document.
      */
-    const commandPaletteReturnFocusRef = useRef<HTMLElement | null>(null);
     const commandPaletteClosedByOutsideClickRef = useRef(false);
     useEffect(() => {
       if (commandPaletteOpen) {
-        commandPaletteReturnFocusRef.current = document.activeElement as HTMLElement | null;
+        const previous = commandPaletteReturnFocusRef.current;
+        const testId = previous?.dataset.testid;
+
+        // A loading-shell trigger can have been replaced by the same logical button.
+        if (!previous?.isConnected) {
+          commandPaletteReturnFocusRef.current =
+            (testId ? document.querySelector<HTMLElement>(`[data-testid="${CSS.escape(testId)}"]`) : null) ??
+            (document.activeElement as HTMLElement | null);
+        }
+
         return;
       }
 
@@ -3931,7 +3941,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       if (previous && typeof previous.focus === 'function') {
         requestAnimationFrame(() => previous.focus());
       }
-    }, [commandPaletteOpen]);
+    }, [commandPaletteOpen, commandPaletteReturnFocusRef]);
 
     /*
      * BUG-QA0928-PALETTE-RESTE-OUVERTE — sur ordinateur (≥ 1200 px), le calque qui
@@ -6364,12 +6374,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [activePaneId, openProjectFilesPanel, openWorkspacePanel],
     );
 
-    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' | 'spotlight' = 'all') => {
-      setCommandPaletteMode(mode);
-      setCommandPaletteQuery('');
-      setCommandPaletteIndex(0);
-      setCommandPaletteOpen(true);
-    }, []);
+    const openCommandPalette = useCallback(
+      (mode: 'all' | 'tools' | 'files' | 'spotlight' = 'all') => {
+        commandPaletteReturnFocusRef.current = document.activeElement as HTMLElement | null;
+        setCommandPaletteMode(mode);
+        setCommandPaletteQuery('');
+        setCommandPaletteIndex(0);
+        setCommandPaletteOpen(true);
+      },
+      [
+        commandPaletteReturnFocusRef,
+        setCommandPaletteMode,
+        setCommandPaletteQuery,
+        setCommandPaletteIndex,
+        setCommandPaletteOpen,
+      ],
+    );
 
     const activateMobileTool = useCallback(
       (toolId: string) => {

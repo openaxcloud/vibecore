@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
+import styles from './Preview.module.scss';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { decisionDeRepointage } from './cadre-apercu-repointage';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
@@ -738,6 +739,8 @@ export const Preview = memo(
     const previewBootSteps = useMemo(() => getPreviewBootSteps(t), [t]);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const windowMenuRef = useRef<HTMLDivElement>(null);
+    const windowMenuTriggerRef = useRef<HTMLButtonElement>(null);
 
     // One-shot guard: auto-reload a blank (served-but-never-mounted) preview at most once.
     const blankRecoveredRef = useRef(false);
@@ -798,6 +801,40 @@ export const Preview = memo(
     const SCALING_FACTOR = 1;
 
     const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
+
+    useEffect(() => {
+      if (!isWindowSizeDropdownOpen) {
+        return undefined;
+      }
+
+      const dismissOutside = (event: PointerEvent | FocusEvent) => {
+        if (event.target instanceof Node && !windowMenuRef.current?.contains(event.target)) {
+          setIsWindowSizeDropdownOpen(false);
+        }
+      };
+      const dismissWithEscape = (event: KeyboardEvent) => {
+        if (event.key === 'Escape' && !event.defaultPrevented) {
+          event.preventDefault();
+          setIsWindowSizeDropdownOpen(false);
+          windowMenuTriggerRef.current?.focus();
+        }
+      };
+
+      /*
+       * A pane can clip the fixed backdrop. Observe the document as well so
+       * clicks or keyboard focus in another dock still dismiss this popover.
+       */
+      document.addEventListener('pointerdown', dismissOutside, true);
+      document.addEventListener('focusin', dismissOutside);
+      document.addEventListener('keydown', dismissWithEscape);
+
+      return () => {
+        document.removeEventListener('pointerdown', dismissOutside, true);
+        document.removeEventListener('focusin', dismissOutside);
+        document.removeEventListener('keydown', dismissWithEscape);
+      };
+    }, [isWindowSizeDropdownOpen]);
+
     const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(windowSizes[0]);
     const [isLandscape, setIsLandscape] = useState(false);
     const [showDeviceFrame, setShowDeviceFrame] = useState(true);
@@ -2614,7 +2651,7 @@ export const Preview = memo(
             onClick={() => setIsPortDropdownOpen(false)}
           />
         )}
-        <div className="bolt-project-webview-toolbar">
+        <div className={`bolt-project-webview-toolbar ${styles.toolbar}`}>
           <div className="bolt-preview-toolbar-tools flex items-center gap-1">
             <IconButton
               icon="i-ph:arrow-left"
@@ -2811,9 +2848,11 @@ export const Preview = memo(
               title={t('idePanels.preview.webviewLogs')}
             />
 
-            <div className="flex items-center relative">
+            <div ref={windowMenuRef} className="flex items-center relative">
               <IconButton
+                ref={windowMenuTriggerRef}
                 icon="i-ph:browser"
+                ariaExpanded={isWindowSizeDropdownOpen}
                 onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
                 title={t('idePanels.preview.windowOptions')}
               />

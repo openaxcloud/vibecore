@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-471 entrées.
+474 entrées.
 
 ## Sans section
 
@@ -602,6 +602,9 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-PANE-FOCUS-DUPLICATION-001](docs/bugs/BUG-IDE-PANE-FOCUS-DUPLICATION-001.md) — 📤 Dispatché : 22 octobre 2026 : deux échecs finaux light/dark dans la CI de #763 d83cb4a, trois tentatives par thème. Le dép · 💻 Codé : Correctif local validé, publication dans #763 (non intégré à main) : le callback d’ouverture lit le panneau ac · ✅ Testé live : Rouge reproduit sur le build local 4ec690fc : deux thèmes, zéro retry. Une assertion complémentaire localise l
 - [BUG-IDE-GLOBAL-PALETTE-HANDOFF-001](docs/bugs/BUG-IDE-GLOBAL-PALETTE-HANDOFF-001.md) — 📤 Dispatché : 22 octobre 2026 : deux disparitions observées pendant la préparation de recettes de navigation de #763. Invest · 💻 Codé : Non corrigé. Aucun correctif de palette livré dans ce lot. Pour isoler les recettes de déplacement, la prépara · ✅ Testé live : Reproductions locales Chromium, projets synthétiques, 22 octobre à 07:29:02 et 07:32:37 UTC : le clic sur All
 - [BUG-IDE-TAB-STRIP-SNAP-CLICK-001](docs/bugs/BUG-IDE-TAB-STRIP-SNAP-CLICK-001.md) — 📤 Dispatché : 22 octobre 2026 : défaut reproduit en recette locale de #763 après déplacement d’un onglet et désépinglage par · 💻 Codé : Correctif desktop commité localement dans `d0ef2126`, publication #763 en préparation : désactiver uniquement · ✅ Testé live : Diagnostic local Chromium sur le produit compilé `69592374`, 22 octobre 2026 : fermeture native sans effet. Le
+- [BUG-DESKTOP-PREVIEW-TOOLBAR-CLIP-001](docs/bugs/BUG-DESKTOP-PREVIEW-TOOLBAR-CLIP-001.md) — 📤 Dispatché : Audit desktop du22octobre sur main18745bd : viewport1440×900, Webview avec Library àdroite. La barre mesure735 · 💻 Codé : Correctif local en cours, non publié : Preview.tsx et style local Preview.module.scss autorisent les groupes à · ✅ Testé live : Rouge géométrique reproduit sur le build réel attesté : bouton Logs dépasse le bord de barre. Le clic Playwrig
+- [BUG-DESKTOP-PREVIEW-MENU-DISMISS-001](docs/bugs/BUG-DESKTOP-PREVIEW-MENU-DISMISS-001.md) — 📤 Dispatché : Audit desktop du22octobre sur main18745bd. Deux gestes réels reproduits séparément : ouvrir les options de fen · 💻 Codé : Correctif local dans Preview.tsx : références de conteneur/bouton, fermeture sur pointerdown ou déplacement de · ✅ Testé live : Rouges du build attesté conservés. Tests ciblés prêts ; lint ciblé vert. La recette navigateur sur build corri
+- [BUG-DESKTOP-PROBLEMS-ROUTE-001](docs/bugs/BUG-DESKTOP-PROBLEMS-ROUTE-001.md) — Sur desktop, ouvrir un projet avec `?panel=problems` affiche l'éditeur README au lieu du panneau Problems. Le registre `IDE_WORKSPACE_PANELS` accepte cette rout — 📤 Dispatché : ☑ 22 octobre 2026 — diagnostic et correctif ciblé préparés dans le lot desktop, sur la base `18745bd04f77e4d9f · 💻 Codé : ☐ — correctif local préparé, non commité et non intégré à main. Ajout de `problems` au modèle des outils et à · ✅ Testé live : ☐ — défaut reproduit sur le build local compilé et attesté ; validation navigateur du build corrigé encore en
 
 ## Résidus non tabulaires — reportés mot pour mot
 
