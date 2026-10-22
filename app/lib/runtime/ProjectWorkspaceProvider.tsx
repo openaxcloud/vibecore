@@ -95,7 +95,7 @@ export function ProjectWorkspaceProvider({
     let heartbeat: ReturnType<typeof setInterval> | undefined;
 
     async function startWorkspace() {
-      workbenchStore.configureRuntime(runtime);
+      workbenchStore.configureRuntime(runtime, projectId);
       workbenchStore.configureProject(projectId);
 
       /*

@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-474 entrées.
+478 entrées.
 
 ## Sans section
 
@@ -605,6 +605,10 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-RUNTIME-SAVE-DURABILITY-20261022](docs/bugs/BUG-RUNTIME-SAVE-DURABILITY-20261022.md) — 📤 Dispatché : Correction API isolée depuis main 18745bd04f77e4d9fc6353d61bd4d17a3822f94e. PUT files/write et POST files aval · 💻 Codé : Branche fix/api-durable-runtime-save, non fusionnée. Refus sans manifeste complet, erreur explicite après succ · ✅ Testé live : Non testé en production. Tests locaux API avec agent HTTP simulé, pannes de persistance et ZIP serveur réel ;
 - [BUG-AGENT-PATCH-FAILURE-START-001](docs/bugs/BUG-AGENT-PATCH-FAILURE-START-001.md) — P1 — une proposition IA échouée perd sa cause et ne bloque pas le démarrage différé. — 📤 Dispatché : ☑ 22/10 — lot distinct du démarrage i18n et de la PR #763. · 💻 Codé : ☐ — candidat en branche ; aucune fusion dans main revendiquée. · ✅ Testé live : ☐ — pas de modification ni de réparation du projet utilisateur ; pas de validation Kubernetes complète.
 - [BUG-IDE-SAVE-TARGET-RENDER-001](docs/bugs/BUG-IDE-SAVE-TARGET-RENDER-001.md) — 📤 Dispatché : 22 octobre 2026, base production 3680f4fa. Incident utilisateur rapporté : après créations, contenu du fichier · 💻 Codé : Correctif isolé, non intégré : MobileCodeEditor modifiait propsRef pendant le rendu. Un rendu React suspendu p · ✅ Testé live : Non certifié en production. Contre-épreuve déterministe rouge sur source3680 : types.ts visible, rendu card.ts
+- [BUG-IDE-DELETE-SELECTION-RACE-001](docs/bugs/BUG-IDE-DELETE-SELECTION-RACE-001.md) — 📤 Dispatché : Résidu préexistant identifié pendant la revue #771 : suppression fichier/dossier en attente, sélection d’un au · 💻 Codé : Corrigé dans la consolidation, non intégré à main : la sélection est relue après la réponse, sous les gardes d · ✅ Testé live : Non certifié live. Deux contre-épreuves rouges fichier/dossier, vertes après correction ; deux contrôles conse
+- [BUG-IDE-PROJECT-FILE-SCOPE-001](docs/bugs/BUG-IDE-PROJECT-FILE-SCOPE-001.md) — 📤 Dispatché : 22 octobre 2026 : diagnostic séparé de #768/#769, branche investigate/desktop-back-transitions-20261022, base · 💻 Codé : Correction compilée `2023932ed96228ea1fe970af441ecff8b009736a`, non intégrée à main au moment de la recette. L · ✅ Testé live : Rouge contrôlé sur build réel local 838684f0, produit identique à e4bda1fb, API/PostgreSQL dédiés et fixtures
+- [BUG-IDE-PROJECT-WRITE-COMPLETION-001](docs/bugs/BUG-IDE-PROJECT-WRITE-COMPLETION-001.md) — 📤 Dispatché : 22 octobre 2026 : suivi séparé de #770, branche fix/project-file-write-completion-20261022. La revue a identif · 💻 Codé : Correction committée localement `26f7441685ebea6bc8cb666a1fdda8e648ce4872` dans une branche distincte, non int · ✅ Testé live : Contre-épreuve unitaire différée : sept nouveaux cas échouent sur la base, tandis que les 34 contrôles existan
+- [BUG-IDE-RELOAD-DURING-SAVE-001](docs/bugs/BUG-IDE-RELOAD-DURING-SAVE-001.md) — 📤 Dispatché : 22 octobre 2026 : diagnostic séparé sur la base exacte 6fa009b9180f8add2e6a60e5e3be52e4155336e3. Le signal CI · 💻 Codé : Correctif P1 en cours : files par destination stable et chemin, identité distante transmise par le provider, l · ✅ Testé live : Non certifié. Une contre-épreuve unitaire déterministe reproduit un défaut : publication optimiste du brouillo
 
 ## Résidus non tabulaires — reportés mot pour mot
 

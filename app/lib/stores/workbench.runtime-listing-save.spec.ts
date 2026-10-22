@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FilesStore } from './files';
 import { WorkbenchStore } from './workbench';
 
 const { runtimeAdapterMock, runtimeFiles } = vi.hoisted(() => {
@@ -110,6 +111,55 @@ describe('runtime listing against a newer successful save', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it('keeps the remote project write destination across adapter reattachment and separates projects', () => {
+    const store = new WorkbenchStore();
+    const setRuntime = vi.spyOn(FilesStore.prototype, 'setRuntime');
+    const first = { ...runtimeAdapterMock, mode: 'remote-kubernetes' as const };
+    const reattached = { ...first };
+
+    store.configureRuntime(first as never, 'project-a');
+    expect(setRuntime).toHaveBeenLastCalledWith(first, 'remote-project:project-a');
+    store.configureRuntime(reattached as never, 'project-a');
+    expect(setRuntime).toHaveBeenLastCalledWith(reattached, 'remote-project:project-a');
+
+    // Even if an injected adapter is reused, a changed project must rebind.
+    store.configureRuntime(reattached as never, 'project-b');
+    expect(setRuntime).toHaveBeenLastCalledWith(reattached, 'remote-project:project-b');
+    store.configureRuntime(first as never, 'project-a');
+    expect(setRuntime).toHaveBeenLastCalledWith(first, 'remote-project:project-a');
+    expect(setRuntime).toHaveBeenCalledTimes(4);
+  });
+
+  it('preserves destination identity through provider runtime and project handoffs', () => {
+    const store = new WorkbenchStore();
+    const setRuntime = vi.spyOn(FilesStore.prototype, 'setRuntime');
+    const remote = { ...runtimeAdapterMock, mode: 'remote-kubernetes' as const };
+
+    for (const projectId of ['project-a', 'project-b', 'project-a']) {
+      const adapter = { ...remote };
+      store.configureRuntime(adapter as never, projectId);
+      store.configureProject(projectId);
+      expect.soft(setRuntime).toHaveBeenLastCalledWith(adapter, `remote-project:${projectId}`);
+    }
+
+    // A project-only reset must also retain the logical destination.
+    store.configureProject('project-c');
+    expect(setRuntime).toHaveBeenLastCalledWith(expect.anything(), 'remote-project:project-c');
+  });
+
+  it('keeps shared local and unknown destinations conservative', () => {
+    const store = new WorkbenchStore();
+    const setRuntime = vi.spyOn(FilesStore.prototype, 'setRuntime');
+    const local = { ...runtimeAdapterMock };
+
+    store.configureRuntime(local as never, 'project-a');
+    expect(setRuntime).toHaveBeenLastCalledWith(local, undefined);
+    store.configureRuntime({ ...local } as never, 'project-b');
+    expect(setRuntime).toHaveBeenLastCalledWith(expect.anything(), undefined);
+    store.configureRuntime({ ...local, mode: 'remote-kubernetes' } as never);
+    expect(setRuntime).toHaveBeenLastCalledWith(expect.anything(), undefined);
   });
 
   it.each(['UNSAVED-A-UNIQUE', ''])('keeps a successful save %j over an older in-flight listing', async (saved) => {

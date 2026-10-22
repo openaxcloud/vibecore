@@ -124,12 +124,15 @@ export class FilesStore {
   #deletedPaths: Set<string> = import.meta.hot?.data?.deletedPaths ?? new Set();
 
   /**
-   * Per-path write queue. Serializes concurrent saveFile() calls on the same
+   * Destination/path write queues survive adapter rebinds and navigation away/back.
+   * An unknown destination shares one conservative queue within this store.
+   * Serializes concurrent saveFile() calls on the same
    * file so a second writer reads its `oldContent` baseline only after the first
    * has committed — otherwise two concurrent saves both pass the optimistic
    * remote-content check and last-write-wins silently drops one writer's content.
    */
-  #saveQueues: Map<string, Promise<unknown>> = new Map();
+  #saveQueues = new Map<string | undefined, Map<string, Promise<unknown>>>();
+  #writeDestination: string | undefined;
 
   /**
    * Map of files that matches the state of the active runtime.
@@ -147,8 +150,9 @@ export class FilesStore {
     return this.#size;
   }
 
-  constructor(runtime: RuntimeAdapter) {
+  constructor(runtime: RuntimeAdapter, writeDestination?: string) {
     this.#runtime = runtime;
+    this.#writeDestination = writeDestination;
 
     // Load deleted paths from localStorage if available
     this.#loadDeletedPaths();
@@ -198,7 +202,8 @@ export class FilesStore {
     this.#init();
   }
 
-  setRuntime(runtime: RuntimeAdapter) {
+  setRuntime(runtime: RuntimeAdapter, writeDestination?: string) {
+    this.#writeDestination = writeDestination;
     this.#runtimeBinding++;
     this.#runtime = runtime;
     this.#stopWatchingFiles?.();
@@ -254,6 +259,8 @@ export class FilesStore {
    * tampon intact et le dit (`illisible`). L'appelant décide.
    */
   async adoptRemoteContent(filePath: string): Promise<'adopte' | 'inchange' | 'illisible' | 'hors-portee'> {
+    const binding = this.#runtimeBinding;
+
     if (this.#runtime.mode !== 'remote-kubernetes') {
       return 'hors-portee';
     }
@@ -279,6 +286,10 @@ export class FilesStore {
       .then((resultat) => resultat.content)
       .catch(() => undefined);
 
+    if (binding !== this.#runtimeBinding) {
+      return 'hors-portee';
+    }
+
     if (distant === undefined) {
       return 'illisible';
     }
@@ -294,12 +305,16 @@ export class FilesStore {
 
   async reloadFromRuntime(rootPath = '.', options: { reparer?: boolean } = {}) {
     const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
     const filesBeforeListing = this.files.get();
+
+    const destination = this.#writeDestination;
+    const savingBeforeListing = new Set(this.#saveQueues.get(destination)?.keys());
 
     // `reparer` : rafraîchissement demandé par l'utilisateur → le runtime distant réconcilie d'abord (BUG-IDE-007).
     const nodes = await runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
 
-    if (this.#runtime !== runtime) {
+    if (this.#runtime !== runtime || this.#runtimeBinding !== binding) {
       return;
     }
 
@@ -361,7 +376,15 @@ export class FilesStore {
      * still adopts the runtime contents normally.
      */
     for (const path of new Set([...Object.keys(filesBeforeListing), ...Object.keys(currentFiles)])) {
-      if (filesBeforeListing[path] !== currentFiles[path]) {
+      /*
+       * A listing may start after optimistic publication but before the disk write completes.
+       * Also retain saves that completed while this listing was in flight.
+       */
+      if (
+        filesBeforeListing[path] !== currentFiles[path] ||
+        savingBeforeListing.has(path) ||
+        this.#saveQueues.get(destination)?.has(path)
+      ) {
         if (currentFiles[path]) {
           nextFiles[path] = currentFiles[path];
         } else {
@@ -895,22 +918,34 @@ export class FilesStore {
      * Chain on any in-flight write for this path so same-file saves run strictly
      * one-at-a-time (the optimistic concurrency check is otherwise racy).
      */
-    const previous = this.#saveQueues.get(filePath) ?? Promise.resolve();
-
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
+    const destination = this.#writeDestination;
+
+    let queue = this.#saveQueues.get(destination);
+
+    if (!queue) {
+      queue = new Map();
+      this.#saveQueues.set(destination, queue);
+    }
+
+    const previous = queue.get(filePath) ?? Promise.resolve();
 
     const run = previous
       .catch(() => undefined)
       .then(() => this.#saveFileImpl(filePath, content, options, runtime, binding));
 
-    this.#saveQueues.set(filePath, run);
+    queue.set(filePath, run);
 
     try {
       return await run;
     } finally {
-      if (this.#saveQueues.get(filePath) === run) {
-        this.#saveQueues.delete(filePath);
+      if (queue.get(filePath) === run) {
+        queue.delete(filePath);
+
+        if (queue.size === 0 && this.#saveQueues.get(destination) === queue) {
+          this.#saveQueues.delete(destination);
+        }
       }
     }
   }
@@ -1084,11 +1119,17 @@ export class FilesStore {
   }
 
   async #init() {
+    const binding = this.#runtimeBinding;
+
     // Clean up any files that were previously deleted
     this.#cleanupDeletedFiles();
 
     // Set up file watcher (self-retrying until the runtime is attachable)
     await this.#startFileWatch();
+
+    if (binding !== this.#runtimeBinding || this.#disposed) {
+      return;
+    }
 
     // Get the current chat ID
     const currentChatId = getCurrentChatId();
@@ -1129,6 +1170,8 @@ export class FilesStore {
   }
 
   async #startFileWatch() {
+    const binding = this.#runtimeBinding;
+
     if (this.#disposed) {
       return;
     }
@@ -1162,7 +1205,19 @@ export class FilesStore {
 
     try {
       this.#stopWatchingFiles?.();
-      this.#stopWatchingFiles = await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
+
+      const stop = await this.#runtime.watchFiles([WORK_DIR], (change) => {
+        if (binding === this.#runtimeBinding && !this.#disposed) {
+          this.#processFileChange(change);
+        }
+      });
+
+      if (binding !== this.#runtimeBinding || this.#disposed) {
+        stop();
+        return;
+      }
+
+      this.#stopWatchingFiles = stop;
 
       // Watch attached — cancel any retry queued by an earlier failed attempt.
       if (this.#fileWatchRetryTimer) {
@@ -1172,6 +1227,10 @@ export class FilesStore {
 
       this.#fileWatchRetryAttempts = 0;
     } catch (error) {
+      if (binding !== this.#runtimeBinding || this.#disposed) {
+        return;
+      }
+
       /*
        * A remote workspace that is still completing its start/attach handshake throws
        * "Remote workspace has not been started" here. configureRuntime() wires the watch
@@ -1397,6 +1456,8 @@ export class FilesStore {
    * never clobbers an existing file's content/lock flags.
    */
   #registerContentlessCreate(sanitizedPath: string) {
+    const binding = this.#runtimeBinding;
+
     if (this.files.get()[sanitizedPath]) {
       return;
     }
@@ -1409,7 +1470,7 @@ export class FilesStore {
       .catch(() => resolveContentlessCreate(undefined))
       .then((resolved) => {
         // Re-check: a delete/rename may have landed while the read was in flight.
-        if (this.files.get()[sanitizedPath]) {
+        if (binding !== this.#runtimeBinding || this.#disposed || this.files.get()[sanitizedPath]) {
           return;
         }
 
@@ -1442,6 +1503,10 @@ export class FilesStore {
   }
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
+    const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
+
     try {
       const relativePath = this.#toRuntimePath(filePath);
 
@@ -1476,7 +1541,17 @@ export class FilesStore {
 
       if (isBinary) {
         const base64Content = Buffer.from(content).toString('base64');
-        await this.#runtime.writeFile(relativePath, base64Content);
+        await runtime.writeFile(relativePath, base64Content);
+
+        // The original backend operation succeeded; its old scope must not mutate this cache.
+        if (
+          binding !== this.#runtimeBinding ||
+          runtime !== this.#runtime ||
+          storageKey !== this.#deletedPathsStorageKey()
+        ) {
+          return true;
+        }
+
         this.files.setKey(filePath, {
           type: 'file',
           content: base64Content,
@@ -1487,7 +1562,16 @@ export class FilesStore {
         this.#modifiedFiles.set(filePath, base64Content);
       } else {
         const contentToWrite = (content as string).length === 0 ? ' ' : content;
-        await this.#runtime.createFile(relativePath, contentToWrite);
+        await runtime.createFile(relativePath, contentToWrite);
+
+        // The original backend operation succeeded; its old scope must not mutate this cache.
+        if (
+          binding !== this.#runtimeBinding ||
+          runtime !== this.#runtime ||
+          storageKey !== this.#deletedPathsStorageKey()
+        ) {
+          return true;
+        }
 
         /*
          * Store the SAME content we actually wrote to the runtime (the
@@ -1541,6 +1625,10 @@ export class FilesStore {
   }
 
   async createFolder(folderPath: string) {
+    const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
+
     try {
       const relativePath = this.#toRuntimePath(folderPath);
 
@@ -1548,7 +1636,16 @@ export class FilesStore {
         throw new Error(clientStoresServicesText('clientStores.files.invalidFolderCreate', { path: folderPath }));
       }
 
-      await this.#runtime.createDirectory(relativePath);
+      await runtime.createDirectory(relativePath);
+
+      // The original backend operation succeeded; its old scope must not mutate this cache.
+      if (
+        binding !== this.#runtimeBinding ||
+        runtime !== this.#runtime ||
+        storageKey !== this.#deletedPathsStorageKey()
+      ) {
+        return true;
+      }
 
       this.files.setKey(folderPath, { type: 'folder' });
       this.#clearDeletedPathForCreate(folderPath);
@@ -1564,6 +1661,10 @@ export class FilesStore {
   }
 
   async deleteFile(filePath: string) {
+    const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
+
     try {
       const relativePath = this.#toRuntimePath(filePath);
 
@@ -1571,7 +1672,16 @@ export class FilesStore {
         throw new Error(clientStoresServicesText('clientStores.files.invalidFileDelete', { path: filePath }));
       }
 
-      await this.#runtime.deleteFile(relativePath);
+      await runtime.deleteFile(relativePath);
+
+      // The original backend operation succeeded; its old scope must not mutate this cache.
+      if (
+        binding !== this.#runtimeBinding ||
+        runtime !== this.#runtime ||
+        storageKey !== this.#deletedPathsStorageKey()
+      ) {
+        return true;
+      }
 
       /*
        * #size counts FILES only (folders are excluded). Decrement only when the
@@ -1604,6 +1714,10 @@ export class FilesStore {
   }
 
   async deleteFolder(folderPath: string) {
+    const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
+
     try {
       const relativePath = this.#toRuntimePath(folderPath);
 
@@ -1611,7 +1725,16 @@ export class FilesStore {
         throw new Error(clientStoresServicesText('clientStores.files.invalidFolderDelete', { path: folderPath }));
       }
 
-      await this.#runtime.deleteFile(relativePath);
+      await runtime.deleteFile(relativePath);
+
+      // The original backend operation succeeded; its old scope must not mutate this cache.
+      if (
+        binding !== this.#runtimeBinding ||
+        runtime !== this.#runtime ||
+        storageKey !== this.#deletedPathsStorageKey()
+      ) {
+        return true;
+      }
 
       this.#deletedPaths.add(folderPath);
 
