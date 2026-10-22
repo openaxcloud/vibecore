@@ -337,7 +337,7 @@ describe('WorkbenchStore agent-patch flood guard (BUG-SELFREPAIR-RUNAWAY-LOOP-00
     expect(store.workspaceLogs.get().some((line) => line.includes('launching the start command'))).toBe(true);
   });
 
-  it('runs the deferred start when the flood halt drains the queue (nothing left to accept)', async () => {
+  it('keeps the deferred start blocked after a flood failure until explicit rejection', async () => {
     const store = new WorkbenchStore();
     const startSpy = vi.spyOn(store, 'startPreviewServer').mockResolvedValue('npm run dev');
 
@@ -373,8 +373,20 @@ describe('WorkbenchStore agent-patch flood guard (BUG-SELFREPAIR-RUNAWAY-LOOP-00
       expect(actionStatus(store, 'file-8')).toBe('complete');
     });
 
-    // Halt reached → open proposals failed → the deferred start is released.
+    // A flood halt is a failure, not the user's decision to discard the changes.
     expect(pendingProposals(store)).toHaveLength(0);
+
+    const failed = Object.values(store.agentPatchProposals.get()).filter((proposal) => proposal.status === 'failed');
+    expect(failed.length).toBeGreaterThan(0);
+    expect(startSpy).not.toHaveBeenCalled();
+
+    for (const proposal of failed) {
+      await store.rejectAgentPatchProposal(proposal.id);
+    }
+
+    expect(Object.values(store.agentPatchProposals.get()).every((proposal) => proposal.status === 'rejected')).toBe(
+      true,
+    );
     expect(startSpy).toHaveBeenCalledTimes(1);
   });
 });

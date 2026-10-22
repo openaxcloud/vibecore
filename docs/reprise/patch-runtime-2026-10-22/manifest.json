@@ -1,0 +1,76 @@
+{
+  "base": "18cf74fd7abcd59620f0994b44ac1411e97fcf93",
+  "sources_sha256": {
+    "app/components/chat/AgentPatchReviewQueue.spec.tsx": "9e7bde2f470b547ab7e846d5815f5329cf6211b8c36381f465425c0cbc17d385",
+    "app/components/chat/AgentPatchReviewQueue.tsx": "1469cec8aba169f84f8c4448797112c6080393a47ebe925c4c5f12fef8de6207",
+    "app/components/chat/BaseChat.tsx": "16ccb7eb4d4293903d98bd9d98c7fc26bed6cb39a2c86c6a54cd6932229e8f0c",
+    "app/lib/chat/merge-json-content.ts": "55923e8102cc21cd30a900adefb6ae13997e4add78865eac810595822b44ce8c",
+    "app/lib/i18n/catalogs/base-chat-ast.ts": "5e57f3169d33d3228b27b308d16ddcfc5788709e3b722ad1bd93ca4d09245181",
+    "app/lib/i18n/catalogs/workbench-runtime.ts": "f008c1434fe2e73d012b138a72ce6a906de1c1710154aa5e1e061a1962bcd631",
+    "app/lib/runtime/agent-file-write.integration.spec.ts": "9ea55e0e2f8da29a5cb266d121ff6b209dfe149b1bf1d332fe841a8b5d2229c2",
+    "app/lib/runtime/agent-file-write.ts": "9236052b476ccd15b2e3fdd6a597f4804210f2bcb6f443baeda4c1ff946b0544",
+    "app/lib/stores/agent-patch-failure.spec.ts": "0fa204a55232bf20aab9717112f7cc54c3ca35a51fb5d32073853a14364b1944",
+    "app/lib/stores/agent-patch-failure.ts": "6034bf33ffa8adc61bc1af7c8a9415732537a6448e244b5ff387f4c1ab80ed4a",
+    "app/lib/stores/devstart-differe.spec.ts": "33d1f68a9c0c2255e0047bb1a2fcc9630cfe0acca232b75be2fed06b8b684a82",
+    "app/lib/stores/files.create-empty-save.spec.ts": "35ef6f42f517c6957a743f5899366fe305df3a7640a0c90e22a8187a6478ddc3",
+    "app/lib/stores/files.stale-buffer-overwrite.spec.ts": "3cbd4c92d12df4a7fa083232fce6175d190b9265dd477cf9639fa30d90b339b1",
+    "app/lib/stores/files.ts": "9086a83f197aa692fe51799ed12c90b7a18687858561be94780cced8fb2ec452",
+    "app/lib/stores/jsonc-patch-pipeline.spec.ts": "b5c8ba13118e8c6ea04864556a8742f0f015fc1a6b7e59e554a1e6a071384b98",
+    "app/lib/stores/reconcile-remote-write.ts": "4ec6e83edcc4004bd30c670cd0367e89b406b1aa4d69d44b0c41044aeaf2f6bf",
+    "app/lib/stores/workbench.conflit-utilisateur.spec.ts": "a1cd61aeee3d78173d161b2d113b18d9bc054b781b869eae559cb6a40eda8443",
+    "app/lib/stores/workbench.patch-flood.spec.ts": "eb68bc888da329f35c04d91f46730227a040fce084415a450fe455637dff6426",
+    "app/lib/stores/workbench.reloaded-actions.spec.ts": "fbb0680f0afee5689e3a7ba7b7a7012853e3c88fafd4225acdcf47c0fd9a06f9",
+    "app/lib/stores/workbench.ts": "6af19b5feffd6049a6254a77c9a475088fcd59eb203a750b913902af2413d99f",
+    "app/services/agent/post-validate.ts": "eef06183623ee74c7f4f49902f7a49d924957828f65a8c259fce2bd2f7688a61",
+    "app/utils/jsonc.spec.ts": "a3a3756ddf630a169fb9f8357593d9dbb814aea7a9e3536ebd85b5b445883cf8",
+    "app/utils/jsonc.ts": "773ec6d148bc93dd4cf4bb3805b0ab0892d4532bc9c5113064ab6712aa14a376",
+    "app/utils/sanitize-file-content.ts": "c0626df0a40666e5f374b80f9b687fbb4016b4fcee2d6921523e6dca3145a059"
+  },
+  "local_evidence_root": "/workspace/vibecore-747-handoff/patch-runtime-20261022",
+  "logs": {
+    "expanded-final-green.log": {
+      "sha256": "e7a8f444f9d5fb9b62ee72882bd2665c235055df12778378aa0ddbaa68f622aa",
+      "bytes": 143929
+    },
+    "source-scan-final.log": {
+      "sha256": "6923b70fb973ff7153372a42b5807467887fbc5af501c09f8a57eb0002987480",
+      "bytes": 442
+    },
+    "catalogs-final.log": {
+      "sha256": "4bfb555cf1a66c123ad64e9f8cde182deaf9cc7a58954cd1ee06debfa9f3a8d3",
+      "bytes": 111
+    },
+    "lint-final-changed-green.log": {
+      "sha256": "856cc12980ccb9463c651120a3fd9c92a1dc599e1f140027d50380f9a8602eee",
+      "bytes": 217
+    },
+    "typecheck-header-preserved.log": {
+      "sha256": "ab34e7c4bff9001d28ee4ed7dbd733aecc384e7a588fb316d0e323d93e811291",
+      "bytes": 5635
+    },
+    "baseline-red.log": {
+      "sha256": "5b39bd30fb4a53d32b67954e1f56a1a4589bec7d2c06d0b93a09c494f81fd2d6",
+      "bytes": 6782
+    },
+    "close-recovery-red.log": {
+      "sha256": "c576bd642340a936081706922ea319ecb4171929134cdc166e50bb04bd7ff77b",
+      "bytes": 5866
+    },
+    "jsonc-pipeline-red.log": {
+      "sha256": "e21d01cc20af2df941f046658342974a291aa714dce9eee371298d659da24136",
+      "bytes": 3181
+    },
+    "early-success-red.log": {
+      "sha256": "c5e171e60cc9e36121486717007a8af9673de23dba21149cec21285022408583",
+      "bytes": 7167
+    },
+    "confirmation-event-green.log": {
+      "sha256": "b90bfb9f113e30327f8c3408dda734a263cca521be7131cc93349d7fdc8dc8d6",
+      "bytes": 38962
+    },
+    "build-header-preserved.log": {
+      "sha256": "6ff0a6531d354a106794ec8e49309f2adbf75406a72b6af535ab1ad6d2ad0c76",
+      "bytes": 102619
+    }
+  }
+}
