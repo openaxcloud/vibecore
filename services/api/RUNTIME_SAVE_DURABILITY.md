@@ -60,7 +60,7 @@ Rollout constraint: deploy the client retry guards with or before the API change
 
 Follow-up validation: 43 API tests, 116 frontend/index tests and all 74 runtime-remote tests pass. The four layered regression cases fail with the previous retry implementations and pass with the guards. API build passes. ESLint passes for both changed frontend source files, their tests and the API regression file. runtime-remote retains the same two unrelated lint errors as the base (naming-convention / prefer-const); no lint or test rule was disabled.
 
-API and runtime-remote typechecks pass. The full repository typecheck remains a failing gate (exit 2, 692 diagnostics). The same-base countercheck below establishes that these diagnostics are identical on the original base and this patch.
+API and runtime-remote typechecks pass. The broad local root-tsconfig command remains red (exit 2, 692 diagnostics); it is not the configured CI typecheck command. The same-base countercheck below establishes that these diagnostics are identical on the original base and this patch.
 
 The frontend production build also passes with the repository's configured memory budget: `NODE_OPTIONS=--max-old-space-size=8192 node_modules/.bin/react-router build`. The initial direct invocation without that budget exhausted the default Node heap; no source or build protections were changed to obtain the passing build.
 
@@ -82,3 +82,14 @@ Local evidence: `/tmp/durable-typecheck-comparison/{current.log,base.log,summary
 
 Final regression pass after restoration: 45 API tests, 77 runtime-remote tests and 116 frontend/index tests. API and runtime-remote typechecks pass. The new API regression file has clean lint; runtime-remote source retains its two baseline errors and index.spec.ts has five errors/two warnings versus six errors/two warnings before (no added rule/message/severity diagnostics, all remaining findings outside the edited test block).
 The final frontend production build after the streaming-cache adjustment passes with the same configured 8 GB Node heap.
+
+
+## Required CI typecheck is a different command
+
+Production CI runs `pnpm run typecheck` → `node scripts/typecheck.mjs`, not the broad root `tsc --noEmit`. That script checks web (`tsconfig.web.json`, which excludes test surfaces), node scripts, IDE browser helpers, Electron main/preload, then recursive workspace package typechecks. The 692-diagnostic countercheck therefore cannot be reported as a pass or failure of the configured CI step.
+
+For SHA `57ab84e9d4540262f57799278bce939848782025`, GitHub Production CI run `39768580975`, job `119790387936`, reports the Typecheck step successful. The exact package script also exits 0 locally with pnpm 9.14.4 after repairing three missing installed workspace links already declared by package.json; no manifest or lockfile changes were needed. The initial local script failure at the node-scripts step is retained as an installation failure, not presented as a passing run. CI uses Node 22; the local environment uses Node 24.19.0.
+
+Shareable sanitized countercheck, including the complete file/code/count inventory: https://github.com/openaxcloud/vibecore/pull/766#issuecomment-6339367432 . It contains no raw diagnostic messages, source snippets or machine paths.
+
+The full API suite exposed an obsolete source-guard assertion requiring persistence errors to be swallowed. That assertion is replaced by a stronger guard for both PUT and POST requiring the explicit 409 persistence conflict, unconfirmed manifest and retryable:false. The behavioral durability and layered no-replay tests are unchanged. No test is skipped, no timeout is raised, and no CI rule is modified.
