@@ -15,3 +15,7 @@ Correctif local dans Preview.tsx : références de conteneur/bouton, fermeture s
 ## ✅ Testé live
 
 Rouges du build attesté conservés. Tests ciblés prêts ; lint ciblé vert. La recette navigateur sur build corrigé reste à exécuter, aucune certification production.
+
+### Contre-épreuve du premier correctif — 22 octobre
+
+Le build `4f8e8b334` échoue encore sur Échap après ouverture réelle du menu. Instrumentation : le raccourci global `overlay.close` appelle `preventDefault` et `stopPropagation` pendant la capture sur window ; le listener document du menu ne reçoit pas l’événement. Le correctif suivant écoute au même niveau window en capture, uniquement lorsque la cible appartient au menu. Tests complétés pour Tab entrant, Shift+Tab et clic sur la surface de l’iframe ; aucune assertion ni aucun délai réduit. Validation compilée encore attendue.

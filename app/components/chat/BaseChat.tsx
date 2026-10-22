@@ -3916,16 +3916,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const commandPaletteClosedByOutsideClickRef = useRef(false);
     useEffect(() => {
       if (commandPaletteOpen) {
-        const previous = commandPaletteReturnFocusRef.current;
-        const testId = previous?.dataset.testid;
-
-        // A loading-shell trigger can have been replaced by the same logical button.
-        if (!previous?.isConnected) {
-          commandPaletteReturnFocusRef.current =
-            (testId ? document.querySelector<HTMLElement>(`[data-testid="${CSS.escape(testId)}"]`) : null) ??
-            (document.activeElement as HTMLElement | null);
-        }
-
         return;
       }
 
@@ -3939,7 +3929,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       if (previous && typeof previous.focus === 'function') {
-        requestAnimationFrame(() => previous.focus());
+        requestAnimationFrame(() => {
+          /*
+           * The compact header mounts after the replacement shell's first effect.
+           * Resolve its logical trigger when closing, never to the palette input.
+           */
+          const testId = previous.dataset.testid;
+
+          const target = previous.isConnected
+            ? previous
+            : testId
+              ? document.querySelector<HTMLElement>(`[data-testid="${CSS.escape(testId)}"]`)
+              : null;
+          target?.focus();
+        });
       }
     }, [commandPaletteOpen, commandPaletteReturnFocusRef]);
 

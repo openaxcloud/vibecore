@@ -813,7 +813,7 @@ export const Preview = memo(
         }
       };
       const dismissWithEscape = (event: KeyboardEvent) => {
-        if (event.key === 'Escape' && !event.defaultPrevented) {
+        if (event.key === 'Escape' && event.target instanceof Node && windowMenuRef.current?.contains(event.target)) {
           event.preventDefault();
           setIsWindowSizeDropdownOpen(false);
           windowMenuTriggerRef.current?.focus();
@@ -826,12 +826,17 @@ export const Preview = memo(
        */
       document.addEventListener('pointerdown', dismissOutside, true);
       document.addEventListener('focusin', dismissOutside);
-      document.addEventListener('keydown', dismissWithEscape);
+
+      /*
+       * The IDE keybinding listener consumes Escape during window capture.
+       * Listen on the same target so it cannot strand this focused popover.
+       */
+      window.addEventListener('keydown', dismissWithEscape, true);
 
       return () => {
         document.removeEventListener('pointerdown', dismissOutside, true);
         document.removeEventListener('focusin', dismissOutside);
-        document.removeEventListener('keydown', dismissWithEscape);
+        window.removeEventListener('keydown', dismissWithEscape, true);
       };
     }, [isWindowSizeDropdownOpen]);
 

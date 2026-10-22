@@ -114,6 +114,9 @@ test('desktop Webview keeps commands visible beside Library and after resizing',
   const windowOptions = toolbar.getByRole('button', { name: 'Preview window options', exact: true });
   await windowOptions.click();
   await expect(page.locator('.bolt-preview-window-menu')).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.locator('.bolt-preview-window-menu')).toBeVisible();
+  await expect(page.locator('.bolt-preview-window-menu button').first()).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.locator('.bolt-preview-window-menu')).toBeHidden();
   await expect(windowOptions).toBeFocused();
@@ -128,4 +131,19 @@ test('desktop Webview keeps commands visible beside Library and after resizing',
   await expect(page.locator('.bolt-preview-window-menu')).toBeVisible();
   await page.mouse.click(80, 500);
   await expect(page.locator('.bolt-preview-window-menu')).toBeHidden();
+
+  await windowOptions.click();
+  await expect(page.locator('.bolt-preview-window-menu')).toBeVisible();
+
+  const frame = page.locator('[data-testid="preview-iframe"]').first();
+  const frameBounds = await frame.boundingBox();
+  expect(frameBounds).not.toBeNull();
+  await page.mouse.click(frameBounds!.x + 20, frameBounds!.y + frameBounds!.height - 20);
+  await expect(page.locator('.bolt-preview-window-menu')).toBeHidden();
+  await expect(
+    page
+      .frameLocator('[data-testid="preview-iframe"]')
+      .first()
+      .getByRole('heading', { name: 'Toolbar audit', exact: true }),
+  ).toBeVisible();
 });
