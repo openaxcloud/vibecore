@@ -1,0 +1,39 @@
+
+Running 1 test using 1 worker
+
+(node:1880) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1880) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › tests/e2e/ide-floating-file-tabs.spec.ts:8:1 › opening a file in a floating pane updates its tabs and survives docking (11.1s)
+
+
+  1) [chromium] › tests/e2e/ide-floating-file-tabs.spec.ts:8:1 › opening a file in a floating pane updates its tabs and survives docking 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: getByTestId('floating-pane-pane').locator('.monaco-editor .view-lines')
+    Expected substring: "SECOND-DOCUMENT"
+    Received string:    "PERSISTENCE-ORIGINAL-20261012second line"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for getByTestId('floating-pane-pane').locator('.monaco-editor .view-lines')
+        9 × locator resolved to <div data-mprt="8" aria-hidden="true" role="presentation" class="view-lines monaco-mouse-cursor-text">…</div>
+          - unexpected value "PERSISTENCE-ORIGINAL-20261012second line"
+
+
+      92 |   await expect(panes.first().locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
+      93 |   await page.screenshot({ path: testInfo.outputPath('independent-files.png') });
+    > 94 |   await expect(floating.locator('.monaco-editor .view-lines')).toContainText('SECOND-DOCUMENT');
+         |                                                                ^
+      95 |
+      96 |   await floating.getByTestId(`dock-floating-pane-${targetPaneId}`).click();
+      97 |   await expect(floating).toHaveCount(0);
+        at tests/e2e/ide-floating-file-tabs.spec.ts:94:64
+
+    Error Context: ../ux-artifacts/followup-759-760/docking-oct22-before/results/ide-floating-file-tabs-ope-58c1b-s-tabs-and-survives-docking-chromium/error-context.md
+
+  1 failed
+    [chromium] › tests/e2e/ide-floating-file-tabs.spec.ts:8:1 › opening a file in a floating pane updates its tabs and survives docking 

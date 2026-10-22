@@ -631,9 +631,9 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
      * dans 20 px de marge, en jetons de 14 px dans un `pre` de 11 px.
      */
     const resumeLocator = page.locator('.bolt-action-row-details > summary').first();
-    const boite = await resumeLocator.boundingBox();
 
-    await page.touchscreen.tap((boite?.x ?? 0) + (boite?.width ?? 0) / 2, (boite?.y ?? 0) + (boite?.height ?? 0) / 2);
+    // The expanding artifact clips this target during its animation. Tap only once it can receive the gesture.
+    await resumeLocator.tap();
     await expect(page.locator('.bolt-action-row-details[open]').first()).toBeVisible({ timeout: 10_000 });
 
     const apresAppui = await page.evaluate(() => {

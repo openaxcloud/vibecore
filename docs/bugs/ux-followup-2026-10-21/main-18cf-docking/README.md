@@ -1,0 +1,35 @@
+# Reprise UX sur main 18cf74fd — 22 octobre 2026
+
+## Provenance et portée
+
+Le commit produit `4ec690fc00cd7c8fd386249323c20f16569e5538`, arbre `7309a7d2335826234a172dd39a7a183f3b434aa3`, intègre main `18cf74fd7abcd59620f0994b44ac1411e97fcf93` à la tête précédente `9609abf9`. L’unique conflit de base était l’index. Les 467 fiches sont conservées ; la reproduction du défaut de document ajoute une fiche, soit 468. Les preuves historiques restent intactes.
+
+Le correctif associe contenu, édition, sauvegarde, formatage et historique au chemin de l’onglet de chaque panneau. Les modèles secondaires reçoivent les brouillons, y compris vides. Les onglets flottants deviennent sélectionnables sans réutiliser le document global. La garde de sélection identique envisagée a été retirée : clic et focus rappellent la relecture existante, même sur le même chemin. Aucun changement produit de confort supplémentaire.
+
+## Rouge initial et limites
+
+`before-wrong-document.png` et `docking-before.txt` montrent other.txt affichant le texte de audit.txt après ouverture de ce dernier dans un autre panneau. L’assertion garde son délai initial de 5 secondes. `after-docked-documents.png` documente le passage local ultérieur. Le scénario coupe explicitement runtime/sauvegardes : il prouve la cohérence des panneaux et brouillons, pas la persistance distante. Le retour B→A à 390/768 px est exercé séparément ; l’ancien flaky CI n’est pas reproduit ni attribué à cette cause.
+
+## Essais intermédiaires conservés
+
+- `mobile-initial.txt` : 44/45, fermeture des journaux mesurée pendant une translation. `logs-overflow-geometry.json` relève une matrice de translation de 15,35 px malgré une largeur des ancêtres de 390 px. `logs-diagnostic.txt` conserve 4/5, puis `logs-settled.txt` 5/5 après attente de `transform: none`. Seuil tactile 44 px, borne viewport 390 px, clic et assertion de fermeture conservés ; aucun délai fixe ajouté.
+- `mobile-final.txt` : 44/45 pendant un menu exécuté en parallèle avec la même session synthétique. Un commit API reçoit HTTP429 ; `429-evidence.json` conserve les request IDs et confirme la session commune sans publier sa valeur. Un essai des menus seul échoue aussi après réutilisation d’une seule identité pour 12 cas. Les fixtures finales utilisent les six identités locales préexistantes par format/langue et une exécution séquentielle. Aucun quota, middleware, assertion ou timeout n’a changé. Ce cas de limitation de débit est distinct du quota mensuel produit.
+- Les manifestes à la racine décrivent le build intermédiaire sans garde (arbre préparé `28950fd0`). Ils ne sont pas le reçu du build final. `final-4ec/` donne le manifeste de sources et les empreintes du nouveau build, ainsi que la comparaison HTTP d’un asset réellement servi.
+- Un lanceur intermédiaire a tenté d’exécuter le wrapper shell Playwright avec Node : les suites concernées n’ont pas démarré. Un second serveur d’archive cherchait les assets dans le répertoire compilé absolu d’un autre build : les tests arrêtés ne donnent aucun verdict produit. L’erreur est consignée dans `final-4ec/archive-server-error.txt`. Le build final a été refait dans le répertoire normal, puis servi sur un port distinct avant vérification de son asset.
+
+## Reproductibilité locale
+
+Node 24.19.0, pnpm 9.14.4, Chromium système, API locale 3017 et PostgreSQL dédié local 55443. Aucun compte réel ni fournisseur. Les configurations `final-4ec/*config.ts` sont les configurations utilisées, avec seul le chemin des rapports remplacé par `/tmp/vibecore-final-4ec`. Les placer sous `.vibecore/ux-qa` pour conserver leurs imports. Les suites confirmations/menu utilisent `playwright.combined-ux-audit.config.ts` versionné : desktop 1440×900, tablette 768×1024 tactile, mobile 390×844 tactile. Un worker, zéro retry. Les fichiers de sessions et variables de connexion ne sont pas publiés.
+
+Commandes : build `pnpm run build`, serveur `react-router-serve ./build/server/index.js` avec URL API locale ; `playwright test -c .vibecore/ux-qa/mobile-confirmed.config.ts` ; fichiers `playwright test -c .vibecore/ux-qa/final4ec-files.config.ts --grep 'opening a file in a floating pane|explicit provisional README stays in project A'` ; confirmations/menu via `--grep 'snapshot cancellation'` puis `--grep-invert 'snapshot cancellation'`. Les fixtures doivent être préparées selon le mécanisme local déjà documenté dans le dossier parent ; leurs valeurs privées restent locales.
+
+## Résultats intermédiaires du build final
+
+Le premier passage sur `4ec690fc` donne 44/45 IDE, 3/3 fichiers, 5/6 confirmations, 12/12 menus ; aucun retry ni omission. Les deux rouges sont conservés dans `final-4ec/*-initial.txt`.
+
+- Commande tactile : `tap-events.json` établit que le point y=354,26 px n’atteint pas le résumé pendant le dépliement. La carte a encore une hauteur de 156,28 px (223,55 px au repos) et une ligne est translatée de 12,37 px. Les événements pointerdown/touchstart/click atteignent le fond du message, aucun toggle n’est émis. La séquence de sept cas répétée trois fois conserve 20 succès/1 échec ; cinq répétitions isolées passaient et n’établissaient donc pas une résolution. La modification de test utilise `resumeLocator.tap()` : stabilité et réception du geste vérifiées par Playwright, même assertion d’ouverture 10 s et mêmes seuils tactiles. Aucun force-click ni délai ajouté. Le patch de diagnostic passif et la capture sont fournis.
+- Confirmation desktop EN : POST instantané HTTP429 avant tout dialogue. `snapshot-quota-read.json` confirme la fixture gratuite déjà à 5/5 instantanés. Il s’agit cette fois d’un quota d’instantanés, distinct du débit des essais précédents. Six organisations/projets synthétiques neufs sont préparés avec les identités locales existantes, par le même mécanisme de fixture ; aucun quota changé, aucune suppression des anciens instantanés. Cette remise à zéro du banc ne prétend pas corriger le comportement produit au plafond.
+
+## Résultats finaux
+
+Les passages finaux totalisent **66 cas directs : 45/45 IDE, 3/3 fichiers, 6/6 confirmations, 12/12 menus ; zéro retry, échec ou omission dans ces passages**. `final-4ec/actions.json` donne chaque action, format, durée et verdict. Ce total rassemble quatre exécutions ciblées sur le même produit compilé ; il ne supprime pas les deux échecs du premier passage. La suite IDE complète est rejouée après remplacement du tap brut ; les confirmations utilisent des organisations synthétiques neuves après constat du quota épuisé. Un ajout de ligne vide par ESLint après exécution est la seule différence de forme du test ; aucune assertion changée. Les 35 tests unitaires (26 store, 3 Dialog, 6 index) passent sur `4ec690fc`. Aucun résultat de cette section ne constitue une preuve production, ni une certification de panneau complet ou du projet réel de l’utilisateur. Les rapports publiés excluent cookies, sessions, environnement et corps/en-têtes de requêtes ; les identifiants techniques restants appartiennent aux données synthétiques locales. Les archives compilées lourdes restent locales.

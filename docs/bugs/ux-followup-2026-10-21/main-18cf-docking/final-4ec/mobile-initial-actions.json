@@ -1,0 +1,632 @@
+[
+  {
+    "title": "barre du bas : l’onglet actif est entièrement visible dans sa bande",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3862,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "état de départ de l’Agent : chaque action entière, la puce du composeur entière",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 1878,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Journaux : trois rangées, actions en icônes accessibles, statut et niveaux entiers",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2411,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "feuille « + » : titres 13 px, descriptions 12 px entières, une colonne",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2483,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2416,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Webview : barre d’adresse compacte, journaux à 12 px sans débordement",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2913,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "unexpected",
+    "results": [
+      {
+        "status": "failed",
+        "duration": 12185,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Paramètres, Variables, Éditeur : bande d’onglets compacte, boutons deux par rangée, pastille Historique visible",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3225,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "menu contextuel d’un message : une barre d’icônes de 44 px, chaque action nommée ; Sécurité : une paire par ligne",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 5217,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2615,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Déploiements « Gérer » : les actions d’un déploiement se partagent la ligne",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2263,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Intégrations : icônes visibles ; Extensions : pastilles de domaine entières",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2481,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "zone de saisie : les menus « Agent » et « Économique » se rendent hors du composeur, visibles à l’écran",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4434,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "zone de saisie : la feuille prend l’écran sur téléphone, et s’arrête à 760 px centrée sur tablette",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4233,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "fil de l’agent : en remontant, le texte garde sa largeur et la pastille « descendre » est centrée au-dessus de la zone de saisie",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3581,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "menu contextuel sur le dernier message : la barre reste au-dessus de la zone de saisie, et le fil ne bouge pas",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 9137,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — téléphone 390",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 14860,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — tablette 820",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 15348,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2887,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "sélecteur d’onglets : les raccourcis du bas sont plus petits que les onglets, et tous de même taille",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2372,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème light",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4442,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème dark",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3599,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "dictée vocale : l’appui dit qu’on écoute, garde le texte tapé, et l’interface se remet au repos quand le moteur s’arrête seul",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2933,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4361,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 430 px",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2270,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 390 px",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2364,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "panneau Agent, état de départ : la carte « Agent prêt » se pose sous l’en-tête, sans bande vide",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2588,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "fil de l’agent : le premier message se pose sous l’en-tête, sans bande morte et sans être rogné",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3365,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "menu d’un message : un seul à la fois, posé au-dessus de la ligne, fermé au défilement",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 8028,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "fin de tour à la Replit : « Worked for » et « Checkpoint made » sous la réponse, au-dessus de la zone de saisie ; retour arrière ; « Changes » ouvre le commit",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 5420,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3342,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4299,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "appui long près du bord droit : le menu et ses libellés français restent dans l’écran, sans infobulle",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 4673,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "« Effacer l’historique » ouvre une conversation neuve, et elle le reste au rechargement",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 20641,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "un tour streamé ne recrée pas le markdown des messages déjà affichés",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 12682,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "elle se peint sur le fil, et sur rien d’autre",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 6981,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "le fil reste masqué pendant le chargement interrompu de Preview à 390px",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 10274,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "le fil reste masqué pendant le chargement interrompu de Preview à 768px",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 9604,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "le bloc se rend aux bonnes tailles, sans rien déborder",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2327,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "le bloc se rend aux bonnes tailles, sans rien déborder",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2195,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "titres et boutons tiennent sur une ligne à 390 px",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2229,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "les gabarits portent un prix calculé, et les gestes sont ceux qui existent",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2447,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "depuis n’importe quel panneau, la demande bascule sur le panneau Agent",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2818,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "la liste des tables n’est pas vide, et chaque ligne est nommée",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 2737,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "le rail liste les tables, les en-têtes portent leur type, la page est annoncée",
+    "file": "ide-mobile-chrome.spec.ts",
+    "project": "chromium",
+    "expectedStatus": "passed",
+    "status": "expected",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 3141,
+        "retry": 0
+      }
+    ]
+  }
+]

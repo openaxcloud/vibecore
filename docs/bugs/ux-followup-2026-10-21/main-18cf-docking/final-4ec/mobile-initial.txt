@@ -1,0 +1,86 @@
+
+Running 45 tests using 1 worker
+
+(node:51317) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:51317) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:320:3 › chrome de l’IDE sur téléphone — 390 › barre du bas : l’onglet actif est entièrement visible dans sa bande (3.9s)
+  ✓   2 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:350:3 › chrome de l’IDE sur téléphone — 390 › état de départ de l’Agent : chaque action entière, la puce du composeur entière (1.9s)
+  ✓   3 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:378:3 › chrome de l’IDE sur téléphone — 390 › Journaux : trois rangées, actions en icônes accessibles, statut et niveaux entiers (2.4s)
+  ✓   4 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:420:3 › chrome de l’IDE sur téléphone — 390 › feuille « + » : titres 13 px, descriptions 12 px entières, une colonne (2.5s)
+  ✓   5 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:462:3 › chrome de l’IDE sur téléphone — 390 › Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne (2.4s)
+  ✓   6 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:523:3 › chrome de l’IDE sur téléphone — 390 › Webview : barre d’adresse compacte, journaux à 12 px sans débordement (2.9s)
+  ✘   7 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux (12.2s)
+(node:52635) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:52635) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:662:3 › chrome de l’IDE sur téléphone — 390 › Paramètres, Variables, Éditeur : bande d’onglets compacte, boutons deux par rangée, pastille Historique visible (3.2s)
+  ✓   9 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:768:3 › chrome de l’IDE sur téléphone — 390 › menu contextuel d’un message : une barre d’icônes de 44 px, chaque action nommée ; Sécurité : une paire par ligne (5.2s)
+  ✓  10 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:879:3 › chrome de l’IDE sur téléphone — 390 › Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne (2.6s)
+  ✓  11 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:935:3 › chrome de l’IDE sur téléphone — 390 › Déploiements « Gérer » : les actions d’un déploiement se partagent la ligne (2.3s)
+  ✓  12 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:998:3 › chrome de l’IDE sur téléphone — 390 › Intégrations : icônes visibles ; Extensions : pastilles de domaine entières (2.5s)
+  ✓  13 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1045:3 › chrome de l’IDE sur téléphone — 390 › zone de saisie : les menus « Agent » et « Économique » se rendent hors du composeur, visibles à l’écran (4.4s)
+  ✓  14 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1137:3 › chrome de l’IDE sur téléphone — 390 › zone de saisie : la feuille prend l’écran sur téléphone, et s’arrête à 760 px centrée sur tablette (4.2s)
+  ✓  15 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1206:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : en remontant, le texte garde sa largeur et la pastille « descendre » est centrée au-dessus de la zone de saisie (3.6s)
+  ✓  16 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1292:3 › chrome de l’IDE sur téléphone — 390 › menu contextuel sur le dernier message : la barre reste au-dessus de la zone de saisie, et le fil ne bouge pas (9.1s)
+  ✓  17 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1395:5 › chrome de l’IDE sur téléphone — 390 › zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — téléphone 390 (14.9s)
+  ✓  18 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1395:5 › chrome de l’IDE sur téléphone — 390 › zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — tablette 820 (15.3s)
+  ✓  19 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1616:3 › chrome de l’IDE sur téléphone — 390 › Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment (2.9s)
+  ✓  20 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1727:3 › chrome de l’IDE sur téléphone — 390 › sélecteur d’onglets : les raccourcis du bas sont plus petits que les onglets, et tous de même taille (2.4s)
+  ✓  21 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1767:5 › chrome de l’IDE sur téléphone — 390 › sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème light (4.4s)
+  ✓  22 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1767:5 › chrome de l’IDE sur téléphone — 390 › sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème dark (3.6s)
+  ✓  23 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1853:3 › chrome de l’IDE sur téléphone — 390 › dictée vocale : l’appui dit qu’on écoute, garde le texte tapé, et l’interface se remet au repos quand le moteur s’arrête seul (2.9s)
+  ✓  24 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1929:3 › chrome de l’IDE sur téléphone — 390 › panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte (4.4s)
+  ✓  25 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1986:5 › chrome de l’IDE sur téléphone — 390 › barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 430 px (2.3s)
+  ✓  26 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1986:5 › chrome de l’IDE sur téléphone — 390 › barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 390 px (2.4s)
+  ✓  27 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2028:3 › chrome de l’IDE sur téléphone — 390 › panneau Agent, état de départ : la carte « Agent prêt » se pose sous l’en-tête, sans bande vide (2.6s)
+  ✓  28 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2064:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le premier message se pose sous l’en-tête, sans bande morte et sans être rogné (3.4s)
+  ✓  29 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2118:3 › chrome de l’IDE sur téléphone — 390 › menu d’un message : un seul à la fois, posé au-dessus de la ligne, fermé au défilement (8.0s)
+  ✓  30 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2178:3 › chrome de l’IDE sur téléphone — 390 › fin de tour à la Replit : « Worked for » et « Checkpoint made » sous la réponse, au-dessus de la zone de saisie ; retour arrière ; « Changes » ouvre le commit (5.4s)
+  ✓  31 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2354:3 › chrome de l’IDE sur téléphone — 390 › onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit (3.3s)
+  ✓  32 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2527:3 › chrome de l’IDE sur téléphone — 390 › zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne (4.3s)
+  ✓  33 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2599:3 › chrome de l’IDE sur téléphone — 390, en français › appui long près du bord droit : le menu et ses libellés français restent dans l’écran, sans infobulle (4.7s)
+  ✓  34 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2642:3 › chrome de l’IDE sur téléphone — 390, en français › « Effacer l’historique » ouvre une conversation neuve, et elle le reste au rechargement (20.6s)
+  ✓  35 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2752:3 › agent — le fil ne se recrée pas pendant le streaming (téléphone) › un tour streamé ne recrée pas le markdown des messages déjà affichés (12.7s)
+  ✓  36 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2907:3 › agent — la pastille « descendre » ne déborde sur aucun autre panneau › elle se peint sur le fil, et sur rien d’autre (7.0s)
+  ✓  37 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2982:5 › agent — la pastille « descendre » ne déborde sur aucun autre panneau › le fil reste masqué pendant le chargement interrompu de Preview à 390px (10.3s)
+  ✓  38 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:2982:5 › agent — la pastille « descendre » ne déborde sur aucun autre panneau › le fil reste masqué pendant le chargement interrompu de Preview à 768px (9.6s)
+  ✓  39 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:3103:7 › publication à la Replit — le panneau et ses tailles › format téléphone › le bloc se rend aux bonnes tailles, sans rien déborder (2.3s)
+  ✓  40 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:3103:7 › publication à la Replit — le panneau et ses tailles › format tablette › le bloc se rend aux bonnes tailles, sans rien déborder (2.2s)
+  ✓  41 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:3202:5 › publication à la Replit — le panneau et ses tailles › rien ne se replie en français › titres et boutons tiennent sur une ligne à 390 px (2.2s)
+  ✓  42 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:3302:5 › publication à la Replit — le panneau et ses tailles › écran des réglages › les gabarits portent un prix calculé, et les gestes sont ceux qui existent (2.4s)
+  ✓  43 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:3367:5 › publication à la Replit — le panneau et ses tailles › « Réparer avec l’agent » ramène sur l’agent › depuis n’importe quel panneau, la demande bascule sur le panneau Agent (2.8s)
+  ✓  44 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:3438:3 › base de données — les tables portent leur nom et leur compte › la liste des tables n’est pas vide, et chaque ligne est nommée (2.7s)
+  ✓  45 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:3522:3 › base de données — « Mes données » à la Replit › le rail liste les tables, les en-têtes portent leur type, la page est annoncée (3.1s)
+
+
+  1) [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.bolt-action-row-details[open]').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 10000ms
+      - waiting for locator('.bolt-action-row-details[open]').first()
+
+
+      635 |
+      636 |     await page.touchscreen.tap((boite?.x ?? 0) + (boite?.width ?? 0) / 2, (boite?.y ?? 0) + (boite?.height ?? 0) / 2);
+    > 637 |     await expect(page.locator('.bolt-action-row-details[open]').first()).toBeVisible({ timeout: 10_000 });
+          |                                                                          ^
+      638 |
+      639 |     const apresAppui = await page.evaluate(() => {
+      640 |       const resume = document.querySelector<HTMLElement>('.bolt-action-row-details[open] > summary')!;
+        at <checkout>/tests/e2e/ide-mobile-chrome.spec.ts:637:74
+
+    Error Context: ../ux-artifacts/followup-759-760/main18cf-docking/final-4ec/mobile/ide-mobile-chrome-chrome-d-a2417-mmande-à-32-px-dans-le-flux-chromium/error-context.md
+
+  1 failed
+    [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux 
+  44 passed (3.9m)
