@@ -4,10 +4,11 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-466 entrées.
+468 entrées.
 
 ## Sans section
 
+- [BUG-NETWORK-DEPENDENCIES-20261021](docs/bugs/BUG-NETWORK-DEPENDENCIES-20261021.md) — 📤 Dispatché : Triage des high production demandé le 21 octobre 2026 ; base main 883af053. · 💻 Codé : Branche isolée : ws résolu en 8.22.0 (minimum corrigé 8.21.0), compression 1.8.2. Aucun seuil de scan, délai o · ✅ Testé live : Reproductions locales loopback avec vrais sockets et flux zlib : ancien ws accepte 16 385 fragments de 1 octet
 - [BUG-METHODE-MODULE-MORT-002](docs/bugs/BUG-METHODE-MODULE-MORT-002.md) — Suite de -001 : la ligne de base traitée, et le scanner corrigé de DEUX faux positifs. — 📤 Dispatché : ☑ 15/09 · 💻 Codé : ☑ 15/09 · ✅ Testé live : ☐
 - [BUG-WEBKIT-SCROLL-FIL-001](docs/bugs/BUG-WEBKIT-SCROLL-FIL-001.md) — P1 à confirmer — sur WebKit, le fil de l'agent ne se remonte pas : la sonde qui le fait défiler rend `false` 3 FOIS SUR 3 à 768 px — 📤 Dispatché : ☑ 10/09 · 💻 Codé : ☑ 14/09 — cause tranchée, corrigé · ✅ Testé live : ☐
 - [BUG-WEBKIT-SCROLL-FIL-001](docs/bugs/BUG-WEBKIT-SCROLL-FIL-001-b.md) — #534 est DÉPLOYÉ — 📤 Dispatché : ☑ 14/09 · 💻 Codé : ☑ 14/09 · ✅ Testé live : ☐
@@ -597,6 +598,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 - [BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001](docs/bugs/BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001.md) — 📤 Dispatché : 21 octobre 2026, revue de #759 : `snapshot-cancel-focus.spec.ts:121`, clavier FR. Le dialogue reste visible pe · 💻 Codé : Branche séparée de #758, base `736ed190d64a980471e5943cf7e0695195f2a691`. La confirmation traite localement Es · ✅ Testé live : Local, build compilé attesté de la recette commune, pas production : test FR inchangé 10/10, puis sonde instru
 - [BUG-DEPENDENCY-CRITICAL-20261021](docs/bugs/BUG-DEPENDENCY-CRITICAL-20261021.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-IDE-PANE-DOCUMENT-IDENTITY-001](docs/bugs/BUG-IDE-PANE-DOCUMENT-IDENTITY-001.md) — 📤 Dispatché : 22 octobre 2026 : investigation du flaky docking de #763. Le retour B→A reste une piste distincte, non attribu · 💻 Codé : Correction locale en validation : contenu et opérations d’édition liés au chemin de l’onglet du panneau, sélec · ✅ Testé live : Reproduction sur le build local combinant 9609abf9 et main 18cf74fd : ouvrir other.txt dans le panneau flottan
 
 ## Résidus non tabulaires — reportés mot pour mot
 

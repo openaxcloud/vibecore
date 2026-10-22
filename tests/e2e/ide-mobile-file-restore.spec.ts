@@ -562,6 +562,7 @@ for (const width of [390, 768]) {
     page,
     request,
     context,
+    mobileNavigationDiagnostics,
   }, info) => {
     test.setTimeout(90000);
 
@@ -615,8 +616,10 @@ for (const width of [390, 768]) {
       'other.txt': 'SECOND-DOCUMENT',
       'audit.txt': 'PERSISTENCE-ORIGINAL-20261012',
     });
+    mobileNavigationDiagnostics.mark('return-to-project-A');
     await page.goBack();
     await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    mobileNavigationDiagnostics.mark('project-A-content-visible');
     await expect.poll(() => saved(projectId)).toBe('/home/project/README.md');
     await page.screenshot({ path: info.outputPath('readme-after-project-switch.png') });
   });

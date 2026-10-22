@@ -1,0 +1,1835 @@
+{
+  "auditSourceSha256": "bf279b42183052cc877949b2ce303991856896eea439c8cf8e936209c3baec19",
+  "records": [
+    {
+      "package": "@remix-run/router",
+      "ghsa": "GHSA-2w69-qvjg-hvjx",
+      "title": "React Router vulnerable to XSS via Open Redirects",
+      "patchedVersions": ">=1.23.2",
+      "findings": [
+        {
+          "version": "1.23.0",
+          "paths": [
+            ". > remix-utils@7.7.0 > @remix-run/cloudflare@2.16.8 > @remix-run/server-runtime@2.16.8 > @remix-run/router@1.23.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@remix-run/server-runtime",
+      "ghsa": "GHSA-8x6r-g9mw-2r78",
+      "title": "React Router vulnerable to DoS via unbounded path expansion in __manifest endpoint",
+      "patchedVersions": ">=2.17.5",
+      "findings": [
+        {
+          "version": "2.16.8",
+          "paths": [". > remix-utils@7.7.0 > @remix-run/cloudflare@2.16.8 > @remix-run/server-runtime@2.16.8"]
+        }
+      ]
+    },
+    {
+      "package": "turbo-stream",
+      "ghsa": "GHSA-rxv8-25v2-qmq8",
+      "title": "React Router vulnerable to Denial of Service via reflected user input in single-fetch",
+      "patchedVersions": ">=3.0.0",
+      "findings": [
+        {
+          "version": "2.4.1",
+          "paths": [
+            ". > remix-utils@7.7.0 > @remix-run/cloudflare@2.16.8 > @remix-run/server-runtime@2.16.8 > turbo-stream@2.4.1",
+            ". > remix-utils@7.7.0 > @remix-run/node@2.17.5 > @remix-run/server-runtime@2.17.5 > turbo-stream@2.4.1",
+            ". > remix-utils@7.7.0 > @remix-run/react@2.17.5 > @remix-run/server-runtime@2.17.5 > turbo-stream@2.4.1",
+            ". > remix-utils@7.7.0 > @remix-run/react@2.17.5 > turbo-stream@2.4.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "form-data",
+      "ghsa": "GHSA-hmw2-7cc7-3qxx",
+      "title": "form-data: CRLF injection in form-data via unescaped multipart field names and filenames",
+      "patchedVersions": ">=2.5.6",
+      "findings": [
+        {
+          "version": "2.5.5",
+          "paths": [
+            "services/api > @google-cloud/storage@7.21.0 > retry-request@7.0.2 > @types/request@2.48.13 > form-data@2.5.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "undici",
+      "ghsa": "GHSA-vxpw-j846-p89q",
+      "title": "undici WebSocket client vulnerable to denial of service via fragment count bypass",
+      "patchedVersions": ">=6.27.0",
+      "findings": [
+        {
+          "version": "6.25.0",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > wrangler@4.90.0 > miniflare@4.20260507.1 > undici@6.25.0",
+            ". > remix-utils@7.7.0 > @remix-run/node@2.17.5 > undici@6.25.0",
+            "services/api > re2@1.24.1 > node-gyp@12.3.0 > undici@6.25.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "ws",
+      "ghsa": "GHSA-96hv-2xvq-fx4p",
+      "title": "ws: Memory exhaustion DoS from tiny fragments and data chunks",
+      "patchedVersions": ">=8.21.0",
+      "findings": [
+        {
+          "version": "8.18.0",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > wrangler@4.90.0 > miniflare@4.20260507.1 > ws@8.18.0"
+          ]
+        },
+        {
+          "version": "8.20.0",
+          "paths": [
+            ". > @fastify/websocket@11.2.0 > ws@8.20.0",
+            ". > ws@8.20.0",
+            "services/api > @fastify/websocket@11.2.0 > ws@8.20.0",
+            "services/workspace-agent > @fastify/websocket@11.2.0 > ws@8.20.0",
+            "services/workspace-agent > ws@8.20.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "protobufjs",
+      "ghsa": "GHSA-wcpc-wj8m-hjx6",
+      "title": "protobufjs: Denial of service through unbounded Any expansion during JSON conversion",
+      "patchedVersions": ">=8.4.1",
+      "findings": [
+        {
+          "version": "8.0.3",
+          "paths": [
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-proto@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-proto@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-proto@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-proto@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-proto@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-proto@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/exporter-metrics-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-proto@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-http@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-http@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-proto@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-proto@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/otlp-exporter-base@0.217.0 > @opentelemetry/otlp-transformer@0.217.0 > protobufjs@8.0.3"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "protobufjs",
+      "ghsa": "GHSA-wcpc-wj8m-hjx6",
+      "title": "protobufjs: Denial of service through unbounded Any expansion during JSON conversion",
+      "patchedVersions": ">=7.6.1",
+      "findings": [
+        {
+          "version": "7.5.6",
+          "paths": [
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4 > @grpc/proto-loader@0.8.0 > protobufjs@7.5.6"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "vite",
+      "ghsa": "GHSA-fx2h-pf6j-xcff",
+      "title": "vite: `server.fs.deny` bypass on Windows alternate paths",
+      "patchedVersions": ">=6.4.3",
+      "findings": [
+        {
+          "version": "5.4.21",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21"
+          ]
+        },
+        {
+          "version": "5.4.19",
+          "paths": ["apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19", "apps/admin > vite@5.4.19"]
+        }
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "ghsa": "GHSA-3jxr-9vmj-r5cp",
+      "title": "brace-expansion: DoS via exponential-time expansion of consecutive non-expanding {} groups",
+      "patchedVersions": ">=5.0.7",
+      "findings": [
+        {
+          "version": "5.0.5",
+          "paths": [". > @react-router/fs-routes@7.18.0 > minimatch@10.2.5 > brace-expansion@5.0.5"]
+        }
+      ]
+    },
+    {
+      "package": "js-yaml",
+      "ghsa": "GHSA-52cp-r559-cp3m",
+      "title": "js-yaml: YAML merge-key chains can force quadratic CPU consumption",
+      "patchedVersions": ">=4.3.0",
+      "findings": [
+        {
+          "version": "4.1.0",
+          "paths": [". > electron-updater@6.6.2 > js-yaml@4.1.0"]
+        }
+      ]
+    },
+    {
+      "package": "hono",
+      "ghsa": "GHSA-88fw-hqm2-52qc",
+      "title": "hono: CORS Middleware reflects any Origin with credentials when `origin` defaults to the wildcard",
+      "patchedVersions": ">=4.12.25",
+      "findings": [
+        {
+          "version": "4.12.18",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > @hono/node-server@1.19.14 > hono@4.12.18",
+            ". > @modelcontextprotocol/sdk@1.29.0 > hono@4.12.18",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @hono/node-server@1.19.14 > hono@4.12.18",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > hono@4.12.18"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@opentelemetry/propagator-jaeger",
+      "ghsa": "GHSA-45rx-2jwx-cxfr",
+      "title": "OpenTelemetry JavaScript: Denial of service in `JaegerPropagator` via unhandled exception on a malformed header",
+      "patchedVersions": ">=2.9.0",
+      "findings": [
+        {
+          "version": "2.7.1",
+          "paths": [
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/propagator-jaeger@2.7.1",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/propagator-jaeger@2.7.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "ghsa": "GHSA-v2hh-gcrm-f6hx",
+      "title": "fast-uri vulnerable to host confusion via literal backslash authority delimiter",
+      "patchedVersions": ">=3.1.4",
+      "findings": [
+        {
+          "version": "3.1.2",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "sharp",
+      "ghsa": "GHSA-f88m-g3jw-g9cj",
+      "title": "sharp inherited vulnerabilities in libvips: CVE-2026-33327, CVE-2026-33328, CVE-2026-35590, CVE-2026-35591",
+      "patchedVersions": ">=0.35.0",
+      "findings": [
+        {
+          "version": "0.34.5",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > wrangler@4.90.0 > miniflare@4.20260507.1 > sharp@0.34.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "find-my-way",
+      "ghsa": "GHSA-c96f-x56v-gq3h",
+      "title": "find-my-way: DDoS with HTTP2",
+      "patchedVersions": ">=9.7.0",
+      "findings": [
+        {
+          "version": "9.5.0",
+          "paths": [
+            ". > fastify@5.8.5 > find-my-way@9.5.0",
+            "services/ai-gateway > fastify@5.8.5 > find-my-way@9.5.0",
+            "services/connector-proxy > fastify@5.8.5 > find-my-way@9.5.0",
+            "services/preview-proxy > fastify@5.8.5 > find-my-way@9.5.0",
+            "services/screenshotter > fastify@5.8.5 > find-my-way@9.5.0",
+            "services/workspace-agent > fastify@5.8.5 > find-my-way@9.5.0",
+            "services/workspace-manager > fastify@5.8.5 > find-my-way@9.5.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "builder-util-runtime",
+      "ghsa": "GHSA-p2f4-r6v6-j797",
+      "title": "electron-updater: Cross-origin redirect leaks `PRIVATE-TOKEN` and mixed-case `Authorization` credentials in `builder-util-runtime`",
+      "patchedVersions": ">=9.7.0",
+      "findings": [
+        {
+          "version": "9.3.1",
+          "paths": [". > electron-updater@6.6.2 > builder-util-runtime@9.3.1"]
+        }
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "ghsa": "GHSA-mh99-v99m-4gvg",
+      "title": "brace-expansion: DoS via unbounded expansion length causing an out-of-memory process crash",
+      "patchedVersions": ">=5.0.8",
+      "findings": [
+        {
+          "version": "5.0.5",
+          "paths": [". > @react-router/fs-routes@7.18.0 > minimatch@10.2.5 > brace-expansion@5.0.5"]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "ghsa": "GHSA-7p8r-x3mc-p8w7",
+      "title": "fast-uri vulnerable to host confusion via backslash authority introducer",
+      "patchedVersions": ">=3.1.5",
+      "findings": [
+        {
+          "version": "3.1.2",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "ip-address",
+      "ghsa": "GHSA-mwp4-54f8-5fhr",
+      "title": "ip-address: Address4 decodes leading-zero octets as decimal while resolvers decode them as octal, allowing SSRF and trust-boundary bypass",
+      "patchedVersions": ">=10.3.1",
+      "findings": [
+        {
+          "version": "10.2.0",
+          "paths": [". > @modelcontextprotocol/sdk@1.29.0 > express-rate-limit@8.5.1 > ip-address@10.2.0"]
+        }
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "ghsa": "GHSA-rgw5-rvv9-x895",
+      "title": "brace-expansion: DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation",
+      "patchedVersions": ">=5.0.9",
+      "findings": [
+        {
+          "version": "5.0.5",
+          "paths": [". > @react-router/fs-routes@7.18.0 > minimatch@10.2.5 > brace-expansion@5.0.5"]
+        }
+      ]
+    },
+    {
+      "package": "js-yaml",
+      "ghsa": "GHSA-5p4m-2wfm-xmqj",
+      "title": "JS-YAML: Quadratic CPU consumption in !!omap resolution (3.x and 4.x) \u2014 CVE-2026-59870 fix not backported",
+      "patchedVersions": ">=4.3.1",
+      "findings": [
+        {
+          "version": "4.1.0",
+          "paths": [". > electron-updater@6.6.2 > js-yaml@4.1.0"]
+        }
+      ]
+    },
+    {
+      "package": "react-router",
+      "ghsa": "GHSA-qwww-vcr4-c8h2",
+      "title": "React Router: RSC Mode CSRF Bypass Allows Action Execution Before 400 Response",
+      "patchedVersions": ">=7.18.2",
+      "findings": [
+        {
+          "version": "7.18.0",
+          "paths": [
+            ". > @react-router/express@7.18.0 > @react-router/node@7.18.0 > react-router@7.18.0",
+            ". > @react-router/express@7.18.0 > react-router@7.18.0",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @react-router/node@7.18.0 > react-router@7.18.0",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > react-router@7.18.0",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @react-router/serve@7.18.0 > @react-router/express@7.18.0 > @react-router/node@7.18.0 > react-router@7.18.0",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @react-router/serve@7.18.0 > @react-router/express@7.18.0 > react-router@7.18.0",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @react-router/serve@7.18.0 > @react-router/node@7.18.0 > react-router@7.18.0",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @react-router/serve@7.18.0 > react-router@7.18.0",
+            ". > @react-router/node@7.18.0 > react-router@7.18.0",
+            ". > @react-router/serve@7.18.0 > @react-router/express@7.18.0 > @react-router/node@7.18.0 > react-router@7.18.0",
+            ". > @react-router/serve@7.18.0 > @react-router/express@7.18.0 > react-router@7.18.0",
+            ". > @react-router/serve@7.18.0 > @react-router/node@7.18.0 > react-router@7.18.0",
+            ". > @react-router/serve@7.18.0 > react-router@7.18.0",
+            ". > react-router@7.18.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "nanoid",
+      "ghsa": "GHSA-28wg-ghj8-5hjv",
+      "title": "nanoid: non-secure generators can loop indefinitely with negative size",
+      "patchedVersions": ">=3.3.16",
+      "findings": [
+        {
+          "version": "3.3.11",
+          "paths": [
+            ". > @ai-sdk/amazon-bedrock@1.0.6 > @ai-sdk/provider-utils@2.0.5 > nanoid@3.3.11",
+            ". > @ai-sdk/anthropic@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cerebras@0.2.16 > @ai-sdk/openai-compatible@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cerebras@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cohere@1.0.3 > @ai-sdk/provider-utils@2.0.2 > nanoid@3.3.11",
+            ". > @ai-sdk/deepseek@0.1.3 > @ai-sdk/openai-compatible@0.1.3 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/deepseek@0.1.3 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/fireworks@0.2.16 > @ai-sdk/openai-compatible@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/fireworks@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/google@1.2.22 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/openai@1.1.2 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/react@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/react@1.2.12 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/react@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/react@1.2.12 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > postcss@8.5.14 > nanoid@3.3.11",
+            "apps/admin > vite@5.4.19 > postcss@8.5.14 > nanoid@3.3.11"
+          ]
+        },
+        {
+          "version": "3.3.6",
+          "paths": [
+            ". > @ai-sdk/mistral@0.0.43 > @ai-sdk/provider-utils@1.0.20 > nanoid@3.3.6",
+            ". > @openrouter/ai-sdk-provider@0.0.5 > @ai-sdk/provider-utils@1.0.2 > nanoid@3.3.6",
+            ". > ollama-ai-provider@0.15.2 > @ai-sdk/provider-utils@1.0.20 > nanoid@3.3.6"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "nanoid",
+      "ghsa": "GHSA-2v37-7h3g-55p8",
+      "title": "nanoid: custom generators can loop indefinitely when size is zero",
+      "patchedVersions": ">=3.3.18",
+      "findings": [
+        {
+          "version": "3.3.11",
+          "paths": [
+            ". > @ai-sdk/amazon-bedrock@1.0.6 > @ai-sdk/provider-utils@2.0.5 > nanoid@3.3.11",
+            ". > @ai-sdk/anthropic@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cerebras@0.2.16 > @ai-sdk/openai-compatible@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cerebras@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cohere@1.0.3 > @ai-sdk/provider-utils@2.0.2 > nanoid@3.3.11",
+            ". > @ai-sdk/deepseek@0.1.3 > @ai-sdk/openai-compatible@0.1.3 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/deepseek@0.1.3 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/fireworks@0.2.16 > @ai-sdk/openai-compatible@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/fireworks@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/google@1.2.22 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/openai@1.1.2 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/react@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/react@1.2.12 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/react@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/react@1.2.12 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > postcss@8.5.14 > nanoid@3.3.11",
+            "apps/admin > vite@5.4.19 > postcss@8.5.14 > nanoid@3.3.11"
+          ]
+        },
+        {
+          "version": "3.3.6",
+          "paths": [
+            ". > @ai-sdk/mistral@0.0.43 > @ai-sdk/provider-utils@1.0.20 > nanoid@3.3.6",
+            ". > @openrouter/ai-sdk-provider@0.0.5 > @ai-sdk/provider-utils@1.0.2 > nanoid@3.3.6",
+            ". > ollama-ai-provider@0.15.2 > @ai-sdk/provider-utils@1.0.20 > nanoid@3.3.6"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "postcss",
+      "ghsa": "GHSA-r28c-9q8g-f849",
+      "title": "PostCSS: Path Traversal in Previous Source Map Auto-Loading (sourceMappingURL) leads to Arbitrary .map File Disclosure",
+      "patchedVersions": ">=8.5.18",
+      "findings": [
+        {
+          "version": "8.5.14",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > postcss@8.5.14",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > postcss@8.5.14",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > postcss@8.5.14",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > postcss@8.5.14",
+            "apps/admin > vite@5.4.19 > postcss@8.5.14"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "deepmerge-ts",
+      "ghsa": "GHSA-ggr8-5vv4-36mx",
+      "title": "DeepmergeTS has stack exhaustion when merging recursive object graphs",
+      "patchedVersions": ">=8.0.0",
+      "findings": [
+        {
+          "version": "7.1.5",
+          "paths": [
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "packages/database > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/api > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/config@7.8.0 > deepmerge-ts@7.1.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "jsondiffpatch",
+      "ghsa": "GHSA-j4fx-xxwh-2485",
+      "title": " jsondiffpatch patch APIs are vulnerable to prototype pollution",
+      "patchedVersions": ">=0.7.6",
+      "findings": [
+        {
+          "version": "0.6.0",
+          "paths": [". > ai@4.3.16 > jsondiffpatch@0.6.0"]
+        }
+      ]
+    },
+    {
+      "package": "browserslist",
+      "ghsa": "GHSA-c83g-rgw3-j3cx",
+      "title": "Browserslist: Unbounded memory growth (no cache eviction) via distinct query results, leading to eventual OOM",
+      "patchedVersions": ">=4.28.7",
+      "findings": [
+        {
+          "version": "4.25.1",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/plugin-syntax-jsx@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-syntax-jsx@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-modules-commonjs@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/helper-create-class-features-plugin@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/helper-create-class-features-plugin@7.27.1 > @babel/helper-replace-supers@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/plugin-syntax-typescript@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > babel-dead-code-elimination@1.0.12 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > @babel/plugin-transform-react-jsx-self@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > @babel/plugin-transform-react-jsx-source@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "browserslist",
+      "ghsa": "GHSA-73wf-gq98-2v4g",
+      "title": "Browserslist: Uncaught crash / prototype write via untrusted browserslist-stats.json custom stats (normalizeStats)",
+      "patchedVersions": ">=4.28.7",
+      "findings": [
+        {
+          "version": "4.25.1",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/plugin-syntax-jsx@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-syntax-jsx@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-modules-commonjs@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/helper-create-class-features-plugin@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/helper-create-class-features-plugin@7.27.1 > @babel/helper-replace-supers@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @babel/preset-typescript@7.27.1 > @babel/plugin-transform-typescript@7.28.0 > @babel/plugin-syntax-typescript@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > babel-dead-code-elimination@1.0.12 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > @babel/plugin-transform-react-jsx-self@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > @babel/plugin-transform-react-jsx-source@7.27.1 > @babel/core@7.28.0 > @babel/helper-compilation-targets@7.27.2 > browserslist@4.25.1 > update-browserslist-db@1.1.3 > browserslist@4.25.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "mysql2",
+      "ghsa": "GHSA-3f6p-5ww8-9rcr",
+      "title": "MySQL2: Auth Plugin Downgrade to mysql_clear_password Leaks Plaintext Credentials",
+      "patchedVersions": ">=3.22.0",
+      "findings": [
+        {
+          "version": "3.15.3",
+          "paths": [
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > mysql2@3.15.3",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > mysql2@3.15.3",
+            "packages/database > prisma@7.8.0 > mysql2@3.15.3",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > mysql2@3.15.3",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > mysql2@3.15.3",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > mysql2@3.15.3",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > mysql2@3.15.3",
+            "services/api > prisma@7.8.0 > mysql2@3.15.3",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > mysql2@3.15.3",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > mysql2@3.15.3",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > mysql2@3.15.3",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > mysql2@3.15.3",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > mysql2@3.15.3",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > mysql2@3.15.3"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "nanoid",
+      "ghsa": "GHSA-xwg4-73v4-xw9w",
+      "title": "nanoid: Integer Overflow or Wraparound",
+      "patchedVersions": ">=3.3.12",
+      "findings": [
+        {
+          "version": "3.3.11",
+          "paths": [
+            ". > @ai-sdk/amazon-bedrock@1.0.6 > @ai-sdk/provider-utils@2.0.5 > nanoid@3.3.11",
+            ". > @ai-sdk/anthropic@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cerebras@0.2.16 > @ai-sdk/openai-compatible@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cerebras@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/cohere@1.0.3 > @ai-sdk/provider-utils@2.0.2 > nanoid@3.3.11",
+            ". > @ai-sdk/deepseek@0.1.3 > @ai-sdk/openai-compatible@0.1.3 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/deepseek@0.1.3 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/fireworks@0.2.16 > @ai-sdk/openai-compatible@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/fireworks@0.2.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/google@1.2.22 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/openai@1.1.2 > @ai-sdk/provider-utils@2.1.2 > nanoid@3.3.11",
+            ". > @ai-sdk/react@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/react@1.2.12 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/react@1.2.12 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/react@1.2.12 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > ai@4.3.16 > @ai-sdk/ui-utils@1.2.11 > @ai-sdk/provider-utils@2.2.8 > nanoid@3.3.11",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > postcss@8.5.14 > nanoid@3.3.11",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > postcss@8.5.14 > nanoid@3.3.11",
+            "apps/admin > vite@5.4.19 > postcss@8.5.14 > nanoid@3.3.11"
+          ]
+        },
+        {
+          "version": "3.3.6",
+          "paths": [
+            ". > @ai-sdk/mistral@0.0.43 > @ai-sdk/provider-utils@1.0.20 > nanoid@3.3.6",
+            ". > @openrouter/ai-sdk-provider@0.0.5 > @ai-sdk/provider-utils@1.0.2 > nanoid@3.3.6",
+            ". > ollama-ai-provider@0.15.2 > @ai-sdk/provider-utils@1.0.20 > nanoid@3.3.6"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "ghsa": "GHSA-f65p-4m7j-42xc",
+      "title": "fast-uri vulnerable to server-side request forgery via malformed IPv6 normalization",
+      "patchedVersions": ">=3.1.6",
+      "findings": [
+        {
+          "version": "3.1.2",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "ghsa": "GHSA-fph4-wmhf-6fwf",
+      "title": "fast-uri vulnerable to server-side request forgery via repeated hostname percent-decoding",
+      "patchedVersions": ">=3.1.6",
+      "findings": [
+        {
+          "version": "3.1.2",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "ghsa": "GHSA-jqff-g426-hqxp",
+      "title": "fast-uri vulnerable to host confusion via percent-encoded scheme normalization",
+      "patchedVersions": ">=3.1.6",
+      "findings": [
+        {
+          "version": "3.1.2",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "immutable",
+      "ghsa": "GHSA-xvcm-6775-5m9r",
+      "title": "Immutable: Hash-collision algorithmic complexity denial of service in Immutable.Map/Set",
+      "patchedVersions": ">=5.1.8",
+      "findings": [
+        {
+          "version": "5.1.5",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-6mj3-qw4j-hgrw",
+      "title": "xmldom: HTML raw-text closing-tag case mismatch causes output amplification",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-g53g-w8rj-fmg7",
+      "title": "xmldom PI grammar regex ReDoS: quadratic backtracking on unterminated processing instructions",
+      "patchedVersions": ">=0.9.11",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-w2rr-34g9-rvrj",
+      "title": "xmldom: Element name injection via createElement() bypasses requireWellFormed",
+      "patchedVersions": ">=0.9.11",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-4w3w-2rp5-g8jm",
+      "title": "xmldom: Attribute name injection via setAttribute() bypasses requireWellFormed",
+      "patchedVersions": ">=0.9.11",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-c7q8-3ch8-vqpv",
+      "title": "xmldom: Processing Instruction Target Injection Bypasses requireWellFormed",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-27p8-2357-5qqv",
+      "title": "xmldom: DocType `name` Injection Bypasses requireWellFormed",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-3px3-54cx-rmw9",
+      "title": "xmldom: Creation-time XML Name/QName validation is bypassable via an embedded line terminator, allowing injection on the default serialization path",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-vr34-hp96-76pp",
+      "title": "xmldom: requireWellFormed DocType publicId/systemId validation is bypassable via an embedded line terminator",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-8344-3jmq-59r6",
+      "title": "xmldom: Quadratic-time attribute deduplication",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-965w-775f-mr7g",
+      "title": "xmldom: Quadratic-memory consumption",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "@xmldom/xmldom",
+      "ghsa": "GHSA-93r5-fhx6-vmg9",
+      "title": "xmldom: Quadratic-time parsing via the malformed-input recovery path \u2014 `parseElementStartPart` re-scan and `normalize()` adjacent-text merge",
+      "patchedVersions": ">=0.9.12",
+      "findings": [
+        {
+          "version": "0.9.10",
+          "paths": ["services/api > @xmldom/xmldom@0.9.10", "services/api > xml-crypto@6.1.2 > @xmldom/xmldom@0.9.10"]
+        }
+      ]
+    },
+    {
+      "package": "sharp",
+      "ghsa": "GHSA-rgj7-g3m4-5g8c",
+      "title": "sharp: Vulnerabilities in libheif: GHSA-g89c-p67h-r497 and GHSA-2jg2-4ch7-h545",
+      "patchedVersions": ">=0.35.4",
+      "findings": [
+        {
+          "version": "0.34.5",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > wrangler@4.90.0 > miniflare@4.20260507.1 > sharp@0.34.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "js-yaml",
+      "ghsa": "GHSA-2883-xcg3-v3hh",
+      "title": "js-yaml: maxTotalMergeKeys does not limit CPU use for empty merge sources",
+      "patchedVersions": ">=4.3.2",
+      "findings": [
+        {
+          "version": "4.1.0",
+          "paths": [". > electron-updater@6.6.2 > js-yaml@4.1.0"]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "ghsa": "GHSA-4c8g-83qw-93j6",
+      "title": "fast-uri vulnerable to host confusion via failed IDN canonicalization",
+      "patchedVersions": ">=3.1.3",
+      "findings": [
+        {
+          "version": "3.1.2",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "immutable",
+      "ghsa": "GHSA-v56q-mh7h-f735",
+      "title": "Immutable.js `List` 32-bit trie overflow \u2192 unrecoverable DoS",
+      "patchedVersions": ">=5.1.8",
+      "findings": [
+        {
+          "version": "5.1.5",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > immutable@5.1.5",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > immutable@5.1.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fast-uri",
+      "ghsa": "GHSA-qw65-cvwx-89v3",
+      "title": "fast-uri vulnerable to authority injection via an unvalidated port in serialize",
+      "patchedVersions": ">=3.1.7",
+      "findings": [
+        {
+          "version": "3.1.2",
+          "paths": [
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @modelcontextprotocol/sdk@1.29.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > electron-store@10.1.0 > conf@14.0.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            ". > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/ai-gateway > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/api > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/connector-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/preview-proxy > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/screenshotter > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/worker > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-agent > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > @prisma/client@7.8.0 > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > @vibecore/database@link:../../packages/database > prisma@7.8.0 > @prisma/dev@0.24.3 > @prisma/streams-local@0.1.2 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/ajv-compiler@4.0.5 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > @fastify/fast-json-stringify-compiler@5.0.3 > fast-json-stringify@6.3.0 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > ajv-formats@3.0.1 > ajv@8.17.1 > fast-uri@3.1.2",
+            "services/workspace-manager > fastify@5.8.5 > fast-json-stringify@6.3.0 > fast-uri@3.1.2"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "undici",
+      "ghsa": "GHSA-rfgv-xxqx-mfg5",
+      "title": "undici vulnerable to Denial of Service via unrequested WebSocket subprotocol",
+      "patchedVersions": ">=6.28.1",
+      "findings": [
+        {
+          "version": "6.25.0",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > wrangler@4.90.0 > miniflare@4.20260507.1 > undici@6.25.0",
+            ". > remix-utils@7.7.0 > @remix-run/node@2.17.5 > undici@6.25.0",
+            "services/api > re2@1.24.1 > node-gyp@12.3.0 > undici@6.25.0"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "ghsa": "GHSA-qhr7-859c-m2p7",
+      "title": "brace-expansion: DoS via uncontrolled recursion on nested brace groups causing stack exhaustion",
+      "patchedVersions": ">=5.0.11",
+      "findings": [
+        {
+          "version": "5.0.5",
+          "paths": [". > @react-router/fs-routes@7.18.0 > minimatch@10.2.5 > brace-expansion@5.0.5"]
+        }
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "ghsa": "GHSA-6j4f-fj2g-mc7p",
+      "title": "brace-expansion: DoS via uncontrolled recursion in parseCommaParts causing stack exhaustion",
+      "patchedVersions": ">=5.0.10",
+      "findings": [
+        {
+          "version": "5.0.5",
+          "paths": [". > @react-router/fs-routes@7.18.0 > minimatch@10.2.5 > brace-expansion@5.0.5"]
+        }
+      ]
+    },
+    {
+      "package": "@grpc/grpc-js",
+      "ghsa": "GHSA-m9gg-hp2v-232j",
+      "title": "@grpc/grpc-js: In certain configurations, getAuthContext can return unauthorized certificates as though they were authorized",
+      "patchedVersions": ">=1.14.5",
+      "findings": [
+        {
+          "version": "1.14.4",
+          "paths": [
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/auto-instrumentations-node@0.75.0 > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-logs-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-metrics-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @grpc/grpc-js@1.14.4",
+            ". > @opentelemetry/sdk-node@0.217.0 > @opentelemetry/exporter-trace-otlp-grpc@0.217.0 > @opentelemetry/otlp-grpc-exporter-base@0.217.0 > @grpc/grpc-js@1.14.4"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fastify",
+      "ghsa": "GHSA-667r-xxjv-c9mm",
+      "title": "fastify vulnerable to request body replacement via an async validation result collision",
+      "patchedVersions": ">=5.12.2",
+      "findings": [
+        {
+          "version": "5.8.5",
+          "paths": [
+            ". > fastify@5.8.5",
+            "services/ai-gateway > fastify@5.8.5",
+            "services/connector-proxy > fastify@5.8.5",
+            "services/preview-proxy > fastify@5.8.5",
+            "services/screenshotter > fastify@5.8.5",
+            "services/workspace-agent > fastify@5.8.5",
+            "services/workspace-manager > fastify@5.8.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fastify",
+      "ghsa": "GHSA-p68q-wchp-6fh7",
+      "title": "fastify vulnerable to authentication bypass via malformed URLs reaching encapsulated not-found handlers",
+      "patchedVersions": ">=5.12.2",
+      "findings": [
+        {
+          "version": "5.8.5",
+          "paths": [
+            ". > fastify@5.8.5",
+            "services/ai-gateway > fastify@5.8.5",
+            "services/connector-proxy > fastify@5.8.5",
+            "services/preview-proxy > fastify@5.8.5",
+            "services/screenshotter > fastify@5.8.5",
+            "services/workspace-agent > fastify@5.8.5",
+            "services/workspace-manager > fastify@5.8.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fastify",
+      "ghsa": "GHSA-hwr6-493r-vm6h",
+      "title": "fastify vulnerable to request validation bypass via skipped boolean false schemas",
+      "patchedVersions": ">=5.12.2",
+      "findings": [
+        {
+          "version": "5.8.5",
+          "paths": [
+            ". > fastify@5.8.5",
+            "services/ai-gateway > fastify@5.8.5",
+            "services/connector-proxy > fastify@5.8.5",
+            "services/preview-proxy > fastify@5.8.5",
+            "services/screenshotter > fastify@5.8.5",
+            "services/workspace-agent > fastify@5.8.5",
+            "services/workspace-manager > fastify@5.8.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "fastify",
+      "ghsa": "GHSA-9q9j-q6p8-xq58",
+      "title": "fastify vulnerable to header validation bypass via incomplete schema case normalization",
+      "patchedVersions": ">=5.12.2",
+      "findings": [
+        {
+          "version": "5.8.5",
+          "paths": [
+            ". > fastify@5.8.5",
+            "services/ai-gateway > fastify@5.8.5",
+            "services/connector-proxy > fastify@5.8.5",
+            "services/preview-proxy > fastify@5.8.5",
+            "services/screenshotter > fastify@5.8.5",
+            "services/workspace-agent > fastify@5.8.5",
+            "services/workspace-manager > fastify@5.8.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "source-map-js",
+      "ghsa": "GHSA-68fv-2mgg-jv7q",
+      "title": "source-map-js allows event-loop denial of service through indexed source-map section offsets",
+      "patchedVersions": ">=1.2.2",
+      "findings": [
+        {
+          "version": "1.2.1",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > postcss@8.5.14 > source-map-js@1.2.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > postcss@8.5.14 > source-map-js@1.2.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > postcss@8.5.14 > source-map-js@1.2.1",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > postcss@8.5.14 > source-map-js@1.2.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass@1.99.0 > source-map-js@1.2.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            "apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            "apps/admin > vite@5.4.19 > postcss@8.5.14 > source-map-js@1.2.1",
+            "apps/admin > vite@5.4.19 > sass@1.99.0 > source-map-js@1.2.1",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-all-unknown@1.99.0 > sass@1.99.0 > source-map-js@1.2.1",
+            "apps/admin > vite@5.4.19 > sass-embedded@1.99.0 > sass-embedded-unknown-all@1.99.0 > sass@1.99.0 > source-map-js@1.2.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "compression",
+      "ghsa": "GHSA-vc2v-76pw-4v95",
+      "title": "compression vulnerable to Denial of Service via memory leak on premature response close",
+      "patchedVersions": ">=1.8.2",
+      "findings": [
+        {
+          "version": "1.8.1",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > @react-router/serve@7.18.0 > compression@1.8.1",
+            ". > @react-router/serve@7.18.0 > compression@1.8.1",
+            ". > compression@1.8.1"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "sharp",
+      "ghsa": "GHSA-wq5f-xc86-pv6w",
+      "title": "sharp : Vulnerability in librsvg dependency CVE-2026-96889",
+      "patchedVersions": ">=0.35.5",
+      "findings": [
+        {
+          "version": "0.34.5",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > wrangler@4.90.0 > miniflare@4.20260507.1 > sharp@0.34.5"
+          ]
+        }
+      ]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "ghsa": "GHSA-6qxp-vccf-f47h",
+      "title": "MCP TypeScript SDK: OAuth client could send credentials to an authorization server chosen by the MCP server",
+      "patchedVersions": ">=1.31.0",
+      "findings": [
+        {
+          "version": "1.29.0",
+          "paths": [". > @modelcontextprotocol/sdk@1.29.0"]
+        }
+      ]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "ghsa": "GHSA-22jm-h49p-29qw",
+      "title": "MCP TypeScript SDK: Experimental tasks were not tied to the session that created them",
+      "patchedVersions": ">=1.32.0",
+      "findings": [
+        {
+          "version": "1.29.0",
+          "paths": [". > @modelcontextprotocol/sdk@1.29.0"]
+        }
+      ]
+    },
+    {
+      "package": "@modelcontextprotocol/sdk",
+      "ghsa": "GHSA-46jr-4wx8-v453",
+      "title": "MCP TypeScript SDK: One HTTP request within the default size limit could exhaust server memory during validation",
+      "patchedVersions": ">=1.32.0",
+      "findings": [
+        {
+          "version": "1.29.0",
+          "paths": [". > @modelcontextprotocol/sdk@1.29.0"]
+        }
+      ]
+    },
+    {
+      "package": "vite",
+      "ghsa": "GHSA-587h-7wmj-h5pm",
+      "title": "launch-editor: `fs.existsSync()` existence check can be bypassed on Windows",
+      "patchedVersions": ">=6.4.4",
+      "findings": [
+        {
+          "version": "5.4.21",
+          "paths": [
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite@5.4.21",
+            ". > @react-router/fs-routes@7.18.0 > @react-router/dev@7.18.0 > vite-node@3.2.4 > vite@5.4.21",
+            ". > vite-plugin-node-polyfills@0.22.0 > vite@5.4.21"
+          ]
+        },
+        {
+          "version": "5.4.19",
+          "paths": ["apps/admin > @vitejs/plugin-react@4.7.0 > vite@5.4.19", "apps/admin > vite@5.4.19"]
+        }
+      ]
+    }
+  ]
+}

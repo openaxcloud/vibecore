@@ -1,5 +1,5 @@
-import type { APIRequestContext, Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import type { APIRequestContext, Page } from '@playwright/test';
 import JSZip from 'jszip';
 import { requireDatabaseSetup } from './helpers/ide-db-setup';
 import { expect, test } from './helpers/ide-failure-diagnostics';
@@ -32,6 +32,7 @@ const CHEMIN_PROFOND = 'src/components/very/deep/directory/structure/ProductCard
 
 async function preparerUnProjet(request: APIRequestContext, options: { fil: boolean; long?: boolean }) {
   const suffixe = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   let localAuth: { token: string; organization: { id: string } } | undefined;
 
   if (process.env.UX_QA_AUTH_FILE) {
@@ -42,6 +43,7 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
     const index = Array.from(test.info().title).reduce((sum, character) => sum + character.charCodeAt(0), 0);
     const fixture = pool[index % pool.length];
     const token = fixture.cookies.find((cookie: { name: string }) => cookie.name === 'vc_session').value;
+
     const existing = await request.get(`${apiBaseUrl}/projects/${fixture.projectId}`, {
       headers: { authorization: `Bearer ${token}` },
     });
@@ -125,6 +127,7 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
           },
         );
         expect(transcript.ok(), `Transcript setup: HTTP ${transcript.status()}`).toBe(true);
+
         const ideState = await request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
           headers: entetes,
           data: { state: { chat: { metadata: { aiConversationId: conversationId } } } },
@@ -1063,8 +1066,10 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
       // Le composeur finit de s'armer après son affichage : un premier appui peut tomber trop tôt.
       for (let essai = 0; essai < 3 && !(await menu.isVisible().catch(() => false)); essai += 1) {
-        // The shell can replace this button between geometry measurement and touch.
-        // Resolve the actionable target for the touch itself; never fall back to (0, 0).
+        /*
+         * The shell can replace this button between geometry measurement and touch.
+         * Resolve the actionable target for the touch itself; never fall back to (0, 0).
+         */
         await declencheur.tap();
         await page.waitForTimeout(700);
       }
@@ -1683,7 +1688,35 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     await expect(croix, 'la croix qui referme les journaux').toBeVisible();
 
+    // Visibility includes the incoming slide. Measure the settled panel, as tap() does.
+    await expect(page.locator('.bolt-project-webview-tool').locator('..')).toHaveCSS('transform', 'none');
+
     const boiteCroix = await croix.boundingBox();
+
+    if (boiteCroix && boiteCroix.x + boiteCroix.width > 390) {
+      const ancestors = await croix.evaluate((element) => {
+        const observations = [];
+
+        for (let node: Element | null = element; node; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          observations.push({
+            className: node.className,
+            x: rect.x,
+            width: rect.width,
+            transform: style.transform,
+            transition: style.transition,
+          });
+        }
+
+        return observations;
+      });
+      await test.info().attach('logs-overflow-geometry', {
+        contentType: 'application/json',
+        body: JSON.stringify({ measured: boiteCroix, ancestors }, null, 2),
+      });
+      await page.screenshot({ path: test.info().outputPath('logs-overflow.png') });
+    }
 
     expect(boiteCroix!.width, 'cible tactile').toBeGreaterThanOrEqual(44);
     expect(boiteCroix!.x + boiteCroix!.width).toBeLessThanOrEqual(390);
@@ -1879,6 +1912,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await page.evaluate(() => (window as any).__sr.at(-1)._emettre('end'));
     await expect(micro).toHaveAttribute('aria-pressed', 'false');
     await expect(champ).not.toHaveAttribute('placeholder', /Listening/);
+
     // The existing CSS transition outlives the aria state change; observe its visual result.
     await expect(micro).not.toHaveCSS('color', couleurEcoute);
 

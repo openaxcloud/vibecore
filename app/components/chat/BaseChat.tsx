@@ -3759,6 +3759,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
+    const editorDocuments = useStore(workbenchStore.documents);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
     const DEFAULT_RIGHT_PANEL_WIDTH = 280;
@@ -4478,10 +4479,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () =>
         Object.fromEntries(
           Object.entries(projectFiles).flatMap(([filePath, file]) =>
-            file?.type === 'file' && !file.isBinary ? [[filePath, file.content]] : [],
+            file?.type === 'file' && !file.isBinary
+              ? [[filePath, editorDocuments[filePath]?.value ?? file.content]]
+              : [],
           ),
         ),
-      [projectFiles],
+      [projectFiles, editorDocuments],
     );
 
     const backendLockedItems = useMemo(
@@ -8403,7 +8406,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const selectPaneTab = useCallback(
       (paneId: string, tabId: string, panel: IdeWorkspacePanel) => {
-        const selectedTab = findLeaf(paneTree, paneId)?.tabs.find((tab) => tab.id === tabId);
+        const floatingPane = floatingPanesRef.current.find((floating) => floating.pane.id === paneId);
+        const selectedTab = (floatingPane?.pane ?? findLeaf(paneTree, paneId))?.tabs.find((tab) => tab.id === tabId);
+
+        if (floatingPane) {
+          setFloatingPanes((panes) =>
+            panes.map((floating) =>
+              floating.pane.id === paneId ? { ...floating, pane: { ...floating.pane, activeTabId: tabId } } : floating,
+            ),
+          );
+        }
+
         setPaneTree((currentTree) => updateLeaf(currentTree, paneId, (leaf) => ({ ...leaf, activeTabId: tabId })));
         setActivePaneId(paneId);
         setActiveWorkspacePanel(panel);
@@ -8745,7 +8758,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
-      (panel: IdeWorkspacePanel) => {
+      (panel: IdeWorkspacePanel, filePath?: string) => {
+        const paneDocument = filePath ? editorDocuments[filePath] : currentDocument;
+
+        const savePaneDocument = () => {
+          if (paneDocument) {
+            saveProjectEditorFile(paneDocument.filePath);
+          }
+        };
+
         if (panel === 'editor') {
           return (
             <div
@@ -8753,13 +8774,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
-                fileLabel={currentDocument?.filePath?.replace(WORK_DIR, '') || t('baseChatAst.files.noneSelected')}
-                hasDocument={Boolean(currentDocument)}
+                fileLabel={paneDocument?.filePath?.replace(WORK_DIR, '') || t('baseChatAst.files.noneSelected')}
+                hasDocument={Boolean(paneDocument)}
                 minimapEnabled={editorMinimapEnabled}
                 monacoActive={editorKindForLayout(layout) === 'monaco'}
                 onToggleMinimap={() => setEditorMinimapEnabled((enabled) => !enabled)}
                 onFormat={() => {
-                  workbenchStore.formatCurrentDocument().catch((error) => {
+                  workbenchStore.formatCurrentDocument(paneDocument?.filePath).catch((error) => {
                     console.error('Project file format failed', error);
                     toast.error(t('baseChatAst.editor.formatFailed'));
                   });
@@ -8768,21 +8789,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 onFindReferences={() => runProjectEditorCommand('findReferences')}
                 onRenameSymbol={() => runProjectEditorCommand('renameSymbol')}
                 onRefactor={() => runProjectEditorCommand('refactor')}
-                onSave={onProjectEditorSave}
+                onSave={savePaneDocument}
               />
-              {currentDocument && !currentDocument.isBinary ? (
+              {paneDocument && !paneDocument.isBinary ? (
                 <EditorAdapter
                   className="bolt-project-editor-adapter"
-                  value={currentDocument.value}
-                  filePath={currentDocument.filePath}
+                  value={paneDocument.value}
+                  filePath={paneDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
                   minimapEnabled={editorMinimapEnabled}
                   projectFiles={editorProjectFiles}
-                  onSave={onProjectEditorSave}
+                  onSave={savePaneDocument}
                   onChange={(update) => {
-                    workbenchStore.setCurrentDocumentContent(update.value);
+                    workbenchStore.setDocumentContent(paneDocument.filePath, update.value);
 
-                    const filePath = currentDocument.filePath;
+                    const filePath = paneDocument.filePath;
                     workbenchStore.scheduleFileAutosave(filePath, update.value);
 
                     let line = 1;
@@ -8813,8 +8834,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               )}
               {/* File History — bottom-right toggle + standalone panel (independent of Git) */}
-              {currentDocument && !currentDocument.isBinary && (
-                <EditorHistoryOverlay filePath={currentDocument.filePath} content={currentDocument.value} />
+              {paneDocument && !paneDocument.isBinary && (
+                <EditorHistoryOverlay filePath={paneDocument.filePath} content={paneDocument.value} />
               )}
             </div>
           );
@@ -8919,11 +8940,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [
         currentDocument,
+        editorDocuments,
         editorMinimapEnabled,
         editorProjectFiles,
         initialIdePanels,
         layout,
-        onProjectEditorSave,
+        saveProjectEditorFile,
         openIdeTool,
         openProjectFile,
         previewDevice,
@@ -8968,7 +8990,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             data-pane-id={leaf.id}
             data-active={activePaneId === leaf.id}
             data-drop-target={paneDropTarget === leaf.id ? 'true' : undefined}
-            onMouseDown={() => setActivePaneId(leaf.id)}
+            onMouseDown={() => {
+              setActivePaneId(leaf.id);
+
+              if (
+                activeTab?.panel === 'editor' &&
+                activeTab.filePath &&
+                workbenchStore.selectedFile.get() !== activeTab.filePath
+              ) {
+                workbenchStore.setSelectedFile(activeTab.filePath);
+              }
+            }}
+            onFocusCapture={() => {
+              setActivePaneId(leaf.id);
+
+              if (
+                activeTab?.panel === 'editor' &&
+                activeTab.filePath &&
+                workbenchStore.selectedFile.get() !== activeTab.filePath
+              ) {
+                workbenchStore.setSelectedFile(activeTab.filePath);
+              }
+            }}
             onDragEnter={activatePaneDrop}
             onDragOver={activatePaneDrop}
             onDragLeave={(event) => {
@@ -9097,7 +9140,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     unsavedChanges: unsavedFiles instanceof Set ? unsavedFiles.size : 0,
                   })}
                 >
-                  {renderPaneContent(activeTab.panel)}
+                  {renderPaneContent(activeTab.panel, activeTab.filePath)}
                 </PanelErrorBoundary>
               ) : (
                 <ProjectWelcomeState

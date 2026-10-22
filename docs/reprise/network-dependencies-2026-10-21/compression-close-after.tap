@@ -1,0 +1,49 @@
+TAP version 13
+{"encoding":"gzip","observed":{"destroyed":true,"nativeHandleReleased":true}}
+# Subtest: real gzip stream releases native handle on premature HTTP close
+ok 1 - real gzip stream releases native handle on premature HTTP close
+  ---
+  duration_ms: 34.247532
+  type: 'test'
+  ...
+# Subtest: real gzip response completes and decompresses unchanged
+ok 2 - real gzip response completes and decompresses unchanged
+  ---
+  duration_ms: 7.728852
+  type: 'test'
+  ...
+{"encoding":"deflate","observed":{"destroyed":true,"nativeHandleReleased":true}}
+# Subtest: real deflate stream releases native handle on premature HTTP close
+ok 3 - real deflate stream releases native handle on premature HTTP close
+  ---
+  duration_ms: 6.646883
+  type: 'test'
+  ...
+# Subtest: real deflate response completes and decompresses unchanged
+ok 4 - real deflate response completes and decompresses unchanged
+  ---
+  duration_ms: 2.92583
+  type: 'test'
+  ...
+{"encoding":"br","observed":{"destroyed":true,"nativeHandleReleased":true}}
+# Subtest: real br stream releases native handle on premature HTTP close
+ok 5 - real br stream releases native handle on premature HTTP close
+  ---
+  duration_ms: 3.847103
+  type: 'test'
+  ...
+# Subtest: real br response completes and decompresses unchanged
+ok 6 - real br response completes and decompresses unchanged
+  ---
+  duration_ms: 3.335432
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 68.271777
