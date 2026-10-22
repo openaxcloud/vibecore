@@ -33,3 +33,9 @@ Le build local `4f8e8b334` conserve la palette et sa recherche aux deux largeurs
 ### Validation locale du lot desktop — 22 octobre
 
 Build `c382137ad72eeb983b40493e40bc296cd85e61c1`, arbre `f26a295f50a7ddb890f8f5800db457d563a70630` : cinq scénarios ciblés et deux scénarios tactiles passent directement, zéro retry et zéro omission. API et données synthétiques locales, interface compilée ; aucune certification production ni des actions métier non exercées. Voir [recette et limites](desktop-panels-2026-10-22/README.md). Les échecs antérieurs sont conservés.
+
+### Revue : ouverture répétée au clavier — 22 octobre
+
+Contre-épreuve à 1440 et 1024 px : déclencheur focalisé, Ctrl+Shift+P, saisie, Ctrl+Shift+P répété, Échap. La palette se ferme mais le focus reste sur body au lieu du déclencheur. Le symptôme est reproduit sur le baseline main187 et sur le build c382137ad : défaut préexistant, pas nouvelle régression démontrée. À 1024 px, tenter de cliquer le déclencheur sous le fond modal était une erreur de recette conservée séparément ; aucun clic forcé.
+
+Correctif limité à openCommandPalette : conserver la cible de retour tant que la palette est ouverte. Six nouveaux cas couvrent répétition clavier, pointeur/cycle modal compact et navigation Database puis Retour avec palette ouverte. Les deux anciens tests restent inchangés. Validation compilée de cette correction encore en attente.

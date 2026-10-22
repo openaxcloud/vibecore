@@ -6379,13 +6379,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const openCommandPalette = useCallback(
       (mode: 'all' | 'tools' | 'files' | 'spotlight' = 'all') => {
-        commandPaletteReturnFocusRef.current = document.activeElement as HTMLElement | null;
+        if (!commandPaletteOpen) {
+          commandPaletteReturnFocusRef.current = document.activeElement as HTMLElement | null;
+        }
+
         setCommandPaletteMode(mode);
         setCommandPaletteQuery('');
         setCommandPaletteIndex(0);
         setCommandPaletteOpen(true);
       },
       [
+        commandPaletteOpen,
         commandPaletteReturnFocusRef,
         setCommandPaletteMode,
         setCommandPaletteQuery,

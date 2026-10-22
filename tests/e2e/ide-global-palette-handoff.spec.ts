@@ -122,3 +122,121 @@ for (const width of [1440, 1024]) {
     });
   });
 }
+
+async function prepareSettledPalette(page: Page, width: number) {
+  const auth = await authenticate(page);
+  const projectId = await seedProject(page, auth, 'dark');
+  const headers = { authorization: `Bearer ${auth.token}` };
+
+  const created = await page.request.post(`${apiBaseUrl()}/projects/${projectId}/ai/conversations`, {
+    headers,
+    data: { title: 'Synthetic palette focus audit' },
+  });
+  expect(created.ok()).toBe(true);
+
+  const { conversation } = await created.json();
+
+  const saved = await page.request.put(
+    `${apiBaseUrl()}/projects/${projectId}/ai/conversations/${conversation.id}/transcript`,
+    {
+      headers,
+      data: { messages: [{ clientId: 'palette-focus-user', role: 'user', content: 'Synthetic palette focus audit' }] },
+    },
+  );
+  expect(saved.ok()).toBe(true);
+
+  const state = await page.request.put(`${apiBaseUrl()}/projects/${projectId}/ide-state`, {
+    headers,
+    data: { state: { chat: { metadata: { aiConversationId: conversation.id } } } },
+  });
+  expect(state.ok()).toBe(true);
+  await page.context().addCookies([{ name: 'vibecore-lang', value: 'en', url: appBaseUrl() }]);
+  await page.goto(`/projects/${projectId}/ide?panel=agent&lang=en`);
+  await expect(
+    page.locator('.bolt-user-message-bubble').filter({ hasText: 'Synthetic palette focus audit' }).first(),
+  ).toBeVisible();
+
+  return width >= 1200 ? page.getByTestId('ide-dock-all-tools') : page.getByTestId('mobile-header-title-search');
+}
+
+for (const width of [1440, 1024]) {
+  test.describe(`global palette repeated opening ${width}`, () => {
+    test.use({ viewport: { width, height: 900 }, isMobile: false, hasTouch: false });
+    test('repeated keyboard opening preserves the original return focus', async ({ page }, info) => {
+      test.setTimeout(90_000);
+
+      const trigger = await prepareSettledPalette(page, width);
+      const search = page.getByTestId('project-command-palette-search');
+      await trigger.focus();
+      await expect(trigger).toBeFocused();
+      await page.keyboard.press('Control+Shift+P');
+      await expect(search).toBeFocused();
+      await search.fill('Database');
+      await page.keyboard.press('Control+Shift+P');
+      await expect(search).toBeVisible();
+      await page.screenshot({ path: info.outputPath('repeated-keyboard-open.png') });
+      await page.keyboard.press('Escape');
+      await expect(search).toBeHidden();
+      await expect(trigger).toBeFocused();
+      await page.screenshot({ path: info.outputPath('repeated-keyboard-closed.png') });
+    });
+    test(
+      width >= 1200
+        ? 'repeated pointer opening restores focus'
+        : 'compact backdrop dismissal allows pointer reopening and focus return',
+      async ({ page }, info) => {
+        test.setTimeout(90_000);
+
+        const trigger = await prepareSettledPalette(page, width);
+        const search = page.getByTestId('project-command-palette-search');
+        await trigger.click();
+        await expect(search).toBeVisible();
+        await search.fill('Database');
+
+        if (width < 1200) {
+          // The compact palette is modal: close its backdrop before clicking the covered trigger.
+          await page.getByTestId('command-palette-backdrop').click({ position: { x: 8, y: 8 } });
+          await expect(search).toBeHidden();
+        }
+
+        await trigger.click();
+        await expect(search).toBeVisible();
+        await page.keyboard.press('Escape');
+        await expect(search).toBeHidden();
+        await expect(trigger).toBeFocused();
+        await page.screenshot({ path: info.outputPath('pointer-reopened-closed.png') });
+      },
+    );
+    test('Back navigation while the reopened palette is visible preserves search and return focus', async ({
+      page,
+    }, info) => {
+      test.setTimeout(90_000);
+
+      const trigger = await prepareSettledPalette(page, width);
+      const search = page.getByTestId('project-command-palette-search');
+      const previewUrl = new URL(page.url());
+      previewUrl.searchParams.set('panel', 'preview');
+      await page.goto(previewUrl.toString());
+      await trigger.focus();
+      await page.keyboard.press('Control+Shift+P');
+      await expect(search).toBeVisible();
+      await search.fill('Database');
+      await page.keyboard.press('Enter');
+      await expect(search).toBeHidden();
+      await expect(page).toHaveURL(/panel=database/);
+      await expect(page.getByRole('heading', { name: 'All databases', exact: true })).toBeVisible();
+      await trigger.focus();
+      await page.keyboard.press('Control+Shift+P');
+      await expect(search).toBeFocused();
+      await search.fill('Logs');
+      await page.goBack({ waitUntil: 'domcontentloaded' });
+      await expect(page).toHaveURL(/panel=preview/);
+      await expect(search).toBeVisible();
+      await expect(search).toHaveValue('Logs');
+      await page.keyboard.press('Escape');
+      await expect(search).toBeHidden();
+      await expect(trigger).toBeFocused();
+      await page.screenshot({ path: info.outputPath('database-fresh-focus-cycle.png') });
+    });
+  });
+}
