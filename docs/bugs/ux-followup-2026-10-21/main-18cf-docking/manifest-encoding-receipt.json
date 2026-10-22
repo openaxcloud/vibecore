@@ -1,0 +1,36 @@
+{
+  "reason": "Gitleaks variable-name heuristic on path-to-digest JSON map",
+  "gitleaksVersion": "8.21.2",
+  "initialDetectionCount": 752,
+  "allDetectionsOnPathDigestLines": true,
+  "files": [
+    {
+      "path": "compiled.json",
+      "entries": 2306,
+      "previousEncodingSha256": "bc4752bde0760ebb06b728be9567fb1887e65a4299ed018659fe97f3a466339f",
+      "newEncodingSha256": "2c5ff9f6f0c55d8cfbcab176a75f7985ebf2bb37457b840bfdaed4d647eec190",
+      "allPathDigestPairsPreserved": true
+    },
+    {
+      "path": "final-4ec/compiled.json",
+      "entries": 2306,
+      "previousEncodingSha256": "2ddf0a8afbd8f82e285a7b834ca959fb12bcb033940ef63a3a60d8c76c33589f",
+      "newEncodingSha256": "ead53957667dfe012721ee9950518f82a98e21750e51ec3af677b34476d764ba",
+      "allPathDigestPairsPreserved": true
+    },
+    {
+      "path": "final-4ec/sources.json",
+      "entries": 9229,
+      "previousEncodingSha256": "2801996df1f654bae574215dd7d5135ca125ecdc5b2439a758b920af8b6007bf",
+      "newEncodingSha256": "b605ffb5454e7e63c6cc251638a55045447f1b7589990d444fc2b765fd8f305e",
+      "allPathDigestPairsPreserved": true
+    },
+    {
+      "path": "sources.json",
+      "entries": 9229,
+      "previousEncodingSha256": "6072824d8cd758f90d27def096e7010e360675ab9c7007bf7e30cd3dd9b4224b",
+      "newEncodingSha256": "84fc8c7f8a4146cfcfba7a49f79fa110762df9a52e420f2ffed31357ba3aa255",
+      "allPathDigestPairsPreserved": true
+    }
+  ]
+}
