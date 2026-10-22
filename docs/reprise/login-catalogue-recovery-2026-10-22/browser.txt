@@ -1,0 +1,21 @@
+
+Running 12 tests using 1 worker
+
+(node:4979) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4979) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue normal (en) preserves returnTo and hydration (3.6s)
+  ✓   2 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue normal (fr) preserves returnTo and hydration (2.0s)
+  ✓   3 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue slow (en) preserves returnTo and hydration (2.2s)
+  ✓   4 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue slow (fr) preserves returnTo and hydration (2.5s)
+  ✓   5 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue pending (en) preserves returnTo and hydration (13.1s)
+  ✓   6 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue pending (fr) preserves returnTo and hydration (11.6s)
+  ✓   7 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue 503 (en) preserves returnTo and hydration (1.7s)
+  ✓   8 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue 503 (fr) preserves returnTo and hydration (2.3s)
+  ✓   9 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue json (en) preserves returnTo and hydration (1.7s)
+  ✓  10 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue json (fr) preserves returnTo and hydration (1.6s)
+  ✓  11 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue shape (en) preserves returnTo and hydration (1.6s)
+  ✓  12 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue shape (fr) preserves returnTo and hydration (1.5s)
+
+  12 passed (47.7s)

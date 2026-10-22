@@ -1,0 +1,12 @@
+
+ RUN  v3.2.6 /workspace/vibecore-login-catalogue
+
+ ✓ app/lib/i18n/catalogues-client.spec.ts (11 tests) 365ms
+ ✓ scripts/i18n/source-scanner.spec.mjs (14 tests) 146ms
+ ✓ app/lib/i18n/startup-catalogues.spec.ts (1 test) 128ms
+ ✓ app/lib/i18n/surfaces.spec.ts (8 tests) 65ms
+
+ Test Files  4 passed (4)
+      Tests  34 passed (34)
+   Start at  08:04:26
+   Duration  4.10s (transform 1.38s, setup 116ms, collect 1.84s, tests 704ms, environment 518ms, prepare 368ms)

@@ -2,6 +2,7 @@
 import { discardInitialProjectArchiveExcept, initialArchiveProject } from './lib/ide/initial-project-archive';
 import { useStore } from '@nanostores/react';
 import EcodeBootMark from './components/brand/EcodeBootMark';
+import { StartupCatalogueRecovery } from './components/StartupCatalogueRecovery';
 import type { LinksFunction, MetaFunction } from 'react-router';
 import {
   data,
@@ -61,6 +62,7 @@ import { DEFAULT_OG_IMAGE } from './utils/social-meta';
 
 import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
 import globalStyles from './styles/index.scss?url';
+import startupRecoveryStyles from './styles/startup-recovery.css?url';
 import { ClientOnly } from 'remix-utils/client-only';
 
 import 'virtual:uno.css';
@@ -174,6 +176,7 @@ export const links: LinksFunction = () => [
   { rel: 'stylesheet', href: reactToastifyStyles },
   { rel: 'stylesheet', href: tailwindReset },
   { rel: 'stylesheet', href: globalStyles },
+  { rel: 'stylesheet', href: startupRecoveryStyles },
   { rel: 'stylesheet', href: xtermStyles },
   {
     rel: 'preconnect',
@@ -751,6 +754,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <I18nextProvider i18n={i18n}>
+      <StartupCatalogueRecovery />
       {serverRendersRoute ? (
         <>
           <ClientOnly fallback={<AppBootFallback ide={false} overlay />}>{() => null}</ClientOnly>

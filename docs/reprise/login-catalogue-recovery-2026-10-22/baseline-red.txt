@@ -1,0 +1,41 @@
+
+Running 1 test using 1 worker
+
+(node:2774) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2774) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue 503 (en) preserves returnTo and hydration (16.9s)
+
+
+  1) tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue 503 (en) preserves returnTo and hydration
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('[data-ecode-startup-recovery]')
+    Expected: visible
+    Timeout: 15000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 15000ms[22m
+    [2m  - waiting for locator('[data-ecode-startup-recovery]')[22m
+
+
+      74 |           release();
+      75 |         } else if (fault !== 'normal') {
+    > 76 |           await expect(recovery).toBeVisible({ timeout: 15_000 });
+         |                                  ^
+      77 |           await expect(recovery).toContainText(
+      78 |             language === 'fr' ? 'Le chargement de cette page a échoué' : 'This page could not finish loading',
+      79 |           );
+        at /workspace/vibecore-login-catalogue/tests/e2e/login-catalogue-recovery.spec.ts:76:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../vibecore-747-handoff/login-catalogue-fix/baseline-artifacts/login-catalogue-recovery-l-c01ba-rves-returnTo-and-hydration/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../vibecore-747-handoff/login-catalogue-fix/baseline-artifacts/login-catalogue-recovery-l-c01ba-rves-returnTo-and-hydration/error-context.md
+
+  1 failed
+    tests/e2e/login-catalogue-recovery.spec.ts:9:5 › login catalogue 503 (en) preserves returnTo and hydration

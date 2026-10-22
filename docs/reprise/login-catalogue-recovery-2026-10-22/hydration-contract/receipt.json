@@ -1,0 +1,54 @@
+{
+  "parent_sha": "5ee2039471f48c97aeef0e067fec324711bbb3a5",
+  "scope": "two test files only; product sources unchanged",
+  "raw_logs": {
+    "root-hydration-5ee20394-red.log": {
+      "path": "/workspace/vibecore-747-handoff/login-catalogue-fix/root-hydration-5ee20394-red.log",
+      "sha256": "cd954d439a072cf0b47adc35a5466aa406f555326db2d9226bc96e06c9150b85"
+    },
+    "hydration-contract-targeted.log": {
+      "path": "/workspace/vibecore-747-handoff/login-catalogue-fix/hydration-contract-targeted.log",
+      "sha256": "e66029887e25d35e2a645375b18f5267754d58ddc84c8a03f15a5b0bbdaef1f9"
+    },
+    "lint-hydration-contract.log": {
+      "path": "/workspace/vibecore-747-handoff/login-catalogue-fix/lint-hydration-contract.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "unit-full-hydration-contract.log": {
+      "path": "/workspace/vibecore-747-handoff/login-catalogue-fix/unit-full-hydration-contract.log",
+      "sha256": "ad992ca9b1a72d414dc628f8ab3891578ecc5897b95c9ea51fae91251c0665d5"
+    }
+  },
+  "full_local": {
+    "command": "pnpm run test --maxWorkers=2",
+    "exit_code": 1,
+    "files_passed": 1291,
+    "files_failed": 5,
+    "files_skipped": 2,
+    "tests_passed": 9940,
+    "tests_failed": 8,
+    "tests_skipped": 7
+  },
+  "targeted": {
+    "passed": 20,
+    "failed": 0
+  },
+  "resolved_dependencies": {
+    "shell-quote": {
+      "installed": "1.8.4",
+      "lock": "1.11.0"
+    },
+    "compression": {
+      "installed": "1.8.1",
+      "lock": "1.8.2"
+    },
+    "tinypool": {
+      "installed": "1.1.1",
+      "lock": "2.1.2"
+    },
+    "ws": {
+      "installed": "8.20.0",
+      "lock": "8.22.0"
+    }
+  }
+}

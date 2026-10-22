@@ -6,6 +6,10 @@
 import type { TranslationBundle } from '~/lib/i18n/dictionary';
 
 export const es: TranslationBundle = {
+  'root.startupFailureTitle': 'No se pudo terminar de cargar esta página',
+  'root.startupFailureDetail': 'Algunos recursos no llegaron. Comprueba tu conexión e inténtalo de nuevo.',
+  'root.startupRetry': 'Reintentar',
+
   // Patch review panel
   'patchReview.title': 'Archivos modificados',
   'patchReview.filesCount': '{count} archivos',

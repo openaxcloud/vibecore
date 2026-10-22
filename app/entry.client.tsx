@@ -7,6 +7,7 @@ import {
   chargerLesCataloguesDuDocument,
   prechargerLeReste,
 } from './lib/i18n/catalogues-client';
+import { startCatalogueHydration } from './lib/i18n/startup-catalogues';
 import { estCheminPublic } from './lib/i18n/surfaces';
 
 /*
@@ -28,9 +29,9 @@ function hydrater() {
  * L'hydratation l'ATTEND — le serveur a rendu les libellés traduits, et un
  * client qui hydraterait sans eux les remplacerait par « Unavailable ».
  *
- * Si le chargement échoue, on hydrate quand même : une page dégradée mais
- * interactive vaut mieux qu'une page morte. L'erreur est consignée, pas
- * avalée.
+ * En cas d'échec, garder les libellés SSR et proposer une reprise explicite.
+ * Hydrater sans catalogue remplaçait les libellés par « Unavailable » et
+ * déclenchait des erreurs d'hydratation. Le chargement est borné côté réseau.
  */
 /*
  * BUG-PERF-I18N-SURFACE-001 : le document ne charge que les tranches dont sa
@@ -46,10 +47,7 @@ const lang = document.documentElement.lang;
 
 cablerLeChargeurDeSecours();
 
-chargerLesCataloguesDuDocument(lang, window.location.pathname).then(demarrer, (erreur: unknown) => {
-  console.error('catalogue i18n non chargé avant hydratation', erreur);
-  demarrer();
-});
+startCatalogueHydration(() => chargerLesCataloguesDuDocument(lang, window.location.pathname), demarrer);
 
 function demarrer() {
   (globalThis as any).__vibecoreStartupMark?.('catalogues-ready');

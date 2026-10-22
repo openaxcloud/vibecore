@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('virtual:catalogues-i18n', () => ({
   URLS: {
@@ -26,6 +26,10 @@ async function moduleNeuf() {
 }
 
 describe('le chargement des tranches par le navigateur', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
   beforeEach(() => {
     vi.restoreAllMocks();
   });
@@ -78,7 +82,7 @@ describe('le chargement des tranches par le navigateur', () => {
     await Promise.all([client.chargerCatalogue('fr', 'app'), client.chargerCatalogue('fr', 'app')]);
 
     expect(appels).toHaveBeenCalledTimes(1);
-    expect(appels).toHaveBeenCalledWith('/assets/catalogue-fr-app-ddd.json');
+    expect(appels).toHaveBeenCalledWith('/assets/catalogue-fr-app-ddd.json', { signal: expect.any(AbortSignal) });
   });
 
   it('VERROU 3 — une clé de la tranche absente déclenche son chargement, au lieu de figer « Unavailable »', async () => {
@@ -101,7 +105,7 @@ describe('le chargement des tranches par le navigateur', () => {
      * pour qu'un changement se voie.
      */
     expect(instance.t('chat.send')).toBe('Unavailable');
-    expect(appels).toHaveBeenCalledWith('/assets/catalogue-fr-app-ddd.json');
+    expect(appels).toHaveBeenCalledWith('/assets/catalogue-fr-app-ddd.json', { signal: expect.any(AbortSignal) });
 
     await new Promise((resoudre) => setTimeout(resoudre, 0));
 
@@ -121,5 +125,56 @@ describe('le chargement des tranches par le navigateur', () => {
 
     expect(runtime.createI18nInstance('fr').t('chat.send')).toBe('Unavailable');
     expect(appels).not.toHaveBeenCalled();
+  });
+
+  it.each(['headers', 'body'])('borne une attente indéfinie (%s), abandonne et permet une reprise', async (stage) => {
+    vi.useFakeTimers();
+
+    const { client, runtime } = await moduleNeuf();
+    const never = new Promise<never>(() => undefined);
+
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => (stage === 'headers' ? never : Promise.resolve({ ok: true, json: () => never })));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const pending = client.chargerCatalogue('en', 'public');
+    const rejection = expect(pending).rejects.toMatchObject({ code: 'I18N_CATALOGUE_TIMEOUT', catalogue: 'en-public' });
+    await vi.advanceTimersByTimeAsync(client.CATALOGUE_REQUEST_TIMEOUT_MS);
+    await rejection;
+    expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(runtime.catalogueDisponible('en', 'public')).toBe(false);
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ 'root.loadingEcode': 'Loading E-Code' }) });
+    await client.chargerCatalogue('en', 'public');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(runtime.catalogueDisponible('en', 'public')).toBe(true);
+  });
+
+  it.each(['http', 'json', 'shape'])('refuse un catalogue %s invalide sans enregistrer sa tranche', async (failure) => {
+    const { client, runtime } = await moduleNeuf();
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: failure !== 'http',
+        status: 503,
+        json: async () => {
+          if (failure === 'json') {
+            throw new SyntaxError('invalid JSON');
+          }
+
+          return ['not a dictionary'];
+        },
+      }),
+    );
+    await expect(client.chargerCatalogue('fr', 'public')).rejects.toMatchObject(
+      failure === 'json'
+        ? { name: 'SyntaxError' }
+        : {
+            code: failure === 'http' ? 'I18N_CATALOGUE_HTTP' : 'I18N_CATALOGUE_INVALID',
+            catalogue: 'fr-public',
+            ...(failure === 'http' ? { status: 503 } : {}),
+          },
+    );
+    expect(runtime.catalogueDisponible('fr', 'public')).toBe(false);
   });
 });

@@ -1,0 +1,12 @@
+i18n source scan: files=1555, residual=27 in 6 files, allowlisted=822, mode=check
+rules: {"visible-object-copy":16,"error-message":5,"embedded-html-text":5,"embedded-html-visible-attribute":1}
+largest open residue files:
+- app/components/marketing/EcodeMarketingPages.tsx: 13
+- services/api/src/deployment-access.ts: 6
+- app/components/StartupCatalogueRecovery.tsx: 4
+- app/lib/i18n/catalogues-client.ts: 2
+- app/routes/solutions.$slug.tsx: 1
+- services/api/src/app.ts: 1
+Hardcoded-copy baseline regressions:
+- app/components/StartupCatalogueRecovery.tsx: new-file-debt (baseline=0, current=4)
+- app/lib/i18n/catalogues-client.ts: new-file-debt (baseline=0, current=2)
