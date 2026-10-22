@@ -124,12 +124,15 @@ export class FilesStore {
   #deletedPaths: Set<string> = import.meta.hot?.data?.deletedPaths ?? new Set();
 
   /**
-   * Per-path write queue. Serializes concurrent saveFile() calls on the same
+   * Destination/path write queues survive adapter rebinds and navigation away/back.
+   * An unknown destination shares one conservative queue within this store.
+   * Serializes concurrent saveFile() calls on the same
    * file so a second writer reads its `oldContent` baseline only after the first
    * has committed — otherwise two concurrent saves both pass the optimistic
    * remote-content check and last-write-wins silently drops one writer's content.
    */
-  #saveQueues: Map<string, { promise: Promise<unknown>; binding: number }> = new Map();
+  #saveQueues = new Map<string | undefined, Map<string, Promise<unknown>>>();
+  #writeDestination: string | undefined;
 
   /**
    * Map of files that matches the state of the active runtime.
@@ -147,8 +150,9 @@ export class FilesStore {
     return this.#size;
   }
 
-  constructor(runtime: RuntimeAdapter) {
+  constructor(runtime: RuntimeAdapter, writeDestination?: string) {
     this.#runtime = runtime;
+    this.#writeDestination = writeDestination;
 
     // Load deleted paths from localStorage if available
     this.#loadDeletedPaths();
@@ -198,7 +202,8 @@ export class FilesStore {
     this.#init();
   }
 
-  setRuntime(runtime: RuntimeAdapter) {
+  setRuntime(runtime: RuntimeAdapter, writeDestination?: string) {
+    this.#writeDestination = writeDestination;
     this.#runtimeBinding++;
     this.#runtime = runtime;
     this.#stopWatchingFiles?.();
@@ -297,9 +302,8 @@ export class FilesStore {
     const binding = this.#runtimeBinding;
     const filesBeforeListing = this.files.get();
 
-    const savingBeforeListing = new Set(
-      [...this.#saveQueues].filter(([, save]) => save.binding === binding).map(([path]) => path),
-    );
+    const destination = this.#writeDestination;
+    const savingBeforeListing = new Set(this.#saveQueues.get(destination)?.keys());
 
     // `reparer` : rafraîchissement demandé par l'utilisateur → le runtime distant réconcilie d'abord (BUG-IDE-007).
     const nodes = await runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
@@ -373,7 +377,7 @@ export class FilesStore {
       if (
         filesBeforeListing[path] !== currentFiles[path] ||
         savingBeforeListing.has(path) ||
-        this.#saveQueues.get(path)?.binding === binding
+        this.#saveQueues.get(destination)?.has(path)
       ) {
         if (currentFiles[path]) {
           nextFiles[path] = currentFiles[path];
@@ -910,20 +914,32 @@ export class FilesStore {
      */
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
-    const queued = this.#saveQueues.get(filePath);
-    const previous = queued?.binding === binding ? queued.promise : Promise.resolve();
+    const destination = this.#writeDestination;
+
+    let queue = this.#saveQueues.get(destination);
+
+    if (!queue) {
+      queue = new Map();
+      this.#saveQueues.set(destination, queue);
+    }
+
+    const previous = queue.get(filePath) ?? Promise.resolve();
 
     const run = previous
       .catch(() => undefined)
       .then(() => this.#saveFileImpl(filePath, content, options, runtime, binding));
 
-    this.#saveQueues.set(filePath, { promise: run, binding });
+    queue.set(filePath, run);
 
     try {
       return await run;
     } finally {
-      if (this.#saveQueues.get(filePath)?.promise === run) {
-        this.#saveQueues.delete(filePath);
+      if (queue.get(filePath) === run) {
+        queue.delete(filePath);
+
+        if (queue.size === 0 && this.#saveQueues.get(destination) === queue) {
+          this.#saveQueues.delete(destination);
+        }
       }
     }
   }

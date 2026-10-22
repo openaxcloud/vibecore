@@ -1,0 +1,64 @@
+{
+  "base": "af4766e9bb09bdd45949ed778666bda051f0c1a1",
+  "targeted": {
+    "numPassedTests": 71,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "sourceFiles": [
+    {
+      "path": "app/lib/stores/files.ts",
+      "sha256": "5882c584d19447bbc7d5157ad4639eea3af937cc05755fe384329efd3749d58b"
+    },
+    {
+      "path": "app/lib/stores/files.reload-content.spec.ts",
+      "sha256": "29b4c152799869dca30dfff1bc984eb7859e1156331d8436f330e2611a910327"
+    },
+    {
+      "path": "app/lib/stores/workbench.ts",
+      "sha256": "523a8f3a30eb0b192b070a51f612697cc2307663844cceb807819ad163fe0ceb"
+    },
+    {
+      "path": "app/lib/stores/workbench.runtime-listing-save.spec.ts",
+      "sha256": "00b1c94add4516d9d0413d8f42b9280b2eba5332d09eab2e6a5c04357e5fd5ad"
+    },
+    {
+      "path": "app/lib/runtime/ProjectWorkspaceProvider.tsx",
+      "sha256": "5d7fb180f2eb3cf6ba505d261f684e7a83e3012f3e8f1f0de8a91d9075590a2c"
+    }
+  ],
+  "fullAlreadyRunningBeforeScopeReduction": {
+    "passed": 10046,
+    "skipped": 7,
+    "failed": 0,
+    "filesPassed": 1301,
+    "filesSkipped": 2,
+    "durationSeconds": 341.75,
+    "timing": "before lint-only formatting; not rerun",
+    "includesGeneratedDuplicateTests": 16
+  },
+  "logs": [
+    {
+      "name": "ux-reload-save-destination-final-targeted.json",
+      "sha256": "c49056538e818aa021c781c73c339340336a2a66c178549326e21e3ff7f95a7a"
+    },
+    {
+      "name": "ux-reload-save-destination-full.log",
+      "sha256": "7c1b155fd7e5162e9a5b7a71d0ee7df348e1fdbbc39a20e94d05f797168a94ed"
+    },
+    {
+      "name": "ux-reload-save-destination-typecheck.log",
+      "sha256": "9b1a24033ef2cd1a0f6c1cf8c0be5fc41bbe65b67925b783043382466f83512d"
+    },
+    {
+      "name": "ux-reload-save-destination-lint.log",
+      "sha256": "a4524b225b8ac03042393dcaf51c5328f446cedbe42886ff9a555bea057cd4d0"
+    }
+  ],
+  "limits": [
+    "Synthetic runtime adapters, not real persistence",
+    "No new build/browser run under reduced-scope instruction; CI must validate published head",
+    "Initial lint 20 formatting errors preserved then fixed; commit hooks required",
+    "No causality established for historical CI draft intermittence"
+  ]
+}

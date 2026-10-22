@@ -1,0 +1,90 @@
+{
+  "baselineCommit": "af4766e9bb09bdd45949ed778666bda051f0c1a1",
+  "runs": [
+    {
+      "evidence": "same-destination-red.json",
+      "sha256": "bb59150ee219cf4843f3617f0ca5a105d169369ab49771285ed47089e49bc3af",
+      "counts": {
+        "passed": 0,
+        "failed": 1,
+        "excludedByFilter": 18
+      },
+      "scope": "historical af4766e9bb09bdd45949ed778666bda051f0c1a1 baseline"
+    },
+    {
+      "evidence": "destination-queues-green.json",
+      "sha256": "a46f33006d011d0ac9c553cc101c5ecddc19baa76fbd8f1be30fecaa03555f47",
+      "counts": {
+        "passed": 33,
+        "failed": 0,
+        "excludedByFilter": 0
+      },
+      "scope": "local uncommitted destination-queue implementation; not CI"
+    },
+    {
+      "evidence": "remote-destination-green.json",
+      "sha256": "89e554b0bc84dc95e7dfdacae76dded8ab3eb391c2f12bb837d524deb15bf793",
+      "counts": {
+        "passed": 34,
+        "failed": 0,
+        "excludedByFilter": 0
+      },
+      "scope": "local uncommitted destination-queue implementation; not CI"
+    }
+  ],
+  "historical33Sources": [
+    {
+      "path": "app/lib/stores/files.ts",
+      "sha256": "c980db1f6c2e703d4471f067e78fb8ff3177e030b30a300f6fa048e970ebb2a9"
+    },
+    {
+      "path": "app/lib/stores/files.reload-content.spec.ts",
+      "sha256": "d9406f7e45132def7236172746237c7a25d0d1707b4e7f1a6b79fd5055ff632a"
+    }
+  ],
+  "fixtureDifferences": [
+    {
+      "case": "same destination, scheduler-only",
+      "runtimeMode": "test",
+      "behavior": "Two adapter objects share one synthetic disk. Original later-save-first order reproduces overwrite. Corrected case asserts later write has not started before earlier write resolves, then verifies final later payload."
+    },
+    {
+      "case": "genuinely different destination",
+      "runtimeMode": "test",
+      "behavior": "Explicit destination-B permits B to write independently while A remains pending; adapter identity alone no longer implies independence."
+    },
+    {
+      "case": "A to B to A",
+      "runtimeMode": "test",
+      "behavior": "Explicit destination-A queue remains pending across navigation to B and back; later A waits; B completes independently."
+    },
+    {
+      "case": "same remote destination",
+      "runtimeMode": "remote-kubernetes",
+      "behavior": "readFile returns shared synthetic disk. After A finishes, B detects changed baseline and rejects REMOTE_FILE_CHANGED without invoking writeFile; A disk payload remains."
+    }
+  ],
+  "completionAudit": {
+    "case": "A to B to A",
+    "pendingLeftOnSuccessfulPath": false,
+    "checks": [
+      "started promise resolves inside original write callback and is awaited",
+      "B save is awaited to success",
+      "first.resolve releases original A write",
+      "rejected expectation awaits original A rejection FILE_SAVE_SCOPE_CHANGED",
+      "laterA is awaited to successful A final result",
+      "store.dispose executes in finally"
+    ]
+  },
+  "redaction": [
+    "Raw logs and stack traces not copied",
+    "Absolute execution paths omitted",
+    "Only synthetic case descriptions and aggregate counters included"
+  ],
+  "limits": [
+    "No real runtime or persistence validation",
+    "No CI causality established",
+    "33/34 greens are historical local targeted results, not final integrated validation",
+    "No external publication performed by this subagent"
+  ]
+}

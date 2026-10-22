@@ -288,6 +288,7 @@ export class WorkbenchStore {
    */
   #projectStorageFilesInFlight = createSingleFlight<boolean>();
   #runtime: RuntimeAdapter = getRuntimeAdapter();
+  #runtimeWriteDestination: string | undefined;
   #projectStorageBinding = 0;
   #projectStorageSaveVersions = new Map<string, number>();
   #previewsStore = new PreviewsStore(this.#runtime);
@@ -579,17 +580,27 @@ export class WorkbenchStore {
     this.projectFilesPanelRequest.set({ open, requestId: Date.now() });
   }
 
-  configureRuntime(runtime: RuntimeAdapter) {
-    if (this.#runtime === runtime) {
+  configureRuntime(runtime: RuntimeAdapter, projectId?: string) {
+    /*
+     * Remote adapters are recreated during workspace attachment. Their project
+     * destination remains the same, so in-flight disk writes must keep their
+     * queue across that rebind. The local runtime is shared across projects;
+     * unknown destinations stay conservatively serialized in FilesStore.
+     */
+    const writeDestination =
+      runtime.mode === 'remote-kubernetes' && projectId ? `remote-project:${projectId}` : undefined;
+
+    if (this.#runtime === runtime && this.#runtimeWriteDestination === writeDestination) {
       return;
     }
 
     this.#projectStorageBinding++;
     this.#projectStorageSaveVersions.clear();
     this.#runtime = runtime;
+    this.#runtimeWriteDestination = writeDestination;
     this.#enregistrementsDeLAgent.clear();
     this.#previewsStore.setRuntime(runtime);
-    this.#filesStore.setRuntime(runtime);
+    this.#filesStore.setRuntime(runtime, writeDestination);
     this.#terminalStore.setRuntime(runtime);
 
     /*

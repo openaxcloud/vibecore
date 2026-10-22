@@ -10,7 +10,7 @@ id: BUG-IDE-RELOAD-DURING-SAVE-001
 
 ## 💻 Codé
 
-Correction en cours dans une branche distincte ; non intégrée à main. Ne pas confondre cette course dans un même projet avec l’isolation des lectures interprojets de #770 ou des complétions CRUD de #771.
+Correctif P1 en cours : files par destination stable et chemin, identité distante transmise par le provider, liaison runtime distincte pour invalider les lectures/publications obsolètes. La version historique limitée au binding est insuffisante lors du remplacement d’un adaptateur visant le même projet. Non intégré à main. Ne pas confondre cette course dans un même projet avec l’isolation des lectures interprojets de #770 ou des complétions CRUD de #771.
 
 ## ✅ Testé live
 
@@ -18,6 +18,9 @@ Non certifié. Une contre-épreuve unitaire déterministe reproduit un défaut :
 
 Le scénario rouge est conservé. La causalité du flaky CI, l’hydratation et les événements watcher restent à distinguer ; aucun délai ou retry augmenté.
 
-Contre-épreuve complémentaire : une sauvegarde B au même chemin attendait la promesse de A malgré le changement de liaison. La garde des listings pouvait alors prolonger cette attente. La file de sauvegarde est maintenant chaînée seulement dans la même liaison ; le nettoyage tardif de A ne supprime pas celle de B. 58 contrôles unitaires ciblés passent, sans omission, incluant lecture externe ultérieure, échec, rebind et sauvegardes sérialisées. Build et contrôles généraux en cours ; aucune preuve live ajoutée.
+Contre-épreuve complémentaire : une sauvegarde B au même chemin attendait la promesse de A malgré le changement de liaison. La garde des listings pouvait alors prolonger cette attente. Dans la version historique, la file de sauvegarde était chaînée seulement dans la même liaison ; le nettoyage tardif de A ne supprime pas celle de B. 58 contrôles unitaires ciblés passent, sans omission, incluant lecture externe ultérieure, échec, rebind et sauvegardes sérialisées. Build et contrôles généraux en cours ; aucune preuve live ajoutée.
 
-Validation locale terminée sur `9375639bc` : build et typage/lint verts, 66 tests ciblés, un parcours Chromium direct. Suite finale 10 041 succès et sept omissions existantes, après conservation des erreurs initiales et d’une intermittence de collecte Sass. Non intégré à main, aucune persistance runtime réelle certifiée. [Preuves, captures et limites](reload-during-save-2026-10-22/README.md).
+Validation historique locale terminée sur `9375639bc` : build et typage/lint verts, 66 tests ciblés, un parcours Chromium direct. Suite finale 10 041 succès et sept omissions existantes, après conservation des erreurs initiales et d’une intermittence de collecte Sass. Non intégré à main, aucune persistance runtime réelle certifiée. [Preuves, captures et limites](reload-during-save-2026-10-22/README.md).
+
+
+Contre-épreuve P1 : deux adaptateurs successifs peuvent écrire vers la même destination ; une ancienne écriture déjà envoyée peut terminer après la suivante. Le nouveau correctif conserve la file par destination à travers le rebind et A→B→A, sans empêcher B distinct d’écrire. Les 71 contrôles ciblés finaux passent sans omission, avec adaptateurs simulés. La suite déjà engagée termine avec 10 046 succès et sept omissions avant mise en forme ; aucune persistance runtime réelle ni validation live du P1 n’est revendiquée. Les reçus 937/af restent historiques et ne sont pas réécrits.
