@@ -1,0 +1,20 @@
+{
+  "sourceCommit": "edb558bc326be7075ce042beeea25685a0e8864f",
+  "images": [
+    {
+      "file": "normal-click-green.png",
+      "source": "final-navigation-complete/rpl/shots/normal-click-move-after-navigation.png",
+      "sha256": "5059762e985bbce71d76c28abd8d005e6f18bae873187cd726e8410a423cef02",
+      "visuallyInspected": true,
+      "meaning": "Un seul Webview dans le panneau de destination après application de la navigation normale."
+    },
+    {
+      "file": "interrupted-pop-green.png",
+      "source": "final-navigation-complete/rpl/shots/interrupted-pop-back.png",
+      "sha256": "09a8bd9e2a1f48bc0e829199ed78cf090f5db8ce24b22417f034d6cf93a7f0d7",
+      "visuallyInspected": true,
+      "meaning": "Webview sélectionné après annulation du premier Retour et Retour ultérieur vers la même entrée historique ; cette capture ne prouve pas seule la chronologie."
+    }
+  ],
+  "privacy": "Only inspected synthetic local UI images copied; no trace, network or raw report."
+}

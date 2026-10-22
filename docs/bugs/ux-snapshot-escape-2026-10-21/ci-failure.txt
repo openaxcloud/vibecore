@@ -1,0 +1,31 @@
+2026-10-21T15:09:44.8982275Z   1) [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+2026-10-21T15:09:44.8983041Z 
+2026-10-21T15:09:44.8983707Z     Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeHidden[2m([22m[2m)[22m failed
+2026-10-21T15:09:44.8984135Z 
+2026-10-21T15:09:44.8984491Z     Locator:  getByRole('dialog', { name: /Focus chromium fr 1792595177657/ })
+2026-10-21T15:09:44.8984963Z     Expected: hidden
+2026-10-21T15:09:44.8985306Z     Received: visible
+2026-10-21T15:09:44.8985472Z     Timeout:  5000ms
+2026-10-21T15:09:44.8985555Z 
+2026-10-21T15:09:44.8985609Z     Call log:
+2026-10-21T15:09:44.8985871Z     [2m  - Expect "toBeHidden" with timeout 5000ms[22m
+2026-10-21T15:09:44.8986206Z     [2m  - waiting for getByRole('dialog', { name: /Focus chromium fr 1792595177657/ })[22m
+2026-10-21T15:09:44.8987699Z     [2m    9 × locator resolved to <div role="dialog" tabindex="-1" id="radix-:r9:" data-state="open" aria-labelledby="radix-:ra:" aria-describedby="radix-:rb:" class="bolt-dialog-content fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-background-depth-2 rounded-lg shadow-xl border border-bolt-elements-borderColor z-[9999] w-[min(520px,calc(100vw-24px))] max-h-[calc(100dvh-24px)] overflow-hidden focus:outline-none">…</div>[22m
+2026-10-21T15:09:44.8988640Z     [2m      - unexpected value "visible"[22m
+2026-10-21T15:09:44.8988755Z 
+2026-10-21T15:09:44.8988760Z 
+2026-10-21T15:09:44.8988852Z       119 |     await expect(dialog).toBeVisible();
+2026-10-21T15:09:44.8989059Z       120 |     await page.keyboard.press('Escape');
+2026-10-21T15:09:44.8989267Z     > 121 |     await expect(dialog).toBeHidden();
+2026-10-21T15:09:44.8989441Z           |                          ^
+2026-10-21T15:09:44.8989615Z       122 |     await expect(opener).toBeFocused();
+2026-10-21T15:09:44.8989813Z       123 |     expect(restoredRequests).toEqual([]);
+2026-10-21T15:09:44.8990048Z       124 |     await expect(page.locator('#snapshot-label')).toBeEnabled();
+2026-10-21T15:09:44.8990370Z         at /home/runner/work/vibecore/vibecore/tests/e2e/snapshot-cancel-focus.spec.ts:121:26
+2026-10-21T15:09:44.8990561Z 
+2026-10-21T15:09:44.8990832Z     Error Context: test-results-tranche/snapshot-cancel-focus-snap-12e56-erves-keyboard-position-fr--chromium/error-context.md
+2026-10-21T15:09:44.8991112Z 
+2026-10-21T15:09:44.8991161Z   1 flaky
+2026-10-21T15:09:44.8991488Z     [chromium] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) 
+2026-10-21T15:09:44.8991763Z   18 skipped
+2026-10-21T15:09:44.8991882Z   165 passed (5.2m)

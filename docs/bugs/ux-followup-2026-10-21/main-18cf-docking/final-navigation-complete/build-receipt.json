@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "edb558bc326be7075ce042beeea25685a0e8864f",
+  "sourceTree": "6c843eb162b44c8b519e31f296752b3deb583c24",
+  "sourceCount": 9339,
+  "sourceManifestSha256": "778ad840769ac6e67d151668041eef81b580d275172db64a0bfd50c7b7e2a60e",
+  "sourceDifferences": [],
+  "compiledFileCount": 2306,
+  "compiledManifestSha256": "166498b50ff649b7de49e63b4e800eba3ed0164933562339e88e8ae05bc7b046",
+  "archiveSha256": "67b8bcca0e4f64d470970f1b9eeffa5d890023bf38be2abf778d929234e5a318",
+  "archiveDifferences": [],
+  "buildExitCode": 0
+}

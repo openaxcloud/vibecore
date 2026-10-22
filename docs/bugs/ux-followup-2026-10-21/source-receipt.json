@@ -1,0 +1,11 @@
+{
+  "base": "883af053f7c1b85bb472fa53c7fa87b4c8051c9b",
+  "tree": "6328177594f4ed3df64d316c54a2a9960892b777",
+  "sources": 9163,
+  "workingTreeMatchesIndex": true,
+  "manifestSha256": "b4554ae33c5c51de876250435b4525d2d89f0e50b69590b68f1cbabe0b617b59",
+  "sourcePRs": {
+    "759": "c1e6af9982986c7b177c41c88496f548e565f3ac",
+    "760": "14a28b881edfbe171c6a1228eeecd8d8d4b13bdb"
+  }
+}

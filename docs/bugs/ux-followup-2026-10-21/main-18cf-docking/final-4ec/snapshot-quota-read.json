@@ -1,0 +1,28 @@
+{
+  "requestId": "f89ee946-d763-4637-828c-f7fabafb4d25",
+  "fixture": "desktop-en",
+  "status": 429,
+  "usageReadStatus": 200,
+  "plan": "free",
+  "snapshotsLimit": 5,
+  "quotaUsage": 5,
+  "quotaKeys": [
+    "projects.count",
+    "workspaces.active",
+    "workspaces.runtimeMinutes",
+    "workspace.cpuMillicores",
+    "workspace.ramMb",
+    "storage.gb",
+    "snapshots.count",
+    "snapshots.sizeMb",
+    "ai.messages",
+    "ai.inputTokens",
+    "ai.outputTokens",
+    "ai.toolCalls",
+    "deployments.count",
+    "previews.public",
+    "team.members",
+    "terminals.concurrent",
+    "api.rateLimitPerMinute"
+  ]
+}

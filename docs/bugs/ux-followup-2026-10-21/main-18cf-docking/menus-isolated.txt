@@ -1,0 +1,29 @@
+
+Running 12 tests using 1 worker
+
+(node:30838) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30838) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:79:3 › agent menu keyboard and compact navigation (en) (3.0s)
+  ✓   2 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:151:3 › agent menu actions and theme persistence (en) (4.8s)
+  ✓   3 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:79:3 › agent menu keyboard and compact navigation (fr) (2.7s)
+  ✓   4 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:151:3 › agent menu actions and theme persistence (fr) (4.4s)
+(node:31600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31600) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:79:3 › agent menu keyboard and compact navigation (en) (3.3s)
+  ✓   6 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:151:3 › agent menu actions and theme persistence (en) (2.8s)
+  ✓   7 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:79:3 › agent menu keyboard and compact navigation (fr) (3.0s)
+  ✓   8 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:151:3 › agent menu actions and theme persistence (fr) (2.8s)
+(node:32383) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32383) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:79:3 › agent menu keyboard and compact navigation (en) (3.2s)
+  ✓  10 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:151:3 › agent menu actions and theme persistence (en) (3.2s)
+  ✓  11 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:79:3 › agent menu keyboard and compact navigation (fr) (3.4s)
+  ✓  12 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:151:3 › agent menu actions and theme persistence (fr) (2.8s)
+
+  12 passed (42.0s)

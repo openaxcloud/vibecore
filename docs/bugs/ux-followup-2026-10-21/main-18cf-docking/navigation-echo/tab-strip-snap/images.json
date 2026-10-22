@@ -1,0 +1,41 @@
+{
+  "images": [
+    {
+      "file": "before-close-click.jpeg",
+      "sha256": "537b076f43c0c21e06cd0f0fe46344de04b4027098bf05c4a43c8dfcc4a471ab",
+      "pixels": [
+        800,
+        450
+      ],
+      "meaning": "Frame avant le geste de fermeture dans le passage rouge instrumenté ; ne prouve pas à elle seule la cible des événements.",
+      "visuallyInspected": true,
+      "source": {
+        "trace": "navigation-close-events/results/rpl-local-closing-moved-ta-d4ba5-fore-a-browser-Back-request-chromium/trace.zip",
+        "resource": "resources/page@84a13c9dbe84cd0862dc701769ef108f-1792655494166.jpeg",
+        "frameTimestampMs": 7194.231,
+        "action": "call@81",
+        "performingClickTimestampMs": 7208.392,
+        "viewport": [
+          1280,
+          720
+        ],
+        "productCommit": "69592374dc7453b7cb6da2dc1ef1026e9fdf0521"
+      }
+    },
+    {
+      "file": "after-closed-tab-back.png",
+      "sha256": "418f29c7a6c2fffed100fe283e64fae122132373107e26556533cbf7f008982d",
+      "pixels": [
+        1280,
+        720
+      ],
+      "meaning": "Après fermeture effective puis Retour navigateur : Webview est de nouveau sélectionné. La capture seule ne démontre pas la fermeture intermédiaire.",
+      "visuallyInspected": true,
+      "source": {
+        "path": "final-navigation-stable/rpl/shots/closed-tab-back.png",
+        "productCommit": "d0ef212609d3af7f652cc216427ecb7a55570723"
+      }
+    }
+  ],
+  "privacy": "Images inspectées : interface et projet synthétique local uniquement. Aucun ZIP, contenu réseau, cookie ou rapport brut copié."
+}

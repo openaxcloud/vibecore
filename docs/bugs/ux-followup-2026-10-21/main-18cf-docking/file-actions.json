@@ -1,0 +1,38 @@
+[
+  {
+    "title": "opening a file in a floating pane updates its tabs and survives docking",
+    "file": "ide-floating-file-tabs.spec.ts",
+    "project": "chromium",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 12555,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "explicit provisional README stays in project A after switching to B at 390",
+    "file": "ide-mobile-file-restore.spec.ts",
+    "project": "chromium",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 13263,
+        "retry": 0
+      }
+    ]
+  },
+  {
+    "title": "explicit provisional README stays in project A after switching to B at 768",
+    "file": "ide-mobile-file-restore.spec.ts",
+    "project": "chromium",
+    "results": [
+      {
+        "status": "passed",
+        "duration": 13261,
+        "retry": 0
+      }
+    ]
+  }
+]

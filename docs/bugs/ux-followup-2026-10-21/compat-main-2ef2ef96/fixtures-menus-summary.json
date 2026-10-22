@@ -1,0 +1,156 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T17:44:51.328Z",
+    "duration": 43898.939,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "desktop",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2949
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "project": "desktop",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4577
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "project": "desktop",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3079
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "project": "desktop",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4903
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "tablet",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3133
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "project": "tablet",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3439
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "project": "tablet",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2950
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "project": "tablet",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3358
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "mobile",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3007
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (en)",
+      "project": "mobile",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3513
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "project": "mobile",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3239
+        }
+      ]
+    },
+    {
+      "title": "agent menu actions and theme persistence (fr)",
+      "project": "mobile",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3070
+        }
+      ]
+    }
+  ]
+}

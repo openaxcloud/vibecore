@@ -1,0 +1,59 @@
+{
+  "sources": [
+    {
+      "sourcePR": "759",
+      "sourceCommit": "c1e6af9982986c7b177c41c88496f548e565f3ac",
+      "path": "tests/e2e/ide-mobile-chrome.spec.ts",
+      "blob": "a2b0b9bf2452008782e97a5b556ff7e0fbbb6036",
+      "equal": true
+    },
+    {
+      "sourcePR": "759",
+      "sourceCommit": "c1e6af9982986c7b177c41c88496f548e565f3ac",
+      "path": "docs/bugs/BUG-E2E-MOBILE-MENU-NULL-TOUCH-001.md",
+      "blob": "6728c77c40264d881f78d11cb02075a451e09cac",
+      "equal": true
+    },
+    {
+      "sourcePR": "759",
+      "sourceCommit": "c1e6af9982986c7b177c41c88496f548e565f3ac",
+      "path": "docs/bugs/mobile-menu-touch-evidence.json",
+      "blob": "32128b6060e976a91e749b92fed77d203f0b0bb3",
+      "equal": true
+    },
+    {
+      "sourcePR": "760",
+      "sourceCommit": "14a28b881edfbe171c6a1228eeecd8d8d4b13bdb",
+      "path": "app/components/ui/Dialog.tsx",
+      "blob": "2a62f8fb5a7b345a363e4fdba9712b26d12cd48e",
+      "equal": true
+    },
+    {
+      "sourcePR": "760",
+      "sourceCommit": "14a28b881edfbe171c6a1228eeecd8d8d4b13bdb",
+      "path": "app/components/ui/Dialog.escape.spec.tsx",
+      "blob": "2b6a0cc56648200c3a4a2eb203b9e6264aa5d8b3",
+      "equal": true
+    },
+    {
+      "sourcePR": "760",
+      "sourceCommit": "14a28b881edfbe171c6a1228eeecd8d8d4b13bdb",
+      "path": "tests/e2e/snapshot-cancel-focus.spec.ts",
+      "blob": "9e3d9c74ba9878dfb9fd6259a34fe0652e746d5f",
+      "equal": true
+    },
+    {
+      "sourcePR": "760",
+      "sourceCommit": "14a28b881edfbe171c6a1228eeecd8d8d4b13bdb",
+      "path": "docs/bugs/BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001.md",
+      "blob": "2204787df81d42a3ae8e91b1f3cfdc30f0198356",
+      "equal": true
+    }
+  ],
+  "additionalChanges": [
+    "historical metadata headings in deployment provenance bug",
+    "465-entry inventory union",
+    "new local evidence only"
+  ],
+  "productChangesBeyondSourcePRs": false
+}

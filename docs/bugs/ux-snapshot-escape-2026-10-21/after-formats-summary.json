@@ -1,0 +1,84 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T15:31:31.182Z",
+    "duration": 56433.524000000005,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8207
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 10221
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8204
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "tablet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 9346
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 7849
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 7905
+        }
+      ]
+    }
+  ]
+}

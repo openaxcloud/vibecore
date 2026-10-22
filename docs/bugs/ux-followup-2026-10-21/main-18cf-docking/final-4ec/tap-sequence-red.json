@@ -1,0 +1,7 @@
+{
+  "scenario": "tap diagnostic seven-case sequence",
+  "repeatIndex": 0,
+  "status": "failed",
+  "detailsOpenAtVerdict": false,
+  "sha256": "c403b5c93c03ea340d28fe69dd32c273df921ab3f5b7f5f332c1ac1d5072a857"
+}

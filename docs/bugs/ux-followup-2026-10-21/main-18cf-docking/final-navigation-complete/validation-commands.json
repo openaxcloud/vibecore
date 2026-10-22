@@ -1,0 +1,22 @@
+{
+  "build": {
+    "command": "PATH=/tmp/ux763-bin:$PATH pnpm run build",
+    "pnpm": "9.14.4",
+    "exitCode": 0
+  },
+  "unit": {
+    "command": "pnpm exec vitest run app/lib/stores/workbench.project-storage-return.spec.ts app/components/ui/Dialog.escape.spec.tsx app/utils/project-ide-panel-url.spec.ts 'app/routes/projects.$projectId.ide.revalidate.spec.ts' scripts/index-a-jour.spec.mjs",
+    "passed": 49,
+    "failed": 0
+  },
+  "productCommitHooks": {
+    "commit": "edb558bc326be7075ce042beeea25685a0e8864f",
+    "typecheck": "passed",
+    "lintErrors": 0,
+    "lintWarnings": 52,
+    "gitleaksFindings": 0
+  },
+  "rplCommand": "PLAYWRIGHT_BASE_URL=http://127.0.0.1:5221 SAAS_API_URL=http://127.0.0.1:3017 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node_modules/.bin/playwright test -c .vibecore/ux-qa/rpl-local.config.ts",
+  "rplTestCopyDelta": "OUT_DIR only",
+  "scope": "local build and synthetic fixtures; not production"
+}

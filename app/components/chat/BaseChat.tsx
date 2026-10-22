@@ -282,7 +282,7 @@ import {
 } from '~/lib/persistence/projectIdeMemory';
 import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
-import { useNavigate, useNavigation, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import {
   isMobileWorkbenchPanel,
   resolveMobileWorkbenchPanel,
@@ -2622,6 +2622,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
+    const projectLocation = useLocation();
+
+    const appliedPanelNavigationId =
+      (projectLocation.state as { projectEditorMoveNavigationId?: string } | null)?.projectEditorMoveNavigationId ??
+      `location:${projectLocation.key}`;
+
     const panelNavigation = useNavigation();
     const panelNavigationRef = useRef(panelNavigation);
     panelNavigationRef.current = panelNavigation;
@@ -3759,6 +3765,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const selectedFile = useStore(workbenchStore.selectedFile);
     const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
+    const editorDocuments = useStore(workbenchStore.documents);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const theme = useStore(themeStore);
     const DEFAULT_RIGHT_PANEL_WIDTH = 280;
@@ -3798,6 +3805,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     paneTreeRef.current = paneTree;
 
     const [activePaneId, setActivePaneId] = useState(dispositionTransmise?.activePaneId ?? 'pane-main');
+    const activePaneIdRef = useRef(activePaneId);
+
+    activePaneIdRef.current = activePaneId;
+
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
     /** RPL-IDE-001.3 — panes popped out of the docked tree in this window. */
@@ -4389,8 +4400,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ? projectPanelResolution.panel
         : '';
 
+    const appliedWorkspacePanelUrlRef = useRef<{
+      projectId: typeof projectId;
+      workspaceId: typeof currentWorkspaceId;
+      windowId: string;
+      panel: IdeWorkspacePanel;
+      tabId: string;
+      targetPaneId: string;
+      navigationId: string;
+    } | null>(null);
+
     const setProjectPanelSearchParam = useCallback(
-      (panel?: string) => {
+      (panel?: string, moveNavigationId?: string) => {
         /*
          * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — re-cliquer le panneau DÉJÀ
          * ACTIF ne doit déclencher AUCUNE navigation. setSearchParams avec une
@@ -4408,10 +4429,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           typeof window !== 'undefined' &&
           isRedundantPanelNavigation(window.location, panel, panelNavigationRef.current.location)
         ) {
-          return;
+          const pendingLocation = panelNavigationRef.current.location;
+
+          if (!moveNavigationId || !pendingLocation) {
+            return false;
+          }
+
+          const pendingMoveId = pendingLocation.state?.projectEditorMoveNavigationId;
+
+          // A normal click already owns a router key even without a move marker.
+          return typeof pendingMoveId === 'string' ? pendingMoveId : `location:${pendingLocation.key}`;
         }
 
-        setSearchParams((current) => withPanelSearchParam(current, panel));
+        setSearchParams(
+          (current) => withPanelSearchParam(current, panel),
+          moveNavigationId ? { state: { projectEditorMoveNavigationId: moveNavigationId } } : undefined,
+        );
+
+        return moveNavigationId ?? true;
       },
       [setSearchParams],
     );
@@ -4478,10 +4513,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () =>
         Object.fromEntries(
           Object.entries(projectFiles).flatMap(([filePath, file]) =>
-            file?.type === 'file' && !file.isBinary ? [[filePath, file.content]] : [],
+            file?.type === 'file' && !file.isBinary
+              ? [[filePath, editorDocuments[filePath]?.value ?? file.content]]
+              : [],
           ),
         ),
-      [projectFiles],
+      [projectFiles, editorDocuments],
     );
 
     const backendLockedItems = useMemo(
@@ -6191,7 +6228,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setWorkspaceTabs((currentTabs) => (currentTabs.includes(panel) ? currentTabs : [...currentTabs, panel]));
         setActiveWorkspacePanel(panel);
 
-        const targetPaneId = options.paneId ?? activePaneId;
+        /*
+         * Pane focus is not a new URL navigation. Keep this callback stable so
+         * the URL synchronization effect does not reopen its tool on focus.
+         */
+        const targetPaneId = options.paneId ?? activePaneIdRef.current;
         setActivePaneId(targetPaneId);
 
         const openTab = (windowState: ProjectEditorWindowState) =>
@@ -6251,7 +6292,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setProjectPanelSearchParam(panel);
         }
       },
-      [activePaneId, setProjectPanelSearchParam],
+      [setProjectPanelSearchParam],
     );
 
     const openProjectFile = useCallback(
@@ -6566,8 +6607,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     useEffect(() => {
+      const receipt = appliedWorkspacePanelUrlRef.current;
+
+      /*
+       * A cancelled POP can reuse its history key on a later Back/Forward.
+       * Do not leave its receipt alive once navigation ends elsewhere.
+       */
+      if (panelNavigation.state === 'idle' && receipt?.navigationId !== appliedPanelNavigationId) {
+        appliedWorkspacePanelUrlRef.current = null;
+      }
+    }, [panelNavigation.state, appliedPanelNavigationId]);
+
+    useEffect(() => {
       if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
         return;
+      }
+
+      const appliedPanelUrl = appliedWorkspacePanelUrlRef.current;
+
+      appliedWorkspacePanelUrlRef.current = null;
+
+      if (
+        !useMobileIde &&
+        appliedPanelUrl?.navigationId === appliedPanelNavigationId &&
+        appliedPanelUrl?.projectId === projectId &&
+        appliedPanelUrl?.workspaceId === currentWorkspaceId &&
+        appliedPanelUrl?.windowId === projectEditorWindowId &&
+        appliedPanelUrl?.panel === activeProjectPanel
+      ) {
+        const destination =
+          findLeaf(paneTreeRef.current, appliedPanelUrl.targetPaneId) ??
+          findFloatingLeaf(floatingPanesRef.current, appliedPanelUrl.targetPaneId);
+
+        // Consume only the URL echo of a move that actually reached its target.
+        if (destination?.tabs.some((tab) => tab.id === appliedPanelUrl.tabId && tab.panel === activeProjectPanel)) {
+          return;
+        }
       }
 
       if (isIdeRightPanel(activeProjectPanel)) {
@@ -6604,7 +6679,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [
       activeProjectPanel,
+      appliedPanelNavigationId,
+      currentWorkspaceId,
       openWorkspacePanel,
+      projectEditorWindowId,
+      projectId,
       projectIdeMode,
       projectStateReady,
       setMobileIdePanel,
@@ -8403,7 +8482,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const selectPaneTab = useCallback(
       (paneId: string, tabId: string, panel: IdeWorkspacePanel) => {
-        const selectedTab = findLeaf(paneTree, paneId)?.tabs.find((tab) => tab.id === tabId);
+        const floatingPane = floatingPanesRef.current.find((floating) => floating.pane.id === paneId);
+        const selectedTab = (floatingPane?.pane ?? findLeaf(paneTree, paneId))?.tabs.find((tab) => tab.id === tabId);
+
+        if (floatingPane) {
+          setFloatingPanes((panes) =>
+            panes.map((floating) =>
+              floating.pane.id === paneId ? { ...floating, pane: { ...floating.pane, activeTabId: tabId } } : floating,
+            ),
+          );
+        }
+
         setPaneTree((currentTree) => updateLeaf(currentTree, paneId, (leaf) => ({ ...leaf, activeTabId: tabId })));
         setActivePaneId(paneId);
         setActiveWorkspacePanel(panel);
@@ -8686,11 +8775,44 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           );
         }
 
+        /*
+         * Moving has already applied this selection. Its URL update must not
+         * reopen the moved tab in the pane that regains menu focus.
+         */
+        const navigationId =
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+        appliedWorkspacePanelUrlRef.current = {
+          navigationId,
+          projectId,
+          workspaceId: currentWorkspaceId,
+          windowId: projectEditorWindowId,
+          panel: sourceTab.panel,
+          tabId: sourceTab.id,
+          targetPaneId,
+        };
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
-        setProjectPanelSearchParam(sourceTab.panel);
+
+        const requestedNavigationId = setProjectPanelSearchParam(sourceTab.panel, navigationId);
+
+        if (typeof requestedNavigationId === 'string') {
+          appliedWorkspacePanelUrlRef.current.navigationId = requestedNavigationId;
+        } else {
+          appliedWorkspacePanelUrlRef.current = null;
+        }
       },
-      [applyProjectEditorWindowOp, floatingPanes, paneTree, setProjectPanelSearchParam],
+      [
+        applyProjectEditorWindowOp,
+        currentWorkspaceId,
+        floatingPanes,
+        paneTree,
+        projectEditorWindowId,
+        projectId,
+        setProjectPanelSearchParam,
+      ],
     );
 
     /**
@@ -8745,7 +8867,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
-      (panel: IdeWorkspacePanel) => {
+      (panel: IdeWorkspacePanel, filePath?: string) => {
+        const paneDocument = filePath ? editorDocuments[filePath] : currentDocument;
+
+        const savePaneDocument = () => {
+          if (paneDocument) {
+            saveProjectEditorFile(paneDocument.filePath);
+          }
+        };
+
         if (panel === 'editor') {
           return (
             <div
@@ -8753,13 +8883,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
-                fileLabel={currentDocument?.filePath?.replace(WORK_DIR, '') || t('baseChatAst.files.noneSelected')}
-                hasDocument={Boolean(currentDocument)}
+                fileLabel={paneDocument?.filePath?.replace(WORK_DIR, '') || t('baseChatAst.files.noneSelected')}
+                hasDocument={Boolean(paneDocument)}
                 minimapEnabled={editorMinimapEnabled}
                 monacoActive={editorKindForLayout(layout) === 'monaco'}
                 onToggleMinimap={() => setEditorMinimapEnabled((enabled) => !enabled)}
                 onFormat={() => {
-                  workbenchStore.formatCurrentDocument().catch((error) => {
+                  workbenchStore.formatCurrentDocument(paneDocument?.filePath).catch((error) => {
                     console.error('Project file format failed', error);
                     toast.error(t('baseChatAst.editor.formatFailed'));
                   });
@@ -8768,21 +8898,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 onFindReferences={() => runProjectEditorCommand('findReferences')}
                 onRenameSymbol={() => runProjectEditorCommand('renameSymbol')}
                 onRefactor={() => runProjectEditorCommand('refactor')}
-                onSave={onProjectEditorSave}
+                onSave={savePaneDocument}
               />
-              {currentDocument && !currentDocument.isBinary ? (
+              {paneDocument && !paneDocument.isBinary ? (
                 <EditorAdapter
                   className="bolt-project-editor-adapter"
-                  value={currentDocument.value}
-                  filePath={currentDocument.filePath}
+                  value={paneDocument.value}
+                  filePath={paneDocument.filePath}
                   theme={theme === 'dark' ? 'dark' : 'light'}
                   minimapEnabled={editorMinimapEnabled}
                   projectFiles={editorProjectFiles}
-                  onSave={onProjectEditorSave}
+                  onSave={savePaneDocument}
                   onChange={(update) => {
-                    workbenchStore.setCurrentDocumentContent(update.value);
+                    workbenchStore.setDocumentContent(paneDocument.filePath, update.value);
 
-                    const filePath = currentDocument.filePath;
+                    const filePath = paneDocument.filePath;
                     workbenchStore.scheduleFileAutosave(filePath, update.value);
 
                     let line = 1;
@@ -8813,8 +8943,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 />
               )}
               {/* File History — bottom-right toggle + standalone panel (independent of Git) */}
-              {currentDocument && !currentDocument.isBinary && (
-                <EditorHistoryOverlay filePath={currentDocument.filePath} content={currentDocument.value} />
+              {paneDocument && !paneDocument.isBinary && (
+                <EditorHistoryOverlay filePath={paneDocument.filePath} content={paneDocument.value} />
               )}
             </div>
           );
@@ -8919,11 +9049,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [
         currentDocument,
+        editorDocuments,
         editorMinimapEnabled,
         editorProjectFiles,
         initialIdePanels,
         layout,
-        onProjectEditorSave,
+        saveProjectEditorFile,
         openIdeTool,
         openProjectFile,
         previewDevice,
@@ -8968,7 +9099,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             data-pane-id={leaf.id}
             data-active={activePaneId === leaf.id}
             data-drop-target={paneDropTarget === leaf.id ? 'true' : undefined}
-            onMouseDown={() => setActivePaneId(leaf.id)}
+            onMouseDown={() => {
+              setActivePaneId(leaf.id);
+
+              if (activeTab?.panel === 'editor' && activeTab.filePath) {
+                workbenchStore.setSelectedFile(activeTab.filePath);
+              }
+            }}
+            onFocusCapture={() => {
+              setActivePaneId(leaf.id);
+
+              if (activeTab?.panel === 'editor' && activeTab.filePath) {
+                workbenchStore.setSelectedFile(activeTab.filePath);
+              }
+            }}
             onDragEnter={activatePaneDrop}
             onDragOver={activatePaneDrop}
             onDragLeave={(event) => {
@@ -9097,7 +9241,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     unsavedChanges: unsavedFiles instanceof Set ? unsavedFiles.size : 0,
                   })}
                 >
-                  {renderPaneContent(activeTab.panel)}
+                  {renderPaneContent(activeTab.panel, activeTab.filePath)}
                 </PanelErrorBoundary>
               ) : (
                 <ProjectWelcomeState

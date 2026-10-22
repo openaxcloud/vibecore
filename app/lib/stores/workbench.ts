@@ -2222,6 +2222,10 @@ export class WorkbenchStore {
     return this.#filesStore.files;
   }
 
+  get documents() {
+    return this.#editorStore.documents;
+  }
+
   get currentDocument(): ReadableAtom<EditorDocument | undefined> {
     return this.#editorStore.currentDocument;
   }
@@ -2333,30 +2337,33 @@ export class WorkbenchStore {
       return;
     }
 
+    this.setDocumentContent(filePath, newContent);
+  }
+
+  setDocumentContent(filePath: string, newContent: string) {
+    if (!this.#editorStore.documents.get()[filePath]) {
+      return;
+    }
+
     const originalContent = this.#filesStore.getFile(filePath)?.content;
     const unsavedChanges = originalContent !== undefined && originalContent !== newContent;
-
     this.#editorStore.updateFile(filePath, newContent);
 
-    const currentDocument = this.currentDocument.get();
+    const previousUnsavedFiles = this.unsavedFiles.get();
 
-    if (currentDocument) {
-      const previousUnsavedFiles = this.unsavedFiles.get();
-
-      if (unsavedChanges && previousUnsavedFiles.has(currentDocument.filePath)) {
-        return;
-      }
-
-      const newUnsavedFiles = new Set(previousUnsavedFiles);
-
-      if (unsavedChanges) {
-        newUnsavedFiles.add(currentDocument.filePath);
-      } else {
-        newUnsavedFiles.delete(currentDocument.filePath);
-      }
-
-      this.unsavedFiles.set(newUnsavedFiles);
+    if (previousUnsavedFiles.has(filePath) === unsavedChanges) {
+      return;
     }
+
+    const newUnsavedFiles = new Set(previousUnsavedFiles);
+
+    if (unsavedChanges) {
+      newUnsavedFiles.add(filePath);
+    } else {
+      newUnsavedFiles.delete(filePath);
+    }
+
+    this.unsavedFiles.set(newUnsavedFiles);
   }
 
   scheduleFileAutosave(filePath: string, content: string, delayMs = 800) {
@@ -2566,24 +2573,24 @@ export class WorkbenchStore {
    * mutating the buffer) when no document is open, the file type is
    * unsupported, or the content fails to parse — callers surface the error.
    */
-  async formatCurrentDocument() {
-    const currentDocument = this.currentDocument.get();
+  async formatCurrentDocument(filePath = this.selectedFile.get()) {
+    const currentDocument = filePath ? this.#editorStore.documents.get()[filePath] : undefined;
 
     if (currentDocument === undefined) {
       throw new Error(workbenchText('workbenchRuntime.files.noOpenFile'));
     }
 
-    const { filePath, value } = currentDocument;
+    const { filePath: documentPath, value } = currentDocument;
 
     /*
      * Don't rewrite a locked file's content via format — same lock enforcement as
      * the editor (read-only), AI writes, Search, and the file-tree ops.
      */
-    if (this.isFileLocked(filePath).locked) {
+    if (this.isFileLocked(documentPath).locked) {
       this.actionAlert.set({
         type: 'warning',
         title: workbenchText('workbenchRuntime.files.lockedTitle'),
-        description: workbenchText('workbenchRuntime.files.formatLocked', { file: filePath }),
+        description: workbenchText('workbenchRuntime.files.formatLocked', { file: documentPath }),
         content: '',
         source: 'preview',
       });
@@ -2592,10 +2599,10 @@ export class WorkbenchStore {
     }
 
     const { formatDocument } = await import('~/utils/formatDocument');
-    const formatted = await formatDocument(value, filePath);
+    const formatted = await formatDocument(value, documentPath);
 
     if (formatted !== value) {
-      this.setCurrentDocumentContent(formatted);
+      this.setDocumentContent(documentPath, formatted);
     }
   }
 

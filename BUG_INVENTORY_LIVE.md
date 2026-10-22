@@ -4,12 +4,11 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-465 entrées.
+471 entrées.
 
 ## Sans section
 
-- [BUG-NETWORK-DEPENDENCIES-20261021](docs/bugs/BUG-NETWORK-DEPENDENCIES-20261021.md) — Dépendances réseau ws et compression — 📤 Dispatché : ☑ · 💻 Codé : branche isolée · ✅ Testé live : local uniquement
-
+- [BUG-NETWORK-DEPENDENCIES-20261021](docs/bugs/BUG-NETWORK-DEPENDENCIES-20261021.md) — 📤 Dispatché : Triage des high production demandé le 21 octobre 2026 ; base main 883af053. · 💻 Codé : Branche isolée : ws résolu en 8.22.0 (minimum corrigé 8.21.0), compression 1.8.2. Aucun seuil de scan, délai o · ✅ Testé live : Reproductions locales loopback avec vrais sockets et flux zlib : ancien ws accepte 16 385 fragments de 1 octet
 - [BUG-METHODE-MODULE-MORT-002](docs/bugs/BUG-METHODE-MODULE-MORT-002.md) — Suite de -001 : la ligne de base traitée, et le scanner corrigé de DEUX faux positifs. — 📤 Dispatché : ☑ 15/09 · 💻 Codé : ☑ 15/09 · ✅ Testé live : ☐
 - [BUG-WEBKIT-SCROLL-FIL-001](docs/bugs/BUG-WEBKIT-SCROLL-FIL-001.md) — P1 à confirmer — sur WebKit, le fil de l'agent ne se remonte pas : la sonde qui le fait défiler rend `false` 3 FOIS SUR 3 à 768 px — 📤 Dispatché : ☑ 10/09 · 💻 Codé : ☑ 14/09 — cause tranchée, corrigé · ✅ Testé live : ☐
 - [BUG-WEBKIT-SCROLL-FIL-001](docs/bugs/BUG-WEBKIT-SCROLL-FIL-001-b.md) — #534 est DÉPLOYÉ — 📤 Dispatché : ☑ 14/09 · 💻 Codé : ☑ 14/09 · ✅ Testé live : ☐
@@ -589,9 +588,20 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 
 ## Sans section
 
-- [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — Provenance des images réutilisées et restaurées liée à leur digest. — 📤 Dispatché : ☑ 21/10 · 💻 Codé : ☐ PR #757, non fusionnée. · ✅ Testé live : ☐ Aucun rollback de production.
 
-- [BUG-DEPENDENCY-CRITICAL-20261021](docs/bugs/BUG-DEPENDENCY-CRITICAL-20261021.md) — Quatre alertes critiques Capacitor/Tinypool sur main. — 📤 Dispatché : ☑ 21/10 · 💻 Codé : ☐ Candidat isolé, non fusionné. · ✅ Testé live : ☐ Aucune exploitation ni redistribution native attestée.
+## 2026-10-21 — Fiabilité des recettes IDE
+
+- [BUG-E2E-MOBILE-MENU-NULL-TOUCH-001](docs/bugs/BUG-E2E-MOBILE-MENU-NULL-TOUCH-001.md) — Le scénario `ide-mobile-chrome.spec.ts` des menus Agent/Économique à 390 px mesure séparément le bouton avec `boundingBox()`, puis applique `touchscreen.tap()`  — 📤 Dispatché : ☑ Diagnostic isolé de la fixture mobile, sans modifier les têtes validées #749 et #758. · 💻 Codé : ☐ Pas fusionné dans main. Deux appuis deviennent `Locator.tap()` : déclencheur et entrée du menu. Playwright r · ✅ Testé live : ☐ Aucune livraison ni certification de production. Le canari WebKit de la pilule de retour en bas reste distin
+
+## Sans section
+
+- [BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001](docs/bugs/BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001.md) — 📤 Dispatché : 21 octobre 2026, revue de #759 : `snapshot-cancel-focus.spec.ts:121`, clavier FR. Le dialogue reste visible pe · 💻 Codé : Branche séparée de #758, base `736ed190d64a980471e5943cf7e0695195f2a691`. La confirmation traite localement Es · ✅ Testé live : Local, build compilé attesté de la recette commune, pas production : test FR inchangé 10/10, puis sonde instru
+- [BUG-DEPENDENCY-CRITICAL-20261021](docs/bugs/BUG-DEPENDENCY-CRITICAL-20261021.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-IDE-PANE-DOCUMENT-IDENTITY-001](docs/bugs/BUG-IDE-PANE-DOCUMENT-IDENTITY-001.md) — 📤 Dispatché : 22 octobre 2026 : investigation du flaky docking de #763. Le retour B→A reste une piste distincte, non attribu · 💻 Codé : Correction locale sauvegardée dans `4ec690fc`, publication #763 en préparation : contenu et opérations d’éditi · ✅ Testé live : Reproduction sur le build local combinant 9609abf9 et main 18cf74fd : ouvrir other.txt dans le panneau flottan
+- [BUG-IDE-PANE-FOCUS-DUPLICATION-001](docs/bugs/BUG-IDE-PANE-FOCUS-DUPLICATION-001.md) — 📤 Dispatché : 22 octobre 2026 : deux échecs finaux light/dark dans la CI de #763 d83cb4a, trois tentatives par thème. Le dép · 💻 Codé : Correctif local validé, publication dans #763 (non intégré à main) : le callback d’ouverture lit le panneau ac · ✅ Testé live : Rouge reproduit sur le build local 4ec690fc : deux thèmes, zéro retry. Une assertion complémentaire localise l
+- [BUG-IDE-GLOBAL-PALETTE-HANDOFF-001](docs/bugs/BUG-IDE-GLOBAL-PALETTE-HANDOFF-001.md) — 📤 Dispatché : 22 octobre 2026 : deux disparitions observées pendant la préparation de recettes de navigation de #763. Invest · 💻 Codé : Non corrigé. Aucun correctif de palette livré dans ce lot. Pour isoler les recettes de déplacement, la prépara · ✅ Testé live : Reproductions locales Chromium, projets synthétiques, 22 octobre à 07:29:02 et 07:32:37 UTC : le clic sur All
+- [BUG-IDE-TAB-STRIP-SNAP-CLICK-001](docs/bugs/BUG-IDE-TAB-STRIP-SNAP-CLICK-001.md) — 📤 Dispatché : 22 octobre 2026 : défaut reproduit en recette locale de #763 après déplacement d’un onglet et désépinglage par · 💻 Codé : Correctif desktop commité localement dans `d0ef2126`, publication #763 en préparation : désactiver uniquement · ✅ Testé live : Diagnostic local Chromium sur le produit compilé `69592374`, 22 octobre 2026 : fermeture native sans effet. Le
 
 ## Résidus non tabulaires — reportés mot pour mot
 

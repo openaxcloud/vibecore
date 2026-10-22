@@ -1,0 +1,1196 @@
+{
+  "total": 75,
+  "passed": 75,
+  "failed": 0,
+  "retried": 0,
+  "skipped": 0,
+  "reports": [
+    {
+      "group": "rpl",
+      "reportSha256": "aad6ed2ab8fd198394e773b86adf1e0fb115beb424ef49cea8770b66dd57dcf5",
+      "stats": {
+        "startTime": "2026-10-22T08:43:35.074Z",
+        "duration": 73121.275,
+        "expected": 9,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    {
+      "group": "ide",
+      "reportSha256": "7af52ad99ccf313b45c2472d786b855aab1c2e761567e96ad5ffbf49ab1ee2ba",
+      "stats": {
+        "startTime": "2026-10-22T08:44:53.448Z",
+        "duration": 224568.611,
+        "expected": 45,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    {
+      "group": "files",
+      "reportSha256": "3bd5eaa1e31a0ca55f60f76f2ebd0473b2d48541a1f21155244b9ea684197964",
+      "stats": {
+        "startTime": "2026-10-22T08:48:38.874Z",
+        "duration": 38758.68,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    {
+      "group": "confirmations",
+      "reportSha256": "c602f0db09c4d444234d52874c101392c7b0cf1085f021ed9c8ec1dbd3217f1c",
+      "stats": {
+        "startTime": "2026-10-22T08:49:18.255Z",
+        "duration": 25565.323,
+        "expected": 6,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    },
+    {
+      "group": "menus",
+      "reportSha256": "7f10a31b866e4a88cee59af4a3ca2269ae1e715f662f9e2dcc7b090f1f24f2dd",
+      "stats": {
+        "startTime": "2026-10-22T08:49:44.474Z",
+        "duration": 45869.971999999994,
+        "expected": 12,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      }
+    }
+  ],
+  "actions": [
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 153,
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 14931,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 153,
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 14792,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 408,
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5699,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 551,
+      "title": "redundant move preserves real browser Back and Forward selection",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5703,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 573,
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 6214,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 608,
+      "title": "closing destination pane cannot swallow a later browser Back request",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 6905,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 646,
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5507,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 757,
+      "title": "normal click navigation followed by a move preserves tab identities",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5194,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "rpl",
+      "file": "rpl-local.spec.ts",
+      "line": 866,
+      "title": "an interrupted Back move cannot swallow a later Back to the same history entry",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 6890,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 320,
+      "title": "barre du bas : l\u2019onglet actif est enti\u00e8rement visible dans sa bande",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3754,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 350,
+      "title": "\u00e9tat de d\u00e9part de l\u2019Agent : chaque action enti\u00e8re, la puce du composeur enti\u00e8re",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2855,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 378,
+      "title": "Journaux : trois rang\u00e9es, actions en ic\u00f4nes accessibles, statut et niveaux entiers",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2756,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 420,
+      "title": "feuille \u00ab + \u00bb : titres 13 px, descriptions 12 px enti\u00e8res, une colonne",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2900,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 462,
+      "title": "D\u00e9bogueur : l\u00e9gendes 11 px, texte 12 px, bouton d\u2019en-t\u00eate entier sur sa ligne",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2536,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 523,
+      "title": "Webview : barre d\u2019adresse compacte, journaux \u00e0 12 px sans d\u00e9bordement",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3650,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 578,
+      "title": "fil de l\u2019agent : le chemin de fichier entier, repli\u00e9 ; le r\u00e9sum\u00e9 de commande \u00e0 32 px dans le flux",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2485,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 662,
+      "title": "Param\u00e8tres, Variables, \u00c9diteur : bande d\u2019onglets compacte, boutons deux par rang\u00e9e, pastille Historique visible",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3434,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 768,
+      "title": "menu contextuel d\u2019un message : une barre d\u2019ic\u00f4nes de 44 px, chaque action nomm\u00e9e ; S\u00e9curit\u00e9 : une paire par ligne",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5635,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 879,
+      "title": "Base de donn\u00e9es, \u00ab Mes donn\u00e9es \u00bb : le studio prend la hauteur de son contenu, sans d\u00e9filement interne",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2876,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 935,
+      "title": "D\u00e9ploiements \u00ab G\u00e9rer \u00bb : les actions d\u2019un d\u00e9ploiement se partagent la ligne",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2705,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 998,
+      "title": "Int\u00e9grations : ic\u00f4nes visibles ; Extensions : pastilles de domaine enti\u00e8res",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2740,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1045,
+      "title": "zone de saisie : les menus \u00ab Agent \u00bb et \u00ab \u00c9conomique \u00bb se rendent hors du composeur, visibles \u00e0 l\u2019\u00e9cran",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4826,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1137,
+      "title": "zone de saisie : la feuille prend l\u2019\u00e9cran sur t\u00e9l\u00e9phone, et s\u2019arr\u00eate \u00e0 760 px centr\u00e9e sur tablette",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4165,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1206,
+      "title": "fil de l\u2019agent : en remontant, le texte garde sa largeur et la pastille \u00ab descendre \u00bb est centr\u00e9e au-dessus de la zone de saisie",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3741,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1292,
+      "title": "menu contextuel sur le dernier message : la barre reste au-dessus de la zone de saisie, et le fil ne bouge pas",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 9911,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1395,
+      "title": "zone de saisie : le menu \u00ab \u2022\u2022\u2022 \u00bb se rend hors du composeur, entier, et chacune de ses entr\u00e9es s\u2019ouvre dans l\u2019\u00e9cran \u2014 t\u00e9l\u00e9phone 390",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 14916,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1395,
+      "title": "zone de saisie : le menu \u00ab \u2022\u2022\u2022 \u00bb se rend hors du composeur, entier, et chacune de ses entr\u00e9es s\u2019ouvre dans l\u2019\u00e9cran \u2014 tablette 820",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 15537,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1616,
+      "title": "Webview : l\u2019URL se lit en 13 px et s\u2019\u00e9dite \u00e0 16 px ; les journaux se referment",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3050,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1727,
+      "title": "s\u00e9lecteur d\u2019onglets : les raccourcis du bas sont plus petits que les onglets, et tous de m\u00eame taille",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2480,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1767,
+      "title": "s\u00e9lecteur d\u2019onglets : la croix de fermeture se peint dans la couleur du contenu \u2014 th\u00e8me light",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3503,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1767,
+      "title": "s\u00e9lecteur d\u2019onglets : la croix de fermeture se peint dans la couleur du contenu \u2014 th\u00e8me dark",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3627,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1853,
+      "title": "dict\u00e9e vocale : l\u2019appui dit qu\u2019on \u00e9coute, garde le texte tap\u00e9, et l\u2019interface se remet au repos quand le moteur s\u2019arr\u00eate seul",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3038,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1929,
+      "title": "panneaux d\u2019outils : le contenu reste net jusqu\u2019au bord haut de la barre du bas \u2014 pas de bande morte",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3239,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1986,
+      "title": "barre du bas : les onglets fixes sont centr\u00e9s entre le s\u00e9lecteur et \u00ab + \u00bb \u2014 430 px",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2358,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 1986,
+      "title": "barre du bas : les onglets fixes sont centr\u00e9s entre le s\u00e9lecteur et \u00ab + \u00bb \u2014 390 px",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2290,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2028,
+      "title": "panneau Agent, \u00e9tat de d\u00e9part : la carte \u00ab Agent pr\u00eat \u00bb se pose sous l\u2019en-t\u00eate, sans bande vide",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2624,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2064,
+      "title": "fil de l\u2019agent : le premier message se pose sous l\u2019en-t\u00eate, sans bande morte et sans \u00eatre rogn\u00e9",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3508,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2118,
+      "title": "menu d\u2019un message : un seul \u00e0 la fois, pos\u00e9 au-dessus de la ligne, ferm\u00e9 au d\u00e9filement",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 7875,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2178,
+      "title": "fin de tour \u00e0 la Replit : \u00ab Worked for \u00bb et \u00ab Checkpoint made \u00bb sous la r\u00e9ponse, au-dessus de la zone de saisie ; retour arri\u00e8re ; \u00ab Changes \u00bb ouvre le commit",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5761,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2354,
+      "title": "onglet Secrets : en-t\u00eate sur une ligne, filtre, ajout en ligne, puces cl\u00e9 / valeur / \u22ee et menu de ligne \u2014 parit\u00e9 Replit",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3335,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2527,
+      "title": "zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans d\u00e9filement interne",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3760,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2599,
+      "title": "appui long pr\u00e8s du bord droit : le menu et ses libell\u00e9s fran\u00e7ais restent dans l\u2019\u00e9cran, sans infobulle",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4895,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2642,
+      "title": "\u00ab Effacer l\u2019historique \u00bb ouvre une conversation neuve, et elle le reste au rechargement",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 16833,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2752,
+      "title": "un tour stream\u00e9 ne recr\u00e9e pas le markdown des messages d\u00e9j\u00e0 affich\u00e9s",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 13656,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2907,
+      "title": "elle se peint sur le fil, et sur rien d\u2019autre",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 7204,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2982,
+      "title": "le fil reste masqu\u00e9 pendant le chargement interrompu de Preview \u00e0 390px",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 9368,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 2982,
+      "title": "le fil reste masqu\u00e9 pendant le chargement interrompu de Preview \u00e0 768px",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 9620,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3103,
+      "title": "le bloc se rend aux bonnes tailles, sans rien d\u00e9border",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3330,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3103,
+      "title": "le bloc se rend aux bonnes tailles, sans rien d\u00e9border",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2293,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3202,
+      "title": "titres et boutons tiennent sur une ligne \u00e0 390 px",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2309,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3302,
+      "title": "les gabarits portent un prix calcul\u00e9, et les gestes sont ceux qui existent",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3167,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3367,
+      "title": "depuis n\u2019importe quel panneau, la demande bascule sur le panneau Agent",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2612,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3438,
+      "title": "la liste des tables n\u2019est pas vide, et chaque ligne est nomm\u00e9e",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2776,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "ide",
+      "file": "ide-mobile-chrome.spec.ts",
+      "line": 3522,
+      "title": "le rail liste les tables, les en-t\u00eates portent leur type, la page est annonc\u00e9e",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2949,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "files",
+      "file": "ide-floating-file-tabs.spec.ts",
+      "line": 8,
+      "title": "opening a file in a floating pane updates its tabs and survives docking",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 10292,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "files",
+      "file": "ide-mobile-file-restore.spec.ts",
+      "line": 561,
+      "title": "explicit provisional README stays in project A after switching to B at 390",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 14380,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "files",
+      "file": "ide-mobile-file-restore.spec.ts",
+      "line": 561,
+      "title": "explicit provisional README stays in project A after switching to B at 768",
+      "project": "chromium",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 13136,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "confirmations",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "desktop",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4019,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "confirmations",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "desktop",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4359,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "confirmations",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "tablet",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4224,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "confirmations",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "tablet",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3784,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "confirmations",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "mobile",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3382,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "confirmations",
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "mobile",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3340,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 80,
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "desktop",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2932,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 153,
+      "title": "agent menu actions and theme persistence (en)",
+      "project": "desktop",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4549,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 80,
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "project": "desktop",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 2780,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 153,
+      "title": "agent menu actions and theme persistence (fr)",
+      "project": "desktop",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4679,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 80,
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "tablet",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3679,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 153,
+      "title": "agent menu actions and theme persistence (en)",
+      "project": "tablet",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3203,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 80,
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "project": "tablet",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3656,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 153,
+      "title": "agent menu actions and theme persistence (fr)",
+      "project": "tablet",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3863,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 80,
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "mobile",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3368,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 153,
+      "title": "agent menu actions and theme persistence (en)",
+      "project": "mobile",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3382,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 80,
+      "title": "agent menu keyboard and compact navigation (fr)",
+      "project": "mobile",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3448,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "group": "menus",
+      "file": "agent-header-menu-keyboard.spec.ts",
+      "line": 153,
+      "title": "agent menu actions and theme persistence (fr)",
+      "project": "mobile",
+      "outcome": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3276,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

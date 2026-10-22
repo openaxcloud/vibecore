@@ -340,7 +340,11 @@ for (const theme of ['light', 'dark'] as const) {
     if (beforeMove.length >= 2) {
       await shot(page, `panes-before-move-${label}`);
 
+      const tabIdsBefore = await page
+        .locator('.bolt-project-pane-leaf [role="tab"]')
+        .evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('data-tab-id')).sort());
       await openOptionsMenu(page, 0);
+      expect(await paneTabPanels(page), 'focusing a pane menu must not reopen the URL tool').toEqual(beforeMove);
 
       const moveItem = page.locator('[data-testid="tab-options-move-to-pane-0"]');
 
@@ -360,6 +364,13 @@ for (const theme of ['light', 'dark'] as const) {
          * per-pane distribution (or collapses the emptied pane).
          */
         expect(totalAfter, 'a move must not create or destroy tabs').toBe(totalBefore);
+
+        const tabIdsAfter = await page
+          .locator('.bolt-project-pane-leaf [role="tab"]')
+          .evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('data-tab-id')).sort());
+        expect(tabIdsAfter, 'moving and restoring focus must preserve the existing tab identities').toEqual(
+          tabIdsBefore,
+        );
         expect(
           JSON.stringify(afterMove),
           'the tab must actually have changed pane (a swap would keep counts identical)',
@@ -369,5 +380,566 @@ for (const theme of ['light', 'dark'] as const) {
 
     await assertNoHorizontalOverflow(page);
     await shot(page, `panels-final-${label}`);
+
+    // Explicit tool requests still target the pane most recently focused.
+    const targetPane = page.locator('.bolt-project-pane-leaf').last();
+    const targetPaneId = await targetPane.getAttribute('data-pane-id');
+    await targetPane.locator('[role="tab"]').first().click();
+    await dockAllTools.click();
+
+    const toolSearch = page.locator('[data-testid="project-command-palette-search"]');
+    await expect(toolSearch).toBeVisible();
+    await toolSearch.fill('terminal');
+    await page.keyboard.press('Enter');
+    await expect(page.locator(`[data-pane-id="${targetPaneId}"] [role="tab"][data-panel="terminal"]`)).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
+    // A genuine URL request must still open/select its tool after focus changes.
+    await page.goto(`/projects/${projectId}/ide?panel=git`, { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="git"][aria-selected="true"]'),
+    ).toHaveCount(1);
+    await shot(page, `panels-url-navigation-${label}`);
   });
 }
+
+test('interrupted move navigation cannot swallow a later browser Back', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+
+  const auth = await authenticate(page);
+  const projectId = await seedProject(page, auth, 'light');
+  await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"][aria-selected="true"]'),
+  ).toHaveCount(1);
+  await page.getByTestId('ide-dock-deployments').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await openOptionsMenu(page, 0);
+  await page.locator('[data-testid="tab-options-split-right"]').click();
+  await expect(page.locator('.bolt-project-pane-leaf')).toHaveCount(2);
+
+  const preview = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"]');
+  const previewId = await preview.getAttribute('data-tab-id');
+  const before = await paneTabPanels(page);
+
+  let release!: () => void;
+  let observed!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const seen = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+
+  const failed: { url: string; error: string | null }[] = [];
+  page.on('requestfailed', (request) => {
+    if (request.url().includes('.data') && new URL(request.url()).searchParams.get('panel') === 'preview') {
+      failed.push({
+        url: new URL(request.url()).pathname + new URL(request.url()).search,
+        error: request.failure()?.errorText ?? null,
+      });
+    }
+  });
+  await page.route('**/*.data?*', async (route) => {
+    if (new URL(route.request().url()).searchParams.get('panel') !== 'preview') {
+      await route.continue();
+      return;
+    }
+
+    observed();
+    await gate;
+
+    try {
+      await route.continue();
+    } catch (error) {
+      if (failed.length === 0) {
+        throw error;
+      }
+    }
+  });
+
+  try {
+    await openOptionsMenu(page, 0);
+    await page.locator('[data-testid="tab-options-move-to-pane-0"]').click();
+    await seen;
+
+    const deployment = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="deployments"]');
+    await deployment.locator('.bolt-project-tab-main').click();
+    await expect(deployment).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/panel=deployments/);
+    await expect
+      .poll(() => failed.length, { message: 'preview navigation must actually be aborted' })
+      .toBeGreaterThan(0);
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await testInfo.attach('interruption.json', {
+      body: JSON.stringify({ before, after: await paneTabPanels(page), failed, previewId }),
+      contentType: 'application/json',
+    });
+    await page.goBack({ waitUntil: 'domcontentloaded' });
+
+    if (new URL(page.url()).searchParams.get('panel') === 'deployments') {
+      await page.goBack({ waitUntil: 'domcontentloaded' });
+    }
+
+    await expect(page).toHaveURL(/panel=preview/);
+    await expect(page.locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await shot(page, 'interrupted-back-preview');
+    await page.goForward({ waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/panel=deployments/);
+    await expect(deployment).toHaveAttribute('aria-selected', 'true');
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
+
+const panes = (page: Page) => page.locator('.bolt-project-pane-leaf');
+const tabs = (page: Page) => panes(page).locator('[role="tab"]');
+const tabById = (page: Page, id: string) => page.locator(`.bolt-project-pane-leaf [role="tab"][data-tab-id="${id}"]`);
+
+const tabIds = (page: Page) =>
+  tabs(page).evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-tab-id')).sort());
+
+async function openTool(page: Page, query: string) {
+  await page.getByTestId('ide-dock-all-tools').click();
+
+  const search = page.getByTestId('project-command-palette-search');
+  await expect(search).toBeVisible();
+  await search.fill(query);
+  await page.keyboard.press('Enter');
+}
+
+async function redundantMove(page: Page) {
+  const auth = await authenticate(page);
+  const projectId = await seedProject(page, auth, 'light');
+  await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"][aria-selected="true"]'),
+  ).toHaveCount(1);
+  await page.getByTestId('ide-dock-deployments').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await openOptionsMenu(page, 0);
+  await page.getByTestId('tab-options-split-right').click();
+  await expect(panes(page)).toHaveCount(2);
+
+  const preview = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"]');
+  await expect(preview).toHaveCount(1);
+
+  const previewId = await preview.getAttribute('data-tab-id');
+  expect(previewId).toBeTruthy();
+  await preview.locator('.bolt-project-tab-main').click();
+  await expect(page).toHaveURL(/panel=preview/);
+  await expect(preview).toHaveAttribute('aria-selected', 'true');
+
+  const before = await tabIds(page);
+  const targetId = await panes(page).nth(1).getAttribute('data-pane-id');
+  expect(targetId).toBeTruthy();
+  await openOptionsMenu(page, 0);
+  await page.getByTestId('tab-options-move-to-pane-0').click();
+  await expect(panes(page).nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+  await expect(panes(page).nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+  await expect.poll(() => tabIds(page)).toEqual(before);
+  await expect(page).toHaveURL(/panel=preview/);
+
+  return { projectId, previewId: previewId!, targetId: targetId!, before };
+}
+
+test('redundant move preserves real browser Back and Forward selection', async ({ page }, info) => {
+  test.setTimeout(90_000);
+
+  const state = await redundantMove(page);
+  const deployment = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="deployments"]');
+  await deployment.locator('.bolt-project-tab-main').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await expect(deployment).toHaveAttribute('aria-selected', 'true');
+  await page.goBack({ waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/panel=preview/);
+  await expect(tabById(page, state.previewId)).toHaveAttribute('aria-selected', 'true');
+  await page.goForward({ waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/panel=deployments/);
+  await expect(deployment).toHaveAttribute('aria-selected', 'true');
+  await expect.poll(() => tabIds(page)).toEqual(state.before);
+  await info.attach('navigation-basic.json', {
+    body: JSON.stringify({ scenario: 'back-forward', before: state.before, after: await tabIds(page) }),
+    contentType: 'application/json',
+  });
+  await shot(page, 'back-forward');
+});
+
+test('closing moved tab invalidates its receipt before a browser Back request', async ({ page }, info) => {
+  test.setTimeout(90_000);
+
+  const state = await redundantMove(page);
+  const moved = tabById(page, state.previewId);
+
+  if ((await moved.getAttribute('data-pinned')) === 'true') {
+    await openOptionsMenu(page, 1);
+    await page.getByTestId('tab-options-pin').click();
+    await expect(moved).not.toHaveAttribute('data-pinned', 'true');
+  }
+
+  await moved.locator('button.bolt-project-tab-close').click();
+  await expect(moved).toHaveCount(0);
+  await expect(tabs(page)).toHaveCount(state.before.length - 1);
+  await expect(page).not.toHaveURL(/panel=preview/);
+  await page.goBack({ waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/panel=preview/);
+
+  const reopened = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"]');
+  await expect(reopened).toHaveCount(1);
+  await expect(reopened).toHaveAttribute('aria-selected', 'true');
+  expect(await reopened.getAttribute('data-tab-id')).not.toBe(state.previewId);
+  await expect(moved).toHaveCount(0);
+  await info.attach('navigation-basic.json', {
+    body: JSON.stringify({
+      scenario: 'close-tab',
+      closed: state.previewId,
+      reopened: await reopened.getAttribute('data-tab-id'),
+    }),
+    contentType: 'application/json',
+  });
+  await shot(page, 'closed-tab-back');
+});
+
+test('closing destination pane cannot swallow a later browser Back request', async ({ page }, info) => {
+  test.setTimeout(90_000);
+
+  const state = await redundantMove(page);
+  const destination = page.locator(`.bolt-project-pane-leaf[data-pane-id="${state.targetId}"]`);
+
+  const removed = await destination
+    .locator('[role="tab"]')
+    .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-tab-id')));
+  await openOptionsMenu(page, 1);
+  await page.getByTestId('tab-options-close-pane').click();
+  await expect(destination).toHaveCount(0);
+  await expect(panes(page)).toHaveCount(1);
+
+  for (const id of removed) {
+    await expect(tabById(page, id!)).toHaveCount(0);
+  }
+  await openTool(page, 'terminal');
+  await expect(page).toHaveURL(/panel=terminal/);
+  await expect(
+    page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="terminal"][aria-selected="true"]'),
+  ).toHaveCount(1);
+  await page.goBack({ waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/panel=preview/);
+  await expect(
+    page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"][aria-selected="true"]'),
+  ).toHaveCount(1);
+
+  for (const id of removed) {
+    await expect(tabById(page, id!)).toHaveCount(0);
+  }
+  await info.attach('navigation-basic.json', {
+    body: JSON.stringify({ scenario: 'close-pane', removed, after: await tabIds(page) }),
+    contentType: 'application/json',
+  });
+  await shot(page, 'closed-pane-back');
+});
+
+test('two moves during one pending panel navigation preserve tab identities', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+
+  const auth = await authenticate(page);
+  const projectId = await seedProject(page, auth, 'light');
+  await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"][aria-selected="true"]'),
+  ).toHaveCount(1);
+  await page.getByTestId('ide-dock-deployments').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await openOptionsMenu(page, 0);
+  await page.getByTestId('tab-options-split-right').click();
+
+  const panes = page.locator('.bolt-project-pane-leaf');
+  await expect(panes).toHaveCount(2);
+
+  const preview = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"]');
+  await expect(preview).toHaveCount(1);
+
+  const previewId = await preview.getAttribute('data-tab-id');
+  expect(previewId).toBeTruthy();
+
+  const ids = () =>
+    panes.locator('[role="tab"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-tab-id')).sort());
+
+  const beforeIds = await ids();
+  const before = await paneTabPanels(page);
+
+  let release!: () => void;
+  let observed!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const seen = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+
+  const requests: { path: string; result: string }[] = [];
+
+  let afterFirst: string[][] | undefined;
+  let afterSecond: string[][] | undefined;
+  await page.route('**/*.data?*', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.searchParams.get('panel') !== 'preview') {
+      await route.continue();
+      return;
+    }
+
+    requests.push({ path: url.pathname + url.search, result: 'held pending real continuation' });
+    observed();
+    await gate;
+
+    try {
+      await route.continue();
+    } catch {
+      requests.push({ path: url.pathname + url.search, result: 'continuation unavailable after cancellation' });
+    }
+  });
+
+  try {
+    // First move: URL remains Q while the actual P request is held in flight.
+    await openOptionsMenu(page, 0);
+    await page.getByTestId('tab-options-move-to-pane-0').click();
+    await seen;
+    await expect(panes.nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+    await expect(page).toHaveURL(/panel=deployments/);
+    afterFirst = await paneTabPanels(page);
+
+    // Second move uses the destination menu, without another tab-selection request.
+    await openOptionsMenu(page, 1);
+    await page.getByTestId('tab-options-move-to-pane-0').click();
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(panes.nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+    await expect.poll(ids).toEqual(beforeIds);
+    await expect(page).toHaveURL(/panel=deployments/);
+    afterSecond = await paneTabPanels(page);
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await expect(page).toHaveURL(/panel=preview/);
+    await shot(page, 'double-move-after-navigation');
+    await expect(panes.locator('[role="tab"]')).toHaveCount(beforeIds.length);
+    await expect.poll(ids).toEqual(beforeIds);
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(panes.nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await testInfo.attach('double-move.json', {
+      body: JSON.stringify(
+        {
+          beforeIds,
+          before,
+          afterFirst,
+          afterSecond,
+          afterNavigation: await paneTabPanels(page),
+          afterIds: await ids(),
+          requests,
+          previewId,
+        },
+        null,
+        2,
+      ),
+      contentType: 'application/json',
+    });
+  }
+});
+
+test('normal click navigation followed by a move preserves tab identities', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+
+  const auth = await authenticate(page);
+  const projectId = await seedProject(page, auth, 'light');
+  await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"][aria-selected="true"]'),
+  ).toHaveCount(1);
+  await page.getByTestId('ide-dock-deployments').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await openOptionsMenu(page, 0);
+  await page.getByTestId('tab-options-split-right').click();
+
+  const panes = page.locator('.bolt-project-pane-leaf');
+  await expect(panes).toHaveCount(2);
+
+  const preview = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"]');
+  await expect(preview).toHaveCount(1);
+
+  const previewId = await preview.getAttribute('data-tab-id');
+  expect(previewId).toBeTruthy();
+
+  const ids = () =>
+    panes.locator('[role="tab"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-tab-id')).sort());
+
+  const beforeIds = await ids();
+  const before = await paneTabPanels(page);
+
+  let release!: () => void;
+  let observed!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const seen = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+
+  const requests: { path: string; result: string }[] = [];
+
+  let afterFirst: string[][] | undefined;
+  let afterSecond: string[][] | undefined;
+  await page.route('**/*.data?*', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.searchParams.get('panel') !== 'preview') {
+      await route.continue();
+      return;
+    }
+
+    requests.push({ path: url.pathname + url.search, result: 'held pending real continuation' });
+    observed();
+    await gate;
+
+    try {
+      await route.continue();
+    } catch {
+      requests.push({ path: url.pathname + url.search, result: 'continuation unavailable after cancellation' });
+    }
+  });
+
+  try {
+    // Begin an ordinary tab selection: its URL navigation has no move receipt.
+    await preview.locator('.bolt-project-tab-main').click();
+    await seen;
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/panel=deployments/);
+    afterFirst = await paneTabPanels(page);
+
+    // Move that selected tab before its actual URL request is released.
+    await openOptionsMenu(page, 0);
+    await page.getByTestId('tab-options-move-to-pane-0').click();
+    await expect(panes.nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+    await expect.poll(ids).toEqual(beforeIds);
+    await expect(page).toHaveURL(/panel=deployments/);
+    afterSecond = await paneTabPanels(page);
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await expect(page).toHaveURL(/panel=preview/);
+    await shot(page, 'normal-click-move-after-navigation');
+    await expect(panes.locator('[role="tab"]')).toHaveCount(beforeIds.length);
+    await expect.poll(ids).toEqual(beforeIds);
+    await expect(panes.nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await testInfo.attach('double-move.json', {
+      body: JSON.stringify(
+        {
+          beforeIds,
+          before,
+          afterFirst,
+          afterSecond,
+          afterNavigation: await paneTabPanels(page),
+          afterIds: await ids(),
+          requests,
+          previewId,
+        },
+        null,
+        2,
+      ),
+      contentType: 'application/json',
+    });
+  }
+});
+
+test('an interrupted Back move cannot swallow a later Back to the same history entry', async ({ page }, info) => {
+  test.setTimeout(90_000);
+
+  const state = await redundantMove(page);
+  const preview = tabById(page, state.previewId);
+  const previewHistoryKey = await page.evaluate(() => window.history.state?.key);
+  const deployment = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="deployments"]');
+  await deployment.locator('.bolt-project-tab-main').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await openOptionsMenu(page, 1);
+  await page.getByTestId('tab-options-move-to-pane-0').click();
+  await expect(panes(page).nth(0).locator('[role="tab"][data-panel="deployments"]')).toHaveCount(1);
+  await expect(preview).toHaveAttribute('aria-selected', 'true');
+
+  let release!: () => void;
+  let observed!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const seen = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+  const failed: string[] = [];
+  page.on('requestfailed', (request) => {
+    if (request.url().includes('.data') && new URL(request.url()).searchParams.get('panel') === 'preview') {
+      failed.push(request.failure()?.errorText ?? 'unknown');
+    }
+  });
+  await page.route('**/*.data?*', async (route) => {
+    if (new URL(route.request().url()).searchParams.get('panel') !== 'preview') {
+      await route.continue();
+      return;
+    }
+
+    observed();
+    await gate;
+
+    try {
+      await route.continue();
+    } catch (error) {
+      if (!failed.length) {
+        throw error;
+      }
+    }
+  });
+
+  try {
+    const back = page.goBack({ waitUntil: 'domcontentloaded' });
+    await seen;
+    await expect.poll(() => page.evaluate(() => window.history.state?.key)).toBe(previewHistoryKey);
+    await openOptionsMenu(page, 1);
+    await page.getByTestId('tab-options-move-to-pane-0').click();
+    await expect(panes(page).nth(0).locator(`[data-tab-id="${state.previewId}"]`)).toHaveCount(1);
+    await expect.poll(() => tabIds(page)).toEqual(state.before);
+
+    // Cancel the POP by returning to the still-applied entry, without adding an entry.
+    await page.goForward({ waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/panel=deployments/);
+    await expect.poll(() => failed.length).toBeGreaterThan(0);
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await back;
+    await deployment.locator('.bolt-project-tab-main').click();
+    await expect(deployment).toHaveAttribute('aria-selected', 'true');
+    await page.goBack({ waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/panel=preview/);
+    await expect.poll(() => page.evaluate(() => window.history.state?.key)).toBe(previewHistoryKey);
+    await expect(preview).toHaveAttribute('aria-selected', 'true');
+    await expect.poll(() => tabIds(page)).toEqual(state.before);
+    await shot(page, 'interrupted-pop-back');
+    await info.attach('interrupted-pop.json', {
+      body: JSON.stringify({ before: state.before, after: await tabIds(page), previewHistoryKey, failed }),
+      contentType: 'application/json',
+    });
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});

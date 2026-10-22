@@ -1,0 +1,15 @@
+{
+  "compiledSourceCommit": "4ec690fc00cd7c8fd386249323c20f16569e5538",
+  "compiledSourceTree": "7309a7d2335826234a172dd39a7a183f3b434aa3",
+  "comparedProductPaths": 3578,
+  "changedProductPaths": [],
+  "changedTrackedPaths": [
+    "BUG_INVENTORY_LIVE.md",
+    "docs/bugs/BUG-IDE-PANE-DOCUMENT-IDENTITY-001.md",
+    "tests/e2e/ide-mobile-chrome.spec.ts"
+  ],
+  "testChanges": "Only Locator.tap actionability, same assertions/timeouts; one empty line added by ESLint after run",
+  "executedTestSha256": "070fda975cc97a1494c027825098e269b4c78c67f2e17bb7795f7d96d6c2c086",
+  "publishedTestSha256": "1aa0add1818b57089488056c5fda5386c7bd43efb38818611c5898c6f7862f27",
+  "postRunFormattingOnly": true
+}

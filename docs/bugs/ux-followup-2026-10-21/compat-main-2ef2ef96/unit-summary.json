@@ -1,0 +1,159 @@
+{
+  "passed": 29,
+  "failed": 0,
+  "skipped": 0,
+  "files": [
+    {
+      "path": "scripts/index-a-jour.spec.mjs",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "l'index de l'inventaire ne diverge pas de docs/bugs/ chaque fichier du dossier a exactement une ligne dans l’index",
+          "status": "passed"
+        },
+        {
+          "title": "l'index de l'inventaire ne diverge pas de docs/bugs/ chaque ligne de l’index pointe vers un fichier qui existe",
+          "status": "passed"
+        },
+        {
+          "title": "l'index de l'inventaire ne diverge pas de docs/bugs/ l’identifiant de l’index est celui du frontmatter du fichier",
+          "status": "passed"
+        },
+        {
+          "title": "l'index de l'inventaire ne diverge pas de docs/bugs/ le compte annoncé en tête d’index est le compte réel",
+          "status": "passed"
+        },
+        {
+          "title": "la décision restée hors du tableau est conservée mot pour mot figure dans l'index, à la ligne près",
+          "status": "passed"
+        },
+        {
+          "title": "la décision restée hors du tableau est conservée mot pour mot est annoncée comme un résidu, pas glissée dans la liste des entrées",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "scripts/node-workspace-compatibility.spec.mjs",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "declared workspace Node support excludes unsupported Node 18, 20 and early 22 releases",
+          "status": "passed"
+        },
+        {
+          "title": "declared workspace Node support accepts supported releases that satisfy installed workspace tools",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "scripts/tinypool-security.spec.mjs",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "runs both prototype-pollution regressions with real Tinypool workers",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "app/components/chat/AgentHeaderMenu.spec.tsx",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "keeps the menu and focused action through actual shell replacement, then restores focus on Escape",
+          "status": "passed"
+        },
+        {
+          "title": "does not reopen a menu explicitly closed before replacement",
+          "status": "passed"
+        },
+        {
+          "title": "drops state when leaving the project scope and returning",
+          "status": "passed"
+        },
+        {
+          "title": "drops state when leaving the workspace scope and returning",
+          "status": "passed"
+        },
+        {
+          "title": "drops state when leaving the window scope and returning",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "app/components/chat/MessageContextMenu.spec.tsx",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "<MenuContextuel /> sur une bulle un appui long ouvre le menu",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle un appui bref n’ouvre rien",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle faire défiler le fil n’ouvre pas le menu",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle le clic droit ouvre le menu immédiatement, sans appui long",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle la souris n’ouvre PAS le menu par un appui maintenu",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle sur téléphone, le menu se rend à la racine du gabarit mobile, hors de la bulle",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle sur téléphone, le focus va au MENU et non à sa première action — ailleurs, à la première action",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle le panneau, porteur du focus, ne dessine pas d’anneau (le contour par défaut de Safari entourait la barre)",
+          "status": "passed"
+        },
+        {
+          "title": "<MenuContextuel /> sur une bulle Échap referme le menu",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défilement, ancré à la ligne ouvrir le menu d’un second message ferme celui du premier",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défilement, ancré à la ligne un défilement ferme le menu ; un appui dans le menu ne le ferme pas",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défilement, ancré à la ligne câblage : identifiants par message, pas de sélection native sur les lignes en mobile",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "path": "app/components/ui/Dialog.escape.spec.tsx",
+      "status": "passed",
+      "cases": [
+        {
+          "title": "dismisses a confirmation once when Radix already handles Escape",
+          "status": "passed"
+        },
+        {
+          "title": "respects Escape consumed by another keyboard handler",
+          "status": "passed"
+        },
+        {
+          "title": "does not dismiss the parent when Escape closes a nested confirmation",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

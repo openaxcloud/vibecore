@@ -1,0 +1,13 @@
+import { defineConfig } from '@playwright/test';
+import standard from '../../playwright.config';
+export default defineConfig({
+  ...standard,
+  testDir: '../../tests/e2e',
+  testMatch: ['ide-mobile-file-restore.spec.ts', 'ide-floating-file-tabs.spec.ts'],
+  webServer: undefined,
+  retries: 0,
+  workers: 1,
+  outputDir: '/workspace/ux-artifacts/followup-759-760/main18cf-docking/final-navigation-stable/files/results',
+  reporter: [['list'], ['json', { outputFile: '/workspace/ux-artifacts/followup-759-760/main18cf-docking/final-navigation-stable/files/results.json' }]],
+  projects: [{name:'chromium',use:{...standard.projects?.find(p=>p.name==='chromium')?.use,launchOptions:{executablePath:'/usr/bin/chromium'}}}],
+});

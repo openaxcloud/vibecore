@@ -1,0 +1,40 @@
+--- a/tests/e2e/ide-mobile-chrome.spec.ts
++++ b/tests/e2e/ide-mobile-chrome.spec.ts
+@@ -631,10 +631,36 @@
+      * dans 20 px de marge, en jetons de 14 px dans un `pre` de 11 px.
+      */
+     const resumeLocator = page.locator('.bolt-action-row-details > summary').first();
++    await page.evaluate(() => {
++      const w = window as any;
++      w.__tapEvidence = [];
++      const node = document.querySelector('.bolt-action-row-details > summary');
++      for (const type of ['pointerdown', 'touchstart', 'click', 'toggle']) {
++        document.addEventListener(type, (event: any) => {
++          const target = event.target as HTMLElement;
++          w.__tapEvidence.push({kind: type, time: performance.now(), target: target?.tagName, classes: target?.className, x: event.clientX, y: event.clientY, defaultPrevented: event.defaultPrevented, sameNode: target === node, connected: node?.isConnected, open: node?.parentElement?.hasAttribute('open')});
++        }, {capture:true, passive:true});
++      }
++    });
+     const boite = await resumeLocator.boundingBox();
++    const recordPoint = async (stage: string) => page.evaluate(({stage,box}) => {
++      const w = window as any;
++      const target = document.querySelector<HTMLElement>('.bolt-action-row-details > summary');
++      const x=(box?.x??0)+(box?.width??0)/2, y=(box?.y??0)+(box?.height??0)/2;
++      const ancestors=[];for(let e=target;e;e=e.parentElement){const r=e.getBoundingClientRect(),c=getComputedStyle(e);ancestors.push({tag:e.tagName,classes:e.className,x:r.x,y:r.y,w:r.width,h:r.height,transform:c.transform,overflow:c.overflow});}
++      w.__tapEvidence.push({kind:stage,time:performance.now(),x,y,viewport:{w:innerWidth,h:innerHeight},hits:document.elementsFromPoint(x,y).slice(0,6).map(e=>({tag:e.tagName,classes:e.className})),ancestors,open:target?.parentElement?.hasAttribute('open')});
++    }, {stage,box:boite});
++    await recordPoint('before');
+ 
+     await page.touchscreen.tap((boite?.x ?? 0) + (boite?.width ?? 0) / 2, (boite?.y ?? 0) + (boite?.height ?? 0) / 2);
+-    await expect(page.locator('.bolt-action-row-details[open]').first()).toBeVisible({ timeout: 10_000 });
++    await recordPoint('after');
++    try {
++      await expect(page.locator('.bolt-action-row-details[open]').first()).toBeVisible({ timeout: 10_000 });
++    } finally {
++      await recordPoint('verdict');
++      await test.info().attach('tap-evidence', {body: JSON.stringify(await page.evaluate(() => (window as any).__tapEvidence), null, 2), contentType:'application/json'});
++      await page.screenshot({path:test.info().outputPath('tap.png')});
++    }
+ 
+     const apresAppui = await page.evaluate(() => {
+       const resume = document.querySelector<HTMLElement>('.bolt-action-row-details[open] > summary')!;

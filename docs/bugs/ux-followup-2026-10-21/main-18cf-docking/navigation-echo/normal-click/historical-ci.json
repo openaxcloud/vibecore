@@ -1,0 +1,29 @@
+{
+  "commit": "afe8a440fef234402bc246f5a1c631741b391164",
+  "tree": "4ddba45ea568a3ca94981591048847f18792c5cd",
+  "syntheticCommit": "d645c38b59c01d03d8f774e706b3561257839015",
+  "base": "18cf74fd7abcd59620f0994b44ac1411e97fcf93",
+  "run": 39745633868,
+  "e2e": {
+    "files": 81,
+    "total": 478,
+    "direct": 452,
+    "skipped": 26,
+    "failed": 0,
+    "flaky": 0,
+    "waived": 0
+  },
+  "french": {
+    "direct": 16
+  },
+  "postgres": {
+    "direct": 59
+  },
+  "webkit": {
+    "direct": 17,
+    "skipped": 3,
+    "flaky": 0
+  },
+  "readOnlyE2EReceiptSha256": "7157a5858be8ea4e25470944f4ab9572aa3cbfe8657ad2e1307437f6c84e2ef7",
+  "limitation": "Historical green CI does not cover the normal click followed by move counterexample. Merge remained blocked."
+}

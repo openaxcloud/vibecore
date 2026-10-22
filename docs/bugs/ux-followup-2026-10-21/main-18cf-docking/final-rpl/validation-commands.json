@@ -1,0 +1,33 @@
+{
+  "build": {
+    "command": "pnpm run build",
+    "exitCode": 0,
+    "log": "/tmp/ux763-rpl-build-final.log"
+  },
+  "typecheck": {
+    "command": "pnpm typecheck",
+    "log": "/tmp/ux763-rpl-typecheck.log",
+    "exitCode": 0
+  },
+  "unit": {
+    "command": "pnpm exec vitest run app/lib/stores/workbench.project-storage-return.spec.ts app/components/ui/Dialog.escape.spec.tsx scripts/index-a-jour.spec.mjs",
+    "passed": 35,
+    "failed": 0
+  },
+  "rpl": {
+    "command": "PLAYWRIGHT_BASE_URL=http://127.0.0.1:5217 SAAS_API_URL=http://127.0.0.1:3017 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node_modules/.bin/playwright test -c .vibecore/ux-qa/rpl-local.config.ts",
+    "passed": 2,
+    "failed": 0,
+    "retry": 0,
+    "skip": 0,
+    "localTestCopyOnlyChange": "OUT_DIR screenshot destination"
+  },
+  "broadTscDiagnostic": "raw-tsc-diagnostic.json; not the repository typecheck command",
+  "commitHookFirstAttempt": {
+    "status": "rejected by lint",
+    "errors": 3,
+    "warnings": 52,
+    "cause": "one blank line and two block-comment style rules in BaseChat",
+    "correction": "lint-source-comparison.json; no bypass"
+  }
+}

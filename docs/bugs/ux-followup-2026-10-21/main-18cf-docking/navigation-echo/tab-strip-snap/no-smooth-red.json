@@ -1,0 +1,133 @@
+{
+  "stage": "no-smooth-red",
+  "diagnosticOnly": true,
+  "variant": "Diagnostic CSS injection: scroll-behavior:auto only",
+  "localSourceReport": "navigation-close-no-smooth/results.json",
+  "sourceReportSha256": "5cc5b8d87e6763ccd7bef091e5ad5af9dabfc61a82ae734cbdaf18b6138df67a",
+  "stats": {
+    "startTime": "2026-10-22T07:52:26.463Z",
+    "duration": 13372.998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 11787,
+          "retry": 0,
+          "failures": [
+            "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('.bolt-project-pane-leaf [role=\"tab\"][data-tab-id=\"tab-preview-default\"]')\nExpected: 0\nReceived: 1\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toHaveCount\" with timeout 5000ms\n  - waiting for locator('.bolt-project-pane-leaf [role=\"tab\"][data-tab-id=\"tab-preview-default\"]')\n    9 × locator resolved to 1 element\n      - unexpected value \"1\"\n\n\n  588 |   await page.addStyleTag({content:'.bolt-project-tabs { scroll-behavior: auto; }'});\n  589 |   await moved.locator('button.bolt-project-tab-close').click();\n> 590 |   try { await expect(moved).toHaveCount(0); } finally { await info.attach('after-close.json',{body:JSON.stringify({url:page.url(), errors, events:await page.evaluate(()=>(window as any).__closeEvents), tabs:await tabs(page).evaluateAll(nodes=>nodes.map(n=>({id:n.getAttribute('data-tab-id'),pinned:n.getAttribute('data-pinned'),selected:n.getAttribute('aria-selected')})))}),contentType:'application/json'}); }\n      |                             ^\n  591 |   await expect(tabs(page)).toHaveCount(state.before.length - 1);\n  592 |   await expect(page).not.toHaveURL(/panel=preview/);\n  593 |   await page.goBack({ waitUntil: 'domcontentloaded' });\n    at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/rpl-local.spec.ts:590:29"
+          ],
+          "before-close.json": {
+            "path": "/projects/cmvj8tt6s06qh1hnnxonom1e0/ide",
+            "panel": "preview",
+            "tabs": [
+              {
+                "id": "tab-editor-default",
+                "pinned": null,
+                "selected": "true"
+              },
+              {
+                "id": "tab-deployments-29beb3c2-ce3c-4803-bc1d-9cb6cce42343",
+                "pinned": null,
+                "selected": "false"
+              },
+              {
+                "id": "tab-preview-default",
+                "pinned": null,
+                "selected": "true"
+              }
+            ],
+            "consoleErrors": [
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+            ]
+          },
+          "after-close.json": {
+            "path": "/projects/cmvj8tt6s06qh1hnnxonom1e0/ide",
+            "panel": "preview",
+            "tabs": [
+              {
+                "id": "tab-editor-default",
+                "pinned": null,
+                "selected": "true"
+              },
+              {
+                "id": "tab-deployments-29beb3c2-ce3c-4803-bc1d-9cb6cce42343",
+                "pinned": null,
+                "selected": "false"
+              },
+              {
+                "id": "tab-preview-default",
+                "pinned": null,
+                "selected": "true"
+              }
+            ],
+            "consoleErrors": [
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+            ],
+            "events": [
+              {
+                "kind": "pointerdown",
+                "x": 896.9500122070312,
+                "scroll": 137,
+                "target": {
+                  "tag": "DIV",
+                  "class": "bolt-project-tabs",
+                  "role": "tablist"
+                }
+              },
+              {
+                "kind": "mousedown",
+                "x": 896,
+                "scroll": 137,
+                "target": {
+                  "tag": "DIV",
+                  "class": "bolt-project-tabs",
+                  "role": "tablist"
+                }
+              },
+              {
+                "kind": "pointerup",
+                "x": 896.9500122070312,
+                "scroll": 172,
+                "target": {
+                  "tag": "BUTTON",
+                  "class": "bolt-project-tab-close",
+                  "role": null
+                }
+              },
+              {
+                "kind": "mouseup",
+                "x": 896,
+                "scroll": 172,
+                "target": {
+                  "tag": "BUTTON",
+                  "class": "bolt-project-tab-close",
+                  "role": null
+                }
+              },
+              {
+                "kind": "click",
+                "x": 896,
+                "scroll": 172,
+                "target": {
+                  "tag": "DIV",
+                  "class": "bolt-project-tabs",
+                  "role": "tablist"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "redactions": "No trace ZIP, request/response payload, environment, auth headers, cookies or sessions copied. Event target HTML reduced to tag/class/role. URL reduced to path and panel."
+}

@@ -1,0 +1,66 @@
+
+Running 21 tests using 1 worker
+
+(node:65007) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65007) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:320:3 › chrome de l’IDE sur téléphone — 390 › barre du bas : l’onglet actif est entièrement visible dans sa bande (4.5s)
+  ✓   2 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:350:3 › chrome de l’IDE sur téléphone — 390 › état de départ de l’Agent : chaque action entière, la puce du composeur entière (1.9s)
+  ✓   3 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:378:3 › chrome de l’IDE sur téléphone — 390 › Journaux : trois rangées, actions en icônes accessibles, statut et niveaux entiers (3.3s)
+  ✓   4 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:420:3 › chrome de l’IDE sur téléphone — 390 › feuille « + » : titres 13 px, descriptions 12 px entières, une colonne (3.2s)
+  ✓   5 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:462:3 › chrome de l’IDE sur téléphone — 390 › Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne (2.5s)
+  ✓   6 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:523:3 › chrome de l’IDE sur téléphone — 390 › Webview : barre d’adresse compacte, journaux à 12 px sans débordement (3.0s)
+  ✘   7 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux (12.2s)
+(node:66239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:66239) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:320:3 › chrome de l’IDE sur téléphone — 390 › barre du bas : l’onglet actif est entièrement visible dans sa bande (3.7s)
+  ✓   9 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:350:3 › chrome de l’IDE sur téléphone — 390 › état de départ de l’Agent : chaque action entière, la puce du composeur entière (1.9s)
+  ✓  10 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:378:3 › chrome de l’IDE sur téléphone — 390 › Journaux : trois rangées, actions en icônes accessibles, statut et niveaux entiers (2.3s)
+  ✓  11 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:420:3 › chrome de l’IDE sur téléphone — 390 › feuille « + » : titres 13 px, descriptions 12 px entières, une colonne (2.7s)
+  ✓  12 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:462:3 › chrome de l’IDE sur téléphone — 390 › Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne (2.9s)
+  ✓  13 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:523:3 › chrome de l’IDE sur téléphone — 390 › Webview : barre d’adresse compacte, journaux à 12 px sans débordement (3.0s)
+  ✓  14 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux (2.5s)
+(node:67397) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67397) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  15 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:320:3 › chrome de l’IDE sur téléphone — 390 › barre du bas : l’onglet actif est entièrement visible dans sa bande (4.0s)
+  ✓  16 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:350:3 › chrome de l’IDE sur téléphone — 390 › état de départ de l’Agent : chaque action entière, la puce du composeur entière (2.8s)
+  ✓  17 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:378:3 › chrome de l’IDE sur téléphone — 390 › Journaux : trois rangées, actions en icônes accessibles, statut et niveaux entiers (2.8s)
+  ✓  18 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:420:3 › chrome de l’IDE sur téléphone — 390 › feuille « + » : titres 13 px, descriptions 12 px entières, une colonne (2.8s)
+  ✓  19 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:462:3 › chrome de l’IDE sur téléphone — 390 › Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne (2.6s)
+  ✓  20 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:523:3 › chrome de l’IDE sur téléphone — 390 › Webview : barre d’adresse compacte, journaux à 12 px sans débordement (3.0s)
+  ✓  21 [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux (2.5s)
+
+
+  1) [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.bolt-action-row-details[open]').first()
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('.bolt-action-row-details[open]').first()[22m
+
+
+      656 |     await recordPoint('after');
+      657 |     try {
+    > 658 |       await expect(page.locator('.bolt-action-row-details[open]').first()).toBeVisible({ timeout: 10_000 });
+          |                                                                            ^
+      659 |     } finally {
+      660 |       await recordPoint('verdict');
+      661 |       await test.info().attach('tap-evidence', {body: JSON.stringify(await page.evaluate(() => (window as any).__tapEvidence), null, 2), contentType:'application/json'});
+        at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/tap-diagnostic.spec.ts:658:76
+
+    Error Context: ../ux-artifacts/followup-759-760/main18cf-docking/tap-diagnostic/tap-diagnostic-chrome-de-l-1dff9-mmande-à-32-px-dans-le-flux-chromium/error-context.md
+
+  1 failed
+    [chromium] › .vibecore/ux-qa/tap-diagnostic.spec.ts:578:3 › chrome de l’IDE sur téléphone — 390 › fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux 
+  20 passed (1.2m)

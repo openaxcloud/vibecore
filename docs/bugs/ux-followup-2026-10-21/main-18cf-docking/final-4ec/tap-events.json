@@ -1,0 +1,2560 @@
+[
+  {
+    "status": "failed",
+    "events": [
+      {
+        "kind": "before",
+        "time": 1651.1700000003912,
+        "x": 70.015625,
+        "y": 354.2647399902344,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "DIV",
+            "classes": "w-full max-w-chat mx-auto px-0 pb-4"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 327.6715393066406,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 333.6715393066406,
+            "w": 333,
+            "h": 32,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 310.2965393066406,
+            "w": 333,
+            "h": 55.375,
+            "transform": "matrix(1, 0, 0, 1, 0, 12.3747)",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 158.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 92.546875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 156.28125,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 197.15625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 221.65625,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 221.65625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 228.65625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 289.03125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 327.03125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 327.03125,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": false
+      },
+      {
+        "kind": "pointerdown",
+        "time": 1681.5800000000745,
+        "target": "DIV",
+        "classes": "bolt-assistant-message overflow-hidden w-full",
+        "x": 70.015625,
+        "y": 354.2647399902344,
+        "defaultPrevented": false,
+        "sameNode": false,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "touchstart",
+        "time": 1682.0750000001863,
+        "target": "DIV",
+        "classes": "bolt-assistant-message overflow-hidden w-full",
+        "defaultPrevented": false,
+        "sameNode": false,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "click",
+        "time": 1686.1100000003353,
+        "target": "DIV",
+        "classes": "bolt-assistant-message overflow-hidden w-full",
+        "x": 70,
+        "y": 354,
+        "defaultPrevented": false,
+        "sameNode": false,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "after",
+        "time": 1689.505000000354,
+        "x": 70.015625,
+        "y": 354.2647399902344,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 321.04815673828125,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 327.04815673828125,
+            "w": 333,
+            "h": 32,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 303.67315673828125,
+            "w": 333,
+            "h": 55.375,
+            "transform": "matrix(1, 0, 0, 1, 0, 5.75129)",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 158.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 126.453125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 190.1875,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 231.0625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 255.5625,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 255.5625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 262.5625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 322.9375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 360.9375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 360.9375,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": false
+      },
+      {
+        "kind": "verdict",
+        "time": 11699.745000000112,
+        "x": 70.015625,
+        "y": 354.2647399902344,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 315.296875,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 321.296875,
+            "w": 333,
+            "h": 32,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 297.921875,
+            "w": 333,
+            "h": 55.375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 158.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 159.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 223.546875,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 264.421875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 288.921875,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 288.921875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 295.921875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 356.296875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 394.296875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 394.296875,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": false
+      }
+    ]
+  },
+  {
+    "status": "passed",
+    "events": [
+      {
+        "kind": "before",
+        "time": 1894.9550000000745,
+        "x": 70.015625,
+        "y": 330.6243591308594,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none"
+          },
+          {
+            "tag": "DIV",
+            "classes": ""
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 308.18072509765625,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 314.18072509765625,
+            "w": 333,
+            "h": 32,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 290.80572509765625,
+            "w": 333,
+            "h": 55.375,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.196334)",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 116.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 116.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 151.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 152.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 216.234375,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 257.109375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 281.609375,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 281.609375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 288.609375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 348.984375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 386.984375,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 386.984375,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": false
+      },
+      {
+        "kind": "pointerdown",
+        "time": 1925.1450000000186,
+        "target": "SUMMARY",
+        "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+        "x": 70.015625,
+        "y": 330.6243591308594,
+        "defaultPrevented": false,
+        "sameNode": true,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "touchstart",
+        "time": 1925.7050000000745,
+        "target": "SUMMARY",
+        "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+        "defaultPrevented": false,
+        "sameNode": true,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "click",
+        "time": 1929.5049999998882,
+        "target": "SUMMARY",
+        "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+        "x": 70,
+        "y": 331,
+        "defaultPrevented": false,
+        "sameNode": true,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "after",
+        "time": 1934.4550000000745,
+        "x": 70.015625,
+        "y": 330.6243591308594,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none"
+          },
+          {
+            "tag": "DIV",
+            "classes": ""
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 307.984375,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 313.984375,
+            "w": 333,
+            "h": 68.890625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 290.609375,
+            "w": 333,
+            "h": 92.265625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 153.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 153.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 188.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 189.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 253.125,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 294,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 318.5,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 318.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 325.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 385.875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 423.875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 423.875,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": true
+      },
+      {
+        "kind": "toggle",
+        "time": 1939.5499999998137,
+        "target": "DETAILS",
+        "classes": "bolt-action-row-details mt-1",
+        "defaultPrevented": false,
+        "sameNode": false,
+        "connected": true,
+        "open": true
+      },
+      {
+        "kind": "verdict",
+        "time": 1940.654999999795,
+        "x": 70.015625,
+        "y": 330.6243591308594,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none"
+          },
+          {
+            "tag": "DIV",
+            "classes": ""
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 307.984375,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 313.984375,
+            "w": 333,
+            "h": 68.890625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 290.609375,
+            "w": 333,
+            "h": 92.265625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 153.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 153.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 188.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 189.390625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 253.125,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 294,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 318.5,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 318.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 325.5,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 385.875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 423.875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 423.875,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": true
+      }
+    ]
+  },
+  {
+    "status": "passed",
+    "events": [
+      {
+        "kind": "before",
+        "time": 1853.0049999998882,
+        "x": 70.015625,
+        "y": 338.731201171875,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none"
+          },
+          {
+            "tag": "DIV",
+            "classes": ""
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 316.0057373046875,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 322.0057373046875,
+            "w": 333,
+            "h": 32,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 298.6307373046875,
+            "w": 333,
+            "h": 55.375,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.70887)",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 123.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 158.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 159.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 223.546875,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 264.421875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 288.921875,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 288.921875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 295.921875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 356.296875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 394.296875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 394.296875,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": false
+      },
+      {
+        "kind": "pointerdown",
+        "time": 1886.3349999999627,
+        "target": "SUMMARY",
+        "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+        "x": 70.015625,
+        "y": 338.731201171875,
+        "defaultPrevented": false,
+        "sameNode": true,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "touchstart",
+        "time": 1886.8449999997392,
+        "target": "SUMMARY",
+        "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+        "defaultPrevented": false,
+        "sameNode": true,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "click",
+        "time": 1890.2749999999069,
+        "target": "SUMMARY",
+        "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+        "x": 70,
+        "y": 339,
+        "defaultPrevented": false,
+        "sameNode": true,
+        "connected": true,
+        "open": false
+      },
+      {
+        "kind": "after",
+        "time": 1894.8149999999441,
+        "x": 70.015625,
+        "y": 338.731201171875,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none"
+          },
+          {
+            "tag": "DIV",
+            "classes": ""
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 315.35162353515625,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 321.35162353515625,
+            "w": 333,
+            "h": 68.890625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 297.97662353515625,
+            "w": 333,
+            "h": 92.265625,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.0547424)",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 160.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 160.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 195.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 196.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 260.4375,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 301.3125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 325.8125,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 325.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 332.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 393.1875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 431.1875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 431.1875,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": true
+      },
+      {
+        "kind": "verdict",
+        "time": 1899.6450000000186,
+        "x": 70.015625,
+        "y": 338.731201171875,
+        "viewport": {
+          "w": 390,
+          "h": 844
+        },
+        "hits": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none"
+          },
+          {
+            "tag": "DIV",
+            "classes": ""
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background"
+          }
+        ],
+        "ancestors": [
+          {
+            "tag": "SUMMARY",
+            "classes": "inline-flex min-h-11 max-w-full cursor-pointer select-none items-center break-words rounded-md text-xs text-bolt-elements-textSecondary outline-none hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive",
+            "x": 28.5,
+            "y": 315.35162353515625,
+            "w": 83.03125,
+            "h": 44,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DETAILS",
+            "classes": "bolt-action-row-details mt-1",
+            "x": 28.5,
+            "y": 321.35162353515625,
+            "w": 333,
+            "h": 68.890625,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "LI",
+            "classes": "bolt-action-row min-w-0",
+            "x": 28.5,
+            "y": 297.97662353515625,
+            "w": 333,
+            "h": 92.265625,
+            "transform": "matrix(1, 0, 0, 1, 0, 0.0547424)",
+            "overflow": "visible"
+          },
+          {
+            "tag": "UL",
+            "classes": "bolt-action-list list-none",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 160.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "",
+            "x": 28.5,
+            "y": 229.484375,
+            "w": 333,
+            "h": 160.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "p-5 text-left bg-bolt-elements-actions-background",
+            "x": 11,
+            "y": 211.984375,
+            "w": 368,
+            "h": 195.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "actions",
+            "x": 11,
+            "y": 210.984375,
+            "w": 368,
+            "h": 196.703125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "artifact border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150",
+            "x": 10,
+            "y": 148.25,
+            "w": 370,
+            "h": 260.4375,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_MarkdownContent_15rjj_2",
+            "x": 10,
+            "y": 107.375,
+            "w": 370,
+            "h": 301.3125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-assistant-message overflow-hidden w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 325.8125,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "grid grid-col-1 w-full",
+            "x": 10,
+            "y": 103.875,
+            "w": 370,
+            "h": 325.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg bolt-chat-message-row-assistant mt-1",
+            "x": 10,
+            "y": 100.375,
+            "w": 370,
+            "h": 332.8125,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1",
+            "x": 10,
+            "y": 54,
+            "w": 370,
+            "h": 393.1875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex flex-col gap-4 relative bolt-project-agent-transcript",
+            "x": 10,
+            "y": 48,
+            "w": 370,
+            "h": 431.1875,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "w-full h-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 431.1875,
+            "transform": "none",
+            "overflow": "auto"
+          },
+          {
+            "tag": "DIV",
+            "classes": "pt-6 px-2 sm:px-6 relative h-full flex flex-col modern-scrollbar bolt-project-agent-scroll",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_Chat_15kx3_5 h-full min-h-0 flex-col flex-grow flex min-w-0 overflow-hidden bolt-project-agent-panel",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "DIV",
+            "classes": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+            "x": 0,
+            "y": 48,
+            "w": 390,
+            "h": 796,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "MAIN",
+            "classes": "h-dvh pt-9",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "visible"
+          },
+          {
+            "tag": "DIV",
+            "classes": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "BODY",
+            "classes": "h-full w-full",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          },
+          {
+            "tag": "HTML",
+            "classes": "light",
+            "x": 0,
+            "y": 0,
+            "w": 390,
+            "h": 844,
+            "transform": "none",
+            "overflow": "hidden"
+          }
+        ],
+        "open": true
+      },
+      {
+        "kind": "toggle",
+        "time": 1903.0349999996834,
+        "target": "DETAILS",
+        "classes": "bolt-action-row-details mt-1",
+        "defaultPrevented": false,
+        "sameNode": false,
+        "connected": true,
+        "open": true
+      }
+    ]
+  }
+]

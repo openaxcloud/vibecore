@@ -1,0 +1,12 @@
+
+Running 3 tests using 1 worker
+
+(node:59186) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:59186) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/ide-floating-file-tabs.spec.ts:8:1 › opening a file in a floating pane updates its tabs and survives docking (11.1s)
+  ✓  2 [chromium] › tests/e2e/ide-mobile-file-restore.spec.ts:561:3 › explicit provisional README stays in project A after switching to B at 390 (13.2s)
+  ✓  3 [chromium] › tests/e2e/ide-mobile-file-restore.spec.ts:561:3 › explicit provisional README stays in project A after switching to B at 768 (13.6s)
+
+  3 passed (38.9s)

@@ -1,0 +1,42 @@
+
+ RUN  v3.2.6 /workspace/vibecore-ux-escape
+
+ ❯ scripts/index-a-jour.spec.mjs (6 tests | 1 failed) 56ms
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > chaque fichier du dossier a exactement une ligne dans l’index 8ms
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > chaque ligne de l’index pointe vers un fichier qui existe 2ms
+   × l'index de l'inventaire ne diverge pas de docs/bugs/ > l’identifiant de l’index est celui du frontmatter du fichier 38ms
+     → identifiants en désaccord: expected [ Array(1) ] to deeply equal []
+   ✓ l'index de l'inventaire ne diverge pas de docs/bugs/ > le compte annoncé en tête d’index est le compte réel 3ms
+   ✓ la décision restée hors du tableau est conservée mot pour mot > figure dans l'index, à la ligne près 2ms
+   ✓ la décision restée hors du tableau est conservée mot pour mot > est annoncée comme un résidu, pas glissée dans la liste des entrées 1ms
+ ✓ app/components/ui/Dialog.escape.spec.tsx (3 tests) 308ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  scripts/index-a-jour.spec.mjs > l'index de l'inventaire ne diverge pas de docs/bugs/ > l’identifiant de l’index est celui du frontmatter du fichier
+AssertionError: identifiants en désaccord: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001.md: index=undefined frontmatter=undefined",
++ ]
+
+ ❯ scripts/index-a-jour.spec.mjs:78:53
+     76|       .map((entree) => `${entree.fichier}: index=${entree.id} frontmat…
+     77| 
+     78|     expect(desaccords, 'identifiants en désaccord').toEqual([]);
+       |                                                     ^
+     79|   });
+     80| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 8 passed (9)
+   Start at  15:32:40
+   Duration  6.19s (transform 2.22s, setup 86ms, collect 898ms, tests 364ms, environment 608ms, prepare 259ms)
+

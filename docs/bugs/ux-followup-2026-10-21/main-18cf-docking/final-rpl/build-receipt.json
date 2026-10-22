@@ -1,0 +1,14 @@
+{
+  "compiledFileCount": 2307,
+  "compiledManifestSha256": "10ae4c3addd2c927f773904be29d4e39ed0ae9806227dd5f3d2c476e692a65a0",
+  "archiveSha256": "5fb64924312bd2163f2dff73e7dd861167987a61e0bca5466e5b1d014f855d49",
+  "archiveMatchesCompiledManifest": true,
+  "sourceManifestSha256": "55a9d1f8b0cb53a0fdeae3103b1a5c954d0fd2ca8447afdc3f02c1164a024841",
+  "buildCommand": "pnpm run build",
+  "buildExitCode": 0,
+  "baseHead": "d83cb4a18f00f04b79032a6316d62ad6bb9e2bb8",
+  "productCommit": "not yet committed; normal hooks required",
+  "preparedSourceTree": "708d963e4360a5f6a41cb1d881651804ad113904",
+  "preparedSourceCount": 9281,
+  "postBuildSourceChange": "lint-source-comparison.json: comments/blank line only, emitted JavaScript identical"
+}

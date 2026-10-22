@@ -1,0 +1,293 @@
+{
+  "sameSessionUsedByConcurrentCommitAndMenu": true,
+  "rateLimitConfigurationChanged": false,
+  "requests": [
+    {
+      "requestId": "9595ff94-f62a-43a1-a64d-01caa9e89964",
+      "time": 1792647477543,
+      "status": 429,
+      "method": "GET",
+      "path": "/auth/me"
+    },
+    {
+      "requestId": "10958eb5-3be0-4b09-a87a-23670a31f688",
+      "time": 1792647477544,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc/ai/conversations"
+    },
+    {
+      "requestId": "34ff36f9-bae8-465d-8e68-c81b8bbd9f16",
+      "time": 1792647477546,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/export/zip"
+    },
+    {
+      "requestId": "79645813-2934-42af-8f47-564fdc88370d",
+      "time": 1792647477623,
+      "status": 429,
+      "method": "POST",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc/git/commit"
+    },
+    {
+      "requestId": "df109b22-eca3-47fd-b647-f981e26833a5",
+      "time": 1792647477713,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc/agent/routing"
+    },
+    {
+      "requestId": "ffb9c393-1c63-47be-aee0-34d3e3ab083e",
+      "time": 1792647477714,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc/agent-repair-events"
+    },
+    {
+      "requestId": "88d1eaf2-aab3-426e-9e6a-c5d8a7e27d2f",
+      "time": 1792647477729,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc"
+    },
+    {
+      "requestId": "72d14af3-a810-4ea0-bdbf-b3be820d6253",
+      "time": 1792647477729,
+      "status": 429,
+      "method": "GET",
+      "path": "/providers/enabled"
+    },
+    {
+      "requestId": "1ad31ced-3b68-4e99-a2f1-4cc13c36a3eb",
+      "time": 1792647477730,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc"
+    },
+    {
+      "requestId": "456cbc7d-3528-42c6-a283-fd11fe8365d4",
+      "time": 1792647477739,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc/ai/conversations"
+    },
+    {
+      "requestId": "b2fddbf1-d661-476d-8040-3831487a8495",
+      "time": 1792647477748,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc"
+    },
+    {
+      "requestId": "7b416858-152e-497b-9ed5-10f8c64a5377",
+      "time": 1792647477768,
+      "status": 429,
+      "method": "PUT",
+      "path": "/projects/cmvj40sur01gi1hnnw1nva1nc/ide-state"
+    },
+    {
+      "requestId": "07c65f9c-d155-4d2e-9805-22439d21aac1",
+      "time": 1792647478128,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/agent-repair-events"
+    },
+    {
+      "requestId": "5e5975ff-5c0e-4bd5-9195-054a201c0b37",
+      "time": 1792647478128,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/agent/routing"
+    },
+    {
+      "requestId": "caadcc07-c2eb-4a95-96d1-7b43583c6580",
+      "time": 1792647478137,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/ide-state"
+    },
+    {
+      "requestId": "317988f9-e32a-496d-bd00-c259a42411f2",
+      "time": 1792647478149,
+      "status": 429,
+      "method": "GET",
+      "path": "/providers/enabled"
+    },
+    {
+      "requestId": "56b734b0-bf59-460c-8117-fae50184cec3",
+      "time": 1792647478154,
+      "status": 429,
+      "method": "GET",
+      "path": "/user/preferences"
+    },
+    {
+      "requestId": "3a03bfcb-cc87-4d8d-b2fe-24beebb58be3",
+      "time": 1792647478157,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "b03c85ff-e776-4fa4-beae-4017ac91d630",
+      "time": 1792647478162,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "a51171a9-a815-452b-b02f-229537b8d5b1",
+      "time": 1792647478167,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/agent-patch-proposals"
+    },
+    {
+      "requestId": "c30a3b02-c8bf-4e7d-803f-77ea35c385c9",
+      "time": 1792647478217,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "7c1ba2ee-69b9-4d69-b948-12b2043995f4",
+      "time": 1792647478270,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "25f24a27-98d2-490f-a6b5-293037873393",
+      "time": 1792647478271,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "93a822d9-320c-43ee-8251-5aade170f7dc",
+      "time": 1792647478284,
+      "status": 429,
+      "method": "GET",
+      "path": "/auth/me"
+    },
+    {
+      "requestId": "4d5839fe-6487-4a82-9821-a30f71dba589",
+      "time": 1792647478323,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/agent-repair-events"
+    },
+    {
+      "requestId": "1fd733d1-9042-4090-bb2b-1e3982dca0bf",
+      "time": 1792647478326,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/agent/routing"
+    },
+    {
+      "requestId": "872b6112-a8b2-4fea-a69b-f6d068049303",
+      "time": 1792647478330,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/ide-state"
+    },
+    {
+      "requestId": "2f34980a-a308-45ad-a058-0bbe2558dc70",
+      "time": 1792647478341,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "c3ea40b1-8ccb-4860-b043-71dec1063d72",
+      "time": 1792647478344,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "994db17f-e67a-4665-be38-43f1050b2784",
+      "time": 1792647478389,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "3872fafd-0bd9-4fe9-83d9-870bc9d14b0e",
+      "time": 1792647478426,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/agent-repair-events"
+    },
+    {
+      "requestId": "1e8c1a15-6177-41c9-9e2c-5ce6c2dc82c4",
+      "time": 1792647478426,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/agent/routing"
+    },
+    {
+      "requestId": "b9a0b8fe-7a91-436a-85e3-5b7c880f7d26",
+      "time": 1792647478435,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/ide-state"
+    },
+    {
+      "requestId": "0795aec7-e045-4bf6-9265-5415dd38d06d",
+      "time": 1792647478454,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "2b0f2dd3-0423-46ad-8d3a-91ee63e83d0b",
+      "time": 1792647478454,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "6ab6ffb0-8722-43fd-a438-7a34d6bbbf34",
+      "time": 1792647478476,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "63d5f29e-b853-447e-9138-96fb07ba0308",
+      "time": 1792647478510,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "c038ea8f-f8fb-4a45-8cf7-b43675c65b7b",
+      "time": 1792647478510,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj"
+    },
+    {
+      "requestId": "eb9aa4fa-5f28-4290-8561-272e2250e243",
+      "time": 1792647478516,
+      "status": 429,
+      "method": "GET",
+      "path": "/providers/enabled"
+    },
+    {
+      "requestId": "b80e53ef-5888-4e2e-8de9-906e60e595d2",
+      "time": 1792647478522,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/ide-state"
+    },
+    {
+      "requestId": "5e9a6b89-1ec8-41fd-98f2-ddd60e60990e",
+      "time": 1792647478643,
+      "status": 429,
+      "method": "GET",
+      "path": "/projects/cmvj3p0mp0002dgnnjbegx7oj/ide-state"
+    }
+  ]
+}

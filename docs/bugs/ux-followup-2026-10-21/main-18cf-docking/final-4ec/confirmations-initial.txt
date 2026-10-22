@@ -1,0 +1,48 @@
+
+Running 6 tests using 1 worker
+
+(node:60445) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:60445) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (1.0s)
+(node:60595) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:60595) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (4.2s)
+(node:60761) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:60761) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (4.0s)
+  ✓  4 [tablet] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (4.1s)
+(node:60995) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:60995) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) (3.8s)
+  ✓  6 [mobile] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (fr) (3.8s)
+
+
+  1) [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) 
+
+    Error: expect(received).toContain(expected) // indexOf
+
+    Expected value: 429
+    Received array: [200, 202, 302, 303]
+
+      67 |       .getByRole('button', { name: language === 'fr' ? 'Créer l’instantané' : 'Create snapshot', exact: true })
+      68 |       .click();
+    > 69 |     expect([200, 202, 302, 303]).toContain((await createdResponse).status());
+         |                                  ^
+      70 |
+      71 |     const opener = page.getByRole('button', {
+      72 |       name: `${language === 'fr' ? 'Restaurer' : 'Restore'} ${label}`,
+        at <checkout>/tests/e2e/snapshot-cancel-focus.spec.ts:69:34
+
+    Error Context: ../ux-artifacts/followup-759-760/main18cf-docking/final-4ec/confirmations/results/snapshot-cancel-focus-snap-95f16-erves-keyboard-position-en--desktop/error-context.md
+
+  1 failed
+    [desktop] › tests/e2e/snapshot-cancel-focus.spec.ts:8:3 › snapshot cancellation preserves keyboard position (en) 
+  5 passed (24.5s)

@@ -1,0 +1,37 @@
+{
+  "baseRevision": "736ed190d64a980471e5943cf7e0695195f2a691",
+  "builtSourceTree": "86d3929862d70fdf248a34cd47be59edf4566a91",
+  "productChanges": {
+    "app/components/ui/Dialog.tsx": {
+      "sha256": "575ed66e38664db955eac64361d3fc9606a5dca4920ee375fa56e78619451437"
+    }
+  },
+  "testChanges": {
+    "tests/e2e/snapshot-cancel-focus.spec.ts": {
+      "sha256": "bc3021fc008d7530d5534dd7590e3a0b6755b0fee088a74403613dba5c1e247c"
+    }
+  },
+  "compiledFiles": 2306,
+  "compiledManifestSha256": "0466109ad069bfab118430f69d9237baf0cf96777b3eb7ab6b7117af3380028f",
+  "frontendPort": 5210,
+  "backendPort": 3016,
+  "backendRevision": "4e79230ccfd63cb9562b88ffe9b8fe911f0bcb28",
+  "localOnly": true,
+  "postBuildUnitTestAdded": {
+    "path": "app/components/ui/Dialog.escape.spec.tsx",
+    "sha256": "75bde80df352545866dc59f7fd6da3a6d47ded8f2e5c8f342204cc1f376f89b9",
+    "runtimeSourceChanged": false
+  },
+  "archiveSha256": "f96a8ea1f1a14a425b185db8493ecc0030805deb27a0430ec90f578fcf811823",
+  "postBuildFormattingOnly": {
+    "path": "app/components/ui/Dialog.tsx",
+    "builtSha256": "575ed66e38664db955eac64361d3fc9606a5dca4920ee375fa56e78619451437",
+    "finalSha256": "767df5b879d1318c9eee7fbdf55b3ef06847817d79054db4234792263974cea8",
+    "esbuildNormalizedJavaScriptIdentical": true,
+    "normalizedJavaScriptSha256": "a2a39d88e9c05825957f4d86172a510d9cf60d688e7e07e6d177c612f1a24833",
+    "changes": [
+      "destructuring line breaks and trailing comma",
+      "line comment converted to block comment"
+    ]
+  }
+}

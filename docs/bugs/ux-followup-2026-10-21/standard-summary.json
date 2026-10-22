@@ -1,0 +1,47 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T16:56:59.394Z",
+    "duration": 21403.378,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 11532
+        }
+      ]
+    },
+    {
+      "file": "snapshot-cancel-focus.spec.ts",
+      "line": 8,
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 7997
+        }
+      ]
+    }
+  ],
+  "sourceTree": "6328177594f4ed3df64d316c54a2a9960892b777",
+  "omittedFromPublicReport": [
+    "absolute local paths",
+    "runner environment",
+    "attachments with private filesystem paths"
+  ],
+  "globalErrorCount": 0
+}
