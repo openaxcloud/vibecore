@@ -3,6 +3,10 @@ export function isJsoncFile(filePath: string): boolean {
   const segments = filePath.replaceAll('\\', '/').split('/');
   const basename = (segments.pop() ?? '').toLowerCase();
 
+  if (basename === 'package.json') {
+    return false;
+  }
+
   return (
     /^tsconfig(\..+)?\.json$/.test(basename) ||
     /^jsconfig(\..+)?\.json$/.test(basename) ||

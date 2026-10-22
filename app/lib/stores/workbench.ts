@@ -4127,14 +4127,11 @@ export class WorkbenchStore {
   /**
    * Launch the tracked dev-server start that was skipped while the artifact's
    * review queue was open. Runs at most once per artifact and only when no
-   * proposal for the artifact is still pending/applying; startPreviewServer
-   * itself is guarded/idempotent (in-flight promise + reattach short-circuit).
-   *
-   * NOTE: this deliberately does NOT reuse #hasOpenAgentPatchProposalsForArtifact
-   * — that predicate (via isTerminalAgentPatchStatus) treats a 'failed'
-   * proposal as still open, which is exactly how a failing patch used to
-   * starve the start command FOREVER. A failed proposal must not keep the dev
-   * server from launching.
+   * proposal for the artifact is still pending, applying or failed.
+   * A failed proposal remains blocking until it is accepted successfully or
+   * explicitly rejected; a failed write is not a decision to omit that file.
+   * startPreviewServer itself is guarded/idempotent (in-flight promise +
+   * reattach short-circuit).
    */
   #maybeRunDeferredStart(artifactId: string) {
     if (!this.#deferredStartArtifacts.has(artifactId) && !this.#deferredRefreshArtifacts.has(artifactId)) {

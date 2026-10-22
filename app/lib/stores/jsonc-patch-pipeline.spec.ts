@@ -50,6 +50,19 @@ describe('JSONC patch application pipeline', () => {
     expect(sanitizeFileContent(merged, 'tsconfig.json').jsonValid).toBe(true);
   });
 
+  it.each(['.vscode/package.json', 'nested/.vscode/package.json', 'nested\\.vscode\\package.json'])(
+    'keeps package.json strict inside a JSONC directory: %s',
+    async (path) => {
+      const commented = '{/* configuration comment */"name":"app"}';
+      const strict = '{"name":"app"}';
+
+      expect(() => sanitizeFileContent(commented, path)).toThrow();
+      await expect(validateGeneratedFile({ path, content: commented })).rejects.toThrow();
+      expect(sanitizeFileContent(strict, path)).toMatchObject({ sanitized: strict, jsonValid: true });
+      await expect(validateGeneratedFile({ path, content: strict })).resolves.toBeUndefined();
+    },
+  );
+
   it('does not treat package.json as JSONC', async () => {
     await expect(validateGeneratedFile({ path: 'package.json', content: proposed })).rejects.toThrow();
     expect(() => sanitizeFileContent(proposed, 'package.json')).toThrow();

@@ -33,8 +33,14 @@ describe('shared JSONC parsing', () => {
     'dir\\tsconfig.node.json',
   ])('recognizes JSONC configuration path %s', (path) => expect(isJsoncFile(path)).toBe(true));
 
-  it.each(['package.json', 'nested/package.json', 'app.json', 'not-tsconfig.json', 'vscode/settings.json'])(
-    'retains strict JSON for %s',
-    (path) => expect(isJsoncFile(path)).toBe(false),
-  );
+  it.each([
+    'package.json',
+    'nested/package.json',
+    '.vscode/package.json',
+    'nested/.vscode/package.json',
+    'nested\\.vscode\\package.json',
+    'app.json',
+    'not-tsconfig.json',
+    'vscode/settings.json',
+  ])('retains strict JSON for %s', (path) => expect(isJsoncFile(path)).toBe(false));
 });
