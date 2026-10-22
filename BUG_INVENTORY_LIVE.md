@@ -4,12 +4,11 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-465 entrées.
+466 entrées.
 
 ## Sans section
 
-- [BUG-NETWORK-DEPENDENCIES-20261021](docs/bugs/BUG-NETWORK-DEPENDENCIES-20261021.md) — Dépendances réseau ws et compression — 📤 Dispatché : ☑ · 💻 Codé : branche isolée · ✅ Testé live : local uniquement
-
+- [BUG-NETWORK-DEPENDENCIES-20261021](docs/bugs/BUG-NETWORK-DEPENDENCIES-20261021.md) — 📤 Dispatché : Triage des high production demandé le 21 octobre 2026 ; base main 883af053. · 💻 Codé : Branche isolée : ws résolu en 8.22.0 (minimum corrigé 8.21.0), compression 1.8.2. Aucun seuil de scan, délai o · ✅ Testé live : Reproductions locales loopback avec vrais sockets et flux zlib : ancien ws accepte 16 385 fragments de 1 octet
 - [BUG-METHODE-MODULE-MORT-002](docs/bugs/BUG-METHODE-MODULE-MORT-002.md) — Suite de -001 : la ligne de base traitée, et le scanner corrigé de DEUX faux positifs. — 📤 Dispatché : ☑ 15/09 · 💻 Codé : ☑ 15/09 · ✅ Testé live : ☐
 - [BUG-WEBKIT-SCROLL-FIL-001](docs/bugs/BUG-WEBKIT-SCROLL-FIL-001.md) — P1 à confirmer — sur WebKit, le fil de l'agent ne se remonte pas : la sonde qui le fait défiler rend `false` 3 FOIS SUR 3 à 768 px — 📤 Dispatché : ☑ 10/09 · 💻 Codé : ☑ 14/09 — cause tranchée, corrigé · ✅ Testé live : ☐
 - [BUG-WEBKIT-SCROLL-FIL-001](docs/bugs/BUG-WEBKIT-SCROLL-FIL-001-b.md) — #534 est DÉPLOYÉ — 📤 Dispatché : ☑ 14/09 · 💻 Codé : ☑ 14/09 · ✅ Testé live : ☐
@@ -590,8 +589,8 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 ## Sans section
 
 - [BUG-DEPLOY-IMAGE-PROVENANCE-001](docs/bugs/BUG-DEPLOY-IMAGE-PROVENANCE-001.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
-
-- [BUG-DEPENDENCY-CRITICAL-20261021](docs/bugs/BUG-DEPENDENCY-CRITICAL-20261021.md) — Quatre alertes critiques Capacitor/Tinypool sur main. — 📤 Dispatché : ☑ 21/10 · 💻 Codé : ☐ Candidat isolé, non fusionné. · ✅ Testé live : ☐ Aucune exploitation ni redistribution native attestée.
+- [BUG-DEPENDENCY-CRITICAL-20261021](docs/bugs/BUG-DEPENDENCY-CRITICAL-20261021.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
+- [BUG-I18N-STARTUP-CATALOGUE-20261022](docs/bugs/BUG-I18N-STARTUP-CATALOGUE-20261022.md) — Sur le bundle local, maintenir une requête de catalogue public en attente empêche l’hydratation : le logo reste affiché, sans formulaire de connexion. Une répon — 📤 Dispatché : ☑ — correctif indépendant demandé le 22 octobre 2026, hors éditeur et API. · 💻 Codé : ☐ — branche fix/login-catalogue-recovery-20261022, pas fusionnée sur main. Requête entière bornée (en-têtes et · ✅ Testé live : ☐ — validation locale uniquement ; ni production ni connexion authentifiée certifiées. Recette reproductible e
 
 ## Résidus non tabulaires — reportés mot pour mot
 

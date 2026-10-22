@@ -20,6 +20,48 @@ import { surfacesRequises, SURFACES, type Surface } from './surfaces';
 
 const enCours = new Map<string, Promise<void>>();
 
+// Bound the complete request, including a response body that never finishes.
+export const CATALOGUE_REQUEST_TIMEOUT_MS = 10_000;
+
+async function lireCatalogue(url: string, jeton: string): Promise<Record<string, string>> {
+  const controller = new AbortController();
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`i18n-catalogue-${jeton}-timeout`));
+      controller.abort();
+    }, CATALOGUE_REQUEST_TIMEOUT_MS);
+  });
+  const request = async () => {
+    const response = await fetch(url, { signal: controller.signal });
+
+    if (!response.ok) {
+      throw new Error(`i18n-catalogue-${jeton}-http-${response.status}`);
+    }
+
+    const catalogue: unknown = await response.json();
+
+    if (
+      !catalogue ||
+      typeof catalogue !== 'object' ||
+      Array.isArray(catalogue) ||
+      !Object.values(catalogue).every((value) => typeof value === 'string')
+    ) {
+      throw new Error(`i18n-catalogue-${jeton}-invalid`);
+    }
+
+    return catalogue as Record<string, string>;
+  };
+
+  try {
+    return await Promise.race([request(), deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function urlDuCatalogue(langue: SupportedLanguage, surface: Surface): string {
   return URLS[langue][surface];
 }
@@ -36,15 +78,7 @@ export function chargerCatalogue(langue: SupportedLanguage, surface: Surface): P
     return dejaEnCours;
   }
 
-  const chargement = fetch(urlDuCatalogue(langue, surface))
-    .then((reponse) => {
-      if (!reponse.ok) {
-        // Un code, pas une phrase : ce message n'est jamais affiché, seulement consigné.
-        throw new Error(`i18n-catalogue-${jeton}-http-${reponse.status}`);
-      }
-
-      return reponse.json() as Promise<Record<string, string>>;
-    })
+  const chargement = lireCatalogue(urlDuCatalogue(langue, surface), jeton)
     .then((catalogue) => {
       enregistrerCatalogue(langue, catalogue, [surface]);
     })

@@ -1,0 +1,487 @@
+{
+  "config": {
+    "configFile": "/workspace/vibecore-login-catalogue/playwright.startup-recovery.config.ts",
+    "rootDir": "/workspace/vibecore-login-catalogue/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/workspace/vibecore-login-catalogue/test-results/startup-recovery/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/workspace/vibecore-login-catalogue/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "login-catalogue-recovery.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/startup-recovery/results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.59.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "login-catalogue-recovery.spec.ts",
+      "file": "login-catalogue-recovery.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "login catalogue normal (en) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3557,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:32:53.884Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-906612da1aa54c519482",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue normal (fr) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1969,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:32:58.148Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-7379eeb458655cd26f51",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue slow (en) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2178,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:00.143Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-887d6fae554a44e3b78a",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue slow (fr) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2473,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:02.368Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-5e9c87f95b76707c850c",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue pending (en) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 13066,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:04.862Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-2ea85fc8f30c6902f5ef",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue pending (fr) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 11636,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:17.990Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-cbc10f8cb8681556db15",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue 503 (en) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1737,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:29.666Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-16e1cb524f1c07b84b68",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue 503 (fr) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2281,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:31.430Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-19d9060fc03a28e3f397",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue json (en) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1684,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:33.739Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-3295b97408349c71ab7d",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue json (fr) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1639,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:35.489Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-b49cf834d69055f22ad8",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue shape (en) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1563,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:37.156Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-b8e092e0706d8305ee07",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        },
+        {
+          "title": "login catalogue shape (fr) preserves returnTo and hydration",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1489,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T07:33:38.735Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1cec32bbbeb9227d7db0-3445f4398ca187479877",
+          "file": "login-catalogue-recovery.spec.ts",
+          "line": 9,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-22T07:32:52.716Z",
+    "duration": 47674.509000000005,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

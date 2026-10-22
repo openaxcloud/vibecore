@@ -1,0 +1,17 @@
+{
+  "base_sha": "18cf74fd7abcd59620f0994b44ac1411e97fcf93",
+  "branch": "fix/login-catalogue-recovery-20261022",
+  "source_sha256": {
+    "app/entry.client.tsx": "2a615a2f3af312aaf5676eabf9748ccbc6cb4adb1d23b741c663dd4de2edb7e7",
+    "app/root.tsx": "22a407ec88d99ac30e35303b9990552ab8c021e90e165c88be9a325cb5a58443",
+    "app/lib/i18n/catalogues-client.ts": "316ac12f7cc1695af2a33e03657c1b2c9fdd3e2d92b25a8245d8bd7e79dfb6c5",
+    "app/lib/i18n/startup-catalogues.ts": "5d6788bb52b077aded1aa08446410b19128d51fd94587e067d8bf998fa8ec6e6",
+    "app/components/StartupCatalogueRecovery.tsx": "382217d34fa6ddcebebfe1b27f56c8d0cbc71c20a3d83faffe5ca06f9c1911db",
+    "app/styles/startup-recovery.css": "27b7e3f81b66f60cbb8de22e55de80cce7f71b887d44a296e96d95fc0871ebc2"
+  },
+  "node": "v24.19.0",
+  "pnpm": "9.14.4",
+  "chromium": "154.0.8037.57",
+  "build_heap_mib": 8192,
+  "memory_limit_bytes": 17179869184
+}
