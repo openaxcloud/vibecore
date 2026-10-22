@@ -297,6 +297,62 @@ describe('runtime save durability acknowledgements', () => {
     },
   );
 
+  it.each(['stream', 'legacy-204'] as const)(
+    'an identical save after %s reaches persistence and cannot hide a failure',
+    async (initial) => {
+      const c = await context();
+
+      try {
+        const original = await c.exportFiles();
+        const path = 'config.jsonc';
+        const content = '{"value":1}';
+
+        let requests = 0;
+
+        const adapter = new RemoteKubernetesRuntimeAdapter({
+          baseUrl: 'http://api.local/api/runtime',
+          workspaceId: c.projectId,
+          authToken: c.headers.authorization.slice('Bearer '.length),
+          fetchImpl: async (input, init) => {
+            requests += 1;
+
+            if (initial === 'legacy-204' && requests === 1) {
+              // Model the old server: runtime applied, bare 204, no durable manifest update.
+              c.runtime.fichiers.set(path, content);
+              return new Response(null, { status: 204 });
+            }
+
+            const response = await c.app.inject({
+              method: 'PUT',
+              url: new URL(String(input)).pathname,
+              headers: Object.fromEntries(new Headers(init?.headers)),
+              payload: init?.body as string,
+            });
+
+            return new Response(response.statusCode === 204 ? null : response.body, { status: response.statusCode });
+          },
+        });
+        await adapter.writeFile(path, content, { streaming: initial === 'stream' });
+        expect(requests).toBe(1);
+        expect(c.runtime.fichiers.get(path)).toBe(content);
+        expect(await c.exportFiles()).toEqual(original);
+
+        vi.spyOn(c.store, 'upsertProjectIdeState').mockRejectedValueOnce(new Error('STORAGE_SECRET_CANARY'));
+        await expect(adapter.writeFile(path, content)).rejects.toMatchObject({
+          code: 'PROJECT_FILE_PERSISTENCE_FAILED',
+        });
+        expect(requests).toBe(2);
+        expect(await c.exportFiles()).toEqual(original);
+
+        await adapter.writeFile(path, content);
+        expect(requests).toBe(3);
+        expect(await c.exportFiles()).toEqual({ ...original, [path]: content });
+      } finally {
+        await c.close();
+      }
+    },
+  );
+
   it('rejects disappearance of the manifest after runtime write without manufacturing a partial manifest', async () => {
     const c = await context();
 

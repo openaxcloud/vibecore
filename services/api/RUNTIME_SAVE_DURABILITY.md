@@ -22,7 +22,7 @@ Forward the condition to workspace-agent. The agent must serialize comparison AN
 
 Even that agent coordination cannot claim exclusion against terminal processes, git operations or other filesystem writers that bypass it; those require a shared writer protocol. Nor does it make the runtime and database a transaction. A failure after the agent writes but before manifest commit remains a partial result. Safe automatic conditional recovery needs a durable operation receipt/idempotency identity binding original revision, resulting bytes and persistence status; otherwise a retry must resolve conflicts instead of replaying an old overwrite. Do not roll back the pod blindly because another writer may have advanced it.
 
-Client follow-up must be coordinated with #765: `packages/runtime-remote/src/index.ts` around lines 582–584 skips repeated content and 602–603 caches after success. New failed saves no longer receive the false 204, so their cache is not updated. Historical cached false successes, and streaming-to-human transitions with identical content, still need explicit cache invalidation or persistence-aware caching. The targeted retry guards do not claim to repair those cached client states or add an atomic repair tool.
+Client coordination with #765: runtime-remote now skips identical content only when the current call explicitly has `streaming: true`. Every non-streaming `writeFile`, including a repeated save after an old bare 204 or after a streaming write, reaches the API and must receive a fresh durability result. The memo still tracks every successful runtime write, so streaming A → human B → streaming A does not mistakenly skip the final A. Higher-level callers that never invoke the adapter because of their own cache remain part of coordinated #765 work; this adapter fix cannot repair an already-open client executing old code.
 
 The review follow-up also changes the retry predicates in runtime-remote, runtime/retry.ts and ActionRunner. It does not change file validation, formatting or readback behavior. No real project mutations, deployment or merge are part of this patch. Independent review is required before merge.
 
@@ -60,6 +60,25 @@ Rollout constraint: deploy the client retry guards with or before the API change
 
 Follow-up validation: 43 API tests, 116 frontend/index tests and all 74 runtime-remote tests pass. The four layered regression cases fail with the previous retry implementations and pass with the guards. API build passes. ESLint passes for both changed frontend source files, their tests and the API regression file. runtime-remote retains the same two unrelated lint errors as the base (naming-convention / prefer-const); no lint or test rule was disabled.
 
-API and runtime-remote typechecks pass. The full repository typecheck exits 2 with 692 diagnostics outside the modified files; it is not a passing gate, and a full baseline comparison was not run for this follow-up.
+API and runtime-remote typechecks pass. The full repository typecheck remains a failing gate (exit 2, 692 diagnostics). The same-base countercheck below establishes that these diagnostics are identical on the original base and this patch.
 
 The frontend production build also passes with the repository's configured memory budget: `NODE_OPTIONS=--max-old-space-size=8192 node_modules/.bin/react-router build`. The initial direct invocation without that budget exhausted the default Node heap; no source or build protections were changed to obtain the passing build.
+
+
+## Review follow-up: streaming-only deduplication
+
+Two new transition tests fail before the fix: streaming → identical human save, and legacy bare-204 acknowledgement → identical human save. Both now pass. Twenty identical streaming fragments still produce one request; twenty ordinary saves produce twenty requests. Existing streaming changed-content, A → B → A, distinct-path and shell-invalidation protections remain tested. A mixed streaming A → ordinary B → streaming A case also confirms the memo tracks the latest runtime write.
+
+Two API integration cases connect the real adapter to the API, seed runtime-only content (actual streaming route or simulated legacy server 204), inject a durable-store failure during an identical ordinary save, assert the failure is surfaced, then explicitly retry and verify exact content in the server ZIP. The legacy response is simulated only for the first acknowledgement; the failing save and recovery use the real API. The suite now has 14 durability cases, and all 77 runtime-remote tests pass.
+
+
+## Same-base global typecheck countercheck
+
+Command: `NODE_OPTIONS=--max-old-space-size=8192 node_modules/.bin/tsc --noEmit` from the same workspace, with unchanged dependencies, compiler configuration and generated files. The corrected source was measured first; all eight changed/added TypeScript files were then replaced temporarily by their exact `18745bd04f77e4d9fc6353d61bd4d17a3822f94e` versions (the newly added API regression file absent on base), measured again, and restored byte-for-byte. No CI files or gates changed.
+
+Both runs exit **2** with **692 diagnostics**. Their complete 270,376-byte outputs are **byte-identical**, SHA-256 `a028117dd149d0f7d7d3867a63c50a6ea4724b5e1333ffaa308da958bf84ce31`. This establishes preexisting diagnostics on that base in this environment; it does not make the global gate green or authorize bypassing CI.
+
+Local evidence: `/tmp/durable-typecheck-comparison/{current.log,base.log,summary.json,compare.py}`. The summary records the base SHA, exact overlaid paths and successful byte-for-byte restoration. The sources under comparison include the streaming-only cache correction and both transition regression tests.
+
+Final regression pass after restoration: 45 API tests, 77 runtime-remote tests and 116 frontend/index tests. API and runtime-remote typechecks pass. The new API regression file has clean lint; runtime-remote source retains its two baseline errors and index.spec.ts has five errors/two warnings versus six errors/two warnings before (no added rule/message/severity diagnostics, all remaining findings outside the edited test block).
+The final frontend production build after the streaming-cache adjustment passes with the same configured 8 GB Node heap.

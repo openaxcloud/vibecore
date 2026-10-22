@@ -10,7 +10,7 @@ Correction API isolée depuis main 18745bd04f77e4d9fc6353d61bd4d17a3822f94e. PUT
 
 ## 💻 Codé
 
-Branche fix/api-durable-runtime-save, non fusionnée. Refus sans manifeste complet, erreur explicite après succès runtime partiel, mutation unitaire avec relecture exacte et statut de persistance. Revue : résultat partiel 409 non rejouable, garde ciblée dans les trois couches de retry client ; aucune modification du projet réel. Limites et proposition de précondition atomique dans services/api/RUNTIME_SAVE_DURABILITY.md.
+Branche fix/api-durable-runtime-save, non fusionnée. Refus sans manifeste complet, erreur explicite après succès runtime partiel, mutation unitaire avec relecture exacte et statut de persistance. Revue : résultat partiel 409 non rejouable, garde ciblée dans les trois couches de retry client, déduplication réservée au flux ; aucune modification du projet réel. Limites et proposition de précondition atomique dans services/api/RUNTIME_SAVE_DURABILITY.md.
 
 ## ✅ Testé live
 

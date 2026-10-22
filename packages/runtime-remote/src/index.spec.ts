@@ -1308,12 +1308,13 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
  *
  * On compte donc les requêtes réellement émises, pas la forme du code.
  */
-describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changement réel', () => {
+describe('BUG-AGENT-001 — writeFile déduplique seulement les fragments de flux', () => {
   const writesOf = (fetchMock: ReturnType<typeof vi.fn>) =>
     fetchMock.mock.calls.filter(([url]) => String(url).includes('/files/write'));
 
   function makeAdapter() {
     const fetchMock = createFetchMock() as unknown as ReturnType<typeof vi.fn>;
+
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token',
@@ -1325,22 +1326,54 @@ describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changemen
     return { adapter, fetchMock };
   }
 
-  it('vingt écritures identiques ne produisent QU_UNE requête', async () => {
+  it('vingt fragments de flux identiques ne produisent QU_UNE requête', async () => {
     const { adapter, fetchMock } = makeAdapter();
 
     for (let i = 0; i < 20; i++) {
-      await adapter.writeFile('tsconfig.json', '{"compilerOptions":{}}');
+      await adapter.writeFile('tsconfig.json', '{"compilerOptions":{}}', { streaming: true });
     }
 
     expect(writesOf(fetchMock)).toHaveLength(1);
   });
 
+  it('a human save after an identical streaming write still reaches the durable API', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+    await adapter.writeFile('config.jsonc', '{"value":1}', { streaming: true });
+    await adapter.writeFile('config.jsonc', '{"value":1}', { streaming: false });
+    await adapter.writeFile('config.jsonc', '{"value":1}', { streaming: true });
+
+    const writes = writesOf(fetchMock);
+    expect(writes).toHaveLength(2);
+    expect(new Headers((writes[0]![1] as RequestInit).headers).get('x-vc-write-origin')).toBe('stream');
+    expect(new Headers((writes[1]![1] as RequestInit).headers).has('x-vc-write-origin')).toBe(false);
+  });
+
+  it('never treats an earlier bare 204 as durable proof for an identical human save', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    // A legacy server acknowledged runtime-only writes with this same bare 204.
+    for (let i = 0; i < 20; i++) {
+      await adapter.writeFile('config.jsonc', '{"value":1}');
+    }
+    expect(writesOf(fetchMock)).toHaveLength(20);
+  });
+
+  it('a non-streaming edit updates the runtime memo so a later old fragment is not skipped', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+    await adapter.writeFile('a.txt', 'A', { streaming: true });
+    await adapter.writeFile('a.txt', 'B');
+    await adapter.writeFile('a.txt', 'A', { streaming: true });
+
+    const contents = writesOf(fetchMock).map(([, init]) => JSON.parse(String((init as RequestInit).body)).content);
+    expect(contents).toEqual(['A', 'B', 'A']);
+  });
+
   it('tout changement de contenu passe — sinon on perd le fichier', async () => {
     const { adapter, fetchMock } = makeAdapter();
 
-    await adapter.writeFile('package.json', '{"name":"a"}');
-    await adapter.writeFile('package.json', '{"name":"a"}');
-    await adapter.writeFile('package.json', '{"name":"a","deps":{}}');
+    await adapter.writeFile('package.json', '{"name":"a"}', { streaming: true });
+    await adapter.writeFile('package.json', '{"name":"a"}', { streaming: true });
+    await adapter.writeFile('package.json', '{"name":"a","deps":{}}', { streaming: true });
 
     expect(writesOf(fetchMock)).toHaveLength(2);
   });
@@ -1348,9 +1381,9 @@ describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changemen
   it('un retour au contenu précédent est bien réécrit (A → B → A)', async () => {
     const { adapter, fetchMock } = makeAdapter();
 
-    await adapter.writeFile('src/App.tsx', 'AAA');
-    await adapter.writeFile('src/App.tsx', 'BBB');
-    await adapter.writeFile('src/App.tsx', 'AAA');
+    await adapter.writeFile('src/App.tsx', 'AAA', { streaming: true });
+    await adapter.writeFile('src/App.tsx', 'BBB', { streaming: true });
+    await adapter.writeFile('src/App.tsx', 'AAA', { streaming: true });
 
     const bodies = writesOf(fetchMock).map(([, init]) => JSON.parse(String((init as RequestInit).body)).content);
     expect(bodies).toEqual(['AAA', 'BBB', 'AAA']);
@@ -1359,9 +1392,9 @@ describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changemen
   it('une commande shell invalide le mémo — elle a pu toucher le disque', async () => {
     const { adapter, fetchMock } = makeAdapter();
 
-    await adapter.writeFile('src/App.tsx', 'AAA');
+    await adapter.writeFile('src/App.tsx', 'AAA', { streaming: true });
     await adapter.runCommand({ command: 'rm -f src/App.tsx' } as never).catch(() => undefined);
-    await adapter.writeFile('src/App.tsx', 'AAA');
+    await adapter.writeFile('src/App.tsx', 'AAA', { streaming: true });
 
     expect(writesOf(fetchMock)).toHaveLength(2);
   });
@@ -1369,8 +1402,8 @@ describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changemen
   it('deux chemins différents ne se masquent pas', async () => {
     const { adapter, fetchMock } = makeAdapter();
 
-    await adapter.writeFile('a.ts', 'X');
-    await adapter.writeFile('b.ts', 'X');
+    await adapter.writeFile('a.ts', 'X', { streaming: true });
+    await adapter.writeFile('b.ts', 'X', { streaming: true });
 
     expect(writesOf(fetchMock)).toHaveLength(2);
   });
