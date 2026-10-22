@@ -1,0 +1,305 @@
+{
+  "base": "18745bd04f77e4d9fc6353d61bd4d17a3822f94e",
+  "preserved_pr_765_head": "540cb88ed3c404df16731e53eb897a52fab5a7d4",
+  "merge_commit": "872343f214f85721722940fa8772f46c53ec76f4",
+  "branch": "codex/jsonc-verified-apply-recovery",
+  "environment": {
+    "node": "24.19.0",
+    "pnpm": "9.14.4",
+    "heap_mib": 8192,
+    "concurrent_suites": 1,
+    "pnpm_store": "/workspace/.onboarding/pnpm-store",
+    "ci_node_major": 22
+  },
+  "sources_sha256": {
+    "app/components/chat/AgentPatchReviewQueue.spec.tsx": "9e7bde2f470b547ab7e846d5815f5329cf6211b8c36381f465425c0cbc17d385",
+    "app/components/chat/AgentPatchReviewQueue.tsx": "1469cec8aba169f84f8c4448797112c6080393a47ebe925c4c5f12fef8de6207",
+    "app/components/chat/BaseChat.tsx": "9d50b62e97cff98ae6c94d906326635cbb7b8fc77bf865a6eb133adc561c0fd3",
+    "app/lib/chat/merge-json-content.ts": "55923e8102cc21cd30a900adefb6ae13997e4add78865eac810595822b44ce8c",
+    "app/lib/i18n/catalogs/base-chat-ast.ts": "5e57f3169d33d3228b27b308d16ddcfc5788709e3b722ad1bd93ca4d09245181",
+    "app/lib/i18n/catalogs/workbench-runtime.ts": "f008c1434fe2e73d012b138a72ce6a906de1c1710154aa5e1e061a1962bcd631",
+    "app/lib/runtime/agent-file-write.integration.spec.ts": "9ea55e0e2f8da29a5cb266d121ff6b209dfe149b1bf1d332fe841a8b5d2229c2",
+    "app/lib/runtime/agent-file-write.ts": "9236052b476ccd15b2e3fdd6a597f4804210f2bcb6f443baeda4c1ff946b0544",
+    "app/lib/stores/agent-patch-failure.spec.ts": "0fa204a55232bf20aab9717112f7cc54c3ca35a51fb5d32073853a14364b1944",
+    "app/lib/stores/agent-patch-failure.ts": "6034bf33ffa8adc61bc1af7c8a9415732537a6448e244b5ff387f4c1ab80ed4a",
+    "app/lib/stores/agent-patch-fallback.spec.ts": "e8c381376fb909af0bffd66630e816cab03f4a3857de97c99ddef00414c5020a",
+    "app/lib/stores/agent-patch-fallback.ts": "6dac58e62ca1f2b9e911da35877071be577430d4b439c32aae01cdc37b6e9da1",
+    "app/lib/stores/devstart-differe.spec.ts": "33d1f68a9c0c2255e0047bb1a2fcc9630cfe0acca232b75be2fed06b8b684a82",
+    "app/lib/stores/files.create-empty-save.spec.ts": "35ef6f42f517c6957a743f5899366fe305df3a7640a0c90e22a8187a6478ddc3",
+    "app/lib/stores/files.stale-buffer-overwrite.spec.ts": "3cbd4c92d12df4a7fa083232fce6175d190b9265dd477cf9639fa30d90b339b1",
+    "app/lib/stores/files.ts": "9086a83f197aa692fe51799ed12c90b7a18687858561be94780cced8fb2ec452",
+    "app/lib/stores/jsonc-patch-pipeline.spec.ts": "b5c8ba13118e8c6ea04864556a8742f0f015fc1a6b7e59e554a1e6a071384b98",
+    "app/lib/stores/reconcile-remote-write.ts": "4ec6e83edcc4004bd30c670cd0367e89b406b1aa4d69d44b0c41044aeaf2f6bf",
+    "app/lib/stores/workbench.conflit-utilisateur.spec.ts": "a1cd61aeee3d78173d161b2d113b18d9bc054b781b869eae559cb6a40eda8443",
+    "app/lib/stores/workbench.patch-flood.spec.ts": "eb68bc888da329f35c04d91f46730227a040fce084415a450fe455637dff6426",
+    "app/lib/stores/workbench.reloaded-actions.spec.ts": "fbb0680f0afee5689e3a7ba7b7a7012853e3c88fafd4225acdcf47c0fd9a06f9",
+    "app/lib/stores/workbench.ts": "956bb537da5edf58df025fad1090c5727347c21cf23d9c73bb49d2804070fe9a",
+    "app/services/agent/post-validate.ts": "eef06183623ee74c7f4f49902f7a49d924957828f65a8c259fce2bd2f7688a61",
+    "app/utils/agent-auto-apply-revue-cablage.spec.ts": "3d1613628a64bda6c6e391e06ed8ebe1b022e0456c7a3413dbffb03216767ada",
+    "app/utils/jsonc.spec.ts": "a3a3756ddf630a169fb9f8357593d9dbb814aea7a9e3536ebd85b5b445883cf8",
+    "app/utils/jsonc.ts": "773ec6d148bc93dd4cf4bb3805b0ab0892d4532bc9c5113064ab6712aa14a376",
+    "app/utils/sanitize-file-content.ts": "c0626df0a40666e5f374b80f9b687fbb4016b4fcee2d6921523e6dca3145a059",
+    "package.json": "cdc51211a381b9d689ac7c8a1a028742c9877bfe0d1dcda41d36f0afc86e189b",
+    "pnpm-lock.yaml": "bda486d70c2e75e236ff1df57db28293aae4d14120b88cc44a731a2e1451f5db"
+  },
+  "checks": [
+    {
+      "name": "targeted",
+      "command": "pnpm exec vitest run app/utils/agent-auto-apply-revue-cablage.spec.ts app/utils/jsonc.spec.ts app/lib/runtime/agent-file-write.integration.spec.ts app/lib/stores/agent-patch-fallback.spec.ts app/lib/stores/jsonc-patch-pipeline.spec.ts app/lib/stores/files.stale-buffer-overwrite.spec.ts app/lib/stores/workbench.reloaded-actions.spec.ts app/lib/stores/agent-patch-failure.spec.ts app/lib/stores/devstart-differe.spec.ts app/components/chat/AgentPatchReviewQueue.spec.tsx app/lib/stores/workbench.project-storage-return.spec.ts --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T09:42:48Z",
+      "end_utc": "2026-10-22T09:43:08Z",
+      "summary": [
+        "Test Files  11 passed (11)",
+        "Tests  126 passed (126)",
+        "Duration  17.56s (transform 3.47s, setup 530ms, collect 5.15s, tests 4.10s, environment 1.92s, prepare 1.14s)"
+      ],
+      "raw_log_sha256": "f6b012b0f5c9bc2f18ad5b86e0ff3238858e767d2d37c6af76c4b7abf36e9305",
+      "raw_log_bytes": 77547
+    },
+    {
+      "name": "lint",
+      "command": "pnpm run lint",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T09:43:08Z",
+      "end_utc": "2026-10-22T09:43:11Z",
+      "summary": [],
+      "raw_log_sha256": "394965acc4a1e867eaf81e28f667b98e545f0dbdb06d8aa3ab89c86baea5f36d",
+      "raw_log_bytes": 6814
+    },
+    {
+      "name": "i18n",
+      "command": "pnpm run i18n:check",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T09:43:11Z",
+      "end_utc": "2026-10-22T09:43:20Z",
+      "summary": [],
+      "raw_log_sha256": "b538acac0f9b4575653cf937de861829b737472a23b06fb0a307a200196b9b6b",
+      "raw_log_bytes": 852
+    },
+    {
+      "name": "typecheck",
+      "command": "pnpm run typecheck",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T09:43:20Z",
+      "end_utc": "2026-10-22T09:46:59Z",
+      "summary": [],
+      "raw_log_sha256": "eea8780fe63d11afb9ec8f845460074803211e0b44bee56dee54c435cf027e05",
+      "raw_log_bytes": 6066
+    },
+    {
+      "name": "build-web",
+      "command": "pnpm run build",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:05:41Z",
+      "end_utc": "2026-10-22T10:08:41Z",
+      "summary": [],
+      "raw_log_sha256": "defdfa3cdf2e010ecf9e115ab4c673478d6fbade68f98083219aaaf876901765",
+      "raw_log_bytes": 101669
+    },
+    {
+      "name": "build-admin",
+      "command": "pnpm --filter @vibecore/admin build",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:08:41Z",
+      "end_utc": "2026-10-22T10:08:47Z",
+      "summary": [],
+      "raw_log_sha256": "0ed251a44dba69d29e2d4087c3e49dd70a19a88274d7d348e702123cbada18e9",
+      "raw_log_bytes": 416
+    },
+    {
+      "name": "build-services",
+      "command": "pnpm --workspace-concurrency=1 --filter './services/**' build",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:08:47Z",
+      "end_utc": "2026-10-22T10:10:02Z",
+      "summary": [],
+      "raw_log_sha256": "99ce77c0cc8df236551dfb552595906fa786ec98fe3dbe9872eb1b7f19f63840",
+      "raw_log_bytes": 2219
+    },
+    {
+      "name": "offline-admin",
+      "command": "pnpm exec vitest run tests/guards/admin-dependances-production.spec.ts --maxWorkers=1 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:10:53Z",
+      "end_utc": "2026-10-22T10:11:09Z",
+      "summary": [
+        "Test Files  1 passed (1)",
+        "Tests  1 passed (1)",
+        "Duration  10.21s (transform 2.76s, setup 76ms, collect 146ms, tests 4.41s, environment 0ms, prepare 257ms)"
+      ],
+      "raw_log_sha256": "faa3a4b45cff1b98fe31032b5d87d7d61e89da9a35ba888aa5e5c18949b31cd3",
+      "raw_log_bytes": 384
+    },
+    {
+      "name": "service-api",
+      "command": "pnpm --filter @vibecore/api run test --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:11:09Z",
+      "end_utc": "2026-10-22T10:22:43Z",
+      "summary": [
+        "Test Files  291 passed | 16 skipped (307)",
+        "Tests  2475 passed | 159 skipped (2634)",
+        "Duration  691.72s (transform 9.30s, setup 0ms, collect 217.91s, tests 387.92s, environment 80ms, prepare 28.00s)"
+      ],
+      "raw_log_sha256": "7941eabd10d6abd314e77ec3cb8df6369d5a98ce5f1b135023b976ce940b2a90",
+      "raw_log_bytes": 2381199
+    },
+    {
+      "name": "service-workspace-manager",
+      "command": "pnpm --filter @vibecore/workspace-manager run test --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:22:43Z",
+      "end_utc": "2026-10-22T10:22:53Z",
+      "summary": [
+        "Test Files  7 passed | 2 skipped (9)",
+        "Tests  128 passed | 24 skipped (152)",
+        "Duration  8.90s (transform 3.26s, setup 0ms, collect 5.90s, tests 702ms, environment 6ms, prepare 757ms)"
+      ],
+      "raw_log_sha256": "c55b521e6e0f4c0e98dbc598f50f53a6d15d5d465d4f7c9892cede93a4cb7bce",
+      "raw_log_bytes": 4896
+    },
+    {
+      "name": "service-workspace-agent",
+      "command": "pnpm --filter @vibecore/workspace-agent run test --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:22:53Z",
+      "end_utc": "2026-10-22T10:23:18Z",
+      "summary": [
+        "Test Files  11 passed (11)",
+        "Tests  121 passed (121)",
+        "Duration  23.22s (transform 482ms, setup 0ms, collect 1.43s, tests 18.71s, environment 2ms, prepare 1.10s)"
+      ],
+      "raw_log_sha256": "53fd8c1a5607aa3693998014165134ef51b06ea7883613ab290959000271025f",
+      "raw_log_bytes": 1734
+    },
+    {
+      "name": "service-worker",
+      "command": "pnpm --filter @vibecore/worker run test --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:23:24Z",
+      "end_utc": "2026-10-22T10:23:30Z",
+      "summary": [
+        "Test Files  9 passed (9)",
+        "Tests  55 passed (55)",
+        "Duration  4.35s (transform 487ms, setup 0ms, collect 632ms, tests 1.36s, environment 2ms, prepare 798ms)"
+      ],
+      "raw_log_sha256": "faad08d37d5400ce5c61d088b806dd17e9c0c3b4df3a17470831d9196f25441c",
+      "raw_log_bytes": 938
+    },
+    {
+      "name": "service-connector-proxy",
+      "command": "pnpm --filter @vibecore/connector-proxy run test --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:23:30Z",
+      "end_utc": "2026-10-22T10:23:34Z",
+      "summary": [
+        "Test Files  5 passed (5)",
+        "Tests  24 passed (24)",
+        "Duration  2.79s (transform 467ms, setup 0ms, collect 922ms, tests 457ms, environment 1ms, prepare 478ms)"
+      ],
+      "raw_log_sha256": "9112159bc5130209d1e934d19c1a7d5ad8e21d1e808dbc642b73aee9900173d5",
+      "raw_log_bytes": 610
+    },
+    {
+      "name": "service-preview-proxy",
+      "command": "pnpm --filter @vibecore/preview-proxy run test --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:23:34Z",
+      "end_utc": "2026-10-22T10:23:43Z",
+      "summary": [
+        "Test Files  11 passed (11)",
+        "Tests  124 passed (124)",
+        "Duration  7.44s (transform 435ms, setup 0ms, collect 1.18s, tests 3.19s, environment 3ms, prepare 994ms)"
+      ],
+      "raw_log_sha256": "1a20286096d501617c53c65942003045aa071ce20a58df199a00a7f37a1c0a54",
+      "raw_log_bytes": 1285
+    },
+    {
+      "name": "service-screenshotter",
+      "command": "pnpm --filter @vibecore/screenshotter run test --maxWorkers=2 --no-file-parallelism",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:23:43Z",
+      "end_utc": "2026-10-22T10:23:57Z",
+      "summary": [
+        "Test Files  5 passed | 1 skipped (6)",
+        "Tests  23 passed | 2 skipped (25)",
+        "Duration  10.55s (transform 323ms, setup 0ms, collect 3.11s, tests 5.69s, environment 2ms, prepare 606ms)"
+      ],
+      "raw_log_sha256": "190ba662672d4866beb35baefe01d76deee9c576cccf6b1d5a73bfd39e0c40fc",
+      "raw_log_bytes": 1116
+    },
+    {
+      "name": "gateway-official",
+      "command": "pnpm --filter @vibecore/ai-gateway test",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:36:35Z",
+      "end_utc": "2026-10-22T10:36:59Z",
+      "summary": [
+        "Test Files  18 passed (18)",
+        "Tests  127 passed | 2 skipped (129)",
+        "Duration  4.06s (transform 1.16s, setup 0ms, collect 2.85s, tests 2.30s, environment 5ms, prepare 2.26s)"
+      ],
+      "raw_log_sha256": "ba01228a1897c33d50748689f8af2343eded282a238533d40e5ebf451a273f3c",
+      "raw_log_bytes": 5424
+    },
+    {
+      "name": "critical-path-selftest",
+      "command": "node --import tsx scripts/verifier-chemin-critique.ts --self-test",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:36:59Z",
+      "end_utc": "2026-10-22T10:36:59Z",
+      "summary": [],
+      "raw_log_sha256": "38702e2a3d7ac205a26a367b69f33e8a281ee954420d14aa85690e01f700a84c",
+      "raw_log_bytes": 77
+    },
+    {
+      "name": "critical-path",
+      "command": "node --import tsx scripts/verifier-chemin-critique.ts",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:36:59Z",
+      "end_utc": "2026-10-22T10:36:59Z",
+      "summary": [],
+      "raw_log_sha256": "69ab2f4f94510c256e89d2ed7b5be746024ddda40832f6762b4890bb435a79e6",
+      "raw_log_bytes": 893
+    },
+    {
+      "name": "no-runtime-mocks",
+      "command": "pnpm run platform:no-mocks",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:36:59Z",
+      "end_utc": "2026-10-22T10:37:02Z",
+      "summary": [],
+      "raw_log_sha256": "4f48b8189e66f2c8321350f0f279f660fff4e0c36d765fde345db2aeb41e3b35",
+      "raw_log_bytes": 123
+    },
+    {
+      "name": "production-selftest",
+      "command": "pnpm run production:validate:self-test",
+      "exit_code": 0,
+      "start_utc": "2026-10-22T10:37:02Z",
+      "end_utc": "2026-10-22T10:37:03Z",
+      "summary": [],
+      "raw_log_sha256": "828851785c65b763d07ee109c50d4b2b21d0b52941e47f26b218ee1781f7ea3f",
+      "raw_log_bytes": 180
+    }
+  ],
+  "full_root_status_at_publication": "pending: final serial suite is running after two documented environment failures; no complete green run claimed",
+  "frozen_install": {
+    "command": "CI=true pnpm install --frozen-lockfile --store-dir /workspace/.onboarding/pnpm-store",
+    "exit_code": 0,
+    "raw_log_sha256": "d41b8e79cc4ff97533b4c5a0f859fb039fb97ce4c68bb3066dc821e044705d8f"
+  },
+  "preparation_observations": [
+    "First complete root run: 10004 passed, 1 offline-store failure, 7 pre-existing skips. The admin offline test used an empty default store; the prepared store fixed it without source changes.",
+    "Second complete root run with two parallel files: 9999 passed, 7 existing skips; Sass IPC assertion during collection of touch-floor-rem-base.spec.ts prevented its six tests. All six passed in isolation without source changes. Final full suite is serial.",
+    "Initial service invocations were rejected by pnpm before test execution; explicit run test was used. Gateway compound script required its official command without appended Vitest options; this reran both its tests and typecheck.",
+    "An intermediate relative test import failed lint; the final fix declares the workspace-agent devDependency with a three-line local-link lockfile addition. No lint rule changed."
+  ],
+  "limits": [
+    "Existing conditional skips are reported, not removed. No dedicated local PostgreSQL service was provisioned; CI database gates remain necessary.",
+    "Runtime byte confirmation does not certify the persisted manifest or export. API manifest errors still return 204, and an absent manifest is not created by the per-file mutation helper.",
+    "No user project write, real provider generation, Kubernetes acceptance or independent browser recipe performed.",
+    "Raw logs remain local; published evidence contains only whitelisted counts, timing, commands and hashes. No global application-log redaction guarantee."
+  ]
+}

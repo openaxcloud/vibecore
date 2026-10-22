@@ -299,6 +299,7 @@
     "@vibecore/auth": "workspace:*",
     "@vibecore/database": "workspace:*",
     "@vibecore/security": "workspace:*",
+    "@vibecore/workspace-agent": "workspace:*",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",

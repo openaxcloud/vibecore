@@ -1,4 +1,6 @@
-# Validation du candidat
+# Validation historique du candidat #765
+
+Ces résultats et `manifest.json` appartiennent à la tête antérieure. La reprise sur main `18745bd0` est documentée séparément dans [RECOVERY.md](RECOVERY.md).
 
 - `node scripts/i18n/scan-source.mjs --check` : vert, sans modification de baseline ou allowlist.
 - `node scripts/i18n/validate-catalogs.mjs` : vert, 18 815 clés anglaises/françaises correspondantes.
@@ -9,4 +11,4 @@
 
 Les tests de présentation du composant sont des tests DOM, pas une recette navigateur ou une preuve de génération réelle. La relecture d'octets sur disque est couverte par le vrai workspace-agent local ; la passerelle API, Kubernetes, la génération fournisseur et le projet utilisateur ne sont pas certifiés par ce lot.
 
-Les empreintes des sources et des journaux locaux sont dans `manifest.json`. Les rouges initiaux et intermédiaires restent conservés. Les diagnostics n'exposent pas les messages arbitraires des exceptions.
+Les empreintes des sources et des journaux locaux sont dans `manifest.json`. Les rouges initiaux et intermédiaires restent conservés. Le diagnostic utilisateur ajouté n’expose pas les messages arbitraires des exceptions. Le logger.error brut préexistant de files.ts subsiste ; aucune expurgation globale des journaux n’est garantie.

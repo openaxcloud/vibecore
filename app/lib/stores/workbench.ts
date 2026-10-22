@@ -2826,7 +2826,8 @@ export class WorkbenchStore {
          * multi-agent lane's changes (package.json deps, the entry index.html)
          * aren't clobbered. Under #agentPatchApplyMutex this observes the previous
          * same-path lane's applied result; JSON unions both edits, other files keep
-         * ours (coherent last-write-wins). Both writes below then emit this result.
+         * ours (coherent last-write-wins). The write path below returns the payload
+         * actually saved, which must be read back before acceptance.
          */
         if (!scopeIsCurrent()) {
           return 'ignored';

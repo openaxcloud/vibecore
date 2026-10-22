@@ -1,5 +1,7 @@
 # Corrections de propositions IA : preuves et limites
 
+Historique de #765 (ne vaut pas validation de la reprise) : voir [RECOVERY.md](RECOVERY.md) pour la branche successeur et ses preuves.
+
 Base inspectée : `18cf74fd7abcd59620f0994b44ac1411e97fcf93`, encore tête distante lors de la vérification du 22 octobre. Lot indépendant de la récupération i18n #764 et du layout #763. Aucun changement dans services/api.
 
 ## Défauts reproduits
