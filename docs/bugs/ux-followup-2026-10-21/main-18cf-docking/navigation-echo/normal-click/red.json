@@ -1,0 +1,82 @@
+{
+  "sourceReport": "navigation-normal-click-red/results.json",
+  "sourceReportSha256": "aed0551ce07380688800ea1ba74a81bd93fc11d1233e46888cab18feb5df6e95",
+  "productCommit": "d0ef212609d3af7f652cc216427ecb7a55570723",
+  "stats": {
+    "startTime": "2026-10-22T08:29:37.532Z",
+    "duration": 13059.707,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "normal click navigation followed by a move preserves tab identities",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 11312,
+          "retry": 0,
+          "failures": [
+            "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('.bolt-project-pane-leaf').locator('[role=\"tab\"]')\nExpected: 3\nReceived: 4\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toHaveCount\" with timeout 5000ms\n  - waiting for locator('.bolt-project-pane-leaf').locator('[role=\"tab\"]')\n    9 × locator resolved to 4 elements\n      - unexpected value \"4\"\n\n\n  837 |     await expect(page).toHaveURL(/panel=preview/);\n  838 |     await shot(page, 'normal-click-move-after-navigation');\n> 839 |     await expect(panes.locator('[role=\"tab\"]')).toHaveCount(beforeIds.length);\n      |                                                 ^\n  840 |     await expect.poll(ids).toEqual(beforeIds);\n  841 |     await expect(panes.nth(1).locator(`[data-tab-id=\"${previewId}\"]`)).toHaveAttribute('aria-selected', 'true');\n  842 |     await expect(panes.nth(0).locator(`[data-tab-id=\"${previewId}\"]`)).toHaveCount(0);\n    at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/rpl-normal-click.spec.ts:839:49"
+          ],
+          "paneObservations": {
+            "beforeIds": [
+              "tab-deployments-c6d4c49c-0cc6-41f9-b30e-bd787f8c11a5",
+              "tab-editor-default",
+              "tab-preview-default"
+            ],
+            "before": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "afterFirst": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "afterSecond": [
+              [
+                "editor"
+              ],
+              [
+                "deployments",
+                "preview"
+              ]
+            ],
+            "afterNavigation": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments",
+                "preview"
+              ]
+            ],
+            "afterIds": [
+              "tab-deployments-c6d4c49c-0cc6-41f9-b30e-bd787f8c11a5",
+              "tab-editor-default",
+              "tab-preview-default",
+              "tab-preview-efe90a32-7f23-44f9-8153-add752f55ac9"
+            ],
+            "previewId": "tab-preview-default"
+          },
+          "requestGate": "Real preview data request held then continued; no mocked response."
+        }
+      ]
+    }
+  ],
+  "privacy": "Whitelist extraction; no cookies, credentials, headers, response bodies, network trace or raw report."
+}

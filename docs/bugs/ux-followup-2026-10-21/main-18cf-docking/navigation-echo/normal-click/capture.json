@@ -1,0 +1,7 @@
+{
+  "file": "normal-click-move-after-navigation.png",
+  "sha256": "2db627a720d5b7c6cebdd7d3b9047e4a4746974835b20cb95ffa34b71f475bb3",
+  "source": "navigation-normal-click-red/shots/normal-click-move-after-navigation.png",
+  "visuallyInspected": true,
+  "meaning": "Deux Webviews après application de la navigation normale : un doublon dans le panneau source. Projet synthétique local uniquement."
+}
