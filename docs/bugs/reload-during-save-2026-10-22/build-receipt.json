@@ -1,0 +1,19 @@
+{
+  "sha": "9375639bc092dcadfe665b28ac7d3cee51eef17d",
+  "tree": "006c14cde898deb9cb5da08362d1f5573031f2ad",
+  "sourceTreeMatchedDuringBuildAndAfter": true,
+  "sources": 9481,
+  "compiledCount": 2306,
+  "gitBlobsCompared": 9481,
+  "sourceDifferences": [],
+  "sourceManifestSha256": "98fe7d42c1119e31f9d7fcdc54e30936b653527d1b25219b55e9dc4c5c7291a4",
+  "compiledManifestSha256": "ccf7dc752dfca68f81c708c044ee12978aaa51f86a6880915b5a579913a49257",
+  "buildExitCode": 0,
+  "browserRuntimeMutationValidation": "blocked: local runtime manager unavailable",
+  "privateArchive": {
+    "filename": "build-9375639bc.tar.gz",
+    "sha256": "2acba08fd59ea7d0cd901aed989a3dbc5b2735418b9d1fc254eab73ccb7b7fbd",
+    "bytes": 26711674,
+    "published": false
+  }
+}

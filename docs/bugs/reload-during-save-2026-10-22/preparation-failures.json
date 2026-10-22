@@ -1,0 +1,66 @@
+{
+  "head": "9375639bc092dcadfe665b28ac7d3cee51eef17d",
+  "checks": {
+    "exit": 1,
+    "webTypecheck": "passed",
+    "nodeTypecheck": "missing workspace service dependencies",
+    "log": "ux-reload-save-checks.log"
+  },
+  "build": {
+    "exit": 137,
+    "lastOutput": "rendering chunks... Killed",
+    "log": "ux-reload-save-build.log",
+    "cgroupMemoryEventsObservedAfterExit": {
+      "oom": 7,
+      "oom_kill": 3
+    },
+    "limit": "Cumulative counters without before snapshot do not establish this exit cause alone."
+  },
+  "fullSuite": "still active; not restarted",
+  "remediation": "Prepare local dependency links per worktree; rerun only after active suite finishes; avoid overlapping build and full suite.",
+  "dependencyRepairTiming": "Completed while full suite still active; result diagnostic only, not immutable final validation.",
+  "firstFullSuite": {
+    "exit": 1,
+    "failedFiles": 4,
+    "passedFiles": 1296,
+    "skippedFiles": 2,
+    "failedTests": 5,
+    "passedTests": 10012,
+    "skippedTests": 7,
+    "seconds": 345.61,
+    "certifying": false
+  },
+  "recheckAfterLocalDependencyRepair": {
+    "passedFiles": 4,
+    "passedTests": 132,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 8.54,
+    "log": "ux-reload-save-preparation-recheck.log"
+  },
+  "initialPackageResolution": "root node_modules alias resolved workspace runtime packages in write-scope instead of this branch; missing per-service dependency links and offline pnpm store unset",
+  "stableSuiteFirst": {
+    "failedFiles": 1,
+    "passedFiles": 1300,
+    "skippedFiles": 2,
+    "passedTests": 10035,
+    "skippedTests": 7,
+    "seconds": 305.01,
+    "failedTests": 0,
+    "collectionFailure": "semantic-label-floor.spec.ts import compile via sass-embedded SyncMessagePort: 0 !== 2",
+    "log": "ux-reload-save-fullunit-stable.log"
+  },
+  "isolatedSassRecheck": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 2.58,
+    "log": "ux-reload-save-sass-recheck.log"
+  },
+  "limit": "Isolated success does not resolve intermittent dependency IPC failure. Full rerun uses unchanged source/config/assertions.",
+  "hookRecovery": {
+    "initialProductCommit": "Generated Husky launchers absent in new worktree, discovered before publication.",
+    "remediation": "Initialized normal Husky launchers; ran full pre-commit script explicitly after dependency repair; scanned committed diff with gitleaks.",
+    "result": "typecheck/lint and committed-diff scan passed; documentation commit will use normal hooks."
+  }
+}

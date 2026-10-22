@@ -1,0 +1,13 @@
+import { defineConfig } from '@playwright/test';
+import standard from '../../playwright.config';
+export default defineConfig({
+  ...standard,
+  testDir: '../../tests/e2e',
+  testMatch: ['ide-file-tab-identity.spec.ts'],
+  webServer: undefined,
+  retries: 0,
+  workers: 1,
+  outputDir: '/workspace/ux-artifacts/desktop-panels/reload-save-diagnostic/browser-results',
+  reporter: [['list'], ['json', { outputFile: '/workspace/ux-artifacts/desktop-panels/reload-save-diagnostic/browser-results.json' }]],
+  projects: standard.projects?.filter(p => p.name === 'chromium').map(p => ({ ...p, use: { ...p.use, baseURL: 'http://127.0.0.1:5232', trace: 'retain-on-failure', launchOptions: { executablePath: '/usr/bin/chromium' } } }))
+});

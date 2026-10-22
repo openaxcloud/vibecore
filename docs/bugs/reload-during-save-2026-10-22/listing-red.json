@@ -1,0 +1,42 @@
+{
+  "base": "6fa009b9180f8add2e6a60e5e3be52e4155336e3",
+  "branch": "investigate/reload-during-save-20261022",
+  "sources": [
+    {
+      "path": "app/lib/stores/files.ts",
+      "sha256": "9086a83f197aa692fe51799ed12c90b7a18687858561be94780cced8fb2ec452"
+    },
+    {
+      "path": "app/lib/stores/workbench.ts",
+      "sha256": "56cc391023efe2cd2394a414025b6d9b7b5bd6eb06cb9802c4dba56fc0ce9515"
+    },
+    {
+      "path": "app/lib/stores/editor.ts",
+      "sha256": "5b79c23c38a8e29a5642cc7fba142b3a0d506bb40cc3b217b97e6e19805e4ef6"
+    },
+    {
+      "path": "app/lib/stores/workbench.project-storage-return.spec.ts",
+      "sha256": "f7736b72ebbbf4b6a60fc3335d7d87fd0a6b90be870096ff6af4421573ea0c26"
+    }
+  ],
+  "result": {
+    "passed": 0,
+    "failed": 1,
+    "filtered": 26
+  },
+  "evidence": [
+    {
+      "path": "red.json",
+      "sha256": "a2d846c0182186eba65e7af1ee0f374e965612b97fa9e0766d10f29b01b68027"
+    },
+    {
+      "path": "red.log",
+      "sha256": "fb23047b3548039d3006733b5f223b0280ad2fb6202a07832960d88148f93148"
+    }
+  ],
+  "limits": [
+    "Unit runtime adapter, no real runtime or browser validation.",
+    "Document overwritten on subsequent setDocuments reconciliation, not proven immediately on dirty removal.",
+    "Only test file changed; no product correction/commit/push."
+  ]
+}

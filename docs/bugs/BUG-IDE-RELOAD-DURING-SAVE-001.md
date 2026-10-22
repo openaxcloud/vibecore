@@ -19,3 +19,5 @@ Non certifié. Une contre-épreuve unitaire déterministe reproduit un défaut :
 Le scénario rouge est conservé. La causalité du flaky CI, l’hydratation et les événements watcher restent à distinguer ; aucun délai ou retry augmenté.
 
 Contre-épreuve complémentaire : une sauvegarde B au même chemin attendait la promesse de A malgré le changement de liaison. La garde des listings pouvait alors prolonger cette attente. La file de sauvegarde est maintenant chaînée seulement dans la même liaison ; le nettoyage tardif de A ne supprime pas celle de B. 58 contrôles unitaires ciblés passent, sans omission, incluant lecture externe ultérieure, échec, rebind et sauvegardes sérialisées. Build et contrôles généraux en cours ; aucune preuve live ajoutée.
+
+Validation locale terminée sur `9375639bc` : build et typage/lint verts, 66 tests ciblés, un parcours Chromium direct. Suite finale 10 041 succès et sept omissions existantes, après conservation des erreurs initiales et d’une intermittence de collecte Sass. Non intégré à main, aucune persistance runtime réelle certifiée. [Preuves, captures et limites](reload-during-save-2026-10-22/README.md).

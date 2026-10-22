@@ -1,0 +1,74 @@
+{
+  "sourceCommit": "9375639bc092dcadfe665b28ac7d3cee51eef17d",
+  "tree": "006c14cde898deb9cb5da08362d1f5573031f2ad",
+  "fullSuiteStable": {
+    "passedFiles": 1301,
+    "skippedFiles": 2,
+    "passedTests": 10041,
+    "skippedTests": 7,
+    "seconds": 299.18,
+    "failed": 0
+  },
+  "targetedUnion": {
+    "files": 5,
+    "passed": 66,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "startTime": "2026-10-22T15:47:47.585Z",
+    "duration": 17274.514,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "logs": [
+    {
+      "path": "ux-reload-save-fullunit-stable-second.log",
+      "sha256": "acc8a02b5b4fec818a5c46f18395c4bf2814bc5f2dcba6be9015fd01569e8cab"
+    },
+    {
+      "path": "ux-reload-save-fullunit-stable.log",
+      "sha256": "0e9e7bb45fbca87da1f47a05683ee3dd3763312d84f3fb27cac214b801a95058"
+    },
+    {
+      "path": "ux-reload-save-sass-recheck.log",
+      "sha256": "9e54955c9f2f1fb2f3d12d2c1e80e9a9e16b37ffb8eb2d769e3f7fea167c9dc1"
+    },
+    {
+      "path": "ux-reload-save-build-stable.log",
+      "sha256": "b6d59f78fff813872e1602998b5558e373ca4c8b12ec5117cef48e35fe3cd58f"
+    },
+    {
+      "path": "ux-reload-save-checks-stable.log",
+      "sha256": "38504d132cc3e25a53ada45ee5410c3573aceb3870d2737c3bf8d5489d4652ba"
+    },
+    {
+      "path": "ux-reload-save-targeted-union.log",
+      "sha256": "110722d3659a87f8551a0a6b842d0dcfb9f86705bd893cb75855b14f5d1ba9e0"
+    },
+    {
+      "path": "ux-reload-save-browser.log",
+      "sha256": "08acca066115ac78bba163257e0a56e7f38eafeb90052cc59e9fb20f81d3e747"
+    },
+    {
+      "path": "ux-reload-save-fullunit.log",
+      "sha256": "86b1a1118b5783f5d38090a743ad17586b42d474b13958e2e6f06dcff8ea8ca1"
+    },
+    {
+      "path": "ux-reload-save-build.log",
+      "sha256": "d5c38737b9a075537bbd22cf7ba5af6177a2831c59f659d68381661911aae549"
+    },
+    {
+      "path": "ux-reload-save-checks.log",
+      "sha256": "cafefa9a0a890f4b5bea1483d8e259723a29fdc64c293ceec11a4a4fe30aa71e"
+    }
+  ],
+  "limits": [
+    "Initial preparation failures retained separately, not counted as final validation.",
+    "Unit runtime adapter is synthetic.",
+    "Browser test aborts remote runtime and websocket activity; no runtime persistence certification.",
+    "CI flaky causality not established; stale watcher events not addressed."
+  ]
+}

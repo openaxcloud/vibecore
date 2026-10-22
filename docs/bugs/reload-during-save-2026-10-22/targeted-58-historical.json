@@ -1,0 +1,260 @@
+{
+  "source": "before root formatting validation",
+  "passed": 58,
+  "failed": 0,
+  "skipped": 0,
+  "files": [
+    {
+      "file": "app/lib/stores/files.create-empty-save.spec.ts",
+      "tests": [
+        {
+          "title": "FilesStore.createFile \u2014 empty file first-save (remote-kubernetes) does NOT falsely reject the first save of a freshly-created empty file",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.createFile \u2014 empty file first-save (remote-kubernetes) still surfaces a genuine concurrent remote change as a conflict",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.createFile \u2014 empty file first-save (remote-kubernetes) surfaces the same conflict in French without translating the file path",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "app/lib/stores/files.reload-content.spec.ts",
+      "tests": [
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 content preservation (remote tree-only reload) PRESERVES content already hydrated from project storage when the runtime tree omits content",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 content preservation (remote tree-only reload) uses the runtime content when the tree DOES provide it (local/webcontainer)",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 content preservation (remote tree-only reload) falls back to empty content for a brand-new tree file with nothing hydrated",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 partial-listing protection (waking pod) keeps the hydrated 12-file tree when a waking pod lists only 1 file (the live repro)",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 partial-listing protection (waking pod) adopts the runtime listing again once the pod serves the full tree (self-healing)",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 partial-listing protection (waking pod) shouldPreserveHydratedTree: preserves only a drastic collapse of a hydrated tree",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 un rafra\u00eechissement demand\u00e9 r\u00e9pare, une relecture automatique non transmet `reparer` au runtime quand on le lui demande",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 un rafra\u00eechissement demand\u00e9 r\u00e9pare, une relecture automatique non ne r\u00e9clame PAS de r\u00e9paration pour une relecture automatique \u2014 55 relectures par session, mesur\u00e9",
+          "status": "passed"
+        },
+        {
+          "title": "FilesStore.reloadFromRuntime \u2014 un rafra\u00eechissement demand\u00e9 r\u00e9pare, une relecture automatique non les deux gestes de l\u2019utilisateur \u2014 \u00ab Actualiser les fichiers \u00bb et la reconnexion \u2014 demandent la r\u00e9paration",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes preserves the correct save state when listing resolves with save pending",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes preserves the correct save state when listing resolves with save completed",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes preserves the correct save state when listing resolves with save failed",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes preserves a mutation made after the listing started",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes does not apply a listing across a same adapter scope reset",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes does not apply a listing across a new adapter scope reset",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes preserves the second optimistic save while the first queue entry completes",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes does not let an old pending save shield the new scope from its own runtime listing",
+          "status": "passed"
+        },
+        {
+          "title": "reload overlapping runtime writes starts a new-scope save without waiting for the old scope write at the same path",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "app/lib/stores/files.stale-buffer-overwrite.spec.ts",
+      "tests": [
+        {
+          "title": "BUG-CREATE-011 \u2014 une relecture impossible ne doit pas valoir \u00ab aucun conflit \u00bb refuse la sauvegarde quand la relecture distante \u00e9choue, au lieu d\u2019\u00e9craser",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-CREATE-011 \u2014 une relecture impossible ne doit pas valoir \u00ab aucun conflit \u00bb r\u00e9essaie une fois : une d\u00e9faillance isol\u00e9e ne co\u00fbte pas la sauvegarde",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-CREATE-011 \u2014 une relecture impossible ne doit pas valoir \u00ab aucun conflit \u00bb une lecture indisponible prot\u00e8ge aussi le tampon vide et les \u00e9critures explicites : '' undefined",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-CREATE-011 \u2014 une relecture impossible ne doit pas valoir \u00ab aucun conflit \u00bb une lecture indisponible prot\u00e8ge aussi le tampon vide et les \u00e9critures explicites : 'version p\u00e9rim\u00e9e' { onRemoteConflict: 'reconcile' }",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-CREATE-011 \u2014 une relecture impossible ne doit pas valoir \u00ab aucun conflit \u00bb une lecture indisponible prot\u00e8ge aussi le tampon vide et les \u00e9critures explicites : 'version p\u00e9rim\u00e9e' { onRemoteConflict: 'overwrite' }",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-CREATE-011 \u2014 une relecture impossible ne doit pas valoir \u00ab aucun conflit \u00bb la cr\u00e9ation explicite reste possible sans relecture d\u2019un fichier absent",
+          "status": "passed"
+        },
+        {
+          "title": "BUG-CREATE-011 \u2014 une relecture impossible ne doit pas valoir \u00ab aucun conflit \u00bb refuse toujours une sauvegarde humaine quand le distant a VRAIMENT chang\u00e9",
+          "status": "passed"
+        },
+        {
+          "title": "does not write or restore old content after a runtime switch: read-success",
+          "status": "passed"
+        },
+        {
+          "title": "does not write or restore old content after a runtime switch: read-failure",
+          "status": "passed"
+        },
+        {
+          "title": "returns the exact content reconciled and written, including concurrent JSONC keys",
+          "status": "passed"
+        }
+      ]
+    },
+    {
+      "file": "app/lib/stores/workbench.project-storage-return.spec.ts",
+      "tests": [
+        {
+          "title": "project storage hydration after returning to the IDE reads independent entries concurrently with a bounded working set and preserves archive order",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE keeps binary bytes and Unicode text from a real archive while skipping directories",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE leaves the existing documents intact when one archive entry cannot be decoded",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE protects writes made after early transport starts and still fetches fresh data on a later reload",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE rehydrates after a runtime rebind before the former 30-second cooldown expires",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE still downloads one archive for concurrent callers",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE hydrates both store instances sharing a project and binding during concurrent requests",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE preserves a file created through the public API during archive hydration: \"created during request\"",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE preserves a file created through the public API during archive hydration: \"\"",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE respects a public deletion during a delayed archive, with recreation=false",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE respects a public deletion during a delayed archive, with recreation=true",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE retries an empty archive and an HTTP failure without caching either result",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE does not hydrate project B with the late archive from project A",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE updates an inactive pane document without editing the globally selected file",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE preserves a dirty editor document when a subsequent archive is older",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE preserves a concurrent successful save over a delayed archive: \"new saved content\"",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE preserves a concurrent successful save over a delayed archive: \"\"",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE adopts a later external archive after a successful local save: \"new before request\"",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE adopts a later external archive after a successful local save: \"\"",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE hydrates a contentless listing rather than treating it as a saved empty file",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE uses a fresh flight after a runtime rebind and rejects the old archive",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE does not resurrect a saved file deleted while an archive was delayed",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE measures the pre-existing loss of a draft when the provider resets documents on rebind",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE does not replay old conversation content over the saved archive: archive-first",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE does not replay old conversation content over the saved archive: transcript-first",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE does not carry saved-path protection into another project",
+          "status": "passed"
+        },
+        {
+          "title": "project storage hydration after returning to the IDE preserves an optimistically saved draft when a runtime listing starts during the pending write",
+          "status": "passed"
+        }
+      ]
+    }
+  ]
+}

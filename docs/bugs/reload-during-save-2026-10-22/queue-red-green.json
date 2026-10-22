@@ -1,0 +1,26 @@
+{
+  "results": {
+    "queue-scope-red": {
+      "sha256": "399d5e77387f1d48fd05b03a205c629f68318dde43076a89eee1b8c34b145293",
+      "numPassedTests": 0,
+      "numFailedTests": 1,
+      "numPendingTests": 17
+    },
+    "queue-scope-green": {
+      "sha256": "2be20c56963cb6f6548022c70224ad514c8e02983e8f0c20430e5f101fc4e112",
+      "numPassedTests": 58,
+      "numFailedTests": 0,
+      "numPendingTests": 0
+    }
+  },
+  "sources": [
+    {
+      "path": "app/lib/stores/files.ts",
+      "sha256": "17d895fee5882efeea032fec1f17a792dc974542b393523a45647e00d8bd09e3"
+    },
+    {
+      "path": "app/lib/stores/files.reload-content.spec.ts",
+      "sha256": "4b6ff36659f8cd576394532bfbfd092bbb6ae7d9263f58dc39c67a6338fbcd5e"
+    }
+  ]
+}
