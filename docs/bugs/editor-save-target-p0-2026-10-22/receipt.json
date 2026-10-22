@@ -1,0 +1,52 @@
+{
+  "base": "3680f4fadf2f88655cce702c7e8cdfe835a1131f",
+  "red": {
+    "failed": 1,
+    "passed": 0,
+    "filter": "callback ownership",
+    "observedEditTarget": "card.tsx",
+    "observedSaveTarget": "card.tsx",
+    "displayedDocument": "types.ts"
+  },
+  "green": {
+    "numPassedTests": 11,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "sources": [
+    {
+      "path": "packages/editor/src/index.ts",
+      "sha256": "7bc69e278dc29a889b05f4e4734d325366271b193d37f7ab03e343091d4a457b"
+    },
+    {
+      "path": "packages/editor/src/mobile-editor.spec.tsx",
+      "sha256": "7e3796c6642e98642a2ec83cf79412dad1de644c8ca9568eaf7821d3e8af1ef7"
+    },
+    {
+      "path": "app/lib/stores/editor-save-target-p0.spec.tsx",
+      "sha256": "6ebbd4f6d84e59f3610bd5e722ea9a9180fbd27336d72389341278dfed33f2de"
+    }
+  ],
+  "logReceipts": [
+    {
+      "name": "ux-p0-final-counterproof.json",
+      "sha256": "8c3608ab143013b29497af6e1d205b41ead91fa46fa25d69774251f9dc119ff5"
+    },
+    {
+      "name": "ux-p0-publication-targeted.json",
+      "sha256": "4525fbcd18cf26286feb42b984d3ab2029659a8b4dac306963a753adf92ceff6"
+    },
+    {
+      "name": "ux-p0-package-typecheck.log",
+      "sha256": "b79dc472b099c356e96ec917210ddf4359a81fabf2a4b1e428d574a65264913d"
+    }
+  ],
+  "limits": [
+    "jsdom real React/CodeMirror, runtime disk synthetic",
+    "No production project writes",
+    "Exact production suspension trigger not established",
+    "Browser probe on historical compiled build stopped before paste because Files panel closed; not P0 reproduction",
+    "No full local suite/build; exact CI required",
+    "No demonstrated safe repair through the unpatched editor"
+  ]
+}

@@ -2,7 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render } from '@testing-library/react';
+import { EditorView } from '@codemirror/view';
+import { act, cleanup, fireEvent, render } from '@testing-library/react';
+import { Suspense, startTransition, useState } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { MobileCodeEditor } from './index.js';
 
@@ -172,5 +174,67 @@ describe('MobileCodeEditor dotenv masking', () => {
 
     expect(content.textContent).toContain('sk-live-supersecret');
     expect(container.querySelector('.cm-masked-secret')).toBeNull();
+  });
+});
+
+describe('P0 callback ownership during interrupted render', () => {
+  afterEach(cleanup);
+  it('keeps edits and save bound to the visible document when a later render suspends', async () => {
+    const changes: Array<{ path: string; value: string }> = [];
+    const saves: string[] = [];
+
+    let switchFile!: () => void;
+    let ready = false;
+    let release!: () => void;
+
+    const never = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    function Suspend({ active }: { active: boolean }) {
+      if (active && !ready) {
+        throw never;
+      }
+
+      return null;
+    }
+
+    function Fixture() {
+      const [path, setPath] = useState('types.ts');
+      switchFile = () => startTransition(() => setPath('card.tsx'));
+
+      return (
+        <Suspense fallback={<div>loading</div>}>
+          <MobileCodeEditor
+            filePath={path}
+            value={path === 'types.ts' ? 'ORIGINAL TYPES' : 'ORIGINAL CARD'}
+            onChange={(u) => changes.push({ path, value: u.value })}
+            onSave={() => saves.push(path)}
+          />
+          <Suspend active={path === 'card.tsx'} />
+        </Suspense>
+      );
+    }
+
+    const mounted = render(<Fixture />);
+    await act(async () => switchFile());
+
+    const content = mounted.container.querySelector('.cm-content') as HTMLElement;
+    expect(content.textContent).toBe('ORIGINAL TYPES');
+
+    const editor = EditorView.findFromDOM(content)!;
+    act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: 'CANDIDATE TYPES' } }));
+    act(() => fireEvent.keyDown(content, { key: 's', code: 'KeyS', ctrlKey: true }));
+    expect.soft(changes.at(-1)).toEqual({ path: 'types.ts', value: 'CANDIDATE TYPES' });
+    expect(saves).toEqual(['types.ts']);
+    await act(async () => {
+      ready = true;
+      release();
+    });
+    expect(content.textContent).toBe('ORIGINAL CARD');
+    act(() => editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: 'CANDIDATE CARD' } }));
+    act(() => fireEvent.keyDown(content, { key: 's', code: 'KeyS', ctrlKey: true }));
+    expect(changes.at(-1)).toEqual({ path: 'card.tsx', value: 'CANDIDATE CARD' });
+    expect(saves).toEqual(['types.ts', 'card.tsx']);
   });
 });
