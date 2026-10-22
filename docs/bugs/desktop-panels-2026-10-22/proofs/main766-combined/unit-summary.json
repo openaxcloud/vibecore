@@ -1,0 +1,26 @@
+{
+  "commit": "c742be17b6f5cca708394c2c497b6607f4b70c82",
+  "runs": [
+    {
+      "scope": "Root targeted unit tests",
+      "filesPassed": 6,
+      "testsPassed": 237,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 8.59,
+      "privateLogName": "ux768-main766-unit.log",
+      "privateLogSha256": "a8b641b691af934367337c0a11c020d7555f2b25705783ae3c02c2b14edee806"
+    },
+    {
+      "scope": "API isolated guards",
+      "filesPassed": 2,
+      "testsPassed": 31,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 6.79,
+      "privateLogName": "ux768-main766-api-unit.log",
+      "privateLogSha256": "356e01a4b9a7546bec198212906dc7de0382303db787d079b7bedee07e0b9378"
+    }
+  ],
+  "limits": "Isolated API guards do not validate provider runtime durability."
+}

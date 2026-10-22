@@ -1,0 +1,45 @@
+{
+  "commit": "c742be17b6f5cca708394c2c497b6607f4b70c82",
+  "rawReportSha256": "7ea2f82d204356a81878aa2a47126ab6b3e066b9232a46eb3312ab72c2bf5022",
+  "stats": {
+    "startTime": "2026-10-22T14:37:01.696Z",
+    "duration": 10587.86,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "Preview preserves touch navigation and visible bounds",
+      "projectName": "phone390",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 4365
+    },
+    {
+      "title": "Preview preserves touch navigation and visible bounds",
+      "projectName": "tablet768",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 4414
+    }
+  ],
+  "configuration": {
+    "workers": 1,
+    "retries": 0,
+    "isMobile": true,
+    "hasTouch": true,
+    "browser": "system Chromium",
+    "viewports": [
+      [
+        390,
+        844
+      ],
+      [
+        768,
+        1024
+      ]
+    ]
+  }
+}

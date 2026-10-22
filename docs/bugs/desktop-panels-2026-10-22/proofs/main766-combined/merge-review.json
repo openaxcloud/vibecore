@@ -1,0 +1,659 @@
+{
+  "utc": "2026-10-22T14:29:00.414735+00:00",
+  "head": "e4bda1fbbeefb3988689fc864927edbc4f171cfd",
+  "main": "3680f4fadf2f88655cce702c7e8cdfe835a1131f",
+  "mergeBase": "5de3fac6e5d720d41bd6dde1b2c6170b734b0cc3",
+  "mainDeltaCount": 13,
+  "headDeltaCount": 96,
+  "overlap": [
+    "BUG_INVENTORY_LIVE.md"
+  ],
+  "unmergedAtReview": [],
+  "mainComparisons": [
+    {
+      "path": "app/lib/runtime/action-runner.spec.ts",
+      "expectedBlob": "72490380e07b6524c35c6454ef06a6abb36c5f97",
+      "indexBlob": "72490380e07b6524c35c6454ef06a6abb36c5f97",
+      "matches": true
+    },
+    {
+      "path": "app/lib/runtime/action-runner.ts",
+      "expectedBlob": "f32a988cdb40c9b62b20ff93e804e3a05dd11ae3",
+      "indexBlob": "f32a988cdb40c9b62b20ff93e804e3a05dd11ae3",
+      "matches": true
+    },
+    {
+      "path": "app/lib/runtime/retry.spec.ts",
+      "expectedBlob": "2f2426f3e11d23437af2e4e0d1555b5c3fb13fde",
+      "indexBlob": "2f2426f3e11d23437af2e4e0d1555b5c3fb13fde",
+      "matches": true
+    },
+    {
+      "path": "app/lib/runtime/retry.ts",
+      "expectedBlob": "7f8be7c890a4a1ae640fd967c61916c8b1303da9",
+      "indexBlob": "7f8be7c890a4a1ae640fd967c61916c8b1303da9",
+      "matches": true
+    },
+    {
+      "path": "app/lib/stores/workbench.reloaded-actions.spec.ts",
+      "expectedBlob": "b05d67bc41b83d8b133c6c1e5703862a660e7850",
+      "indexBlob": "b05d67bc41b83d8b133c6c1e5703862a660e7850",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/BUG-RUNTIME-SAVE-DURABILITY-20261022.md",
+      "expectedBlob": "f6f9e3b08dd90946d8f7e1852be1c6370d13e83f",
+      "indexBlob": "f6f9e3b08dd90946d8f7e1852be1c6370d13e83f",
+      "matches": true
+    },
+    {
+      "path": "packages/runtime-remote/src/index.spec.ts",
+      "expectedBlob": "003509bd75cdf623446b2b6c700c9179ad9c7b3d",
+      "indexBlob": "003509bd75cdf623446b2b6c700c9179ad9c7b3d",
+      "matches": true
+    },
+    {
+      "path": "packages/runtime-remote/src/index.ts",
+      "expectedBlob": "540c9030f4191b0db797bd08902581c6198aea01",
+      "indexBlob": "540c9030f4191b0db797bd08902581c6198aea01",
+      "matches": true
+    },
+    {
+      "path": "services/api/RUNTIME_SAVE_DURABILITY.md",
+      "expectedBlob": "6211c0272b58ffc459cf57ea8d66d72d3ddc74c3",
+      "indexBlob": "6211c0272b58ffc459cf57ea8d66d72d3ddc74c3",
+      "matches": true
+    },
+    {
+      "path": "services/api/src/app.ts",
+      "expectedBlob": "48c3aa02a1a87f4f8290ab7a8617eacf1d55d494",
+      "indexBlob": "48c3aa02a1a87f4f8290ab7a8617eacf1d55d494",
+      "matches": true
+    },
+    {
+      "path": "services/api/src/project-manifest-durability.spec.ts",
+      "expectedBlob": "f5643a0e6498edb55aee1ff99fe868ad918b1db1",
+      "indexBlob": "f5643a0e6498edb55aee1ff99fe868ad918b1db1",
+      "matches": true
+    },
+    {
+      "path": "services/api/src/runtime-save-durability.spec.ts",
+      "expectedBlob": "bc4f1377780fee86e84af94051cf2d16877606a7",
+      "indexBlob": "bc4f1377780fee86e84af94051cf2d16877606a7",
+      "matches": true
+    }
+  ],
+  "headComparisons": [
+    {
+      "path": "app/components/chat/BaseChat.tsx",
+      "expectedBlob": "6f87948629b48dab5d6395f4159c2487993b09c8",
+      "indexBlob": "6f87948629b48dab5d6395f4159c2487993b09c8",
+      "matches": true
+    },
+    {
+      "path": "app/components/chat/IdePaletteState.spec.tsx",
+      "expectedBlob": "0b529cc8a813ad0fb803ccb1fb30e73b720c090d",
+      "indexBlob": "0b529cc8a813ad0fb803ccb1fb30e73b720c090d",
+      "matches": true
+    },
+    {
+      "path": "app/components/chat/IdePaletteState.tsx",
+      "expectedBlob": "59ad9a701e636e7584feaff775a26dc9c585ed06",
+      "indexBlob": "59ad9a701e636e7584feaff775a26dc9c585ed06",
+      "matches": true
+    },
+    {
+      "path": "app/components/chat/project-editor-tool-catalog.ts",
+      "expectedBlob": "7852dca1b279e30e3e6b352517fc2b585a258833",
+      "indexBlob": "7852dca1b279e30e3e6b352517fc2b585a258833",
+      "matches": true
+    },
+    {
+      "path": "app/components/workbench/Preview.module.scss",
+      "expectedBlob": "8ad0d8e3c0ff54191e388d900be9baf40310b89a",
+      "indexBlob": "8ad0d8e3c0ff54191e388d900be9baf40310b89a",
+      "matches": true
+    },
+    {
+      "path": "app/components/workbench/Preview.tsx",
+      "expectedBlob": "51771785faf6c120070a7770433890269993877b",
+      "indexBlob": "51771785faf6c120070a7770433890269993877b",
+      "matches": true
+    },
+    {
+      "path": "app/lib/project-editor-layout.spec.ts",
+      "expectedBlob": "926d0d816d6acf903e4c837d41a05229784aa6aa",
+      "indexBlob": "926d0d816d6acf903e4c837d41a05229784aa6aa",
+      "matches": true
+    },
+    {
+      "path": "app/lib/project-editor-layout.ts",
+      "expectedBlob": "e83f3d73373ad4b8f1792f88293ac7374f18532f",
+      "indexBlob": "e83f3d73373ad4b8f1792f88293ac7374f18532f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/BUG-DESKTOP-PREVIEW-MENU-DISMISS-001.md",
+      "expectedBlob": "1523fcc7ab341515b47e56d6e1eb12437c6e92a1",
+      "indexBlob": "1523fcc7ab341515b47e56d6e1eb12437c6e92a1",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/BUG-DESKTOP-PREVIEW-TOOLBAR-CLIP-001.md",
+      "expectedBlob": "27da1c5e249e4ddb60c5d3e36733e3d24f28bb19",
+      "indexBlob": "27da1c5e249e4ddb60c5d3e36733e3d24f28bb19",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/BUG-DESKTOP-PROBLEMS-ROUTE-001.md",
+      "expectedBlob": "a95fc2648124d2ceded2abb28d50adb7076b17d8",
+      "indexBlob": "a95fc2648124d2ceded2abb28d50adb7076b17d8",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/BUG-IDE-GLOBAL-PALETTE-HANDOFF-001.md",
+      "expectedBlob": "5635e816d977aa5334302fba784e133a987e2085",
+      "indexBlob": "5635e816d977aa5334302fba784e133a987e2085",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/INVENTORY.md",
+      "expectedBlob": "8438300903351187748c4b4618407986bffceea8",
+      "indexBlob": "8438300903351187748c4b4618407986bffceea8",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/README.md",
+      "expectedBlob": "deacf6ae5d6beae1ebc1280128335ac48dd98959",
+      "indexBlob": "deacf6ae5d6beae1ebc1280128335ac48dd98959",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/README.md",
+      "expectedBlob": "d7038a689a0e1db0a6329cb7acb84fef346e9d57",
+      "indexBlob": "d7038a689a0e1db0a6329cb7acb84fef346e9d57",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/SHA256.json",
+      "expectedBlob": "363298da266342aadc9c20139f4a95c1501623a6",
+      "indexBlob": "363298da266342aadc9c20139f4a95c1501623a6",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/baseline-receipt.json",
+      "expectedBlob": "54f891fda7fdf484193b1f6e5f6b985e393c91a2",
+      "indexBlob": "54f891fda7fdf484193b1f6e5f6b985e393c91a2",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/images.json",
+      "expectedBlob": "c0d8b0d7051b01887f1528aeb94ea83673d5520b",
+      "indexBlob": "c0d8b0d7051b01887f1528aeb94ea83673d5520b",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/menu-before-escape.png",
+      "expectedBlob": "862a34dff6b2eb84e8e4b17d2e22c91bf710ee5d",
+      "indexBlob": "862a34dff6b2eb84e8e4b17d2e22c91bf710ee5d",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/palette-after-red.png",
+      "expectedBlob": "d9170235e06f328bf2bb9f53859dd1863178abe8",
+      "indexBlob": "d9170235e06f328bf2bb9f53859dd1863178abe8",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/palette-before.png",
+      "expectedBlob": "60855cfa6da9af5282bf8df940d0cfa4d3f9aa0e",
+      "indexBlob": "60855cfa6da9af5282bf8df940d0cfa4d3f9aa0e",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/palette.json",
+      "expectedBlob": "f3f534a83640b9f618797df7c6ad4b8c7e50ef34",
+      "indexBlob": "f3f534a83640b9f618797df7c6ad4b8c7e50ef34",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/preview-actions-control.json",
+      "expectedBlob": "7af95d17c57ba021376118e02672a8c33c832ad2",
+      "indexBlob": "7af95d17c57ba021376118e02672a8c33c832ad2",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/preview-geometry.json",
+      "expectedBlob": "6563a58981187d1f95128fa2a79eac5f284c9617",
+      "indexBlob": "6563a58981187d1f95128fa2a79eac5f284c9617",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/preview-menu.json",
+      "expectedBlob": "e562d8241dd9d4344a060c141f87bd7b3056c2a9",
+      "indexBlob": "e562d8241dd9d4344a060c141f87bd7b3056c2a9",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/problems-url-red.png",
+      "expectedBlob": "42a8aeaf526257ad75d16e7b92863785aa237144",
+      "indexBlob": "42a8aeaf526257ad75d16e7b92863785aa237144",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/problems.json",
+      "expectedBlob": "8623d87b5d0dafb2315b64c3ed86fabf1a2a58c0",
+      "indexBlob": "8623d87b5d0dafb2315b64c3ed86fabf1a2a58c0",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/baseline/toolbar-before.png",
+      "expectedBlob": "d6736dac71cac181a5b1f1a0095af7d9291cd41b",
+      "indexBlob": "d6736dac71cac181a5b1f1a0095af7d9291cd41b",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/build-receipt.json",
+      "expectedBlob": "ff90ec251176765753243f5edd3380d78e2f0149",
+      "indexBlob": "ff90ec251176765753243f5edd3380d78e2f0149",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/compiled.json",
+      "expectedBlob": "85b88aaefa98b3374d87fca500a8ce980d08d49e",
+      "indexBlob": "85b88aaefa98b3374d87fca500a8ce980d08d49e",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/files-supplementary-results.json",
+      "expectedBlob": "4ef81d601fe24861da7f06d846e0181b06ce2a03",
+      "indexBlob": "4ef81d601fe24861da7f06d846e0181b06ce2a03",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/final-corrected.config.ts.txt",
+      "expectedBlob": "a5f9dab522b2910c837931b5c158067df6f54ca8",
+      "indexBlob": "a5f9dab522b2910c837931b5c158067df6f54ca8",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/final-rpl.config.ts.txt",
+      "expectedBlob": "7ef5fd0cdd750b7df299f386fdd260882101dbc7",
+      "indexBlob": "7ef5fd0cdd750b7df299f386fdd260882101dbc7",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/intermediate-red.json",
+      "expectedBlob": "9e2213a18ef031d5781f0764ad3bf10711fbbb5f",
+      "indexBlob": "9e2213a18ef031d5781f0764ad3bf10711fbbb5f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/README.md",
+      "expectedBlob": "7e4d14cece153eb18135da5be38912e4c20b64a6",
+      "indexBlob": "7e4d14cece153eb18135da5be38912e4c20b64a6",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/SHA256.json",
+      "expectedBlob": "28a01d8ad4ee9177fe95129168ac5ef6549417bd",
+      "indexBlob": "28a01d8ad4ee9177fe95129168ac5ef6549417bd",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/build-receipt.json",
+      "expectedBlob": "f74748358d6bd6e2017be75835821582158672c7",
+      "indexBlob": "f74748358d6bd6e2017be75835821582158672c7",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/ci-d873-guard-redacted.json",
+      "expectedBlob": "2cea6312fa05ec5dbf11c3c5844719b77d5c53c9",
+      "indexBlob": "2cea6312fa05ec5dbf11c3c5844719b77d5c53c9",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/compiled.json",
+      "expectedBlob": "eaaccade4942255f8d00a3526b036089719fb71a",
+      "indexBlob": "eaaccade4942255f8d00a3526b036089719fb71a",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/focus-after-1024.png",
+      "expectedBlob": "923c56626896fc9e28ae88d610d1558c9f2f4d0f",
+      "indexBlob": "923c56626896fc9e28ae88d610d1558c9f2f4d0f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/focus-after-1440.png",
+      "expectedBlob": "7814e28644a689f05b53a332196614d60ee090e8",
+      "indexBlob": "7814e28644a689f05b53a332196614d60ee090e8",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/main767-combined-rpl.config.ts.txt",
+      "expectedBlob": "edf1673cfd45936c14e465126e3b15d5478876ea",
+      "indexBlob": "edf1673cfd45936c14e465126e3b15d5478876ea",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/main767-combined.config.ts.txt",
+      "expectedBlob": "321ce04538ffae3d75caefed532d9f1d22c993cd",
+      "indexBlob": "321ce04538ffae3d75caefed532d9f1d22c993cd",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/merge-receipt.json",
+      "expectedBlob": "9cda4edb422d29700a1bb90829e10d7c6569fbc0",
+      "indexBlob": "9cda4edb422d29700a1bb90829e10d7c6569fbc0",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/mobile-compat-main767.config.ts.txt",
+      "expectedBlob": "cb3a189478544cecf7a7199ecd1e67c71f9eac57",
+      "indexBlob": "cb3a189478544cecf7a7199ecd1e67c71f9eac57",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/mobile-compat-main767.spec.ts.txt",
+      "expectedBlob": "4c72f55099d0cf33dd0f3e7cf649014f27ffa419",
+      "indexBlob": "4c72f55099d0cf33dd0f3e7cf649014f27ffa419",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/palette-fixture-guard-review.json",
+      "expectedBlob": "d5bf74d6b66fbddb35df834c08f7fc35576ca87f",
+      "indexBlob": "d5bf74d6b66fbddb35df834c08f7fc35576ca87f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/previous-ci-terminal.json",
+      "expectedBlob": "17ea2768d62439c3ac56a088db485b30ac21fdba",
+      "indexBlob": "17ea2768d62439c3ac56a088db485b30ac21fdba",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/rpl-results.json",
+      "expectedBlob": "28148a53d9fc6b5ed7104243575cf8c30fc00120",
+      "indexBlob": "28148a53d9fc6b5ed7104243575cf8c30fc00120",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/served-asset.json",
+      "expectedBlob": "33dd30045b56fccb4e743ad6f77a8cf44b1f6a3c",
+      "indexBlob": "33dd30045b56fccb4e743ad6f77a8cf44b1f6a3c",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/sources.json",
+      "expectedBlob": "5c9db36ebef3c9413b8bca06e3ba0b851603d768",
+      "indexBlob": "5c9db36ebef3c9413b8bca06e3ba0b851603d768",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/targeted-results.json",
+      "expectedBlob": "c394db6eaf5994a92f18102c6870cb5d13a2c91e",
+      "indexBlob": "c394db6eaf5994a92f18102c6870cb5d13a2c91e",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/main767-combined/touch-results.json",
+      "expectedBlob": "ffcf10d4a23bc4dde98a5a04eac3068ea09302e3",
+      "indexBlob": "ffcf10d4a23bc4dde98a5a04eac3068ea09302e3",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/mobile-compat.config.ts.txt",
+      "expectedBlob": "f256dd86e23db2be677bd7e4376a1ba474407aa3",
+      "indexBlob": "f256dd86e23db2be677bd7e4376a1ba474407aa3",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/mobile-compat.spec.ts.txt",
+      "expectedBlob": "ddff97d3a8c2d9f27c2e963784268ecbaab6de63",
+      "indexBlob": "ddff97d3a8c2d9f27c2e963784268ecbaab6de63",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/palette-after-1024.png",
+      "expectedBlob": "650a738dbdada8f5a9bf79d83d7177514d88e9e1",
+      "indexBlob": "650a738dbdada8f5a9bf79d83d7177514d88e9e1",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/palette-after-1440.png",
+      "expectedBlob": "b6433e722aa169b7ed2e2f2f0b0219b607248243",
+      "indexBlob": "b6433e722aa169b7ed2e2f2f0b0219b607248243",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/preview-after-1024.png",
+      "expectedBlob": "8949d7abe89ccdcac893bbb99f929685bc59d096",
+      "indexBlob": "8949d7abe89ccdcac893bbb99f929685bc59d096",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/preview-after-1440.png",
+      "expectedBlob": "b5b7fba417ecbe674088bccd36f7294694465e8c",
+      "indexBlob": "b5b7fba417ecbe674088bccd36f7294694465e8c",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/preview-touch-390.png",
+      "expectedBlob": "d31b5fd49f4aaaf91e88d0eea6fb67c3fc41aa91",
+      "indexBlob": "d31b5fd49f4aaaf91e88d0eea6fb67c3fc41aa91",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/preview-touch-768.png",
+      "expectedBlob": "d136eeb6d1f3119b7eb2907b5480b0bbc07dfeed",
+      "indexBlob": "d136eeb6d1f3119b7eb2907b5480b0bbc07dfeed",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/problems-after-reload.png",
+      "expectedBlob": "e0b372d9566bc2e27b7acbfa796aff4315b38900",
+      "indexBlob": "e0b372d9566bc2e27b7acbfa796aff4315b38900",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/product-comparison.json",
+      "expectedBlob": "1195a0589b9ba94ec0c0ae252cdb2a73557f7e27",
+      "indexBlob": "1195a0589b9ba94ec0c0ae252cdb2a73557f7e27",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/proofs-sha256.json",
+      "expectedBlob": "f07c72da3983669160e0b0baf73406837fc8edea",
+      "indexBlob": "f07c72da3983669160e0b0baf73406837fc8edea",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/README.md",
+      "expectedBlob": "b00a9607da6a95a3bf813b1e6e71462ec7e68def",
+      "indexBlob": "b00a9607da6a95a3bf813b1e6e71462ec7e68def",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/SHA256.json",
+      "expectedBlob": "9e678b5d94cf4a97252322561d4a6540c0fc868c",
+      "indexBlob": "9e678b5d94cf4a97252322561d4a6540c0fc868c",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/baseline-and-c382-red.json",
+      "expectedBlob": "f06985403c565329cef800b0d8875b9cc57135ff",
+      "indexBlob": "f06985403c565329cef800b0d8875b9cc57135ff",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/build-receipt.json",
+      "expectedBlob": "a6d20952cac5add4f12373adaf024de8b9bd77cc",
+      "indexBlob": "a6d20952cac5add4f12373adaf024de8b9bd77cc",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/compiled.json",
+      "expectedBlob": "ee328a0831cc4c91073dca4db1aac5c468164cdc",
+      "indexBlob": "ee328a0831cc4c91073dca4db1aac5c468164cdc",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/d6-preparation-red.json",
+      "expectedBlob": "11ecd21976adffee9dc564edbe3878285a304890",
+      "indexBlob": "11ecd21976adffee9dc564edbe3878285a304890",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/fixture-change.json",
+      "expectedBlob": "abc3c502d8427e4aac27b26fba3051ace60c6cdf",
+      "indexBlob": "abc3c502d8427e4aac27b26fba3051ace60c6cdf",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/focus-after-1024.png",
+      "expectedBlob": "923c56626896fc9e28ae88d610d1558c9f2f4d0f",
+      "indexBlob": "923c56626896fc9e28ae88d610d1558c9f2f4d0f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/focus-after-1440.png",
+      "expectedBlob": "bdda46a7e9ac5ba40b655657702e5a02cb45b09f",
+      "indexBlob": "bdda46a7e9ac5ba40b655657702e5a02cb45b09f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/focus-before-1024.png",
+      "expectedBlob": "fdcc454d2134ac96744e0d1598fe57e164715b28",
+      "indexBlob": "fdcc454d2134ac96744e0d1598fe57e164715b28",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/focus-before-1440.png",
+      "expectedBlob": "faa67964f42ddf8365f6b5b6da62de7277e1a1e4",
+      "indexBlob": "faa67964f42ddf8365f6b5b6da62de7277e1a1e4",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/focus-verified-1024.png",
+      "expectedBlob": "923c56626896fc9e28ae88d610d1558c9f2f4d0f",
+      "indexBlob": "923c56626896fc9e28ae88d610d1558c9f2f4d0f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/focus-verified-1440.png",
+      "expectedBlob": "143ac6576fef5f24843f0d424a00432b7eee7dc2",
+      "indexBlob": "143ac6576fef5f24843f0d424a00432b7eee7dc2",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/images.json",
+      "expectedBlob": "268225b81a99bddaab2e09d548ff8b765bcf53a5",
+      "indexBlob": "268225b81a99bddaab2e09d548ff8b765bcf53a5",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/mobile-compat-verified.config.ts.txt",
+      "expectedBlob": "3e5c80c30631b1f7635a55a6dca21531227bf19f",
+      "indexBlob": "3e5c80c30631b1f7635a55a6dca21531227bf19f",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/mobile-compat-verified.spec.ts.txt",
+      "expectedBlob": "ec3e331ba76e2f7729a8508e0bedaf3b3c8b7855",
+      "indexBlob": "ec3e331ba76e2f7729a8508e0bedaf3b3c8b7855",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/repeat-focus-verified-rpl.config.ts.txt",
+      "expectedBlob": "cc914fb28047ac0f45bfb0573c8b2a6f7d462507",
+      "indexBlob": "cc914fb28047ac0f45bfb0573c8b2a6f7d462507",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/repeat-focus-verified.config.ts.txt",
+      "expectedBlob": "552f77ba0faa0eb5d499f034f60e6b39be967db6",
+      "indexBlob": "552f77ba0faa0eb5d499f034f60e6b39be967db6",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/rpl-results.json",
+      "expectedBlob": "901976686d36800929477099855b4c02d1c112be",
+      "indexBlob": "901976686d36800929477099855b4c02d1c112be",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/served-asset.json",
+      "expectedBlob": "a5974da7e20bfeceffd73e24faf97167ec640977",
+      "indexBlob": "a5974da7e20bfeceffd73e24faf97167ec640977",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/sources.json",
+      "expectedBlob": "7f31f8a9143d17b3edc2b5c3a863cab29ff02483",
+      "indexBlob": "7f31f8a9143d17b3edc2b5c3a863cab29ff02483",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/touch-results.json",
+      "expectedBlob": "3c8914dc1fd9119f86c5078177c2baa6e9221d16",
+      "indexBlob": "3c8914dc1fd9119f86c5078177c2baa6e9221d16",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/repeated-focus/verified-green.json",
+      "expectedBlob": "9493de28b9566d94bbfcd96cd0dea3c0925b840c",
+      "indexBlob": "9493de28b9566d94bbfcd96cd0dea3c0925b840c",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/results-redacted.json",
+      "expectedBlob": "de0f7e7e413df04fbb890464f47ff14ad2fee042",
+      "indexBlob": "de0f7e7e413df04fbb890464f47ff14ad2fee042",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/rpl-results.json",
+      "expectedBlob": "6dd55a6257903a3206349984fc6544712ef91457",
+      "indexBlob": "6dd55a6257903a3206349984fc6544712ef91457",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/served-asset.json",
+      "expectedBlob": "9afa593777a99137e7ed35e7628478b2a763ff41",
+      "indexBlob": "9afa593777a99137e7ed35e7628478b2a763ff41",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/sources.json",
+      "expectedBlob": "01d70f0f670b9fd6c25d717e245a9c0372ae8f87",
+      "indexBlob": "01d70f0f670b9fd6c25d717e245a9c0372ae8f87",
+      "matches": true
+    },
+    {
+      "path": "docs/bugs/desktop-panels-2026-10-22/proofs/touch-results.json",
+      "expectedBlob": "815489885774adc0f7e38c958eed7ea6b3f13463",
+      "indexBlob": "815489885774adc0f7e38c958eed7ea6b3f13463",
+      "matches": true
+    },
+    {
+      "path": "tests/e2e/ide-global-palette-handoff.spec.ts",
+      "expectedBlob": "61fdc7b07528faf4e628703ac57c74e2b1d5c09a",
+      "indexBlob": "61fdc7b07528faf4e628703ac57c74e2b1d5c09a",
+      "matches": true
+    },
+    {
+      "path": "tests/e2e/ide-problems-panel.spec.ts",
+      "expectedBlob": "7984891b376f55565997a4a4794597d797cc2ba8",
+      "indexBlob": "7984891b376f55565997a4a4794597d797cc2ba8",
+      "matches": true
+    },
+    {
+      "path": "tests/e2e/preview-desktop-toolbar.spec.ts",
+      "expectedBlob": "ca6709b85b6c732766dc0468d2fbe85d34ab58a3",
+      "indexBlob": "ca6709b85b6c732766dc0468d2fbe85d34ab58a3",
+      "matches": true
+    }
+  ],
+  "limitation": "Index blob comparison, not build or runtime validation; inventory regenerated separately by parent."
+}

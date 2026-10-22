@@ -1,0 +1,11 @@
+// Source: .vibecore/ux-qa/main766-combined.config.ts
+// SHA-256: 4da9452ee1d5382e71941a57862cb23443e66f0d2d0e0df4db05db6b9bfd01f6
+import {defineConfig} from '@playwright/test';
+import standard from '../../playwright.config';
+export default defineConfig({...standard,testDir:'../../tests/e2e',testMatch:['ide-global-palette-handoff.spec.ts','ide-problems-panel.spec.ts','preview-desktop-toolbar.spec.ts','reouverture-ne-rejoue-pas.spec.ts','rpl-ide-panels-proof.spec.ts'],webServer:undefined,retries:0,workers:1,outputDir:'/workspace/ux-artifacts/desktop-panels/main766-combined/results',reporter:[['list'],['json',{outputFile:'/workspace/ux-artifacts/desktop-panels/main766-combined/results.json'}]],projects:standard.projects?.filter(p=>p.name==='chromium').map(p=>({...p,use:{...p.use,baseURL:'http://127.0.0.1:5229',trace:'retain-on-failure',launchOptions:{executablePath:'/usr/bin/chromium'}}}))});
+
+
+// Source: .vibecore/ux-qa/preview-audit/mobile-compat-main766.config.ts
+// SHA-256: 8d0805b003db8cc91cbdb89c4223686becc2a374e1a8281fa82e74ddb99e12cd
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'.',testMatch:'mobile-compat-main766.spec.ts',workers:1,retries:0,use:{baseURL:'http://127.0.0.1:5229',isMobile:true,hasTouch:true,launchOptions:{executablePath:'/usr/bin/chromium'},trace:'retain-on-failure'},projects:[{name:'phone390',use:{viewport:{width:390,height:844}}},{name:'tablet768',use:{viewport:{width:768,height:1024}}}],reporter:[['list'],['json',{outputFile:'/workspace/ux-artifacts/desktop-panels/preview/mobile-compat-main766-results.json'}]],outputDir:'/workspace/ux-artifacts/desktop-panels/preview/mobile-compat-main766-results'});
