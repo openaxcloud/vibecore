@@ -1,0 +1,41 @@
+{
+  "stage": "stable-callback-still-red",
+  "note": "Intermediate callback-ref fix only; focus assertion passes, move fails 3 to 4. Historical directory name is not a verdict.",
+  "localSourceReport": "rpl-green/results.json",
+  "sourceReportSha256": "3ef6c425aec77273729859f22481f2e1721c89502513db7616f631e1f5c65fe1",
+  "stats": {
+    "startTime": "2026-10-22T06:55:10.075Z",
+    "duration": 23175.436999999998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 10791,
+          "retry": 0,
+          "failure": "Error: a move must not create or destroy tabs\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: 3\nReceived: 4"
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 10589,
+          "retry": 0,
+          "failure": "Error: a move must not create or destroy tabs\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: 3\nReceived: 4"
+        }
+      ]
+    }
+  ],
+  "redactions": "Whitelisted titles, verdicts, durations, assertion messages and pane arrays only. Config/environment, request bodies, headers, cookies and full reports excluded."
+}

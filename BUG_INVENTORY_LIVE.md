@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-468 entrées.
+469 entrées.
 
 ## Sans section
 
@@ -599,6 +599,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001](docs/bugs/BUG-UX-CONFIRMATION-ESCAPE-REOPEN-001.md) — 📤 Dispatché : 21 octobre 2026, revue de #759 : `snapshot-cancel-focus.spec.ts:121`, clavier FR. Le dialogue reste visible pe · 💻 Codé : Branche séparée de #758, base `736ed190d64a980471e5943cf7e0695195f2a691`. La confirmation traite localement Es · ✅ Testé live : Local, build compilé attesté de la recette commune, pas production : test FR inchangé 10/10, puis sonde instru
 - [BUG-DEPENDENCY-CRITICAL-20261021](docs/bugs/BUG-DEPENDENCY-CRITICAL-20261021.md) — 📤 Dispatché : non renseigné · 💻 Codé : non renseigné · ✅ Testé live : non renseigné
 - [BUG-IDE-PANE-DOCUMENT-IDENTITY-001](docs/bugs/BUG-IDE-PANE-DOCUMENT-IDENTITY-001.md) — 📤 Dispatché : 22 octobre 2026 : investigation du flaky docking de #763. Le retour B→A reste une piste distincte, non attribu · 💻 Codé : Correction locale sauvegardée dans `4ec690fc`, publication #763 en préparation : contenu et opérations d’éditi · ✅ Testé live : Reproduction sur le build local combinant 9609abf9 et main 18cf74fd : ouvrir other.txt dans le panneau flottan
+- [BUG-IDE-PANE-FOCUS-DUPLICATION-001](docs/bugs/BUG-IDE-PANE-FOCUS-DUPLICATION-001.md) — 📤 Dispatché : 22 octobre 2026 : deux échecs finaux light/dark dans la CI de #763 d83cb4a, trois tentatives par thème. Le dép · 💻 Codé : Correctif local validé, publication dans #763 (non intégré à main) : le callback d’ouverture lit le panneau ac · ✅ Testé live : Rouge reproduit sur le build local 4ec690fc : deux thèmes, zéro retry. Une assertion complémentaire localise l
 
 ## Résidus non tabulaires — reportés mot pour mot
 

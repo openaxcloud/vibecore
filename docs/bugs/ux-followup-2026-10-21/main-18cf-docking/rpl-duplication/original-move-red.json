@@ -1,0 +1,85 @@
+{
+  "stage": "original-move-red",
+  "note": "Initial build: full move fails, 3 to 5 tabs",
+  "localSourceReport": "rpl-before/results.json",
+  "sourceReportSha256": "ea40bac646ddffc4c819f538e594d028db2158af2be08f79d96ae5b0664082d9",
+  "stats": {
+    "startTime": "2026-10-22T06:46:12.431Z",
+    "duration": 23492.604,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 10840,
+          "retry": 0,
+          "failure": "Error: a move must not create or destroy tabs\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: 3\nReceived: 5",
+          "paneCounts": {
+            "beforeMove": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "afterMove": [
+              [
+                "editor",
+                "preview",
+                "deployments"
+              ],
+              [
+                "deployments",
+                "deployments"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 10602,
+          "retry": 0,
+          "failure": "Error: a move must not create or destroy tabs\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: 3\nReceived: 5",
+          "paneCounts": {
+            "beforeMove": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "afterMove": [
+              [
+                "editor",
+                "preview",
+                "deployments"
+              ],
+              [
+                "deployments",
+                "deployments"
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "redactions": "Whitelisted titles, verdicts, durations, assertion messages and pane arrays only. Config/environment, request bodies, headers, cookies and full reports excluded."
+}

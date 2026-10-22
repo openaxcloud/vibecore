@@ -1,0 +1,7 @@
+{
+  "command": "pnpm exec tsc --noEmit",
+  "exitCode": 2,
+  "errorCount": 688,
+  "changedProductErrors": [],
+  "note": "Broad root tsconfig includes test fixtures; official repository command pnpm typecheck is tracked separately. No configuration changed."
+}

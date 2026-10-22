@@ -340,7 +340,11 @@ for (const theme of ['light', 'dark'] as const) {
     if (beforeMove.length >= 2) {
       await shot(page, `panes-before-move-${label}`);
 
+      const tabIdsBefore = await page
+        .locator('.bolt-project-pane-leaf [role="tab"]')
+        .evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('data-tab-id')).sort());
       await openOptionsMenu(page, 0);
+      expect(await paneTabPanels(page), 'focusing a pane menu must not reopen the URL tool').toEqual(beforeMove);
 
       const moveItem = page.locator('[data-testid="tab-options-move-to-pane-0"]');
 
@@ -360,6 +364,12 @@ for (const theme of ['light', 'dark'] as const) {
          * per-pane distribution (or collapses the emptied pane).
          */
         expect(totalAfter, 'a move must not create or destroy tabs').toBe(totalBefore);
+        const tabIdsAfter = await page
+          .locator('.bolt-project-pane-leaf [role="tab"]')
+          .evaluateAll((tabs) => tabs.map((tab) => tab.getAttribute('data-tab-id')).sort());
+        expect(tabIdsAfter, 'moving and restoring focus must preserve the existing tab identities').toEqual(
+          tabIdsBefore,
+        );
         expect(
           JSON.stringify(afterMove),
           'the tab must actually have changed pane (a swap would keep counts identical)',
@@ -369,5 +379,26 @@ for (const theme of ['light', 'dark'] as const) {
 
     await assertNoHorizontalOverflow(page);
     await shot(page, `panels-final-${label}`);
+
+    // Explicit tool requests still target the pane most recently focused.
+    const targetPane = page.locator('.bolt-project-pane-leaf').last();
+    const targetPaneId = await targetPane.getAttribute('data-pane-id');
+    await targetPane.locator('[role="tab"]').first().click();
+    await dockAllTools.click();
+    const toolSearch = page.locator('[data-testid="project-command-palette-search"]');
+    await expect(toolSearch).toBeVisible();
+    await toolSearch.fill('terminal');
+    await page.keyboard.press('Enter');
+    await expect(page.locator(`[data-pane-id="${targetPaneId}"] [role="tab"][data-panel="terminal"]`)).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+
+    // A genuine URL request must still open/select its tool after focus changes.
+    await page.goto(`/projects/${projectId}/ide?panel=git`, { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="git"][aria-selected="true"]'),
+    ).toHaveCount(1);
+    await shot(page, `panels-url-navigation-${label}`);
   });
 }

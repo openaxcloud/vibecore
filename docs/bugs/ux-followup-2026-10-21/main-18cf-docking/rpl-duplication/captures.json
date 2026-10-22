@@ -1,0 +1,82 @@
+[
+  {
+    "file": "original-before-move-light.png",
+    "localSource": "rpl-before/shots/panes-before-move-light-1280.png",
+    "sha256": "f52c62d46f41241c937b70e4e01e618a06d83f01a3e74786e434e4b45f659af1",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "before/after the gesture in a failed run, not before/after a validated fix"
+  },
+  {
+    "file": "original-after-move-light.png",
+    "localSource": "rpl-before/shots/panes-after-move-light-1280.png",
+    "sha256": "74faea229496d05c195d26b3429d92c5455334832f6eae9c5c7b71a2be6b2e84",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "before/after the gesture in a failed run, not before/after a validated fix"
+  },
+  {
+    "file": "stable-callback-before-move-dark.png",
+    "localSource": "rpl-green/shots/panes-before-move-dark-1280.png",
+    "sha256": "716fc4760eb7cc25c003f16374bcea4e2c39445b6ca7ed8ce0743b99c8583e1a",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "before/after the gesture in a failed run, not before/after a validated fix"
+  },
+  {
+    "file": "stable-callback-after-move-dark.png",
+    "localSource": "rpl-green/shots/panes-after-move-dark-1280.png",
+    "sha256": "e460ca28129ef3e5665ea0fee725c0a53ac76c06ea862201cd1869198c4e3c2f",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "before/after the gesture in a failed run, not before/after a validated fix"
+  },
+  {
+    "file": "final-panes-after-move-light.png",
+    "localSource": "rpl-final/shots/panes-after-move-light-1280.png",
+    "sha256": "efdd65748ac61b846aeb5eda1e977fd615441578dc415986ccd40d5fb991d5a8",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "successful local move"
+  },
+  {
+    "file": "final-panels-url-navigation-light.png",
+    "localSource": "rpl-final/shots/panels-url-navigation-light-1280.png",
+    "sha256": "cb00b7943889f00d97d20d54c52f2f19801e4977161651eb502da02a2561d0e1",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "Git tab selected through URL; Git status still loading"
+  },
+  {
+    "file": "final-panes-after-move-dark.png",
+    "localSource": "rpl-final/shots/panes-after-move-dark-1280.png",
+    "sha256": "7bfc1387b3d92c6b75b2a7f5951e31058843febc353598e6617905ce47fc2054",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "successful local move"
+  },
+  {
+    "file": "final-panels-url-navigation-dark.png",
+    "localSource": "rpl-final/shots/panels-url-navigation-dark-1280.png",
+    "sha256": "e491bc4843084576a45a6e245a5540347180e47264eb810645762dabf21a053a",
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "meaning": "Git tab selected through URL; Git status still loading"
+  }
+]

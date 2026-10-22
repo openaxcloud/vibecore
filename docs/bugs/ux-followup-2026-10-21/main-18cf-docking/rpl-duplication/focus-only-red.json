@@ -1,0 +1,41 @@
+{
+  "stage": "focus-only-red",
+  "note": "Same product, strengthened test fails before moving",
+  "localSourceReport": "rpl-focus-red/results.json",
+  "sourceReportSha256": "3490f5388fee228bf1302db167b9b0dacb98f6251ce8e556ff06e5ea3f066ffa",
+  "stats": {
+    "startTime": "2026-10-22T06:48:45.126Z",
+    "duration": 21635.769999999997,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 10017,
+          "retry": 0,
+          "failure": "Error: focusing a pane menu must not reopen the URL tool\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  - 0\n+ Received  + 1\n\n  Array [\n    Array [\n      \"editor\",\n      \"preview\",\n+     \"deployments\",\n    ],\n    Array [\n      \"deployments\",\n    ],\n  ]"
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 9530,
+          "retry": 0,
+          "failure": "Error: focusing a pane menu must not reopen the URL tool\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  - 0\n+ Received  + 1\n\n  Array [\n    Array [\n      \"editor\",\n      \"preview\",\n+     \"deployments\",\n    ],\n    Array [\n      \"deployments\",\n    ],\n  ]"
+        }
+      ]
+    }
+  ],
+  "redactions": "Whitelisted titles, verdicts, durations, assertion messages and pane arrays only. Config/environment, request bodies, headers, cookies and full reports excluded."
+}

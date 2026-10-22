@@ -1,0 +1,8 @@
+{
+  "path": "app/components/chat/BaseChat.tsx",
+  "change": "ESLint required one blank line and two block comments",
+  "builtSourceSha256": "05f936cf00bd62c3a2930c72a142b6cb7ce4f62bdfc2ba9a86cdfdd8ac79ad1d",
+  "committedSourceSha256": "ae0a0397ae2f071356310996d466f5f0e0f52c5d3cc8d211a6360e5686c660b7",
+  "typescriptEmittedJavaScriptIdentical": true,
+  "emittedSha256": "2810c04f6e0fc28e2ccd8bf13ea07b6ec75b5f66f663aa6c3ac709afa0858a3e"
+}

@@ -3799,6 +3799,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     paneTreeRef.current = paneTree;
 
     const [activePaneId, setActivePaneId] = useState(dispositionTransmise?.activePaneId ?? 'pane-main');
+    const activePaneIdRef = useRef(activePaneId);
+
+    activePaneIdRef.current = activePaneId;
+
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
     /** RPL-IDE-001.3 — panes popped out of the docked tree in this window. */
@@ -4389,6 +4393,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
         ? projectPanelResolution.panel
         : '';
+
+    const appliedWorkspacePanelUrlRef = useRef<{
+      projectId: typeof projectId;
+      workspaceId: typeof currentWorkspaceId;
+      windowId: string;
+      panel: IdeWorkspacePanel;
+      tabId: string;
+      targetPaneId: string;
+    } | null>(null);
 
     const setProjectPanelSearchParam = useCallback(
       (panel?: string) => {
@@ -6194,7 +6207,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setWorkspaceTabs((currentTabs) => (currentTabs.includes(panel) ? currentTabs : [...currentTabs, panel]));
         setActiveWorkspacePanel(panel);
 
-        const targetPaneId = options.paneId ?? activePaneId;
+        /*
+         * Pane focus is not a new URL navigation. Keep this callback stable so
+         * the URL synchronization effect does not reopen its tool on focus.
+         */
+        const targetPaneId = options.paneId ?? activePaneIdRef.current;
         setActivePaneId(targetPaneId);
 
         const openTab = (windowState: ProjectEditorWindowState) =>
@@ -6254,7 +6271,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setProjectPanelSearchParam(panel);
         }
       },
-      [activePaneId, setProjectPanelSearchParam],
+      [setProjectPanelSearchParam],
     );
 
     const openProjectFile = useCallback(
@@ -6573,6 +6590,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      const appliedPanelUrl = appliedWorkspacePanelUrlRef.current;
+
+      appliedWorkspacePanelUrlRef.current = null;
+
+      if (
+        !useMobileIde &&
+        appliedPanelUrl?.projectId === projectId &&
+        appliedPanelUrl?.workspaceId === currentWorkspaceId &&
+        appliedPanelUrl?.windowId === projectEditorWindowId &&
+        appliedPanelUrl?.panel === activeProjectPanel
+      ) {
+        const destination =
+          findLeaf(paneTreeRef.current, appliedPanelUrl.targetPaneId) ??
+          findFloatingLeaf(floatingPanesRef.current, appliedPanelUrl.targetPaneId);
+
+        // Consume only the URL echo of a move that actually reached its target.
+        if (destination?.tabs.some((tab) => tab.id === appliedPanelUrl.tabId && tab.panel === activeProjectPanel)) {
+          return;
+        }
+      }
+
       if (isIdeRightPanel(activeProjectPanel)) {
         setRightPanelMode('files');
         setRightPanelOpen(true);
@@ -6607,7 +6645,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [
       activeProjectPanel,
+      currentWorkspaceId,
       openWorkspacePanel,
+      projectEditorWindowId,
+      projectId,
       projectIdeMode,
       projectStateReady,
       setMobileIdePanel,
@@ -8699,11 +8740,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           );
         }
 
+        /*
+         * Moving has already applied this selection. Its URL update must not
+         * reopen the moved tab in the pane that regains menu focus.
+         */
+        appliedWorkspacePanelUrlRef.current = {
+          projectId,
+          workspaceId: currentWorkspaceId,
+          windowId: projectEditorWindowId,
+          panel: sourceTab.panel,
+          tabId: sourceTab.id,
+          targetPaneId,
+        };
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
         setProjectPanelSearchParam(sourceTab.panel);
       },
-      [applyProjectEditorWindowOp, floatingPanes, paneTree, setProjectPanelSearchParam],
+      [
+        applyProjectEditorWindowOp,
+        currentWorkspaceId,
+        floatingPanes,
+        paneTree,
+        projectEditorWindowId,
+        projectId,
+        setProjectPanelSearchParam,
+      ],
     );
 
     /**
