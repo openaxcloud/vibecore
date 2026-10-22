@@ -1,0 +1,25 @@
+{
+  "baseCommit": "e4bda1fbbeefb3988689fc864927edbc4f171cfd",
+  "servedBuild": "838684f007255fb0f91177f5e1598940ad084fca",
+  "productEquivalentToBase": "as documented by parent baseline receipt",
+  "rawReportSha256": "6d0df08bde6aff061d290a2be21f4ba6768261ba69b3b7b912e4fa233d3ee5dc",
+  "stats": {
+    "startTime": "2026-10-22T13:49:17.583Z",
+    "duration": 24369.756,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "project A never displays project B while its archive is pending at 768",
+      "status": "failed",
+      "retry": 0,
+      "durationMs": 22399
+    }
+  ],
+  "failure": "Expected zero occurrences of project B content while project A archive is pending; project B README remained visible.",
+  "width": 768,
+  "controlledRequest": "real project A archive paused and continued, no mocked response"
+}

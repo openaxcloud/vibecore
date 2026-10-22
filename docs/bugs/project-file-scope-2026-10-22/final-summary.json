@@ -1,0 +1,38 @@
+{
+  "commit": "2023932ed96228ea1fe970af441ecff8b009736a",
+  "rawReportSha256": "cf79e5ede0512ee858b56246eec09b42e41fd268977494263c688eeeb0a263a8",
+  "stats": {
+    "startTime": "2026-10-22T14:06:43.485Z",
+    "duration": 60783.742999999995,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "explicit provisional README stays in project A after switching to B at 390",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 18956
+    },
+    {
+      "title": "explicit provisional README stays in project A after switching to B at 768",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 17813
+    },
+    {
+      "title": "project A never displays project B while its archive is pending at 768",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 16132
+    },
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6285
+    }
+  ]
+}

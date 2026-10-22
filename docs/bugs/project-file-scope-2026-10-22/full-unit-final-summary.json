@@ -1,0 +1,14 @@
+{
+  "command": "npm_config_store_dir=/tmp/ux763-pnpm-store pnpm exec vitest run",
+  "sourceSha256": "5d78f3c85c47fff06386f7cbb9cad4cb5151d7bf58ef6e2074a5f18d144751a1",
+  "passedFiles": 1301,
+  "skippedFiles": 2,
+  "failedFiles": 0,
+  "passedTests": 10026,
+  "skippedTests": 7,
+  "failedTests": 0,
+  "durationSeconds": 318.63,
+  "attempt": 2,
+  "changesBetweenAttempts": [],
+  "initialFailurePreserved": "full-unit-initial-summary.json"
+}

@@ -1,0 +1,9 @@
+{
+  "source": "ux-scope-unit-final.log",
+  "sourceSha256": "7baf8b6af6c2f61d956483e87054f0d0268d5940295689b1ee2eead217e0265c",
+  "file": "app/lib/stores/workbench.project-storage-return.spec.ts",
+  "passed": 34,
+  "failed": 0,
+  "durationSeconds": 4.67,
+  "limits": "Local unit validation; not compiled browser or CI validation."
+}

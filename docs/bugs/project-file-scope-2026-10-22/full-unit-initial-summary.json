@@ -1,0 +1,24 @@
+{
+  "runs": [
+    {
+      "log": "ux-scope-fullunit.log",
+      "sha256": "982b0bd47c51e5c49b3e80b2061f1bddccb303afe30ec3f49383696fcb1ed412",
+      "status": "failed",
+      "passedFiles": 1300,
+      "failedFiles": 1,
+      "skippedFiles": 2,
+      "passedTests": 10021,
+      "skippedTests": 7
+    },
+    {
+      "log": "ux-scope-sass-diagnostic.log",
+      "sha256": "6c07cb9ce649f16654864b9c4ffc9020d6f297f2022d55ee058f0e0b09761689",
+      "status": "passed",
+      "passedFiles": 1,
+      "passedTests": 5
+    }
+  ],
+  "failure": "sass-embedded SyncMessagePort.receiveMessage assertion 0 !== 2 during collection of app/styles/tint-contrast-sweep.spec.ts; before contrast assertions",
+  "cause": "not established",
+  "changesBetweenRuns": []
+}

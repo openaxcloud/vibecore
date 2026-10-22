@@ -1,0 +1,58 @@
+[
+  {
+    "path": "README.md",
+    "sha256": "15db7a38fa1198856ee9e2e910d955edf2261c3a9533777e0d178a33ad6f26a6"
+  },
+  {
+    "path": "baseline-project-A-archive-pending.png",
+    "sha256": "fe8f3c67b21e536865baeb1825461e605a709c2b5243be182d3b986e9deea8fd"
+  },
+  {
+    "path": "baseline-summary.json",
+    "sha256": "4bf588fc616b223655657d028a6fe56e9add519a768165a6b959567b9ec5f623"
+  },
+  {
+    "path": "build-receipt.json",
+    "sha256": "eee2424b1677dd1ec2c7d5f1673a53b3e309489f0c5494685f5e5ed93ce4799b"
+  },
+  {
+    "path": "compiled.json",
+    "sha256": "2b2059517307a67dae235991c1606ad33f5f682ff21fe14df9a758f3646eb759"
+  },
+  {
+    "path": "final-project-A-archive-loaded.png",
+    "sha256": "eec0962ff10e1ff6eda265909da3c80576bbdfe56079f55998bb2b29f9967e1c"
+  },
+  {
+    "path": "final-project-A-archive-pending.png",
+    "sha256": "20e52f9cb12704003892b900d40b130ea9ed0960853f3a894a1d332c9019c3ff"
+  },
+  {
+    "path": "final-summary.json",
+    "sha256": "e788133038ba5095895fa693e5938d39dd4d55b68a473dc00a619acd89bf2b06"
+  },
+  {
+    "path": "full-unit-final-summary.json",
+    "sha256": "4d99cef30eaf751df7f841c561d0ab146e2bf9110dd5a740fce87b1b13036552"
+  },
+  {
+    "path": "full-unit-initial-summary.json",
+    "sha256": "ebe4e4239d18cf432c57e05fd938bdfaa71ff8496364f4e06d038b04f1f7f865"
+  },
+  {
+    "path": "scope-green.config.ts.txt",
+    "sha256": "faee11785a5a87c500831adc2500cfff3f133a099bcac538105691642b6d7bc4"
+  },
+  {
+    "path": "served-asset.json",
+    "sha256": "9bb953e763bbb28a37bb3eb41aa384cfe05a107d270326a6fb090937e4b464d0"
+  },
+  {
+    "path": "sources.json",
+    "sha256": "4a99bfe910057706b0eec2db89d995ae707d943bb271a82a0f31ec0a37bb5a90"
+  },
+  {
+    "path": "unit-summary.json",
+    "sha256": "0e2ea16a60bc5e795dcf71eb3781b2927ac3f984ac5394e4e377de472bfafe63"
+  }
+]
