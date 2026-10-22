@@ -102,22 +102,24 @@ describe('MANIFEST-DURABILITY-001 — l’archive du projet suit les écritures 
     expect(remote).toMatch(/'x-vc-write-origin': 'stream'/);
   });
 
-  it('l’échec de persistance ne fait pas échouer l’écriture', () => {
+  it.each(ROUTES_MUTATION.slice(0, 2))('%s refuse le faux succès de persistance sans demander un rejeu', (ancre) => {
     /*
-     * Le fichier est déjà dans le pod : rendre 5xx ferait reprendre l'appelant
-     * sur une écriture qui a réussi, et la reprise est justement ce qui a produit
-     * la tempête de 468 requêtes du 21/08.
+     * L'ancien contrat avalait l'échec du manifeste pour éviter un rejeu 5xx.
+     * Le contrat durable doit faire les DEUX : signaler le résultat partiel et
+     * interdire son rejeu automatique, qui pourrait écraser une édition concurrente.
+     * Les tests runtime-save-durability couvrent aussi ces invariants via l'API réelle.
      */
-    const corps = corpsDuHandler("app.put('/api/runtime/workspaces/:workspaceId/files/write'");
-
-    /*
-     * Ancré sur l'APPEL, pas sur la première mention : le commentaire au-dessus
-     * cite le nom, et partir de là mesurait de la prose.
-     */
+    const corps = corpsDuHandler(ancre);
     const bloc = corps.slice(corps.indexOf('await persistProjectFileEntry('));
 
-    expect(bloc.slice(0, 400)).toMatch(/catch \(error\)/);
-    expect(bloc.slice(0, 400)).toMatch(/request\.log\.error/);
+    expect(bloc).toMatch(/catch\s*\{\s*(?:\/\*[\s\S]*?\*\/\s*)?return filePersistenceFailure\(request, reply, true\);/);
+
+    const echec = APP.slice(APP.indexOf('const filePersistenceFailure ='), APP.indexOf(ROUTES_MUTATION[0]!));
+
+    expect(echec).toContain('.code(409)');
+    expect(echec).toContain("code: 'PROJECT_FILE_PERSISTENCE_FAILED'");
+    expect(echec).toContain("manifest: 'unconfirmed'");
+    expect(echec).toContain('retryable: false');
   });
 
   it.each(ROUTES_MUTATION)('%s rend l’archive durable', (ancre) => {

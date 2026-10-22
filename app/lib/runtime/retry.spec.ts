@@ -13,6 +13,14 @@ describe('isTransientRuntimeError', () => {
     }
   });
 
+  it.each([409, 503])('never classifies an unconfirmed file save as transient (%s)', (status) => {
+    const error = new RuntimeError(`Remote runtime request failed: ${status}`, {
+      code: 'PROJECT_FILE_PERSISTENCE_FAILED',
+      status,
+    });
+    expect(isTransientRuntimeError(error)).toBe(false);
+  });
+
   it('classifies workspace-not-started as transient', () => {
     const error = new RuntimeError('Remote workspace has not been started', { code: 'WORKSPACE_NOT_STARTED' });
     expect(isTransientRuntimeError(error)).toBe(true);

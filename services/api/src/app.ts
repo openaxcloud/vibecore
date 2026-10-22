@@ -5121,8 +5121,8 @@ type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64'; e
  * qui VIDE l'arbre de travail avant de réécrire les seules entrées reçues.
  * Un manifeste d'UNE entrée né d'une sauvegarde unitaire détruisait donc, à la
  * lecture suivante, tous les autres fichiers du projet. Sans manifeste
- * préexistant on ne touche à rien : l'archive reste telle quelle, exactement
- * comme avant que la durabilité par écriture n'existe.
+ * préexistant on ne touche à rien : les sauvegardes unitaires échouent
+ * explicitement, les autres mutations conservent leur comportement historique.
  *
  * Une SEULE mutation par requête, jamais une par fichier d'un sous-arbre : ce
  * blob est partagé avec les éditions collaboratives et les autorisations de
@@ -5145,7 +5145,8 @@ function manifesteChange(avant: EntreeDeManifeste[], apres: EntreeDeManifeste[])
     (entree, index) =>
       entree.path !== apres[index]!.path ||
       entree.content !== apres[index]!.content ||
-      entree.encoding !== apres[index]!.encoding,
+      entree.encoding !== apres[index]!.encoding ||
+      entree.ecrit !== apres[index]!.ecrit,
   );
 }
 
@@ -5154,6 +5155,7 @@ async function mutateProjectFileManifestEntries(
   projectId: string,
   updatedByUserId: string | undefined,
   transformer: (entrees: EntreeDeManifeste[]) => EntreeDeManifeste[],
+  requireManifest = false,
 ) {
   /*
    * DEUX raisons de renoncer AVANT d'entrer dans `mutateProjectIdeState`, et
@@ -5177,6 +5179,10 @@ async function mutateProjectFileManifestEntries(
    */
   const entreesActuelles = entreesDuManifeste((await store.getProjectIdeState(projectId))?.state);
 
+  if (requireManifest && !entreesActuelles) {
+    throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
+  }
+
   if (!entreesActuelles || !manifesteChange(entreesActuelles, transformer([...entreesActuelles]))) {
     return;
   }
@@ -5186,6 +5192,10 @@ async function mutateProjectFileManifestEntries(
 
     /* Le manifeste a disparu entre la décision et ici : ne rien inventer. */
     if (!entrees) {
+      if (requireManifest) {
+        throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
+      }
+
       return mergeProjectIdeState(existing?.state, {});
     }
 
@@ -5228,26 +5238,49 @@ async function persistProjectFileEntry(
   const chemin = normalizeProjectPath(file.path);
 
   if (!chemin) {
-    return;
+    throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
   }
 
-  await mutateProjectFileManifestEntries(store, projectId, updatedByUserId, (entrees) => {
-    const entree: EntreeDeManifeste = {
-      path: chemin,
-      content: file.content,
-      ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
-      ecrit: true,
-    };
-    const index = entrees.findIndex((e) => normalizeProjectPath(e.path) === chemin);
+  await mutateProjectFileManifestEntries(
+    store,
+    projectId,
+    updatedByUserId,
+    (entrees) => {
+      const entree: EntreeDeManifeste = {
+        path: chemin,
+        content: file.content,
+        ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+        ecrit: true,
+      };
 
-    if (index === -1) {
-      entrees.push(entree);
-    } else {
-      entrees[index] = entree;
-    }
+      const index = entrees.findIndex((e) => normalizeProjectPath(e.path) === chemin);
 
-    return entrees;
-  });
+      if (index === -1) {
+        entrees.push(entree);
+      } else {
+        entrees[index] = entree;
+      }
+
+      return entrees;
+    },
+    true,
+  );
+
+  /*
+   * Confirm the durable entry, not just the runtime readback. A concurrent
+   * replacement/removal is not evidence that this requested content was saved.
+   */
+  const persisted = entreesDuManifeste((await store.getProjectIdeState(projectId))?.state);
+  const entry = persisted?.find((candidate) => normalizeProjectPath(candidate.path) === chemin);
+
+  if (
+    !entry ||
+    entry.content !== file.content ||
+    entry.encoding !== (file.encoding === 'base64' ? 'base64' : undefined) ||
+    !entry.ecrit
+  ) {
+    throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
+  }
 }
 
 /**
@@ -18954,33 +18987,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { path, content: file.content, encoding: file.encoding };
   });
+
+  // A manifest is authoritative: never bootstrap it from a single runtime file.
+  const requireFileManifest = async (projectId: string) => {
+    if (!entreesDuManifeste((await store.getProjectIdeState(projectId))?.state)) {
+      throw new Error(appPublicEnglish('INTERNAL_SERVER_ERROR'));
+    }
+  };
+  const filePersistenceFailure = (request: FastifyRequest, reply: FastifyReply, runtimeApplied: boolean) => {
+    // Store exceptions may contain SQL, credentials or file contents. Log only the outcome.
+    request.log.error({ event: 'project.file.persistence_failed', runtimeApplied }, 'project manifest persist failed');
+
+    /*
+     * This conflict needs explicit recovery: 503 invites automatic overwrites
+     * after the runtime already changed. Client retry layers also guard the code.
+     */
+    return reply
+      .code(409)
+      .header('x-vc-file-persistence', 'unconfirmed')
+      .send({
+        error: appPublicEnglish('INTERNAL_SERVER_ERROR'),
+        code: 'PROJECT_FILE_PERSISTENCE_FAILED',
+        persistence: { runtime: runtimeApplied ? 'applied' : 'not_applied', manifest: 'unconfirmed' },
+        retryable: false,
+        retry: 'write',
+      });
+  };
   app.put('/api/runtime/workspaces/:workspaceId/files/write', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    const durable = authorized.projectId && !estEcritureDeFlux(request);
 
     // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
     if (authorized.projectId && (await rejectIfCheckpointBarrier(reply, authorized.projectId))) {
       return reply;
     }
-    await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
 
-    /*
-     * BUG-CREATE-010 — l'archive du projet doit suivre, sinon la réouverture
-     * depuis un autre appareil réécrit le fichier depuis une archive périmée et
-     * le travail est perdu. Hors flux seulement : voir `persistProjectFileEntry`.
-     *
-     * L'échec de persistance ne fait PAS échouer l'écriture : le fichier est déjà
-     * dans le pod, et rendre 5xx ici ferait reprendre l'appelant alors que son
-     * écriture a réussi. Il est journalisé pour rester visible.
-     */
-    if (authorized.projectId && !estEcritureDeFlux(request)) {
+    if (durable) {
       try {
-        await persistProjectFileEntry(store, authorized.projectId, body, request.currentUser?.id);
-      } catch (error) {
-        request.log.error({ err: error, projectId: authorized.projectId, path: body.path }, 'project manifest persist failed');
+        await requireFileManifest(authorized.projectId!);
+      } catch {
+        return filePersistenceFailure(request, reply, false);
       }
     }
+
+    await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
+
+    if (durable) {
+      try {
+        await persistProjectFileEntry(store, authorized.projectId!, body, request.currentUser?.id);
+      } catch {
+        return filePersistenceFailure(request, reply, true);
+      }
+    }
+
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.file.write',
@@ -18988,49 +19049,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: body.path,
     });
 
-    return reply.code(204).send();
+    return reply
+      .header('x-vc-file-persistence', durable ? 'manifest' : 'runtime-only')
+      .code(204)
+      .send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/files', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileCreateSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentMutateEnsuring(request, authorized, '/files/create', { method: 'POST', body: JSON.stringify(body) });
 
-    /*
-     * BUG-RUNTIME-DIVERGENCE — même raison que la route d'écriture juste au-dessus :
-     * sans cette ligne, l'opération n'atteint que le POD. Au réamorçage suivant,
-     * `planReseedDeletions` supprime du pod « ce qui manque à l'archive » et
-     * `importZip` réécrit l'archive par-dessus — le fichier créé est détruit, le
-     * fichier supprimé ressuscite, le renommage revient en arrière. C'est le
-     * symptôme exact signalé à la réouverture sur un autre appareil.
-     *
-     * Non bloquant : l'opération a réussi dans le pod ; rendre 5xx ici ferait
-     * reprendre l'appelant sur une action déjà appliquée.
-     */
-    /*
-     * `body.directory` est vrai quand ce point d'entrée sert à créer un DOSSIER
-     * (`runtimeFileCreateSchema` le porte, et `POST /directories` s'en sert). Un
-     * manifeste ne liste que des fichiers : y inscrire un dossier comme une
-     * entrée de contenu vide le ferait réapparaître comme un FICHIER vide au
-     * réamorçage, à la place du dossier.
-     */
-    if (authorized.projectId && !body.directory && !estEcritureDeFlux(request)) {
+    // Directories have no manifest entry; streaming persists at artifact close.
+    const durable = authorized.projectId && !body.directory && !estEcritureDeFlux(request);
+
+    if (durable) {
       try {
-        await persistProjectFileEntry(
-          store,
-          authorized.projectId,
-          { path: body.path, content: body.content ?? '' },
-          request.currentUser?.id,
-        );
-      } catch (error) {
-        request.log.error(
-          { err: error, projectId: authorized.projectId, path: body.path },
-          'project manifest persist failed',
-        );
+        await requireFileManifest(authorized.projectId!);
+      } catch {
+        return filePersistenceFailure(request, reply, false);
       }
     }
 
-    return reply.code(204).send();
+    await agentMutateEnsuring(request, authorized, '/files/create', { method: 'POST', body: JSON.stringify(body) });
+
+    if (durable) {
+      try {
+        await persistProjectFileEntry(
+          store,
+          authorized.projectId!,
+          { path: body.path, content: body.content ?? '', encoding: body.encoding },
+          request.currentUser?.id,
+        );
+      } catch {
+        /*
+         * Creation is exclusive: a repeated POST must still fail on EEXIST.
+         * Explicit recovery uses PUT with the intended content, never an overwrite hidden in POST.
+         */
+        return filePersistenceFailure(request, reply, true);
+      }
+    }
+
+    return reply
+      .header('x-vc-file-persistence', durable ? 'manifest' : 'runtime-only')
+      .code(204)
+      .send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/directories', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
