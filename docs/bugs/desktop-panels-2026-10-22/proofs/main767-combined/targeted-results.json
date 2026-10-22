@@ -1,0 +1,157 @@
+{
+  "sha": "838684f007255fb0f91177f5e1598940ad084fca",
+  "stats": {
+    "startTime": "2026-10-22T12:26:16.334Z",
+    "duration": 97921.168,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 6586,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5307,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "repeated keyboard opening preserves the original return focus",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5329,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "repeated pointer opening restores focus",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5259,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Back navigation while the reopened palette is visible preserves search and return focus",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 8970,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "repeated keyboard opening preserves the original return focus",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4251,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "compact backdrop dismissal allows pointer reopening and focus return",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3781,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Back navigation while the reopened palette is visible preserves search and return focus",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5885,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Problems URL opens its own pane tab and survives reload",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4732,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "Problems status bar opens diagnostics in the desktop bottom drawer",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 3838,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "desktop Webview keeps commands visible beside Library and after resizing",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 9382,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "premi\u00e8re ouverture d\u2019un projet : l\u2019historique de l\u2019agent n\u2019\u00e9crase pas le travail de l\u2019utilisateur",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 33035,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,178 @@
+{
+  "sourceCommit": "2a1c2bc3a843a8b8b97514d211170aebf97ac0ac",
+  "sourceReport": "repeat-focus-verified/results.json",
+  "sourceReportSha256": "ffda8862a5f8ce4a21034d2fdaae0be0746b5d87d4ce9e5fd75a494dafb330ef",
+  "stats": {
+    "startTime": "2026-10-22T11:43:44.305Z",
+    "duration": 58412.342000000004,
+    "expected": 11,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette desktop 1440"
+      ],
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5125
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette desktop 1024"
+      ],
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4335
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette repeated opening 1440"
+      ],
+      "title": "repeated keyboard opening preserves the original return focus",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4591
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette repeated opening 1440"
+      ],
+      "title": "repeated pointer opening restores focus",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4578
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette repeated opening 1440"
+      ],
+      "title": "Back navigation while the reopened palette is visible preserves search and return focus",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 7118
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette repeated opening 1024"
+      ],
+      "title": "repeated keyboard opening preserves the original return focus",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3000
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette repeated opening 1024"
+      ],
+      "title": "compact backdrop dismissal allows pointer reopening and focus return",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3024
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-global-palette-handoff.spec.ts",
+        "global palette repeated opening 1024"
+      ],
+      "title": "Back navigation while the reopened palette is visible preserves search and return focus",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6573
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-problems-panel.spec.ts"
+      ],
+      "title": "Problems URL opens its own pane tab and survives reload",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5405
+        }
+      ]
+    },
+    {
+      "suite": [
+        "ide-problems-panel.spec.ts"
+      ],
+      "title": "Problems status bar opens diagnostics in the desktop bottom drawer",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3950
+        }
+      ]
+    },
+    {
+      "suite": [
+        "preview-desktop-toolbar.spec.ts"
+      ],
+      "title": "desktop Webview keeps commands visible beside Library and after resizing",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 9273
+        }
+      ]
+    }
+  ],
+  "scope": "Local exact build; not CI or production."
+}

@@ -1,0 +1,54 @@
+[
+  {
+    "path": "README.md",
+    "sha256": "343b172d28635f481e1fe86bb8fc313dc7d9a3ccfecbabbd28ced75cfeb5cdd1"
+  },
+  {
+    "path": "build-receipt.json",
+    "sha256": "2522047cb73142c9d0ae88bdb741cb2eb97007d8cf6c3a87ce3cbd9115b06365"
+  },
+  {
+    "path": "compiled.json",
+    "sha256": "1dd45c5f733d21de64ef8937c89497870d9e84a095bbcc8655580806ffbd8299"
+  },
+  {
+    "path": "configurations-exactes.txt",
+    "sha256": "f6118881b446e9227e5f8aa53346832eba998df14b0e29e1e83bb4491f52ce43"
+  },
+  {
+    "path": "e2e-summary.json",
+    "sha256": "ca0e4f5e31b688433da7ca18b1ea60b56a2bc1cdeebcb1b3c989255641efba32"
+  },
+  {
+    "path": "merge-review.json",
+    "sha256": "0a87611a04b4e3b592ac6df8d3957516833114b65ccef6c87adfbc1101e8352d"
+  },
+  {
+    "path": "palette-after-handoff-1440.png",
+    "sha256": "d9ed0f8d70ef0f5b61b68f8bddcd156807a2e84cb2f7e6e5e295e8b3a7ebf8eb"
+  },
+  {
+    "path": "preview-toolbar-1440.png",
+    "sha256": "1b083964a2052d76151ac5254fd90be9928ddbe8a8c65a145f12091c672a8ad3"
+  },
+  {
+    "path": "preview-touch-390.png",
+    "sha256": "45d1a5a679c5ea7108b7111d6da8d7afd7cd215d05cfa70df26cc2500f874a51"
+  },
+  {
+    "path": "served-asset.json",
+    "sha256": "e159c9f3398d5294bb74251f0ac32321a231ba56d3bba7c73ee0cc18c0c2f26a"
+  },
+  {
+    "path": "sources.json",
+    "sha256": "aecfc30cf0952c044ece4c7897ff9bfd388278853caec1c05ccede646190eef8"
+  },
+  {
+    "path": "touch-summary.json",
+    "sha256": "8b0b1f3c64f3f52af242486ff693f90d1633723ced524efa3d02ab400ee76183"
+  },
+  {
+    "path": "unit-summary.json",
+    "sha256": "36d2014833f5b0f6dbebffe4b54648f6f9aae2dedf04560d174a91bbdf4a8cda"
+  }
+]

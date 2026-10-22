@@ -1,0 +1,37 @@
+[
+  {
+    "file": "palette-before.png",
+    "source": "palette/results/palette-global-palette-rem-5a870-zation-and-can-close-reopen-desktop1440/before-init.png",
+    "sha256": "28a7c7a604a44845e1c2e5afa4e7bbad7605223548d12a3f70253ebf4a9e2ee7",
+    "visuallyInspected": true,
+    "meaning": "Palette ouverte avec recherche Database avant remplacement du shell."
+  },
+  {
+    "file": "palette-after-red.png",
+    "source": "palette/results/palette-global-palette-rem-5a870-zation-and-can-close-reopen-desktop1440/final.png",
+    "sha256": "571dec828ad7a454b5c799f1840e97e99eb1aa3824d8a3c8b20c0cde68fb0388",
+    "visuallyInspected": true,
+    "meaning": "Palette absente après remplacement, sans geste de fermeture ; capture de fin du cas rouge."
+  },
+  {
+    "file": "toolbar-before.png",
+    "source": "preview/before-toolbar-1440.png",
+    "sha256": "9fc797c5af8013a9f1a954590fb2fd189991f5f06d75f7eaf7145da957a8ddb2",
+    "visuallyInspected": true,
+    "meaning": "Commandes initialement hors de la zone visible ; géométrie dans le reçu."
+  },
+  {
+    "file": "menu-before-escape.png",
+    "source": "preview/menu-before-Escape.png",
+    "sha256": "b4f5bc34c65402f6379ce9931738c3843e73de8e23d334fa765d127854e4155a",
+    "visuallyInspected": true,
+    "meaning": "Menu ouvert AVANT Escape ; le reçu, pas cette seule image, établit l’échec de fermeture."
+  },
+  {
+    "file": "problems-url-red.png",
+    "source": "navigation/problems-baseline-final/results/ide-problems-panel-Problem-74e0f-ane-tab-and-survives-reload-chromium/opened.png",
+    "sha256": "93086d6bc6b752a85508bb7d503f96afa3ddcaa2343035728f4f484f0313d9e6",
+    "visuallyInspected": true,
+    "meaning": "README rendu au lieu de l’onglet Problems demandé par URL."
+  }
+]

@@ -59,6 +59,7 @@ export const PROJECT_EDITOR_TOOL_CATALOG: Record<ProjectEditorTool, ProjectEdito
   locks: { id: 'locks', icon: panelIcon('locks'), accent: ACCENT_WARNING, category: 'workspace' },
 
   terminal: { id: 'terminal', icon: panelIcon('terminal'), accent: ACCENT_SUCCESS, category: 'runtime' },
+  problems: { id: 'problems', icon: panelIcon('problems'), accent: ACCENT_WARNING, category: 'runtime' },
   logs: { id: 'logs', icon: panelIcon('logs'), accent: ACCENT_SUCCESS, category: 'runtime' },
   preview: { id: 'preview', icon: panelIcon('preview'), accent: ACCENT_ACTION, category: 'runtime' },
   ports: { id: 'ports', icon: panelIcon('ports'), accent: ACCENT_SUCCESS, category: 'runtime' },

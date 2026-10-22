@@ -1,0 +1,59 @@
+{
+  "previousHead": "d8739887ae5cdba652a0eab97674928c6915a8b7",
+  "main": "5de3fac6e5d720d41bd6dde1b2c6170b734b0cc3",
+  "indexTree": "80adcca16ab90b3560baaa145eda7e36d8d2114b",
+  "incomingOtherFilesCompared": 36,
+  "incomingDifferences": [],
+  "baseChat": "exact union of incoming extraction/import and existing palette changes, compared programmatically",
+  "inventory": {
+    "previous": 474,
+    "main": 472,
+    "union": 475,
+    "missing": [],
+    "comparisonKey": "relative bug file paths (labels can repeat)"
+  },
+  "newFixtureChange": "suite-level beforeAll, same explicit30000ms, same6cases/assertions, unchanged guard",
+  "localInitialFailures": {
+    "buildExit": 137,
+    "typecheckApiExit": 137,
+    "fullUnit": {
+      "filesFailed": 25,
+      "filesPassed": 1299,
+      "filesSkipped": 2,
+      "testsFailed": 1,
+      "testsPassed": 10001,
+      "testsSkipped": 7
+    },
+    "privatePlaywrightCollectionErrors": 24,
+    "trackedFailure": "admin offline cache incomplete, subsequently verified with original offline guard after frozen cache preparation"
+  },
+  "logs": [
+    {
+      "path": "desktop-main767-build.log",
+      "sha256": "c9a3e77dc9fca35043e7ec2b684cee8fbcfa7f181b95025b61ef457795525288"
+    },
+    {
+      "path": "desktop-main767-commit.log",
+      "sha256": "1945cca823c61013617cc356accad21bd19c10d37aad77ae018aa2655deb037e"
+    },
+    {
+      "path": "desktop-main767-full-unit.log",
+      "sha256": "99193cec1811f00f86d73de656fff5dde44bc4c525be8d03acdf7ea878cb87c6"
+    },
+    {
+      "path": "desktop-main767-admin-cache-verified.log",
+      "sha256": "8e0e4ab4c9359ec9791010b96dbe7b9f04423588ed5107c10ce76ce1f0c9f7fd"
+    }
+  ],
+  "fullUnitVerified": {
+    "filesPassed": 1301,
+    "filesSkipped": 2,
+    "testsPassed": 10018,
+    "testsSkipped": 7,
+    "failed": 0,
+    "durationSeconds": 300.28,
+    "command": "npm_config_store_dir=/tmp/ux763-pnpm-store pnpm run test",
+    "privateRecipes": "Preserved outside root collection during full run, restored afterward; no tracked test/configuration excluded or changed",
+    "rawLogSha256": "9dd0980c454701d71582b904e10b73db6da84907410b76f3eb70a1620c589a7c"
+  }
+}

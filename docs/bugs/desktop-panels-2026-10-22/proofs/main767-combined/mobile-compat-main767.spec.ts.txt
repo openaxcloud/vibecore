@@ -1,0 +1,79 @@
+import {expect,test,type Page} from '@playwright/test';
+import JSZip from 'jszip';
+const apiBase='http://127.0.0.1:3017';
+const appBase='http://127.0.0.1:5226';
+async function openPreview(page: Page) {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const registration = await page.request.post(`${apiBase}/auth/register`, {
+    data: {
+      email: `preview-toolbar-${suffix}@local.test`,
+      password: 'Password123!',
+      name: 'Preview toolbar audit',
+      organizationName: `Preview toolbar ${suffix}`,
+    },
+  });
+  expect(registration.ok()).toBeTruthy();
+
+  const auth = await registration.json();
+  const headers = { authorization: `Bearer ${auth.token}` };
+
+  const creation = await page.request.post(`${apiBase}/orgs/${auth.organization.id}/projects`, {
+    headers,
+    data: { name: 'Preview toolbar audit' },
+  });
+  expect(creation.ok()).toBeTruthy();
+
+  const projectId = (await creation.json()).project.id as string;
+  const archive = new JSZip();
+  archive.file('index.html', '<!doctype html><title>Toolbar audit</title><h1>Toolbar audit</h1>');
+  archive.file('README.md', '# Preview toolbar audit\n');
+
+  const imported = await page.request.post(`${apiBase}/projects/${projectId}/files/import/zip`, {
+    headers,
+    data: { zipBase64: await archive.generateAsync({ type: 'base64' }) },
+  });
+  expect(imported.ok()).toBeTruthy();
+
+  await page.context().addCookies([
+    { name: 'vc_session', value: auth.token, url: appBase, httpOnly: true, sameSite: 'Lax' },
+    { name: 'ecode_theme', value: 'dark', url: appBase, sameSite: 'Lax' },
+  ]);
+  await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-webview-toolbar')).toBeVisible();
+  await expect(
+    page
+      .frameLocator('[data-testid="preview-iframe"]')
+      .first()
+      .getByRole('heading', { name: 'Toolbar audit', exact: true }),
+  ).toBeVisible();
+}
+
+test('Preview preserves touch navigation and visible bounds',async({page},info)=>{
+ test.setTimeout(90_000);
+ await openPreview(page);
+ const heading=page.frameLocator('[data-testid="preview-iframe"]').first().getByRole('heading',{name:'Toolbar audit',exact:true});
+ const nav=page.getByTestId('mobile-bottom-navigation');
+ await expect(nav).toBeVisible();
+ await expect(page.locator('.bolt-responsive-ide-mobile')).toBeVisible();
+ const checkBounds=async()=>{
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(1);
+  for(const locator of [nav,page.locator('.bolt-preview-addressbar')]){
+   await expect(locator).toBeVisible();
+   const bounds=await locator.boundingBox();expect(bounds).not.toBeNull();
+   expect(bounds!.x).toBeGreaterThanOrEqual(0);expect(bounds!.x+bounds!.width).toBeLessThanOrEqual(info.project.use.viewport!.width+1);
+  }
+ };
+ await checkBounds();
+ await nav.getByTestId('tab-agent').tap();
+ await expect(nav.getByTestId('tab-agent')).toHaveAttribute('aria-pressed','true');
+ await nav.getByTestId('tab-preview').tap();
+ await expect(nav.getByTestId('tab-preview')).toHaveAttribute('aria-pressed','true');
+ await expect(heading).toBeVisible();
+ await nav.getByTestId('button-tab-switcher').tap();
+ const menu=page.getByTestId('mobile-tab-switcher');await expect(menu).toBeVisible();
+ await menu.getByTestId('tab-card-preview').locator('.bolt-mobile-tab-switcher-card-main').tap();
+ await expect(menu).toBeHidden();await expect(heading).toBeVisible();
+ await checkBounds();
+ await page.screenshot({path:info.outputPath('preview-touch-after.png')});
+});

@@ -1,0 +1,44 @@
+[
+  {
+    "file": "focus-before-1440.png",
+    "source": "palette/repeat-c382/results/repeat-focused-trigger-rep-da70a-e-restores-original-trigger-desktop1440/final.png",
+    "sha256": "5a6945c5785c94d1728c859f0eb62176f8c3a34c54b85c8ac9591f72347375b2",
+    "visuallyInspected": true,
+    "meaning": "Palette closed; original trigger inactive on c382."
+  },
+  {
+    "file": "focus-after-1440.png",
+    "source": "repeat-focus-final/results/ide-global-palette-handoff-0ee37-s-the-original-return-focus-chromium/repeated-keyboard-closed.png",
+    "sha256": "a7152cb1523ad6e79d02d8391b1721b5537f5d63fc8cad339bcf5e5f66b220a2",
+    "visuallyInspected": true,
+    "meaning": "Palette closed; original trigger visibly focused on d6."
+  },
+  {
+    "file": "focus-before-1024.png",
+    "source": "palette/repeat-c382/results/repeat-focused-trigger-rep-da70a-e-restores-original-trigger-desktop1024/final.png",
+    "sha256": "8200bba6d56391d8c2a12ea2185e2634f62adacd8543be36e470d5600e9945fd",
+    "visuallyInspected": true,
+    "meaning": "Palette closed; original trigger inactive on c382."
+  },
+  {
+    "file": "focus-after-1024.png",
+    "source": "repeat-focus-final/results/ide-global-palette-handoff-e70e3-s-the-original-return-focus-chromium/repeated-keyboard-closed.png",
+    "sha256": "c3f62b3264813f3865b54b9f55f3eeef2e37fe5ae7360e371b30f7f05c3b81a9",
+    "visuallyInspected": true,
+    "meaning": "Palette closed; original trigger visibly focused on d6."
+  },
+  {
+    "file": "focus-verified-1440.png",
+    "source": "repeat-focus-verified/results/ide-global-palette-handoff-0ee37-s-the-original-return-focus-chromium/repeated-keyboard-closed.png",
+    "sha256": "7d4c9ae1e9bec61a68c27f1f6d6c093e7c02edf84e025f22706d13f04423d694",
+    "visuallyInspected": true,
+    "meaning": "Original trigger visibly focused after Escape on final fixture commit2a1c2bc3."
+  },
+  {
+    "file": "focus-verified-1024.png",
+    "source": "repeat-focus-verified/results/ide-global-palette-handoff-e70e3-s-the-original-return-focus-chromium/repeated-keyboard-closed.png",
+    "sha256": "c3f62b3264813f3865b54b9f55f3eeef2e37fe5ae7360e371b30f7f05c3b81a9",
+    "visuallyInspected": true,
+    "meaning": "Original trigger visibly focused after Escape on final fixture commit2a1c2bc3."
+  }
+]

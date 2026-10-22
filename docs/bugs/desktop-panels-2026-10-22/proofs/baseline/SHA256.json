@@ -1,0 +1,67 @@
+[
+  {
+    "path": "README.md",
+    "bytes": 3294,
+    "sha256": "8967796dbd6d69fee41fb6ab65b06aa837664e43c5725f4258533f4126d44d5c"
+  },
+  {
+    "path": "baseline-receipt.json",
+    "bytes": 2661,
+    "sha256": "640ae9cc2fca2ca5d6f33ba5bd636023955a87ea76fa37e535ca28bb938dff08"
+  },
+  {
+    "path": "images.json",
+    "bytes": 1746,
+    "sha256": "70cec9d6574f45c5383254fd862d9d9f7f26eef47f8eb60bee52854326a3522a"
+  },
+  {
+    "path": "menu-before-escape.png",
+    "bytes": 146098,
+    "sha256": "b4f5bc34c65402f6379ce9931738c3843e73de8e23d334fa765d127854e4155a"
+  },
+  {
+    "path": "palette-after-red.png",
+    "bytes": 109987,
+    "sha256": "571dec828ad7a454b5c799f1840e97e99eb1aa3824d8a3c8b20c0cde68fb0388"
+  },
+  {
+    "path": "palette-before.png",
+    "bytes": 130287,
+    "sha256": "28a7c7a604a44845e1c2e5afa4e7bbad7605223548d12a3f70253ebf4a9e2ee7"
+  },
+  {
+    "path": "palette.json",
+    "bytes": 1349,
+    "sha256": "cec450ccec1a963d4c72c9d8bb620f62d69699a1aaef5f66205272c9feec0863"
+  },
+  {
+    "path": "preview-actions-control.json",
+    "bytes": 572,
+    "sha256": "6394ebd78b0e55959293a61f3535a52ba32bd662331f623e1c5eb516f71f6802"
+  },
+  {
+    "path": "preview-geometry.json",
+    "bytes": 559,
+    "sha256": "98f5c18722f7784e3c7747ae3fa650414f046eeeed15658b67c6740da87a5cf6"
+  },
+  {
+    "path": "preview-menu.json",
+    "bytes": 783,
+    "sha256": "cdda98caa1278beba15d41028c8d3d3512779b7206ced663944f3568525191a1"
+  },
+  {
+    "path": "problems-url-red.png",
+    "bytes": 82982,
+    "sha256": "93086d6bc6b752a85508bb7d503f96afa3ddcaa2343035728f4f484f0313d9e6"
+  },
+  {
+    "path": "problems.json",
+    "bytes": 854,
+    "sha256": "d3eba4bf2149e7912d08260f013e7a614156aad777ae258931f729bb8f1e3f21"
+  },
+  {
+    "path": "toolbar-before.png",
+    "bytes": 108088,
+    "sha256": "9fc797c5af8013a9f1a954590fb2fd189991f5f06d75f7eaf7145da957a8ddb2"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "sourceReport": "preview/actions-baseline.json",
+  "sourceReportSha256": "2779540772a7ee465630c8e29cce2a746795eb742706eb3af9183c1b7c9ce0ce",
+  "stats": {
+    "startTime": "2026-10-22T10:44:51.897Z",
+    "duration": 4414.039000000001,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "desktop Webview logs remains reachable with Library open",
+      "project": "",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3582
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "testedCommit": "c382137ad72eeb983b40493e40bc296cd85e61c1",
+  "testedTree": "f26a295f50a7ddb890f8f5800db457d563a70630",
+  "postTestTrackedChanges": [
+    "docs/bugs/BUG-DESKTOP-PREVIEW-MENU-DISMISS-001.md",
+    "docs/bugs/BUG-DESKTOP-PREVIEW-TOOLBAR-CLIP-001.md",
+    "docs/bugs/BUG-DESKTOP-PROBLEMS-ROUTE-001.md",
+    "docs/bugs/BUG-IDE-GLOBAL-PALETTE-HANDOFF-001.md",
+    "docs/bugs/desktop-panels-2026-10-22/INVENTORY.md"
+  ],
+  "nonDocumentChanges": [],
+  "note": "Proof files added after testing are documentary. Final commit SHA is recorded in PR metadata to avoid self-reference."
+}

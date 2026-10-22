@@ -1,0 +1,40 @@
+{
+  "review": "Static comparison only; no new tests or browser run",
+  "reviewedAtUtc": "2026-10-22T12:11:55.662076+00:00",
+  "baseCommit": "d8739887ae5cdba652a0eab97674928c6915a8b7",
+  "file": "tests/e2e/ide-global-palette-handoff.spec.ts",
+  "sha256": {
+    "base": "6540f23a43f2cdcb857f3e08233703c3242790d8916b45067429bb216f17a0ef",
+    "working": "11ee9d8df89237eeac34289a9319311e1d6eab8aa316f006c5bda0a0585f3b16",
+    "index": "11ee9d8df89237eeac34289a9319311e1d6eab8aa316f006c5bda0a0585f3b16",
+    "guard": "2278045c8fcaa1697fb94cdefeb5b0347744172c4c54441d0eb9120145b5696e",
+    "normalizedSixCaseBody": "693ae4d35295a1c88ab536a49283690c12c1c0943f044563fdfd72adc9f740b8"
+  },
+  "checks": {
+    "workingEqualsIndex": true,
+    "originalTwoHandoffsAndHelpersByteIdentical": true,
+    "sixCasesIdenticalAfterIndentAndAuthMapNormalization": true,
+    "guardUnchangedFromBase": true,
+    "hookExtractedCharacters": 177,
+    "hookBudgetMs": 30000,
+    "caseBudgetMs": 90000,
+    "assertionsAndWaitsUnchanged": true
+  },
+  "priorExecutedValidation": {
+    "guard": {
+      "command": "./node_modules/.bin/vitest run tests/guards/montage-e2e-a-son-budget.spec.ts",
+      "passed": 6,
+      "failed": 0,
+      "durationSeconds": 2.44
+    },
+    "eslintExit": 0,
+    "prettierExit": 0,
+    "diffCheckExit": 0
+  },
+  "limits": [
+    "Prior validation reused, not rerun during full suite/build work.",
+    "New outer describe adds a suite-name prefix; individual test names and paths unchanged.",
+    "No fresh browser result for the merged base in this receipt.",
+    "Worker restart reruns beforeAll and creates fresh identities; no quota or registration limit modified."
+  ]
+}

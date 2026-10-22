@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test';
+import standard from '../../playwright.config';
+export default defineConfig({...standard,testDir:'../../tests/e2e',testMatch:'rpl-ide-panels-proof.spec.ts',webServer:undefined,retries:0,workers:1,outputDir:'/workspace/ux-artifacts/desktop-panels/repeat-focus-verified-rpl/results',reporter:[['list'],['json',{outputFile:'/workspace/ux-artifacts/desktop-panels/repeat-focus-verified-rpl/results.json'}]],projects:standard.projects?.filter(p=>p.name==='chromium').map(p=>({...p,use:{...p.use,baseURL:'http://127.0.0.1:5225',trace:'retain-on-failure',launchOptions:{executablePath:'/usr/bin/chromium'}}}))});

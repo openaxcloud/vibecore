@@ -1,0 +1,121 @@
+{
+  "sha": "2a1c2bc3a843a8b8b97514d211170aebf97ac0ac",
+  "stats": {
+    "startTime": "2026-10-22T11:45:34.979Z",
+    "duration": 71823.013,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 15531,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 14776,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5413,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "redundant move preserves real browser Back and Forward selection",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5423,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5871,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "closing destination pane cannot swallow a later browser Back request",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 6833,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 5308,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "normal click navigation followed by a move preserves tab identities",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 4939,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "an interrupted Back move cannot swallow a later Back to the same history entry",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "durationMs": 6641,
+          "retry": 0
+        }
+      ]
+    }
+  ]
+}

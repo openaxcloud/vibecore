@@ -1,0 +1,33 @@
+{
+  "baselineCommit": "18745bd04f77e4d9fc6353d61bd4d17a3822f94e",
+  "compiledSourceCommit": "edb558bc326be7075ce042beeea25685a0e8864f",
+  "compiledCount": 2306,
+  "compiledDifferences": [],
+  "sourceDelta": [
+    "docs/bugs/BUG-IDE-PANE-FOCUS-DUPLICATION-001.md",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/README.md",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/actions.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/build-receipt.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/compiled.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/files.config.ts.txt",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/mobile.config.ts.txt",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/rpl.config.ts.txt",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/served-asset.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/sources.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/test-copy-comparison.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/final-navigation-complete/validation-commands.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/README.md",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/capture.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/green-captures.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/green.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/historical-ci.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/independent-build-check.json",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/interrupted-pop-green.png",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/normal-click-green.png",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/normal-click-move-after-navigation.png",
+    "docs/bugs/ux-followup-2026-10-21/main-18cf-docking/navigation-echo/normal-click/red.json"
+  ],
+  "nonDocumentDelta": [],
+  "sourceReceiptSha256": "ea3121b8af15cb2e6f60ca98147858a6a9d36bc516b0aeb65c6dc8a2804ade95",
+  "scope": "Local baseline product comparison only; no production certification."
+}

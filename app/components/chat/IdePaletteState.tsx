@@ -1,4 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useReducer, type Dispatch, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+} from 'react';
 
 type Palette = { paneId: string; query: string } | null;
 type Action =
@@ -26,12 +37,51 @@ function reducePalette(state: Palette, action: Action): Palette {
 const PaletteStateContext = createContext<Palette>(null);
 const PaletteDispatchContext = createContext<Dispatch<Action> | undefined>(undefined);
 
+function useGlobalPaletteState() {
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files' | 'spotlight'>('all');
+  const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
+  const [spotlightProjectName, setSpotlightProjectName] = useState('');
+  const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
+  const commandPaletteReturnFocusRef = useRef<HTMLElement | null>(null);
+
+  return useMemo(
+    () => ({
+      commandPaletteOpen,
+      setCommandPaletteOpen,
+      commandPaletteMode,
+      setCommandPaletteMode,
+      commandPaletteQuery,
+      setCommandPaletteQuery,
+      spotlightProjectName,
+      setSpotlightProjectName,
+      commandPaletteIndex,
+      setCommandPaletteIndex,
+      commandPaletteReturnFocusRef,
+    }),
+    [commandPaletteOpen, commandPaletteMode, commandPaletteQuery, spotlightProjectName, commandPaletteIndex],
+  );
+}
+
+const GlobalPaletteContext = createContext<ReturnType<typeof useGlobalPaletteState> | null>(null);
+
+/** The route owns global palette state, just as it owns pane palette state. */
+export function useGlobalIdePalette() {
+  const shared = useContext(GlobalPaletteContext);
+  const local = useGlobalPaletteState();
+
+  return shared ?? local;
+}
+
 function ScopedPaletteProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducePalette, null);
+  const globalPalette = useGlobalPaletteState();
 
   return (
     <PaletteDispatchContext.Provider value={dispatch}>
-      <PaletteStateContext.Provider value={state}>{children}</PaletteStateContext.Provider>
+      <PaletteStateContext.Provider value={state}>
+        <GlobalPaletteContext.Provider value={globalPalette}>{children}</GlobalPaletteContext.Provider>
+      </PaletteStateContext.Provider>
     </PaletteDispatchContext.Provider>
   );
 }

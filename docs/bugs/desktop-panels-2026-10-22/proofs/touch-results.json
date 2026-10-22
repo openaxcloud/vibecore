@@ -1,0 +1,36 @@
+{
+  "stats": {
+    "startTime": "2026-10-22T11:10:52.703Z",
+    "duration": 10284.562,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "Preview preserves touch navigation and visible bounds",
+      "project": "phone390",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4289
+        }
+      ]
+    },
+    {
+      "title": "Preview preserves touch navigation and visible bounds",
+      "project": "tablet768",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4273
+        }
+      ]
+    }
+  ]
+}

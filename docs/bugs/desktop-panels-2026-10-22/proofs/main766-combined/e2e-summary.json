@@ -1,0 +1,161 @@
+{
+  "commit": "c742be17b6f5cca708394c2c497b6607f4b70c82",
+  "rawReportSha256": "e791a1286e8a445102339f916197447ff6093bcd69a73fdce69e56d80f9b4377",
+  "stats": {
+    "startTime": "2026-10-22T14:33:51.313Z",
+    "duration": 177107.779,
+    "expected": 21,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5879
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5042
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "repeated keyboard opening preserves the original return focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5014
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "repeated pointer opening restores focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5613
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "Back navigation while the reopened palette is visible preserves search and return focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 9043
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "repeated keyboard opening preserves the original return focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 3445
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "compact backdrop dismissal allows pointer reopening and focus return",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 3378
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "Back navigation while the reopened palette is visible preserves search and return focus",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6535
+    },
+    {
+      "file": "ide-problems-panel.spec.ts",
+      "title": "Problems URL opens its own pane tab and survives reload",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5622
+    },
+    {
+      "file": "ide-problems-panel.spec.ts",
+      "title": "Problems status bar opens diagnostics in the desktop bottom drawer",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 4324
+    },
+    {
+      "file": "preview-desktop-toolbar.spec.ts",
+      "title": "desktop Webview keeps commands visible beside Library and after resizing",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 9793
+    },
+    {
+      "file": "reouverture-ne-rejoue-pas.spec.ts",
+      "title": "premi\u00e8re ouverture d\u2019un projet : l\u2019historique de l\u2019agent n\u2019\u00e9crase pas le travail de l\u2019utilisateur",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 33899
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 15541
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 14657
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5851
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "redundant move preserves real browser Back and Forward selection",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5938
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6544
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "closing destination pane cannot swallow a later browser Back request",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 9443
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 7080
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "normal click navigation followed by a move preserves tab identities",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 5969
+    },
+    {
+      "file": "rpl-ide-panels-proof.spec.ts",
+      "title": "an interrupted Back move cannot swallow a later Back to the same history entry",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 6720
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "sourceReport": "preview/menu-red-results.json",
+  "sourceReportSha256": "81f524e5e5c17fdaf4550c0dcadda6ba4db9ab359d74e41a64e9a3cafacbe789",
+  "stats": {
+    "startTime": "2026-10-22T10:49:12.191Z",
+    "duration": 27186.575999999997,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "Webview window menu dismisses with Escape",
+      "project": "",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "durationMs": 9970
+        }
+      ]
+    },
+    {
+      "title": "Webview window menu dismisses with outside",
+      "project": "",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "durationMs": 13875
+        }
+      ]
+    }
+  ]
+}

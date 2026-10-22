@@ -1,0 +1,266 @@
+{
+  "classification": "Repeated-keyboard focus failure reproduced on both edb558bc baseline5221 and c382137ad5223; pre-existing symptom, not newly introduced by768. Compact repeated pointer case blocked by modal backdrop: invalid action target, not proof of regression.",
+  "reports": [
+    {
+      "source": "repeat-c382/results.json",
+      "sha256": "6063bbbec39bee37b3162c30eb33ece96d45aaddba73686bcf15e943df2c09d1",
+      "stats": {
+        "startTime": "2026-10-22T11:23:59.930Z",
+        "duration": 123313.147,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 3,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "title": "focused trigger repeated keyboard opening then Escape restores original trigger",
+          "project": "desktop1440",
+          "status": "failed",
+          "durationMs": 9613,
+          "retry": 0,
+          "focus": {
+            "events": [
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "ide-dock-all-tools",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              }
+            ],
+            "active": {
+              "tag": "BODY",
+              "testid": null
+            },
+            "panel": "agent"
+          }
+        },
+        {
+          "title": "repeated pointer trigger then Escape restores trigger",
+          "project": "desktop1440",
+          "status": "passed",
+          "durationMs": 4227,
+          "retry": 0,
+          "focus": {
+            "events": [
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "ide-dock-all-tools",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              },
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "ide-dock-all-tools",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              },
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "ide-dock-all-tools",
+                "role": null
+              }
+            ],
+            "active": {
+              "tag": "BUTTON",
+              "testid": "ide-dock-all-tools"
+            },
+            "panel": "agent"
+          }
+        },
+        {
+          "title": "navigation via palette result closes palette and selects Database",
+          "project": "desktop1440",
+          "status": "passed",
+          "durationMs": 3664,
+          "retry": 0,
+          "focus": {
+            "events": [
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "ide-dock-all-tools",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              },
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "ide-dock-all-tools",
+                "role": null
+              }
+            ],
+            "active": {
+              "tag": "BUTTON",
+              "testid": "ide-dock-all-tools"
+            },
+            "panel": "database"
+          }
+        },
+        {
+          "title": "focused trigger repeated keyboard opening then Escape restores original trigger",
+          "project": "desktop1024",
+          "status": "failed",
+          "durationMs": 8086,
+          "retry": 0,
+          "focus": {
+            "events": [
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "mobile-header-title-search",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              }
+            ],
+            "active": {
+              "tag": "BODY",
+              "testid": null
+            },
+            "panel": "agent"
+          }
+        },
+        {
+          "title": "repeated pointer trigger then Escape restores trigger",
+          "project": "desktop1024",
+          "status": "timedOut",
+          "durationMs": 90134,
+          "retry": 0
+        },
+        {
+          "title": "navigation via palette result closes palette and selects Database",
+          "project": "desktop1024",
+          "status": "passed",
+          "durationMs": 3073,
+          "retry": 0,
+          "focus": {
+            "events": [
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "mobile-header-title-search",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              },
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "mobile-header-title-search",
+                "role": null
+              }
+            ],
+            "active": {
+              "tag": "BUTTON",
+              "testid": "mobile-header-title-search"
+            },
+            "panel": "database"
+          }
+        }
+      ]
+    },
+    {
+      "source": "repeat-baseline/results.json",
+      "sha256": "7d828016946dedfe1cd49f68bc6738d909c3411ef94da271acb7e571e2566244",
+      "stats": {
+        "startTime": "2026-10-22T11:26:08.623Z",
+        "duration": 18464.4,
+        "expected": 0,
+        "skipped": 0,
+        "unexpected": 2,
+        "flaky": 0
+      },
+      "cases": [
+        {
+          "title": "focused trigger repeated keyboard opening then Escape restores original trigger",
+          "project": "desktop1440",
+          "status": "failed",
+          "durationMs": 8575,
+          "retry": 0,
+          "focus": {
+            "events": [
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "ide-dock-all-tools",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              }
+            ],
+            "active": {
+              "tag": "BODY",
+              "testid": null
+            },
+            "panel": "agent"
+          }
+        },
+        {
+          "title": "focused trigger repeated keyboard opening then Escape restores original trigger",
+          "project": "desktop1024",
+          "status": "failed",
+          "durationMs": 8146,
+          "retry": 0,
+          "focus": {
+            "events": [
+              {
+                "event": "focusin",
+                "tag": "BUTTON",
+                "testid": "mobile-header-title-search",
+                "role": null
+              },
+              {
+                "event": "focusin",
+                "tag": "INPUT",
+                "testid": "project-command-palette-search",
+                "role": "combobox"
+              }
+            ],
+            "active": {
+              "tag": "BODY",
+              "testid": null
+            },
+            "panel": "agent"
+          }
+        }
+      ]
+    }
+  ]
+}

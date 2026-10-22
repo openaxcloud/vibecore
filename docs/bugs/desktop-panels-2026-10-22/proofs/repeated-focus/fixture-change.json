@@ -1,0 +1,7 @@
+{
+  "commit": "2a1c2bc3a843a8b8b97514d211170aebf97ac0ac",
+  "tree": "59ed252fc5918f62671edc94395ef9fbbce173c7",
+  "change": "Six new palette cases use one real synthetic identity per width via beforeAll; three distinct projects and fresh browser contexts per width. Existing two handoff cases keep independent identities.",
+  "expectedRegistrationsFor11DirectCases": 7,
+  "limits": "Count assumes one worker without restart; beforeAll reruns on worker restart. No rate-limit change, artificial delay, mock, retry waiver or assertion reduction. Final11-case validation subsequently passed directly; see verified-green.json."
+}

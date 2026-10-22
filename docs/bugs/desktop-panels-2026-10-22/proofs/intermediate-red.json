@@ -1,0 +1,77 @@
+{
+  "stats": {
+    "startTime": "2026-10-22T11:00:56.847Z",
+    "duration": 58875.640999999996,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 12792
+        }
+      ]
+    },
+    {
+      "file": "ide-global-palette-handoff.spec.ts",
+      "title": "preserves search through shell replacement, restores focus and opens Database",
+      "project": "chromium",
+      "status": "unexpected",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "durationMs": 16416
+        }
+      ]
+    },
+    {
+      "file": "ide-problems-panel.spec.ts",
+      "title": "Problems URL opens its own pane tab and survives reload",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6586
+        }
+      ]
+    },
+    {
+      "file": "ide-problems-panel.spec.ts",
+      "title": "Problems status bar opens diagnostics in the desktop bottom drawer",
+      "project": "chromium",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4742
+        }
+      ]
+    },
+    {
+      "file": "preview-desktop-toolbar.spec.ts",
+      "title": "desktop Webview keeps commands visible beside Library and after resizing",
+      "project": "chromium",
+      "status": "unexpected",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "durationMs": 15397
+        }
+      ]
+    }
+  ]
+}

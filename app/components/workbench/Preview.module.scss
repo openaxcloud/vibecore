@@ -1,0 +1,33 @@
+@media (min-width: 1024px) {
+  .toolbar:global(.bolt-project-webview-toolbar) {
+    // The docked pane can be much narrower than the desktop viewport.
+    // Keep every command visible instead of letting the last group spill
+    // beneath the Library or a neighbouring pane.
+    height: auto;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    row-gap: 4px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+
+    > :global(.bolt-preview-toolbar-tools) {
+      min-width: 0;
+      max-width: 100%;
+      flex-wrap: wrap;
+    }
+
+    > :global(.bolt-preview-addressbar) {
+      flex: 1 1 220px;
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    :global(.bolt-preview-addressbar) input {
+      width: 0;
+    }
+
+    :global(.bolt-preview-copy-url) {
+      flex-shrink: 0;
+    }
+  }
+}
