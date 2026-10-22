@@ -8993,22 +8993,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             onMouseDown={() => {
               setActivePaneId(leaf.id);
 
-              if (
-                activeTab?.panel === 'editor' &&
-                activeTab.filePath &&
-                workbenchStore.selectedFile.get() !== activeTab.filePath
-              ) {
+              if (activeTab?.panel === 'editor' && activeTab.filePath) {
                 workbenchStore.setSelectedFile(activeTab.filePath);
               }
             }}
             onFocusCapture={() => {
               setActivePaneId(leaf.id);
 
-              if (
-                activeTab?.panel === 'editor' &&
-                activeTab.filePath &&
-                workbenchStore.selectedFile.get() !== activeTab.filePath
-              ) {
+              if (activeTab?.panel === 'editor' && activeTab.filePath) {
                 workbenchStore.setSelectedFile(activeTab.filePath);
               }
             }}
