@@ -1,7 +1,9 @@
 /** @vitest-environment jsdom */
 
+import type { FileChange, RuntimeAdapter } from '@vibecore/runtime-contract';
 import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FilesStore } from './files';
 import { WorkbenchStore } from './workbench';
 import { prefetchInitialProjectArchive } from '~/lib/ide/initial-project-archive';
 
@@ -703,4 +705,663 @@ describe('project storage hydration after returning to the IDE', () => {
     expect(store.files.get()[path]).toMatchObject({ content: 'project B' });
     expect(store.currentDocument.get()?.value).toBe('project B');
   });
+
+  it('clears the previous project documents through cleanup even when the runtime is shared', async () => {
+    const { store } = setup();
+    stubArchive(() => archive('project B document'));
+    await store.loadProjectStorageFiles();
+    store.setSelectedFile(path);
+    store.configureProject(undefined);
+    store.configureRuntime(runtimeAdapterMock as unknown as RuntimeAdapter);
+    store.configureProject('next-project-A');
+
+    expect(store.files.get()).toEqual({});
+    expect(store.documents.get()).toEqual({});
+    expect(store.selectedFile.get()).toBeUndefined();
+    expect(store.currentDocument.get()).toBeUndefined();
+    expect(store.filesHydrated.get()).toBe(false);
+    stubArchive(() => archive('project A document'));
+    await store.loadProjectStorageFiles();
+    expect(store.currentDocument.get()?.value).toBe('project A document');
+  });
+
+  it('keeps an unsaved document and selection through cleanup into the same project', async () => {
+    const { store, projectId } = setup();
+    stubArchive(() => archive('saved document'));
+    await store.loadProjectStorageFiles();
+    store.setSelectedFile(path);
+    store.setCurrentDocumentContent('unsaved same-project draft');
+
+    const documents = store.documents.get();
+    store.configureProject(undefined);
+    store.configureRuntime(runtimeAdapterMock as unknown as RuntimeAdapter);
+    store.configureProject(projectId);
+    store.configureProject(projectId);
+
+    expect(store.documents.get()).toBe(documents);
+    expect(store.selectedFile.get()).toBe(path);
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    store.setDocuments(store.files.get());
+    expect(store.currentDocument.get()?.value).toBe('unsaved same-project draft');
+  });
+
+  it('rejects the previous project archive after switching scope on the same runtime', async () => {
+    const { store } = setup();
+
+    let release!: (response: Response) => void;
+    stubArchive(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const pending = store.loadProjectStorageFiles();
+    store.configureProject(undefined);
+    store.configureProject('new-project-after-pending-archive');
+    release(await archive('stale previous project'));
+    await expect(pending).resolves.toBe(false);
+    expect(store.files.get()).toEqual({});
+    expect(store.documents.get()).toEqual({});
+  });
+
+  it('rejects a runtime listing started before a same-adapter scope reset', async () => {
+    let release!: (nodes: Awaited<ReturnType<RuntimeAdapter['listFiles']>>) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      listFiles: vi.fn(
+        () =>
+          new Promise<Awaited<ReturnType<RuntimeAdapter['listFiles']>>>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      const pending = files.reloadFromRuntime();
+      files.setRuntime(runtime);
+      release([{ type: 'file', name: 'audit.txt', path, content: 'stale listing', encoding: 'utf8' }]);
+      await pending;
+      expect(files.files.get()).toEqual({});
+      expect(files.filesCount).toBe(0);
+    } finally {
+      files.dispose();
+    }
+  });
+
+  it('ignores callbacks and content reads from the previous watch binding', async () => {
+    const callbacks: Array<(change: FileChange) => void> = [];
+
+    let release!: (value: { content: string; encoding: 'utf8' }) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      watchFiles: vi.fn(async (_paths: string[], callback: (change: FileChange) => void) => {
+        callbacks.push(callback);
+        return () => undefined;
+      }),
+      readFile: vi.fn(
+        () =>
+          new Promise<{ content: string; encoding: 'utf8' }>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      await vi.waitFor(() => expect(callbacks).toHaveLength(1));
+      callbacks[0]({ type: 'create', path: 'old-read.txt' });
+      files.setRuntime(runtime);
+      await vi.waitFor(() => expect(callbacks).toHaveLength(2));
+      callbacks[0]({ type: 'create', path: 'old-event.txt', content: 'old watcher' });
+      release({ content: 'old deferred content', encoding: 'utf8' });
+
+      // Drain the resolved read's microtasks without waiting an arbitrary duration.
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(files.files.get()).toEqual({});
+      callbacks[1]({ type: 'create', path: 'new-event.txt', content: 'current watcher' });
+      expect(files.files.get()['/home/project/new-event.txt']).toMatchObject({ content: 'current watcher' });
+    } finally {
+      files.dispose();
+    }
+  });
+
+  it('stops a late previous watcher without stopping or poisoning the current watcher', async () => {
+    const callbacks: Array<(change: FileChange) => void> = [];
+    const stopPrevious = vi.fn();
+    const stopCurrent = vi.fn();
+
+    let releasePrevious!: (stop: () => void) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      watchFiles: vi.fn((_paths: string[], callback: (change: FileChange) => void) => {
+        callbacks.push(callback);
+        return callbacks.length === 1
+          ? new Promise<() => void>((resolve) => {
+              releasePrevious = resolve;
+            })
+          : Promise.resolve(stopCurrent);
+      }),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      await vi.waitFor(() => expect(callbacks).toHaveLength(1));
+      files.setRuntime(runtime);
+      await vi.waitFor(() => expect(callbacks).toHaveLength(2));
+      callbacks[1]({ type: 'create', path: 'current.txt', content: 'current project' });
+      expect(files.files.get()['/home/project/current.txt']).toMatchObject({ content: 'current project' });
+
+      releasePrevious(stopPrevious);
+      await vi.waitFor(() => expect(stopPrevious).toHaveBeenCalledTimes(1));
+      expect(stopCurrent).not.toHaveBeenCalled();
+      callbacks[0]({ type: 'create', path: 'current.txt', content: 'obsolete project' });
+      expect(files.files.get()['/home/project/current.txt']).toMatchObject({ content: 'current project' });
+      callbacks[1]({ type: 'create', path: 'after-late-attach.txt', content: 'still receiving current events' });
+      expect(files.files.get()['/home/project/after-late-attach.txt']).toMatchObject({
+        content: 'still receiving current events',
+      });
+    } finally {
+      files.dispose();
+    }
+    expect(stopCurrent).toHaveBeenCalledTimes(1);
+    expect(stopPrevious).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a remote content read from before a same-adapter scope reset', async () => {
+    let release!: (value: { content: string; encoding: 'utf8' }) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      mode: 'remote-kubernetes',
+      readFile: vi.fn(
+        () =>
+          new Promise<{ content: string; encoding: 'utf8' }>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      files.replaceWithProjectStorageFiles([{ path: 'audit.txt', content: 'project B', isBinary: false }]);
+
+      const pending = files.adoptRemoteContent(path);
+      files.setRuntime(runtime);
+      files.replaceWithProjectStorageFiles([{ path: 'audit.txt', content: 'project A', isBinary: false }]);
+      release({ content: 'stale project B', encoding: 'utf8' });
+      await expect(pending).resolves.toBe('hors-portee');
+      expect(files.files.get()[path]).toMatchObject({ content: 'project A' });
+    } finally {
+      files.dispose();
+    }
+  });
+
+  it('does not mark the new project hydrated when an old runtime listing completes', async () => {
+    const { store } = setup();
+
+    let release!: (nodes: Awaited<ReturnType<typeof runtimeAdapterMock.listFiles>>) => void;
+    vi.spyOn(runtimeAdapterMock, 'listFiles').mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const pending = store.loadRuntimeFiles();
+    store.configureProject(undefined);
+    store.configureProject('new-project-with-pending-runtime-list');
+    release([]);
+    await pending;
+    expect(store.files.get()).toEqual({});
+    expect(store.documents.get()).toEqual({});
+    expect(store.filesHydrated.get()).toBe(false);
+  });
+
+  it.each(['create-file', 'create-binary', 'create-folder', 'delete-file', 'delete-folder'] as const)(
+    'does not apply an old %s completion to a different project with matching paths',
+    async (operation) => {
+      const { store } = setup();
+      const child = '/home/project/folder/child.txt';
+      const other = '/home/project/other.txt';
+      const target = operation.includes('folder') ? '/home/project/folder' : path;
+
+      const projectArchive = async (label: string) => {
+        const zip = new JSZip();
+        zip.file('audit.txt', `${label} audit`);
+        zip.file('folder/child.txt', `${label} child`);
+        zip.file('other.txt', `${label} other`);
+
+        return new Response(JSON.stringify({ archive: { base64: await zip.generateAsync({ type: 'base64' }) } }));
+      };
+      stubArchive(() => projectArchive('A'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(operation === 'delete-folder' ? child : path);
+
+      let release!: () => void;
+      let backendCompleted = false;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const complete = async () => {
+        await gate;
+        backendCompleted = true;
+      };
+
+      if (operation === 'create-file') {
+        vi.spyOn(runtimeAdapterMock, 'createFile').mockImplementationOnce(complete);
+      }
+
+      if (operation === 'create-binary') {
+        vi.spyOn(runtimeAdapterMock, 'writeFile').mockImplementationOnce(complete);
+      }
+
+      if (operation === 'create-folder') {
+        vi.spyOn(runtimeAdapterMock, 'createDirectory').mockImplementationOnce(complete);
+      }
+
+      if (operation.startsWith('delete')) {
+        vi.spyOn(runtimeAdapterMock, 'deleteFile').mockImplementationOnce(complete);
+      }
+
+      const pending =
+        operation === 'create-file'
+          ? store.createFile(path, '')
+          : operation === 'create-binary'
+            ? store.createFile(path, new Uint8Array([65]))
+            : operation === 'create-folder'
+              ? store.createFolder(target)
+              : operation === 'delete-file'
+                ? store.deleteFile(path)
+                : store.deleteFolder(target);
+
+      store.configureProject(undefined);
+      store.configureProject(`completion-B-${operation}`);
+      stubArchive(() => projectArchive('B'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(other);
+      store.setDocumentContent(path, 'B unsaved audit');
+      store.setDocumentContent(child, 'B unsaved child');
+
+      const files = store.files.get();
+      const documents = store.documents.get();
+      const dirty = [...store.unsavedFiles.get()].sort();
+      const deleted = store.getDeletedPaths();
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(backendCompleted).toBe(true);
+      expect.soft(store.files.get()).toEqual(files);
+      expect.soft(store.documents.get()).toEqual(documents);
+      expect.soft(store.selectedFile.get()).toBe(other);
+      expect.soft([...store.unsavedFiles.get()].sort()).toEqual(dirty);
+      expect.soft(store.getDeletedPaths()).toEqual(deleted);
+    },
+  );
+
+  it.each(['file', 'folder'] as const)(
+    'does not clear the new project tombstone after an old %s creation',
+    async (kind) => {
+      const { store } = setup();
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const complete = async () => {
+        await gate;
+      };
+
+      const target = kind === 'file' ? path : '/home/project/folder';
+
+      if (kind === 'file') {
+        vi.spyOn(runtimeAdapterMock, 'createFile').mockImplementationOnce(complete);
+      } else {
+        vi.spyOn(runtimeAdapterMock, 'createDirectory').mockImplementationOnce(complete);
+      }
+
+      const pending = kind === 'file' ? store.createFile(target, 'A creation') : store.createFolder(target);
+      store.configureProject('new-project-with-tombstone');
+      store.setDeletedPaths([target]);
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(store.getDeletedPaths()).toContain(target);
+      expect(store.files.get()[target]).toBeUndefined();
+    },
+  );
+  it.each(['create', 'delete'] as const)(
+    'ignores old %s UI completion after runtime changes within the same project',
+    async (operation) => {
+      const { store } = setup();
+      stubArchive(() => archive('original'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      vi.spyOn(runtimeAdapterMock, operation === 'create' ? 'createFile' : 'deleteFile').mockImplementationOnce(
+        () => gate,
+      );
+
+      const pending = operation === 'create' ? store.createFile(path, '') : store.deleteFile(path);
+      store.configureRuntime({ ...runtimeAdapterMock } as unknown as RuntimeAdapter);
+      stubArchive(() => archive('new runtime'));
+      await store.loadProjectStorageFiles();
+      store.setDocumentContent(path, 'new runtime draft');
+      store.setSelectedFile(undefined);
+
+      const files = store.files.get();
+      const documents = store.documents.get();
+      const dirty = [...store.unsavedFiles.get()];
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(store.files.get()).toEqual(files);
+      expect(store.documents.get()).toEqual(documents);
+      expect(store.selectedFile.get()).toBeUndefined();
+      expect([...store.unsavedFiles.get()]).toEqual(dirty);
+      expect(store.getDeletedPaths()).toEqual([]);
+    },
+  );
+
+  it.each(['create', 'delete'] as const)(
+    'preserves a late backend %s failure without mutating the new project',
+    async (operation) => {
+      const { store } = setup();
+
+      let reject!: (error: Error) => void;
+
+      const gate = new Promise<void>((_, fail) => {
+        reject = fail;
+      });
+      vi.spyOn(runtimeAdapterMock, operation === 'create' ? 'createFile' : 'deleteFile').mockImplementationOnce(
+        () => gate,
+      );
+
+      const pending = operation === 'create' ? store.createFile(path, '') : store.deleteFile(path);
+      store.configureProject('project-after-failed-write');
+      stubArchive(() => archive('new project'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+      store.setDocumentContent(path, 'new project draft');
+
+      const files = store.files.get();
+      const documents = store.documents.get();
+      const failure = new Error('original backend write failed');
+      const assertion = expect(pending).rejects.toBe(failure);
+      reject(failure);
+      await assertion;
+      expect(store.files.get()).toEqual(files);
+      expect(store.documents.get()).toEqual(documents);
+      expect(store.selectedFile.get()).toBe(path);
+      expect(store.unsavedFiles.get().has(path)).toBe(true);
+      expect(store.getDeletedPaths()).toEqual([]);
+    },
+  );
+
+  it('keeps same-project creation, selection and deletion behavior', async () => {
+    const { store } = setup();
+    const folder = '/home/project/new-folder';
+    const file = `${folder}/created.txt`;
+    await expect(store.createFolder(folder)).resolves.toBe(true);
+    await expect(store.createFile(file, 'created content')).resolves.toBe(true);
+    expect(store.files.get()[file]).toMatchObject({ content: 'created content' });
+    expect(store.selectedFile.get()).toBe(file);
+    await expect(store.deleteFile(file)).resolves.toBe(true);
+    expect(store.files.get()[file]).toBeUndefined();
+    expect(store.getDeletedPaths()).toContain(file);
+    await expect(store.deleteFolder(folder)).resolves.toBe(true);
+    expect(store.files.get()[folder]).toBeUndefined();
+    expect(store.getDeletedPaths()).toContain(folder);
+  });
+
+  it('still refuses to overwrite a locked existing file before starting a backend write', async () => {
+    const { store } = setup();
+    stubArchive(() => archive('locked original'));
+    await store.loadProjectStorageFiles();
+    store.lockFile(path);
+
+    try {
+      const write = vi.spyOn(runtimeAdapterMock, 'createFile');
+      write.mockClear();
+      await expect(store.createFile(path, 'replacement')).resolves.toBe(false);
+      expect(write).not.toHaveBeenCalled();
+      expect(store.files.get()[path]).toMatchObject({ content: 'locked original', isLocked: true });
+    } finally {
+      store.unlockFile(path);
+    }
+  });
+  it('does not persist a pending project A deletion under project B when the URL changes before configuration', async () => {
+    const previousUrl = window.location.href;
+    window.history.pushState({}, '', '/projects/write-url-A/ide');
+
+    const { store } = setup();
+    store.configureProject('write-url-A');
+
+    let release!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.spyOn(runtimeAdapterMock, 'deleteFile').mockImplementationOnce(() => gate);
+
+    const keyB = 'bolt-deleted-paths:project:write-url-B';
+    localStorage.setItem(keyB, JSON.stringify(['/home/project/B-existing-deletion.txt']));
+
+    try {
+      const pending = store.deleteFile(path);
+      window.history.pushState({}, '', '/projects/write-url-B/ide');
+
+      // React has not committed configureProject(B) or setRuntime yet.
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(JSON.parse(localStorage.getItem(keyB)!)).toEqual(['/home/project/B-existing-deletion.txt']);
+    } finally {
+      window.history.replaceState({}, '', previousUrl);
+    }
+  });
+  it.each(['create-file', 'create-folder', 'delete-file', 'delete-folder'] as const)(
+    'keeps cache and selection unchanged for %s across URL scope before configuration',
+    async (operation) => {
+      const previousUrl = window.location.href;
+      window.history.pushState({}, '', '/projects/url-owner-A/ide?tool=editor');
+
+      const { store } = setup();
+      store.configureProject('url-owner-A');
+      stubArchive(() => archive('A document'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+      store.setDocumentContent(path, 'A draft');
+
+      const target = operation.includes('folder') ? '/home/project/folder' : path;
+      const keyB = 'bolt-deleted-paths:project:url-owner-B';
+      localStorage.setItem(keyB, JSON.stringify([target]));
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const method =
+        operation === 'create-file' ? 'createFile' : operation === 'create-folder' ? 'createDirectory' : 'deleteFile';
+      vi.spyOn(runtimeAdapterMock, method).mockImplementationOnce(() => gate);
+
+      try {
+        const pending =
+          operation === 'create-file'
+            ? store.createFile(path, '')
+            : operation === 'create-folder'
+              ? store.createFolder(target)
+              : operation === 'delete-file'
+                ? store.deleteFile(path)
+                : store.deleteFolder(target);
+        store.setSelectedFile(undefined);
+
+        const files = store.files.get();
+        const documents = store.documents.get();
+        window.history.pushState({}, '', '/projects/url-owner-B/ide?tool=editor');
+        release();
+        await expect(pending).resolves.toBe(true);
+        expect.soft(store.files.get()).toEqual(files);
+        expect.soft(store.documents.get()).toEqual(documents);
+        expect.soft(store.selectedFile.get()).toBeUndefined();
+        expect.soft(store.unsavedFiles.get().has(path)).toBe(true);
+        expect.soft(JSON.parse(localStorage.getItem(keyB)!)).toEqual([target]);
+        store.configureProject('url-owner-B');
+        stubArchive(async () => {
+          const zip = new JSZip();
+          zip.file('other.txt', 'B document');
+
+          return new Response(JSON.stringify({ archive: { base64: await zip.generateAsync({ type: 'base64' }) } }));
+        });
+        await store.loadProjectStorageFiles();
+        store.setSelectedFile('/home/project/other.txt');
+        expect(store.currentDocument.get()).toMatchObject({ value: 'B document' });
+      } finally {
+        window.history.replaceState({}, '', previousUrl);
+      }
+    },
+  );
+
+  it.each(['create', 'delete'] as const)(
+    'allows pending %s when only the panel URL changes in the same project',
+    async (operation) => {
+      const previousUrl = window.location.href;
+      window.history.pushState({}, '', '/projects/panel-owner/ide?tool=editor');
+
+      const { store } = setup();
+      store.configureProject('panel-owner');
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      vi.spyOn(runtimeAdapterMock, operation === 'create' ? 'createFile' : 'deleteFile').mockImplementationOnce(
+        () => gate,
+      );
+
+      try {
+        const pending = operation === 'create' ? store.createFile(path, 'same project') : store.deleteFile(path);
+        window.history.pushState({}, '', '/projects/panel-owner/ide?tool=preview');
+        release();
+        await expect(pending).resolves.toBe(true);
+
+        if (operation === 'create') {
+          expect(store.files.get()[path]).toMatchObject({ content: 'same project' });
+          expect(store.selectedFile.get()).toBe(path);
+        } else {
+          expect(store.getDeletedPaths()).toContain(path);
+          expect(JSON.parse(localStorage.getItem('bolt-deleted-paths:project:panel-owner')!)).toContain(path);
+        }
+      } finally {
+        window.history.replaceState({}, '', previousUrl);
+      }
+    },
+  );
+
+  it('preserves an optimistically saved draft when a runtime listing starts during the pending write', async () => {
+    const { store } = setup();
+    runtimeFiles.set('audit.txt', 'old disk');
+    stubArchive(() => archive('old disk'));
+    await store.loadProjectStorageFiles();
+    store.setSelectedFile(path);
+    store.setCurrentDocumentContent('new draft');
+
+    let release!: () => void;
+    let started!: () => void;
+
+    const writeStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.spyOn(runtimeAdapterMock, 'writeFile').mockImplementationOnce(async (filePath, content) => {
+      started();
+      await gate;
+      runtimeFiles.set(filePath, content);
+    });
+
+    const pendingSave = store.saveFile(path);
+    await writeStarted;
+    expect(store.files.get()[path]).toMatchObject({ content: 'new draft' });
+
+    // Listing starts after optimistic publication, while the actual write is still pending.
+    await store.loadRuntimeFiles();
+    expect.soft(store.files.get()[path]).toMatchObject({ content: 'new draft' });
+    expect(store.currentDocument.get()).toMatchObject({ value: 'new draft' });
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    release();
+    await expect(pendingSave).resolves.toBe('new draft');
+    expect(runtimeFiles.get('audit.txt')).toBe('new draft');
+    expect(store.unsavedFiles.get().has(path)).toBe(false);
+    expect.soft(store.files.get()[path]).toMatchObject({ content: 'new draft' });
+
+    // A later ordinary document reconciliation must agree with the successful save.
+    store.setDocuments(store.files.get());
+    expect(store.currentDocument.get()).toMatchObject({ value: 'new draft' });
+  });
+  it.each(['file', 'folder'] as const)('preserves a later same-project selection while deleting a %s', async (kind) => {
+    const { store } = setup();
+    const first = '/home/project/first.txt';
+    const target = '/home/project/deleted/current.txt';
+    const later = '/home/project/new-selection.txt';
+
+    const files = {
+      [first]: { type: 'file' as const, content: 'first', isBinary: false },
+      [target]: { type: 'file' as const, content: 'delete', isBinary: false },
+      [later]: { type: 'file' as const, content: 'later', isBinary: false },
+    };
+    store.files.set(files);
+    store.setDocuments(files);
+    store.setSelectedFile(target);
+
+    let release!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.spyOn(runtimeAdapterMock, 'deleteFile').mockImplementationOnce(() => gate);
+
+    const pending = kind === 'file' ? store.deleteFile(target) : store.deleteFolder('/home/project/deleted');
+    store.setSelectedFile(later);
+    release();
+    await expect(pending).resolves.toBe(true);
+    expect(store.files.get()[target]).toBeUndefined();
+    expect(store.selectedFile.get()).toBe(later);
+    expect(store.currentDocument.get()?.value).toBe('later');
+  });
+
+  it.each(['file', 'folder'] as const)(
+    'still selects a surviving file when the deleted %s remains selected',
+    async (kind) => {
+      const { store } = setup();
+      const first = '/home/project/first.txt';
+      const target = '/home/project/deleted/current.txt';
+
+      const files = {
+        [first]: { type: 'file' as const, content: 'first', isBinary: false },
+        [target]: { type: 'file' as const, content: 'delete', isBinary: false },
+      };
+      store.files.set(files);
+      store.setDocuments(files);
+      store.setSelectedFile(target);
+
+      const pending = kind === 'file' ? store.deleteFile(target) : store.deleteFolder('/home/project/deleted');
+      await expect(pending).resolves.toBe(true);
+      expect(store.selectedFile.get()).toBe(first);
+    },
+  );
 });

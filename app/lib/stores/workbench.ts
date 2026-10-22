@@ -57,6 +57,7 @@ import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/mes
 import { validateGeneratedFile, validateGeneratedFiles, type GeneratedFile } from '~/services/agent/post-validate';
 import type { ITerminal } from '~/types/terminal';
 import { path } from '~/utils/path';
+import { getCurrentChatId } from '~/utils/fileLocks';
 import { unreachable } from '~/utils/unreachable';
 import { GitLabApiService } from '~/lib/services/gitlabApiService';
 import { WORK_DIR } from '~/utils/constants';
@@ -288,6 +289,7 @@ export class WorkbenchStore {
    */
   #projectStorageFilesInFlight = createSingleFlight<boolean>();
   #runtime: RuntimeAdapter = getRuntimeAdapter();
+  #runtimeWriteDestination: string | undefined;
   #projectStorageBinding = 0;
   #projectStorageSaveVersions = new Map<string, number>();
   #previewsStore = new PreviewsStore(this.#runtime);
@@ -324,6 +326,9 @@ export class WorkbenchStore {
   #previewStarting = false;
   #previewCommandRunning = false;
   #projectId: string | undefined;
+
+  // Cleanup temporarily unbinds the project; retain the owner of editor buffers.
+  #filesProjectId: string | undefined;
   #autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   /*
@@ -579,17 +584,27 @@ export class WorkbenchStore {
     this.projectFilesPanelRequest.set({ open, requestId: Date.now() });
   }
 
-  configureRuntime(runtime: RuntimeAdapter) {
-    if (this.#runtime === runtime) {
+  configureRuntime(runtime: RuntimeAdapter, projectId?: string) {
+    /*
+     * Remote adapters are recreated during workspace attachment. Their project
+     * destination remains the same, so in-flight disk writes must keep their
+     * queue across that rebind. The local runtime is shared across projects;
+     * unknown destinations stay conservatively serialized in FilesStore.
+     */
+    const writeDestination =
+      runtime.mode === 'remote-kubernetes' && projectId ? `remote-project:${projectId}` : undefined;
+
+    if (this.#runtime === runtime && this.#runtimeWriteDestination === writeDestination) {
       return;
     }
 
     this.#projectStorageBinding++;
     this.#projectStorageSaveVersions.clear();
     this.#runtime = runtime;
+    this.#runtimeWriteDestination = writeDestination;
     this.#enregistrementsDeLAgent.clear();
     this.#previewsStore.setRuntime(runtime);
-    this.#filesStore.setRuntime(runtime);
+    this.#filesStore.setRuntime(runtime, writeDestination);
     this.#terminalStore.setRuntime(runtime);
 
     /*
@@ -617,7 +632,26 @@ export class WorkbenchStore {
 
   configureProject(projectId?: string) {
     const changed = this.#projectId !== projectId;
+    const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
+    const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
     this.#projectId = projectId;
+
+    if (changedFileProject) {
+      /*
+       * A shared runtime can survive a project switch. Invalidate its old reads
+       * and watchers too, before restoring a same-path selection for this project.
+       */
+      // Invalidate reads without losing the destination queue across A → B → A.
+      this.#runtimeWriteDestination =
+        this.#runtime.mode === 'remote-kubernetes' && projectId ? `remote-project:${projectId}` : undefined;
+      this.#filesStore.setRuntime(this.#runtime, this.#runtimeWriteDestination);
+      this.#editorStore.setDocuments({});
+      this.#editorStore.setSelectedFile(undefined);
+    }
+
+    if (projectId) {
+      this.#filesProjectId = projectId;
+    }
 
     // Bind per-file History (append-only, independent of Git) to this project.
     fileHistoryStore.configure(projectId);
@@ -657,7 +691,7 @@ export class WorkbenchStore {
        * merges (setKey) project B's proposals on top of the stale A entries.
        * Accepting a leaked proposal would then apply A's diff against B's files.
        */
-      this.#resetProjectScopedState();
+      this.#resetProjectScopedState(!preserveEditorState);
     }
 
     /*
@@ -671,7 +705,7 @@ export class WorkbenchStore {
     }
   }
 
-  #resetProjectScopedState() {
+  #resetProjectScopedState(clearUnsavedFiles = true) {
     this.agentPatchProposals.set({});
     this.#enregistrementsDeLAgent.clear();
     this.#agentPatchOriginals.clear();
@@ -681,7 +715,10 @@ export class WorkbenchStore {
     this.#deferredStartArtifacts.clear();
     this.#deferredRefreshArtifacts.clear();
     this.agentPatchSelfRepair.set({});
-    this.unsavedFiles.set(new Set<string>());
+
+    if (clearUnsavedFiles) {
+      this.unsavedFiles.set(new Set<string>());
+    }
 
     /*
      * Cancel pending autosave timers from the previous project/runtime. Left
@@ -769,12 +806,19 @@ export class WorkbenchStore {
   }
 
   async loadRuntimeFiles(rootPath = '.', options: { reparer?: boolean } = {}) {
+    const binding = this.#projectStorageBinding;
+    const projectId = this.#projectId;
+
     let runtimeError: unknown;
 
     try {
       await this.#filesStore.reloadFromRuntime(rootPath, options);
     } catch (error) {
       runtimeError = error;
+    }
+
+    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+      return;
     }
 
     if (runtimeError || (this.#projectId && this.#filesStore.filesCount === 0)) {
@@ -793,6 +837,10 @@ export class WorkbenchStore {
       if (runtimeError) {
         throw runtimeError;
       }
+    }
+
+    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+      return;
     }
 
     this.setDocuments(this.files.get());
@@ -3247,14 +3295,13 @@ export class WorkbenchStore {
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
     const binding = this.#projectStorageBinding;
+    const scope = getCurrentChatId();
 
     try {
       const success = await this.#filesStore.createFile(filePath, content);
 
-      if (success) {
-        if (binding === this.#projectStorageBinding) {
-          this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
-        }
+      if (success && binding === this.#projectStorageBinding && scope === getCurrentChatId()) {
+        this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
 
         this.setSelectedFile(filePath);
 
@@ -3286,13 +3333,13 @@ export class WorkbenchStore {
   }
 
   async deleteFile(filePath: string) {
-    try {
-      const currentDocument = this.currentDocument.get();
-      const isCurrentFile = currentDocument?.filePath === filePath;
+    const binding = this.#projectStorageBinding;
+    const scope = getCurrentChatId();
 
+    try {
       const success = await this.#filesStore.deleteFile(filePath);
 
-      if (success) {
+      if (success && binding === this.#projectStorageBinding && scope === getCurrentChatId()) {
         const newUnsavedFiles = new Set(this.unsavedFiles.get());
 
         if (newUnsavedFiles.has(filePath)) {
@@ -3300,7 +3347,7 @@ export class WorkbenchStore {
           this.unsavedFiles.set(newUnsavedFiles);
         }
 
-        if (isCurrentFile) {
+        if (this.selectedFile.get() === filePath) {
           const files = this.files.get();
 
           let nextFile: string | undefined = undefined;
@@ -3324,13 +3371,13 @@ export class WorkbenchStore {
   }
 
   async deleteFolder(folderPath: string) {
-    try {
-      const currentDocument = this.currentDocument.get();
-      const isInCurrentFolder = currentDocument?.filePath?.startsWith(folderPath + '/');
+    const binding = this.#projectStorageBinding;
+    const scope = getCurrentChatId();
 
+    try {
       const success = await this.#filesStore.deleteFolder(folderPath);
 
-      if (success) {
+      if (success && binding === this.#projectStorageBinding && scope === getCurrentChatId()) {
         const unsavedFiles = this.unsavedFiles.get();
         const newUnsavedFiles = new Set<string>();
 
@@ -3344,7 +3391,7 @@ export class WorkbenchStore {
           this.unsavedFiles.set(newUnsavedFiles);
         }
 
-        if (isInCurrentFolder) {
+        if (this.selectedFile.get()?.startsWith(folderPath + '/')) {
           const files = this.files.get();
 
           let nextFile: string | undefined = undefined;

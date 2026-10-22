@@ -1,0 +1,103 @@
+{
+  "main": "2828ba50713675273b09c87d94593dfe95273085",
+  "sourcePRs": [
+    {
+      "pr": 770,
+      "base": "e4bda1fbbeefb3988689fc864927edbc4f171cfd",
+      "head": "6a2505b596ae46a3d98586054c8940fae1a70220"
+    },
+    {
+      "pr": 771,
+      "base": "6a2505b596ae46a3d98586054c8940fae1a70220",
+      "head": "9a5d7f803eed0680684f32e0329cf4af50e261ac"
+    },
+    {
+      "pr": 772,
+      "base": "6fa009b9180f8add2e6a60e5e3be52e4155336e3",
+      "head": "a6123baae8338d4edd48c91ebdbc71e13da15897"
+    }
+  ],
+  "productPaths": [
+    "app/lib/runtime/ProjectWorkspaceProvider.tsx",
+    "app/lib/stores/files.ts",
+    "app/lib/stores/workbench.ts"
+  ],
+  "protectedPathsIdenticalToMain": [
+    "packages/editor/src/index.ts",
+    "packages/editor/src/mobile-editor.spec.tsx",
+    "app/lib/stores/editor-save-target-p0.spec.tsx",
+    "app/components/chat/BaseChat.tsx"
+  ],
+  "sources": [
+    {
+      "path": "app/lib/runtime/ProjectWorkspaceProvider.tsx",
+      "sha256": "5d7fb180f2eb3cf6ba505d261f684e7a83e3012f3e8f1f0de8a91d9075590a2c"
+    },
+    {
+      "path": "app/lib/stores/files.ts",
+      "sha256": "05925ccb04466c9903a14c9585a6959269e16f5177e6be35ea9f469116ae6b73"
+    },
+    {
+      "path": "app/lib/stores/workbench.ts",
+      "sha256": "427255a6e3078155f46a8a03fd569c822dc231d72610ef3d4fc8eb39cce8e522"
+    },
+    {
+      "path": "app/lib/stores/files.reload-content.spec.ts",
+      "sha256": "29b4c152799869dca30dfff1bc984eb7859e1156331d8436f330e2611a910327"
+    },
+    {
+      "path": "app/lib/stores/workbench.project-storage-return.spec.ts",
+      "sha256": "928128a12d4b0e63afb9114a86fa7a87b49af3f3f53b93bd5c9f3fde11fdfa20"
+    },
+    {
+      "path": "app/lib/stores/workbench.runtime-listing-save.spec.ts",
+      "sha256": "286bf8e9f46c32219bce48179faf471036e6927215e1eda89664fbf148a09e48"
+    },
+    {
+      "path": "tests/e2e/ide-mobile-file-restore.spec.ts",
+      "sha256": "105a4f4cc63750d26b8f2035afbee91f0eab5985b86e6cc831606f5ca673d2d3"
+    }
+  ],
+  "runs": [
+    {
+      "name": "integration-red",
+      "sha256": "73e6b276d7ebaab31d16b99acaf64d4292462f164f155c943d343b35c8d66d39",
+      "passed": 2,
+      "failed": 3,
+      "pendingOrFiltered": 65
+    },
+    {
+      "name": "initial-targeted",
+      "sha256": "46eac90b958df4417d8c088543ac541ab9bdc26ab46ec40e40c720168b4358c2",
+      "passed": 237,
+      "failed": 1,
+      "pendingOrFiltered": 0
+    },
+    {
+      "name": "lock-fixture-counterproof",
+      "sha256": "a304e69ce8f20437fd65a25ce3508c21b8f30d2db077baee516ed9de0544b2fb",
+      "passed": 1,
+      "failed": 1,
+      "pendingOrFiltered": 57
+    },
+    {
+      "name": "final-targeted",
+      "sha256": "d444e2e9dd808e40720094647da373c3237cceab81d09deaa5d45634cc5daac5",
+      "passed": 238,
+      "failed": 0,
+      "pendingOrFiltered": 0
+    }
+  ],
+  "manualResolution": "append both sides of workbench.project-storage-return.spec.ts; no test removed",
+  "additionalChanges": [
+    "retain stable write destination when configureProject resets FilesStore",
+    "read current selection after deleteFile/deleteFolder response",
+    "release synthetic lock in its test finally"
+  ],
+  "limits": [
+    "unit harnesses use synthetic runtimes; not real remote persistence",
+    "historical browser evidence retained in source PR commits, not a new validation of this tree",
+    "no full local suite/build rerun; required CI must validate exact head",
+    "no #768 product changes, no merge, no deployment, no user-project mutation"
+  ]
+}

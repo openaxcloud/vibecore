@@ -625,6 +625,146 @@ for (const width of [390, 768]) {
   });
 }
 
+test('project A never displays project B while its archive is pending at 768', async ({
+  page,
+  request,
+  context,
+  mobileNavigationDiagnostics,
+}, info) => {
+  test.setTimeout(90000);
+
+  const { projectId, file, createOtherProject, replaceFixtureFiles } = await openPersistedFile({
+    page,
+    request,
+    context,
+  });
+
+  const projectB = await createOtherProject();
+
+  const saved = (id: string) =>
+    page.evaluate(
+      (project) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${project}`) ?? '{}').ui?.selectedFile,
+      id,
+    );
+  await expect.poll(() => saved(projectId)).toBe('/home/project/audit.txt');
+  await page.goto(`/projects/${projectB}/ide?panel=files`);
+  await file('project-b.txt').click();
+  await expect.poll(() => saved(projectB)).toBe('/home/project/project-b.txt');
+  await page.goto('/dashboard');
+  await replaceFixtureFiles({ 'README.md': 'TEMPORARY-README', 'other.txt': 'SECOND-DOCUMENT' });
+  await page.setViewportSize({ width: 768, height: 900 });
+  await page.goto(`/projects/${projectId}/ide?panel=editor`);
+  await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+  await expect.poll(() => saved(projectId)).toBe('/home/project/audit.txt');
+
+  const writesToB: Array<string | undefined> = [];
+  page.on('request', (outgoing) => {
+    if (outgoing.method() === 'PUT' && new URL(outgoing.url()).pathname === `/api/projects/${projectB}/ide-state`) {
+      writesToB.push(outgoing.postDataJSON()?.state?.ui?.selectedFile);
+    }
+  });
+  await page.getByTestId('mobile-ide-header').getByTestId('button-more').click();
+  await page.getByTestId('mobile-more-menu-files').click();
+  await file('README.md').click();
+
+  // Same-document navigation exercises the project scope guard without a page reload.
+  await page.evaluate((id) => {
+    history.pushState(history.state, '', `/projects/${id}/ide?panel=editor`);
+    window.dispatchEvent(new PopStateEvent('popstate', { state: history.state }));
+  }, projectB);
+  await expect(page.locator('.cm-content')).toContainText('PROJECT-B-DOCUMENT');
+  await expect.poll(() => saved(projectId)).toBe('/home/project/README.md');
+  await expect.poll(() => saved(projectB)).toBe('/home/project/project-b.txt');
+  await expect.poll(() => writesToB.filter(Boolean).length).toBeGreaterThan(0);
+  expect(writesToB.filter(Boolean)).not.toContain('/home/project/README.md');
+  expect(writesToB.filter(Boolean)).not.toContain('/home/project/audit.txt');
+  await replaceFixtureFiles({
+    'README.md': 'TEMPORARY-README',
+    'other.txt': 'SECOND-DOCUMENT',
+    'audit.txt': 'PERSISTENCE-ORIGINAL-20261012',
+  });
+
+  let release!: () => void;
+  let observed!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const seen = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+
+  const archivePath = `/api/projects/${projectId}/export/zip`;
+
+  // Retain the real request, not a fabricated archive or error response.
+  await page.route(
+    (url) => url.pathname === archivePath,
+    async (route) => {
+      observed();
+      await gate;
+      await route.continue();
+    },
+  );
+
+  try {
+    mobileNavigationDiagnostics.mark('return-to-project-A-with-pending-archive');
+    await page.goBack();
+    await seen;
+
+    /*
+     * The address bar changes on POP before React Router commits the loader.
+     * Assert isolation only after A is applied, while its archive is still held.
+     */
+    await expect
+      .poll(() =>
+        page.evaluate((id) => {
+          const router = (
+            window as typeof window & {
+              __reactRouterDataRouter?: {
+                state: { location: { pathname: string }; navigation: { state: string } };
+              };
+            }
+          ).__reactRouterDataRouter?.state;
+          return {
+            projectApplied: router?.location.pathname === `/projects/${id}/ide`,
+            navigation: router?.navigation.state,
+          };
+        }, projectId),
+      )
+      .toEqual({ projectApplied: true, navigation: 'idle' });
+
+    await page.screenshot({ path: info.outputPath('project-A-archive-pending.png') });
+    await expect(
+      page.locator('.cm-content').filter({
+        hasText: /PROJECT-B-DOCUMENT|# Selection project B/,
+      }),
+    ).toHaveCount(0);
+    mobileNavigationDiagnostics.mark('project-A-isolated-before-archive');
+
+    const archiveResponse = page.waitForResponse(
+      (response) => new URL(response.url()).pathname === archivePath && response.request().method() === 'GET',
+    );
+    release();
+
+    const response = await archiveResponse;
+    expect(response.status()).toBe(200);
+    await response.finished();
+    await info.attach('project-A-archive-response', {
+      contentType: 'application/json',
+      body: JSON.stringify({ status: response.status() }),
+    });
+
+    await expect(page.locator('.cm-content')).toContainText('TEMPORARY-README');
+    await expect.poll(() => saved(projectId)).toBe('/home/project/README.md');
+    await expect.poll(() => saved(projectB)).toBe('/home/project/project-b.txt');
+    mobileNavigationDiagnostics.mark('project-A-content-visible');
+    await page.screenshot({ path: info.outputPath('project-A-archive-loaded.png') });
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
+
 for (const width of [390, 768]) {
   test(`file choice cancels a pending files navigation at ${width}`, async ({ page, request, context }, testInfo) => {
     test.setTimeout(90000);
