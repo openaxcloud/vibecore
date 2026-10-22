@@ -1,0 +1,90 @@
+[
+  {
+    "path": "README.md",
+    "sha256": "4b7089401ca04a0fbe48a5460b0a8f46ab2e3290b9379a8f73b44511f8c2d6b8"
+  },
+  {
+    "path": "baseline-and-c382-red.json",
+    "sha256": "b6f85929dcd022a482126b888dde2dd6efc029b2807813d026d2bab648be1a36"
+  },
+  {
+    "path": "build-receipt.json",
+    "sha256": "d59611a6cbfff74397c44cc767fbbff2182544288691feeb8c6954f5a180a3d2"
+  },
+  {
+    "path": "compiled.json",
+    "sha256": "e1560b3eb00f23804b7a371ea1a0953003f19cc373af69797f7f22f9893b111f"
+  },
+  {
+    "path": "d6-preparation-red.json",
+    "sha256": "e480ab1eb7e1acf76e4d7d091ce90140a27b5b1be63ea779c83ded1fc71dda3f"
+  },
+  {
+    "path": "fixture-change.json",
+    "sha256": "713509f9dac57beb765ff04e26d0391f8a8436dd3257333fb183bec6ae11c8d8"
+  },
+  {
+    "path": "focus-after-1024.png",
+    "sha256": "c3f62b3264813f3865b54b9f55f3eeef2e37fe5ae7360e371b30f7f05c3b81a9"
+  },
+  {
+    "path": "focus-after-1440.png",
+    "sha256": "a7152cb1523ad6e79d02d8391b1721b5537f5d63fc8cad339bcf5e5f66b220a2"
+  },
+  {
+    "path": "focus-before-1024.png",
+    "sha256": "8200bba6d56391d8c2a12ea2185e2634f62adacd8543be36e470d5600e9945fd"
+  },
+  {
+    "path": "focus-before-1440.png",
+    "sha256": "5a6945c5785c94d1728c859f0eb62176f8c3a34c54b85c8ac9591f72347375b2"
+  },
+  {
+    "path": "focus-verified-1024.png",
+    "sha256": "c3f62b3264813f3865b54b9f55f3eeef2e37fe5ae7360e371b30f7f05c3b81a9"
+  },
+  {
+    "path": "focus-verified-1440.png",
+    "sha256": "7d4c9ae1e9bec61a68c27f1f6d6c093e7c02edf84e025f22706d13f04423d694"
+  },
+  {
+    "path": "images.json",
+    "sha256": "7b050622ddc1f9862319c0cfabd1476b2aedee656be83f856991cdfa7c3399b4"
+  },
+  {
+    "path": "mobile-compat-verified.config.ts.txt",
+    "sha256": "f709980ff1753476f2f96e1261906cdb9baf3b0dc8d13f483df9956cdf711ba4"
+  },
+  {
+    "path": "mobile-compat-verified.spec.ts.txt",
+    "sha256": "0f9e0c0c65666522a6c39ffd75e54f9cd4305e573a75769a9683ceb8e403446c"
+  },
+  {
+    "path": "repeat-focus-verified-rpl.config.ts.txt",
+    "sha256": "e5ce983c3c0949bff52186d3a9150bcbd6571a0d443a851897bee2f112464e39"
+  },
+  {
+    "path": "repeat-focus-verified.config.ts.txt",
+    "sha256": "35ddeec0ea3e54c900d5b7eb7acc6373586290118d589ece832293016fb28195"
+  },
+  {
+    "path": "rpl-results.json",
+    "sha256": "304d44907a046050342bbff4bee02e32d3745cb60766a162df53816a6c8f904c"
+  },
+  {
+    "path": "served-asset.json",
+    "sha256": "7e2e985107c2749941cecbca485efb9e2d3e058822483271ee76e79a4dbbcfdf"
+  },
+  {
+    "path": "sources.json",
+    "sha256": "7bf4a65b05020b6d605de49fe4edc845e46cbcf0958cd6355832d2fa902a8f22"
+  },
+  {
+    "path": "touch-results.json",
+    "sha256": "70ca9a2fe796907bf8b814f8dae5e37ee6db6c7a269b5007b36fadd05f0d57a5"
+  },
+  {
+    "path": "verified-green.json",
+    "sha256": "1159a008c7b5ecb249b5c778410e53e9b230c1eda8ecdb4ca128a9b83a431a7e"
+  }
+]

@@ -4,7 +4,17 @@ Quatre défauts reproduits sur le produit compilé sont corrigés : la palette g
 
 Ce lot n’est pas une certification de la plateforme. La [matrice des 31 portes](INVENTORY.md) distingue surfaces, menus, actions métier non testées et blocages. Aucun projet utilisateur ni accès fournisseur n’a été modifié.
 
-## Version et provenance
+## Complément après revue : invocation répétée de la palette
+
+Le raccourci répété pendant la saisie remplaçait la cible de retour par le champ ensuite démonté. Le rouge est reproduit à 1440/1024 sur la référence main187 et sur c382 : aucune régression nouvelle attribuée à ce lot. Le correctif conserve la cible tant que la palette est ouverte.
+
+Version compilée du complément : `2a1c2bc3a843a8b8b97514d211170aebf97ac0ac`, arbre `59ed252fc5918f62671edc94395ef9fbbce173c7`. Les 9 405 blobs sources ont été comparés à Git sans différence ; 2 306 fichiers compilés et un asset HTTP sont attestés dans le [reçu](proofs/repeated-focus/build-receipt.json). Archive complète conservée localement.
+
+Onze scénarios ciblés passent directement : huit palette, deux Problems, un Webview. Les deux scénarios tactiles 390/768 et les neuf parcours docking/navigation passent également : **22 succès directs, zéro retry, zéro omission** sur cet arbre. Les 79 tests unitaires, le build, le typage et les hooks passent (lint : 52 avertissements existants, zéro erreur). Les nouveaux cas couvrent répétition clavier, pointeur desktop, fermeture/réouverture par fond modal compact et navigation Retour avec recherche conservée. Répétition puis Retour dans la même ouverture n’est pas un cas combiné couvert.
+
+Le build intermédiaire d6 avait dix succès puis un échec de préparation Webview : la onzième inscription réelle en 52 s a reçu HTTP 429, plafond local 10/min. La fixture partage désormais une identité synthétique par largeur entre trois projets distincts et conserve des contextes navigateur neufs : sept inscriptions pour les onze cas directs. Aucun quota, délai, assertion ou gate modifié. Les [contre-épreuves et résultats](proofs/repeated-focus/README.md) restent séparés de la recette historique ci-dessous. Les configurations exactes du complément sont jointes dans ce même dossier ; build local sur 5225, API réelle/PostgreSQL dédiée sur 3017, Chromium système, zéro retry.
+
+## Version et provenance — recette initiale conservée
 
 - Base : `18745bd04f77e4d9fc6353d61bd4d17a3822f94e`.
 - Produit et tests corrigés : `c382137ad72eeb983b40493e40bc296cd85e61c1` ; arbre `f26a295f50a7ddb890f8f5800db457d563a70630`.
@@ -15,13 +25,13 @@ Ce lot n’est pas une certification de la plateforme. La [matrice des 31 portes
 
 ## Rouge puis vert
 
-| Défaut | Contre-épreuve conservée | Effet vérifié après correction |
-|---|---|---|
-| Palette globale | Disparition à 1440 pendant le handoff ; essai 1024 initial bloqué par un mauvais déclencheur, pas une preuve de disparition | Recherche et focus conservés à 1440/1024 ; Échap rend le focus ; réouverture et Entrée ouvrent Database |
-| Retour focus compact | Premier correctif `4f8e8b334` : cible du bouton absente au premier effet, puis `focus` sur l’input détaché | Résolution du déclencheur à la fermeture ; assertion originale verte à 1024 |
-| Commandes Webview | Quatre commandes hors des bornes ; clic Playwright pouvant réussir par défilement automatique | Bornes respectées à 1440/1024/1920 ; clic par coordonnées Logs, fermeture Logs, ouverture/fermeture DevTools |
-| Menu Webview | Deux rouges initiaux Échap/clic extérieur ; premier correctif encore rouge car le raccourci global consomme Échap en capture | Échap, Tab entrant, Shift+Tab sortant, clic extérieur et clic sur surface iframe ; focus et contenu conservés |
-| Problems | URL reconnue par le registre mais absente du modèle : 0 onglet Problems, README affiché | Onglet et contenu Problems, rechargement ; tiroir de barre d’état déjà fonctionnel conservé |
+| Défaut               | Contre-épreuve conservée                                                                                                     | Effet vérifié après correction                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Palette globale      | Disparition à 1440 pendant le handoff ; essai 1024 initial bloqué par un mauvais déclencheur, pas une preuve de disparition  | Recherche et focus conservés à 1440/1024 ; Échap rend le focus ; réouverture et Entrée ouvrent Database       |
+| Retour focus compact | Premier correctif `4f8e8b334` : cible du bouton absente au premier effet, puis `focus` sur l’input détaché                   | Résolution du déclencheur à la fermeture ; assertion originale verte à 1024                                   |
+| Commandes Webview    | Quatre commandes hors des bornes ; clic Playwright pouvant réussir par défilement automatique                                | Bornes respectées à 1440/1024/1920 ; clic par coordonnées Logs, fermeture Logs, ouverture/fermeture DevTools  |
+| Menu Webview         | Deux rouges initiaux Échap/clic extérieur ; premier correctif encore rouge car le raccourci global consomme Échap en capture | Échap, Tab entrant, Shift+Tab sortant, clic extérieur et clic sur surface iframe ; focus et contenu conservés |
+| Problems             | URL reconnue par le registre mais absente du modèle : 0 onglet Problems, README affiché                                      | Onglet et contenu Problems, rechargement ; tiroir de barre d’état déjà fonctionnel conservé                   |
 
 [Preuves rouges expurgées et erreurs de préparation](proofs/baseline/README.md), [premier assemblage : 3 succès / 2 échecs](proofs/intermediate-red.json), [cinq scénarios corrigés](proofs/results-redacted.json), [deux scénarios tactiles](proofs/touch-results.json). Tous les cas corrigés passent directement, sans retry, skip, modification de délai ou réduction d’assertion.
 
