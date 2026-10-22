@@ -1,0 +1,111 @@
+{
+  "stats": {
+    "startTime": "2026-10-22T11:11:36.929Z",
+    "duration": 73781.062,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 15714
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 14481
+        }
+      ]
+    },
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5499
+        }
+      ]
+    },
+    {
+      "title": "redundant move preserves real browser Back and Forward selection",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5880
+        }
+      ]
+    },
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6035
+        }
+      ]
+    },
+    {
+      "title": "closing destination pane cannot swallow a later browser Back request",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 7002
+        }
+      ]
+    },
+    {
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5640
+        }
+      ]
+    },
+    {
+      "title": "normal click navigation followed by a move preserves tab identities",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5320
+        }
+      ]
+    },
+    {
+      "title": "an interrupted Back move cannot swallow a later Back to the same history entry",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6938
+        }
+      ]
+    }
+  ]
+}

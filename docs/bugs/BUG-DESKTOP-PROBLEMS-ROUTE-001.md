@@ -48,3 +48,7 @@ Le reçu `/workspace/ux-artifacts/desktop-panels/navigation/problems-fix-receipt
 Attendre le build commun attesté, puis exécuter les deux tests navigateur sur ce build : ouverture par URL, maintien de l'onglet Problems après rechargement et ouverture du tiroir depuis la barre d'état. Conserver les captures après correction et les associer au SHA exact. Le rechargement n'a pas encore été atteint dans le scénario URL rouge.
 
 Aucune modification de BaseChat, des stores, de la sécurité ou des délais et assertions existants. Aucun build, commit, push ou déploiement effectué par ce chantier. La sauvegarde runtime, les fournisseurs externes et l'ensemble des actions du panneau restent hors de cette validation.
+
+### Validation locale du lot desktop — 22 octobre
+
+Build `c382137ad72eeb983b40493e40bc296cd85e61c1`, arbre `f26a295f50a7ddb890f8f5800db457d563a70630` : cinq scénarios ciblés et deux scénarios tactiles passent directement, zéro retry et zéro omission. API et données synthétiques locales, interface compilée ; aucune certification production ni des actions métier non exercées. Voir [recette et limites](desktop-panels-2026-10-22/README.md). Les échecs antérieurs sont conservés.

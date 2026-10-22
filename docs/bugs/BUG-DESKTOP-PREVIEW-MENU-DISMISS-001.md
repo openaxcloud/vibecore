@@ -19,3 +19,7 @@ Rouges du build attesté conservés. Tests ciblés prêts ; lint ciblé vert. La
 ### Contre-épreuve du premier correctif — 22 octobre
 
 Le build `4f8e8b334` échoue encore sur Échap après ouverture réelle du menu. Instrumentation : le raccourci global `overlay.close` appelle `preventDefault` et `stopPropagation` pendant la capture sur window ; le listener document du menu ne reçoit pas l’événement. Le correctif suivant écoute au même niveau window en capture, uniquement lorsque la cible appartient au menu. Tests complétés pour Tab entrant, Shift+Tab et clic sur la surface de l’iframe ; aucune assertion ni aucun délai réduit. Validation compilée encore attendue.
+
+### Validation locale du lot desktop — 22 octobre
+
+Build `c382137ad72eeb983b40493e40bc296cd85e61c1`, arbre `f26a295f50a7ddb890f8f5800db457d563a70630` : cinq scénarios ciblés et deux scénarios tactiles passent directement, zéro retry et zéro omission. API et données synthétiques locales, interface compilée ; aucune certification production ni des actions métier non exercées. Voir [recette et limites](desktop-panels-2026-10-22/README.md). Les échecs antérieurs sont conservés.

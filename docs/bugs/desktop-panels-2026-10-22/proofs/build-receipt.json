@@ -1,0 +1,12 @@
+{
+  "sha": "c382137ad72eeb983b40493e40bc296cd85e61c1",
+  "tree": "f26a295f50a7ddb890f8f5800db457d563a70630",
+  "buildStartedOnMatchingIndexTree": true,
+  "sources": 9368,
+  "manifestSha256": "a974697e926790f3673ab1a32a8233456bedee1232c20a6b7797c47fa6e51e69",
+  "compiledManifestSha256": "aca266c1b51a7403ac77723aa3e547697161ca8222bd20ada2ab7d8f1f379a84",
+  "archiveSha256": "b06035bce185d287b4e9d7461d55adf6eb78917c473f6edbcc0b53add3c52f23",
+  "compiledCount": 2307,
+  "buildExitCode": 0,
+  "baseUrl": "http://127.0.0.1:5223"
+}

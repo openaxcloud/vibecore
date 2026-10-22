@@ -1,0 +1,58 @@
+{
+  "sourceReport": "palette/results.json",
+  "sourceReportSha256": "ae5ff840892f4fe3b64dff390619a420be4a78e48245cd8153e64c4ae26fa8ce",
+  "stats": {
+    "startTime": "2026-10-22T10:41:58.905Z",
+    "duration": 110981.94399999999,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "desktop1440",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4043
+        }
+      ]
+    },
+    {
+      "title": "agent menu keyboard and compact navigation (en)",
+      "project": "desktop1024",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4786
+        }
+      ]
+    },
+    {
+      "title": "global palette remains open across actual initialization and can close/reopen",
+      "project": "desktop1440",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "durationMs": 9485
+        }
+      ]
+    },
+    {
+      "title": "global palette remains open across actual initialization and can close/reopen",
+      "project": "desktop1024",
+      "attempts": [
+        {
+          "status": "timedOut",
+          "retry": 0,
+          "durationMs": 90327
+        }
+      ]
+    }
+  ]
+}

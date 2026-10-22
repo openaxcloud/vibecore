@@ -1,0 +1,25 @@
+{
+  "sourceReport": "preview/geometry-red.json",
+  "sourceReportSha256": "f742c76720e06dd561f0749ab64c22d24b9217fa419d4bd7fbee076a1ce1601f",
+  "stats": {
+    "startTime": "2026-10-22T10:44:44.466Z",
+    "duration": 4474.595,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "desktop Webview logs remains reachable with Library open",
+      "project": "",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "durationMs": 3394
+        }
+      ]
+    }
+  ]
+}

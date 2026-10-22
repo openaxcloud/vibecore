@@ -1,0 +1,36 @@
+{
+  "sourceReport": "navigation/problems-baseline-final/results.json",
+  "sourceReportSha256": "e206e51a027d25c7bcb658d7d6e996ab22664fc949f9aa429b0445a58f974fbe",
+  "stats": {
+    "startTime": "2026-10-22T10:55:07.336Z",
+    "duration": 11025.039999999999,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "Problems URL opens its own pane tab and survives reload",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "failed",
+          "retry": 0,
+          "durationMs": 6304
+        }
+      ]
+    },
+    {
+      "title": "Problems status bar opens diagnostics in the desktop bottom drawer",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3072
+        }
+      ]
+    }
+  ]
+}

@@ -29,3 +29,7 @@ Correctif local en cours dans le fournisseur de palette déjà porté par la rou
 ### Contre-épreuve du premier correctif — 22 octobre
 
 Le build local `4f8e8b334` conserve la palette et sa recherche aux deux largeurs. Le parcours 1440 px passe entièrement. À 1024 px, Échap ferme la palette mais ne rend pas le focus au bouton : l’instrumentation observe que le bouton compact est absent lors du premier effet de la coque (`querySelector` renvoie null), puis un appel `focus` cible le champ de palette détaché. Le correctif suivant conserve la référence d’origine et résout le bouton équivalent lors de la fermeture. Assertion de focus et délai de 5 s inchangés ; nouvelle validation compilée requise.
+
+### Validation locale du lot desktop — 22 octobre
+
+Build `c382137ad72eeb983b40493e40bc296cd85e61c1`, arbre `f26a295f50a7ddb890f8f5800db457d563a70630` : cinq scénarios ciblés et deux scénarios tactiles passent directement, zéro retry et zéro omission. API et données synthétiques locales, interface compilée ; aucune certification production ni des actions métier non exercées. Voir [recette et limites](desktop-panels-2026-10-22/README.md). Les échecs antérieurs sont conservés.

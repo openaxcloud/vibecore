@@ -1,6 +1,6 @@
 # Inventaire desktop des panneaux — 22 octobre 2026
 
-Base inspectée : `18745bd04f77e4d9fc6353d61bd4d17a3822f94e`, branche `fix/desktop-panels-audit-20261022`. Inventaire statique complété par les recettes locales ci-dessous. **Aucun panneau entièrement certifié ; les actions métier restent NON TESTÉES sauf geste précisément décrit.** Le build corrigé du commit `4f8e8b334` est en préparation au moment de cette mise à jour : aucun résultat du baseline ne lui est transféré.
+Base inspectée : `18745bd04f77e4d9fc6353d61bd4d17a3822f94e`, branche `fix/desktop-panels-audit-20261022`. Inventaire statique complété par les recettes locales ci-dessous. **Aucun panneau entièrement certifié ; les actions métier restent NON TESTÉES sauf geste précisément décrit.** Le premier build `4f8e8b334` a rendu 3 succès et 2 échecs ciblés, conservés dans les preuves. Le build corrigé `c382137ad` passe les 5 scénarios ciblés et 2 scénarios tactiles directement ; les surfaces des 31 portes ci-dessous restent une recette du baseline, pas une certification globale du nouveau build.
 
 `AGENTS.md` lu. La seule compétence locale disponible, `.agents/skills/commit-helper/SKILL.md`, a été consultée ; elle est appliquée pour les commits de ce lot. Réserves #765 : AgentPatchReviewQueue, stores files/workbench, runtime write, merge JSON/i18n. Aucune action #764.
 

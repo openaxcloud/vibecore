@@ -1,0 +1,35 @@
+{
+  "validationScope": "UI regression only; runtime and file-write interception retained from existing spec; not runtime persistence certification",
+  "stats": {
+    "startTime": "2026-10-22T11:14:32.634Z",
+    "duration": 27352.826,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "explicit provisional README then immediate Back at 768",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 10654
+        }
+      ]
+    },
+    {
+      "title": "explicit provisional README stays in project A after switching to B at 768",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 15598
+        }
+      ]
+    }
+  ]
+}
