@@ -93,3 +93,13 @@ For SHA `57ab84e9d4540262f57799278bce939848782025`, GitHub Production CI run `39
 Shareable sanitized countercheck, including the complete file/code/count inventory: https://github.com/openaxcloud/vibecore/pull/766#issuecomment-6339367432 . It contains no raw diagnostic messages, source snippets or machine paths.
 
 The full API suite exposed an obsolete source-guard assertion requiring persistence errors to be swallowed. That assertion is replaced by a stronger guard for both PUT and POST requiring the explicit 409 persistence conflict, unconfirmed manifest and retryable:false. The behavioral durability and layered no-replay tests are unchanged. No test is skipped, no timeout is raised, and no CI rule is modified.
+
+## Combined verification with main after #767
+
+Merged `5de3fac6e5d720d41bd6dde1b2c6170b734b0cc3` without rewriting branch history. Only the derived bug inventory conflicted; both source bug records are retained and the index was regenerated (473 entries). Production code merged without conflict or manual changes.
+
+Four additional Workbench regression cases exercise editor/runtime write paths with the real remote adapter receiving partial-persistence HTTP 409 or legacy 503. Each asserts exactly one PUT, preserved concurrent peer content, failed proposal/action, no transient accepted state, no `file:applied`, no history capture and no preview start/restart. Arbitrary response data is absent from the proposal and workspace logs. The Workbench suite passes 36 tests, including JSONC preservation. FilesStore/EditorStore remain fixture doubles and backend responses are simulated in these four cases; actual API persistence and server ZIP recovery remain covered separately by the 14 durability cases.
+
+Combined targeted validation: 135 runtime/JSONC/deferred-start tests, 46 additional store tests, 36 Workbench tests, 31 API tests, 77 remote-adapter tests and 22 inventory tests pass. The streaming-to-identical-save API regression still proves persistence failure is surfaced and explicit recovery survives server ZIP export. No CI gates, test protections or production files were weakened for this integration.
+
+The combined tree also passes the actual six-scope `pnpm run typecheck` script and the full frontend production build with the configured 8 GB heap. The added Workbench test has no ESLint errors (one existing empty-arrow warning elsewhere in the file). Inventory checks use Vitest; an initial `node --test` invocation was invalid for this Vitest suite and was corrected, without changing tests.

@@ -21,6 +21,11 @@ import { describe, expect, it } from 'vitest';
  */
 const source = readFileSync(join(__dirname, 'workbench.ts'), 'utf8');
 
+const deferredStartBody = source.slice(
+  source.indexOf('#maybeRunDeferredStart(artifactId: string) {'),
+  source.indexOf('  async #refreshPreviewAfterArtifactClose('),
+);
+
 describe('BUG-DEVSTART — un start sauté est relancé, jamais annoncé comme fait', () => {
   it('MOITIÉ 1 — un `start` sauté pour cause de revue est MÉMORISÉ', () => {
     expect(source).toMatch(
@@ -29,7 +34,7 @@ describe('BUG-DEVSTART — un start sauté est relancé, jamais annoncé comme f
   });
 
   it('MOITIÉ 2 — il est RELANCÉ quand la file de revue se vide', () => {
-    const drain = source.match(/#maybeRunDeferredStart\(artifactId: string\) \{[\s\S]{0,900}?\n  \}/);
+    const drain = deferredStartBody.match(/#maybeRunDeferredStart\(artifactId: string\) \{[\s\S]*\n  \}/);
     expect(drain, '#maybeRunDeferredStart introuvable — la relance a disparu').not.toBeNull();
 
     const bloc = drain![0];
@@ -42,16 +47,17 @@ describe('BUG-DEVSTART — un start sauté est relancé, jamais annoncé comme f
     expect(appels.length, '#maybeRunDeferredStart est défini mais jamais appelé').toBeGreaterThan(0);
   });
 
-  it('une proposition ÉCHOUÉE ne doit pas affamer le démarrage pour toujours', () => {
+  it('une proposition ÉCHOUÉE attend une correction ou un rejet explicite', () => {
     /*
-     * Régression connue : réutiliser #hasOpenAgentPatchProposalsForArtifact ici
-     * traiterait un correctif 'failed' comme encore ouvert, et le serveur de dev
-     * ne démarrerait jamais. Seuls 'pending' et 'applying' doivent bloquer.
+     * Un échec n'est pas une décision de rejet. Le test comportemental de
+     * workbench.reloaded-actions prouve la reprise après correction ; cette garde
+     * conserve les états explicites qui bloquent le démarrage automatique.
      */
-    const drain = source.match(/#maybeRunDeferredStart\(artifactId: string\) \{[\s\S]{0,900}?\n  \}/)![0];
+    const drain = deferredStartBody;
 
     expect(drain).toMatch(/'pending'/);
     expect(drain).toMatch(/'applying'/);
+    expect(drain).toMatch(/'failed'/);
     expect(drain, 'le prédicat trop large réintroduit la famine').not.toMatch(/#hasOpenAgentPatchProposalsForArtifact/);
   });
 });

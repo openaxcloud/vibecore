@@ -52,7 +52,9 @@ describe('resolveFailedAgentPatchContent — non-JSON files', () => {
     const { deps, logs } = makeDeps({ valid: [context.proposedContent] });
 
     await expect(resolveFailedAgentPatchContent(context, deps)).resolves.toBe(context.proposedContent);
-    expect(logs).toEqual(['AI patch for src/components/TodoInput.tsx applied via full-content fallback']);
+    expect(logs).toEqual([
+      'AI patch for src/components/TodoInput.tsx validated via full-content fallback; awaiting write confirmation',
+    ]);
   });
 
   it('re-throws (no silent bad write) when the full proposed content is itself invalid/truncated', async () => {
@@ -102,7 +104,7 @@ describe('resolveFailedAgentPatchContent — JSON path (unchanged bug #21 behavi
     const { deps, logs } = makeDeps({ valid: [merged], mergeJson: () => merged });
 
     await expect(resolveFailedAgentPatchContent(context, deps)).resolves.toBe(merged);
-    expect(logs).toEqual(['AI patch for package.json applied via tolerant JSON merge']);
+    expect(logs).toEqual(['AI patch for package.json validated via tolerant JSON merge; awaiting write confirmation']);
   });
 
   it('scaffolds a minimal package.json when nothing merges', async () => {

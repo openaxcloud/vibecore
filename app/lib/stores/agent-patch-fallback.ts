@@ -79,7 +79,7 @@ export async function resolveFailedAgentPatchContent(
       throw context.validationError;
     }
 
-    deps.onLog(`AI patch for ${context.relativePath} applied via full-content fallback`);
+    deps.onLog(`AI patch for ${context.relativePath} validated via full-content fallback; awaiting write confirmation`);
 
     return context.proposedContent;
   }
@@ -103,7 +103,7 @@ export async function resolveFailedAgentPatchContent(
   }
 
   await deps.validate(merged);
-  deps.onLog(`AI patch for ${context.relativePath} applied via tolerant JSON merge`);
+  deps.onLog(`AI patch for ${context.relativePath} validated via tolerant JSON merge; awaiting write confirmation`);
 
   return merged;
 }

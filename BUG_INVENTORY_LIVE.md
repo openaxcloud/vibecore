@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-472 entrées.
+473 entrées.
 
 ## Sans section
 
@@ -603,6 +603,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-GLOBAL-PALETTE-HANDOFF-001](docs/bugs/BUG-IDE-GLOBAL-PALETTE-HANDOFF-001.md) — 📤 Dispatché : 22 octobre 2026 : deux disparitions observées pendant la préparation de recettes de navigation de #763. Invest · 💻 Codé : Non corrigé. Aucun correctif de palette livré dans ce lot. Pour isoler les recettes de déplacement, la prépara · ✅ Testé live : Reproductions locales Chromium, projets synthétiques, 22 octobre à 07:29:02 et 07:32:37 UTC : le clic sur All
 - [BUG-IDE-TAB-STRIP-SNAP-CLICK-001](docs/bugs/BUG-IDE-TAB-STRIP-SNAP-CLICK-001.md) — 📤 Dispatché : 22 octobre 2026 : défaut reproduit en recette locale de #763 après déplacement d’un onglet et désépinglage par · 💻 Codé : Correctif desktop commité localement dans `d0ef2126`, publication #763 en préparation : désactiver uniquement · ✅ Testé live : Diagnostic local Chromium sur le produit compilé `69592374`, 22 octobre 2026 : fermeture native sans effet. Le
 - [BUG-RUNTIME-SAVE-DURABILITY-20261022](docs/bugs/BUG-RUNTIME-SAVE-DURABILITY-20261022.md) — 📤 Dispatché : Correction API isolée depuis main 18745bd04f77e4d9fc6353d61bd4d17a3822f94e. PUT files/write et POST files aval · 💻 Codé : Branche fix/api-durable-runtime-save, non fusionnée. Refus sans manifeste complet, erreur explicite après succ · ✅ Testé live : Non testé en production. Tests locaux API avec agent HTTP simulé, pannes de persistance et ZIP serveur réel ;
+- [BUG-AGENT-PATCH-FAILURE-START-001](docs/bugs/BUG-AGENT-PATCH-FAILURE-START-001.md) — P1 — une proposition IA échouée perd sa cause et ne bloque pas le démarrage différé. — 📤 Dispatché : ☑ 22/10 — lot distinct du démarrage i18n et de la PR #763. · 💻 Codé : ☐ — candidat en branche ; aucune fusion dans main revendiquée. · ✅ Testé live : ☐ — pas de modification ni de réparation du projet utilisateur ; pas de validation Kubernetes complète.
 
 ## Résidus non tabulaires — reportés mot pour mot
 
