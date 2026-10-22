@@ -1,7 +1,9 @@
 /** @vitest-environment jsdom */
 
+import type { FileChange, RuntimeAdapter } from '@vibecore/runtime-contract';
 import JSZip from 'jszip';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { FilesStore } from './files';
 import { WorkbenchStore } from './workbench';
 import { prefetchInitialProjectArchive } from '~/lib/ide/initial-project-archive';
 
@@ -702,5 +704,225 @@ describe('project storage hydration after returning to the IDE', () => {
     await store.loadProjectStorageFiles();
     expect(store.files.get()[path]).toMatchObject({ content: 'project B' });
     expect(store.currentDocument.get()?.value).toBe('project B');
+  });
+
+  it('clears the previous project documents through cleanup even when the runtime is shared', async () => {
+    const { store } = setup();
+    stubArchive(() => archive('project B document'));
+    await store.loadProjectStorageFiles();
+    store.setSelectedFile(path);
+    store.configureProject(undefined);
+    store.configureRuntime(runtimeAdapterMock as unknown as RuntimeAdapter);
+    store.configureProject('next-project-A');
+
+    expect(store.files.get()).toEqual({});
+    expect(store.documents.get()).toEqual({});
+    expect(store.selectedFile.get()).toBeUndefined();
+    expect(store.currentDocument.get()).toBeUndefined();
+    expect(store.filesHydrated.get()).toBe(false);
+    stubArchive(() => archive('project A document'));
+    await store.loadProjectStorageFiles();
+    expect(store.currentDocument.get()?.value).toBe('project A document');
+  });
+
+  it('keeps an unsaved document and selection through cleanup into the same project', async () => {
+    const { store, projectId } = setup();
+    stubArchive(() => archive('saved document'));
+    await store.loadProjectStorageFiles();
+    store.setSelectedFile(path);
+    store.setCurrentDocumentContent('unsaved same-project draft');
+
+    const documents = store.documents.get();
+    store.configureProject(undefined);
+    store.configureRuntime(runtimeAdapterMock as unknown as RuntimeAdapter);
+    store.configureProject(projectId);
+    store.configureProject(projectId);
+
+    expect(store.documents.get()).toBe(documents);
+    expect(store.selectedFile.get()).toBe(path);
+    expect(store.unsavedFiles.get().has(path)).toBe(true);
+    store.setDocuments(store.files.get());
+    expect(store.currentDocument.get()?.value).toBe('unsaved same-project draft');
+  });
+
+  it('rejects the previous project archive after switching scope on the same runtime', async () => {
+    const { store } = setup();
+
+    let release!: (response: Response) => void;
+    stubArchive(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const pending = store.loadProjectStorageFiles();
+    store.configureProject(undefined);
+    store.configureProject('new-project-after-pending-archive');
+    release(await archive('stale previous project'));
+    await expect(pending).resolves.toBe(false);
+    expect(store.files.get()).toEqual({});
+    expect(store.documents.get()).toEqual({});
+  });
+
+  it('rejects a runtime listing started before a same-adapter scope reset', async () => {
+    let release!: (nodes: Awaited<ReturnType<RuntimeAdapter['listFiles']>>) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      listFiles: vi.fn(
+        () =>
+          new Promise<Awaited<ReturnType<RuntimeAdapter['listFiles']>>>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      const pending = files.reloadFromRuntime();
+      files.setRuntime(runtime);
+      release([{ type: 'file', name: 'audit.txt', path, content: 'stale listing', encoding: 'utf8' }]);
+      await pending;
+      expect(files.files.get()).toEqual({});
+      expect(files.filesCount).toBe(0);
+    } finally {
+      files.dispose();
+    }
+  });
+
+  it('ignores callbacks and content reads from the previous watch binding', async () => {
+    const callbacks: Array<(change: FileChange) => void> = [];
+
+    let release!: (value: { content: string; encoding: 'utf8' }) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      watchFiles: vi.fn(async (_paths: string[], callback: (change: FileChange) => void) => {
+        callbacks.push(callback);
+        return () => undefined;
+      }),
+      readFile: vi.fn(
+        () =>
+          new Promise<{ content: string; encoding: 'utf8' }>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      await vi.waitFor(() => expect(callbacks).toHaveLength(1));
+      callbacks[0]({ type: 'create', path: 'old-read.txt' });
+      files.setRuntime(runtime);
+      await vi.waitFor(() => expect(callbacks).toHaveLength(2));
+      callbacks[0]({ type: 'create', path: 'old-event.txt', content: 'old watcher' });
+      release({ content: 'old deferred content', encoding: 'utf8' });
+
+      // Drain the resolved read's microtasks without waiting an arbitrary duration.
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(files.files.get()).toEqual({});
+      callbacks[1]({ type: 'create', path: 'new-event.txt', content: 'current watcher' });
+      expect(files.files.get()['/home/project/new-event.txt']).toMatchObject({ content: 'current watcher' });
+    } finally {
+      files.dispose();
+    }
+  });
+
+  it('stops a late previous watcher without stopping or poisoning the current watcher', async () => {
+    const callbacks: Array<(change: FileChange) => void> = [];
+    const stopPrevious = vi.fn();
+    const stopCurrent = vi.fn();
+
+    let releasePrevious!: (stop: () => void) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      watchFiles: vi.fn((_paths: string[], callback: (change: FileChange) => void) => {
+        callbacks.push(callback);
+        return callbacks.length === 1
+          ? new Promise<() => void>((resolve) => {
+              releasePrevious = resolve;
+            })
+          : Promise.resolve(stopCurrent);
+      }),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      await vi.waitFor(() => expect(callbacks).toHaveLength(1));
+      files.setRuntime(runtime);
+      await vi.waitFor(() => expect(callbacks).toHaveLength(2));
+      callbacks[1]({ type: 'create', path: 'current.txt', content: 'current project' });
+      expect(files.files.get()['/home/project/current.txt']).toMatchObject({ content: 'current project' });
+
+      releasePrevious(stopPrevious);
+      await vi.waitFor(() => expect(stopPrevious).toHaveBeenCalledTimes(1));
+      expect(stopCurrent).not.toHaveBeenCalled();
+      callbacks[0]({ type: 'create', path: 'current.txt', content: 'obsolete project' });
+      expect(files.files.get()['/home/project/current.txt']).toMatchObject({ content: 'current project' });
+      callbacks[1]({ type: 'create', path: 'after-late-attach.txt', content: 'still receiving current events' });
+      expect(files.files.get()['/home/project/after-late-attach.txt']).toMatchObject({
+        content: 'still receiving current events',
+      });
+    } finally {
+      files.dispose();
+    }
+    expect(stopCurrent).toHaveBeenCalledTimes(1);
+    expect(stopPrevious).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a remote content read from before a same-adapter scope reset', async () => {
+    let release!: (value: { content: string; encoding: 'utf8' }) => void;
+
+    const runtime = {
+      ...runtimeAdapterMock,
+      mode: 'remote-kubernetes',
+      readFile: vi.fn(
+        () =>
+          new Promise<{ content: string; encoding: 'utf8' }>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    } as unknown as RuntimeAdapter;
+
+    const files = new FilesStore(runtime);
+
+    try {
+      files.replaceWithProjectStorageFiles([{ path: 'audit.txt', content: 'project B', isBinary: false }]);
+
+      const pending = files.adoptRemoteContent(path);
+      files.setRuntime(runtime);
+      files.replaceWithProjectStorageFiles([{ path: 'audit.txt', content: 'project A', isBinary: false }]);
+      release({ content: 'stale project B', encoding: 'utf8' });
+      await expect(pending).resolves.toBe('hors-portee');
+      expect(files.files.get()[path]).toMatchObject({ content: 'project A' });
+    } finally {
+      files.dispose();
+    }
+  });
+
+  it('does not mark the new project hydrated when an old runtime listing completes', async () => {
+    const { store } = setup();
+
+    let release!: (nodes: Awaited<ReturnType<typeof runtimeAdapterMock.listFiles>>) => void;
+    vi.spyOn(runtimeAdapterMock, 'listFiles').mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+
+    const pending = store.loadRuntimeFiles();
+    store.configureProject(undefined);
+    store.configureProject('new-project-with-pending-runtime-list');
+    release([]);
+    await pending;
+    expect(store.files.get()).toEqual({});
+    expect(store.documents.get()).toEqual({});
+    expect(store.filesHydrated.get()).toBe(false);
   });
 });

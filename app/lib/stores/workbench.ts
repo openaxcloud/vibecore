@@ -324,6 +324,9 @@ export class WorkbenchStore {
   #previewStarting = false;
   #previewCommandRunning = false;
   #projectId: string | undefined;
+
+  // Cleanup temporarily unbinds the project; retain the owner of editor buffers.
+  #filesProjectId: string | undefined;
   #autosaveTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   /*
@@ -617,7 +620,23 @@ export class WorkbenchStore {
 
   configureProject(projectId?: string) {
     const changed = this.#projectId !== projectId;
+    const changedFileProject = Boolean(projectId && this.#filesProjectId && projectId !== this.#filesProjectId);
+    const preserveEditorState = Boolean(this.#filesProjectId) && !changedFileProject;
     this.#projectId = projectId;
+
+    if (changedFileProject) {
+      /*
+       * A shared runtime can survive a project switch. Invalidate its old reads
+       * and watchers too, before restoring a same-path selection for this project.
+       */
+      this.#filesStore.setRuntime(this.#runtime);
+      this.#editorStore.setDocuments({});
+      this.#editorStore.setSelectedFile(undefined);
+    }
+
+    if (projectId) {
+      this.#filesProjectId = projectId;
+    }
 
     // Bind per-file History (append-only, independent of Git) to this project.
     fileHistoryStore.configure(projectId);
@@ -657,7 +676,7 @@ export class WorkbenchStore {
        * merges (setKey) project B's proposals on top of the stale A entries.
        * Accepting a leaked proposal would then apply A's diff against B's files.
        */
-      this.#resetProjectScopedState();
+      this.#resetProjectScopedState(!preserveEditorState);
     }
 
     /*
@@ -671,7 +690,7 @@ export class WorkbenchStore {
     }
   }
 
-  #resetProjectScopedState() {
+  #resetProjectScopedState(clearUnsavedFiles = true) {
     this.agentPatchProposals.set({});
     this.#enregistrementsDeLAgent.clear();
     this.#agentPatchOriginals.clear();
@@ -681,7 +700,10 @@ export class WorkbenchStore {
     this.#deferredStartArtifacts.clear();
     this.#deferredRefreshArtifacts.clear();
     this.agentPatchSelfRepair.set({});
-    this.unsavedFiles.set(new Set<string>());
+
+    if (clearUnsavedFiles) {
+      this.unsavedFiles.set(new Set<string>());
+    }
 
     /*
      * Cancel pending autosave timers from the previous project/runtime. Left
@@ -769,12 +791,19 @@ export class WorkbenchStore {
   }
 
   async loadRuntimeFiles(rootPath = '.', options: { reparer?: boolean } = {}) {
+    const binding = this.#projectStorageBinding;
+    const projectId = this.#projectId;
+
     let runtimeError: unknown;
 
     try {
       await this.#filesStore.reloadFromRuntime(rootPath, options);
     } catch (error) {
       runtimeError = error;
+    }
+
+    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+      return;
     }
 
     if (runtimeError || (this.#projectId && this.#filesStore.filesCount === 0)) {
@@ -793,6 +822,10 @@ export class WorkbenchStore {
       if (runtimeError) {
         throw runtimeError;
       }
+    }
+
+    if (binding !== this.#projectStorageBinding || projectId !== this.#projectId) {
+      return;
     }
 
     this.setDocuments(this.files.get());

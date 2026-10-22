@@ -254,6 +254,8 @@ export class FilesStore {
    * tampon intact et le dit (`illisible`). L'appelant décide.
    */
   async adoptRemoteContent(filePath: string): Promise<'adopte' | 'inchange' | 'illisible' | 'hors-portee'> {
+    const binding = this.#runtimeBinding;
+
     if (this.#runtime.mode !== 'remote-kubernetes') {
       return 'hors-portee';
     }
@@ -279,6 +281,10 @@ export class FilesStore {
       .then((resultat) => resultat.content)
       .catch(() => undefined);
 
+    if (binding !== this.#runtimeBinding) {
+      return 'hors-portee';
+    }
+
     if (distant === undefined) {
       return 'illisible';
     }
@@ -294,12 +300,13 @@ export class FilesStore {
 
   async reloadFromRuntime(rootPath = '.', options: { reparer?: boolean } = {}) {
     const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
     const filesBeforeListing = this.files.get();
 
     // `reparer` : rafraîchissement demandé par l'utilisateur → le runtime distant réconcilie d'abord (BUG-IDE-007).
     const nodes = await runtime.listFiles(rootPath, options.reparer ? { reparer: true } : undefined);
 
-    if (this.#runtime !== runtime) {
+    if (this.#runtime !== runtime || this.#runtimeBinding !== binding) {
       return;
     }
 
@@ -1084,11 +1091,17 @@ export class FilesStore {
   }
 
   async #init() {
+    const binding = this.#runtimeBinding;
+
     // Clean up any files that were previously deleted
     this.#cleanupDeletedFiles();
 
     // Set up file watcher (self-retrying until the runtime is attachable)
     await this.#startFileWatch();
+
+    if (binding !== this.#runtimeBinding || this.#disposed) {
+      return;
+    }
 
     // Get the current chat ID
     const currentChatId = getCurrentChatId();
@@ -1129,6 +1142,8 @@ export class FilesStore {
   }
 
   async #startFileWatch() {
+    const binding = this.#runtimeBinding;
+
     if (this.#disposed) {
       return;
     }
@@ -1162,7 +1177,19 @@ export class FilesStore {
 
     try {
       this.#stopWatchingFiles?.();
-      this.#stopWatchingFiles = await this.#runtime.watchFiles([WORK_DIR], (change) => this.#processFileChange(change));
+
+      const stop = await this.#runtime.watchFiles([WORK_DIR], (change) => {
+        if (binding === this.#runtimeBinding && !this.#disposed) {
+          this.#processFileChange(change);
+        }
+      });
+
+      if (binding !== this.#runtimeBinding || this.#disposed) {
+        stop();
+        return;
+      }
+
+      this.#stopWatchingFiles = stop;
 
       // Watch attached — cancel any retry queued by an earlier failed attempt.
       if (this.#fileWatchRetryTimer) {
@@ -1172,6 +1199,10 @@ export class FilesStore {
 
       this.#fileWatchRetryAttempts = 0;
     } catch (error) {
+      if (binding !== this.#runtimeBinding || this.#disposed) {
+        return;
+      }
+
       /*
        * A remote workspace that is still completing its start/attach handshake throws
        * "Remote workspace has not been started" here. configureRuntime() wires the watch
@@ -1397,6 +1428,8 @@ export class FilesStore {
    * never clobbers an existing file's content/lock flags.
    */
   #registerContentlessCreate(sanitizedPath: string) {
+    const binding = this.#runtimeBinding;
+
     if (this.files.get()[sanitizedPath]) {
       return;
     }
@@ -1409,7 +1442,7 @@ export class FilesStore {
       .catch(() => resolveContentlessCreate(undefined))
       .then((resolved) => {
         // Re-check: a delete/rename may have landed while the read was in flight.
-        if (this.files.get()[sanitizedPath]) {
+        if (binding !== this.#runtimeBinding || this.#disposed || this.files.get()[sanitizedPath]) {
           return;
         }
 

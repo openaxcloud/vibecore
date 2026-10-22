@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-475 entrées.
+476 entrées.
 
 ## Sans section
 
@@ -606,6 +606,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-DESKTOP-PREVIEW-MENU-DISMISS-001](docs/bugs/BUG-DESKTOP-PREVIEW-MENU-DISMISS-001.md) — 📤 Dispatché : Audit desktop du22octobre sur main18745bd. Deux gestes réels reproduits séparément : ouvrir les options de fen · 💻 Codé : Correctif local dans Preview.tsx : références de conteneur/bouton, fermeture sur pointerdown ou déplacement de · ✅ Testé live : Rouges du build attesté conservés. Tests ciblés prêts ; lint ciblé vert. La recette navigateur sur build corri
 - [BUG-DESKTOP-PROBLEMS-ROUTE-001](docs/bugs/BUG-DESKTOP-PROBLEMS-ROUTE-001.md) — Sur desktop, ouvrir un projet avec `?panel=problems` affiche l'éditeur README au lieu du panneau Problems. Le registre `IDE_WORKSPACE_PANELS` accepte cette rout — 📤 Dispatché : ☑ 22 octobre 2026 — diagnostic et correctif ciblé préparés dans le lot desktop, sur la base `18745bd04f77e4d9f · 💻 Codé : ☐ — correctif local préparé, non commité et non intégré à main. Ajout de `problems` au modèle des outils et à · ✅ Testé live : ☐ — défaut reproduit sur le build local compilé et attesté ; validation navigateur du build corrigé encore en
 - [BUG-AGENT-PATCH-FAILURE-START-001](docs/bugs/BUG-AGENT-PATCH-FAILURE-START-001.md) — P1 — une proposition IA échouée perd sa cause et ne bloque pas le démarrage différé. — 📤 Dispatché : ☑ 22/10 — lot distinct du démarrage i18n et de la PR #763. · 💻 Codé : ☐ — candidat en branche ; aucune fusion dans main revendiquée. · ✅ Testé live : ☐ — pas de modification ni de réparation du projet utilisateur ; pas de validation Kubernetes complète.
+- [BUG-IDE-PROJECT-FILE-SCOPE-001](docs/bugs/BUG-IDE-PROJECT-FILE-SCOPE-001.md) — 📤 Dispatché : 22 octobre 2026 : diagnostic séparé de #768/#769, branche investigate/desktop-back-transitions-20261022, base · 💻 Codé : Correction en préparation locale ; non publiée ni intégrée à main. Le changement réel de propriétaire des fich · ✅ Testé live : Rouge contrôlé sur build réel local 838684f0, produit identique à e4bda1fb, API/PostgreSQL dédiés et fixtures
 
 ## Résidus non tabulaires — reportés mot pour mot
 
