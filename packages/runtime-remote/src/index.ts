@@ -380,6 +380,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   #isTransientStartError(error: unknown): boolean {
     if (error instanceof RuntimeError) {
+      // The pod may already contain this write; replay could overwrite a peer.
+      if (error.code === 'PROJECT_FILE_PERSISTENCE_FAILED') {
+        return false;
+      }
+
       /*
        * A 502/503/504 from the api runtime proxy, or a network/abort error with
        * no HTTP status — the workspace may still be provisioning. 4xx (quota,
@@ -547,7 +552,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   /*
    * BUG-AGENT-001 — dernier contenu écrit par chemin, pour ne PUT que sur un
-   * changement réel.
+   * changement réel pendant le flux. Une sauvegarde hors flux atteint toujours
+   * l’API : ce mémo runtime ne constitue pas une preuve de persistance durable.
    *
    * Le mémo vit sur l'ADAPTATEUR, pas sur l'ActionRunner. Une première version
    * placée dans le runner n'a rien changé en réel (144 écritures avant, 144
@@ -573,19 +579,21 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
    * donnée. Sans marqueur, on persiste.
    */
   async writeFile(path: string, content: string, options?: 'utf8' | 'base64' | { streaming?: boolean }): Promise<void> {
+    const streaming = typeof options === 'object' && options.streaming === true;
+
     /*
-     * Sauter une écriture qui produirait, octet pour octet, ce que l'on a déjà
+     * Sauter un fragment de flux qui produirait, octet pour octet, ce que l'on a déjà
      * écrit à ce chemin. On compare au DERNIER contenu, pas à l'ensemble des
      * contenus déjà vus : avec un ensemble, la séquence A → B → A sauterait la
      * troisième écriture et laisserait B sur le disque — une perte de fichier.
      */
-    if (this.#lastWrittenContent.get(path) === content) {
+    if (streaming && this.#lastWrittenContent.get(path) === content) {
       return;
     }
 
     /*
-     * Overwrite is idempotent — retry through a transient api/agent 5xx so a pod
-     * rollout/restart mid-generation never silently drops a generated file.
+     * Keep the existing transport retry policy; explicit partial-persistence
+     * failures fail fast. A content memo must never bypass durable-save acknowledgement.
      */
     const workspaceId = await this.#identifiantPourMuter();
 
@@ -594,7 +602,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       {
         method: 'PUT',
         body: JSON.stringify({ path, content }),
-        ...(typeof options === 'object' && options.streaming ? { headers: { 'x-vc-write-origin': 'stream' } } : {}),
+        ...(streaming ? { headers: { 'x-vc-write-origin': 'stream' } } : {}),
       },
       { retryIdempotentWrite: true },
     );

@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import { RemoteKubernetesRuntimeAdapter } from '@vibecore/runtime-remote';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fileHistoryStore } from './fileHistory';
 import { WorkbenchStore } from './workbench';
@@ -275,6 +276,112 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
       yield { type: 'exit' as const, exitCode: 0 };
     });
   });
+
+  it.each([
+    ['editor', 409],
+    ['runtime', 409],
+    ['editor', 503],
+    ['runtime', 503],
+  ] as const)(
+    'keeps a partial durable save failed through the real remote adapter (%s, HTTP %s)',
+    async (writePath, status) => {
+      const store = new WorkbenchStore();
+      const startPreview = vi.spyOn(store, 'startPreviewServer').mockResolvedValue(undefined);
+      const restartPreview = vi.spyOn(store, 'restartPreviewServer').mockResolvedValue(undefined);
+      const history = vi.spyOn(fileHistoryStore, 'capture').mockResolvedValue(undefined);
+      const applied = vi.fn();
+      const unsubscribe = workspaceEvents.on('file:applied', applied);
+      const originalWrite = runtimeAdapterMock.writeFile.getMockImplementation()!;
+      const peerContent = 'export default function App() { return <h1>Concurrent peer</h1>; }';
+      const states: string[] = [];
+
+      const unsubscribeProposals = store.agentPatchProposals.subscribe((proposals) => {
+        const proposal = proposals['artifact-1:file-1'];
+
+        if (proposal) {
+          states.push(proposal.status);
+        }
+      });
+      const transport = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+        const body = JSON.parse(init!.body as string) as { path: string; content: string };
+        runtimeFiles.set(body.path, body.content);
+
+        if (transport.mock.calls.length === 1) {
+          // The runtime write happened, then a peer edited before the failure arrived.
+          runtimeFiles.set(body.path, peerContent);
+          return new Response(
+            JSON.stringify({
+              code: 'PROJECT_FILE_PERSISTENCE_FAILED',
+              retryable: false,
+              persistence: { runtime: 'applied', manifest: 'unconfirmed' },
+              error: 'SECRET_RESPONSE_BODY',
+            }),
+            { status },
+          );
+        }
+
+        // A replay would succeed but erase the peer: assertions must catch that.
+        return new Response(null, { status: 204 });
+      });
+      const adapter = new RemoteKubernetesRuntimeAdapter({
+        baseUrl: 'http://api.local/api/runtime',
+        workspaceId: 'ws-test',
+        fetchImpl: transport,
+      });
+
+      try {
+        const file = fileAction();
+
+        if (writePath === 'editor') {
+          runtimeFiles.set('src/App.tsx', 'export default function App() { return null; }');
+          await store.loadRuntimeFiles('.');
+        }
+
+        store.setAgentPatchReviewRequired(true);
+        store.addArtifact(artifactData());
+        store.addAction(file);
+        store.runAction(file);
+        await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+
+        const start: ActionCallbackData = {
+          ...shellAction(),
+          actionId: 'start-1',
+          action: { type: 'start', content: 'npm run dev' },
+        };
+        store.addAction(start);
+        store.runAction(start);
+        await vi.waitFor(() => expect(actionStatus(store, 'start-1')).toBe('complete'));
+
+        /*
+         * FilesStore/EditorStore remain test doubles; only their write reaches the
+         * real adapter. Backend durability and ZIP are covered by the API suite.
+         */
+        runtimeAdapterMock.writeFile.mockImplementation((path, content) => adapter.writeFile(path, content));
+        await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('failed');
+
+        expect(transport).toHaveBeenCalledTimes(1);
+        expect(transport.mock.calls[0][1]?.method).toBe('PUT');
+        expect(runtimeAdapterMock.writeFile).toHaveBeenCalledTimes(1);
+        expect(runtimeFiles.get('src/App.tsx')).toBe(peerContent);
+        expect(store.agentPatchProposals.get()['artifact-1:file-1'].status).toBe('failed');
+        expect(actionStatus(store, 'file-1')).toBe('failed');
+        expect(states).not.toContain('accepted');
+        expect(applied).not.toHaveBeenCalled();
+        expect(history).not.toHaveBeenCalled();
+        expect(startPreview).not.toHaveBeenCalled();
+        expect(restartPreview).not.toHaveBeenCalled();
+        expect(store.agentPatchProposals.get()['artifact-1:file-1'].error).not.toContain('SECRET_RESPONSE_BODY');
+        expect(store.workspaceLogs.get().join('\n')).not.toContain('SECRET_RESPONSE_BODY');
+      } finally {
+        runtimeAdapterMock.writeFile.mockImplementation(originalWrite);
+        unsubscribe();
+        unsubscribeProposals();
+        history.mockRestore();
+        startPreview.mockRestore();
+        restartPreview.mockRestore();
+      }
+    },
+  );
 
   it.each(['accepted', 'rejected'] as const)(
     'keeps deferred startup paused after a failed write until explicitly %s',
