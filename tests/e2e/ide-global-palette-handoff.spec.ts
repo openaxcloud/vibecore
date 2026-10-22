@@ -4,7 +4,7 @@ import JSZip from 'jszip';
 const apiBaseUrl = () => process.env.SAAS_API_URL ?? 'http://127.0.0.1:3001';
 const appBaseUrl = () => process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 
-async function authenticate(page: Page) {
+async function authenticate(page: Pick<Page, 'request'>) {
   const id = Date.now() + '-' + Math.random().toString(36).slice(2);
 
   const r = await page.request.post(apiBaseUrl() + '/auth/register', {
@@ -123,8 +123,7 @@ for (const width of [1440, 1024]) {
   });
 }
 
-async function prepareSettledPalette(page: Page, width: number) {
-  const auth = await authenticate(page);
+async function prepareSettledPalette(page: Page, width: number, auth: { token: string; organization: { id: string } }) {
   const projectId = await seedProject(page, auth, 'dark');
   const headers = { authorization: `Bearer ${auth.token}` };
 
@@ -161,11 +160,18 @@ async function prepareSettledPalette(page: Page, width: number) {
 
 for (const width of [1440, 1024]) {
   test.describe(`global palette repeated opening ${width}`, () => {
+    let auth: { token: string; organization: { id: string } };
+
+    // Share only the synthetic identity: each test creates its own project and browser context.
+    test.beforeAll(async ({ request }) => {
+      auth = await authenticate({ request });
+    });
+
     test.use({ viewport: { width, height: 900 }, isMobile: false, hasTouch: false });
     test('repeated keyboard opening preserves the original return focus', async ({ page }, info) => {
       test.setTimeout(90_000);
 
-      const trigger = await prepareSettledPalette(page, width);
+      const trigger = await prepareSettledPalette(page, width, auth);
       const search = page.getByTestId('project-command-palette-search');
       await trigger.focus();
       await expect(trigger).toBeFocused();
@@ -187,7 +193,7 @@ for (const width of [1440, 1024]) {
       async ({ page }, info) => {
         test.setTimeout(90_000);
 
-        const trigger = await prepareSettledPalette(page, width);
+        const trigger = await prepareSettledPalette(page, width, auth);
         const search = page.getByTestId('project-command-palette-search');
         await trigger.click();
         await expect(search).toBeVisible();
@@ -212,7 +218,7 @@ for (const width of [1440, 1024]) {
     }, info) => {
       test.setTimeout(90_000);
 
-      const trigger = await prepareSettledPalette(page, width);
+      const trigger = await prepareSettledPalette(page, width, auth);
       const search = page.getByTestId('project-command-palette-search');
       const previewUrl = new URL(page.url());
       previewUrl.searchParams.set('panel', 'preview');
