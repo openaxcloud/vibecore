@@ -1,0 +1,30 @@
+[
+  {
+    "path": "README.md",
+    "sha256": "9df95292bd26babce6de2c8f4c28bcd5a02525eb252878f2cf012f4e0ef4fc00"
+  },
+  {
+    "path": "build-receipt.json",
+    "sha256": "18882ca36db4a9e490fa4d07ffbb7f7b92897536e29ff49fa39f60c62db42922"
+  },
+  {
+    "path": "compiled.json",
+    "sha256": "7b5edc1c4e7b1734b276e7a17992b940f9a7d98ad63349714a78704bb8c0ee6a"
+  },
+  {
+    "path": "runtime-availability.json",
+    "sha256": "b5f9a3e2ffd98dd625126959760712b15b269d12aa688ce4a1d5e16802bcd3fb"
+  },
+  {
+    "path": "sources.json",
+    "sha256": "0310e19f73ed350435725c2edf4c0590502a17f2af3fd5a5efa71d43e0ff1187"
+  },
+  {
+    "path": "unit-red-green.json",
+    "sha256": "2d428ececfcdd8d5e3a826f1ce8046a3f9f5403d86c7dc5c293377c78cac6fab"
+  },
+  {
+    "path": "validation-summary.json",
+    "sha256": "d2047cd230d96480edfcfac75ff6b7e91bc70dff967f08d3a876ffa1e12208a5"
+  }
+]

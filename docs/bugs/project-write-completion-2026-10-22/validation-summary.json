@@ -1,0 +1,38 @@
+{
+  "sourceCommit": "26f7441685ebea6bc8cb666a1fdda8e648ce4872",
+  "tree": "15ffadab688af48838e0da3f9b48b701ade03b19",
+  "fullSuite": {
+    "passedTests": 10039,
+    "skippedTests": 7,
+    "passedFiles": 1301,
+    "skippedFiles": 2,
+    "failedTests": 0,
+    "failedFiles": 0,
+    "durationSeconds": 294.56,
+    "attempt": 1
+  },
+  "targeted": {
+    "passedTests": 50,
+    "skippedTests": 0,
+    "failedTests": 0,
+    "durationSeconds": 4.75
+  },
+  "logs": [
+    {
+      "path": "ux-write-scope-fullunit.log",
+      "sha256": "7cbb05a4057d4a409ce8500a686c2a215c2859910d415a2027ec0afcc2ba774b"
+    },
+    {
+      "path": "ux-write-scope-unit-final.log",
+      "sha256": "c73ce84b36b11e23460f71aa4c1c49073795e908eef7f96de09a69a6d7f7c69b"
+    },
+    {
+      "path": "ux-write-scope-build.log",
+      "sha256": "0322b1217ea11fe84b9c45eeb7772222e618b9aac393462354b7adff0659f15c"
+    },
+    {
+      "path": "ux-write-scope-commit.log",
+      "sha256": "ab7a0cd440119f0d0e95d528a0d635ddabea8343a8134241d6b24da11efa393a"
+    }
+  ]
+}

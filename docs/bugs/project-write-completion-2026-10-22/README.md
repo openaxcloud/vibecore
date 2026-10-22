@@ -14,4 +14,16 @@ Le harness local interdit les accès externes et n’a pas de WORKSPACE_MANAGER_
 
 Aucune recette UI de succès runtime tardif, aucune persistance fournisseur ni production n’est donc certifiée. Les chaînes rename/duplicate/upload qui peuvent démarrer une seconde opération après navigation restent hors de ce correctif de complétion. Ce lot ne revendique pas une isolation complète.
 
-Les journaux bruts sont conservés localement ; seuls compteurs, empreintes et limites sont joints. Build, typage et suite complète doivent encore être validés avant publication.
+Les journaux bruts sont conservés localement ; seuls compteurs, empreintes et limites sont joints. Le build, le typage, le lint (zéro erreur, 52 avertissements existants) et gitleaks passent sur le commit produit `26f7441685ebea6bc8cb666a1fdda8e648ce4872`, arbre `15ffadab688af48838e0da3f9b48b701ade03b19`. La suite complète passe au premier essai : 10 039 tests réussis et sept omissions existantes, 1 301 fichiers réussis et deux omis, en 294,56 s. Les 50 tests ciblés repassent après formatage. L’attestation compare 9 483 sources sans différence et recense 2 306 fichiers compilés ; aucun test navigateur de mutation runtime n’est revendiqué. Les preuves documentaires suivantes ne modifient pas le produit compilé.
+
+## Matrice bornée
+
+| Cas | Preuve disponible | Limite |
+| --- | --- | --- |
+| Création texte/binaire/dossier A puis passage B | Rouge puis vert unitaires, réponse différée | Runtime synthétique |
+| Suppression fichier/dossier A puis passage B | Rouge puis vert unitaires, tombstones et état B contrôlés | Runtime synthétique |
+| Même projet, nouveau runtime, erreur tardive, verrou | Contrôles unitaires verts | Pas de persistance fournisseur |
+| Succès réel après navigation via runtime local | Bloqué : manager local inaccessible | Non testé en navigateur |
+| Renommage/duplication/upload multi-opérations | Hors de ce lot | Non certifié |
+
+Reproduction unitaire : `pnpm exec vitest run app/lib/stores/files.create-empty-save.spec.ts app/lib/stores/workbench.project-storage-return.spec.ts`. Suite complète : `pnpm exec vitest run`. Build : `pnpm run build`. Aucun délai, retry, seuil ou exemption de test n’est ajouté.
