@@ -1,7 +1,7 @@
 [
   {
     "path": "README.md",
-    "sha256": "9df95292bd26babce6de2c8f4c28bcd5a02525eb252878f2cf012f4e0ef4fc00"
+    "sha256": "c4e7c8faa579130939a1866413c63d74c31c38774de713e8877c08edb4976c06"
   },
   {
     "path": "build-receipt.json",
@@ -22,6 +22,10 @@
   {
     "path": "unit-red-green.json",
     "sha256": "2d428ececfcdd8d5e3a826f1ce8046a3f9f5403d86c7dc5c293377c78cac6fab"
+  },
+  {
+    "path": "url-red-green.json",
+    "sha256": "d1a7db4ac79936658adcde67cec2b5e1a52a7e45c14777dc13bc204b61c6a46c"
   },
   {
     "path": "validation-summary.json",

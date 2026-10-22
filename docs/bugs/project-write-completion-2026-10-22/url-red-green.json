@@ -1,0 +1,50 @@
+{
+  "base": "3da079b5b21f308743e7b9b1a10383980a916109",
+  "results": {
+    "url-before-config-red": {
+      "sha256": "3bd48375d7a8f3a9b175ab6f9c91665ae60173c6e610af4fc59429e6884e8bdb",
+      "numPassedTests": 0,
+      "numFailedTests": 1,
+      "numPendingTests": 47
+    },
+    "url-matrix-red": {
+      "sha256": "8198c5cf399163fbccad919fa249f7bf0ad0116156964f21a9d1fbf13301d716",
+      "numPassedTests": 2,
+      "numFailedTests": 4,
+      "numPendingTests": 48
+    },
+    "url-matrix-red-corrected": {
+      "sha256": "e4269dd9e86703858088ab75c36e701868f551ba5cda69d27fecbe705dd1649f",
+      "numPassedTests": 3,
+      "numFailedTests": 3,
+      "numPendingTests": 48
+    },
+    "url-guard-green": {
+      "sha256": "d43b56c37435a14bc7c97fae274544174deeb415e015b439d58fca2cbda9ba72",
+      "numPassedTests": 57,
+      "numFailedTests": 0,
+      "numPendingTests": 0
+    }
+  },
+  "sources": [
+    {
+      "path": "app/lib/stores/files.ts",
+      "sha256": "2d29d76976c06a928306da0885e86db654f7a9d005c2c9dc81fd737ab04291d9"
+    },
+    {
+      "path": "app/lib/stores/workbench.ts",
+      "sha256": "58a48090c515109756c961c3024b000e816c168a96beac6b950f6ca244363d43"
+    },
+    {
+      "path": "app/lib/stores/workbench.project-storage-return.spec.ts",
+      "sha256": "cfa12321349942039eee1d9f26a5821f02ccdb4848cbf8f10f5a7436814424d3"
+    }
+  ],
+  "notes": [
+    "url-matrix-red includes an incorrect document.content assertion; it is preparation evidence only. Corrected matrix uses document.value on independent B file.",
+    "Corrected baseline: create-file changes cache, selection, dirty state and B tombstone; create-folder changes cache and B tombstone; delete-file changes cache and dirty state.",
+    "Delete-folder case and both same-project panel controls already passed baseline.",
+    "Final full run: 57 passed, zero failures/skips. Unit adapters only; no real runtime validation.",
+    "No commit/build/typecheck by subagent."
+  ]
+}

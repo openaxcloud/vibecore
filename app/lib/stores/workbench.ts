@@ -57,6 +57,7 @@ import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/mes
 import { validateGeneratedFile, validateGeneratedFiles, type GeneratedFile } from '~/services/agent/post-validate';
 import type { ITerminal } from '~/types/terminal';
 import { path } from '~/utils/path';
+import { getCurrentChatId } from '~/utils/fileLocks';
 import { unreachable } from '~/utils/unreachable';
 import { GitLabApiService } from '~/lib/services/gitlabApiService';
 import { WORK_DIR } from '~/utils/constants';
@@ -3280,11 +3281,12 @@ export class WorkbenchStore {
 
   async createFile(filePath: string, content: string | Uint8Array = '') {
     const binding = this.#projectStorageBinding;
+    const scope = getCurrentChatId();
 
     try {
       const success = await this.#filesStore.createFile(filePath, content);
 
-      if (success && binding === this.#projectStorageBinding) {
+      if (success && binding === this.#projectStorageBinding && scope === getCurrentChatId()) {
         this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
 
         this.setSelectedFile(filePath);
@@ -3318,6 +3320,7 @@ export class WorkbenchStore {
 
   async deleteFile(filePath: string) {
     const binding = this.#projectStorageBinding;
+    const scope = getCurrentChatId();
 
     try {
       const currentDocument = this.currentDocument.get();
@@ -3325,7 +3328,7 @@ export class WorkbenchStore {
 
       const success = await this.#filesStore.deleteFile(filePath);
 
-      if (success && binding === this.#projectStorageBinding) {
+      if (success && binding === this.#projectStorageBinding && scope === getCurrentChatId()) {
         const newUnsavedFiles = new Set(this.unsavedFiles.get());
 
         if (newUnsavedFiles.has(filePath)) {
@@ -3358,6 +3361,7 @@ export class WorkbenchStore {
 
   async deleteFolder(folderPath: string) {
     const binding = this.#projectStorageBinding;
+    const scope = getCurrentChatId();
 
     try {
       const currentDocument = this.currentDocument.get();
@@ -3365,7 +3369,7 @@ export class WorkbenchStore {
 
       const success = await this.#filesStore.deleteFolder(folderPath);
 
-      if (success && binding === this.#projectStorageBinding) {
+      if (success && binding === this.#projectStorageBinding && scope === getCurrentChatId()) {
         const unsavedFiles = this.unsavedFiles.get();
         const newUnsavedFiles = new Set<string>();
 

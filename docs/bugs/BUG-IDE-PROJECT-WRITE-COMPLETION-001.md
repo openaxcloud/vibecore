@@ -21,3 +21,5 @@ Les enchaînements multi-opérations de renommage, duplication et upload peuvent
 [Preuves et limites](project-write-completion-2026-10-22/README.md).
 
 Build, typage, lint et gitleaks verts. Suite complète : 10 039 tests réussis et sept omissions existantes, aucun échec au premier passage. Cela ne lève pas le blocage de recette runtime réelle.
+
+Complément URL avant rebascule du store : défaut tombstone et sélection reproduit, garde canonique ajoutée ; 57 tests ciblés verts, revalidation complète du nouveau delta en cours. Les compteurs précédents restent ceux du commit 26f74416.

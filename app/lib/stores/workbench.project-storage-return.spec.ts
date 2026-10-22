@@ -1138,4 +1138,132 @@ describe('project storage hydration after returning to the IDE', () => {
     expect(write).not.toHaveBeenCalled();
     expect(store.files.get()[path]).toMatchObject({ content: 'locked original', isLocked: true });
   });
+  it('does not persist a pending project A deletion under project B when the URL changes before configuration', async () => {
+    const previousUrl = window.location.href;
+    window.history.pushState({}, '', '/projects/write-url-A/ide');
+
+    const { store } = setup();
+    store.configureProject('write-url-A');
+
+    let release!: () => void;
+
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.spyOn(runtimeAdapterMock, 'deleteFile').mockImplementationOnce(() => gate);
+
+    const keyB = 'bolt-deleted-paths:project:write-url-B';
+    localStorage.setItem(keyB, JSON.stringify(['/home/project/B-existing-deletion.txt']));
+
+    try {
+      const pending = store.deleteFile(path);
+      window.history.pushState({}, '', '/projects/write-url-B/ide');
+
+      // React has not committed configureProject(B) or setRuntime yet.
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(JSON.parse(localStorage.getItem(keyB)!)).toEqual(['/home/project/B-existing-deletion.txt']);
+    } finally {
+      window.history.replaceState({}, '', previousUrl);
+    }
+  });
+  it.each(['create-file', 'create-folder', 'delete-file', 'delete-folder'] as const)(
+    'keeps cache and selection unchanged for %s across URL scope before configuration',
+    async (operation) => {
+      const previousUrl = window.location.href;
+      window.history.pushState({}, '', '/projects/url-owner-A/ide?tool=editor');
+
+      const { store } = setup();
+      store.configureProject('url-owner-A');
+      stubArchive(() => archive('A document'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+      store.setDocumentContent(path, 'A draft');
+
+      const target = operation.includes('folder') ? '/home/project/folder' : path;
+      const keyB = 'bolt-deleted-paths:project:url-owner-B';
+      localStorage.setItem(keyB, JSON.stringify([target]));
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const method =
+        operation === 'create-file' ? 'createFile' : operation === 'create-folder' ? 'createDirectory' : 'deleteFile';
+      vi.spyOn(runtimeAdapterMock, method).mockImplementationOnce(() => gate);
+
+      try {
+        const pending =
+          operation === 'create-file'
+            ? store.createFile(path, '')
+            : operation === 'create-folder'
+              ? store.createFolder(target)
+              : operation === 'delete-file'
+                ? store.deleteFile(path)
+                : store.deleteFolder(target);
+        store.setSelectedFile(undefined);
+
+        const files = store.files.get();
+        const documents = store.documents.get();
+        window.history.pushState({}, '', '/projects/url-owner-B/ide?tool=editor');
+        release();
+        await expect(pending).resolves.toBe(true);
+        expect.soft(store.files.get()).toEqual(files);
+        expect.soft(store.documents.get()).toEqual(documents);
+        expect.soft(store.selectedFile.get()).toBeUndefined();
+        expect.soft(store.unsavedFiles.get().has(path)).toBe(true);
+        expect.soft(JSON.parse(localStorage.getItem(keyB)!)).toEqual([target]);
+        store.configureProject('url-owner-B');
+        stubArchive(async () => {
+          const zip = new JSZip();
+          zip.file('other.txt', 'B document');
+
+          return new Response(JSON.stringify({ archive: { base64: await zip.generateAsync({ type: 'base64' }) } }));
+        });
+        await store.loadProjectStorageFiles();
+        store.setSelectedFile('/home/project/other.txt');
+        expect(store.currentDocument.get()).toMatchObject({ value: 'B document' });
+      } finally {
+        window.history.replaceState({}, '', previousUrl);
+      }
+    },
+  );
+
+  it.each(['create', 'delete'] as const)(
+    'allows pending %s when only the panel URL changes in the same project',
+    async (operation) => {
+      const previousUrl = window.location.href;
+      window.history.pushState({}, '', '/projects/panel-owner/ide?tool=editor');
+
+      const { store } = setup();
+      store.configureProject('panel-owner');
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      vi.spyOn(runtimeAdapterMock, operation === 'create' ? 'createFile' : 'deleteFile').mockImplementationOnce(
+        () => gate,
+      );
+
+      try {
+        const pending = operation === 'create' ? store.createFile(path, 'same project') : store.deleteFile(path);
+        window.history.pushState({}, '', '/projects/panel-owner/ide?tool=preview');
+        release();
+        await expect(pending).resolves.toBe(true);
+
+        if (operation === 'create') {
+          expect(store.files.get()[path]).toMatchObject({ content: 'same project' });
+          expect(store.selectedFile.get()).toBe(path);
+        } else {
+          expect(store.getDeletedPaths()).toContain(path);
+          expect(JSON.parse(localStorage.getItem('bolt-deleted-paths:project:panel-owner')!)).toContain(path);
+        }
+      } finally {
+        window.history.replaceState({}, '', previousUrl);
+      }
+    },
+  );
 });

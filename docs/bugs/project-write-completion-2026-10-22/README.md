@@ -27,3 +27,9 @@ Les journaux bruts sont conservés localement ; seuls compteurs, empreintes et l
 | Renommage/duplication/upload multi-opérations | Hors de ce lot | Non certifié |
 
 Reproduction unitaire : `pnpm exec vitest run app/lib/stores/files.create-empty-save.spec.ts app/lib/stores/workbench.project-storage-return.spec.ts`. Suite complète : `pnpm exec vitest run`. Build : `pnpm run build`. Aucun délai, retry, seuil ou exemption de test n’est ajouté.
+
+## Complément : URL changée avant rebascule du store
+
+La première garde de génération ne couvrait pas la fenêtre où l’URL passe à B avant l’effet `configureProject(B)`. Une suppression A terminée dans cet intervalle écrasait la clé de tombstones B ; une création pouvait également changer sélection et état modifié. Une sonde unitaire ciblée reproduit le tombstone erroné. La matrice corrigée compte trois échecs produit et trois contrôles réussis sur la version intermédiaire ; une première matrice contenait une mauvaise propriété d’assertion (`content` au lieu de `value`), conservée comme erreur de préparation et non comptée comme preuve produit.
+
+La complétion vérifie maintenant aussi le projet canonique issu de l’URL, dans FilesStore et les wrappers Workbench. Un changement de panneau du même projet reste valide. Les 57 tests ciblés passent après correction et formatage ; le build et la suite complète de ce nouveau delta sont à revalider. Les résultats 26f74416 ci-dessus restent historiques et ne sont pas appliqués à ce complément.

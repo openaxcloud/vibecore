@@ -1477,6 +1477,7 @@ export class FilesStore {
   async createFile(filePath: string, content: string | Uint8Array = '') {
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
 
     try {
       const relativePath = this.#toRuntimePath(filePath);
@@ -1515,7 +1516,11 @@ export class FilesStore {
         await runtime.writeFile(relativePath, base64Content);
 
         // The original backend operation succeeded; its old scope must not mutate this cache.
-        if (binding !== this.#runtimeBinding || runtime !== this.#runtime) {
+        if (
+          binding !== this.#runtimeBinding ||
+          runtime !== this.#runtime ||
+          storageKey !== this.#deletedPathsStorageKey()
+        ) {
           return true;
         }
 
@@ -1532,7 +1537,11 @@ export class FilesStore {
         await runtime.createFile(relativePath, contentToWrite);
 
         // The original backend operation succeeded; its old scope must not mutate this cache.
-        if (binding !== this.#runtimeBinding || runtime !== this.#runtime) {
+        if (
+          binding !== this.#runtimeBinding ||
+          runtime !== this.#runtime ||
+          storageKey !== this.#deletedPathsStorageKey()
+        ) {
           return true;
         }
 
@@ -1590,6 +1599,7 @@ export class FilesStore {
   async createFolder(folderPath: string) {
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
 
     try {
       const relativePath = this.#toRuntimePath(folderPath);
@@ -1601,7 +1611,11 @@ export class FilesStore {
       await runtime.createDirectory(relativePath);
 
       // The original backend operation succeeded; its old scope must not mutate this cache.
-      if (binding !== this.#runtimeBinding || runtime !== this.#runtime) {
+      if (
+        binding !== this.#runtimeBinding ||
+        runtime !== this.#runtime ||
+        storageKey !== this.#deletedPathsStorageKey()
+      ) {
         return true;
       }
 
@@ -1621,6 +1635,7 @@ export class FilesStore {
   async deleteFile(filePath: string) {
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
 
     try {
       const relativePath = this.#toRuntimePath(filePath);
@@ -1632,7 +1647,11 @@ export class FilesStore {
       await runtime.deleteFile(relativePath);
 
       // The original backend operation succeeded; its old scope must not mutate this cache.
-      if (binding !== this.#runtimeBinding || runtime !== this.#runtime) {
+      if (
+        binding !== this.#runtimeBinding ||
+        runtime !== this.#runtime ||
+        storageKey !== this.#deletedPathsStorageKey()
+      ) {
         return true;
       }
 
@@ -1669,6 +1688,7 @@ export class FilesStore {
   async deleteFolder(folderPath: string) {
     const runtime = this.#runtime;
     const binding = this.#runtimeBinding;
+    const storageKey = this.#deletedPathsStorageKey();
 
     try {
       const relativePath = this.#toRuntimePath(folderPath);
@@ -1680,7 +1700,11 @@ export class FilesStore {
       await runtime.deleteFile(relativePath);
 
       // The original backend operation succeeded; its old scope must not mutate this cache.
-      if (binding !== this.#runtimeBinding || runtime !== this.#runtime) {
+      if (
+        binding !== this.#runtimeBinding ||
+        runtime !== this.#runtime ||
+        storageKey !== this.#deletedPathsStorageKey()
+      ) {
         return true;
       }
 
