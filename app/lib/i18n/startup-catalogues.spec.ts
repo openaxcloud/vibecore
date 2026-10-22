@@ -36,6 +36,8 @@ it('keeps SSR intact on failure, focuses retry and restores it before a single h
   button.click();
   button.click();
   expect(load).toHaveBeenCalledTimes(2);
+  expect(hydrate).not.toHaveBeenCalled();
+  expect(document.querySelector('section')!.hidden).toBe(true);
   resolve();
   await vi.waitFor(() => expect(hydrate).toHaveBeenCalledTimes(1));
   button.click();
