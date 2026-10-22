@@ -23,6 +23,17 @@ const enCours = new Map<string, Promise<void>>();
 // Bound the complete request, including a response body that never finishes.
 export const CATALOGUE_REQUEST_TIMEOUT_MS = 10_000;
 
+class CatalogueLoadError extends Error {
+  constructor(
+    readonly code: 'I18N_CATALOGUE_TIMEOUT' | 'I18N_CATALOGUE_HTTP' | 'I18N_CATALOGUE_INVALID',
+    readonly catalogue: string,
+    readonly status?: number,
+  ) {
+    super(code);
+    this.name = 'CatalogueLoadError';
+  }
+}
+
 async function lireCatalogue(url: string, jeton: string): Promise<Record<string, string>> {
   const controller = new AbortController();
 
@@ -30,7 +41,7 @@ async function lireCatalogue(url: string, jeton: string): Promise<Record<string,
 
   const deadline = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      reject(new Error(`i18n-catalogue-${jeton}-timeout`));
+      reject(new CatalogueLoadError('I18N_CATALOGUE_TIMEOUT', jeton));
       controller.abort();
     }, CATALOGUE_REQUEST_TIMEOUT_MS);
   });
@@ -38,7 +49,7 @@ async function lireCatalogue(url: string, jeton: string): Promise<Record<string,
     const response = await fetch(url, { signal: controller.signal });
 
     if (!response.ok) {
-      throw new Error(`i18n-catalogue-${jeton}-http-${response.status}`);
+      throw new CatalogueLoadError('I18N_CATALOGUE_HTTP', jeton, response.status);
     }
 
     const catalogue: unknown = await response.json();
@@ -49,7 +60,7 @@ async function lireCatalogue(url: string, jeton: string): Promise<Record<string,
       Array.isArray(catalogue) ||
       !Object.values(catalogue).every((value) => typeof value === 'string')
     ) {
-      throw new Error(`i18n-catalogue-${jeton}-invalid`);
+      throw new CatalogueLoadError('I18N_CATALOGUE_INVALID', jeton);
     }
 
     return catalogue as Record<string, string>;

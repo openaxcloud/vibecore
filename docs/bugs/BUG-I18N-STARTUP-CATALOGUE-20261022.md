@@ -19,3 +19,7 @@ Sur le bundle local, maintenir une requête de catalogue public en attente empê
 ## ✅ Testé live
 
 ☐ — validation locale uniquement ; ni production ni connexion authentifiée certifiées. Recette reproductible et résultats dans docs/reprise/login-catalogue-recovery-2026-10-22/README.md.
+
+## Revue CI du premier candidat
+
+Le premier commit e3244fb a révélé six résidus i18n et un titre h1 caché précédant celui des pages publiques. Le correctif suivant emploie les catalogues centraux rendus côté serveur, des codes de diagnostic structurés et un titre h2 pour l’alerte. Scanner effectif et recette typography existante doivent passer avant publication ; aucune exemption ajoutée. Preuves de revalidation : docs/reprise/login-catalogue-recovery-2026-10-22/ci-corrections/README.md.

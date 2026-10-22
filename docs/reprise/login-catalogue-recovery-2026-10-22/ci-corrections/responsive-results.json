@@ -1,0 +1,35 @@
+{
+  "engine": "154.0.8037.57",
+  "results": [
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 900,
+      "recoveryVisible": true,
+      "retryClicked": true,
+      "loginVisible": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "name": "tablet",
+      "width": 768,
+      "height": 1024,
+      "recoveryVisible": true,
+      "retryClicked": true,
+      "loginVisible": true,
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "recoveryVisible": true,
+      "retryClicked": true,
+      "loginVisible": true,
+      "overflow": false,
+      "errors": []
+    }
+  ]
+}

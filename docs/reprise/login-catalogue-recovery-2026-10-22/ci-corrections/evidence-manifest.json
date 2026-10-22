@@ -1,0 +1,19 @@
+{
+  "desktop-recovery.png": "ab92ea466a1239b18313fd35f8532a362f20181ac9d5f44b6792ad3b9be4cca6",
+  "source-scan-fixed.txt": "f48520ad34f99fc2900a42627a054c39531d8155949be248dcbb6781fdbdf714",
+  "responsive-results.json": "81b78acb7b2ea3a96ee917a3cc3768fe897d300e570e6637c9e5bd45ce6dffe0",
+  "capture-responsive.cjs": "a17c678995467ced53d7149db734c734b6b7f4fd6fae2a17cdfc6c4d41d6ac1c",
+  "browser-results.json": "3300338d2d38e8d60ab6f78cabf0ebe13e09ebe7cf9f43f78e1d107987f30a23",
+  "source-manifest.json": "0fd28a238a8a1001ad482722f94ee6f058a80ef52cc000c4f35d6f49f0274150",
+  "served-assets.json": "ebe1516d2d48f38c310f5f5808b4e421e0de1fed75b172f2bc9e543a49ac6019",
+  "catalogue-validation.txt": "f0db041b742b0ffc5500d922b8c5625f3ee45f768787da44a634384f7016c194",
+  "unit.txt": "0937ada47bcf141c6afd97d867f9802a4d4fb61d4fe2b46513c33718c870e8a0",
+  "lint.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "typecheck.txt": "7ae65027054b44983df574085b8d2ec95f3f53f1a0ead2f4cafe0529ee6300b6",
+  "README.md": "4bac8a8dd2a2151ea70e8dd931c9de3a251bf5177dba02eee87941f80bafb76a",
+  "tablet-recovery.png": "acc5bcd1edd059ac03ddd9c78e82cadce92897394622bbdcf59a4fc56935c3b2",
+  "build.txt": "b472283158c3e47ebee71ccba147d01072c7bf70692976ab16fe7bcc037b9b96",
+  "browser.txt": "b77caaf9cf0422acf433266ae4c66e0b298be430b14a32b9257f2b0dcb3642ac",
+  "source-scan-e3244fb-red.txt": "46d223fe40c8d610483c4af852c46bf0da8f7c86c1788bb976f9a231c506efe6",
+  "mobile-recovery.png": "bedd0899b7f9b94238fa609d59d8d531f202ab8469cf7c44080b210179a77968"
+}

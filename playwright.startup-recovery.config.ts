@@ -3,7 +3,7 @@ import { defineConfig } from '@playwright/test';
 // A local production web server must already be running. One Chromium engine.
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: 'login-catalogue-recovery.spec.ts',
+  testMatch: ['login-catalogue-recovery.spec.ts', 'platform-typography.spec.ts'],
   workers: 1,
   retries: 0,
   reporter: [['list'], ['json', { outputFile: 'test-results/startup-recovery/results.json' }]],

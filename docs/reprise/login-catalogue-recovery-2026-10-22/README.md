@@ -1,5 +1,7 @@
 # Reprise du chargement avant connexion — 22 octobre 2026
 
+Cette première série de preuves correspond au commit `e3244fb1469d4d45a49033ff69acd2802078ac77`. Les corrections issues de la CI et leur nouvelle validation sont consignées dans [ci-corrections](ci-corrections/README.md) ; les anciens verts ne leur sont pas attribués.
+
 Base inspectée : `18cf74fd7abcd59620f0994b44ac1411e97fcf93`. Le manifeste joint épingle les six sources produit du bundle local testé. Aucun compte, fournisseur IA, paiement ou projet utilisateur n’a été sollicité par cette recette.
 
 ## Comportement

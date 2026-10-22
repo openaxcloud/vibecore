@@ -754,7 +754,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <I18nextProvider i18n={i18n}>
-      <StartupCatalogueRecovery language={language} />
+      <StartupCatalogueRecovery />
       {serverRendersRoute ? (
         <>
           <ClientOnly fallback={<AppBootFallback ide={false} overlay />}>{() => null}</ClientOnly>

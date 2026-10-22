@@ -139,7 +139,7 @@ describe('le chargement des tranches par le navigateur', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const pending = client.chargerCatalogue('en', 'public');
-    const rejection = expect(pending).rejects.toThrow('i18n-catalogue-en-public-timeout');
+    const rejection = expect(pending).rejects.toMatchObject({ code: 'I18N_CATALOGUE_TIMEOUT', catalogue: 'en-public' });
     await vi.advanceTimersByTimeAsync(client.CATALOGUE_REQUEST_TIMEOUT_MS);
     await rejection;
     expect(fetchMock.mock.calls[0][1].signal.aborted).toBe(true);
@@ -166,7 +166,15 @@ describe('le chargement des tranches par le navigateur', () => {
         },
       }),
     );
-    await expect(client.chargerCatalogue('fr', 'public')).rejects.toThrow();
+    await expect(client.chargerCatalogue('fr', 'public')).rejects.toMatchObject(
+      failure === 'json'
+        ? { name: 'SyntaxError' }
+        : {
+            code: failure === 'http' ? 'I18N_CATALOGUE_HTTP' : 'I18N_CATALOGUE_INVALID',
+            catalogue: 'fr-public',
+            ...(failure === 'http' ? { status: 503 } : {}),
+          },
+    );
     expect(runtime.catalogueDisponible('fr', 'public')).toBe(false);
   });
 });

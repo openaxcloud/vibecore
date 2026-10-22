@@ -77,6 +77,12 @@ for (const fault of ['normal', 'slow', 'pending', '503', 'json', 'shape'] as con
           await expect(recovery).toContainText(
             language === 'fr' ? 'Le chargement de cette page a échoué' : 'This page could not finish loading',
           );
+          await expect(
+            recovery.getByRole('heading', {
+              name: language === 'fr' ? 'Le chargement de cette page a échoué' : 'This page could not finish loading',
+              level: 2,
+            }),
+          ).toBeVisible();
           await expect(page.locator('input[type=email]')).toHaveCount(0);
           expect(errors).toEqual([]);
 

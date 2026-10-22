@@ -1,0 +1,21 @@
+{
+  "parent_sha": "e3244fb1469d4d45a49033ff69acd2802078ac77",
+  "base_sha": "18cf74fd7abcd59620f0994b44ac1411e97fcf93",
+  "source_sha256": {
+    "app/entry.client.tsx": "2a615a2f3af312aaf5676eabf9748ccbc6cb4adb1d23b741c663dd4de2edb7e7",
+    "app/root.tsx": "68a0d7cf72f531b24931d9d40f41b74049c223dce9c229563768151e42ba6ea8",
+    "app/lib/i18n/catalogues-client.ts": "31ee309768c4871c0ebc4ab3208a716aa5e388757e46aa1730ecd1f9c403a61d",
+    "app/lib/i18n/startup-catalogues.ts": "5d6788bb52b077aded1aa08446410b19128d51fd94587e067d8bf998fa8ec6e6",
+    "app/components/StartupCatalogueRecovery.tsx": "0acb37972c7cfa82c3478b7d0d8166fb377ac81b0822a9c23fbdc414c2af5eec",
+    "app/styles/startup-recovery.css": "49ee08be89e002c6eb9cdd853c76e586456c3e9ca676c9e0f98b0be5510a8f9a",
+    "app/lib/i18n/messages/en.ts": "d98a96fbb62aaeb5551de887cc259ebe2b9591030182d6da65c7b1dc72476a99",
+    "app/lib/i18n/messages/fr.ts": "f29536912292e43dd9b8615a5fe588fbe73c33ca770416be2dc81488274fb2f4",
+    "app/lib/i18n/messages/es.ts": "f6d077757138ca0cc97c1f1157c11a39310684ffb319b0322ce58d690fa8c21a",
+    "app/lib/i18n/messages/ar.ts": "5d2cfb802d4ddb70502f6ecf64a4fdaf5171549c77a956aacadd748306cbd032"
+  },
+  "node": "v24.19.0",
+  "pnpm": "9.14.4",
+  "chromium": "154.0.8037.57",
+  "build_heap_mib": 8192,
+  "memory_limit_bytes": 17179869184
+}
