@@ -136,6 +136,8 @@ vi.mock('./files', async () => {
       async saveFile(filePath: string, content: string) {
         this.files.setKey(filePath, { type: 'file', content, isBinary: false });
         runtimeFiles.set(filePath.replace(/^\/home\/project\//, ''), content);
+
+        return content;
       }
 
       getFileModifications() {

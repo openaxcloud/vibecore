@@ -54,7 +54,25 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.patch.refreshSkipped': 'File refresh was skipped after accepting the AI patch.',
   'workbenchRuntime.patch.accepted': 'AI patch accepted: {file}',
   'workbenchRuntime.patch.checkpointSkipped': 'AI checkpoint was skipped after accepting the patch.',
+  'workbenchRuntime.patch.previewBlocked':
+    'Automatic preview restart is paused until AI file changes are accepted or explicitly rejected.',
+  'workbenchRuntime.patch.stage.confirmation': 'checking the workspace file',
+  'workbenchRuntime.patch.reason.confirmation':
+    'The workspace did not confirm the expected file content. No additional write was attempted.',
   'workbenchRuntime.patch.applyFailed': 'The AI patch could not be applied.',
+  'workbenchRuntime.patch.failureDetail':
+    'The AI change failed during {stage}. {reason} Review the failed change and retry or explicitly reject it. Automatic preview startup remains paused.',
+  'workbenchRuntime.patch.stage.diff': 'patch preparation',
+  'workbenchRuntime.patch.stage.validation': 'file validation',
+  'workbenchRuntime.patch.stage.save': 'saving the editor file to the workspace',
+  'workbenchRuntime.patch.stage.runtime': 'writing the workspace file',
+  'workbenchRuntime.patch.reason.json': 'The generated JSON is invalid.',
+  'workbenchRuntime.patch.reason.import': 'An imported file is missing.',
+  'workbenchRuntime.patch.reason.conflict': 'The remote file changed; your work has been preserved.',
+  'workbenchRuntime.patch.reason.missing': 'The workspace reports that the file is missing.',
+  'workbenchRuntime.patch.reason.access': 'Workspace access was refused.',
+  'workbenchRuntime.patch.reason.unavailable': 'The workspace is unavailable or not ready.',
+  'workbenchRuntime.patch.reason.unknown': 'The operation did not complete. No successful application is confirmed.',
   'workbenchRuntime.patch.failedLog': 'AI patch failed for {file}.',
   'workbenchRuntime.patch.importCycle':
     'An import cycle was detected while applying AI patches ({files}); falling back to source order.',
@@ -186,7 +204,25 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
     'L’actualisation des fichiers a été ignorée après l’acceptation du patch de l’IA.',
   'workbenchRuntime.patch.accepted': 'Patch de l’IA accepté : {file}',
   'workbenchRuntime.patch.checkpointSkipped': 'Le point de contrôle de l’IA a été ignoré après l’acceptation du patch.',
+  'workbenchRuntime.patch.previewBlocked':
+    'Le redémarrage automatique de l’aperçu est en pause jusqu’à l’acceptation ou au rejet explicite des modifications de fichiers de l’IA.',
+  'workbenchRuntime.patch.stage.confirmation': 'la vérification du fichier dans l’espace de travail',
+  'workbenchRuntime.patch.reason.confirmation':
+    'L’espace de travail n’a pas confirmé le contenu attendu. Aucune écriture supplémentaire n’a été tentée.',
   'workbenchRuntime.patch.applyFailed': 'Impossible d’appliquer le patch de l’IA.',
+  'workbenchRuntime.patch.failureDetail':
+    'La modification de l’IA a échoué pendant {stage}. {reason} Vérifiez la modification en échec, puis réessayez ou rejetez-la explicitement. Le démarrage automatique de l’aperçu reste en pause.',
+  'workbenchRuntime.patch.stage.diff': 'la préparation du patch',
+  'workbenchRuntime.patch.stage.validation': 'la validation du fichier',
+  'workbenchRuntime.patch.stage.save': 'la sauvegarde du fichier de l’éditeur dans l’espace de travail',
+  'workbenchRuntime.patch.stage.runtime': 'l’écriture du fichier dans l’espace de travail',
+  'workbenchRuntime.patch.reason.json': 'Le JSON généré est invalide.',
+  'workbenchRuntime.patch.reason.import': 'Un fichier importé est absent.',
+  'workbenchRuntime.patch.reason.conflict': 'Le fichier distant a changé ; votre travail est préservé.',
+  'workbenchRuntime.patch.reason.missing': 'L’espace de travail indique que le fichier est absent.',
+  'workbenchRuntime.patch.reason.access': 'L’accès à l’espace de travail a été refusé.',
+  'workbenchRuntime.patch.reason.unavailable': 'L’espace de travail est indisponible ou pas encore prêt.',
+  'workbenchRuntime.patch.reason.unknown': 'L’opération n’a pas abouti. Aucune application réussie n’est confirmée.',
   'workbenchRuntime.patch.failedLog': 'Échec du patch de l’IA pour {file}.',
   'workbenchRuntime.patch.importCycle':
     'Un cycle d’importation a été détecté lors de l’application des patchs de l’IA ({files}) ; retour à l’ordre source.',

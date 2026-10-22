@@ -49,7 +49,7 @@ import { buildPreviewManifestRepair } from '~/lib/runtime/preview-manifest';
 import { runProjectDoctor } from '~/lib/runtime/project-doctor';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { withRuntimeRetry } from '~/lib/runtime/retry';
-import { writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
+import { confirmAcceptedAgentFile, writeAcceptedAgentFile } from '~/lib/runtime/agent-file-write';
 import { topologicallySortFileActions } from '~/lib/runtime/topological-apply';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import { reportOptTelemetry } from '~/lib/telemetry/report-opt-telemetry';
@@ -71,7 +71,10 @@ import {
   dropResolvedMissingImportPatchLogs,
   isResolvedMissingImportPatchFailure,
 } from '~/utils/agent-patch-logs';
+import { sanitizeFileContent } from '~/utils/sanitize-file-content';
+import { isJsoncFile } from '~/utils/jsonc';
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
+import { describeAgentPatchFailure, type AgentPatchApplyStage } from './agent-patch-failure';
 import { resolveFailedAgentPatchContent } from '~/lib/stores/agent-patch-fallback';
 import {
   AgentPatchFloodGuard,
@@ -449,6 +452,7 @@ export class WorkbenchStore {
    * "complete" ("Start application — Done") while `npm run dev` never ran.
    */
   #deferredStartArtifacts = new Set<string>();
+  #deferredRefreshArtifacts = new Set<string>();
   #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
@@ -583,6 +587,7 @@ export class WorkbenchStore {
     this.#projectStorageBinding++;
     this.#projectStorageSaveVersions.clear();
     this.#runtime = runtime;
+    this.#enregistrementsDeLAgent.clear();
     this.#previewsStore.setRuntime(runtime);
     this.#filesStore.setRuntime(runtime);
     this.#terminalStore.setRuntime(runtime);
@@ -668,11 +673,13 @@ export class WorkbenchStore {
 
   #resetProjectScopedState() {
     this.agentPatchProposals.set({});
+    this.#enregistrementsDeLAgent.clear();
     this.#agentPatchOriginals.clear();
     this.#agentPatchFloodGuard.reset();
     this.#agentPatchSkipLogged.clear();
     this.#agentPatchHaltAlerted.clear();
     this.#deferredStartArtifacts.clear();
+    this.#deferredRefreshArtifacts.clear();
     this.agentPatchSelfRepair.set({});
     this.unsavedFiles.set(new Set<string>());
 
@@ -2456,7 +2463,7 @@ export class WorkbenchStore {
     const document = documents[filePath];
 
     if (document === undefined) {
-      return;
+      return undefined;
     }
 
     /*
@@ -2466,7 +2473,11 @@ export class WorkbenchStore {
      */
 
     const binding = this.#projectStorageBinding;
-    await this.#filesStore.saveFile(filePath, document.value, options);
+    const effectiveContent = await this.#filesStore.saveFile(filePath, document.value, options);
+
+    if (binding !== this.#projectStorageBinding) {
+      return undefined;
+    }
 
     if (binding === this.#projectStorageBinding) {
       this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
@@ -2481,10 +2492,13 @@ export class WorkbenchStore {
 
     this.unsavedFiles.set(newUnsavedFiles);
 
-    // Append a File History version for this human save (deduped if unchanged).
-    void fileHistoryStore.capture(filePath, document.value, 'save');
+    // Agent saves publish history and applied events only after read-back confirms the payload.
+    if (!this.#enregistrementsDeLAgent.has(filePath)) {
+      void fileHistoryStore.capture(filePath, effectiveContent, 'save');
+      this.#emitFileApplied(filePath, 'user');
+    }
 
-    this.#emitFileApplied(filePath, 'user');
+    return effectiveContent;
   }
 
   async writeFileContent(filePath: string, content: string) {
@@ -2681,6 +2695,13 @@ export class WorkbenchStore {
       return 'ignored';
     }
 
+    const runtime = this.#runtime;
+    const projectId = this.#projectId;
+    const binding = this.#projectStorageBinding;
+
+    const scopeIsCurrent = () =>
+      this.#runtime === runtime && this.#projectId === projectId && this.#projectStorageBinding === binding;
+
     const acceptedIds = acceptedHunkIds?.length ? acceptedHunkIds : proposal.hunks.map((hunk) => hunk.id);
 
     if (!acceptedIds.length) {
@@ -2744,6 +2765,12 @@ export class WorkbenchStore {
         await new Promise((resolve) => setTimeout(resolve, backoffMs));
       }
 
+      if (!scopeIsCurrent()) {
+        return 'ignored';
+      }
+
+      let applyStage: AgentPatchApplyStage = 'diff';
+
       try {
         let acceptedContent = applyReviewableDiffHunks({
           originalContent: proposal.originalContent,
@@ -2751,9 +2778,15 @@ export class WorkbenchStore {
           acceptedHunkIds: acceptedIds,
         });
 
+        applyStage = 'validation';
+
         try {
           await this.#validateAgentPatchProposal(proposal, acceptedContent);
         } catch (validationError) {
+          if (!scopeIsCurrent()) {
+            return 'ignored';
+          }
+
           /*
            * The hunk-applied content failed validation. Recover where possible
            * instead of hard-failing (and repeatedly toasting "Couldn't apply …"):
@@ -2775,10 +2808,15 @@ export class WorkbenchStore {
             },
             {
               validate: (content) => this.#validateAgentPatchProposal(proposal, content),
-              mergeJson: mergeJsonContent,
+              mergeJson: (current, proposed) =>
+                mergeJsonContent(current, proposed, { jsonc: isJsoncFile(proposal.relativePath) }),
               scaffoldPackageJson: () =>
                 `${JSON.stringify({ name: 'app', private: true, version: '0.0.0', type: 'module' }, null, 2)}\n`,
-              onLog: (message) => this.appendWorkspaceLog(message),
+              onLog: (message) => {
+                if (scopeIsCurrent()) {
+                  this.appendWorkspaceLog(message);
+                }
+              },
             },
           );
         }
@@ -2788,8 +2826,13 @@ export class WorkbenchStore {
          * multi-agent lane's changes (package.json deps, the entry index.html)
          * aren't clobbered. Under #agentPatchApplyMutex this observes the previous
          * same-path lane's applied result; JSON unions both edits, other files keep
-         * ours (coherent last-write-wins). Both writes below then emit this result.
+         * ours (coherent last-write-wins). The write path below returns the payload
+         * actually saved, which must be read back before acceptance.
          */
+        if (!scopeIsCurrent()) {
+          return 'ignored';
+        }
+
         const freshBeforeWrite = this.#filesStore.getFile(proposal.filePath)?.content;
 
         /*
@@ -2847,6 +2890,11 @@ export class WorkbenchStore {
           }
         }
 
+        applyStage = 'save';
+
+        let writtenContent: string;
+        acceptedContent = sanitizeFileContent(acceptedContent, proposal.relativePath).sanitized;
+
         const fileExistsInEditor = Boolean(this.#editorStore.documents.get()[proposal.filePath]);
 
         if (fileExistsInEditor) {
@@ -2860,21 +2908,58 @@ export class WorkbenchStore {
           this.#enregistrementsDeLAgent.add(proposal.filePath);
 
           try {
-            await this.saveFile(proposal.filePath, { onRemoteConflict: 'reconcile' });
+            const saved = await this.saveFile(proposal.filePath, { onRemoteConflict: 'reconcile' });
+
+            if (!scopeIsCurrent()) {
+              return 'ignored';
+            }
+
+            if (saved === undefined) {
+              throw Object.assign(new Error(), { code: 'AGENT_WRITE_NOT_CONFIRMED' });
+            }
+
+            writtenContent = saved;
           } finally {
-            this.#enregistrementsDeLAgent.delete(proposal.filePath);
+            if (scopeIsCurrent()) {
+              this.#enregistrementsDeLAgent.delete(proposal.filePath);
+            }
           }
+        } else {
+          applyStage = 'runtime';
+          writtenContent = await writeAcceptedAgentFile(runtime, proposal.relativePath, acceptedContent);
         }
 
-        const artifact = this.#getArtifact(proposal.artifactId);
+        if (!scopeIsCurrent()) {
+          return 'ignored';
+        }
 
-        await writeAcceptedAgentFile(this.#runtime, proposal.relativePath, acceptedContent);
+        acceptedContent = writtenContent;
+
+        const artifact = this.#getArtifact(proposal.artifactId);
+        applyStage = 'confirmation';
+
+        const confirmed = await confirmAcceptedAgentFile(runtime, proposal.relativePath, writtenContent);
+
+        if (!scopeIsCurrent()) {
+          return 'ignored';
+        }
+
+        if (!confirmed) {
+          throw Object.assign(new Error(), { code: 'AGENT_WRITE_NOT_CONFIRMED' });
+        }
+
         artifact?.runner.skipAction(proposal.actionId);
 
         if (!fileExistsInEditor) {
           await this.loadRuntimeFiles('.').catch(() => {
-            this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.refreshSkipped'));
+            if (scopeIsCurrent()) {
+              this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.refreshSkipped'));
+            }
           });
+        }
+
+        if (!scopeIsCurrent()) {
+          return 'ignored';
         }
 
         this.#agentPatchOriginals.delete(proposal.actionId);
@@ -2888,6 +2973,7 @@ export class WorkbenchStore {
           updatedAt: new Date().toISOString(),
         });
         this.#syncAgentPatchProposalToServer(proposalId);
+        void fileHistoryStore.capture(proposal.filePath, writtenContent, 'agent');
         this.#emitFileApplied(proposal.relativePath, 'agent', {
           artifactId: proposal.artifactId,
           actionId: proposal.actionId,
@@ -2901,12 +2987,24 @@ export class WorkbenchStore {
         await this.#createProjectAgentCheckpoint(
           workbenchText('workbenchRuntime.patch.checkpointLabel', { file: proposal.relativePath }),
         ).catch(() => {
-          this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.checkpointSkipped'));
+          if (scopeIsCurrent()) {
+            this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.checkpointSkipped'));
+          }
         });
 
         return 'accepted';
-      } catch {
-        const message = workbenchText('workbenchRuntime.patch.applyFailed');
+      } catch (error) {
+        if (!scopeIsCurrent()) {
+          return 'ignored';
+        }
+
+        const diagnostic = describeAgentPatchFailure(error, applyStage);
+
+        const message = workbenchText('workbenchRuntime.patch.failureDetail', {
+          stage: workbenchText(diagnostic.stageKey),
+          reason: workbenchText(diagnostic.reasonKey),
+        });
+        this.#getArtifact(proposal.artifactId)?.runner.failAction(proposal.actionId, message);
         this.agentPatchProposals.setKey(proposalId, {
           ...proposal,
           status: 'failed',
@@ -2916,7 +3014,9 @@ export class WorkbenchStore {
         this.#syncAgentPatchProposalToServer(proposalId);
         this.#agentPatchFloodGuard.recordFailure(proposal.relativePath);
         this.#maybeRunDeferredStart(proposal.artifactId);
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.failedLog', { file: proposal.relativePath }));
+        this.appendWorkspaceLog(
+          `${workbenchText('workbenchRuntime.patch.failedLog', { file: proposal.relativePath })} ${message}`,
+        );
 
         return 'failed';
       }
@@ -4027,23 +4127,21 @@ export class WorkbenchStore {
   /**
    * Launch the tracked dev-server start that was skipped while the artifact's
    * review queue was open. Runs at most once per artifact and only when no
-   * proposal for the artifact is still pending/applying; startPreviewServer
-   * itself is guarded/idempotent (in-flight promise + reattach short-circuit).
-   *
-   * NOTE: this deliberately does NOT reuse #hasOpenAgentPatchProposalsForArtifact
-   * — that predicate (via isTerminalAgentPatchStatus) treats a 'failed'
-   * proposal as still open, which is exactly how a failing patch used to
-   * starve the start command FOREVER. A failed proposal must not keep the dev
-   * server from launching.
+   * proposal for the artifact is still pending, applying or failed.
+   * A failed proposal remains blocking until it is accepted successfully or
+   * explicitly rejected; a failed write is not a decision to omit that file.
+   * startPreviewServer itself is guarded/idempotent (in-flight promise +
+   * reattach short-circuit).
    */
   #maybeRunDeferredStart(artifactId: string) {
-    if (!this.#deferredStartArtifacts.has(artifactId)) {
+    if (!this.#deferredStartArtifacts.has(artifactId) && !this.#deferredRefreshArtifacts.has(artifactId)) {
       return;
     }
 
     const stillBlocking = Object.values(this.agentPatchProposals.get()).some(
       (proposal) =>
-        proposal.artifactId === artifactId && (proposal.status === 'pending' || proposal.status === 'applying'),
+        proposal.artifactId === artifactId &&
+        (proposal.status === 'pending' || proposal.status === 'applying' || proposal.status === 'failed'),
     );
 
     if (stillBlocking) {
@@ -4052,7 +4150,11 @@ export class WorkbenchStore {
 
     this.#deferredStartArtifacts.delete(artifactId);
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.deferredStartLog'));
-    void this.startPreviewServer().catch(() => {
+
+    const refresh = this.#deferredRefreshArtifacts.delete(artifactId);
+    void (
+      refresh ? this.#refreshPreviewAfterArtifactClose(artifactId, { enregistrer: false }) : this.startPreviewServer()
+    ).catch(() => {
       this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.startFailed'));
     });
   }
@@ -4085,6 +4187,14 @@ export class WorkbenchStore {
      */
     if (enregistrer) {
       await this.#persistRuntimeFilesToProjectStorage(artifactId);
+    }
+
+    // Persist first, but never restart over unresolved or failed file changes.
+    if (this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
+      this.#deferredRefreshArtifacts.add(artifactId);
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.previewBlocked'));
+
+      return;
     }
 
     if (!(await this.#validateWorkspaceImportsAfterArtifactClose(artifactId))) {

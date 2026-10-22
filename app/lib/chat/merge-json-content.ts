@@ -1,3 +1,5 @@
+import { parseJsonc } from '~/utils/jsonc';
+
 /**
  * Tolerant merge for a JSON file edit (e.g. package.json) used as a FALLBACK when
  * a patch proposal's content fails to apply/validate cleanly.
@@ -177,7 +179,34 @@ export function repairTruncatedJson(text: string): string | undefined {
   return undefined;
 }
 
-export function mergeJsonContent(currentText: string, proposedText: string): string | undefined {
+export function mergeJsonContent(
+  currentText: string,
+  proposedText: string,
+  options: { jsonc?: boolean } = {},
+): string | undefined {
+  if (options.jsonc) {
+    /*
+     * A valid JSONC proposal must be parsed in full before considering recovery.
+     * The strict prefix repair discarded every option after the first comment.
+     * Invalid JSONC is not repaired into a partial success or an unchanged stub.
+     */
+    try {
+      const proposed = parseJsonc(proposedText) as JsonValue;
+
+      let current: JsonValue | undefined;
+
+      try {
+        current = parseJsonc(currentText) as JsonValue;
+      } catch {
+        current = undefined;
+      }
+
+      return `${JSON.stringify(current === undefined ? proposed : deepMerge(current, proposed), null, 2)}\n`;
+    } catch {
+      return undefined;
+    }
+  }
+
   const proposed = tryParse(proposedText);
 
   if (proposed !== undefined) {

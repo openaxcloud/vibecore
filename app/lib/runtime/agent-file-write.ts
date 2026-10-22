@@ -1,5 +1,6 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 
+import { confirmWriteWithinDeadline } from './confirm-write';
 import { path } from '~/utils/path';
 import { sanitizeFileContent } from '~/utils/sanitize-file-content';
 
@@ -27,7 +28,7 @@ export async function writeAcceptedAgentFile(
   runtime: AgentFileWriteRuntime,
   relativePath: string,
   content: string,
-): Promise<void> {
+): Promise<string> {
   const folder = path.dirname(relativePath).replace(/\/+$/g, '');
 
   if (folder && folder !== '.') {
@@ -37,4 +38,27 @@ export async function writeAcceptedAgentFile(
   const sanitized = sanitizeFileContent(content, relativePath);
 
   await runtime.writeFile(relativePath, sanitized.sanitized);
+
+  return sanitized.sanitized;
+}
+
+/**
+ * Confirm the exact sanitized payload, not just a readable old stub. A single
+ * read retry is safe; no write is replayed when the first result is uncertain.
+ */
+export async function confirmAcceptedAgentFile(
+  runtime: Pick<RuntimeAdapter, 'readFile'>,
+  relativePath: string,
+  expectedContent: string,
+): Promise<boolean> {
+  const result = await confirmWriteWithinDeadline(async () => {
+    const read = () => runtime.readFile(relativePath);
+    const actual = await read().catch(() => read());
+
+    if (actual.content !== expectedContent) {
+      throw Object.assign(new Error(), { code: 'AGENT_WRITE_NOT_CONFIRMED' });
+    }
+  });
+
+  return result === 'confirmed';
 }

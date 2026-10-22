@@ -104,6 +104,7 @@ export function shouldPreserveHydratedTree(currentFileCount: number, incomingFil
 
 export class FilesStore {
   #runtime: RuntimeAdapter;
+  #runtimeBinding = 0;
 
   /**
    * Tracks the number of files without folders.
@@ -198,6 +199,7 @@ export class FilesStore {
   }
 
   setRuntime(runtime: RuntimeAdapter) {
+    this.#runtimeBinding++;
     this.#runtime = runtime;
     this.#stopWatchingFiles?.();
     this.#stopWatchingFiles = undefined;
@@ -895,12 +897,17 @@ export class FilesStore {
      */
     const previous = this.#saveQueues.get(filePath) ?? Promise.resolve();
 
-    const run = previous.catch(() => undefined).then(() => this.#saveFileImpl(filePath, content, options));
+    const runtime = this.#runtime;
+    const binding = this.#runtimeBinding;
+
+    const run = previous
+      .catch(() => undefined)
+      .then(() => this.#saveFileImpl(filePath, content, options, runtime, binding));
 
     this.#saveQueues.set(filePath, run);
 
     try {
-      await run;
+      return await run;
     } finally {
       if (this.#saveQueues.get(filePath) === run) {
         this.#saveQueues.delete(filePath);
@@ -908,7 +915,22 @@ export class FilesStore {
     }
   }
 
-  async #saveFileImpl(filePath: string, content: string, options?: SaveFileOptions) {
+  async #saveFileImpl(
+    filePath: string,
+    content: string,
+    options: SaveFileOptions | undefined,
+    runtime: RuntimeAdapter,
+    binding: number,
+  ) {
+    const scopeIsCurrent = () => this.#runtime === runtime && this.#runtimeBinding === binding;
+
+    const assertScope = () => {
+      if (!scopeIsCurrent()) {
+        throw Object.assign(new Error(), { code: 'FILE_SAVE_SCOPE_CHANGED' });
+      }
+    };
+    assertScope();
+
     const currentFile = this.files.get()[filePath];
     const optimisticPreviousFile = currentFile;
 
@@ -954,7 +976,7 @@ export class FilesStore {
         lockedByFolder: currentFile?.type === 'file' ? currentFile.lockedByFolder : undefined,
       });
 
-      if (this.#runtime.mode === 'remote-kubernetes') {
+      if (runtime.mode === 'remote-kubernetes') {
         /*
          * BUG-CREATE-011 — la relecture de contrôle repliait sur `oldContent`
          * quand elle échouait :
@@ -974,15 +996,17 @@ export class FilesStore {
          * on refuse d'écrire plutôt que de risquer d'écraser.
          */
         const lireDistant = () =>
-          this.#runtime
+          runtime
             .readFile(relativePath)
             .then((result) => ({ lu: true as const, content: result.content }))
             .catch(() => ({ lu: false as const, content: undefined }));
 
         let lecture = await lireDistant();
+        assertScope();
 
         if (!lecture.lu) {
           lecture = await lireDistant();
+          assertScope();
         }
 
         if (!lecture.lu) {
@@ -1037,15 +1061,22 @@ export class FilesStore {
         }
       }
 
-      await this.#runtime.writeFile(relativePath, effectiveContent);
+      assertScope();
+      await runtime.writeFile(relativePath, effectiveContent);
+      assertScope();
 
       if (!this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.set(filePath, baselineContent);
       }
 
       logger.info('File updated');
+
+      return effectiveContent;
     } catch (error) {
-      this.files.setKey(filePath, optimisticPreviousFile);
+      if (scopeIsCurrent()) {
+        this.files.setKey(filePath, optimisticPreviousFile);
+      }
+
       logger.error('Failed to update file content\n\n', error);
 
       throw error;
