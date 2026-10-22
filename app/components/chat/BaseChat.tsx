@@ -282,7 +282,7 @@ import {
 } from '~/lib/persistence/projectIdeMemory';
 import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
-import { useNavigate, useNavigation, useSearchParams } from 'react-router';
+import { useLocation, useNavigate, useNavigation, useSearchParams } from 'react-router';
 import {
   isMobileWorkbenchPanel,
   resolveMobileWorkbenchPanel,
@@ -2622,6 +2622,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
+    const projectLocation = useLocation();
+
+    const appliedMoveNavigationId = (projectLocation.state as { projectEditorMoveNavigationId?: string } | null)
+      ?.projectEditorMoveNavigationId;
+
     const panelNavigation = useNavigation();
     const panelNavigationRef = useRef(panelNavigation);
     panelNavigationRef.current = panelNavigation;
@@ -4401,10 +4406,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       panel: IdeWorkspacePanel;
       tabId: string;
       targetPaneId: string;
+      navigationId: string;
     } | null>(null);
 
     const setProjectPanelSearchParam = useCallback(
-      (panel?: string) => {
+      (panel?: string, moveNavigationId?: string) => {
         /*
          * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — re-cliquer le panneau DÉJÀ
          * ACTIF ne doit déclencher AUCUNE navigation. setSearchParams avec une
@@ -4422,10 +4428,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           typeof window !== 'undefined' &&
           isRedundantPanelNavigation(window.location, panel, panelNavigationRef.current.location)
         ) {
-          return;
+          const pendingMoveId = panelNavigationRef.current.location?.state?.projectEditorMoveNavigationId;
+
+          return moveNavigationId && typeof pendingMoveId === 'string' ? pendingMoveId : false;
         }
 
-        setSearchParams((current) => withPanelSearchParam(current, panel));
+        setSearchParams(
+          (current) => withPanelSearchParam(current, panel),
+          moveNavigationId ? { state: { projectEditorMoveNavigationId: moveNavigationId } } : undefined,
+        );
+
+        return moveNavigationId ?? true;
       },
       [setSearchParams],
     );
@@ -6596,6 +6609,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (
         !useMobileIde &&
+        appliedPanelUrl?.navigationId === appliedMoveNavigationId &&
         appliedPanelUrl?.projectId === projectId &&
         appliedPanelUrl?.workspaceId === currentWorkspaceId &&
         appliedPanelUrl?.windowId === projectEditorWindowId &&
@@ -6645,6 +6659,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [
       activeProjectPanel,
+      appliedMoveNavigationId,
       currentWorkspaceId,
       openWorkspacePanel,
       projectEditorWindowId,
@@ -8744,7 +8759,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * Moving has already applied this selection. Its URL update must not
          * reopen the moved tab in the pane that regains menu focus.
          */
+        const navigationId =
+          typeof crypto !== 'undefined' && 'randomUUID' in crypto
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
         appliedWorkspacePanelUrlRef.current = {
+          navigationId,
           projectId,
           workspaceId: currentWorkspaceId,
           windowId: projectEditorWindowId,
@@ -8754,7 +8775,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         };
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
-        setProjectPanelSearchParam(sourceTab.panel);
+
+        const requestedNavigationId = setProjectPanelSearchParam(sourceTab.panel, navigationId);
+
+        if (typeof requestedNavigationId === 'string') {
+          appliedWorkspacePanelUrlRef.current.navigationId = requestedNavigationId;
+        } else {
+          appliedWorkspacePanelUrlRef.current = null;
+        }
       },
       [
         applyProjectEditorWindowOp,
