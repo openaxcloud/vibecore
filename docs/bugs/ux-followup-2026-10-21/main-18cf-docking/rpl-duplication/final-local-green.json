@@ -1,0 +1,58 @@
+{
+  "stage": "final-local-green",
+  "localSourceReport": "rpl-final/results.json",
+  "sourceReportSha256": "46c1d7979fe7118284564088d4f10397334cc32280211c3fe65b4a3f055a8935",
+  "stats": {
+    "startTime": "2026-10-22T07:01:59.025Z",
+    "duration": 26485.824,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12832,
+          "retry": 0
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12699,
+          "retry": 0
+        }
+      ]
+    }
+  ],
+  "sourceManifest": {
+    "localPath": "final-rpl/sources.json",
+    "sha256": "55a9d1f8b0cb53a0fdeae3103b1a5c954d0fd2ca8447afdc3f02c1164a024841"
+  },
+  "reviewedSources": {
+    "tests/e2e/rpl-ide-panels-proof.spec.ts": "8ba616c2b49298409cb3bb3d4339c2c2a20adf632721394443b36cbff07fa32f",
+    "app/components/chat/BaseChat.tsx": "05f936cf00bd62c3a2930c72a142b6cb7ce4f62bdfc2ba9a86cdfdd8ac79ad1d"
+  },
+  "assertions": [
+    "Opening the source pane menu does not add a URL tool",
+    "Move preserves total tab count and existing tab identities",
+    "Tab distribution changes",
+    "Explicit Terminal request selects Terminal in the most recently focused pane",
+    "Navigation to ?panel=git selects exactly one Git tab"
+  ],
+  "limits": [
+    "Local browser proof only; no CI or production claim",
+    "Terminal tab selection is not terminal execution",
+    "Git tab selection is not completed Git status loading",
+    "Does not certify layout persistence across reload"
+  ]
+}

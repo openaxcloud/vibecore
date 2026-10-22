@@ -471,6 +471,27 @@ describe('project storage hydration after returning to the IDE', () => {
     expect(store.filesHydrated.get()).toBe(false);
   });
 
+  it('updates an inactive pane document without editing the globally selected file', async () => {
+    const { store } = setup();
+    const otherPath = '/home/project/other.txt';
+    stubArchive(async () => {
+      const zip = new JSZip();
+      zip.file('audit.txt', 'saved audit');
+      zip.file('other.txt', 'saved other');
+
+      return new Response(JSON.stringify({ archive: { base64: await zip.generateAsync({ type: 'base64' }) } }));
+    });
+    await store.loadProjectStorageFiles();
+    store.setSelectedFile(otherPath);
+    store.setDocumentContent(path, 'audit draft');
+    expect(store.currentDocument.get()?.value).toBe('saved other');
+    expect(store.documents.get()[path]?.value).toBe('audit draft');
+    expect([...store.unsavedFiles.get()]).toEqual([path]);
+    store.setDocumentContent(path, 'saved audit');
+    expect(store.unsavedFiles.get().size).toBe(0);
+    expect(store.selectedFile.get()).toBe(otherPath);
+  });
+
   it('preserves a dirty editor document when a subsequent archive is older', async () => {
     const { store } = setup();
     const downloads = stubArchive(() => archive('old persisted content'));

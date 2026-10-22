@@ -1,0 +1,24 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T17:46:31.403Z",
+    "duration": 4339.396000000001,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "le rail liste les tables, les en-têtes portent leur type, la page est annoncée",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3254
+        }
+      ]
+    }
+  ]
+}

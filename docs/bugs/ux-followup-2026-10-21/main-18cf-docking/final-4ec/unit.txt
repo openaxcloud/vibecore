@@ -1,0 +1,667 @@
+
+ RUN  v3.2.6 <checkout>
+
+ ✓ scripts/index-a-jour.spec.mjs (6 tests) 16ms
+ ✓ app/components/ui/Dialog.escape.spec.tsx (3 tests) 187ms
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts
+INFO LLMManager Registering Provider:  Anthropic
+INFO LLMManager Registering Provider:  Cerebras
+INFO LLMManager Registering Provider:  Cohere
+INFO LLMManager Registering Provider:  Deepseek
+INFO LLMManager Registering Provider:  Fireworks
+INFO LLMManager Registering Provider:  Google
+INFO LLMManager Registering Provider:  Groq
+INFO LLMManager Registering Provider:  HuggingFace
+INFO LLMManager Registering Provider:  Hyperbolic
+INFO LLMManager Registering Provider:  Mistral
+INFO LLMManager Registering Provider:  Moonshot
+INFO LLMManager Registering Provider:  Ollama
+INFO LLMManager Registering Provider:  OpenAI
+INFO LLMManager Registering Provider:  OpenRouter
+INFO LLMManager Registering Provider:  OpenAILike
+INFO LLMManager Registering Provider:  Perplexity
+INFO LLMManager Registering Provider:  xAI
+INFO LLMManager Registering Provider:  Together
+INFO LLMManager Registering Provider:  LMStudio
+INFO LLMManager Registering Provider:  AmazonBedrock
+INFO LLMManager Registering Provider:  Github
+INFO LLMManager Registering Provider:  Z.ai
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts
+INFO Debug logger initialized
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > reads independent entries concurrently with a bounded working set and preserves archive order
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > reads independent entries concurrently with a bounded working set and preserves archive order
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > reads independent entries concurrently with a bounded working set and preserves archive order
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > keeps binary bytes and Unicode text from a real archive while skipping directories
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > keeps binary bytes and Unicode text from a real archive while skipping directories
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > keeps binary bytes and Unicode text from a real archive while skipping directories
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > leaves the existing documents intact when one archive entry cannot be decoded
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > leaves the existing documents intact when one archive entry cannot be decoded
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > leaves the existing documents intact when one archive entry cannot be decoded
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > protects writes made after early transport starts and still fetches fresh data on a later reload
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > protects writes made after early transport starts and still fetches fresh data on a later reload
+INFO FilesStore File created: /home/project/audit.txt
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > protects writes made after early transport starts and still fetches fresh data on a later reload
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > protects writes made after early transport starts and still fetches fresh data on a later reload
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > rehydrates after a runtime rebind before the former 30-second cooldown expires
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > rehydrates after a runtime rebind before the former 30-second cooldown expires
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > rehydrates after a runtime rebind before the former 30-second cooldown expires
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > rehydrates after a runtime rebind before the former 30-second cooldown expires
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > rehydrates after a runtime rebind before the former 30-second cooldown expires
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > still downloads one archive for concurrent callers
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > still downloads one archive for concurrent callers
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > still downloads one archive for concurrent callers
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > hydrates both store instances sharing a project and binding during concurrent requests
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > hydrates both store instances sharing a project and binding during concurrent requests
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > hydrates both store instances sharing a project and binding during concurrent requests
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > hydrates both store instances sharing a project and binding during concurrent requests
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a file created through the public API during archive hydration: "created during request"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a file created through the public API during archive hydration: "created during request"
+INFO FilesStore File created: /home/project/created.txt
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a file created through the public API during archive hydration: "created during request"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a file created through the public API during archive hydration: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a file created through the public API during archive hydration: ""
+INFO FilesStore File created: /home/project/created.txt
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a file created through the public API during archive hydration: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=false
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=false
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=false
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=false
+INFO FilesStore File created: /home/project/audit.txt
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=false
+INFO FilesStore File deleted: /home/project/audit.txt
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=false
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=true
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=true
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=true
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=true
+INFO FilesStore File created: /home/project/audit.txt
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=true
+INFO FilesStore File deleted: /home/project/audit.txt
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=true
+INFO FilesStore File created: /home/project/audit.txt
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > respects a public deletion during a delayed archive, with recreation=true
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > retries an empty archive and an HTTP failure without caching either result
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > retries an empty archive and an HTTP failure without caching either result
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > retries an empty archive and an HTTP failure without caching either result
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not hydrate project B with the late archive from project A
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not hydrate project B with the late archive from project A
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > updates an inactive pane document without editing the globally selected file
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > updates an inactive pane document without editing the globally selected file
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > updates an inactive pane document without editing the globally selected file
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a dirty editor document when a subsequent archive is older
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a dirty editor document when a subsequent archive is older
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a dirty editor document when a subsequent archive is older
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a dirty editor document when a subsequent archive is older
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: "new saved content"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: "new saved content"
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: "new saved content"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: "new saved content"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: "new saved content"
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: "new saved content"
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: "new saved content"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: ""
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: ""
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: ""
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > preserves a concurrent successful save over a delayed archive: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: "new before request"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: "new before request"
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: "new before request"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: "new before request"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: "new before request"
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: "new before request"
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: ""
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: ""
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > adopts a later external archive after a successful local save: ""
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > hydrates a contentless listing rather than treating it as a saved empty file
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > hydrates a contentless listing rather than treating it as a saved empty file
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > hydrates a contentless listing rather than treating it as a saved empty file
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > uses a fresh flight after a runtime rebind and rejects the old archive
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > uses a fresh flight after a runtime rebind and rejects the old archive
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > uses a fresh flight after a runtime rebind and rejects the old archive
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not resurrect a saved file deleted while an archive was delayed
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not resurrect a saved file deleted while an archive was delayed
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not resurrect a saved file deleted while an archive was delayed
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not resurrect a saved file deleted while an archive was delayed
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not resurrect a saved file deleted while an archive was delayed
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > measures the pre-existing loss of a draft when the provider resets documents on rebind
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > measures the pre-existing loss of a draft when the provider resets documents on rebind
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > measures the pre-existing loss of a draft when the provider resets documents on rebind
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > measures the pre-existing loss of a draft when the provider resets documents on rebind
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: archive-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: archive-first
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: archive-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: archive-first
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: archive-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: archive-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: archive-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: transcript-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: transcript-first
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: transcript-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: transcript-first
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: transcript-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: transcript-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not replay old conversation content over the saved archive: transcript-first
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not carry saved-path protection into another project
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not carry saved-path protection into another project
+DEBUG LockedFiles Cleared locked items cache
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not carry saved-path protection into another project
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not carry saved-path protection into another project
+INFO FilesStore File updated
+
+stdout | app/lib/stores/workbench.project-storage-return.spec.ts > project storage hydration after returning to the IDE > does not carry saved-path protection into another project
+DEBUG LockedFiles Cleared locked items cache
+INFO FilesStore Found 0 locked files and 0 locked folders for chat ID: default
+INFO FilesStore Loaded locked items in 0ms
+
+ ✓ app/lib/stores/workbench.project-storage-return.spec.ts (26 tests) 240ms
+
+ Test Files  3 passed (3)
+      Tests  35 passed (35)
+   Start at  06:03:51
+   Duration  3.46s (transform 1.78s, setup 56ms, collect 1.72s, tests 443ms, environment 568ms, prepare 154ms)
+

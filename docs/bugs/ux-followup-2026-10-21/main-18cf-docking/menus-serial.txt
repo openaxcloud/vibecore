@@ -1,0 +1,56 @@
+
+Running 12 tests using 1 worker
+
+(node:28319) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28319) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (3.0s)
+  ✓   2 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (4.5s)
+  ✓   3 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (3.2s)
+  ✓   4 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (4.7s)
+(node:29165) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29165) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (3.0s)
+  ✓   6 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (2.9s)
+  ✓   7 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (2.8s)
+  ✓   8 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (3.1s)
+(node:29932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29932) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (2.9s)
+  ✘  10 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (30.0s)
+(node:30335) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:30335) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (2.8s)
+  ✓  12 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (2.9s)
+
+
+  1) [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.waitFor: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('.bolt-user-message-bubble').filter({ hasText: 'Synthetic menu accessibility audit' }).first() to be visible
+
+
+      178 |     await expect(page.locator('html')).toHaveAttribute('data-theme', newTheme);
+      179 |     await page.reload();
+    > 180 |     await page.locator('.bolt-user-message-bubble').filter({ hasText: transcriptMarker }).first().waitFor();
+          |                                                                                                   ^
+      181 |     await expect(page.locator('html')).toHaveAttribute('data-theme', newTheme);
+      182 |     await trigger.click();
+      183 |
+        at tests/e2e/agent-header-menu-keyboard.spec.ts:180:99
+
+    Error Context: ../ux-artifacts/followup-759-760/main18cf-docking/menus-serial/results/agent-header-menu-keyboard-2592a-s-and-theme-persistence-en--mobile/error-context.md
+
+  1 failed
+    [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) 
+  11 passed (1.2m)

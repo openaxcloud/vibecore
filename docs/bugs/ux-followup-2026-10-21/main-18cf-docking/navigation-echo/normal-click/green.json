@@ -1,0 +1,115 @@
+{
+  "sourceCommit": "edb558bc326be7075ce042beeea25685a0e8864f",
+  "sourceReport": "final-navigation-complete/rpl/results.json",
+  "sourceReportSha256": "aad6ed2ab8fd198394e773b86adf1e0fb115beb424ef49cea8770b66dd57dcf5",
+  "stats": {
+    "startTime": "2026-10-22T08:43:35.074Z",
+    "duration": 73121.275,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 14931
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 14792
+        }
+      ]
+    },
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5699
+        }
+      ]
+    },
+    {
+      "title": "redundant move preserves real browser Back and Forward selection",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5703
+        }
+      ]
+    },
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6214
+        }
+      ]
+    },
+    {
+      "title": "closing destination pane cannot swallow a later browser Back request",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6905
+        }
+      ]
+    },
+    {
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5507
+        }
+      ]
+    },
+    {
+      "title": "normal click navigation followed by a move preserves tab identities",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5194
+        }
+      ]
+    },
+    {
+      "title": "an interrupted Back move cannot swallow a later Back to the same history entry",
+      "project": "chromium",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6890
+        }
+      ]
+    }
+  ],
+  "scope": "Local compiled build only. POP cancellation was already green on the baseline; it protects the new router-key mechanism."
+}

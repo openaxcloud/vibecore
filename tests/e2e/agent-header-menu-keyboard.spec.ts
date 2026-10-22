@@ -29,12 +29,16 @@ async function seedTranscript(request: APIRequestContext, projectId: string, tok
   expect(state.ok()).toBe(true);
 }
 
-async function projectSession(context: BrowserContext, request: APIRequestContext) {
+async function projectSession(context: BrowserContext, request: APIRequestContext, language: string) {
   if (process.env.UX_QA_SESSION_FILE) {
     // A session-only synthetic identity in the dedicated local PostgreSQL fixture.
     expect(new URL(baseURL).hostname).toBe('127.0.0.1');
+    expect(new URL(apiURL).hostname).toBe('127.0.0.1');
 
-    const fixture = JSON.parse(await readFile(process.env.UX_QA_SESSION_FILE, 'utf8'));
+    const fixtures = JSON.parse(await readFile(process.env.UX_QA_SESSION_FILE, 'utf8'));
+    const width = test.info().project.use.viewport?.width ?? 1440;
+    const profile = width >= 1200 ? 'desktop' : width >= 600 ? 'tablet' : 'mobile';
+    const fixture = fixtures.cases?.[`${profile}-${language}`] ?? fixtures;
     await context.addCookies(fixture.cookies);
     await seedTranscript(
       request,
@@ -74,7 +78,7 @@ async function projectSession(context: BrowserContext, request: APIRequestContex
 
 for (const language of ['en', 'fr'] as const) {
   test(`agent menu keyboard and compact navigation (${language})`, async ({ page, context, request }, testInfo) => {
-    const projectId = await projectSession(context, request);
+    const projectId = await projectSession(context, request, language);
     await context.addCookies([{ name: 'vibecore-lang', value: language, url: baseURL }]);
     await page.goto(`/projects/${projectId}/ide?panel=agent&lang=${language}`);
 
@@ -107,6 +111,7 @@ for (const language of ['en', 'fr'] as const) {
       await expect(agent).toHaveAttribute('aria-pressed', 'true');
       await expect(options).toBeVisible();
       await expect(agent).toBeVisible();
+
       // A tap animates scale; measure the settled control with the same 44px requirement.
       await expect(agent).toHaveCSS('transform', 'none');
       expect(await agent.evaluate((element) => element.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
@@ -146,7 +151,7 @@ for (const language of ['en', 'fr'] as const) {
   });
 
   test(`agent menu actions and theme persistence (${language})`, async ({ page, context, request }) => {
-    const projectId = await projectSession(context, request);
+    const projectId = await projectSession(context, request, language);
     await context.addCookies([{ name: 'vibecore-lang', value: language, url: baseURL }]);
     await page.goto(`/projects/${projectId}/ide?panel=agent&lang=${language}`);
     await page.locator('.bolt-user-message-bubble').filter({ hasText: transcriptMarker }).first().waitFor();

@@ -1,0 +1,27 @@
+[
+  {
+    "manifest": "sources.json",
+    "tree": "28950fd0b8dd0515656dc264a156295cac922d65",
+    "entries": 9229,
+    "mismatches": []
+  },
+  {
+    "manifest": "final-4ec/sources.json",
+    "tree": "7309a7d2335826234a172dd39a7a183f3b434aa3",
+    "entries": 9229,
+    "mismatches": []
+  },
+  {
+    "manifest": "compiled.json",
+    "archiveSha256": "f6b5d027e7c2a462aa5ca382574d70bbfa11b178932074a7ad5c2601c04986a7",
+    "entries": 2306,
+    "mismatches": [],
+    "archivePathMapping": "build/ + manifest path"
+  },
+  {
+    "manifest": "final-4ec/compiled.json",
+    "archiveSha256": "ddcd52ee7dd805b7c996081711c6a55a9c1dbc8ef1fa407eb7216aef740eb833",
+    "entries": 2306,
+    "mismatches": []
+  }
+]

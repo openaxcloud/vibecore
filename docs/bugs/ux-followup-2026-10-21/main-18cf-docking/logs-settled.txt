@@ -1,0 +1,30 @@
+
+Running 5 tests using 1 worker
+
+(node:15305) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15305) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1611:3 › chrome de l’IDE sur téléphone — 390 › Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment (3.6s)
+(node:15574) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:15574) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1611:3 › chrome de l’IDE sur téléphone — 390 › Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment (3.2s)
+(node:16023) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16023) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1611:3 › chrome de l’IDE sur téléphone — 390 › Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment (4.2s)
+(node:16380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1611:3 › chrome de l’IDE sur téléphone — 390 › Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment (3.3s)
+(node:16649) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:16649) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  5 [chromium] › tests/e2e/ide-mobile-chrome.spec.ts:1611:3 › chrome de l’IDE sur téléphone — 390 › Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment (3.4s)
+
+  5 passed (22.5s)

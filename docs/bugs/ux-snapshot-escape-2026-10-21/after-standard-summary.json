@@ -1,0 +1,132 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T15:29:31.539Z",
+    "duration": 106846.589,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 13628
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 10340
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 11636
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8887
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 9879
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8221
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 9025
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8229
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (en)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8198
+        }
+      ]
+    },
+    {
+      "title": "snapshot cancellation preserves keyboard position (fr)",
+      "project": "chromium",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8167
+        }
+      ]
+    }
+  ]
+}

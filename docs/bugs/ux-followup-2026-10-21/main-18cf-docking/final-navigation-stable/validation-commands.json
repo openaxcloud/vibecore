@@ -1,0 +1,26 @@
+{
+  "build": {
+    "command": "PATH=/tmp/ux763-bin:$PATH pnpm run build",
+    "pnpm": "9.14.4",
+    "exitCode": 0
+  },
+  "preliminaryWrongPnpm": {
+    "exitCode": 1,
+    "stage": "before compilation",
+    "reason": "system pnpm failed to create its unavailable cache directory; no dependency change"
+  },
+  "unit": {
+    "command": "pnpm exec vitest run app/lib/stores/workbench.project-storage-return.spec.ts app/components/ui/Dialog.escape.spec.tsx scripts/index-a-jour.spec.mjs",
+    "passed": 35,
+    "failed": 0
+  },
+  "productCommitHooks": {
+    "commit": "d0ef212609d3af7f652cc216427ecb7a55570723",
+    "typecheck": "passed",
+    "lintErrors": 0,
+    "gitleaksFindings": 0
+  },
+  "rplCommand": "PLAYWRIGHT_BASE_URL=http://127.0.0.1:5220 SAAS_API_URL=http://127.0.0.1:3017 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium node_modules/.bin/playwright test -c .vibecore/ux-qa/rpl-local.config.ts",
+  "rplTestCopyDelta": "OUT_DIR only",
+  "scope": "local build and synthetic fixtures; not production"
+}

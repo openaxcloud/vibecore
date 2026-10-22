@@ -22,3 +22,7 @@ id: BUG-WEBVIEW-URL-LOGS-001
 
 07/09 08:19.
 
+
+## Diagnostic local du 22 octobre 2026
+
+Sur la combinaison de #763 avec main 18cf74fd, le premier lot donne 44/45 : la mesure de la croix intervient pendant le glissement du panneau. Une reproduction instrumentée (4 succès, 1 échec sans retry) observe un ancêtre `matrix(1, 0, 0, 1, 15.3485, 0)`, une croix de largeur 44 et un bord droit à 397,35 pour un viewport 390. La recette attend désormais `transform: none` sur cet ancêtre avant les mesures ; seuils 44/390 et tap de fermeture inchangés, aucun délai fixe. Cinq répétitions ciblées passent ensuite sans retry. Ceci documente la recette locale, sans modifier les états historiques ni certifier la production.

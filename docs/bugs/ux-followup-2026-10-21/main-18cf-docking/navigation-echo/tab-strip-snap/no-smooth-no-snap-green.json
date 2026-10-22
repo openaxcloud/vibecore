@@ -1,0 +1,131 @@
+{
+  "stage": "no-smooth-no-snap-green",
+  "diagnosticOnly": true,
+  "variant": "Diagnostic CSS injection: scroll-behavior:auto and scroll-snap-type:none",
+  "localSourceReport": "navigation-close-no-snap/results.json",
+  "sourceReportSha256": "116a44a5498d86d8417b12db971e6ec2bd4fd9e00890ecfb65aa92b9c77bd74a",
+  "stats": {
+    "startTime": "2026-10-22T07:53:00.569Z",
+    "duration": 7504.813,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6433,
+          "retry": 0,
+          "failures": [],
+          "before-close.json": {
+            "path": "/projects/cmvj8ujjf06r11hnn93c5568n/ide",
+            "panel": "preview",
+            "tabs": [
+              {
+                "id": "tab-editor-default",
+                "pinned": null,
+                "selected": "true"
+              },
+              {
+                "id": "tab-deployments-a0fd01f0-5799-47f4-9a6d-7270fc2287b4",
+                "pinned": null,
+                "selected": "false"
+              },
+              {
+                "id": "tab-preview-default",
+                "pinned": null,
+                "selected": "true"
+              }
+            ],
+            "consoleErrors": [
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+            ]
+          },
+          "after-close.json": {
+            "path": "/projects/cmvj8ujjf06r11hnn93c5568n/ide",
+            "panel": "deployments",
+            "tabs": [
+              {
+                "id": "tab-editor-default",
+                "pinned": null,
+                "selected": "true"
+              },
+              {
+                "id": "tab-deployments-a0fd01f0-5799-47f4-9a6d-7270fc2287b4",
+                "pinned": null,
+                "selected": "true"
+              }
+            ],
+            "consoleErrors": [
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED",
+              "Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED"
+            ],
+            "events": [
+              {
+                "kind": "pointerdown",
+                "x": 896.9500122070312,
+                "scroll": 137,
+                "target": {
+                  "tag": "BUTTON",
+                  "class": "bolt-project-tab-close",
+                  "role": null
+                }
+              },
+              {
+                "kind": "mousedown",
+                "x": 896,
+                "scroll": 137,
+                "target": {
+                  "tag": "BUTTON",
+                  "class": "bolt-project-tab-close",
+                  "role": null
+                }
+              },
+              {
+                "kind": "pointerup",
+                "x": 896.9500122070312,
+                "scroll": 137,
+                "target": {
+                  "tag": "BUTTON",
+                  "class": "bolt-project-tab-close",
+                  "role": null
+                }
+              },
+              {
+                "kind": "mouseup",
+                "x": 896,
+                "scroll": 137,
+                "target": {
+                  "tag": "BUTTON",
+                  "class": "bolt-project-tab-close",
+                  "role": null
+                }
+              },
+              {
+                "kind": "click",
+                "x": 896,
+                "scroll": 137,
+                "target": {
+                  "tag": "BUTTON",
+                  "class": "bolt-project-tab-close",
+                  "role": null
+                }
+              }
+            ]
+          },
+          "navigation-basic.json": {
+            "scenario": "close-tab",
+            "closed": "tab-preview-default",
+            "reopened": "tab-preview-bc5ccac2-760a-4cf1-ba75-92613756abb7"
+          }
+        }
+      ]
+    }
+  ],
+  "redactions": "No trace ZIP, request/response payload, environment, auth headers, cookies or sessions copied. Event target HTML reduced to tag/class/role. URL reduced to path and panel."
+}

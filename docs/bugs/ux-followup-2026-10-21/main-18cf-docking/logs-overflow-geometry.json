@@ -1,0 +1,129 @@
+{
+  "measured": {
+    "x": 353.3484802246094,
+    "y": 597,
+    "width": 44,
+    "height": 36
+  },
+  "ancestors": [
+    {
+      "className": "bolt-preview-logs-close",
+      "x": 353.3484802246094,
+      "width": 44,
+      "transform": "none",
+      "transition": "background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out, opacity 0.15s ease-out, filter 0.15s ease-out, transform 0.15s ease-out"
+    },
+    {
+      "className": "",
+      "x": 15.348488807678223,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "bolt-preview-logs-panel",
+      "x": 15.348488807678223,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "bolt-project-webview-tool w-full h-full flex flex-col relative",
+      "x": 15.348488807678223,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "absolute inset-0",
+      "x": 15.348488807678223,
+      "width": 390,
+      "transform": "matrix(1, 0, 0, 1, 15.3485, 0)",
+      "transition": "all"
+    },
+    {
+      "className": "relative flex-1 overflow-hidden",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "absolute inset-0 px-2 lg:px-4",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "fixed top-[calc(var(--header-height)+1.2rem)] bottom-6 w-[var(--workbench-inner-width)] z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier w-full top-[calc(var(--header-height)+3rem+env(safe-area-inset-top,0px))] bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] left-0 left-[var(--workbench-left)]",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "left 0.2s cubic-bezier(0.4, 0, 0.2, 1), width 0.2s cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+    {
+      "className": "z-workbench bolt-workbench-mobile",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "bolt-workbench-mobile-keepalive",
+      "x": 0,
+      "width": 0,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "flex w-full h-full min-h-0 flex-col lg:flex-row overflow-y-auto",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "_BaseChat_15kx3_1 relative flex h-full w-full overflow-hidden bolt-responsive-ide bolt-responsive-ide-mobile",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "h-dvh pt-9",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "bolt-project-ide-shell h-dvh w-screen overflow-hidden",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "h-full w-full",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    },
+    {
+      "className": "light",
+      "x": 0,
+      "width": 390,
+      "transform": "none",
+      "transition": "all"
+    }
+  ]
+}

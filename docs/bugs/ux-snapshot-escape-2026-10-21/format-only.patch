@@ -1,0 +1,37 @@
+diff --git a/app/components/ui/Dialog.tsx b/app/components/ui/Dialog.tsx
+index 5868161fb..2a62f8fb5 100644
+--- a/app/components/ui/Dialog.tsx
++++ b/app/components/ui/Dialog.tsx
+@@ -148,7 +148,16 @@ interface DialogProps {
+ }
+ 
+ export const Dialog = memo((props: DialogProps) => {
+-  const { children, className, showCloseButton = true, onClose, onBackdrop, restoreOpenerFocus = false, onKeyDown } = props;
++  const {
++    children,
++    className,
++    showCloseButton = true,
++    onClose,
++    onBackdrop,
++    restoreOpenerFocus = false,
++    onKeyDown,
++  } = props;
++
+   const language = useDialogLanguage();
+   const sharedCopy = getDataSettingsCopy(language).sharedDialog;
+ 
+@@ -314,9 +323,11 @@ export function ConfirmationDialog({
+         showCloseButton={false}
+         restoreOpenerFocus
+         onKeyDown={(event) => {
+-          // A visible, focused confirmation can receive Escape before Radix's
+-          // document-level layer registration has settled after reopening.
+-          // Leave already-handled keys and events from nested dialogs alone.
++          /*
++           * A visible, focused confirmation can receive Escape before Radix's
++           * document-level layer registration has settled after reopening.
++           * Leave already-handled keys and events from nested dialogs alone.
++           */
+           if (
+             event.key === 'Escape' &&
+             !event.defaultPrevented &&

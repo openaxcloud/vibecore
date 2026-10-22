@@ -1,0 +1,110 @@
+[
+  {
+    "requestId": "83af78ec-c7af-4de5-a846-e450621b40d5",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 263.8275020000292
+  },
+  {
+    "requestId": "6fff6fb2-b7dc-4751-b305-e729b1fb5bb9",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 114.28356099990197
+  },
+  {
+    "requestId": "3d959e14-6d4b-439a-9412-7f2da9d8028c",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 82.86058500001673
+  },
+  {
+    "requestId": "6e8baf4d-be71-4408-a9c8-825f76336b39",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 89.50814199994784
+  },
+  {
+    "requestId": "7efb3265-79c9-483f-ac4e-2e4e50a48bdd",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 75.89588900003582
+  },
+  {
+    "requestId": "e9f3733c-cf42-40d3-9a0c-2af81972002a",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 86.15966399991885
+  },
+  {
+    "requestId": "cb562ace-af27-4daa-a4b9-707a577eeabc",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 77.44177799997851
+  },
+  {
+    "requestId": "9ee278ca-9bc3-4b92-b17b-d599040938a8",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 116.16931899997871
+  },
+  {
+    "requestId": "1d5a0be1-7a79-44ca-be12-dbd4e000956e",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 107.47174100007396
+  },
+  {
+    "requestId": "9649b0cb-d1b4-47a3-972b-778119f8de04",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 73.48358799994458
+  },
+  {
+    "requestId": "4d7f72d1-44c7-403f-b45a-57c6c5220fc9",
+    "route": "/auth/register",
+    "status": 429,
+    "durationMs": 11.809786000056192
+  },
+  {
+    "requestId": "749806b0-30f1-4847-a67f-13ee964f72fe",
+    "route": "/auth/register",
+    "status": 429,
+    "durationMs": 1.3887899999972433
+  },
+  {
+    "requestId": "b856f053-8260-4972-a879-3405b355c9f6",
+    "route": "/auth/register",
+    "status": 429,
+    "durationMs": 0.7997239999240264
+  },
+  {
+    "requestId": "b3daf4a2-b119-4472-8fbc-d58310696a1d",
+    "route": "/auth/register",
+    "status": 429,
+    "durationMs": 0.7129829999757931
+  },
+  {
+    "requestId": "a1bd3bd6-50b8-4c38-9c6f-d96114a3a0db",
+    "route": "/auth/register",
+    "status": 429,
+    "durationMs": 2.716888999915682
+  },
+  {
+    "requestId": "d9818f7b-2028-48bc-a3a2-94b8e2bd50e2",
+    "route": "/auth/register",
+    "status": 429,
+    "durationMs": 0.5840590000152588
+  },
+  {
+    "requestId": "f79713ef-f355-4e99-826a-cf863fa6411a",
+    "route": "/auth/register",
+    "status": 429,
+    "durationMs": 0.6194230000255629
+  },
+  {
+    "requestId": "46b52a31-2712-4d3c-a252-b9eca86684d5",
+    "route": "/auth/register",
+    "status": 201,
+    "durationMs": 82.81505400000606
+  }
+]

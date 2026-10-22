@@ -1,0 +1,145 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T16:45:55.766Z",
+    "duration": 39724.256,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "file": "dashboard-publication-readiness.spec.ts",
+      "line": 4,
+      "title": "a real pending or failed deployment does not complete dashboard onboarding",
+      "project": "desktop",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4224
+        }
+      ]
+    },
+    {
+      "file": "dashboard-publication-readiness.spec.ts",
+      "line": 4,
+      "title": "a real pending or failed deployment does not complete dashboard onboarding",
+      "project": "tablet",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2473
+        }
+      ]
+    },
+    {
+      "file": "dashboard-publication-readiness.spec.ts",
+      "line": 4,
+      "title": "a real pending or failed deployment does not complete dashboard onboarding",
+      "project": "mobile",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 2902
+        }
+      ]
+    },
+    {
+      "file": "signup-confirmation-feedback.spec.ts",
+      "line": 9,
+      "title": "signup confirmation failure identifies and focuses the field (en)",
+      "project": "desktop",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3704
+        }
+      ]
+    },
+    {
+      "file": "signup-confirmation-feedback.spec.ts",
+      "line": 9,
+      "title": "signup confirmation failure identifies and focuses the field (fr)",
+      "project": "desktop",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3289
+        }
+      ]
+    },
+    {
+      "file": "signup-confirmation-feedback.spec.ts",
+      "line": 9,
+      "title": "signup confirmation failure identifies and focuses the field (en)",
+      "project": "tablet",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 4215
+        }
+      ]
+    },
+    {
+      "file": "signup-confirmation-feedback.spec.ts",
+      "line": 9,
+      "title": "signup confirmation failure identifies and focuses the field (fr)",
+      "project": "tablet",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3827
+        }
+      ]
+    },
+    {
+      "file": "signup-confirmation-feedback.spec.ts",
+      "line": 9,
+      "title": "signup confirmation failure identifies and focuses the field (en)",
+      "project": "mobile",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 3566
+        }
+      ]
+    },
+    {
+      "file": "signup-confirmation-feedback.spec.ts",
+      "line": 9,
+      "title": "signup confirmation failure identifies and focuses the field (fr)",
+      "project": "mobile",
+      "status": "expected",
+      "attempts": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5505
+        }
+      ]
+    }
+  ],
+  "sourceTree": "6328177594f4ed3df64d316c54a2a9960892b777",
+  "omittedFromPublicReport": [
+    "absolute local paths",
+    "runner environment",
+    "attachments with private filesystem paths"
+  ],
+  "globalErrorCount": 0
+}

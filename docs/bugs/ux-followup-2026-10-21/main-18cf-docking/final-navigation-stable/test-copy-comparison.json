@@ -1,0 +1,7 @@
+{
+  "trackedPath": "tests/e2e/rpl-ide-panels-proof.spec.ts",
+  "trackedSha256": "ded7f71569c673990191e090071d2ba350844d3c38130b253ab86558e805703a",
+  "localCopySha256": "2722e41af1782d5552d7087bc5cb57f518215102e5f495f712805a0e0bdd5334",
+  "onlyDifference": "OUT_DIR screenshot destination",
+  "normalizedEqual": true
+}

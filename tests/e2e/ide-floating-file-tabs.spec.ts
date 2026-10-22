@@ -87,6 +87,24 @@ test('opening a file in a floating pane updates its tabs and survives docking', 
 
   const openedTabId = await floating.getByRole('tab').filter({ hasText: 'other.txt' }).getAttribute('data-tab-id');
   await page.screenshot({ path: testInfo.outputPath('floating-file.png') });
+  await panes.first().getByTestId('tab-add').click();
+  await page.getByTestId('ide-add-tab-command-palette').getByRole('button').filter({ hasText: 'audit.txt' }).click();
+  await expect(panes.first().locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
+  await page.screenshot({ path: testInfo.outputPath('independent-files.png') });
+  await expect(floating.locator('.monaco-editor .view-lines')).toContainText('SECOND-DOCUMENT');
+
+  await floating
+    .getByRole('tab')
+    .filter({ hasText: 'audit.txt' })
+    .getByRole('button', { name: 'audit.txt', exact: true })
+    .click();
+  await expect(floating.locator('.monaco-editor .view-lines')).toContainText('PERSISTENCE-ORIGINAL-20261012');
+  await floating
+    .getByRole('tab')
+    .filter({ hasText: 'other.txt' })
+    .getByRole('button', { name: 'other.txt', exact: true })
+    .click();
+  await expect(floating.locator('.monaco-editor .view-lines')).toContainText('SECOND-DOCUMENT');
 
   await floating.getByTestId(`dock-floating-pane-${targetPaneId}`).click();
   await expect(floating).toHaveCount(0);
@@ -99,6 +117,21 @@ test('opening a file in a floating pane updates its tabs and survives docking', 
   await expect(panes.first().getByRole('tab').first()).toHaveAttribute('data-tab-id', leftTabId!);
   await page.screenshot({ path: testInfo.outputPath('docked-file.png') });
 
+  const auditEditor = panes.first().locator('.monaco-editor');
+  await auditEditor.click();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (id) => JSON.parse(localStorage.getItem(`vibecore.projectIdeMemory:${id}`) ?? '{}').ui?.selectedFile,
+        projectId,
+      ),
+    )
+    .toBe('/home/project/audit.txt');
+  await page.keyboard.press('Control+End');
+  await page.keyboard.insertText('INDEPENDENT-AUDIT-DRAFT');
+  await expect(auditEditor.locator('.view-lines')).toContainText('INDEPENDENT-AUDIT-DRAFT');
+  await expect(target.locator('.monaco-editor .view-lines')).toContainText('SECOND-DOCUMENT');
+
   await panes.first().getByTestId('tab-add').click();
   await page.getByTestId('ide-add-tab-command-palette').getByRole('button').filter({ hasText: 'other.txt' }).click();
 
@@ -106,6 +139,20 @@ test('opening a file in a floating pane updates its tabs and survives docking', 
   await expect(editors).toHaveCount(2);
   await expect(editors.nth(0)).toContainText('SECOND-DOCUMENT');
   await expect(editors.nth(1)).toContainText('SECOND-DOCUMENT');
+  await panes
+    .first()
+    .getByRole('tab')
+    .filter({ hasText: 'audit.txt' })
+    .getByRole('button', { name: 'audit.txt', exact: true })
+    .click();
+  await expect(editors.nth(0)).toContainText('INDEPENDENT-AUDIT-DRAFT');
+  await expect(editors.nth(1)).toContainText('SECOND-DOCUMENT');
+  await panes
+    .first()
+    .getByRole('tab')
+    .filter({ hasText: 'other.txt' })
+    .getByRole('button', { name: 'other.txt', exact: true })
+    .click();
 
   // Observe actual widget replacement, not just the two widgets that existed before the locale change.
   const oldWidgets = await page.evaluateHandle(() => Array.from(document.querySelectorAll('.monaco-editor')));

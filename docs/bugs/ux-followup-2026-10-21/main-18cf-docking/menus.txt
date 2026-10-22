@@ -1,0 +1,52 @@
+
+Running 12 tests using 1 worker
+
+(node:21753) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:21753) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (3.7s)
+  ✓   2 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (6.2s)
+  ✓   3 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (3.5s)
+  ✓   4 [desktop] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (5.6s)
+(node:23287) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23287) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (3.0s)
+  ✓   6 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (4.2s)
+  ✓   7 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (2.8s)
+  ✓   8 [tablet] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (4.3s)
+(node:24670) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:24670) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (en) (3.9s)
+  ✓  10 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (en) (3.2s)
+  ✓  11 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:76:3 › agent menu keyboard and compact navigation (fr) (2.8s)
+  ✘  12 [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) (30.1s)
+
+
+  1) [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.waitFor: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for locator('.bolt-user-message-bubble').filter({ hasText: 'Synthetic menu accessibility audit' }).first() to be visible
+
+
+      150 |     await context.addCookies([{ name: 'vibecore-lang', value: language, url: baseURL }]);
+      151 |     await page.goto(`/projects/${projectId}/ide?panel=agent&lang=${language}`);
+    > 152 |     await page.locator('.bolt-user-message-bubble').filter({ hasText: transcriptMarker }).first().waitFor();
+          |                                                                                                   ^
+      153 |
+      154 |     const compact = (page.viewportSize()?.width ?? 1440) < 1200;
+      155 |     const label = language === 'en' ? 'More agent actions' : "Plus d'actions d'agent";
+        at tests/e2e/agent-header-menu-keyboard.spec.ts:152:99
+
+    Error Context: ../ux-artifacts/followup-759-760/main18cf-docking/menus/results/agent-header-menu-keyboard-df7c7-s-and-theme-persistence-fr--mobile/error-context.md
+
+  1 failed
+    [mobile] › tests/e2e/agent-header-menu-keyboard.spec.ts:148:3 › agent menu actions and theme persistence (fr) 
+  11 passed (1.3m)

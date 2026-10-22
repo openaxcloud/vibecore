@@ -144,10 +144,20 @@ interface DialogProps {
   onClose?: () => void;
   onBackdrop?: () => void;
   restoreOpenerFocus?: boolean;
+  onKeyDown?: React.KeyboardEventHandler<HTMLDivElement>;
 }
 
 export const Dialog = memo((props: DialogProps) => {
-  const { children, className, showCloseButton = true, onClose, onBackdrop, restoreOpenerFocus = false } = props;
+  const {
+    children,
+    className,
+    showCloseButton = true,
+    onClose,
+    onBackdrop,
+    restoreOpenerFocus = false,
+    onKeyDown,
+  } = props;
+
   const language = useDialogLanguage();
   const sharedCopy = getDataSettingsCopy(language).sharedDialog;
 
@@ -188,6 +198,7 @@ export const Dialog = memo((props: DialogProps) => {
       </RadixDialog.Overlay>
       <RadixDialog.Content
         asChild
+        onKeyDown={onKeyDown}
         onOpenAutoFocus={
           restoreOpenerFocus
             ? () => {
@@ -308,7 +319,27 @@ export function ConfirmationDialog({
 
   return (
     <RadixDialog.Root open={isOpen} onOpenChange={onClose}>
-      <Dialog showCloseButton={false} restoreOpenerFocus>
+      <Dialog
+        showCloseButton={false}
+        restoreOpenerFocus
+        onKeyDown={(event) => {
+          /*
+           * A visible, focused confirmation can receive Escape before Radix's
+           * document-level layer registration has settled after reopening.
+           * Leave already-handled keys and events from nested dialogs alone.
+           */
+          if (
+            event.key === 'Escape' &&
+            !event.defaultPrevented &&
+            event.target instanceof Element &&
+            event.target.closest('[role="dialog"]') === event.currentTarget
+          ) {
+            event.preventDefault();
+            event.stopPropagation();
+            onClose();
+          }
+        }}
+      >
         <div className="p-6 bg-bolt-elements-background-depth-2 relative z-10">
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="mb-4">{description}</DialogDescription>

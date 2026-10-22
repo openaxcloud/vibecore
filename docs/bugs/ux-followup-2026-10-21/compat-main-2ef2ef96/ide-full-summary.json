@@ -1,0 +1,552 @@
+{
+  "stats": {
+    "startTime": "2026-10-21T17:47:39.692Z",
+    "duration": 223923.968,
+    "expected": 45,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "barre du bas : l’onglet actif est entièrement visible dans sa bande",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3881
+        }
+      ]
+    },
+    {
+      "title": "état de départ de l’Agent : chaque action entière, la puce du composeur entière",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 1958
+        }
+      ]
+    },
+    {
+      "title": "Journaux : trois rangées, actions en icônes accessibles, statut et niveaux entiers",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3155
+        }
+      ]
+    },
+    {
+      "title": "feuille « + » : titres 13 px, descriptions 12 px entières, une colonne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2421
+        }
+      ]
+    },
+    {
+      "title": "Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2400
+        }
+      ]
+    },
+    {
+      "title": "Webview : barre d’adresse compacte, journaux à 12 px sans débordement",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2987
+        }
+      ]
+    },
+    {
+      "title": "fil de l’agent : le chemin de fichier entier, replié ; le résumé de commande à 32 px dans le flux",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2173
+        }
+      ]
+    },
+    {
+      "title": "Paramètres, Variables, Éditeur : bande d’onglets compacte, boutons deux par rangée, pastille Historique visible",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4025
+        }
+      ]
+    },
+    {
+      "title": "menu contextuel d’un message : une barre d’icônes de 44 px, chaque action nommée ; Sécurité : une paire par ligne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 5594
+        }
+      ]
+    },
+    {
+      "title": "Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2893
+        }
+      ]
+    },
+    {
+      "title": "Déploiements « Gérer » : les actions d’un déploiement se partagent la ligne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2276
+        }
+      ]
+    },
+    {
+      "title": "Intégrations : icônes visibles ; Extensions : pastilles de domaine entières",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2784
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : les menus « Agent » et « Économique » se rendent hors du composeur, visibles à l’écran",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4883
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : la feuille prend l’écran sur téléphone, et s’arrête à 760 px centrée sur tablette",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4300
+        }
+      ]
+    },
+    {
+      "title": "fil de l’agent : en remontant, le texte garde sa largeur et la pastille « descendre » est centrée au-dessus de la zone de saisie",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4271
+        }
+      ]
+    },
+    {
+      "title": "menu contextuel sur le dernier message : la barre reste au-dessus de la zone de saisie, et le fil ne bouge pas",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 9705
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — téléphone 390",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 14903
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — tablette 820",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 15459
+        }
+      ]
+    },
+    {
+      "title": "Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2816
+        }
+      ]
+    },
+    {
+      "title": "sélecteur d’onglets : les raccourcis du bas sont plus petits que les onglets, et tous de même taille",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2582
+        }
+      ]
+    },
+    {
+      "title": "sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème light",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3494
+        }
+      ]
+    },
+    {
+      "title": "sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème dark",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3647
+        }
+      ]
+    },
+    {
+      "title": "dictée vocale : l’appui dit qu’on écoute, garde le texte tapé, et l’interface se remet au repos quand le moteur s’arrête seul",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2838
+        }
+      ]
+    },
+    {
+      "title": "panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3355
+        }
+      ]
+    },
+    {
+      "title": "barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 430 px",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2456
+        }
+      ]
+    },
+    {
+      "title": "barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — 390 px",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3420
+        }
+      ]
+    },
+    {
+      "title": "panneau Agent, état de départ : la carte « Agent prêt » se pose sous l’en-tête, sans bande vide",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3479
+        }
+      ]
+    },
+    {
+      "title": "fil de l’agent : le premier message se pose sous l’en-tête, sans bande morte et sans être rogné",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3384
+        }
+      ]
+    },
+    {
+      "title": "menu d’un message : un seul à la fois, posé au-dessus de la ligne, fermé au défilement",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 8551
+        }
+      ]
+    },
+    {
+      "title": "fin de tour à la Replit : « Worked for » et « Checkpoint made » sous la réponse, au-dessus de la zone de saisie ; retour arrière ; « Changes » ouvre le commit",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 5754
+        }
+      ]
+    },
+    {
+      "title": "onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3406
+        }
+      ]
+    },
+    {
+      "title": "zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3785
+        }
+      ]
+    },
+    {
+      "title": "appui long près du bord droit : le menu et ses libellés français restent dans l’écran, sans infobulle",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 4806
+        }
+      ]
+    },
+    {
+      "title": "« Effacer l’historique » ouvre une conversation neuve, et elle le reste au rechargement",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 16583
+        }
+      ]
+    },
+    {
+      "title": "un tour streamé ne recrée pas le markdown des messages déjà affichés",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 12916
+        }
+      ]
+    },
+    {
+      "title": "elle se peint sur le fil, et sur rien d’autre",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 6899
+        }
+      ]
+    },
+    {
+      "title": "le fil reste masqué pendant le chargement interrompu de Preview à 390px",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 9769
+        }
+      ]
+    },
+    {
+      "title": "le fil reste masqué pendant le chargement interrompu de Preview à 768px",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 9567
+        }
+      ]
+    },
+    {
+      "title": "le bloc se rend aux bonnes tailles, sans rien déborder",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2389
+        }
+      ]
+    },
+    {
+      "title": "le bloc se rend aux bonnes tailles, sans rien déborder",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2267
+        }
+      ]
+    },
+    {
+      "title": "titres et boutons tiennent sur une ligne à 390 px",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2186
+        }
+      ]
+    },
+    {
+      "title": "les gabarits portent un prix calculé, et les gestes sont ceux qui existent",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3229
+        }
+      ]
+    },
+    {
+      "title": "depuis n’importe quel panneau, la demande bascule sur le panneau Agent",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2746
+        }
+      ]
+    },
+    {
+      "title": "la liste des tables n’est pas vide, et chaque ligne est nommée",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 2849
+        }
+      ]
+    },
+    {
+      "title": "le rail liste les tables, les en-têtes portent leur type, la page est annoncée",
+      "project": "chromium",
+      "status": "expected",
+      "runs": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "duration": 3018
+        }
+      ]
+    }
+  ]
+}
