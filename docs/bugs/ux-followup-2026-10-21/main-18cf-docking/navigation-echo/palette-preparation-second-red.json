@@ -1,0 +1,30 @@
+{
+  "localSourceReport": "navigation-double-move/results.json",
+  "sourceReportSha256": "e2a590e6b14b65851d6f0c34f1175ce78483beb0ee5d5a8c64bebce5bfd05a46",
+  "stats": {
+    "startTime": "2026-10-22T07:32:37.868Z",
+    "duration": 91212.958,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "timedOut",
+          "durationMs": 90118,
+          "retry": 0,
+          "failures": [
+            "Test timeout of 90000ms exceeded.",
+            "Error: locator.fill: Test timeout of 90000ms exceeded.\nCall log:\n  - waiting for getByTestId('project-command-palette-search')\n    - locator resolved to <input value=\"\" type=\"text\" role=\"combobox\" autocomplete=\"off\" inputmode=\"search\" aria-expanded=\"true\" title=\"Search commands\" data-vc-auto-title=\"true\" aria-label=\"Search commands\" data-vc-tooltip=\"Search commands\" aria-controls=\"project-command-listbox\" data-testid=\"project-command-palette-search\" aria-activedescendant=\"project-command-option-0\" placeholder=\"Search tools, files, and commands...\"/>\n    - fill(\"domains\")\n  - attempting fill action\n    - waiting for element to be visible, enabled and editable\n  - element was detached from the DOM, retrying\n\n\n  111 |   const search = page.getByTestId('project-command-palette-search');\n  112 |   await expect(search).toBeVisible();\n> 113 |   await search.fill('domains');\n      |                ^\n  114 |   await page.keyboard.press('Enter');\n  115 |   await expect(page).toHaveURL(/panel=deployments/);\n  116 |   await openOptionsMenu(page, 0);\n    at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/navigation-double-move.spec.ts:113:16"
+          ]
+        }
+      ]
+    }
+  ],
+  "privacy": "Whitelist extraction: no config, cookies, sessions, headers, response bodies or full page snapshot. Remaining identifiers refer to synthetic local projects/tabs."
+}

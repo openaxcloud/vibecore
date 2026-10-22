@@ -1,0 +1,73 @@
+{
+  "stage": "initial-red",
+  "diagnosticOnly": true,
+  "variant": "No diagnostic CSS injection",
+  "localSourceReport": "navigation-close-red/results.json",
+  "sourceReportSha256": "9649baba0329fc810dc319da08ec70c1928b6244d1fae03d437b35e3f9add2a4",
+  "stats": {
+    "startTime": "2026-10-22T07:49:46.945Z",
+    "duration": 13312.412,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 11752,
+          "retry": 0,
+          "failures": [
+            "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('.bolt-project-pane-leaf [role=\"tab\"][data-tab-id=\"tab-preview-default\"]')\nExpected: 0\nReceived: 1\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toHaveCount\" with timeout 5000ms\n  - waiting for locator('.bolt-project-pane-leaf [role=\"tab\"][data-tab-id=\"tab-preview-default\"]')\n    9 × locator resolved to 1 element\n      - unexpected value \"1\"\n\n\n  585 |   await info.attach('before-close.json', { body: JSON.stringify({url:page.url(),tabs:await tabs(page).evaluateAll(nodes=>nodes.map(n=>({id:n.getAttribute('data-tab-id'),pinned:n.getAttribute('data-pinned'),selected:n.getAttribute('aria-selected')})))}), contentType:'application/json'});\n  586 |   await moved.locator('button.bolt-project-tab-close').click();\n> 587 |   try { await expect(moved).toHaveCount(0); } finally { await info.attach('after-close.json',{body:JSON.stringify({url:page.url(),tabs:await tabs(page).evaluateAll(nodes=>nodes.map(n=>({id:n.getAttribute('data-tab-id'),pinned:n.getAttribute('data-pinned'),selected:n.getAttribute('aria-selected')})))}),contentType:'application/json'}); }\n      |                             ^\n  588 |   await expect(tabs(page)).toHaveCount(state.before.length - 1);\n  589 |   await expect(page).not.toHaveURL(/panel=preview/);\n  590 |   await page.goBack({ waitUntil: 'domcontentloaded' });\n    at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/rpl-local.spec.ts:587:29"
+          ],
+          "before-close.json": {
+            "path": "/projects/cmvj8qe2l06pc1hnn25ogwit2/ide",
+            "panel": "preview",
+            "tabs": [
+              {
+                "id": "tab-editor-default",
+                "pinned": null,
+                "selected": "true"
+              },
+              {
+                "id": "tab-deployments-46b8c6f8-d195-4077-b435-6c97046e351a",
+                "pinned": null,
+                "selected": "false"
+              },
+              {
+                "id": "tab-preview-default",
+                "pinned": null,
+                "selected": "true"
+              }
+            ]
+          },
+          "after-close.json": {
+            "path": "/projects/cmvj8qe2l06pc1hnn25ogwit2/ide",
+            "panel": "preview",
+            "tabs": [
+              {
+                "id": "tab-editor-default",
+                "pinned": null,
+                "selected": "true"
+              },
+              {
+                "id": "tab-deployments-46b8c6f8-d195-4077-b435-6c97046e351a",
+                "pinned": null,
+                "selected": "false"
+              },
+              {
+                "id": "tab-preview-default",
+                "pinned": null,
+                "selected": "true"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "redactions": "No trace ZIP, request/response payload, environment, auth headers, cookies or sessions copied. Event target HTML reduced to tag/class/role. URL reduced to path and panel."
+}

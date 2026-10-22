@@ -1,0 +1,9 @@
+{
+  "sourceCommit": "d0ef212609d3af7f652cc216427ecb7a55570723",
+  "checkedSourceCount": 9308,
+  "changedTrackedPaths": [
+    "BUG_INVENTORY_LIVE.md",
+    "docs/bugs/BUG-IDE-PANE-FOCUS-DUPLICATION-001.md"
+  ],
+  "nonDocumentDifferences": []
+}

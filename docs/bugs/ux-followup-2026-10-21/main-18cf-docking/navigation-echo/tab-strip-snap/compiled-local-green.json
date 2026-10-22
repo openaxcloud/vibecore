@@ -1,0 +1,86 @@
+{
+  "productCommit": "d0ef212609d3af7f652cc216427ecb7a55570723",
+  "sourceReport": "final-navigation-stable/rpl/results.json",
+  "sourceReportSha256": "fbb9465e79281b70ccbe28ae309482d68ec2015ca91b7930a6b527b39cfa4553",
+  "stats": {
+    "startTime": "2026-10-22T07:59:14.549Z",
+    "duration": 63901.976,
+    "expected": 7,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 15857
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 15535
+        }
+      ]
+    },
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5978
+        }
+      ]
+    },
+    {
+      "title": "redundant move preserves real browser Back and Forward selection",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 6032
+        }
+      ]
+    },
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5901
+        }
+      ]
+    },
+    {
+      "title": "closing destination pane cannot swallow a later browser Back request",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 7271
+        }
+      ]
+    },
+    {
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "durationMs": 5956
+        }
+      ]
+    }
+  ],
+  "scope": "Recette navigateur locale du build compilé ; ne constitue pas une CI ou une preuve de production."
+}

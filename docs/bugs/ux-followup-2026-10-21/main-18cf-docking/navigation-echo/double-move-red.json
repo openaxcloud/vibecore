@@ -1,0 +1,86 @@
+{
+  "localSourceReport": "navigation-double-move-direct/results.json",
+  "sourceReportSha256": "1e5d105b742114967880fad40df6ae3ee6514b82fb7ffec7b3c475cbaae4760d",
+  "stats": {
+    "startTime": "2026-10-22T07:34:54.592Z",
+    "duration": 10621.06,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "two moves during one pending panel navigation preserve tab identities",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 9689,
+          "retry": 0,
+          "failures": [
+            "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  locator('.bolt-project-pane-leaf').locator('[role=\"tab\"]')\nExpected: 3\nReceived: 4\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toHaveCount\" with timeout 5000ms\n  - waiting for locator('.bolt-project-pane-leaf').locator('[role=\"tab\"]')\n    9 × locator resolved to 4 elements\n      - unexpected value \"4\"\n\n\n  158 |     await expect(page).toHaveURL(/panel=preview/);\n  159 |     await shot(page,'double-move-after-navigation');\n> 160 |     await expect(panes.locator('[role=\"tab\"]')).toHaveCount(beforeIds.length);\n      |                                                 ^\n  161 |     await expect.poll(ids).toEqual(beforeIds);\n  162 |     await expect(panes.nth(0).locator(`[data-tab-id=\"${previewId}\"]`)).toHaveAttribute('aria-selected','true');\n  163 |     await expect(panes.nth(1).locator(`[data-tab-id=\"${previewId}\"]`)).toHaveCount(0);\n    at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/navigation-double-move.spec.ts:160:49"
+          ],
+          "double-move.json": {
+            "beforeIds": [
+              "tab-deployments-c6c91b26-9240-494a-8541-8f74c3bc1598",
+              "tab-editor-default",
+              "tab-preview-default"
+            ],
+            "before": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "afterFirst": [
+              [
+                "editor"
+              ],
+              [
+                "deployments",
+                "preview"
+              ]
+            ],
+            "afterSecond": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "afterNavigation": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments",
+                "preview"
+              ]
+            ],
+            "afterIds": [
+              "tab-deployments-c6c91b26-9240-494a-8541-8f74c3bc1598",
+              "tab-editor-default",
+              "tab-preview-28d3fd0d-cd9a-4986-9ae6-2acc9bca89b0",
+              "tab-preview-default"
+            ],
+            "requests": [
+              {
+                "path": "/projects/cmvj879hm06f71hnn8kgl2cl2/ide.data?panel=preview&_routes=root",
+                "result": "held pending real continuation"
+              }
+            ],
+            "previewId": "tab-preview-default"
+          }
+        }
+      ]
+    }
+  ],
+  "privacy": "Whitelist extraction: no config, cookies, sessions, headers, response bodies or full page snapshot. Remaining identifiers refer to synthetic local projects/tabs."
+}

@@ -1,0 +1,56 @@
+{
+  "localSourceReport": "navigation-audit-main-button/results.json",
+  "sourceReportSha256": "8cc7e07494cc95d96829fd4c80a67fabb9eb9a00b4bfc0b111cb99f4fc1d02be",
+  "stats": {
+    "startTime": "2026-10-22T07:21:30.242Z",
+    "duration": 10665.935,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "failed",
+          "durationMs": 9751,
+          "retry": 0,
+          "failures": [
+            "Error: expect(locator).toHaveAttribute(expected) failed\n\nLocator:  locator('[data-tab-id=\"tab-preview-default\"]')\nExpected: \"true\"\nReceived: \"false\"\nTimeout:  5000ms\n\nCall log:\n  - Expect \"toHaveAttribute\" with timeout 5000ms\n  - waiting for locator('[data-tab-id=\"tab-preview-default\"]')\n    9 × locator resolved to <div role=\"tab\" tabindex=\"-1\" draggable=\"true\" data-pinned=\"true\" data-panel=\"preview\" aria-selected=\"false\" class=\"bolt-project-tab\" aria-label=\"Pinned tab: Webview\" data-tab-id=\"tab-preview-default\" data-testid=\"tab-tab-preview-default\">…</div>\n      - unexpected value \"false\"\n\n\n  200 |     if (new URL(page.url()).searchParams.get('panel') === 'deployments') await page.goBack({waitUntil:'domcontentloaded'});\n  201 |     await expect(page).toHaveURL(/panel=preview/);\n> 202 |     await expect(page.locator(`[data-tab-id=\"${previewId}\"]`)).toHaveAttribute('aria-selected', 'true');\n      |                                                                ^\n  203 |     await shot(page, 'interrupted-back-preview');\n  204 |     await page.goForward({waitUntil:'domcontentloaded'});\n  205 |     await expect(page).toHaveURL(/panel=deployments/);\n    at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/navigation-audit.spec.ts:202:64"
+          ],
+          "interruption.json": {
+            "before": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "after": [
+              [
+                "editor"
+              ],
+              [
+                "deployments",
+                "preview"
+              ]
+            ],
+            "failed": [
+              {
+                "url": "/projects/cmvj7q0vf069u1hnnca9plt38/ide.data?panel=preview&_routes=root",
+                "error": "net::ERR_ABORTED"
+              }
+            ],
+            "previewId": "tab-preview-default"
+          }
+        }
+      ]
+    }
+  ],
+  "privacy": "Whitelist extraction: no config, cookies, sessions, headers, response bodies or full page snapshot. Remaining identifiers refer to synthetic local projects/tabs."
+}

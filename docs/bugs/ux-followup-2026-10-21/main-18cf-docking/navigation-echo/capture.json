@@ -1,0 +1,7 @@
+{
+  "file": "double-move-red.png",
+  "localSource": "navigation-double-move/shots/double-move-after-navigation.png",
+  "associatedReport": "navigation-double-move-direct/results.json",
+  "sha256": "c90176f449ea2b8be065f5c676eb8ef77289152ec0ff24fb154c4ab1ba1be611",
+  "meaning": "Failed second-move scenario: after A→B→A and URL commit, two Webview tabs remain. Screenshot inspected; synthetic data only."
+}

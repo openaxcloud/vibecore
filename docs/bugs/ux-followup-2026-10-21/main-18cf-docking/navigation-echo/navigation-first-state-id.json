@@ -1,0 +1,142 @@
+{
+  "localSourceReport": "navigation-final/results.json",
+  "sourceReportSha256": "b8509d8d61d1d976c20086cae33d8fd342949e915aa59f23d70b5ffc3b10d2de",
+  "stats": {
+    "startTime": "2026-10-22T07:29:02.738Z",
+    "duration": 136102.385,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "cases": [
+    {
+      "title": "RPL-IDE panels .4-.8 (light)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12925,
+          "retry": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "title": "RPL-IDE panels .4-.8 (dark)",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 13191,
+          "retry": 0,
+          "failures": []
+        }
+      ]
+    },
+    {
+      "title": "interrupted move navigation cannot swallow a later browser Back",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 5223,
+          "retry": 0,
+          "failures": [],
+          "interruption.json": {
+            "before": [
+              [
+                "editor",
+                "preview"
+              ],
+              [
+                "deployments"
+              ]
+            ],
+            "after": [
+              [
+                "editor"
+              ],
+              [
+                "deployments",
+                "preview"
+              ]
+            ],
+            "failed": [
+              {
+                "url": "/projects/cmvj80a7f06ca1hnnfgqr68wf/ide.data?panel=preview&_routes=root",
+                "error": "net::ERR_ABORTED"
+              }
+            ],
+            "previewId": "tab-preview-default"
+          }
+        }
+      ]
+    },
+    {
+      "title": "redundant move preserves real browser Back and Forward selection",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6014,
+          "retry": 0,
+          "failures": [],
+          "navigation-basic.json": {
+            "scenario": "back-forward",
+            "before": [
+              "tab-deployments-dca91806-c2a3-466d-bd86-f3c6314cacc8",
+              "tab-editor-default",
+              "tab-preview-default"
+            ],
+            "after": [
+              "tab-deployments-dca91806-c2a3-466d-bd86-f3c6314cacc8",
+              "tab-editor-default",
+              "tab-preview-default"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "title": "closing moved tab invalidates its receipt before a browser Back request",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "timedOut",
+          "durationMs": 90114,
+          "retry": 0,
+          "failures": [
+            "Test timeout of 90000ms exceeded.",
+            "Error: locator.fill: Test timeout of 90000ms exceeded.\nCall log:\n  - waiting for getByTestId('project-command-palette-search')\n\n\n  515 |   const search = page.getByTestId('project-command-palette-search');\n  516 |   await expect(search).toBeVisible();\n> 517 |   await search.fill(query);\n      |                ^\n  518 |   await page.keyboard.press('Enter');\n  519 | }\n  520 |\n    at openTool (/workspace/vibecore-ui-compat761/.vibecore/ux-qa/rpl-local.spec.ts:517:16)\n    at redundantMove (/workspace/vibecore-ui-compat761/.vibecore/ux-qa/rpl-local.spec.ts:528:3)\n    at /workspace/vibecore-ui-compat761/.vibecore/ux-qa/rpl-local.spec.ts:581:17"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "closing destination pane cannot swallow a later browser Back request",
+      "project": "chromium",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 6678,
+          "retry": 0,
+          "failures": [],
+          "navigation-basic.json": {
+            "scenario": "close-pane",
+            "removed": [
+              "tab-deployments-494f2de3-3394-4a39-94e5-859668f14046",
+              "tab-preview-default"
+            ],
+            "after": [
+              "tab-editor-default",
+              "tab-preview-6f2d4330-044d-4a3e-9565-270ebaf2ffab",
+              "tab-terminal-76ba443e-c91e-4876-b3a6-94b90dae73df"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "privacy": "Whitelist extraction: no config, cookies, sessions, headers, response bodies or full page snapshot. Remaining identifiers refer to synthetic local projects/tabs."
+}
