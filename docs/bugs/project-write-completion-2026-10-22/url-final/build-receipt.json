@@ -1,0 +1,13 @@
+{
+  "sha": "dd773094a58202144ea20791264a66961be4a6ca",
+  "tree": "9c3a879c258ccd2fab7ee97a06fdee90f6d4e08f",
+  "buildStartedOnMatchingIndexTree": true,
+  "sources": 9489,
+  "compiledCount": 2306,
+  "gitBlobsCompared": 9489,
+  "sourceDifferences": [],
+  "sourceManifestSha256": "8e5d34b40ddbfbb243e6b038e936065b98f2fcf4bf58f33bf53de62f8f025ba1",
+  "compiledManifestSha256": "e58a461ece75ee84bbe74ad6fa0f768bf514e9a6250361a454921845b8eadfe2",
+  "buildExitCode": 0,
+  "browserRuntimeMutationValidation": "blocked: local runtime manager unavailable"
+}

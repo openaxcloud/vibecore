@@ -1,0 +1,38 @@
+{
+  "sourceCommit": "dd773094a58202144ea20791264a66961be4a6ca",
+  "tree": "9c3a879c258ccd2fab7ee97a06fdee90f6d4e08f",
+  "fullSuite": {
+    "passedTests": 10046,
+    "skippedTests": 7,
+    "passedFiles": 1301,
+    "skippedFiles": 2,
+    "failedTests": 0,
+    "failedFiles": 0,
+    "durationSeconds": 298.52,
+    "attempt": 1
+  },
+  "targeted": {
+    "passedTests": 57,
+    "failedTests": 0,
+    "skippedTests": 0,
+    "durationSeconds": 4.9
+  },
+  "logs": [
+    {
+      "path": "ux-write-url-unit-final.log",
+      "sha256": "0792076c992ac11759a2ae7ecc83012e58b84a15df888300f8fa6ab13518b3eb"
+    },
+    {
+      "path": "ux-write-url-fullunit.log",
+      "sha256": "10e391acc711f2935814a05534f677f0b44d2d0947250d1040b4e88418d853ae"
+    },
+    {
+      "path": "ux-write-url-build.log",
+      "sha256": "ea8c95d22c98899b9c4735ea6f90980fd9bffb8fcb3bf8cf4a1366c5ed32cd5f"
+    },
+    {
+      "path": "ux-write-url-commit.log",
+      "sha256": "88c4175db3e1d62ca6f45b77b3e8ca27f431715a558e691e78a57e633382fd22"
+    }
+  ]
+}

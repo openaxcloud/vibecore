@@ -22,4 +22,4 @@ Les enchaînements multi-opérations de renommage, duplication et upload peuvent
 
 Build, typage, lint et gitleaks verts. Suite complète : 10 039 tests réussis et sept omissions existantes, aucun échec au premier passage. Cela ne lève pas le blocage de recette runtime réelle.
 
-Complément URL avant rebascule du store : défaut tombstone et sélection reproduit, garde canonique ajoutée ; 57 tests ciblés verts, revalidation complète du nouveau delta en cours. Les compteurs précédents restent ceux du commit 26f74416.
+Complément URL avant rebascule du store : défaut tombstone et sélection reproduit, garde canonique ajoutée ; 57 tests ciblés verts, revalidation complète terminée sur dd773094 : build/hooks verts, 10 046 tests réussis et sept omissions existantes, sans échec. Les compteurs précédents restent ceux du commit 26f74416.

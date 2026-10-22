@@ -32,4 +32,10 @@ Reproduction unitaire : `pnpm exec vitest run app/lib/stores/files.create-empty-
 
 La première garde de génération ne couvrait pas la fenêtre où l’URL passe à B avant l’effet `configureProject(B)`. Une suppression A terminée dans cet intervalle écrasait la clé de tombstones B ; une création pouvait également changer sélection et état modifié. Une sonde unitaire ciblée reproduit le tombstone erroné. La matrice corrigée compte trois échecs produit et trois contrôles réussis sur la version intermédiaire ; une première matrice contenait une mauvaise propriété d’assertion (`content` au lieu de `value`), conservée comme erreur de préparation et non comptée comme preuve produit.
 
-La complétion vérifie maintenant aussi le projet canonique issu de l’URL, dans FilesStore et les wrappers Workbench. Un changement de panneau du même projet reste valide. Les 57 tests ciblés passent après correction et formatage ; le build et la suite complète de ce nouveau delta sont à revalider. Les résultats 26f74416 ci-dessus restent historiques et ne sont pas appliqués à ce complément.
+La complétion vérifie maintenant aussi le projet canonique issu de l’URL, dans FilesStore et les wrappers Workbench. Un changement de panneau du même projet reste valide. Les 57 tests ciblés passent après correction et formatage ; le build et la suite complète de ce nouveau delta sont maintenant validés ci-dessous. Les résultats 26f74416 ci-dessus restent historiques et ne sont pas appliqués à ce complément.
+
+## Verdict local final du complément URL
+
+Source compilée `dd773094a58202144ea20791264a66961be4a6ca`, arbre `9c3a879c258ccd2fab7ee97a06fdee90f6d4e08f`. Build, typage, lint et gitleaks passent. Suite complète : **10 046 tests réussis, sept omissions existantes ; 1 301 fichiers réussis et deux omis**, zéro échec au premier passage (298,52 s). Les 57 tests ciblés sont verts sans omission. Attestation : **9 489 blobs sans différence**, 2 306 fichiers compilés. Les manifestes et compteurs finaux sont dans `url-final/` ; ceux de 26f74416 sont conservés séparément comme historiques.
+
+La recette réelle de succès runtime tardif reste bloquée par le gestionnaire local indisponible. Cette PR doit rester un lot en revue, avec ce manque de couverture explicite. Aucun succès navigateur ou persistance réelle n’est déduit des tests synthétiques.
