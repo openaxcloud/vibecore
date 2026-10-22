@@ -11821,6 +11821,15 @@ body :where(.lucide, svg[data-lucide]) {
   scrollbar-width: none;
 }
 
+/* Keep desktop tab controls under the pointer during a click.
+ * Snapping an overflowing strip between pointerdown and pointerup sends
+ * the click to the strip instead of the tab's close button. */
+@media (min-width: 1024px) {
+  .bolt-project-tabs {
+    scroll-snap-type: none;
+  }
+}
+
 .bolt-project-tabs::-webkit-scrollbar {
   display: none;
 }

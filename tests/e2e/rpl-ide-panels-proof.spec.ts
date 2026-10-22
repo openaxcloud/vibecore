@@ -577,7 +577,8 @@ test('closing moved tab invalidates its receipt before a browser Back request', 
   const moved = tabById(page, state.previewId);
 
   if ((await moved.getAttribute('data-pinned')) === 'true') {
-    await moved.locator('button.bolt-project-tab-pin').click();
+    await openOptionsMenu(page, 1);
+    await page.getByTestId('tab-options-pin').click();
     await expect(moved).not.toHaveAttribute('data-pinned', 'true');
   }
 
