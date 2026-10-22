@@ -1,0 +1,24 @@
+{
+  "head": "d8739887ae5cdba652a0eab97674928c6915a8b7",
+  "run": 39773487261,
+  "job": 119806543835,
+  "failedStep": "Unit tests",
+  "test": "tests/guards/montage-e2e-a-son-budget.spec.ts:94",
+  "message": "ide-global-palette-handoff.spec.ts:166 — corps de hook anormalement long: expected 3594 to be less than 2000",
+  "localReproduction": {
+    "passed": 5,
+    "failed": 1,
+    "durationSeconds": 2.19
+  },
+  "secondaryFailure": {
+    "job": 119806542137,
+    "reason": "Required checks failed: Install, test, build, scan: failure"
+  },
+  "logDownload": {
+    "status": "denied",
+    "httpStatus": 403,
+    "retried": false
+  },
+  "evidence": "GitHub structured check annotations and local exact-head guard execution",
+  "proposedRemediation": "Move the shared synthetic identities initialization into a suite-level beforeAll recognized by the unchanged guard; explicitly retain its current 30000ms default budget; preserve six cases and assertions. No change applied while head frozen."
+}

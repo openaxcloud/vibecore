@@ -1,0 +1,74 @@
+[
+  {
+    "path": "README.md",
+    "sha256": "fff014d0e661571dcf8e42dc963fbcb1fb4ddeaee98876f287b87541a3f25ba9"
+  },
+  {
+    "path": "build-receipt.json",
+    "sha256": "0093c385743649929d77c4f4a6f7fb8560e9a09e85baa481abf659d6f51249f3"
+  },
+  {
+    "path": "ci-d873-guard-redacted.json",
+    "sha256": "c83a5aef81c5ef2d1231d45c30e1920fbcbfa01ba5769855007e305abe09dedc"
+  },
+  {
+    "path": "compiled.json",
+    "sha256": "ee4193af60405a7e1e8efa51a9e77e8a3701d31867e078451d98fd7513a783ee"
+  },
+  {
+    "path": "focus-after-1024.png",
+    "sha256": "c3f62b3264813f3865b54b9f55f3eeef2e37fe5ae7360e371b30f7f05c3b81a9"
+  },
+  {
+    "path": "focus-after-1440.png",
+    "sha256": "08882574bcc647e5c2adfd979ac7886836f4ddacc9a814e392d19204df26c567"
+  },
+  {
+    "path": "main767-combined-rpl.config.ts.txt",
+    "sha256": "07420b9ab2417ed80c08dfe301d3c14b300b8dddb5eb3740f5e32c275eb26dee"
+  },
+  {
+    "path": "main767-combined.config.ts.txt",
+    "sha256": "e06d955112ed9923d231c2235ac5d32f52255a61dd331bcbec3f8a08a9a91be4"
+  },
+  {
+    "path": "merge-receipt.json",
+    "sha256": "949dadf84b17c1f49581fe8d95f0504de970e548a543c24776d336c574578026"
+  },
+  {
+    "path": "mobile-compat-main767.config.ts.txt",
+    "sha256": "700c2dfba3ccc1c8648d8ff703d845590ae6e6f2c72d303a039deb05b3e34fdb"
+  },
+  {
+    "path": "mobile-compat-main767.spec.ts.txt",
+    "sha256": "a75a269e99ec0ade32f096baf6db018785aa8ccedfe43a01c228a17590410e8f"
+  },
+  {
+    "path": "palette-fixture-guard-review.json",
+    "sha256": "ebe1d1a83da39a4d2ce7d5bb6c81e0fd5640b5140d1a188d2be65ccdc7fa84f2"
+  },
+  {
+    "path": "previous-ci-terminal.json",
+    "sha256": "2cb7bb67948c098ef9aaed39f9936d0b716152c9072007f24986c67c5ba15424"
+  },
+  {
+    "path": "rpl-results.json",
+    "sha256": "31b63476d11ee6266fa377ac0d7b6e38c1999ff6f5a613c75aed696171700fc2"
+  },
+  {
+    "path": "served-asset.json",
+    "sha256": "ab393309e2e8d55c5223ac6d633cddf8c9574c0b7f5bd30cf5cee46a9e04f67d"
+  },
+  {
+    "path": "sources.json",
+    "sha256": "7bdb03593eda8412b363229c53d5a837fad0ebe854ef55104a4ac63e47b1bf1a"
+  },
+  {
+    "path": "targeted-results.json",
+    "sha256": "5f70179d9c0b17aed548f2d9e1a51d7d755d33b278f7b836a16ef5927232860d"
+  },
+  {
+    "path": "touch-results.json",
+    "sha256": "9fce566abf8048c2f76ec7bb96b15d9b018d1dbf5d9f32f7aaa47f7bd8103605"
+  }
+]

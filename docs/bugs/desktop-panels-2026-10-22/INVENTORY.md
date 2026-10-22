@@ -88,7 +88,9 @@ Corrections du banc, sans suppression de liens : `files` ouvre la bibliothèque 
 
 Les codes HTTP ci-dessus sont relevés dans la fenêtre de navigation du panneau, sans identifiants ni URL privée recopiés. Ils peuvent inclure des requêtes annexes : aucune causalité précise n’est attribuée sans corrélation. Un 429 n’est pas automatiquement une limite mensuelle ; aucune attente, exemption ou relance automatique n’a été ajoutée pour masquer les erreurs. Les 503 de Studio/Problems ne prouvent pas la cause du défaut de routage Problems.
 
-### Contre-épreuves et gestes ciblés des agents
+### Contre-épreuves et gestes ciblés des agents — état historique initial
+
+Les paragraphes ci-dessous conservent l’état du premier audit ; les validations compilées ultérieures figurent dans le README, notamment l’assemblage 838684f0. Leurs mentions « attendu » ne décrivent pas le verdict actuel.
 
 - **Problems** : baseline réel, URL `panel=problems` affiche README et zéro onglet Problems. Cause établie : registre workspace accepte problems mais `PROJECT_EDITOR_TOOLS` l’omet ; normalisation vers editor. La barre de statut ouvre volontairement un tiroir inférieur, et ce geste passe : l’ancien test attendant une URL/onglet après ce clic était incorrect. Unitaires avant : 62 succès, 1 échec ; après correction : 68 succès. Navigation sur build corrigé encore à valider, pas de certificat produit sur les seuls unitaires.
 - **Palette globale / Agent** : quatre succès directs (menus Agent EN à 1440/1024 et palette après montage aux deux largeurs), un rouge fonctionnel de disparition au handoff à 1440, un timeout de préparation à 1024 non concluant. Après montage, Ctrl+Shift+P, focus, saisie, Escape et réouverture passent. Le cas en échec ne couvre pas ses étapes ultérieures. Nouveau correctif et tests préparés ; 16 unitaires passent, recette sur build commun attendue. Aucune action Database/Logs métier validée par le fait de taper ces termes.

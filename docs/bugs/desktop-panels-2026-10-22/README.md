@@ -4,6 +4,14 @@ Quatre défauts reproduits sur le produit compilé sont corrigés : la palette g
 
 Ce lot n’est pas une certification de la plateforme. La [matrice des 31 portes](INVENTORY.md) distingue surfaces, menus, actions métier non testées et blocages. Aucun projet utilisateur ni accès fournisseur n’a été modifié.
 
+## Assemblage courant avec main 5de3fac6
+
+Produit compilé : `838684f007255fb0f91177f5e1598940ad084fca`, arbre `80adcca16ab90b3560baaa145eda7e36d8d2114b`. Fusion de `d8739887` avec `main 5de3fac6`, sans force-push. BaseChat est l’union exacte de l’extraction AgentPatchReviewQueue de main et des changements palette ; 36 autres fichiers entrants identiques à main. Inventaire : union complète de 475 chemins, aucune fiche perdue.
+
+**23/23 E2E locaux directs, zéro retry/omission**, **10 018 tests unitaires réussis, 7 skips explicites**, build, typage et hooks verts. Les 12 scénarios ciblés incluent la réouverture sans rejeu de propositions ; deux parcours tactiles et neuf parcours docking/navigation complètent la recette. [Preuves, configuration et limites de l’assemblage](proofs/main767-combined/README.md).
+
+Le rouge CI d873 est conservé : la garde de montage absorbait les tests après un hook imbriqué. Le hook commun est maintenant au niveau de suite, avec son budget actuel de 30 secondes explicite ; garde, seuil, six gestes, assertions et délais des cas inchangés. Les échecs locaux de ressources137, de collecte des recettes privées et de cache hors ligne sont documentés, puis revalidés sans exemption. Les résultats de l’ancienne tête ne sont pas transférés à cette version ; nouvelle CI et revue combinée requises avant fusion.
+
 ## Complément après revue : invocation répétée de la palette
 
 Le raccourci répété pendant la saisie remplaçait la cible de retour par le champ ensuite démonté. Le rouge est reproduit à 1440/1024 sur la référence main187 et sur c382 : aucune régression nouvelle attribuée à ce lot. Le correctif conserve la cible tant que la palette est ouverte.

@@ -47,3 +47,5 @@ Sur `2a1c2bc3a843a8b8b97514d211170aebf97ac0ac` (arbre `59ed252fc5918f62671edc943
 ### Intégration main 5de3fac6 et garde de montage
 
 La CI d873 a révélé une garde unitaire rouge : le nouveau beforeAll imbriqué était extrait jusqu'à la fin du describe (3 594 caractères) et conservait implicitement le budget par défaut. Rouge reproduit localement, 1 échec et 5 succès. La préparation commune est remontée dans un describe de premier niveau ; son budget existant de 30 000 ms est explicite. La garde et son seuil restent inchangés, les six gestes/assertions et les deux anciens handoffs sont conservés. Garde corrigée : 6/6 verts. Le merge de main 5de3fac6 conserve AgentPatchReviewQueue et les gardes de propositions ; index régénéré en union à 475 fiches. Nouvelle compilation et recette combinée requises, aucun vert précédent transféré.
+
+Validation de l’assemblage `838684f0` : 23/23 E2E directs, zéro retry/omission, 10 018 unitaires réussis/7 skips explicites ; build, typage et hooks verts. La CI de la tête publiée reste une vérification distincte obligatoire. Voir la recette main767-combined ; les échecs précédents ne sont pas supprimés.
