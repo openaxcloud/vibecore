@@ -19,7 +19,7 @@ import {
   WidgetType,
 } from '@codemirror/view';
 import type * as MonacoTypes from 'monaco-editor';
-import { createElement, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createElement, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 
 import { formatEditorCopy, getEditorCopy, type EditorCopy } from './editor-copy.js';
 
@@ -1877,7 +1877,10 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
   const lastFilePathRef = useRef(props.filePath);
   const propsRef = useRef(props);
 
-  propsRef.current = props;
+  // An interrupted render must not retarget callbacks of the still-visible document.
+  useLayoutEffect(() => {
+    propsRef.current = props;
+  });
 
   useEffect(() => {
     if (!containerRef.current || viewRef.current) {
@@ -1921,7 +1924,7 @@ export function MobileCodeEditor(props: EditorAdapterProps) {
     };
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const view = viewRef.current;
 
     if (!view) {
