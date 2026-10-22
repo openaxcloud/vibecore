@@ -18998,13 +18998,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // Store exceptions may contain SQL, credentials or file contents. Log only the outcome.
     request.log.error({ event: 'project.file.persistence_failed', runtimeApplied }, 'project manifest persist failed');
 
+    /*
+     * This conflict needs explicit recovery: 503 invites automatic overwrites
+     * after the runtime already changed. Client retry layers also guard the code.
+     */
     return reply
-      .code(503)
+      .code(409)
       .header('x-vc-file-persistence', 'unconfirmed')
       .send({
         error: appPublicEnglish('INTERNAL_SERVER_ERROR'),
         code: 'PROJECT_FILE_PERSISTENCE_FAILED',
         persistence: { runtime: runtimeApplied ? 'applied' : 'not_applied', manifest: 'unconfirmed' },
+        retryable: false,
         retry: 'write',
       });
   };

@@ -1,4 +1,5 @@
 import { createServer, type Server } from 'node:http';
+import { RemoteKubernetesRuntimeAdapter } from '@vibecore/runtime-remote';
 import JSZip from 'jszip';
 import { describe, expect, it, vi } from 'vitest';
 import { buildApiApp } from './app.js';
@@ -171,9 +172,10 @@ async function context() {
 }
 
 function expectPersistenceFailure(response: { statusCode: number; body: string; json(): any }, runtime: string) {
-  expect(response.statusCode).toBe(503);
+  expect(response.statusCode).toBe(409);
   expect(response.json()).toMatchObject({
     code: 'PROJECT_FILE_PERSISTENCE_FAILED',
+    retryable: false,
     persistence: { runtime, manifest: 'unconfirmed' },
   });
   expect(response.body).not.toContain('STORAGE_SECRET_CANARY');
@@ -229,6 +231,66 @@ describe('runtime save durability acknowledgements', () => {
         expect(retry.statusCode).toBe(204);
         expect(retry.headers['x-vc-file-persistence']).toBe('manifest');
         expect(await c.exportFiles()).toEqual({ ...original, 'src/saved.ts': content });
+      } finally {
+        await c.close();
+      }
+    },
+  );
+
+  it.each(['PUT', 'POST'] as const)(
+    'the real remote adapter fails fast after partial %s and preserves a concurrent writer',
+    async (method) => {
+      const c = await context();
+
+      try {
+        const original = await c.exportFiles();
+        const path = 'src/concurrent.ts';
+        const peerContent = 'newer peer content';
+        const intendedContent = 'original writer content';
+        vi.spyOn(c.store, 'upsertProjectIdeState').mockRejectedValueOnce(new Error('STORAGE_SECRET_CANARY'));
+
+        let requests = 0;
+
+        const adapter = new RemoteKubernetesRuntimeAdapter({
+          baseUrl: 'http://api.local/api/runtime',
+          workspaceId: c.projectId,
+          authToken: c.headers.authorization.slice('Bearer '.length),
+          fetchImpl: async (input, init) => {
+            requests += 1;
+
+            const response = await c.app.inject({
+              method: init?.method as 'PUT' | 'POST',
+              url: new URL(String(input)).pathname,
+              headers: Object.fromEntries(new Headers(init?.headers)),
+              payload: init?.body as string,
+            });
+
+            if (requests === 1) {
+              expect(response.json().persistence).toEqual({ runtime: 'applied', manifest: 'unconfirmed' });
+              expect(c.runtime.fichiers.get(path)).toBe(intendedContent);
+
+              // A peer commits before the first caller receives its partial-failure response.
+              expect((await c.save('PUT', path, peerContent)).statusCode).toBe(204);
+            }
+
+            return new Response(response.statusCode === 204 ? null : response.body, { status: response.statusCode });
+          },
+        });
+
+        await expect(
+          method === 'PUT' ? adapter.writeFile(path, intendedContent) : adapter.createFile(path, intendedContent),
+        ).rejects.toMatchObject({
+          status: 409,
+          code: 'PROJECT_FILE_PERSISTENCE_FAILED',
+        });
+        expect(requests).toBe(1);
+        expect(c.runtime.fichiers.get(path)).toBe(peerContent);
+        expect(await c.exportFiles()).toEqual({ ...original, [path]: peerContent });
+
+        // After explicit conflict resolution, the failed call must not poison the content cache.
+        await adapter.writeFile(path, intendedContent);
+        expect(requests).toBe(2);
+        expect(await c.exportFiles()).toEqual({ ...original, [path]: intendedContent });
       } finally {
         await c.close();
       }

@@ -6,6 +6,7 @@ import { ensureEntryImportsResolvable } from './entry-placeholder';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
 import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from './preview-dependencies';
+import { isUnconfirmedFilePersistenceError } from './retry';
 import { workspaceEvents } from './workspace-events';
 import { formatActionRunnerCopy, getActionRunnerCopy, type ActionRunnerKey } from '~/lib/i18n/catalogs/action-runner';
 import { getI18nInstance } from '~/lib/i18n/runtime';
@@ -804,7 +805,8 @@ export class ActionRunner {
           action.abortSignal.aborted ||
           error instanceof ActionCommandError ||
           error instanceof ToolTimeoutError ||
-          error instanceof JsonValidationError
+          error instanceof JsonValidationError ||
+          isUnconfirmedFilePersistenceError(error)
         ) {
           /*
            * JsonValidationError is deterministic for a fixed payload — retrying

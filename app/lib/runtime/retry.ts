@@ -53,11 +53,20 @@ const TRANSIENT_MESSAGE_HINTS = [
   '504',
 ];
 
+/** A partial save requires explicit conflict resolution, never automatic replay. */
+export function isUnconfirmedFilePersistenceError(error: unknown): boolean {
+  return error instanceof RuntimeError && error.code === 'PROJECT_FILE_PERSISTENCE_FAILED';
+}
+
 /**
  * Returns true when an error thrown by a runtime call looks transient — i.e.
  * the same call has a good chance of succeeding if retried after a short delay.
  */
 export function isTransientRuntimeError(error: unknown): boolean {
+  if (isUnconfirmedFilePersistenceError(error)) {
+    return false;
+  }
+
   if (error instanceof RuntimeError) {
     /*
      * When a concrete HTTP status is known, trust it alone: a 404/403 must not
@@ -138,7 +147,7 @@ export async function withRuntimeRetry<T>(operation: () => Promise<T>, options: 
 
       const isLastAttempt = attempt >= attempts;
 
-      if (isLastAttempt || !shouldRetry(error)) {
+      if (isUnconfirmedFilePersistenceError(error) || isLastAttempt || !shouldRetry(error)) {
         throw error;
       }
 

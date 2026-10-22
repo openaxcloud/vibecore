@@ -1,4 +1,5 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
+import { RemoteKubernetesRuntimeAdapter } from '@vibecore/runtime-remote';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { validateAndFormatHunkMock, buildSelfRepairPromptMock, applyEntryExportReconcileMock } = vi.hoisted(() => ({
@@ -38,6 +39,7 @@ import {
   startCommandAlreadyInstalls,
 } from './action-runner';
 import type { ActionCallbackData } from './message-parser';
+import { withRuntimeRetry } from './retry';
 import { workspaceEvents } from './workspace-events';
 
 function createActionData(actionId = 'action-1'): ActionCallbackData {
@@ -605,6 +607,78 @@ describe('ActionRunner self-repair retry loop', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(progressEvents).toHaveLength(0);
   });
+
+  it.each([
+    ['PUT', 409],
+    ['POST', 409],
+    ['PUT', 503],
+    ['POST', 503],
+  ] as const)(
+    'does not replay partial %s/%s through the adapter, runtime retry and ActionRunner',
+    async (method, status) => {
+      validateAndFormatHunkMock.mockResolvedValue({ kind: 'ok', language: 'tsx', formatted: 'const saved = 1;\n' });
+
+      const peerContent = 'newer concurrent content';
+
+      let runtimeContent: string | undefined;
+
+      const observedErrors: unknown[] = [];
+
+      const transport = vi.fn<typeof fetch>().mockImplementation(async (_input, init) => {
+        if (transport.mock.calls.length === 1) {
+          runtimeContent = peerContent;
+          return new Response(
+            JSON.stringify({
+              code: 'PROJECT_FILE_PERSISTENCE_FAILED',
+              retryable: false,
+              persistence: { runtime: 'applied', manifest: 'unconfirmed' },
+            }),
+            { status },
+          );
+        }
+
+        if (method === 'POST') {
+          return new Response(JSON.stringify({ code: 'EEXIST' }), { status: 409 });
+        }
+
+        runtimeContent = JSON.parse(init!.body as string).content;
+
+        return new Response(null, { status: 204 });
+      });
+      const adapter = new RemoteKubernetesRuntimeAdapter({
+        baseUrl: 'http://api.local/api/runtime',
+        workspaceId: 'ws-test',
+        fetchImpl: transport,
+      });
+      const writeFile = vi.fn(async (path: string, content: string) => {
+        try {
+          await withRuntimeRetry(
+            () => (method === 'PUT' ? adapter.writeFile(path, content) : adapter.createFile(path, content)),
+            {
+              baseDelayMs: 0,
+
+              // Even a caller's broad retry predicate must not replay a partial mutation.
+              shouldRetry: () => true,
+            },
+          );
+        } catch (error) {
+          observedErrors.push(error);
+          throw error;
+        }
+      });
+
+      const runner = new ActionRunner(createRuntime({ writeFile }), () => createShell() as any);
+      runner.addAction(fileAction);
+      await runner.runAction(fileAction, false);
+
+      expect(transport).toHaveBeenCalledTimes(1);
+      expect(writeFile).toHaveBeenCalledTimes(1);
+      expect(runtimeContent).toBe(peerContent);
+      expect(observedErrors).toHaveLength(1);
+      expect(observedErrors[0]).toMatchObject({ code: 'PROJECT_FILE_PERSISTENCE_FAILED', status });
+      expect(runner.actions.get()[fileAction.actionId]?.status).toBe('failed');
+    },
+  );
 
   it('calls the self-repair endpoint on a parse error and writes the corrected content', async () => {
     validateAndFormatHunkMock

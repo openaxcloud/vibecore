@@ -380,6 +380,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   #isTransientStartError(error: unknown): boolean {
     if (error instanceof RuntimeError) {
+      // The pod may already contain this write; replay could overwrite a peer.
+      if (error.code === 'PROJECT_FILE_PERSISTENCE_FAILED') {
+        return false;
+      }
+
       /*
        * A 502/503/504 from the api runtime proxy, or a network/abort error with
        * no HTTP status — the workspace may still be provisioning. 4xx (quota,
