@@ -63,7 +63,7 @@ describe('FilesStore.createFile — empty file first-save (remote-kubernetes)', 
     expect(store.files.get()[path]).toMatchObject({ type: 'file', content: ' ' });
 
     // The first real edit/save must succeed (previously threw "Remote file changed").
-    await expect(store.saveFile(path, 'export const x = 1;\n')).resolves.toBeUndefined();
+    await expect(store.saveFile(path, 'export const x = 1;\n')).resolves.toBe('export const x = 1;\n');
     expect(disk.get('src/empty.ts')).toBe('export const x = 1;\n');
     expect(store.files.get()[path]).toMatchObject({ content: 'export const x = 1;\n' });
   });

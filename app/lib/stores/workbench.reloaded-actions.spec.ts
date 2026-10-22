@@ -3,8 +3,10 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { fileHistoryStore } from './fileHistory';
 import { WorkbenchStore } from './workbench';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
+import { workspaceEvents } from '~/lib/runtime/workspace-events';
 
 const { runtimeAdapterMock, runtimeFiles, lockedFiles } = vi.hoisted(() => {
   const runtimeFiles = new Map<string, string>();
@@ -78,6 +80,7 @@ vi.mock('./previews', async () => {
 
 vi.mock('./files', async () => {
   const { map } = await import('nanostores');
+  const { reconcileRemoteWrite } = await import('./reconcile-remote-write');
 
   return {
     FilesStore: class {
@@ -118,7 +121,13 @@ vi.mock('./files', async () => {
       }
 
       async saveFile(filePath: string, content: string) {
-        this.files.setKey(filePath, { type: 'file', content, isBinary: false });
+        const path = filePath.replace('/home/project/', '');
+        const remote = await runtimeAdapterMock.readFile(path);
+        const effective = reconcileRemoteWrite(path, remote.content, content);
+        await runtimeAdapterMock.writeFile(path, effective);
+        this.files.setKey(filePath, { type: 'file', content: effective, isBinary: false });
+
+        return effective;
       }
 
       getFileModifications() {
@@ -143,7 +152,13 @@ vi.mock('./editor', async () => {
       selectedFile = atom(undefined);
       documents = map({});
 
-      setDocuments = vi.fn();
+      setDocuments(files: Record<string, { type: string; content?: string }>) {
+        for (const [path, file] of Object.entries(files)) {
+          if (file.type === 'file') {
+            this.updateFile(path, file.content ?? '');
+          }
+        }
+      }
 
       setSelectedFile(filePath: string | undefined) {
         this.selectedFile.set(filePath);
@@ -259,6 +274,320 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     runtimeAdapterMock.streamCommand.mockImplementation(async function* () {
       yield { type: 'exit' as const, exitCode: 0 };
     });
+  });
+
+  it.each(['accepted', 'rejected'] as const)(
+    'keeps deferred startup paused after a failed write until explicitly %s',
+    async (decision) => {
+      const store = new WorkbenchStore();
+      const startPreview = vi.spyOn(store, 'startPreviewServer').mockResolvedValue(undefined);
+      const file = fileAction();
+      file.action.content = 'export default function App() { return <h1>Creation</h1>; }';
+
+      const start: ActionCallbackData = {
+        ...shellAction(),
+        actionId: 'start-1',
+        action: { type: 'start', content: 'npm run dev' },
+      };
+      store.setAgentPatchReviewRequired(true);
+      store.addArtifact(artifactData());
+      store.addAction(file);
+      store.runAction(file);
+      await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+      store.addAction(start);
+      store.runAction(start);
+      await vi.waitFor(() => expect(actionStatus(store, 'start-1')).toBe('complete'));
+      runtimeAdapterMock.writeFile.mockRejectedValueOnce(
+        Object.assign(new Error('Authorization: Bearer SECRET response-body'), { status: 503 }),
+      );
+      await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('failed');
+      expect(startPreview).not.toHaveBeenCalled();
+      expect(actionStatus(store, 'file-1')).toBe('failed');
+
+      const failure = store.agentPatchProposals.get()['artifact-1:file-1'];
+      expect(failure.error).toContain('writing the workspace file');
+      expect(failure.error).toContain('unavailable or not ready');
+      expect(failure.error).not.toContain('SECRET');
+      expect(store.workspaceLogs.get().join('\n')).not.toContain('SECRET');
+      expect(runtimeFiles.has('src/App.tsx')).toBe(false);
+
+      if (decision === 'accepted') {
+        await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+        expect(runtimeFiles.get('src/App.tsx')).toBe(file.action.content);
+      } else {
+        await store.rejectAgentPatchProposal('artifact-1:file-1');
+        expect(store.agentPatchProposals.get()['artifact-1:file-1'].status).toBe('rejected');
+        expect(runtimeFiles.has('src/App.tsx')).toBe(false);
+      }
+
+      expect(actionStatus(store, 'file-1')).toBe('complete');
+      expect(startPreview).toHaveBeenCalledTimes(1);
+      startPreview.mockRestore();
+    },
+  );
+
+  it.each(['accepted', 'rejected'] as const)(
+    'resumes a refresh deferred at artifact close after changes are %s, without an explicit start action',
+    async (decision) => {
+      runtimeFiles.set('package.json', '{"name":"fixture","scripts":{"dev":"vite"}}');
+
+      const store = new WorkbenchStore();
+      const startPreview = vi.spyOn(store, 'startPreviewServer').mockResolvedValue(undefined);
+      const restartPreview = vi.spyOn(store, 'restartPreviewServer').mockResolvedValue(undefined);
+      const file = fileAction();
+      store.setAgentPatchReviewRequired(true);
+      store.addArtifact(artifactData());
+      store.addAction(file);
+      store.runAction(file);
+      await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+      store.updateArtifact(artifactData(), { closed: true });
+      await store.attendreLaFinDesTaches();
+      expect(startPreview).not.toHaveBeenCalled();
+      expect(restartPreview).not.toHaveBeenCalled();
+
+      // A failed change in another artifact must not block this artifact's decision.
+      const proposal = store.agentPatchProposals.get()['artifact-1:file-1'];
+      store.agentPatchProposals.setKey('other:failed', {
+        ...proposal,
+        id: 'other:failed',
+        artifactId: 'other',
+        status: 'failed',
+      });
+
+      if (decision === 'accepted') {
+        await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+      } else {
+        await store.rejectAgentPatchProposal('artifact-1:file-1');
+        expect(store.agentPatchProposals.get()['artifact-1:file-1'].status).toBe('rejected');
+      }
+
+      await vi.waitFor(() => expect(restartPreview).toHaveBeenCalledTimes(1));
+      expect(startPreview).not.toHaveBeenCalled();
+      expect(store.agentPatchProposals.get()['other:failed'].status).toBe('failed');
+      startPreview.mockRestore();
+      restartPreview.mockRestore();
+    },
+  );
+
+  it('revalidates imports when a deferred close resumes after rejecting an imported file', async () => {
+    runtimeFiles.set('package.json', '{"name":"fixture","scripts":{"dev":"vite"}}');
+    runtimeFiles.set('src/App.tsx', "import B from './B'; export default B;");
+
+    const store = new WorkbenchStore();
+    const startPreview = vi.spyOn(store, 'startPreviewServer').mockResolvedValue(undefined);
+    const restartPreview = vi.spyOn(store, 'restartPreviewServer').mockResolvedValue(undefined);
+    await store.loadRuntimeFiles('.');
+
+    const file = fileAction();
+    file.action = { type: 'file', filePath: 'src/B.tsx', content: 'export default function B() { return null; }' };
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+    store.addAction(file);
+    store.runAction(file);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+    store.updateArtifact(artifactData(), { closed: true });
+    await store.attendreLaFinDesTaches();
+    expect(restartPreview).not.toHaveBeenCalled();
+    await store.rejectAgentPatchProposal('artifact-1:file-1');
+    await vi.waitFor(() => expect(store.actionAlert.get()?.type).toBe('error'));
+    expect(startPreview).not.toHaveBeenCalled();
+    expect(restartPreview).not.toHaveBeenCalled();
+    expect(runtimeFiles.has('src/B.tsx')).toBe(false);
+    startPreview.mockRestore();
+    restartPreview.mockRestore();
+  });
+
+  it.each(['mismatch', 'transient-read'] as const)(
+    'confirms the written content before accepted status: %s',
+    async (scenario) => {
+      const store = new WorkbenchStore();
+      const file = fileAction();
+      file.action.content = 'export default function App() { return null; }';
+      store.setAgentPatchReviewRequired(true);
+      store.addArtifact(artifactData());
+      store.addAction(file);
+      store.runAction(file);
+      await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+
+      if (scenario === 'mismatch') {
+        runtimeAdapterMock.writeFile.mockImplementationOnce(async (path) => {
+          runtimeFiles.set(path, 'remote concurrent content');
+        });
+      } else {
+        runtimeAdapterMock.readFile.mockRejectedValueOnce(new Error('temporary read failure'));
+      }
+
+      await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe(
+        scenario === 'mismatch' ? 'failed' : 'accepted',
+      );
+      expect(runtimeAdapterMock.writeFile).toHaveBeenCalledTimes(1);
+      expect(runtimeFiles.get('src/App.tsx')).toBe(
+        scenario === 'mismatch' ? 'remote concurrent content' : file.action.content,
+      );
+      expect(actionStatus(store, 'file-1')).toBe(scenario === 'mismatch' ? 'failed' : 'complete');
+
+      if (scenario === 'mismatch') {
+        expect(store.agentPatchProposals.get()['artifact-1:file-1'].error).toContain(
+          'did not confirm the expected file content',
+        );
+      }
+    },
+  );
+
+  it.each(['success', 'failure'] as const)(
+    'ignores a confirmation completed after project/runtime switch: %s',
+    async (outcome) => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockImplementation(async () => new Response('[]', { status: 200 }));
+
+      const store = new WorkbenchStore();
+      store.configureProject('project-a');
+
+      const file = fileAction();
+      file.action.content = 'export default function App() { return null; }';
+      store.setAgentPatchReviewRequired(true);
+      store.addArtifact(artifactData());
+      store.addAction(file);
+      store.runAction(file);
+      await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+
+      let resolveRead!: (value: { content: string; encoding: 'utf8' }) => void;
+      runtimeAdapterMock.readFile.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRead = resolve;
+          }),
+      );
+
+      const applying = store.acceptAgentPatchProposal('artifact-1:file-1');
+      await vi.waitFor(() => expect(resolveRead).toBeTypeOf('function'));
+
+      const newRuntime = { ...runtimeAdapterMock, readFile: vi.fn(), writeFile: vi.fn() };
+      store.configureProject('project-b');
+      store.configureRuntime(newRuntime as unknown as Parameters<WorkbenchStore['configureRuntime']>[0]);
+      await Promise.resolve();
+
+      const sentinel = { ...store.agentPatchProposals.get() };
+      const writesBefore = fetchSpy.mock.calls.filter(([, init]) => init?.method === 'PUT').length;
+      resolveRead({ content: outcome === 'success' ? file.action.content : 'different', encoding: 'utf8' });
+      await expect(applying).resolves.toBe('ignored');
+      expect(store.agentPatchProposals.get()).toEqual(sentinel);
+      expect(newRuntime.readFile).not.toHaveBeenCalled();
+      expect(newRuntime.writeFile).not.toHaveBeenCalled();
+      expect(fetchSpy.mock.calls.filter(([, init]) => init?.method === 'PUT')).toHaveLength(writesBefore);
+      fetchSpy.mockRestore();
+    },
+  );
+
+  it('confirms the save result without overwriting JSONC keys reconciled during the save', async () => {
+    const store = new WorkbenchStore();
+    const file = fileAction();
+    file.action = {
+      type: 'file',
+      filePath: 'tsconfig.json',
+      content: '{"compilerOptions":{/* option */"strict":true}}',
+    };
+    runtimeFiles.set('tsconfig.json', '{"compilerOptions":{}}');
+    await store.loadRuntimeFiles('.');
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+    store.addAction(file);
+    store.runAction(file);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+    runtimeAdapterMock.readFile.mockImplementationOnce(async (path) => {
+      const concurrent = '{"compilerOptions":{"noEmit":true}}';
+      runtimeFiles.set(path, concurrent);
+
+      return { content: concurrent, encoding: 'utf8' as const };
+    });
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+    expect(runtimeAdapterMock.writeFile).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(runtimeFiles.get('tsconfig.json')!)).toEqual({ compilerOptions: { noEmit: true, strict: true } });
+    expect(store.agentPatchProposals.get()['artifact-1:file-1'].proposedContent).toBe(
+      runtimeFiles.get('tsconfig.json'),
+    );
+  });
+
+  it.each(['success', 'failure'] as const)(
+    'emits applied and agent history only after editor-save confirmation: %s',
+    async (outcome) => {
+      const store = new WorkbenchStore();
+      const file = fileAction();
+      file.action.content = 'export default function App() { return null; }';
+      runtimeFiles.set('src/App.tsx', 'export default function App() { return 1; }');
+      await store.loadRuntimeFiles('.');
+      store.setAgentPatchReviewRequired(true);
+      store.addArtifact(artifactData());
+      store.addAction(file);
+      store.runAction(file);
+      await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+
+      let resolveRead!: (value: { content: string; encoding: 'utf8' }) => void;
+      runtimeAdapterMock.readFile
+        .mockImplementationOnce(async (path) => ({ content: runtimeFiles.get(path)!, encoding: 'utf8' as const }))
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              resolveRead = resolve;
+            }),
+        );
+
+      const applied = vi.fn();
+      const unsubscribe = workspaceEvents.on('file:applied', applied);
+      const history = vi.spyOn(fileHistoryStore, 'capture').mockResolvedValue(undefined);
+
+      try {
+        const applying = store.acceptAgentPatchProposal('artifact-1:file-1');
+        await vi.waitFor(() => expect(resolveRead).toBeTypeOf('function'));
+
+        const appliedBeforeConfirmation = applied.mock.calls.length;
+        const historyBeforeConfirmation = history.mock.calls.length;
+        resolveRead({ content: outcome === 'success' ? file.action.content : 'different', encoding: 'utf8' });
+        await expect(applying).resolves.toBe(outcome === 'success' ? 'accepted' : 'failed');
+        expect(appliedBeforeConfirmation).toBe(0);
+        expect(historyBeforeConfirmation).toBe(0);
+        expect(applied).toHaveBeenCalledTimes(outcome === 'success' ? 1 : 0);
+        expect(history).toHaveBeenCalledTimes(outcome === 'success' ? 1 : 0);
+
+        if (outcome === 'success') {
+          expect(applied).toHaveBeenCalledWith(expect.objectContaining({ source: 'agent', filePath: 'src/App.tsx' }));
+          expect(history).toHaveBeenCalledWith('/home/project/src/App.tsx', runtimeFiles.get('src/App.tsx'), 'agent');
+        }
+      } finally {
+        unsubscribe();
+        history.mockRestore();
+      }
+    },
+  );
+
+  it('accepts JSONC over a runtime stub without losing options after comments or remote keys', async () => {
+    const store = new WorkbenchStore();
+    const file = fileAction();
+    file.action = {
+      type: 'file',
+      filePath: 'tsconfig.json',
+      content:
+        '{"compilerOptions":{"target":"ES2020", /* Bundler mode */ "jsx":"react-jsx", /* Linting */ "strict":true, /* Path Aliases */ "paths":{"@/*":["./src/*"]}}}',
+    };
+    store.setAgentPatchReviewRequired(true);
+    store.addArtifact(artifactData());
+    store.addAction(file);
+    store.runAction(file);
+    await vi.waitFor(() => expect(store.agentPatchProposals.get()['artifact-1:file-1']?.status).toBe('pending'));
+
+    const stub = '{"compilerOptions":{"target":"ES2020","noEmit":true}}';
+    runtimeFiles.set('tsconfig.json', stub);
+    store.files.setKey('/home/project/tsconfig.json', { type: 'file', content: stub, isBinary: false });
+    await expect(store.acceptAgentPatchProposal('artifact-1:file-1')).resolves.toBe('accepted');
+    expect(JSON.parse(runtimeFiles.get('tsconfig.json')!).compilerOptions).toEqual({
+      target: 'ES2020',
+      noEmit: true,
+      jsx: 'react-jsx',
+      strict: true,
+      paths: { '@/*': ['./src/*'] },
+    });
+    expect(runtimeAdapterMock.readFile).toHaveBeenCalledWith('tsconfig.json');
   });
 
   it('marks reloaded message actions complete without replaying them', async () => {

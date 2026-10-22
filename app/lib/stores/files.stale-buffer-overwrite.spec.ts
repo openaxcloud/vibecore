@@ -154,3 +154,61 @@ describe('BUG-CREATE-011 — une relecture impossible ne doit pas valoir « aucu
     expect(disk.get(RELATIF)).toBe('version serveur plus recente');
   });
 });
+
+it.each(['read-success', 'read-failure'] as const)(
+  'does not write or restore old content after a runtime switch: %s',
+  async (outcome) => {
+    let resolveRead!: (value: { content: string }) => void;
+    let rejectRead!: (error: Error) => void;
+
+    const oldDisk = new Map([[RELATIF, 'old content']]);
+
+    const oldRuntime = makeRuntime({
+      disk: oldDisk,
+      readFile: () =>
+        new Promise((resolve, reject) => {
+          resolveRead = resolve;
+          rejectRead = reject;
+        }),
+    });
+
+    const newDisk = new Map([[RELATIF, 'new project content']]);
+    const newRuntime = makeRuntime({ disk: newDisk, readFile: async () => ({ content: 'new project content' }) });
+    const store = new FilesStore(oldRuntime);
+    store.files.set({ [CHEMIN]: { type: 'file', content: 'old content', isBinary: false } });
+
+    const operation = store.saveFile(CHEMIN, 'edited old content', { onRemoteConflict: 'reconcile' });
+    const rejected = expect(operation).rejects.toMatchObject({ code: 'FILE_SAVE_SCOPE_CHANGED' });
+    await vi.waitFor(() => expect(resolveRead).toBeTypeOf('function'));
+    store.setRuntime(newRuntime);
+    store.files.set({ [CHEMIN]: { type: 'file', content: 'new project content', isBinary: false } });
+
+    if (outcome === 'read-success') {
+      resolveRead({ content: 'old content' });
+    } else {
+      rejectRead(new Error('read failed'));
+    }
+
+    await rejected;
+    expect(oldRuntime.writeFile).not.toHaveBeenCalled();
+    expect(newRuntime.writeFile).not.toHaveBeenCalled();
+    expect(store.files.get()[CHEMIN]).toMatchObject({ content: 'new project content' });
+    expect(oldDisk.get(RELATIF)).toBe('old content');
+    expect(newDisk.get(RELATIF)).toBe('new project content');
+  },
+);
+
+it('returns the exact content reconciled and written, including concurrent JSONC keys', async () => {
+  const path = '/home/project/tsconfig.json';
+  const disk = new Map([['tsconfig.json', '{"compilerOptions":{/* user */"noEmit":true}}']]);
+  const runtime = makeRuntime({ disk, readFile: async (p) => ({ content: disk.get(p)! }) });
+  const store = new FilesStore(runtime);
+  store.files.set({ [path]: { type: 'file', content: '{"compilerOptions":{}}', isBinary: false } });
+
+  const written = await store.saveFile(path, '{"compilerOptions":{/* agent */"strict":true}}', {
+    onRemoteConflict: 'reconcile',
+  });
+  expect(JSON.parse(written)).toEqual({ compilerOptions: { noEmit: true, strict: true } });
+  expect(disk.get('tsconfig.json')).toBe(written);
+  expect(runtime.writeFile).toHaveBeenCalledTimes(1);
+});

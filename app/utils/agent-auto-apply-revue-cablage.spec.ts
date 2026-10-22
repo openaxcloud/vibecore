@@ -11,9 +11,13 @@ import { describe, expect, it } from 'vitest';
 
 const source = readFileSync(new URL('../components/chat/BaseChat.tsx', import.meta.url), 'utf8');
 
+const queueSource = readFileSync(new URL('../components/chat/AgentPatchReviewQueue.tsx', import.meta.url), 'utf8');
+
 describe('la file de revue du chat passe par propositionsAMontrer', () => {
   it('la file elle-même', () => {
-    expect(source).toContain('() => propositionsAMontrer(proposals, Boolean(autoApplyEnabled)),');
+    expect(source).toContain("import { AgentPatchReviewQueue } from './AgentPatchReviewQueue';");
+    expect(source).toContain('<AgentPatchReviewQueue');
+    expect(queueSource).toContain('() => propositionsAMontrer(proposals, Boolean(autoApplyEnabled)),');
   });
 
   it('la condition de rendu', () => {

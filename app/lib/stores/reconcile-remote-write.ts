@@ -1,4 +1,5 @@
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
+import { isJsoncFile } from '~/utils/jsonc';
 
 /**
  * Resolve a concurrent-write conflict in the agent-patch pipeline: the file we
@@ -19,7 +20,7 @@ export function reconcileRemoteWrite(filePath: string, freshContent: string, our
   const basename = filePath.split(/[\\/]/).pop()?.toLowerCase() ?? '';
 
   if (basename.endsWith('.json')) {
-    const merged = mergeJsonContent(freshContent, ourContent);
+    const merged = mergeJsonContent(freshContent, ourContent, { jsonc: isJsoncFile(filePath) });
 
     if (merged !== undefined) {
       return merged;
