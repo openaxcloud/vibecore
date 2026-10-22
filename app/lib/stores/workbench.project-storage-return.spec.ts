@@ -925,4 +925,217 @@ describe('project storage hydration after returning to the IDE', () => {
     expect(store.documents.get()).toEqual({});
     expect(store.filesHydrated.get()).toBe(false);
   });
+
+  it.each(['create-file', 'create-binary', 'create-folder', 'delete-file', 'delete-folder'] as const)(
+    'does not apply an old %s completion to a different project with matching paths',
+    async (operation) => {
+      const { store } = setup();
+      const child = '/home/project/folder/child.txt';
+      const other = '/home/project/other.txt';
+      const target = operation.includes('folder') ? '/home/project/folder' : path;
+
+      const projectArchive = async (label: string) => {
+        const zip = new JSZip();
+        zip.file('audit.txt', `${label} audit`);
+        zip.file('folder/child.txt', `${label} child`);
+        zip.file('other.txt', `${label} other`);
+
+        return new Response(JSON.stringify({ archive: { base64: await zip.generateAsync({ type: 'base64' }) } }));
+      };
+      stubArchive(() => projectArchive('A'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(operation === 'delete-folder' ? child : path);
+
+      let release!: () => void;
+      let backendCompleted = false;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const complete = async () => {
+        await gate;
+        backendCompleted = true;
+      };
+
+      if (operation === 'create-file') {
+        vi.spyOn(runtimeAdapterMock, 'createFile').mockImplementationOnce(complete);
+      }
+
+      if (operation === 'create-binary') {
+        vi.spyOn(runtimeAdapterMock, 'writeFile').mockImplementationOnce(complete);
+      }
+
+      if (operation === 'create-folder') {
+        vi.spyOn(runtimeAdapterMock, 'createDirectory').mockImplementationOnce(complete);
+      }
+
+      if (operation.startsWith('delete')) {
+        vi.spyOn(runtimeAdapterMock, 'deleteFile').mockImplementationOnce(complete);
+      }
+
+      const pending =
+        operation === 'create-file'
+          ? store.createFile(path, '')
+          : operation === 'create-binary'
+            ? store.createFile(path, new Uint8Array([65]))
+            : operation === 'create-folder'
+              ? store.createFolder(target)
+              : operation === 'delete-file'
+                ? store.deleteFile(path)
+                : store.deleteFolder(target);
+
+      store.configureProject(undefined);
+      store.configureProject(`completion-B-${operation}`);
+      stubArchive(() => projectArchive('B'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(other);
+      store.setDocumentContent(path, 'B unsaved audit');
+      store.setDocumentContent(child, 'B unsaved child');
+
+      const files = store.files.get();
+      const documents = store.documents.get();
+      const dirty = [...store.unsavedFiles.get()].sort();
+      const deleted = store.getDeletedPaths();
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(backendCompleted).toBe(true);
+      expect.soft(store.files.get()).toEqual(files);
+      expect.soft(store.documents.get()).toEqual(documents);
+      expect.soft(store.selectedFile.get()).toBe(other);
+      expect.soft([...store.unsavedFiles.get()].sort()).toEqual(dirty);
+      expect.soft(store.getDeletedPaths()).toEqual(deleted);
+    },
+  );
+
+  it.each(['file', 'folder'] as const)(
+    'does not clear the new project tombstone after an old %s creation',
+    async (kind) => {
+      const { store } = setup();
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const complete = async () => {
+        await gate;
+      };
+
+      const target = kind === 'file' ? path : '/home/project/folder';
+
+      if (kind === 'file') {
+        vi.spyOn(runtimeAdapterMock, 'createFile').mockImplementationOnce(complete);
+      } else {
+        vi.spyOn(runtimeAdapterMock, 'createDirectory').mockImplementationOnce(complete);
+      }
+
+      const pending = kind === 'file' ? store.createFile(target, 'A creation') : store.createFolder(target);
+      store.configureProject('new-project-with-tombstone');
+      store.setDeletedPaths([target]);
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(store.getDeletedPaths()).toContain(target);
+      expect(store.files.get()[target]).toBeUndefined();
+    },
+  );
+  it.each(['create', 'delete'] as const)(
+    'ignores old %s UI completion after runtime changes within the same project',
+    async (operation) => {
+      const { store } = setup();
+      stubArchive(() => archive('original'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+
+      let release!: () => void;
+
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      vi.spyOn(runtimeAdapterMock, operation === 'create' ? 'createFile' : 'deleteFile').mockImplementationOnce(
+        () => gate,
+      );
+
+      const pending = operation === 'create' ? store.createFile(path, '') : store.deleteFile(path);
+      store.configureRuntime({ ...runtimeAdapterMock } as unknown as RuntimeAdapter);
+      stubArchive(() => archive('new runtime'));
+      await store.loadProjectStorageFiles();
+      store.setDocumentContent(path, 'new runtime draft');
+      store.setSelectedFile(undefined);
+
+      const files = store.files.get();
+      const documents = store.documents.get();
+      const dirty = [...store.unsavedFiles.get()];
+      release();
+      await expect(pending).resolves.toBe(true);
+      expect(store.files.get()).toEqual(files);
+      expect(store.documents.get()).toEqual(documents);
+      expect(store.selectedFile.get()).toBeUndefined();
+      expect([...store.unsavedFiles.get()]).toEqual(dirty);
+      expect(store.getDeletedPaths()).toEqual([]);
+    },
+  );
+
+  it.each(['create', 'delete'] as const)(
+    'preserves a late backend %s failure without mutating the new project',
+    async (operation) => {
+      const { store } = setup();
+
+      let reject!: (error: Error) => void;
+
+      const gate = new Promise<void>((_, fail) => {
+        reject = fail;
+      });
+      vi.spyOn(runtimeAdapterMock, operation === 'create' ? 'createFile' : 'deleteFile').mockImplementationOnce(
+        () => gate,
+      );
+
+      const pending = operation === 'create' ? store.createFile(path, '') : store.deleteFile(path);
+      store.configureProject('project-after-failed-write');
+      stubArchive(() => archive('new project'));
+      await store.loadProjectStorageFiles();
+      store.setSelectedFile(path);
+      store.setDocumentContent(path, 'new project draft');
+
+      const files = store.files.get();
+      const documents = store.documents.get();
+      const failure = new Error('original backend write failed');
+      const assertion = expect(pending).rejects.toBe(failure);
+      reject(failure);
+      await assertion;
+      expect(store.files.get()).toEqual(files);
+      expect(store.documents.get()).toEqual(documents);
+      expect(store.selectedFile.get()).toBe(path);
+      expect(store.unsavedFiles.get().has(path)).toBe(true);
+      expect(store.getDeletedPaths()).toEqual([]);
+    },
+  );
+
+  it('keeps same-project creation, selection and deletion behavior', async () => {
+    const { store } = setup();
+    const folder = '/home/project/new-folder';
+    const file = `${folder}/created.txt`;
+    await expect(store.createFolder(folder)).resolves.toBe(true);
+    await expect(store.createFile(file, 'created content')).resolves.toBe(true);
+    expect(store.files.get()[file]).toMatchObject({ content: 'created content' });
+    expect(store.selectedFile.get()).toBe(file);
+    await expect(store.deleteFile(file)).resolves.toBe(true);
+    expect(store.files.get()[file]).toBeUndefined();
+    expect(store.getDeletedPaths()).toContain(file);
+    await expect(store.deleteFolder(folder)).resolves.toBe(true);
+    expect(store.files.get()[folder]).toBeUndefined();
+    expect(store.getDeletedPaths()).toContain(folder);
+  });
+
+  it('still refuses to overwrite a locked existing file before starting a backend write', async () => {
+    const { store } = setup();
+    stubArchive(() => archive('locked original'));
+    await store.loadProjectStorageFiles();
+    store.lockFile(path);
+
+    const write = vi.spyOn(runtimeAdapterMock, 'createFile');
+    write.mockClear();
+    await expect(store.createFile(path, 'replacement')).resolves.toBe(false);
+    expect(write).not.toHaveBeenCalled();
+    expect(store.files.get()[path]).toMatchObject({ content: 'locked original', isLocked: true });
+  });
 });

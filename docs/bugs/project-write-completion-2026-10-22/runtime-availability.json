@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-10-22T14:50:19.392971+00:00",
+  "target": "http://127.0.0.1:3010/health",
+  "method": "GET",
+  "curlExit": 7,
+  "httpStatus": 0,
+  "result": "connection refused; no local runtime manager reachable",
+  "configurationBasis": "API harness asserts WORKSPACE_MANAGER_URL absent; API workspaceManagerBaseUrl defaults to loopback3010",
+  "scope": "read-only availability probe, no resource creation or credentials"
+}

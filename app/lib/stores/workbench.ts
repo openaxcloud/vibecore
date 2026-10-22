@@ -3284,10 +3284,8 @@ export class WorkbenchStore {
     try {
       const success = await this.#filesStore.createFile(filePath, content);
 
-      if (success) {
-        if (binding === this.#projectStorageBinding) {
-          this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
-        }
+      if (success && binding === this.#projectStorageBinding) {
+        this.#projectStorageSaveVersions.set(filePath, (this.#projectStorageSaveVersions.get(filePath) ?? 0) + 1);
 
         this.setSelectedFile(filePath);
 
@@ -3319,13 +3317,15 @@ export class WorkbenchStore {
   }
 
   async deleteFile(filePath: string) {
+    const binding = this.#projectStorageBinding;
+
     try {
       const currentDocument = this.currentDocument.get();
       const isCurrentFile = currentDocument?.filePath === filePath;
 
       const success = await this.#filesStore.deleteFile(filePath);
 
-      if (success) {
+      if (success && binding === this.#projectStorageBinding) {
         const newUnsavedFiles = new Set(this.unsavedFiles.get());
 
         if (newUnsavedFiles.has(filePath)) {
@@ -3357,13 +3357,15 @@ export class WorkbenchStore {
   }
 
   async deleteFolder(folderPath: string) {
+    const binding = this.#projectStorageBinding;
+
     try {
       const currentDocument = this.currentDocument.get();
       const isInCurrentFolder = currentDocument?.filePath?.startsWith(folderPath + '/');
 
       const success = await this.#filesStore.deleteFolder(folderPath);
 
-      if (success) {
+      if (success && binding === this.#projectStorageBinding) {
         const unsavedFiles = this.unsavedFiles.get();
         const newUnsavedFiles = new Set<string>();
 

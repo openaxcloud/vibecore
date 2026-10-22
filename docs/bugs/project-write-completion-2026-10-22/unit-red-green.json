@@ -1,0 +1,45 @@
+{
+  "base": "6a2505b596ae46a3d98586054c8940fae1a70220",
+  "sourceHashes": [
+    {
+      "path": "app/lib/stores/files.ts",
+      "sha256": "70898e5643f82f95f946f25b2436dfb608b29cb9ba744b12ca589cc5c2ec035a"
+    },
+    {
+      "path": "app/lib/stores/workbench.ts",
+      "sha256": "8d6b88301e1cf7b3a479c029e1bf538342b81b283154fbe79721fcc09b0c8909"
+    },
+    {
+      "path": "app/lib/stores/workbench.project-storage-return.spec.ts",
+      "sha256": "2dac9f4ad4fef0397cfc74b9385548dd08810c5ac623cbb0e977ae7579ac5be5"
+    }
+  ],
+  "results": {
+    "baseline-red": {
+      "sha256": "61cd5744331cfcbeefa5de315d126b23a7fffc2e2ec86113cb7998002fa318f4",
+      "numPassedTests": 34,
+      "numFailedTests": 7,
+      "numPendingTests": 0,
+      "numTotalTests": 41
+    },
+    "guard-green": {
+      "sha256": "b12467b0d1b2839c73efbf1bc5ab00e6c12946fe2e7e32b149fd70ac4aae8b78",
+      "numPassedTests": 41,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTotalTests": 41
+    },
+    "controls-green": {
+      "sha256": "bb6969e1965e737ca254f05348ae57fb8f80b9d3313c5843dc585c88a36749b0",
+      "numPassedTests": 50,
+      "numFailedTests": 0,
+      "numPendingTests": 0,
+      "numTotalTests": 50
+    }
+  },
+  "limitations": [
+    "Unit tests use deferred synthetic runtime adapters; no real runtime persistence verified.",
+    "FileTree rename/duplicate/upload chains can invoke a later operation in another project and remain outside this fix."
+  ],
+  "sourceHashesNote": "after formatting; final targeted rerun recorded separately"
+}
