@@ -2624,8 +2624,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [searchParams, setSearchParams] = useSearchParams();
     const projectLocation = useLocation();
 
-    const appliedMoveNavigationId = (projectLocation.state as { projectEditorMoveNavigationId?: string } | null)
-      ?.projectEditorMoveNavigationId;
+    const appliedPanelNavigationId =
+      (projectLocation.state as { projectEditorMoveNavigationId?: string } | null)?.projectEditorMoveNavigationId ??
+      `location:${projectLocation.key}`;
 
     const panelNavigation = useNavigation();
     const panelNavigationRef = useRef(panelNavigation);
@@ -4428,9 +4429,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           typeof window !== 'undefined' &&
           isRedundantPanelNavigation(window.location, panel, panelNavigationRef.current.location)
         ) {
-          const pendingMoveId = panelNavigationRef.current.location?.state?.projectEditorMoveNavigationId;
+          const pendingLocation = panelNavigationRef.current.location;
 
-          return moveNavigationId && typeof pendingMoveId === 'string' ? pendingMoveId : false;
+          if (!moveNavigationId || !pendingLocation) {
+            return false;
+          }
+
+          const pendingMoveId = pendingLocation.state?.projectEditorMoveNavigationId;
+
+          // A normal click already owns a router key even without a move marker.
+          return typeof pendingMoveId === 'string' ? pendingMoveId : `location:${pendingLocation.key}`;
         }
 
         setSearchParams(
@@ -6599,6 +6607,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     useEffect(() => {
+      const receipt = appliedWorkspacePanelUrlRef.current;
+
+      /*
+       * A cancelled POP can reuse its history key on a later Back/Forward.
+       * Do not leave its receipt alive once navigation ends elsewhere.
+       */
+      if (panelNavigation.state === 'idle' && receipt?.navigationId !== appliedPanelNavigationId) {
+        appliedWorkspacePanelUrlRef.current = null;
+      }
+    }, [panelNavigation.state, appliedPanelNavigationId]);
+
+    useEffect(() => {
       if (!projectIdeMode || (!projectStateReady && !activeProjectPanel)) {
         return;
       }
@@ -6609,7 +6629,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (
         !useMobileIde &&
-        appliedPanelUrl?.navigationId === appliedMoveNavigationId &&
+        appliedPanelUrl?.navigationId === appliedPanelNavigationId &&
         appliedPanelUrl?.projectId === projectId &&
         appliedPanelUrl?.workspaceId === currentWorkspaceId &&
         appliedPanelUrl?.windowId === projectEditorWindowId &&
@@ -6659,7 +6679,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [
       activeProjectPanel,
-      appliedMoveNavigationId,
+      appliedPanelNavigationId,
       currentWorkspaceId,
       openWorkspacePanel,
       projectEditorWindowId,

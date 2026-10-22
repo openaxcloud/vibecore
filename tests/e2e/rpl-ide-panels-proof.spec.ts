@@ -753,3 +753,193 @@ test('two moves during one pending panel navigation preserve tab identities', as
     });
   }
 });
+
+test('normal click navigation followed by a move preserves tab identities', async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
+
+  const auth = await authenticate(page);
+  const projectId = await seedProject(page, auth, 'light');
+  await page.goto(`/projects/${projectId}/ide?panel=preview`, { waitUntil: 'domcontentloaded' });
+  await expect(
+    page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"][aria-selected="true"]'),
+  ).toHaveCount(1);
+  await page.getByTestId('ide-dock-deployments').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await openOptionsMenu(page, 0);
+  await page.getByTestId('tab-options-split-right').click();
+
+  const panes = page.locator('.bolt-project-pane-leaf');
+  await expect(panes).toHaveCount(2);
+
+  const preview = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="preview"]');
+  await expect(preview).toHaveCount(1);
+
+  const previewId = await preview.getAttribute('data-tab-id');
+  expect(previewId).toBeTruthy();
+
+  const ids = () =>
+    panes.locator('[role="tab"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-tab-id')).sort());
+
+  const beforeIds = await ids();
+  const before = await paneTabPanels(page);
+
+  let release!: () => void;
+  let observed!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const seen = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+
+  const requests: { path: string; result: string }[] = [];
+
+  let afterFirst: string[][] | undefined;
+  let afterSecond: string[][] | undefined;
+  await page.route('**/*.data?*', async (route) => {
+    const url = new URL(route.request().url());
+
+    if (url.searchParams.get('panel') !== 'preview') {
+      await route.continue();
+      return;
+    }
+
+    requests.push({ path: url.pathname + url.search, result: 'held pending real continuation' });
+    observed();
+    await gate;
+
+    try {
+      await route.continue();
+    } catch {
+      requests.push({ path: url.pathname + url.search, result: 'continuation unavailable after cancellation' });
+    }
+  });
+
+  try {
+    // Begin an ordinary tab selection: its URL navigation has no move receipt.
+    await preview.locator('.bolt-project-tab-main').click();
+    await seen;
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(page).toHaveURL(/panel=deployments/);
+    afterFirst = await paneTabPanels(page);
+
+    // Move that selected tab before its actual URL request is released.
+    await openOptionsMenu(page, 0);
+    await page.getByTestId('tab-options-move-to-pane-0').click();
+    await expect(panes.nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+    await expect.poll(ids).toEqual(beforeIds);
+    await expect(page).toHaveURL(/panel=deployments/);
+    afterSecond = await paneTabPanels(page);
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await expect(page).toHaveURL(/panel=preview/);
+    await shot(page, 'normal-click-move-after-navigation');
+    await expect(panes.locator('[role="tab"]')).toHaveCount(beforeIds.length);
+    await expect.poll(ids).toEqual(beforeIds);
+    await expect(panes.nth(1).locator(`[data-tab-id="${previewId}"]`)).toHaveAttribute('aria-selected', 'true');
+    await expect(panes.nth(0).locator(`[data-tab-id="${previewId}"]`)).toHaveCount(0);
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await testInfo.attach('double-move.json', {
+      body: JSON.stringify(
+        {
+          beforeIds,
+          before,
+          afterFirst,
+          afterSecond,
+          afterNavigation: await paneTabPanels(page),
+          afterIds: await ids(),
+          requests,
+          previewId,
+        },
+        null,
+        2,
+      ),
+      contentType: 'application/json',
+    });
+  }
+});
+
+test('an interrupted Back move cannot swallow a later Back to the same history entry', async ({ page }, info) => {
+  test.setTimeout(90_000);
+
+  const state = await redundantMove(page);
+  const preview = tabById(page, state.previewId);
+  const previewHistoryKey = await page.evaluate(() => window.history.state?.key);
+  const deployment = page.locator('.bolt-project-pane-leaf [role="tab"][data-panel="deployments"]');
+  await deployment.locator('.bolt-project-tab-main').click();
+  await expect(page).toHaveURL(/panel=deployments/);
+  await openOptionsMenu(page, 1);
+  await page.getByTestId('tab-options-move-to-pane-0').click();
+  await expect(panes(page).nth(0).locator('[role="tab"][data-panel="deployments"]')).toHaveCount(1);
+  await expect(preview).toHaveAttribute('aria-selected', 'true');
+
+  let release!: () => void;
+  let observed!: () => void;
+
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const seen = new Promise<void>((resolve) => {
+    observed = resolve;
+  });
+  const failed: string[] = [];
+  page.on('requestfailed', (request) => {
+    if (request.url().includes('.data') && new URL(request.url()).searchParams.get('panel') === 'preview') {
+      failed.push(request.failure()?.errorText ?? 'unknown');
+    }
+  });
+  await page.route('**/*.data?*', async (route) => {
+    if (new URL(route.request().url()).searchParams.get('panel') !== 'preview') {
+      await route.continue();
+      return;
+    }
+
+    observed();
+    await gate;
+
+    try {
+      await route.continue();
+    } catch (error) {
+      if (!failed.length) {
+        throw error;
+      }
+    }
+  });
+
+  try {
+    const back = page.goBack({ waitUntil: 'domcontentloaded' });
+    await seen;
+    await expect.poll(() => page.evaluate(() => window.history.state?.key)).toBe(previewHistoryKey);
+    await openOptionsMenu(page, 1);
+    await page.getByTestId('tab-options-move-to-pane-0').click();
+    await expect(panes(page).nth(0).locator(`[data-tab-id="${state.previewId}"]`)).toHaveCount(1);
+    await expect.poll(() => tabIds(page)).toEqual(state.before);
+
+    // Cancel the POP by returning to the still-applied entry, without adding an entry.
+    await page.goForward({ waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/panel=deployments/);
+    await expect.poll(() => failed.length).toBeGreaterThan(0);
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+    await back;
+    await deployment.locator('.bolt-project-tab-main').click();
+    await expect(deployment).toHaveAttribute('aria-selected', 'true');
+    await page.goBack({ waitUntil: 'domcontentloaded' });
+    await expect(page).toHaveURL(/panel=preview/);
+    await expect.poll(() => page.evaluate(() => window.history.state?.key)).toBe(previewHistoryKey);
+    await expect(preview).toHaveAttribute('aria-selected', 'true');
+    await expect.poll(() => tabIds(page)).toEqual(state.before);
+    await shot(page, 'interrupted-pop-back');
+    await info.attach('interrupted-pop.json', {
+      body: JSON.stringify({ before: state.before, after: await tabIds(page), previewHistoryKey, failed }),
+      contentType: 'application/json',
+    });
+  } finally {
+    release();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
