@@ -1574,9 +1574,9 @@ export const chatEn = {
 
 export const chatFr = {
   'chat.debugger.sessionDeadline':
-    'Expiration de la session runtime : {deadline}, avec un délai de grâce d’arrêt maximal de 5 secondes.',
+    'Expiration de la session d’exécution : {deadline}, avec un délai de grâce d’arrêt maximal de 5 secondes.',
   'chat.debugger.persistencePending':
-    'L’état runtime diffère de l’état enregistré ou reste invérifiable. Réconciliez avant de vous fier au statut enregistré.',
+    'L’état de l’environnement d’exécution diffère de l’état enregistré ou reste invérifiable. Réconciliez avant de vous fier au statut enregistré.',
   'chat.debugger.reconcile': 'Réconcilier le statut enregistré',
   'chat.copy.1Year_afe36da6': '1 an',
   'chat.copy.30Days_7d4278a8': '30 jours',

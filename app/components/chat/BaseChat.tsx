@@ -23048,7 +23048,9 @@ function ProjectDebuggerPanel({
                     {session.expiresAt && (
                       <p className="mt-2 text-sm text-bolt-elements-textSecondary">
                         {t('chat.debugger.sessionDeadline', {
-                          deadline: new Date(session.expiresAt).toLocaleString(language),
+                          deadline:
+                            formatBaseChatAstDateTime(language, session.expiresAt) ??
+                            t('baseChatAst.status.notAvailable'),
                         })}
                       </p>
                     )}

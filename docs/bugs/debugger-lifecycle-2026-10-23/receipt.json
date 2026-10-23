@@ -5,24 +5,24 @@
   "unselectedExistingAgentTests": 52,
   "sourceSha256Groups": {
     "app/components/chat/BaseChat.tsx": [
-      "e8228638",
-      "a7063d03",
-      "535d6641",
-      "b6b502a7",
-      "aa4e08bc",
-      "6c891f1d",
-      "5f2957b3",
-      "a5478f03"
+      "cf116649",
+      "898a25cd",
+      "7e915177",
+      "26cc0f48",
+      "f726a212",
+      "40eb5db5",
+      "db19ad76",
+      "5f606db8"
     ],
     "app/lib/i18n/catalogs/chat.ts": [
-      "0fd0eea7",
-      "753c4b6d",
-      "52188646",
-      "4687ab43",
-      "23983345",
-      "c14a2e0f",
-      "6568c576",
-      "9d5275a3"
+      "06b87387",
+      "bf226674",
+      "42154bac",
+      "721a09e1",
+      "18ff19c7",
+      "b833f385",
+      "f703d47e",
+      "7da726d8"
     ],
     "app/routes/api.projects.$projectId.ide-panel.$panel.ts": [
       "726b0824",
@@ -172,5 +172,21 @@
     ],
     "manifestFormat": "JSON object sorted relative build paths to SHA256; compact separators; no final newline"
   },
-  "webBuild": "not rerun for this bounded delta; previous build belongs to 01754106; new CI required"
+  "webBuild": "not rerun for this bounded delta; previous build belongs to 01754106; new CI required",
+  "ciI18nCorrection": {
+    "previousHead": "e65727dde2944a266d12473a773fb80c14bf8737",
+    "failedJob": 120478935226,
+    "dependentGate": 120478505664,
+    "before": {
+      "failed": 2,
+      "passed": 6
+    },
+    "after": {
+      "failed": 0,
+      "passed": 8
+    },
+    "i18nSourceCheck": "passed",
+    "testsAndWorkflowsChanged": false,
+    "initialHookFailure": "Prettier newline only after full typecheck passed; formatted then full hooks rerun"
+  }
 }

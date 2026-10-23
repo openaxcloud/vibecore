@@ -54,3 +54,11 @@ Contre-épreuve sur le vrai code API historique, PostgreSQL/RBAC et agent locaux
 Validation de ce delta : **14 BFF + 13 API + 8 parcours locaux = 35 tests distincts réussis**. Les sept parcours précédents passent au premier lancement ; le nouveau scénario échoue d’abord avant son exécution, car execFileSync limite la taille du code historique lu depuis Git (ENOBUFS). La lecture est explicitement bornée à 8 Mio ; seul ce scénario est ensuite rejoué et passe (les 7 autres sont non sélectionnés dans ce second run). Le rouge de préparation reste privé et n’est pas une panne produit. Les 29 autres tests du lot, les 6 Security et 6 inventaire conservent leurs preuves précédentes et ne sont pas répétés localement. Aucun délai/assertion/retry n’est affaibli.
 
 Le build 01754106 reste historique, pas une validation du nouveau chemin BFF. Conformément au périmètre borné, seuls ces tests et les hooks obligatoires sont rejoués ; la nouvelle CI doit valider l’arbre publié. `receipt-01754106-historical.json` conserve la provenance antérieure.
+
+## Correction CI de e65727dd : deux gardes i18n
+
+Le job Install, test, build, scan **120478935226** échoue à l’étape Unit tests : `runtime-glossary.spec.ts` détecte deux textes français contenant « runtime », et `base-chat-ast.spec.ts` détecte l’appel direct toLocaleString ajouté pour l’échéance. Le contrôle i18n source, le lint et le typage précédents avaient réussi ; ils ne remplaçaient pas ces tests unitaires. Les étapes Integration tests et Build web/services sont ensuite skipped, pas vertes.
+
+Le job Quality Gates **120478505664** échoue par propagation explicite `Required checks failed: Install, test, build, scan: failure`, après les deux CodeQL terminés. Ce n’est ni un timeout du gate ni une seconde panne indépendante. Aucune modification du workflow nécessaire.
+
+Contre-épreuve locale sur e65727dd : **2 échecs et 6 succès** dans les deux fichiers concernés, mêmes assertions que la CI. Après remplacement des deux termes français et usage du formateur partagé formatBaseChatAstDateTime (avec repli traduit pour une date invalide) : **8/8 succès**, sans retry. `pnpm run i18n:check` passe également. Tests, assertions, seuils et exemptions inchangés. Les hooks normaux sont exécutés avant publication ; aucune suite globale locale répétée. La nouvelle CI doit encore valider son arbre exact.
