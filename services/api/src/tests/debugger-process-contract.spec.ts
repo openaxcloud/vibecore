@@ -6,8 +6,12 @@ import { describe, expect, it, vi } from 'vitest';
 // Actual child lifecycle tests live in workspace-agent/debugger-process.spec.ts.
 const source = readFileSync(new URL('../app.ts', import.meta.url), 'utf8');
 const tree = ts.createSourceFile('app.ts', source, ts.ScriptTarget.Latest, true);
+const declarations = new Map<string, ts.Expression>();
 const handlers = new Map<string, ts.Expression>();
 function visit(node: ts.Node) {
+  if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+    declarations.set(node.name.text, node.initializer);
+  }
   if (
     ts.isCallExpression(node) &&
     node.expression.getText(tree) === 'app.post' &&
@@ -22,7 +26,8 @@ function harness(path: string) {
   const binding = {
     parse: (_schema: unknown, value: unknown) => value,
     workspaceParams: {},
-    runtimeCommandSchema: {},
+    runtimeCommandSchema: { extend: () => ({}) },
+    z: { literal: () => ({}), string: () => ({ uuid: () => ({}) }) },
     authorizeRuntimeWorkspace: vi
       .fn()
       .mockResolvedValue({ workspaceId: 'authorized-workspace', organizationId: 'synthetic-org' }),
@@ -34,7 +39,10 @@ function harness(path: string) {
     stopLocalRuntimeProcess: vi.fn(),
     runLocalRuntimeCommand: vi.fn(),
   };
-  const compiled = ts.transpileModule(`return (${handlers.get(path)!.getText(tree)});`, {
+  const expression = handlers.get(path)!;
+  const resolved = ts.isIdentifier(expression) ? declarations.get(expression.text)! : expression;
+  const shared = declarations.get('runRuntimeCommand')!.getText(tree);
+  const compiled = ts.transpileModule(`const runRuntimeCommand = ${shared}; return (${resolved.getText(tree)});`, {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const handler = new Function(...Object.keys(binding), compiled)(...Object.values(binding));
@@ -62,7 +70,7 @@ function harness(path: string) {
 
 describe('runtime process API contract — controlled dependencies', () => {
   const kill = '/api/runtime/workspaces/:workspaceId/processes/:id/kill';
-  const launch = '/api/runtime/workspaces/:workspaceId/commands';
+  const launch = '/api/runtime/workspaces/:workspaceId/sessions/v1/start';
   it('propagates killed:false instead of unconditional 204', async () => {
     const h = harness(kill);
     h.binding.agentRequest.mockResolvedValue({ killed: false, id: 'opaque' });

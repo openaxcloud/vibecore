@@ -1895,7 +1895,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       try {
         const result = await apiRequest<{ processId?: string; status?: string; expiresAt?: string }>(
           request,
-          `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/commands`,
+          `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/sessions/v1/start`,
           {
             method: 'POST',
             body: JSON.stringify({ command: 'sh', args: ['-lc', command], background: true, operationId: sessionId }),

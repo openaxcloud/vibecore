@@ -68,7 +68,7 @@ beforeEach(() => {
         : outcome;
     }
 
-    if (path.endsWith('/commands')) {
+    if (path.endsWith('/sessions/v1/start')) {
       return { processId: JSON.parse(options.body).operationId, status: 'running', expiresAt: '2026-10-23T18:00:00Z' };
     }
 
@@ -161,14 +161,14 @@ describe('Debugger BFF — controlled upstream, no commands executed', () => {
       status: 'running',
     });
 
-    const command = JSON.parse(apiRequest.mock.calls.find((call) => call[1].endsWith('/commands'))![2].body);
+    const command = JSON.parse(apiRequest.mock.calls.find((call) => call[1].endsWith('/sessions/v1/start'))![2].body);
     expect(command.background).toBe(true);
     expect(command.args[1]).not.toMatch(/nohup|echo \$!|--inspect|debugpy/);
   });
   it('rejects a foreign launch workspace before executing', async () => {
     const response = await execute({ intent: 'start-session', workspaceId: 'foreign' });
     expect(response.status).toBe(409);
-    expect(apiRequest.mock.calls.some((call) => call[1].endsWith('/commands'))).toBe(false);
+    expect(apiRequest.mock.calls.some((call) => call[1].endsWith('/sessions/v1/start'))).toBe(false);
   });
   it('rejects unimplemented stepping rather than returning ok', async () => {
     const response = await execute({ intent: 'step-over', sessionId: 'session' });
@@ -183,7 +183,7 @@ describe('Debugger persistence failures — controlled faults', () => {
 
     const response = await execute({ intent: 'start-session' });
     expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(apiRequest.mock.calls.some((call) => call[1].endsWith('/commands'))).toBe(false);
+    expect(apiRequest.mock.calls.some((call) => call[1].endsWith('/sessions/v1/start'))).toBe(false);
   });
   it('compensates a failed launch-state save using the previously persisted identity', async () => {
     failPersistAt = 2;

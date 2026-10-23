@@ -350,3 +350,72 @@ for (const staleAdvertisement of [false, true]) {
     }
   });
 }
+
+test('legacy API executes the old command contract but refuses a new BFF session before dispatch', async () => {
+  const legacyPath = fileURLToPath(new URL('../../services/api/src/.debugger-legacy-fixture.ts', import.meta.url));
+  const previousUrl = process.env.SAAS_API_URL;
+  let legacy: Awaited<ReturnType<typeof buildApiApp>> | undefined;
+  let commandPosts = 0;
+  let sessionPosts = 0;
+  const marker = join(root, 'legacy-api-marker');
+  try {
+    await writeFile(
+      legacyPath,
+      execFileSync('git', ['show', 'c988c2af60d058971afe72f057c6fa82a178fb21:services/api/src/app.ts'], {
+        maxBuffer: 8 * 1024 * 1024,
+      }),
+    );
+    const oldModule = await import(/* @vite-ignore */ legacyPath);
+    legacy = await oldModule.buildApiApp();
+    legacy!.addHook('onRequest', async (request) => {
+      if (request.method === 'POST' && request.url.endsWith('/commands')) commandPosts++;
+      if (request.method === 'POST' && request.url.endsWith('/sessions/v1/start')) sessionPosts++;
+    });
+    await legacy!.listen({ host: '127.0.0.1', port: 0 });
+    const legacyUrl = `http://127.0.0.1:${(legacy!.server.address() as any).port}`;
+    // Counter-example: the old API strips background/operationId and actually
+    // executes the former BFF payload synchronously. Only a local fixture file.
+    const oldResponse = await fetch(`${legacyUrl}/api/runtime/workspaces/${workspaceId}/commands`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        command: 'sh',
+        args: ['-lc', 'printf unexpected > legacy-api-marker'],
+        background: true,
+        operationId: randomUUID(),
+      }),
+    });
+    expect(oldResponse.status).toBe(200);
+    expect((await oldResponse.json()).exitCode).toBe(0);
+    await access(marker);
+    await rm(marker);
+    expect(commandPosts).toBe(1);
+    commandPosts = 0;
+
+    process.env.SAAS_API_URL = legacyUrl;
+    const configId = randomUUID();
+    expect(
+      (
+        await bff({
+          intent: 'save-config',
+          configId,
+          type: 'shell',
+          command: 'printf unexpected > legacy-api-marker',
+          name: 'Synthetic legacy API admission',
+        })
+      ).status,
+    ).toBe(200);
+    const response = await bff({ intent: 'start-session', configId, workspaceId });
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(sessionPosts).toBe(1);
+    expect(commandPosts).toBe(0);
+    expect((await stored()).sessions[0].status).not.toBe('running');
+    await expect(access(marker)).rejects.toMatchObject({ code: 'ENOENT' });
+  } finally {
+    if (previousUrl === undefined) delete process.env.SAAS_API_URL;
+    else process.env.SAAS_API_URL = previousUrl;
+    await legacy?.close();
+    await rm(legacyPath, { force: true });
+    await rm(marker, { force: true });
+  }
+}, 60_000);

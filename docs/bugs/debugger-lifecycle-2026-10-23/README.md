@@ -13,7 +13,7 @@ La tête historique 9454a766 réutilisait le délai synchrone de runCommand : pr
 - Si la sauvegarde post-lancement échoue, arrêt compensatoire vérifié. L’identité déjà enregistrée permet de retrouver une réponse incertaine ou une compensation non confirmée. Après échec de sauvegarde d’un Stop, le runtime conserve son résultat : la lecture affiche l’état réel et indique la divergence, puis l’action « Réconcilier le statut enregistré » retente la persistance sans relancer de processus. Aucun GET ne réécrit tout l’historique.
 - Les codes machine utilisent le champ code ; les textes utilisateur sont FR/EN. Aucun ajout d’exemption i18n/gitleaks ou modification d’un contrôle.
 
-## 63 tests ciblés réussis, plus 6 gardes Security de la base intégrée
+## Preuves précédentes 01754106 : 63 tests, plus 6 gardes Security de la base intégrée
 
 | Groupe | Nombre | Nature et portée |
 |---|---:|---|
@@ -42,3 +42,15 @@ Pas de recette navigateur visuelle de l’échéance/du bouton de réconciliatio
 Le debugger complet demeure absent : pas de pont Inspector/DAP, pile, variables ni breakpoints actifs. Aucune permission, ressource payante ou configuration de sécurité ajoutée. Main `fc41f1f0a8e709f070c5def90688486fbe43d7ad`, incluant #778, est intégré sans retouche des gardes Security ; ses 6 tests ciblés sont rejoués. L’inventaire conserve les 483 fiches en union. Le blob d’état reste exposé aux mises à jour concurrentes read-modify-write : ce lot ne prétend pas résoudre cette réserve indépendante.
 
 Le premier hook de cette combinaison a bloqué sur le typage du JSON d’erreur (`unknown`/`{}`). L’assertion de type ajoutée est sans effet runtime : sortie JavaScript TypeScript strictement identique avant/après, contrôlée localement. Le build et la recette ci-dessus portent donc le même comportement émis ; les hooks complets sont rejoués sans contournement.
+
+## Complément : nouveau BFF face à une ancienne API
+
+Le rollout ne garantit pas davantage l’atomicité BFF/API. L’API historique c988c2af retire background et operationId de son schéma de commande, puis exécute la commande synchrone. Une vérification après la réponse serait trop tardive.
+
+Le BFF utilise désormais exclusivement `/api/runtime/workspaces/:workspaceId/sessions/v1/start`. Ce chemin absent de l’ancienne API refuse avant exécution. La nouvelle API valide le contrat de session puis appelle le même handler, avec toutes ses vérifications d’autorisation, révocation, anti-abus et compatibilité agent. `/commands` conserve son comportement ; aucun fallback vers ce chemin n’est ajouté au BFF.
+
+Contre-épreuve sur le vrai code API historique, PostgreSQL/RBAC et agent locaux : l’ancien payload crée effectivement un fichier marqueur synthétique. Après retrait de ce seul marqueur de fixture, le nouveau BFF reçoit un refus sur la route versionnée ; zéro POST `/commands`, aucun marqueur créé, aucun état running. Le BFF garde actuellement son erreur générique de lancement non confirmé pour cette ancienne API : l’expérience d’explication n’est pas une certification navigateur. Aucun shell utilisateur ni donnée de production touché.
+
+Validation de ce delta : **14 BFF + 13 API + 8 parcours locaux = 35 tests distincts réussis**. Les sept parcours précédents passent au premier lancement ; le nouveau scénario échoue d’abord avant son exécution, car execFileSync limite la taille du code historique lu depuis Git (ENOBUFS). La lecture est explicitement bornée à 8 Mio ; seul ce scénario est ensuite rejoué et passe (les 7 autres sont non sélectionnés dans ce second run). Le rouge de préparation reste privé et n’est pas une panne produit. Les 29 autres tests du lot, les 6 Security et 6 inventaire conservent leurs preuves précédentes et ne sont pas répétés localement. Aucun délai/assertion/retry n’est affaibli.
+
+Le build 01754106 reste historique, pas une validation du nouveau chemin BFF. Conformément au périmètre borné, seuls ces tests et les hooks obligatoires sont rejoués ; la nouvelle CI doit valider l’arbre publié. `receipt-01754106-historical.json` conserve la provenance antérieure.

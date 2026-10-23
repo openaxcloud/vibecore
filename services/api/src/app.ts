@@ -19341,7 +19341,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return changes;
   });
-  app.post('/api/runtime/workspaces/:workspaceId/commands', async (request) => {
+  const runRuntimeCommand = async (request: FastifyRequest) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeCommandSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
@@ -19453,6 +19453,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         { type: 'exit', exitCode: result.code ?? 1, timestamp: new Date().toISOString() },
       ],
     };
+  };
+  app.post('/api/runtime/workspaces/:workspaceId/commands', runRuntimeCommand);
+  // A legacy API has no such route: it cannot strip the session fields and
+  // accidentally execute this request as a synchronous command during rollout.
+  app.post('/api/runtime/workspaces/:workspaceId/sessions/v1/start', async (request) => {
+    parse(runtimeCommandSchema.extend({ background: z.literal(true), operationId: z.string().uuid() }), request.body);
+    return runRuntimeCommand(request);
   });
   app.get('/api/runtime/workspaces/:workspaceId/processes', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
