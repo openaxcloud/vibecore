@@ -10,11 +10,11 @@ id: BUG-DEBUGGER-STATE-CONCURRENCY-001
 
 ## 📤 Dispatché
 
-Préparation locale autorisée le 23 octobre, branche distincte `fix/debugger-state-cas-local`, sans projet utilisateur, nouvelle permission ni infrastructure. Pas de publication demandée à cette étape.
+Lot autorisé le 23 octobre, branche distincte `fix/debugger-state-cas-local`, publié en PR brouillon #780, sans projet utilisateur, nouvelle permission ni infrastructure.
 
 ## 💻 Codé
 
-Correctif local, pas livré. La route versionnée `/projects/:projectId/debugger-state/v1` exige la valeur précédemment lue (null pour une première création). PostgreSQL compare/écrit dans une transaction : création protégée par la contrainte unique existante ; remplacement conditionnel sur projet/clé/portée/valeur. Une répétition au contenu identique est reconnue ; un autre état reçoit 409 DEBUG_STATE_CONFLICT et ne peut pas écraser le gagnant. Aucune fusion implicite de blobs périmés, aucune migration.
+Correctif proposé en PR #780, pas livré. La route versionnée `/projects/:projectId/debugger-state/v1` exige la valeur précédemment lue (null pour une première création). PostgreSQL compare/écrit dans une transaction : création protégée par la contrainte unique existante ; remplacement conditionnel sur projet/clé/portée/valeur. Une répétition au contenu identique est reconnue ; un autre état reçoit 409 DEBUG_STATE_CONFLICT et ne peut pas écraser le gagnant. Aucune fusion implicite de blobs périmés, aucune migration.
 
 Le BFF avance sa précondition seulement après une écriture confirmée. Un conflit avant lancement empêche le lancement ; après lancement, la compensation existante reste nécessaire. Une sauvegarde de configuration en conflit rend une erreur FR/EN sans faux succès ; relire puis répéter l’action conserve les deux configurations sans doublon. La liste globale de pass-through d’erreurs reste inchangée.
 
@@ -32,3 +32,13 @@ Pas de recette navigateur/production, ni de validation d’un debugger complet. 
 ## Limites
 
 Une collision est refusée explicitement : ce lot ne fusionne pas automatiquement les intentions concurrentes. Les plafonds historiques des listes restent inchangés. Les codes déjà déployés avant cette correction peuvent toujours écrire sans condition sur une ancienne API ; aucun ordre de rollout atomique n’est revendiqué. Les modifications directes du stockage/restaurations hors de ce contrat ne sont pas couvertes. L’ancienne API est refusée avant l’écriture/lancement par le nouveau BFF.
+
+## Complément de revue : arrêt confirmé puis conflit final
+
+Sur la tête publiée a3f3a4b, la recette réelle supplémentaire confirme déjà : l’agent arrête le processus synthétique, une écriture concurrente réelle ajoute un historique, le CAS final refuse le blob périmé avec 409, puis une nouvelle lecture et la réconciliation enregistrent stopped sans second arrêt ni perte de cet historique. En revanche, la réponse 409 ne contient pas le statut confirmé : contre-épreuve rouge sur `result.session`. Le callback UI réel extrait avec transport contrôlé ne recharge pas ce cas : seconde contre-épreuve rouge.
+
+Le complément transmet le statut confirmé avec `persistencePending: true`, garde HTTP 409 / ok:false et une explication FR/EN distinguant arrêt effectif et enregistrement refusé. Le panneau Debugger recharge alors sa vue sans annoncer une réussite ni réinitialiser le formulaire. Les conflits de configuration et les autres panneaux gardent leur comportement. La base peut temporairement contenir running après l’arrêt : cette divergence est signalée, et la réconciliation explicite après lecture courante la résout.
+
+Validation locale du complément : **1 recette réelle passée, 11 autres cas non sélectionnés**, puis **28/28 tests ciblés** (BFF, callback UI contrôlé, glossaire et AST i18n). Le proxy injecte uniquement l’ordre de livraison : après le vrai arrêt, il effectue un vrai CAS concurrent avant de remettre la réponse à BFF. Aucun arrêt, état PostgreSQL ou résultat API n’est simulé dans cette recette. La première invocation avait une attente incorrecte sur un champ optionnel absent après réconciliation (false attendu) ; corrigée avant la contre-épreuve fonctionnelle, sans changement produit pour ce point. Pas de recette navigateur.
+
+Les **3 tests PostgreSQL précédemment non sélectionnés ont ensuite passé 3/3** sur la base synthétique dédiée (6 tests hors sélection dans cette invocation), en 4,27 s. Ce complément porte la couverture API/store cumulée à 19 succès, sans assimiler les résultats locaux à la CI. La preuve historique initiale reste intacte ; résultat communiqué dans le commentaire PR 6372120860.

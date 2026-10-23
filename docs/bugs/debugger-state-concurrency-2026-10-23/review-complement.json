@@ -1,0 +1,45 @@
+{
+  "baseHead": "a3f3a4b4e6b21e35542eda3f0423932286571b87",
+  "hashEncoding": "SHA256 hexadecimal grouped by eight characters; remove spaces to compare",
+  "sources": {
+    "app/components/chat/BaseChat.tsx": "05d3971f 2e67e697 f8f8ac81 3042e801 6786722e 7535d92f 6942bb38 44481240",
+    "app/components/chat/debugger-persistence-conflict.spec.ts": "8eb2e9a8 ed7cdbc7 20b41e5c 31d5af0e a946da14 c7a45687 f4c2707a 22003dd9",
+    "app/routes/api.projects.$projectId.ide-panel.$panel.ts": "e2be1227 c6320047 b21c08cf 010e4393 6666db63 9969313d b4a01e6c 713f3ae8",
+    "app/lib/i18n/catalogs/api-runtime-routes.ts": "81b5f9d8 612f5637 14fb4578 5c53d2df b1226d6b c6fb720d cba1215e fb59846f",
+    "tests/runtime/debugger-session.real.ts": "91faeefe 5679da02 3b6c99d1 50d56c2b d8ced960 fc31a4ad 3e230a93 b43af475"
+  },
+  "postgresMissingTests": {
+    "testedHead": "a3f3a4b4e6b21e35542eda3f0423932286571b87",
+    "command": "pnpm --dir services/api exec vitest run src/tests/prisma-store.spec.ts -t \"PrismaApiStore integration\"",
+    "database": "existing dedicated local synthetic PostgreSQL; same connection as real lifecycle recipe",
+    "passed": 3,
+    "selectedSkipped": 0,
+    "otherTestsNotSelected": 6,
+    "durationSeconds": 4.27,
+    "exitCode": 0,
+    "rawLogsPublished": false,
+    "tests": [
+      "persists auth, organizations, projects and audit logs in PostgreSQL",
+      "persists critical store records across independent PrismaApiStore instances",
+      "creates unique slugs for repeated project names in one organization"
+    ]
+  },
+  "stopConflict": {
+    "realPassed": 1,
+    "notSelected": 11,
+    "durationSeconds": 7.03,
+    "injection": "real concurrent CAS after actual agent Stop, before BFF receives its response",
+    "red": "confirmed session absent in 409 response; prior safety and reconciliation assertions passed",
+    "green": "confirmed stopped/persistencePending response; exactly one Stop; concurrent history retained; fresh-read reconciliation persists stopped"
+  },
+  "controlledUi": {
+    "red": "actual submit callback did not refresh confirmed session after 409",
+    "green": "refresh only Debugger confirmed session; preserve error; no success notice or form reset",
+    "browser": false
+  },
+  "targeted": {
+    "passed": 28,
+    "files": 4
+  },
+  "rawLogsPublished": false
+}

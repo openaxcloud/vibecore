@@ -1762,6 +1762,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     const now = new Date().toISOString();
 
     let launched: { processId: string; workspaceId: string } | undefined;
+    let confirmedSession: { id: string; status: string } | undefined;
 
     let expectedValue = debuggerStateValue(envVars);
 
@@ -2008,6 +2009,8 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         );
       }
 
+      confirmedSession = { id: session.id, status: result.status! };
+
       state.sessions = state.sessions.map((candidate: any) =>
         candidate.id === body.sessionId
           ? {
@@ -2031,7 +2034,18 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       await persist();
     } catch (error) {
       if (!launched && error instanceof Response && error.status === 409) {
-        return json(await error.json(), { status: 409 });
+        return json(
+          {
+            ...((await error.json()) as { ok: false; code: string; error: string }),
+            ...(confirmedSession
+              ? {
+                  error: copy['apiRuntime.panel.debugConfirmedStateConflict'],
+                  session: { ...confirmedSession, persistencePending: true },
+                }
+              : {}),
+          },
+          { status: 409 },
+        );
       }
 
       const compensated = launched ? await compensate() : undefined;

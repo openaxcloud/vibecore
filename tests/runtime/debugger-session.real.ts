@@ -574,3 +574,96 @@ test('state CAS isolates projects, enforces existing RBAC and refuses unconditio
   });
   expect(ordinary.status).toBe(200);
 });
+
+test('confirmed Stop followed by a real CAS conflict preserves concurrent history and reconciles', async () => {
+  const { createServer } = await import('node:http');
+  const configId = randomUUID();
+  expect(
+    (
+      await bff({
+        intent: 'save-config',
+        configId,
+        name: 'Stop conflict fixture',
+        type: 'shell',
+        command: `${process.execPath} -e 'setInterval(()=>{},1000)'`,
+      })
+    ).status,
+  ).toBe(200);
+  expect((await bff({ intent: 'start-session', configId, workspaceId })).status).toBe(200);
+  const session = (await stored()).sessions[0];
+  runningId = session.processId;
+  const historicalId = randomUUID();
+  const previousUrl = process.env.SAAS_API_URL;
+  let killPosts = 0;
+  let injected = false;
+  // Controlled ordering, real writes: insert another committed history after
+  // the real agent confirms Stop, before the BFF receives that confirmation.
+  const proxy = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(Buffer.from(chunk));
+    const forwarded = await fetch(`${apiUrl}${req.url}`, {
+      method: req.method,
+      headers: Object.fromEntries(
+        Object.entries(req.headers).filter(([key]) => !['host', 'connection', 'content-length'].includes(key)),
+      ) as Record<string, string>,
+      ...(chunks.length ? { body: Buffer.concat(chunks) } : {}),
+    });
+    const data = Buffer.from(await forwarded.arrayBuffer());
+    if (req.method === 'POST' && req.url?.endsWith(`/processes/${session.processId}/kill`)) {
+      killPosts++;
+      expect(JSON.parse(data.toString())).toMatchObject({ terminated: true, status: 'stopped' });
+      const current = (await http(`/projects/${projectId}/env-vars`)).data.envVars.find(
+        (row: any) => row.key === 'VIBECORE_DEBUGGER_STATE' && row.scope === 'production',
+      ).value;
+      const changed = JSON.parse(current);
+      changed.sessions.push({
+        id: historicalId,
+        adapter: 'tracked-runtime-command',
+        workspaceId,
+        processId: historicalId,
+        status: 'exited',
+        name: 'Concurrent terminal history',
+      });
+      expect((await compareState(projectId, JSON.stringify(changed), current)).response.status).toBe(200);
+      injected = true;
+    }
+    res.writeHead(forwarded.status, { 'content-type': forwarded.headers.get('content-type') ?? 'application/json' });
+    res.end(data);
+  });
+  await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve));
+  process.env.SAAS_API_URL = `http://127.0.0.1:${(proxy.address() as any).port}`;
+  try {
+    const response = await bff({ intent: 'stop-session', sessionId: session.id });
+    expect(response.status).toBe(409);
+    const result = await response.json();
+    expect(result.ok).toBe(false);
+    expect(injected).toBe(true);
+    expect(killPosts).toBe(1);
+    expect((await http(`/api/runtime/workspaces/${workspaceId}/processes/${session.processId}`)).data).toMatchObject({
+      status: 'stopped',
+    });
+    const persisted = await stored();
+    expect(persisted.sessions.find((entry: any) => entry.id === session.id).status).toBe('running');
+    expect(persisted.sessions.filter((entry: any) => entry.id === historicalId)).toHaveLength(1);
+    expect((await panel()).sessions.find((entry: any) => entry.id === session.id)).toMatchObject({
+      status: 'stopped',
+      persistencePending: true,
+    });
+    expect((await bff({ intent: 'reconcile-session', sessionId: session.id })).status).toBe(200);
+    expect(killPosts).toBe(1);
+    const reconciled = await stored();
+    expect(reconciled.sessions.find((entry: any) => entry.id === session.id).status).toBe('stopped');
+    expect(reconciled.sessions.filter((entry: any) => entry.id === historicalId)).toHaveLength(1);
+    expect((await panel()).sessions.find((entry: any) => entry.id === session.id)).not.toHaveProperty(
+      'persistencePending',
+    );
+    runningId = undefined;
+    // The initial failure response must distinguish confirmed runtime Stop
+    // from the failed persistence, without announcing a successful save.
+    expect(result.session).toMatchObject({ id: session.id, status: 'stopped', persistencePending: true });
+  } finally {
+    if (previousUrl === undefined) delete process.env.SAAS_API_URL;
+    else process.env.SAAS_API_URL = previousUrl;
+    await new Promise<void>((resolve, reject) => proxy.close((error) => (error ? reject(error) : resolve())));
+  }
+});

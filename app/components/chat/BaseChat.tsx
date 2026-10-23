@@ -11955,6 +11955,7 @@ function ProjectIdeApiServicePanel({
         ok?: boolean;
         run?: { status?: string };
         scan?: { status?: string };
+        session?: { id?: string; status?: string; persistencePending?: boolean };
         error?: string;
         code?: string;
         reason?: string;
@@ -11984,7 +11985,7 @@ function ProjectIdeApiServicePanel({
           new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: false, error: message } }),
         );
 
-        if (result.run || result.scan) {
+        if (result.run || result.scan || (panel === 'debugger' && result.session?.persistencePending)) {
           await loadPanel({ silent: true });
           setError(message);
         }
