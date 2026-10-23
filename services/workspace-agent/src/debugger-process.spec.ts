@@ -299,3 +299,33 @@ describe('interactive bound and streamed stop regressions', () => {
     }
   });
 });
+
+describe('authenticated versioned session protocol', () => {
+  it('does not expose session capabilities without an agent token', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret });
+    try {
+      expect((await app.inject({ method: 'GET', url: '/sessions/capabilities' })).statusCode).toBe(401);
+      const authorized = await app.inject({ method: 'GET', url: '/sessions/capabilities', headers });
+      expect(authorized.statusCode).toBe(200);
+      expect(authorized.json()).toEqual({ trackedSessions: 1 });
+    } finally {
+      await app.close();
+    }
+  });
+  it('rejects a missing operation identity on the versioned launch without spawning', async () => {
+    const processes = new Map<string, ProcessRecord>();
+    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret, processes });
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/sessions/v1/start',
+        headers,
+        payload: { command: process.execPath, args: ['-e', 'setInterval(()=>{},1000)'], background: true },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(processes.size).toBe(0);
+    } finally {
+      await app.close();
+    }
+  });
+});

@@ -1198,7 +1198,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { changedFiles: body.files.map((file) => file.path) };
   });
 
-  app.post('/commands/run', async (request) => {
+  const executeCommand = async (request: FastifyRequest) => {
     const body = commandSchema.parse(request.body);
 
     /*
@@ -1232,6 +1232,14 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     } finally {
       pendingLaunches.delete(body.operationId);
     }
+  };
+  app.post('/commands/run', executeCommand);
+  // Authenticated by the same agent-token hook as commands; never inferred
+  // from image tags or liveness. Versioned launch cannot execute on old agents.
+  app.get('/sessions/capabilities', async () => ({ trackedSessions: 1 }));
+  app.post('/sessions/v1/start', async (request) => {
+    commandSchema.extend({ background: z.literal(true), operationId: z.string().uuid() }).parse(request.body);
+    return executeCommand(request);
   });
 
   app.get('/processes', async () => ({

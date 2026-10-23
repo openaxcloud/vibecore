@@ -1,6 +1,8 @@
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 // Explicit local integration recipe; requires the dedicated synthetic PostgreSQL
 // database. No auth/transport/store mocks. Run with the documented Vitest config.
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -29,6 +31,7 @@ let stranger: string;
 let projectId: string;
 let workspaceId: string;
 let runningId: string | undefined;
+let agentSecret: string;
 const baseEnvironment = { ...process.env };
 
 async function http(path: string, body?: unknown, auth = token) {
@@ -81,6 +84,7 @@ beforeAll(async () => {
   if (!process.env.DATABASE_URL) throw new Error('Dedicated synthetic PostgreSQL DATABASE_URL required');
   root = await mkdtemp(join(tmpdir(), 'debugger-real-'));
   const fixtureSecret = randomUUID();
+  agentSecret = fixtureSecret;
   process.env.WORKSPACE_MANAGER_SHARED_SECRET = fixtureSecret;
   const manager = new WorkspaceManager(
     new JsonWorkspaceStore(join(root, 'manager.json')),
@@ -289,3 +293,60 @@ test('real PostgreSQL persistence failure after Stop is explicit and recoverable
     await removeFault();
   }
 });
+
+for (const staleAdvertisement of [false, true]) {
+  test(`legacy agent cannot execute a tracked session (stale capability=${staleAdvertisement})`, async () => {
+    const legacyPath = fileURLToPath(
+      new URL('../../services/workspace-agent/src/.debugger-legacy-fixture.ts', import.meta.url),
+    );
+    const previousUrl = process.env.WORKSPACE_AGENT_URL_TEMPLATE;
+    let legacy: ReturnType<typeof buildWorkspaceAgentApp> | undefined;
+    let legacyCommandPosts = 0;
+    let versionedPosts = 0;
+    try {
+      // Exact deployed pre-contract agent source; helpers remain unchanged.
+      await writeFile(
+        legacyPath,
+        execFileSync('git', ['show', 'c988c2af60d058971afe72f057c6fa82a178fb21:services/workspace-agent/src/app.ts']),
+      );
+      const oldModule = await import(/* @vite-ignore */ legacyPath);
+      legacy = oldModule.buildWorkspaceAgentApp({ workspaceRoot: root, workspaceId, tokenSecret: agentSecret });
+      legacy!.addHook('onRequest', async (request) => {
+        if (request.method === 'POST' && request.url === '/commands/run') legacyCommandPosts++;
+        if (request.method === 'POST' && request.url === '/sessions/v1/start') versionedPosts++;
+      });
+      // Controlled stale advertisement models an agent switch between GET and POST.
+      // The legacy command router itself is the real historical implementation.
+      if (staleAdvertisement) legacy!.get('/sessions/capabilities', async () => ({ trackedSessions: 1 }));
+      await legacy!.listen({ host: '127.0.0.1', port: 0 });
+      process.env.WORKSPACE_AGENT_URL_TEMPLATE = `http://127.0.0.1:${(legacy!.server.address() as any).port}`;
+      const configId = randomUUID();
+      expect(
+        (
+          await bff({
+            intent: 'save-config',
+            configId,
+            type: 'shell',
+            command: 'printf unexpected > legacy-marker',
+            name: 'Synthetic legacy admission',
+          })
+        ).status,
+      ).toBe(200);
+      const response = await bff({ intent: 'start-session', configId, workspaceId });
+      expect(response.status).toBeGreaterThanOrEqual(400);
+      if (!staleAdvertisement) {
+        expect(response.status).toBe(503);
+        expect((await response.json()).code).toBe('DEBUG_AGENT_INCOMPATIBLE');
+        expect((await stored()).sessions[0].status).toBe('failed');
+      }
+      expect(legacyCommandPosts).toBe(0);
+      expect(versionedPosts).toBe(staleAdvertisement ? 1 : 0);
+      await expect(access(join(root, 'legacy-marker'))).rejects.toMatchObject({ code: 'ENOENT' });
+    } finally {
+      if (previousUrl === undefined) delete process.env.WORKSPACE_AGENT_URL_TEMPLATE;
+      else process.env.WORKSPACE_AGENT_URL_TEMPLATE = previousUrl;
+      await legacy?.close();
+      await rm(legacyPath, { force: true });
+    }
+  });
+}

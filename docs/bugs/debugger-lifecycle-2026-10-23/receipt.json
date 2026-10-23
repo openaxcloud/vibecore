@@ -1,18 +1,18 @@
 {
   "historicalHead": "9454a7660cbc8605cef79a24e826a977d4ac8e2e",
   "historicalLifetimeMs": 30036,
-  "selectedTests": 53,
+  "selectedTests": 63,
   "unselectedExistingAgentTests": 52,
   "sourceSha256Groups": {
     "app/components/chat/BaseChat.tsx": [
-      "aff3bb54",
-      "4bbad056",
-      "1d58da1f",
-      "c184502b",
-      "d7cff71c",
-      "3275e8b6",
-      "a5193380",
-      "03a18a43"
+      "e8228638",
+      "a7063d03",
+      "535d6641",
+      "b6b502a7",
+      "aa4e08bc",
+      "6c891f1d",
+      "5f2957b3",
+      "a5478f03"
     ],
     "app/lib/i18n/catalogs/chat.ts": [
       "0fd0eea7",
@@ -25,44 +25,44 @@
       "9d5275a3"
     ],
     "app/routes/api.projects.$projectId.ide-panel.$panel.ts": [
-      "7e53c5c8",
-      "38aa6cbd",
-      "b5d8bc54",
-      "f77e6b67",
-      "e45d7076",
-      "28152a1d",
-      "8e7f38fd",
-      "f4df2033"
+      "0d3809f4",
+      "2a590f74",
+      "c0a59a24",
+      "0c343e8b",
+      "fd03b4a8",
+      "b9d03709",
+      "ed828411",
+      "bc6be60b"
     ],
     "services/api/src/app.ts": [
-      "fe031db3",
-      "4c144bc7",
-      "fc0d1fc2",
-      "62028d0f",
-      "9ad6ffe1",
-      "fa889198",
-      "76032ad5",
-      "cc5a6ac1"
+      "1f58eecc",
+      "99c2f2b8",
+      "0ca3eb84",
+      "c7f180cd",
+      "01fa65d3",
+      "6b440ae9",
+      "aa681453",
+      "2ac25238"
     ],
     "services/workspace-agent/src/app.ts": [
-      "422fd0d6",
-      "d23bdb4b",
-      "55038e1c",
-      "52843cbd",
-      "3cd24c94",
-      "7196fe19",
-      "a9a891d2",
-      "53b74a36"
+      "355a0b42",
+      "0acbc062",
+      "724c6a79",
+      "26015303",
+      "a6908d89",
+      "940da5f1",
+      "f3f881a1",
+      "465f4801"
     ],
     "tests/runtime/debugger-session.real.ts": [
-      "bc92d9bf",
-      "9aeff196",
-      "e35337c1",
-      "8b22a82a",
-      "d11842ca",
-      "b92a2049",
-      "268c00ce",
-      "deed7b38"
+      "1712e6a5",
+      "b04222f0",
+      "267f9003",
+      "09bada6d",
+      "1c93f484",
+      "5fd0f62f",
+      "5db991cd",
+      "ad2991ec"
     ],
     "tests/runtime/debugger-session.vitest.config.ts": [
       "bf827b67",
@@ -73,14 +73,44 @@
       "9acfe039",
       "4cbb2fb7",
       "639aae8b"
+    ],
+    "app/lib/i18n/catalogs/api-runtime-routes.ts": [
+      "60fc5cd8",
+      "cc162150",
+      "e0c1bb5d",
+      "d46be90b",
+      "d548982a",
+      "959c4f9f",
+      "14e254e5",
+      "442428c2"
+    ],
+    "services/api/src/tests/debugger-process-contract.spec.ts": [
+      "3fd7e07c",
+      "1150de23",
+      "e2011b9f",
+      "8fdb9a2d",
+      "d5bb6b14",
+      "454975e3",
+      "1a2f23ba",
+      "0f96839a"
+    ],
+    "services/workspace-agent/src/debugger-process.spec.ts": [
+      "c8341562",
+      "0e8ec536",
+      "277d6955",
+      "0eac95d8",
+      "1235b077",
+      "2b542d46",
+      "5d63ecba",
+      "c44e6045"
     ]
   },
   "groups": {
     "bffAndReconciliation": 26,
-    "apiControlled": 7,
-    "agent": 10,
+    "apiControlled": 13,
+    "agent": 12,
     "existingAgentSelected": 5,
-    "realLocalChain": 5
+    "realLocalChain": 7
   },
   "realChainIncludes": [
     "survival beyond 30s",
@@ -88,23 +118,32 @@
     "stop persisted and idempotent",
     "immediate success and crash",
     "SQL failure after launch: compensated",
-    "SQL failure after stop: reconciled"
+    "SQL failure after stop: reconciled",
+    "legacy agent: admission refused before command",
+    "stale capability: legacy versioned route refuses; no command fallback"
   ],
   "rawLogsPublished": false,
   "webBuild": {
     "exitCode": 0,
-    "files": 2307,
+    "files": 2306,
     "manifestSha256Groups": [
-      "a60bcc97",
-      "c73b501c",
-      "e94a4eae",
-      "c55ab9e4",
-      "8d7b5316",
-      "bdd54347",
-      "fd2fd403",
-      "17da3bdd"
-    ]
+      "5e23bbe8",
+      "4d41bfde",
+      "28705226",
+      "6725c3ac",
+      "210cfe1a",
+      "51977fbe",
+      "b6ab7d7f",
+      "f4ed82c0"
+    ],
+    "manifestFormat": "JSON object sorted relative build paths to SHA256; compact separators; no final newline"
   },
   "i18nCheck": "passed; no exemptions changed",
-  "agentTypeAnnotationEmitsIdenticalJavaScript": true
+  "historicalLifecycleHead": "6b7c3d5070cf92930a04b02bcadb37795e64e8ef",
+  "baseMain": "fc41f1f0a8e709f070c5def90688486fbe43d7ad",
+  "securityBaseTests": 6,
+  "inventoryEntries": 483,
+  "rolloutCompatibility": "authenticated capability 1 plus versioned launch; no legacy command or local fallback",
+  "inventoryGuardTests": 6,
+  "bffTypeAssertionEmitsIdenticalJavaScript": true
 }

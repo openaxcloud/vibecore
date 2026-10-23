@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-482 entrées.
+483 entrées.
 
 ## Sans section
 
@@ -613,6 +613,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-PANEL-VIEWPORT-ESCAPE-001](docs/bugs/BUG-IDE-PANEL-VIEWPORT-ESCAPE-001.md) — 📤 Dispatché : 23 octobre 2026 : reprise bornée sur main `8197fb55ac6813350d991e4adb70c3a444edd8ad`. Boutons Shell/Webview ma · 💻 Codé : Correctif local : le viewport partagé Workbench utilise `overflow-clip` et reste borné en hauteur ; les scroll · ✅ Testé live : Contre-épreuves sur le build compilé de main, API/PostgreSQL locaux et fichiers synthétiques réellement import
 - [BUG-IDE-EXECUTION-FALSE-SUCCESS-001](docs/bugs/BUG-IDE-EXECUTION-FALSE-SUCCESS-001.md) — 📤 Dispatché : 23 octobre 2026, lot fonctionnel borné sur main `05636a95f7c33b0c6fc90fe54484564d981fec27`. Aucun contenu #768 · 💻 Codé : Le BFF conserve les enregistrements avant de répondre et retourne le run/scan : succès HTTP 200 / ok:true seul · ✅ Testé live : Contre-épreuve locale réelle sur le build main : Terminal (`exit 7`, fixture créée pour la recette) et workflo
 - [BUG-DEBUGGER-TRACKED-STOP-001](docs/bugs/BUG-DEBUGGER-TRACKED-STOP-001.md) — 📤 Dispatché : 23 octobre 2026, préparation locale distincte de #778, base c988c2af60d058971afe72f057c6fa82a178fb21. Aucun pu · 💻 Codé : Le lancement demande un processus enregistré à l’agent par le chemin de commande existant et mémorise son iden · ✅ Testé live : Preuves réelles et contrôlées séparées, dans `/workspace/ux-artifacts/debugger-tracked/` :
+- [BUG-SECURITY-SCAN-OPERATION-001](docs/bugs/BUG-SECURITY-SCAN-OPERATION-001.md) — 📤 Dispatché : 23 octobre 2026. Suivi local distinct de #777, basé sur `4b06e77e7c42409ffbb5bffe5503933e8f67065e`. Préparé lo · 💻 Codé : Le timer, la réponse et le catch du scan vérifient l’identité du contrôleur courant avant de modifier l’état. · ✅ Testé live : Pas de nouvelle recette navigateur ou scanner réel revendiquée. Le test `app/components/chat/security-scan-ope
 
 ## Résidus non tabulaires — reportés mot pour mot
 

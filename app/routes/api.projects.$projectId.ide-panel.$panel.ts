@@ -1914,7 +1914,29 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
         session.status = result.status!;
         session.expiresAt = result.expiresAt;
-      } catch {
+      } catch (error) {
+        const payload =
+          error instanceof Response
+            ? await error
+                .clone()
+                .json()
+                .catch(() => null)
+            : null;
+
+        if ((payload as { code?: unknown } | null)?.code === 'DEBUG_AGENT_INCOMPATIBLE') {
+          /*
+           * The API refused before dispatch. Do not imply a process exists or
+           * attempt a speculative kill on a legacy agent.
+           */
+          session.status = 'failed';
+          launched = undefined;
+          await persist();
+          throw json(
+            { error: copy['apiRuntime.panel.debugAgentIncompatible'], code: 'DEBUG_AGENT_INCOMPATIBLE' },
+            { status: 503 },
+          );
+        }
+
         const compensated = await compensate();
         throw json(
           {

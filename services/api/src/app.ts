@@ -19378,6 +19378,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    if (body.background) {
+      let compatible = false;
+      try {
+        const capabilities = await agentRequest<{ trackedSessions?: unknown }>(
+          authorized.workspaceId,
+          '/sessions/capabilities',
+        );
+        compatible = capabilities?.trackedSessions === 1;
+      } catch {
+        // Unavailable and legacy agents fail closed before any command.
+      }
+      if (!compatible) {
+        throw Object.assign(new Error(), { statusCode: 503, code: 'DEBUG_AGENT_INCOMPATIBLE' });
+      }
+    }
+
     /*
      * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
      * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
@@ -19399,11 +19415,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       result = await agentRequest<{
         id?: string;
         status?: string;
-      expiresAt?: string;
+        expiresAt?: string;
         code: number | null;
         stdout?: string;
         stderr?: string;
-      }>(authorized.workspaceId, '/commands/run', { method: 'POST', body: JSON.stringify(body) });
+      }>(authorized.workspaceId, body.background ? '/sessions/v1/start' : '/commands/run', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
     } catch (error) {
       if (body.background || !shouldUseLocalRuntimeFallback(error)) {
         throw error;

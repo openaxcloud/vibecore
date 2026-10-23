@@ -53,7 +53,7 @@ function harness(path: string) {
       handler(
         {
           params: { workspaceId: 'requested-workspace', id: 'opaque' },
-          body: { command: 'synthetic', background: true },
+          body: { command: 'synthetic', background: true, operationId: '00000000-0000-4000-8000-000000000001' },
         },
         reply,
       ),
@@ -101,12 +101,44 @@ describe('runtime process API contract — controlled dependencies', () => {
     const h = harness(launch);
     h.binding.agentRequest.mockRejectedValue(new Error('synthetic agent unavailable'));
     h.binding.shouldUseLocalRuntimeFallback.mockReturnValue(true);
-    await expect(h.run()).rejects.toThrow('synthetic agent unavailable');
+    await expect(h.run()).rejects.toMatchObject({ statusCode: 503, code: 'DEBUG_AGENT_INCOMPATIBLE' });
+    expect(h.binding.agentRequest.mock.calls.every((call) => call[1] === '/sessions/capabilities')).toBe(true);
     expect(h.binding.runLocalRuntimeCommand).not.toHaveBeenCalled();
   });
   it('preserves the opaque identity returned by the authorized agent', async () => {
     const h = harness(launch);
-    h.binding.agentRequest.mockResolvedValue({ id: 'opaque', status: 'running' });
+    h.binding.agentRequest.mockImplementation(async (_workspace, path) =>
+      path === '/sessions/capabilities' ? { trackedSessions: 1 } : { id: 'opaque', status: 'running' },
+    );
     expect(await h.run()).toEqual({ processId: 'opaque', status: 'running' });
+    expect(h.binding.agentRequest.mock.calls.map((call) => call[1])).toEqual([
+      '/sessions/capabilities',
+      '/sessions/v1/start',
+    ]);
+  });
+});
+
+describe('tracked-session compatibility admission', () => {
+  for (const capability of [undefined, {}, { trackedSessions: '1' }, { trackedSessions: 0 }, { trackedSessions: 2 }]) {
+    it(`fails closed for unsupported capability ${JSON.stringify(capability)}`, async () => {
+      const h = harness('/api/runtime/workspaces/:workspaceId/commands');
+      h.binding.agentRequest.mockResolvedValue(capability);
+      await expect(h.run()).rejects.toMatchObject({ statusCode: 503, code: 'DEBUG_AGENT_INCOMPATIBLE' });
+      expect(h.binding.agentRequest.mock.calls.map((call) => call[1])).toEqual(['/sessions/capabilities']);
+      expect(h.binding.runLocalRuntimeCommand).not.toHaveBeenCalled();
+    });
+  }
+  it('never falls back to legacy commands when a rollout replaces the agent after admission', async () => {
+    const h = harness('/api/runtime/workspaces/:workspaceId/commands');
+    h.binding.agentRequest.mockImplementation(async (_workspace, path) => {
+      if (path === '/sessions/capabilities') return { trackedSessions: 1 };
+      throw new Error('Synthetic old agent has no versioned endpoint');
+    });
+    await expect(h.run()).rejects.toThrow('Synthetic old agent has no versioned endpoint');
+    expect(h.binding.agentRequest.mock.calls.map((call) => call[1])).toEqual([
+      '/sessions/capabilities',
+      '/sessions/v1/start',
+    ]);
+    expect(h.binding.runLocalRuntimeCommand).not.toHaveBeenCalled();
   });
 });
