@@ -1480,6 +1480,7 @@ export interface ApiStore {
     key: string;
     value: string;
     scope?: EnvVarScope;
+    expectedValue?: string | null;
   }): Promise<ProjectEnvironmentRecord>;
   listProjectEnvVars(projectId: string): Promise<ProjectEnvironmentRecord[]>;
   deleteProjectEnvVar(

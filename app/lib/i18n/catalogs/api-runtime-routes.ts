@@ -89,6 +89,10 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.snapshotRequired': 'Select a snapshot to restore.',
   'apiRuntime.panel.databaseRestoreFailed': 'The database could not be restored.',
   'apiRuntime.panel.deploymentRequired': 'Select a deployment before requesting {action}.',
+  'apiRuntime.panel.debugConfirmedStateConflict':
+    'The process status is confirmed, but a concurrent change prevented saving it. Reconcile the recorded status; the process operation has already taken effect.',
+  'apiRuntime.panel.debugStateConflict':
+    'Another operation changed the debugger state. Reload before trying again; your change was not saved.',
   'apiRuntime.panel.debugAgentIncompatible':
     'This workspace agent does not support tracked sessions yet. No process was launched. Update or restart the workspace through the normal controls before retrying.',
   'apiRuntime.panel.debugConfigurationRequired': 'Create a launch configuration before starting the debugger.',
@@ -274,6 +278,10 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.snapshotRequired': 'Sélectionnez un instantané à restaurer.',
   'apiRuntime.panel.databaseRestoreFailed': 'La base de données n’a pas pu être restaurée.',
   'apiRuntime.panel.deploymentRequired': 'Sélectionnez un déploiement avant de demander l’action {action}.',
+  'apiRuntime.panel.debugConfirmedStateConflict':
+    'L’état du processus est confirmé, mais une modification concurrente a empêché son enregistrement. Réconciliez le statut enregistré ; l’opération sur le processus a déjà pris effet.',
+  'apiRuntime.panel.debugStateConflict':
+    'Une autre opération a modifié l’état du débogueur. Rechargez avant de réessayer ; votre modification n’a pas été enregistrée.',
   'apiRuntime.panel.debugAgentIncompatible':
     'L’agent de cet espace de travail ne prend pas encore en charge les sessions suivies. Aucun processus n’a été lancé. Mettez à jour ou redémarrez cet espace via les commandes habituelles avant de réessayer.',
   'apiRuntime.panel.debugConfigurationRequired': 'Créez une configuration de lancement avant de démarrer le débogueur.',

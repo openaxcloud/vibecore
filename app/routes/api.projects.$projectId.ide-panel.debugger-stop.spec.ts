@@ -12,11 +12,13 @@ let outcome: unknown;
 let saved: any;
 let persistCount: number;
 let failPersistAt: number;
+let persistError: Error | Response;
 beforeEach(() => {
   apiRequest.mockReset();
   saved = undefined;
   persistCount = 0;
   failPersistAt = 0;
+  persistError = new Error('Synthetic persistence failure');
   outcome = { killed: true, terminated: true, status: 'stopped', id: 'opaque-process' };
   state = {
     sessions: [
@@ -43,10 +45,10 @@ beforeEach(() => {
       };
     }
 
-    if (path.endsWith('/env-vars')) {
+    if (path.endsWith('/env-vars') || path.endsWith('/debugger-state/v1')) {
       if (options?.method === 'PUT') {
         if (++persistCount === failPersistAt) {
-          throw new Error('Synthetic persistence failure');
+          throw persistError;
         }
 
         saved = JSON.parse(JSON.parse(options.body).value);
@@ -215,6 +217,57 @@ describe('Debugger persistence failures — controlled faults', () => {
     const reconciled = await execute({ intent: 'reconcile-session', sessionId: 'session' });
     expect(reconciled.status).toBe(200);
     expect(saved.sessions[0].status).toBe('stopped');
+    expect(apiRequest.mock.calls.filter((call) => call[1].endsWith('/kill'))).toHaveLength(1);
+  });
+});
+
+describe('Debugger conditional persistence — controlled conflicts', () => {
+  it('returns an explicit conflict without acknowledging a saved configuration', async () => {
+    failPersistAt = 1;
+    persistError = Response.json({ code: 'DEBUG_STATE_CONFLICT' }, { status: 409 });
+
+    const response = await execute({
+      intent: 'save-config',
+      configId: 'conflict',
+      name: 'Synthetic',
+      type: 'shell',
+      command: 'exit 0',
+    });
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('DEBUG_STATE_CONFLICT');
+    expect(saved).toBeUndefined();
+  });
+  it('advances the precondition only after its own successful identity write', async () => {
+    const original = JSON.stringify(state);
+    expect((await execute({ intent: 'start-session' })).status).toBe(200);
+
+    const writes = apiRequest.mock.calls
+      .filter((call) => call[1].endsWith('/debugger-state/v1'))
+      .map((call) => JSON.parse(call[2].body));
+    expect(writes).toHaveLength(2);
+    expect(writes[0].expectedValue).toBe(original);
+    expect(writes[1].expectedValue).toBe(writes[0].value);
+    expect(JSON.parse(writes[0].value).sessions[0].status).toBe('starting');
+    expect(JSON.parse(writes[1].value).sessions[0].status).toBe('running');
+  });
+  it('never launches a process when the initial identity write conflicts', async () => {
+    failPersistAt = 1;
+    persistError = Response.json({ code: 'DEBUG_STATE_CONFLICT' }, { status: 409 });
+
+    const response = await execute({ intent: 'start-session' });
+    expect(response.status).toBe(409);
+    expect(apiRequest.mock.calls.some((call) => call[1].endsWith('/sessions/v1/start'))).toBe(false);
+  });
+  it('compensates a launch whose final write conflicts without retrying a stale blob', async () => {
+    failPersistAt = 2;
+    persistError = Response.json({ code: 'DEBUG_STATE_CONFLICT' }, { status: 409 });
+    outcome = 'auto';
+
+    const response = await execute({ intent: 'start-session' });
+    expect(response.status).toBe(502);
+    expect((await response.json()).code).toBe('DEBUG_PERSIST_FAILED_COMPENSATED');
+    expect(saved.sessions[0].status).toBe('starting');
+    expect(persistCount).toBe(2);
     expect(apiRequest.mock.calls.filter((call) => call[1].endsWith('/kill'))).toHaveLength(1);
   });
 });

@@ -29,6 +29,7 @@ let apiUrl: string;
 let token: string;
 let stranger: string;
 let projectId: string;
+let organizationId: string;
 let workspaceId: string;
 let runningId: string | undefined;
 let agentSecret: string;
@@ -115,6 +116,7 @@ beforeAll(async () => {
   };
   const owner = await register();
   token = owner.token;
+  organizationId = owner.organization.id;
   stranger = (await register()).token;
   const creation = await http(`/orgs/${owner.organization.id}/projects`, { name: 'Synthetic debugger lifecycle' });
   expect(creation.response.ok).toBe(true);
@@ -392,7 +394,6 @@ test('legacy API executes the old command contract but refuses a new BFF session
     expect(commandPosts).toBe(1);
     commandPosts = 0;
 
-    process.env.SAAS_API_URL = legacyUrl;
     const configId = randomUUID();
     expect(
       (
@@ -405,11 +406,13 @@ test('legacy API executes the old command contract but refuses a new BFF session
         })
       ).status,
     ).toBe(200);
+    const beforeAdmission = await stored();
+    process.env.SAAS_API_URL = legacyUrl;
     const response = await bff({ intent: 'start-session', configId, workspaceId });
     expect(response.status).toBeGreaterThanOrEqual(400);
-    expect(sessionPosts).toBe(1);
+    expect(sessionPosts).toBe(0);
     expect(commandPosts).toBe(0);
-    expect((await stored()).sessions[0].status).not.toBe('running');
+    expect(await stored()).toEqual(beforeAdmission);
     await expect(access(marker)).rejects.toMatchObject({ code: 'ENOENT' });
   } finally {
     if (previousUrl === undefined) delete process.env.SAAS_API_URL;
@@ -419,3 +422,248 @@ test('legacy API executes the old command contract but refuses a new BFF session
     await rm(marker, { force: true });
   }
 }, 60_000);
+
+test('concurrent panel saves never acknowledge a lost configuration', async () => {
+  const { createServer } = await import('node:http');
+  const previousUrl = process.env.SAAS_API_URL;
+  let reads = 0;
+  let release!: () => void;
+  const bothRead = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  // Delay only delivery of the two real PostgreSQL snapshots. No response,
+  // auth or persistence is mocked; both actions read the same committed state.
+  const proxy = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(Buffer.from(chunk));
+    const forwarded = await fetch(`${apiUrl}${req.url}`, {
+      method: req.method,
+      headers: Object.fromEntries(
+        Object.entries(req.headers).filter(([key]) => !['host', 'connection', 'content-length'].includes(key)),
+      ) as Record<string, string>,
+      ...(chunks.length ? { body: Buffer.concat(chunks) } : {}),
+    });
+    const data = await forwarded.arrayBuffer();
+    if (req.method === 'GET' && req.url === `/projects/${projectId}/env-vars` && reads < 2) {
+      reads++;
+      if (reads === 2) release();
+      await bothRead;
+    }
+    res.writeHead(forwarded.status, { 'content-type': forwarded.headers.get('content-type') ?? 'application/json' });
+    res.end(Buffer.from(data));
+  });
+  await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve));
+  process.env.SAAS_API_URL = `http://127.0.0.1:${(proxy.address() as any).port}`;
+  const ids = [randomUUID(), randomUUID()];
+  try {
+    const responses = await Promise.all(
+      ids.map((configId, index) =>
+        bff({
+          intent: 'save-config',
+          configId,
+          name: `Concurrent ${index}`,
+          type: 'shell',
+          command: 'exit 0',
+        }),
+      ),
+    );
+    expect(reads).toBe(2);
+    const persisted = (await stored()).launchConfigs;
+    for (let i = 0; i < ids.length; i++) {
+      if (responses[i].ok) expect(persisted.some((config: any) => config.id === ids[i])).toBe(true);
+      else expect(responses[i].status).toBe(409);
+    }
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 409]);
+    const lost = responses.findIndex((response) => !response.ok);
+    expect((await responses[lost].json()).code).toBe('DEBUG_STATE_CONFLICT');
+    expect(
+      (
+        await bff({
+          intent: 'save-config',
+          configId: ids[lost],
+          name: `Concurrent ${lost}`,
+          type: 'shell',
+          command: 'exit 0',
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await bff({
+          intent: 'save-config',
+          configId: ids[lost],
+          name: `Concurrent ${lost}`,
+          type: 'shell',
+          command: 'exit 0',
+        })
+      ).status,
+    ).toBe(200);
+    const afterRetry = (await stored()).launchConfigs;
+    for (const id of ids) expect(afterRetry.filter((config: any) => config.id === id)).toHaveLength(1);
+  } finally {
+    release();
+    if (previousUrl === undefined) delete process.env.SAAS_API_URL;
+    else process.env.SAAS_API_URL = previousUrl;
+    await new Promise<void>((resolve, reject) => proxy.close((error) => (error ? reject(error) : resolve())));
+  }
+});
+
+async function compareState(targetProject: string, value: string, expectedValue: string | null, auth = token) {
+  const response = await fetch(`${apiUrl}/projects/${targetProject}/debugger-state/v1`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${auth}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ key: 'VIBECORE_DEBUGGER_STATE', value, expectedValue }),
+  });
+  return { response, data: await response.json() };
+}
+
+test('state CAS serializes creation, duplicate delivery and conflicts on real PostgreSQL', async () => {
+  const created = await http(`/orgs/${organizationId}/projects`, { name: 'Synthetic state CAS identity' });
+  expect(created.response.status).toBe(201);
+  const id = created.data.project.id;
+  const initial = JSON.stringify({ sessions: [{ id: 'initial' }] });
+  const repeated = await Promise.all([compareState(id, initial, null), compareState(id, initial, null)]);
+  expect(repeated.map((item) => item.response.status)).toEqual([200, 200]);
+  expect(await db.projectEnvVar.count({ where: { projectId: id, key: 'VIBECORE_DEBUGGER_STATE' } })).toBe(1);
+  const next = ['one', 'two'].map((name) => JSON.stringify({ sessions: [{ id: 'initial' }, { id: name }] }));
+  const concurrent = await Promise.all(next.map((value) => compareState(id, value, initial)));
+  expect(concurrent.map((item) => item.response.status).sort()).toEqual([200, 409]);
+  const winner = concurrent.findIndex((item) => item.response.ok);
+  const loser = 1 - winner;
+  expect(concurrent[loser].data.code).toBe('DEBUG_STATE_CONFLICT');
+  // A retry of the committed value is idempotent even with its old precondition.
+  expect((await compareState(id, next[winner], initial)).response.status).toBe(200);
+  expect((await compareState(id, next[loser], initial)).response.status).toBe(409);
+  const row = await db.projectEnvVar.findFirstOrThrow({ where: { projectId: id, key: 'VIBECORE_DEBUGGER_STATE' } });
+  expect(row.value).toBe(next[winner]);
+  expect(JSON.parse(row.value).sessions).toHaveLength(2);
+});
+
+test('state CAS isolates projects, enforces existing RBAC and refuses unconditional legacy writes', async () => {
+  const ids: string[] = [];
+  for (const name of ['A', 'B']) {
+    const created = await http(`/orgs/${organizationId}/projects`, { name: `Synthetic CAS scope ${name}` });
+    expect(created.response.status).toBe(201);
+    ids.push(created.data.project.id);
+  }
+  const baseline = JSON.stringify({ sessions: [{ id: 'A-only' }] });
+  expect((await compareState(ids[0], baseline, null)).response.status).toBe(200);
+  expect((await compareState(ids[1], 'foreign stale write', baseline)).response.status).toBe(409);
+  expect(await db.projectEnvVar.count({ where: { projectId: ids[1], key: 'VIBECORE_DEBUGGER_STATE' } })).toBe(0);
+  const ownB = JSON.stringify({ sessions: [{ id: 'B-only' }] });
+  expect((await compareState(ids[1], ownB, null)).response.status).toBe(200);
+  expect([403, 404]).toContain((await compareState(ids[0], 'foreign owner', baseline, stranger)).response.status);
+  const unconditional = await fetch(`${apiUrl}/projects/${ids[0]}/env-vars`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ key: 'VIBECORE_DEBUGGER_STATE', value: 'legacy overwrite' }),
+  });
+  expect(unconditional.status).toBe(409);
+  expect((await unconditional.json()).code).toBe('DEBUG_STATE_PRECONDITION_REQUIRED');
+  expect(
+    (await db.projectEnvVar.findFirstOrThrow({ where: { projectId: ids[0], key: 'VIBECORE_DEBUGGER_STATE' } })).value,
+  ).toBe(baseline);
+  expect(
+    (await db.projectEnvVar.findFirstOrThrow({ where: { projectId: ids[1], key: 'VIBECORE_DEBUGGER_STATE' } })).value,
+  ).toBe(ownB);
+  // Ordinary environment variables keep the existing API contract.
+  const ordinary = await fetch(`${apiUrl}/projects/${ids[0]}/env-vars`, {
+    method: 'PUT',
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ key: 'SYNTHETIC_CAS_NOTE', value: 'unchanged contract' }),
+  });
+  expect(ordinary.status).toBe(200);
+});
+
+test('confirmed Stop followed by a real CAS conflict preserves concurrent history and reconciles', async () => {
+  const { createServer } = await import('node:http');
+  const configId = randomUUID();
+  expect(
+    (
+      await bff({
+        intent: 'save-config',
+        configId,
+        name: 'Stop conflict fixture',
+        type: 'shell',
+        command: `${process.execPath} -e 'setInterval(()=>{},1000)'`,
+      })
+    ).status,
+  ).toBe(200);
+  expect((await bff({ intent: 'start-session', configId, workspaceId })).status).toBe(200);
+  const session = (await stored()).sessions[0];
+  runningId = session.processId;
+  const historicalId = randomUUID();
+  const previousUrl = process.env.SAAS_API_URL;
+  let killPosts = 0;
+  let injected = false;
+  // Controlled ordering, real writes: insert another committed history after
+  // the real agent confirms Stop, before the BFF receives that confirmation.
+  const proxy = createServer(async (req, res) => {
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(Buffer.from(chunk));
+    const forwarded = await fetch(`${apiUrl}${req.url}`, {
+      method: req.method,
+      headers: Object.fromEntries(
+        Object.entries(req.headers).filter(([key]) => !['host', 'connection', 'content-length'].includes(key)),
+      ) as Record<string, string>,
+      ...(chunks.length ? { body: Buffer.concat(chunks) } : {}),
+    });
+    const data = Buffer.from(await forwarded.arrayBuffer());
+    if (req.method === 'POST' && req.url?.endsWith(`/processes/${session.processId}/kill`)) {
+      killPosts++;
+      expect(JSON.parse(data.toString())).toMatchObject({ terminated: true, status: 'stopped' });
+      const current = (await http(`/projects/${projectId}/env-vars`)).data.envVars.find(
+        (row: any) => row.key === 'VIBECORE_DEBUGGER_STATE' && row.scope === 'production',
+      ).value;
+      const changed = JSON.parse(current);
+      changed.sessions.push({
+        id: historicalId,
+        adapter: 'tracked-runtime-command',
+        workspaceId,
+        processId: historicalId,
+        status: 'exited',
+        name: 'Concurrent terminal history',
+      });
+      expect((await compareState(projectId, JSON.stringify(changed), current)).response.status).toBe(200);
+      injected = true;
+    }
+    res.writeHead(forwarded.status, { 'content-type': forwarded.headers.get('content-type') ?? 'application/json' });
+    res.end(data);
+  });
+  await new Promise<void>((resolve) => proxy.listen(0, '127.0.0.1', resolve));
+  process.env.SAAS_API_URL = `http://127.0.0.1:${(proxy.address() as any).port}`;
+  try {
+    const response = await bff({ intent: 'stop-session', sessionId: session.id });
+    expect(response.status).toBe(409);
+    const result = await response.json();
+    expect(result.ok).toBe(false);
+    expect(injected).toBe(true);
+    expect(killPosts).toBe(1);
+    expect((await http(`/api/runtime/workspaces/${workspaceId}/processes/${session.processId}`)).data).toMatchObject({
+      status: 'stopped',
+    });
+    const persisted = await stored();
+    expect(persisted.sessions.find((entry: any) => entry.id === session.id).status).toBe('running');
+    expect(persisted.sessions.filter((entry: any) => entry.id === historicalId)).toHaveLength(1);
+    expect((await panel()).sessions.find((entry: any) => entry.id === session.id)).toMatchObject({
+      status: 'stopped',
+      persistencePending: true,
+    });
+    expect((await bff({ intent: 'reconcile-session', sessionId: session.id })).status).toBe(200);
+    expect(killPosts).toBe(1);
+    const reconciled = await stored();
+    expect(reconciled.sessions.find((entry: any) => entry.id === session.id).status).toBe('stopped');
+    expect(reconciled.sessions.filter((entry: any) => entry.id === historicalId)).toHaveLength(1);
+    expect((await panel()).sessions.find((entry: any) => entry.id === session.id)).not.toHaveProperty(
+      'persistencePending',
+    );
+    runningId = undefined;
+    // The initial failure response must distinguish confirmed runtime Stop
+    // from the failed persistence, without announcing a successful save.
+    expect(result.session).toMatchObject({ id: session.id, status: 'stopped', persistencePending: true });
+  } finally {
+    if (previousUrl === undefined) delete process.env.SAAS_API_URL;
+    else process.env.SAAS_API_URL = previousUrl;
+    await new Promise<void>((resolve, reject) => proxy.close((error) => (error ? reject(error) : resolve())));
+  }
+});
