@@ -11952,13 +11952,16 @@ function ProjectIdeApiServicePanel({
       });
 
       const result = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        run?: { status?: string };
+        scan?: { status?: string };
         error?: string;
         code?: string;
         reason?: string;
         shareLink?: { url?: string };
       };
 
-      if (!response.ok) {
+      if (!response.ok || result.ok === false) {
         console.warn('IDE panel action failed', {
           panel,
           intent,
@@ -11980,6 +11983,11 @@ function ProjectIdeApiServicePanel({
         window.dispatchEvent(
           new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: false, error: message } }),
         );
+
+        if (result.run || result.scan) {
+          await loadPanel({ silent: true });
+          setError(message);
+        }
 
         return;
       }
@@ -22305,16 +22313,25 @@ function ProjectSecurityPanel({
         signal: controller.signal,
       });
 
-      const result = (await response.json().catch(() => ({}))) as { error?: string };
+      const result = (await response.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+        scan?: { status?: string };
+      };
 
-      if (!response.ok) {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      if (!response.ok || result.ok !== true || result.scan?.status !== 'completed') {
         console.warn('Security scan request failed', { status: response.status, serverError: result.error });
         window.clearTimeout(timeout);
         setScanState({
           status: 'failed',
           progress: 100,
-          message: t('baseChatAst.security.scanFailedHttp', { status: response.status }),
+          message: result.error || t('baseChatAst.security.scanFailed'),
         });
+        await reload?.();
 
         return;
       }

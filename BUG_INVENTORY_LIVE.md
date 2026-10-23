@@ -4,7 +4,7 @@ Une entrée = un fichier dans `docs/bugs/`. Ce fichier est un index DÉRIVÉ :
 il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 `scripts/index-a-jour.spec.mjs` rougit s’il diverge du dossier.
 
-480 entrées.
+481 entrées.
 
 ## Sans section
 
@@ -611,6 +611,7 @@ il se régénère avec `node scripts/migrer-inventaire-bugs.mjs`, et
 - [BUG-IDE-RELOAD-DURING-SAVE-001](docs/bugs/BUG-IDE-RELOAD-DURING-SAVE-001.md) — 📤 Dispatché : 22 octobre 2026 : diagnostic séparé sur la base exacte 6fa009b9180f8add2e6a60e5e3be52e4155336e3. Le signal CI · 💻 Codé : Correctif P1 en cours : files par destination stable et chemin, identité distante transmise par le provider, l · ✅ Testé live : Non certifié. Une contre-épreuve unitaire déterministe reproduit un défaut : publication optimiste du brouillo
 - [BUG-IDE-LOGS-CLEAR-RELOAD-001](docs/bugs/BUG-IDE-LOGS-CLEAR-RELOAD-001.md) — 📤 Dispatché : 22 octobre 2026 : lot séparé de #768, limité à ProjectLogsPanel et sa recette. Base e4bda1fb, sans changement · 💻 Codé : Correctif compilé `ddfdb38cfc9d671c74c127474e901b49505072f2` ; non intégré à main au moment de la recette. Le · ✅ Testé live : Rouge réel local sur le produit compilé 2a1c2bc3, à 1440×900 et 1024×768 : System logs affiche 13 lignes, Clea
 - [BUG-IDE-PANEL-VIEWPORT-ESCAPE-001](docs/bugs/BUG-IDE-PANEL-VIEWPORT-ESCAPE-001.md) — 📤 Dispatché : 23 octobre 2026 : reprise bornée sur main `8197fb55ac6813350d991e4adb70c3a444edd8ad`. Boutons Shell/Webview ma · 💻 Codé : Correctif local : le viewport partagé Workbench utilise `overflow-clip` et reste borné en hauteur ; les scroll · ✅ Testé live : Contre-épreuves sur le build compilé de main, API/PostgreSQL locaux et fichiers synthétiques réellement import
+- [BUG-IDE-EXECUTION-FALSE-SUCCESS-001](docs/bugs/BUG-IDE-EXECUTION-FALSE-SUCCESS-001.md) — 📤 Dispatché : 23 octobre 2026, lot fonctionnel borné sur main `05636a95f7c33b0c6fc90fe54484564d981fec27`. Aucun contenu #768 · 💻 Codé : Le BFF conserve les enregistrements avant de répondre et retourne le run/scan : succès HTTP 200 / ok:true seul · ✅ Testé live : Contre-épreuve locale réelle sur le build main : Terminal (`exit 7`, fixture créée pour la recette) et workflo
 
 ## Résidus non tabulaires — reportés mot pour mot
 

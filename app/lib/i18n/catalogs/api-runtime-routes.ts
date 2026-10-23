@@ -114,6 +114,7 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.workflowDisabled': 'The workflow is disabled.',
   'apiRuntime.panel.workflowDepthLimit': 'The nested workflow depth limit was reached.',
   'apiRuntime.panel.workflowTargetMissing': 'The target workflow ({target}) was not found.',
+  'apiRuntime.panel.executionFailed': 'The execution failed. Review the recorded run or scan details.',
   'apiRuntime.panel.workflowNestedFailed': 'The nested workflow “{name}” failed.',
   'apiRuntime.panel.workflowTaskCommandMissing': 'This workflow task has no command.',
   'apiRuntime.panel.workflowCommandFailed': 'The command exited with code {exitCode}.',
@@ -297,6 +298,8 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.workflowDisabled': 'Le workflow est désactivé.',
   'apiRuntime.panel.workflowDepthLimit': 'La limite de profondeur des workflows imbriqués a été atteinte.',
   'apiRuntime.panel.workflowTargetMissing': 'Le workflow cible ({target}) est introuvable.',
+  'apiRuntime.panel.executionFailed':
+    'L’exécution a échoué. Consultez les détails de l’exécution ou du scan enregistrés.',
   'apiRuntime.panel.workflowNestedFailed': 'Le workflow imbriqué « {name} » a échoué.',
   'apiRuntime.panel.workflowTaskCommandMissing': 'Cette tâche du workflow ne contient aucune commande.',
   'apiRuntime.panel.workflowCommandFailed': 'La commande s’est terminée avec le code {exitCode}.',

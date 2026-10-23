@@ -1475,6 +1475,8 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
   const intent = body.intent ?? 'default';
 
+  let execution: { kind: 'run' | 'scan'; value: { status: string; [key: string]: unknown } } | undefined;
+
   if (panel === 'snapshots') {
     if (intent === 'restore') {
       // Validate the id so a missing field never builds `/snapshots/undefined/restore`.
@@ -3009,6 +3011,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
        * can show how each run was started (vs. a future scheduler tick, which
        * would stamp 'schedule').
        */
+      execution = { kind: 'run', value: run };
       state.runs.unshift({ ...run, trigger: 'manual' });
       state.runs = state.runs.slice(0, 25);
       state.workflows = state.workflows.map((item: any) =>
@@ -3080,6 +3083,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     } else if (intent === 'scan') {
       const workspaceId = dashboard?.workspace?.id ?? projectId;
       await runSecurityScan(request, projectId, workspaceId, state, now, language);
+      execution = { kind: 'scan', value: state.scans[0] };
     }
 
     /*
@@ -3090,6 +3094,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     if (intent !== 'scan' && isSecurityScheduleDue(state, new Date(now))) {
       const workspaceId = dashboard?.workspace?.id ?? projectId;
       await runSecurityScan(request, projectId, workspaceId, state, now, language);
+      execution = { kind: 'scan', value: state.scans[0] };
     }
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
@@ -3133,6 +3138,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         now,
         language,
       );
+      execution = { kind: 'run', value: run };
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
     } else if (intent === 'stop-process') {
@@ -3244,6 +3250,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       });
 
       const run = await runTerminalCommand(request, workspaceId, command, `SSH ${connection.name}`, now, language);
+      execution = { kind: 'run', value: run };
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
       state.sshConnections = state.sshConnections.map((item: any) =>
@@ -3280,6 +3287,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
       const command = buildGitSshLsRemoteScript({ keyEnvVar: terminalSshSecretKey(connection.id), repoUrl });
       const run = await runTerminalCommand(request, workspaceId, command, `git ls-remote ${repoUrl}`, now, language);
+      execution = { kind: 'run', value: run };
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
       state.sshConnections = state.sshConnections.map((item: any) =>
@@ -3508,6 +3516,19 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     throw json(
       { error: copy['apiRuntime.panel.unsupportedAction'], code: 'UNSUPPORTED_PANEL_ACTION' },
       { status: 404 },
+    );
+  }
+
+  if (execution) {
+    const ok = execution.value.status === 'succeeded' || execution.value.status === 'completed';
+
+    return json(
+      {
+        ok,
+        [execution.kind]: execution.value,
+        ...(!ok ? { code: 'PANEL_EXECUTION_FAILED', error: copy['apiRuntime.panel.executionFailed'] } : {}),
+      },
+      { status: ok ? 200 : 422 },
     );
   }
 
@@ -4932,7 +4953,10 @@ async function runSecurityScan(
     language,
   );
 
-  const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now, language);
+  const commandRuns = [auditRun];
+
+  const findings =
+    auditRun.status === 'succeeded' ? vulnerabilitiesFromAuditOutput(auditRun.output, now, language) : [];
 
   /*
    * BUG-SEC-SCANNER-PHANTOM-FINDING: `2>/dev/null` keeps grep's own error/usage
@@ -4951,6 +4975,8 @@ async function runSecurityScan(
       now,
       language,
     );
+
+    commandRuns.push(secretRun);
 
     if (secretRun.status !== 'succeeded') {
       console.error(
@@ -4977,6 +5003,8 @@ async function runSecurityScan(
       language,
     );
 
+    commandRuns.push(sastRun);
+
     if (sastRun.status !== 'succeeded') {
       console.error(
         `Security static scan command failed (exit ${sastRun.exitCode}); output ignored, not reported as findings`,
@@ -4987,25 +5015,34 @@ async function runSecurityScan(
   }
 
   const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
-  state.vulnerabilities = findings.map((finding) => ({ ...(existingById.get(finding.id) ?? {}), ...finding }));
+  const failedRun = commandRuns.find((run) => run.status !== 'succeeded');
+  const refreshed = findings.map((finding) => ({ ...(existingById.get(finding.id) ?? {}), ...finding }));
+
+  // An incomplete scan must not erase previous findings or look like a clean scan.
+  state.vulnerabilities = failedRun
+    ? Array.from(new Map([...state.vulnerabilities, ...refreshed].map((finding) => [finding.id, finding])).values())
+    : refreshed;
   state.scans.unshift({
     id: randomUUID(),
     scanType: 'full',
     scanner: scannerProfile,
-    status: auditRun.status === 'succeeded' ? 'completed' : 'failed',
+    status: failedRun ? 'failed' : 'completed',
     startedAt: now,
     completedAt: new Date().toISOString(),
-    summary: formatApiRuntimeRoutesCopy(
-      copy[
-        findings.length === 1
-          ? 'apiRuntime.panel.securityFindingCount_one'
-          : 'apiRuntime.panel.securityFindingCount_other'
-      ],
-      { count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(findings.length) },
-    ),
-    exitCode: auditRun.exitCode,
-    counts: securitySeverityCounts(findings),
-    sources: securitySourceCounts(findings),
+    summary: failedRun
+      ? copy['apiRuntime.panel.executionFailed']
+      : formatApiRuntimeRoutesCopy(
+          copy[
+            findings.length === 1
+              ? 'apiRuntime.panel.securityFindingCount_one'
+              : 'apiRuntime.panel.securityFindingCount_other'
+          ],
+          { count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(findings.length) },
+        ),
+    exitCode: failedRun?.exitCode ?? auditRun.exitCode,
+    commands: commandRuns.map(({ name, status, exitCode }) => ({ name, status, exitCode })),
+    counts: securitySeverityCounts(state.vulnerabilities),
+    sources: securitySourceCounts(state.vulnerabilities),
     trigger: isSecurityScheduleDue(state, new Date(now)) ? 'scheduled' : 'manual',
   });
   state.scans = state.scans.slice(0, 20);
@@ -5093,6 +5130,13 @@ function normalizeSecurityState(input: any, language?: string | null) {
           startedAt: scan.startedAt ? String(scan.startedAt) : undefined,
           completedAt: scan.completedAt ? String(scan.completedAt) : undefined,
           summary: scan.summary ? String(scan.summary) : undefined,
+          commands: Array.isArray(scan.commands)
+            ? scan.commands.map((command: any) => ({
+                name: String(command.name ?? ''),
+                status: command.status === 'succeeded' ? 'succeeded' : 'failed',
+                exitCode: Number.isFinite(Number(command.exitCode)) ? Number(command.exitCode) : undefined,
+              }))
+            : undefined,
           exitCode: Number.isFinite(Number(scan.exitCode)) ? Number(scan.exitCode) : undefined,
           counts: scan.counts && typeof scan.counts === 'object' ? scan.counts : undefined,
           sources: scan.sources && typeof scan.sources === 'object' ? scan.sources : undefined,
