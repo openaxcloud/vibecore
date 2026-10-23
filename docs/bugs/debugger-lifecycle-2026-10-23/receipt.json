@@ -1,0 +1,110 @@
+{
+  "historicalHead": "9454a7660cbc8605cef79a24e826a977d4ac8e2e",
+  "historicalLifetimeMs": 30036,
+  "selectedTests": 53,
+  "unselectedExistingAgentTests": 52,
+  "sourceSha256Groups": {
+    "app/components/chat/BaseChat.tsx": [
+      "aff3bb54",
+      "4bbad056",
+      "1d58da1f",
+      "c184502b",
+      "d7cff71c",
+      "3275e8b6",
+      "a5193380",
+      "03a18a43"
+    ],
+    "app/lib/i18n/catalogs/chat.ts": [
+      "0fd0eea7",
+      "753c4b6d",
+      "52188646",
+      "4687ab43",
+      "23983345",
+      "c14a2e0f",
+      "6568c576",
+      "9d5275a3"
+    ],
+    "app/routes/api.projects.$projectId.ide-panel.$panel.ts": [
+      "7e53c5c8",
+      "38aa6cbd",
+      "b5d8bc54",
+      "f77e6b67",
+      "e45d7076",
+      "28152a1d",
+      "8e7f38fd",
+      "f4df2033"
+    ],
+    "services/api/src/app.ts": [
+      "fe031db3",
+      "4c144bc7",
+      "fc0d1fc2",
+      "62028d0f",
+      "9ad6ffe1",
+      "fa889198",
+      "76032ad5",
+      "cc5a6ac1"
+    ],
+    "services/workspace-agent/src/app.ts": [
+      "422fd0d6",
+      "d23bdb4b",
+      "55038e1c",
+      "52843cbd",
+      "3cd24c94",
+      "7196fe19",
+      "a9a891d2",
+      "53b74a36"
+    ],
+    "tests/runtime/debugger-session.real.ts": [
+      "bc92d9bf",
+      "9aeff196",
+      "e35337c1",
+      "8b22a82a",
+      "d11842ca",
+      "b92a2049",
+      "268c00ce",
+      "deed7b38"
+    ],
+    "tests/runtime/debugger-session.vitest.config.ts": [
+      "bf827b67",
+      "a57c6353",
+      "ab13ffe1",
+      "d0f90b72",
+      "01ac3de7",
+      "9acfe039",
+      "4cbb2fb7",
+      "639aae8b"
+    ]
+  },
+  "groups": {
+    "bffAndReconciliation": 26,
+    "apiControlled": 7,
+    "agent": 10,
+    "existingAgentSelected": 5,
+    "realLocalChain": 5
+  },
+  "realChainIncludes": [
+    "survival beyond 30s",
+    "foreign owner denied",
+    "stop persisted and idempotent",
+    "immediate success and crash",
+    "SQL failure after launch: compensated",
+    "SQL failure after stop: reconciled"
+  ],
+  "rawLogsPublished": false,
+  "webBuild": {
+    "exitCode": 0,
+    "files": 2307,
+    "manifestSha256Groups": [
+      "a60bcc97",
+      "c73b501c",
+      "e94a4eae",
+      "c55ab9e4",
+      "8d7b5316",
+      "bdd54347",
+      "fd2fd403",
+      "17da3bdd"
+    ]
+  },
+  "i18nCheck": "passed; no exemptions changed",
+  "agentTypeAnnotationEmitsIdenticalJavaScript": true
+}

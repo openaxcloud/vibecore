@@ -835,7 +835,45 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        * the stored blob keeps whatever start/stop wrote, and an unreadable
        * process list downgrades nothing.
        */
-      debuggerState.sessions = reconcileDebugSessions(debuggerState.sessions ?? [], runtimeProcesses, workspaceId);
+      debuggerState.sessions = await Promise.all(
+        (debuggerState.sessions ?? []).map(async (session: any) => {
+          if (session.adapter !== 'tracked-runtime-command') {
+            return reconcileDebugSessions([session], runtimeProcesses, workspaceId)[0];
+          }
+
+          if (!session.processId || !workspaceList.some((candidate) => candidate.id === session.workspaceId)) {
+            return session;
+          }
+
+          if (['stopped', 'exited', 'failed', 'timeout'].includes(session.status)) {
+            return session;
+          }
+
+          try {
+            const result = await apiRequest<{ id: string; status: string; finishedAt?: string; expiresAt?: string }>(
+              request,
+              `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/processes/${encodeURIComponent(session.processId)}`,
+            );
+
+            if (
+              result.id !== session.processId ||
+              !['running', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status)
+            ) {
+              return session;
+            }
+
+            return {
+              ...session,
+              status: result.status,
+              stoppedAt: result.finishedAt,
+              expiresAt: result.expiresAt,
+              persistencePending: session.status !== result.status || session.expiresAt !== result.expiresAt,
+            };
+          } catch {
+            return { ...session, status: 'unknown', persistencePending: true };
+          }
+        }),
+      );
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -1723,6 +1761,33 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     const state = readDebuggerState(envVars, language);
     const now = new Date().toISOString();
 
+    let launched: { processId: string; workspaceId: string } | undefined;
+
+    const persist = () =>
+      apiRequest(request, `/projects/${projectId}/env-vars`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          key: DEBUGGER_STATE_ENV_KEY,
+          value: JSON.stringify(normalizeDebuggerState(state, language)),
+        }),
+      });
+    const compensate = async () => {
+      if (!launched) {
+        return true;
+      }
+
+      try {
+        const result = await apiRequest<{ id?: string; terminated?: boolean; killed?: boolean }>(
+          request,
+          `/api/runtime/workspaces/${encodeURIComponent(launched.workspaceId)}/processes/${encodeURIComponent(launched.processId)}/kill`,
+          { method: 'POST' },
+        );
+        return result.id === launched.processId && (result.terminated === true || result.killed === true);
+      } catch {
+        return false;
+      }
+    };
+
     if (intent === 'save-config') {
       const config = normalizeLaunchConfig(
         {
@@ -1803,40 +1868,63 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const sessionId = randomUUID();
       const command = buildDebugLaunchCommand(config, language);
 
-      const result = await apiRequest<{ processId?: string; status?: string }>(
-        request,
-        `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/commands`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ command: 'sh', args: ['-lc', command], background: true }),
-        },
-      );
+      /*
+       * Persist identity BEFORE launch: an uncertain reply is still discoverable
+       * by this workspace-scoped operation ID and can be stopped/reconciled.
+       */
+      const session = {
+        id: sessionId,
+        configId: config.id,
+        name: config.name,
+        status: 'starting',
+        adapter: 'tracked-runtime-command',
+        command,
+        workspaceId,
+        processId: sessionId,
+        startedAt: now,
+        updatedAt: now,
+        callStack: [],
+        variables: [],
+        lastOutput: '',
+        expiresAt: undefined as string | undefined,
+      };
+      state.sessions = [session, ...state.sessions].slice(0, 20);
+      await persist();
+      launched = { processId: sessionId, workspaceId };
 
-      if (!result.processId || result.status !== 'running') {
-        throw json({ error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_START_FAILED' }, { status: 502 });
+      try {
+        const result = await apiRequest<{ processId?: string; status?: string; expiresAt?: string }>(
+          request,
+          `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/commands`,
+          {
+            method: 'POST',
+            body: JSON.stringify({ command: 'sh', args: ['-lc', command], background: true, operationId: sessionId }),
+          },
+        );
+
+        if (
+          result.processId !== sessionId ||
+          !['running', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status ?? '')
+        ) {
+          throw json(
+            { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_START_UNCONFIRMED' },
+            { status: 502 },
+          );
+        }
+
+        session.status = result.status!;
+        session.expiresAt = result.expiresAt;
+      } catch {
+        const compensated = await compensate();
+        throw json(
+          {
+            error: copy['apiRuntime.panel.executionFailed'],
+            code: compensated ? 'DEBUG_LAUNCH_FAILED_COMPENSATED' : 'DEBUG_LAUNCH_RECONCILIATION_REQUIRED',
+          },
+          { status: 502 },
+        );
       }
-
-      const processId = result.processId;
-
-      state.sessions = [
-        {
-          id: sessionId,
-          configId: config.id,
-          name: config.name,
-          status: 'running',
-          adapter: 'tracked-runtime-command',
-          command,
-          workspaceId,
-          processId,
-          startedAt: now,
-          updatedAt: now,
-          callStack: [],
-          variables: [],
-          lastOutput: '',
-        },
-        ...state.sessions,
-      ].slice(0, 20);
-    } else if (intent === 'stop-session') {
+    } else if (intent === 'stop-session' || intent === 'reconcile-session') {
       const session = state.sessions.find((candidate: any) => candidate.id === body.sessionId);
 
       if (
@@ -1851,13 +1939,24 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         );
       }
 
-      const result = await apiRequest<{ killed?: boolean; id?: string }>(
+      const result = await apiRequest<{
+        killed?: boolean;
+        terminated?: boolean;
+        id?: string;
+        status?: string;
+        finishedAt?: string;
+        expiresAt?: string;
+      }>(
         request,
-        `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/processes/${encodeURIComponent(session.processId)}/kill`,
-        { method: 'POST' },
+        `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/processes/${encodeURIComponent(session.processId)}${intent === 'stop-session' ? '/kill' : ''}`,
+        { method: intent === 'stop-session' ? 'POST' : 'GET' },
       );
 
-      if (result.killed !== true || result.id !== session.processId) {
+      if (
+        result.id !== session.processId ||
+        !['running', 'stopped', 'exited', 'failed', 'timeout'].includes(result.status ?? '') ||
+        (intent === 'stop-session' && result.terminated !== true)
+      ) {
         throw json(
           { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_STOP_UNCONFIRMED' },
           { status: 409 },
@@ -1866,7 +1965,14 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
       state.sessions = state.sessions.map((candidate: any) =>
         candidate.id === body.sessionId
-          ? { ...candidate, status: 'stopped', stoppedAt: now, updatedAt: now, lastAction: 'stop' }
+          ? {
+              ...candidate,
+              status: result.status,
+              stoppedAt: result.finishedAt,
+              expiresAt: result.expiresAt,
+              updatedAt: now,
+              lastAction: intent === 'stop-session' ? 'stop' : 'reconcile',
+            }
           : candidate,
       );
     } else {
@@ -1876,13 +1982,22 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       );
     }
 
-    await apiRequest(request, `/projects/${projectId}/env-vars`, {
-      method: 'PUT',
-      body: JSON.stringify({
-        key: DEBUGGER_STATE_ENV_KEY,
-        value: JSON.stringify(normalizeDebuggerState(state, language)),
-      }),
-    });
+    try {
+      await persist();
+    } catch {
+      const compensated = launched ? await compensate() : undefined;
+      throw json(
+        {
+          error: copy['apiRuntime.panel.executionFailed'],
+          code: launched
+            ? compensated
+              ? 'DEBUG_PERSIST_FAILED_COMPENSATED'
+              : 'DEBUG_PERSIST_RECONCILIATION_REQUIRED'
+            : 'DEBUG_PERSIST_RECONCILIATION_REQUIRED',
+        },
+        { status: 502 },
+      );
+    }
   } else if (panel === 'collaborators') {
     if (intent === 'comment') {
       await apiRequest(request, `/projects/${projectId}/collaboration/comments`, {
@@ -4220,13 +4335,18 @@ function normalizeDebugSession(input: any, language?: string | null) {
      * réconciliation quand le pid d'une session a disparu de la liste des
      * processus. L'omettre reclassait ces sessions en 'stopped'.
      */
-    status: ['running', 'paused', 'stopped', 'exited', 'failed'].includes(input?.status) ? input.status : 'stopped',
+    status: ['starting', 'running', 'paused', 'stopped', 'exited', 'failed', 'timeout', 'unknown'].includes(
+      input?.status,
+    )
+      ? input.status
+      : 'stopped',
     adapter: String(input?.adapter || 'runtime-command'),
     command: String(input?.command || '').slice(0, 800),
     workspaceId: String(input?.workspaceId || ''),
     processId: input?.processId ? String(input.processId) : undefined,
     startedAt: input?.startedAt ? String(input.startedAt) : undefined,
     stoppedAt: input?.stoppedAt ? String(input.stoppedAt) : undefined,
+    expiresAt: input?.expiresAt ? String(input.expiresAt) : undefined,
     updatedAt: input?.updatedAt ? String(input.updatedAt) : undefined,
     lastAction: input?.lastAction ? String(input.lastAction) : undefined,
     lastOutput: input?.lastOutput ? String(input.lastOutput).slice(0, 4000) : '',

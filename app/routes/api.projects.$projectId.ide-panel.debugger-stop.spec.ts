@@ -10,10 +10,14 @@ vi.mock('~/lib/enterprise-api.server', async () => ({
 let state: any;
 let outcome: unknown;
 let saved: any;
+let persistCount: number;
+let failPersistAt: number;
 beforeEach(() => {
   apiRequest.mockReset();
   saved = undefined;
-  outcome = { killed: true, id: 'opaque-process' };
+  persistCount = 0;
+  failPersistAt = 0;
+  outcome = { killed: true, terminated: true, status: 'stopped', id: 'opaque-process' };
   state = {
     sessions: [
       {
@@ -41,7 +45,13 @@ beforeEach(() => {
 
     if (path.endsWith('/env-vars')) {
       if (options?.method === 'PUT') {
+        if (++persistCount === failPersistAt) {
+          throw new Error('Synthetic persistence failure');
+        }
+
         saved = JSON.parse(JSON.parse(options.body).value);
+        state = structuredClone(saved);
+
         return {};
       }
 
@@ -53,11 +63,17 @@ beforeEach(() => {
         throw outcome;
       }
 
-      return outcome;
+      return outcome === 'auto'
+        ? { killed: true, terminated: true, id: path.split('/').at(-2), status: 'stopped' }
+        : outcome;
     }
 
     if (path.endsWith('/commands')) {
-      return { processId: 'new-opaque', status: 'running' };
+      return { processId: JSON.parse(options.body).operationId, status: 'running', expiresAt: '2026-10-23T18:00:00Z' };
+    }
+
+    if (path.includes('/processes/')) {
+      return { id: path.split('/').at(-1), status: 'stopped', terminated: true };
     }
 
     throw new Error('Unexpected synthetic endpoint');
@@ -139,7 +155,7 @@ describe('Debugger BFF — controlled upstream, no commands executed', () => {
     const response = await execute({ intent: 'start-session', configId: 'config', workspaceId: 'workspace-a' });
     expect(response.status).toBe(200);
     expect(saved.sessions[0]).toMatchObject({
-      processId: 'new-opaque',
+      processId: expect.any(String),
       workspaceId: 'workspace-a',
       adapter: 'tracked-runtime-command',
       status: 'running',
@@ -158,5 +174,47 @@ describe('Debugger BFF — controlled upstream, no commands executed', () => {
     const response = await execute({ intent: 'step-over', sessionId: 'session' });
     expect(response.status).toBe(400);
     expect(saved).toBeUndefined();
+  });
+});
+
+describe('Debugger persistence failures — controlled faults', () => {
+  it('does not launch before the identity has been saved', async () => {
+    failPersistAt = 1;
+
+    const response = await execute({ intent: 'start-session' });
+    expect(response.status).toBeGreaterThanOrEqual(400);
+    expect(apiRequest.mock.calls.some((call) => call[1].endsWith('/commands'))).toBe(false);
+  });
+  it('compensates a failed launch-state save using the previously persisted identity', async () => {
+    failPersistAt = 2;
+    outcome = 'auto';
+
+    const response = await execute({ intent: 'start-session' });
+    expect(response.status).toBe(502);
+    expect((await response.json()).code).toBe('DEBUG_PERSIST_FAILED_COMPENSATED');
+    expect(saved.sessions[0].status).toBe('starting');
+    expect(apiRequest.mock.calls.find((call) => call[1].endsWith('/kill'))?.[1]).toContain(saved.sessions[0].processId);
+  });
+  it('reports reconciliation required when compensation cannot confirm termination', async () => {
+    failPersistAt = 2;
+    outcome = { killed: false };
+
+    const response = await execute({ intent: 'start-session' });
+    expect(response.status).toBe(502);
+    expect((await response.json()).code).toBe('DEBUG_PERSIST_RECONCILIATION_REQUIRED');
+    expect(saved.sessions[0].status).toBe('starting');
+  });
+  it('can persist the authoritative terminal result after a failed Stop save without stopping again', async () => {
+    failPersistAt = 1;
+
+    const stopped = await execute({ intent: 'stop-session', sessionId: 'session' });
+    expect(stopped.status).toBe(502);
+    expect(state.sessions[0].status).toBe('running');
+    failPersistAt = 0;
+
+    const reconciled = await execute({ intent: 'reconcile-session', sessionId: 'session' });
+    expect(reconciled.status).toBe(200);
+    expect(saved.sessions[0].status).toBe('stopped');
+    expect(apiRequest.mock.calls.filter((call) => call[1].endsWith('/kill'))).toHaveLength(1);
   });
 });

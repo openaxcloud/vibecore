@@ -1,4 +1,9 @@
 export const chatEn = {
+  'chat.debugger.sessionDeadline':
+    'Runtime session expires at {deadline}, with a stop grace period of up to 5 seconds.',
+  'chat.debugger.persistencePending':
+    'Runtime state differs from saved state or cannot be verified. Reconcile before relying on the saved status.',
+  'chat.debugger.reconcile': 'Reconcile saved status',
   'chat.copy.1Year_afe36da6': '1 year',
   'chat.copy.30Days_7d4278a8': '30 days',
   'chat.copy.90Days_170621ac': '90 days',
@@ -1568,6 +1573,11 @@ export const chatEn = {
 } as const;
 
 export const chatFr = {
+  'chat.debugger.sessionDeadline':
+    'Expiration de la session runtime : {deadline}, avec un délai de grâce d’arrêt maximal de 5 secondes.',
+  'chat.debugger.persistencePending':
+    'L’état runtime diffère de l’état enregistré ou reste invérifiable. Réconciliez avant de vous fier au statut enregistré.',
+  'chat.debugger.reconcile': 'Réconcilier le statut enregistré',
   'chat.copy.1Year_afe36da6': '1 an',
   'chat.copy.30Days_7d4278a8': '30 jours',
   'chat.copy.90Days_170621ac': '90 jours',

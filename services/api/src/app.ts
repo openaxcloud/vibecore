@@ -1644,6 +1644,7 @@ const runtimePatchSchema = z.object({
 });
 const runtimeCommandSchema = z.object({
   background: z.boolean().optional(),
+  operationId: z.string().uuid().optional(),
   command: z.string().min(1),
   args: z.array(z.string()).optional(),
   timeoutMs: z.number().int().positive().optional(),
@@ -17415,18 +17416,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const record = processes?.get(processId);
     // Only registered children of this workspace are eligible; never use a raw OS PID.
     if (!record?.process.pid || record.status !== 'running') {
-      return { killed: false, id: processId, reason: 'PROCESS_NOT_FOUND' };
+      return { killed: false, id: processId, code: 'PROCESS_NOT_FOUND' };
     }
     const child = record.process;
-    return new Promise<{ killed: boolean; id: string; reason?: string }>((resolve) => {
-      const finish = (killed: boolean, reason?: string) => {
+    return new Promise<{ killed: boolean; id: string; code?: string }>((resolve) => {
+      const finish = (killed: boolean, code?: string) => {
         clearTimeout(timer);
         child.removeListener('close', closed);
         if (killed) {
           record.status = 'killed';
           processes?.delete(processId);
         }
-        resolve({ killed, id: processId, ...(reason ? { reason } : {}) });
+        resolve({ killed, id: processId, ...(code ? { code } : {}) });
       };
       const closed = () => finish(true);
       const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), 5_000);
@@ -19387,6 +19388,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let result: {
       id?: string;
       status?: string;
+      expiresAt?: string;
       code: number | null;
       stdout?: string;
       stderr?: string;
@@ -19397,6 +19399,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       result = await agentRequest<{
         id?: string;
         status?: string;
+      expiresAt?: string;
         code: number | null;
         stdout?: string;
         stderr?: string;
@@ -19410,13 +19413,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (body.background) {
-      if (!result.id || result.status !== 'running') {
+      if (!result.id || !['running', 'exited', 'failed', 'stopped', 'timeout'].includes(result.status ?? '')) {
         throw Object.assign(new Error(), {
           statusCode: 502,
           code: 'PROCESS_START_FAILED',
         });
       }
-      return { processId: result.id, status: 'running' };
+      return { processId: result.id, status: result.status, expiresAt: result.expiresAt };
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
@@ -19453,14 +19456,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return result.processes.map((process) => ({ ...process, status: process.status ?? 'running' }));
   });
+  app.get('/api/runtime/workspaces/:workspaceId/processes/:id', async (request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const id = (request.params as { id: string }).id;
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+    return agentRequest(authorized.workspaceId, `/processes/${encodeURIComponent(id)}`);
+  });
   app.post('/api/runtime/workspaces/:workspaceId/processes/:id/kill', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const id = (request.params as { id: string }).id;
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
-    let result: { killed: boolean; id: string; reason?: string };
+    let result: { killed: boolean; id: string; code?: string; terminated?: boolean; status?: string };
     try {
-      result = await agentRequest<{ killed: boolean; id: string; reason?: string }>(
+      result = await agentRequest<{ killed: boolean; id: string; code?: string; terminated?: boolean; status?: string }>(
         authorized.workspaceId,
         `/processes/${id}/kill`,
         { method: 'POST' },
@@ -19473,7 +19482,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       result = await stopLocalRuntimeProcess(authorized.workspaceId, id);
     }
 
-    return reply.code(result.killed === true ? 200 : 409).send(result);
+    return reply.code(result.killed === true || result.terminated === true ? 200 : 409).send(result);
   });
   /**
    * RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's Resources

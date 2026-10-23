@@ -23035,6 +23035,21 @@ function ProjectDebuggerPanel({
                     <p className="mt-2 text-sm text-bolt-elements-textSecondary">
                       {t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
                     </p>
+                    {session.expiresAt && (
+                      <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                        {t('chat.debugger.sessionDeadline', {
+                          deadline: new Date(session.expiresAt).toLocaleString(language),
+                        })}
+                      </p>
+                    )}
+                    {session.persistencePending && (
+                      <form onSubmit={onSubmit}>
+                        <p role="status">{t('chat.debugger.persistencePending')}</p>
+                        <input name="intent" value="reconcile-session" type="hidden" />
+                        <input name="sessionId" value={session.id} type="hidden" />
+                        <PanelButton disabled={busy}>{t('chat.debugger.reconcile')}</PanelButton>
+                      </form>
+                    )}
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(
                         [
@@ -23054,7 +23069,7 @@ function ProjectDebuggerPanel({
                           {label}
                         </button>
                       ))}
-                      {session.status === 'running' && (
+                      {['starting', 'running', 'unknown'].includes(session.status) && (
                         <form onSubmit={onSubmit}>
                           <input name="intent" value="stop-session" type="hidden" />
                           <input name="sessionId" value={session.id} type="hidden" />

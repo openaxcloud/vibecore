@@ -4,6 +4,8 @@ id: BUG-DEBUGGER-TRACKED-STOP-001
 
 # Debugger : processus suivi et arrêt confirmé, sans faux pas-à-pas
 
+**État actuel :** voir la [correction de durée/persistance après revue](debugger-lifecycle-2026-10-23/README.md). Les sections suivantes conservent la preuve historique du premier commit 9454a766 ; elles ne certifient pas le contrat corrigé.
+
 ## 📤 Dispatché
 
 23 octobre 2026, préparation locale distincte de #778, base c988c2af60d058971afe72f057c6fa82a178fb21. Aucun push, nouvel accès, service Inspector exposé ou processus utilisateur touché. Périmètre autorisé : identité workspace/processus, résultat d’arrêt réel et indisponibilité explicite de l’adaptateur.
