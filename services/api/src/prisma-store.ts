@@ -1323,9 +1323,36 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
+  async upsertProjectEnvVar(input: {
+    projectId: string;
+    key: string;
+    value: string;
+    scope?: EnvVarScope;
+    expectedValue?: string | null;
+  }) {
     // Omitted scope defaults to production so pre-scope callers keep the same row.
     const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
+
+    if (input.key === 'VIBECORE_DEBUGGER_STATE' && input.expectedValue !== undefined) {
+      return this.prisma.$transaction(async (tx) => {
+        const where = { projectId: input.projectId, key: input.key, scope };
+        if (input.expectedValue === null) {
+          await tx.projectEnvVar.createMany({ data: [{ ...where, value: input.value }], skipDuplicates: true });
+        } else {
+          await tx.projectEnvVar.updateMany({
+            where: { ...where, value: input.expectedValue },
+            data: { value: input.value },
+          });
+        }
+        const current = await tx.projectEnvVar.findUnique({ where: { projectId_key_scope: where } });
+        // Matching content also acknowledges an identical retry; never merge a
+        // stale full blob or silently overwrite another operation's changes.
+        if (!current || current.value !== input.value) {
+          throw Object.assign(new Error(), { statusCode: 409, code: 'DEBUG_STATE_CONFLICT' });
+        }
+        return mapEnvVar(current);
+      });
+    }
 
     return this.withDatabaseBindingMutation(input.projectId, input.key, async (tx) =>
       mapEnvVar(

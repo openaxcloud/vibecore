@@ -1,0 +1,142 @@
+{
+  "baseMain": "6d306a5fbe7a8d49f49e96bd1c009242a1d9f16f",
+  "localBranch": "fix/debugger-state-cas-local",
+  "published": false,
+  "rawLogsPublished": false,
+  "before": {
+    "realConcurrentSaveAssertion": "failed: accepted configuration absent"
+  },
+  "after": {
+    "realChain": {
+      "passed": 11,
+      "failed": 0,
+      "skipped": 0
+    },
+    "controlledBffAndSharedErrors": {
+      "passed": 33,
+      "failed": 0
+    },
+    "apiScopeAndStore": {
+      "passed": 16,
+      "skipped": 3
+    },
+    "inventory": {
+      "passed": 6,
+      "entries": 484
+    }
+  },
+  "build": {
+    "files": 2307,
+    "manifestSha256Groups": [
+      "33bf76c8",
+      "56afe160",
+      "dfc8c68b",
+      "67233f38",
+      "c7c3752f",
+      "b432737c",
+      "05bffa4a",
+      "f5306f9a"
+    ],
+    "format": "sorted relative build paths to SHA256, compact JSON, no newline"
+  },
+  "sourceSha256Groups": {
+    "app/lib/i18n/catalogs/api-runtime-routes.ts": [
+      "78c90b07",
+      "b395f683",
+      "64dc805a",
+      "b55c4dd9",
+      "af7ccc3b",
+      "a40c80c7",
+      "48e546ab",
+      "68a023e3"
+    ],
+    "app/routes/api.projects.$projectId.ide-panel.$panel.ts": [
+      "74f3a94a",
+      "ef559aff",
+      "a8161f77",
+      "8bd66e2c",
+      "51be3a5d",
+      "678acafb",
+      "ad0ba6cf",
+      "2ef9c3b0"
+    ],
+    "app/routes/api.projects.$projectId.ide-panel.debugger-stop.spec.ts": [
+      "7dfe540c",
+      "3c758d56",
+      "35ca8655",
+      "f86e8740",
+      "e3f3657d",
+      "c5aa665e",
+      "ca297620",
+      "dfefe2f5"
+    ],
+    "services/api/src/app.ts": [
+      "84781707",
+      "cca19e1f",
+      "f298fde4",
+      "6a051e6b",
+      "eb356b18",
+      "88ad9efd",
+      "8487af0c",
+      "0dfeef4c"
+    ],
+    "services/api/src/prisma-store.ts": [
+      "4c2fe4c4",
+      "3455f056",
+      "5b956048",
+      "7c5e6db5",
+      "38fa436d",
+      "fa199f90",
+      "ff8ffe1c",
+      "73bc830a"
+    ],
+    "services/api/src/store.ts": [
+      "0709c073",
+      "cc1413a7",
+      "13e6c847",
+      "1cd38685",
+      "d4583069",
+      "18954fff",
+      "4f21c6b8",
+      "572a5b05"
+    ],
+    "services/api/src/tests/env-var-scope-routes.spec.ts": [
+      "f20ef87e",
+      "4adc872a",
+      "91668bbe",
+      "699a8bd3",
+      "8c8d2adb",
+      "f5fd4109",
+      "10d63279",
+      "17522ab9"
+    ],
+    "services/api/src/tests/test-api-store.ts": [
+      "c37d6fc4",
+      "ecdeae31",
+      "94ce0195",
+      "399af2ca",
+      "c9ea8c1d",
+      "0a01c8f8",
+      "d6646153",
+      "14f2fc07"
+    ],
+    "tests/runtime/debugger-session.real.ts": [
+      "a2ee6317",
+      "edfcafed",
+      "33bfca5c",
+      "9ba0575a",
+      "3a370697",
+      "d7fb095a",
+      "ea680a17",
+      "7ca333b0"
+    ]
+  },
+  "lintFormattingEmitsIdenticalNormalizedJavascript": true,
+  "changesPermissionsOrMigrations": false,
+  "limits": [
+    "conflict refused, no automatic intent merge",
+    "old API writers outside the versioned contract remain unsafe until retired",
+    "no browser or production recipe",
+    "no full debugger certification"
+  ]
+}

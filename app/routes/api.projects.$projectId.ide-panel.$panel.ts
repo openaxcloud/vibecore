@@ -1763,14 +1763,28 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
     let launched: { processId: string; workspaceId: string } | undefined;
 
-    const persist = () =>
-      apiRequest(request, `/projects/${projectId}/env-vars`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          key: DEBUGGER_STATE_ENV_KEY,
-          value: JSON.stringify(normalizeDebuggerState(state, language)),
-        }),
-      });
+    let expectedValue = debuggerStateValue(envVars);
+
+    const persist = async () => {
+      const value = JSON.stringify(normalizeDebuggerState(state, language));
+
+      try {
+        await apiRequest(request, `/projects/${projectId}/debugger-state/v1`, {
+          method: 'PUT',
+          body: JSON.stringify({ key: DEBUGGER_STATE_ENV_KEY, value, expectedValue }),
+        });
+        expectedValue = value;
+      } catch (error) {
+        if (error instanceof Response && error.status === 409) {
+          throw Response.json(
+            { ok: false, error: copy['apiRuntime.panel.debugStateConflict'], code: 'DEBUG_STATE_CONFLICT' },
+            { status: 409 },
+          );
+        }
+
+        throw error;
+      }
+    };
     const compensate = async () => {
       if (!launched) {
         return true;
@@ -1889,7 +1903,16 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         expiresAt: undefined as string | undefined,
       };
       state.sessions = [session, ...state.sessions].slice(0, 20);
-      await persist();
+
+      try {
+        await persist();
+      } catch (error) {
+        if (error instanceof Response && error.status === 409) {
+          return json(await error.json(), { status: 409 });
+        }
+
+        throw error;
+      }
       launched = { processId: sessionId, workspaceId };
 
       try {
@@ -2006,7 +2029,11 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
     try {
       await persist();
-    } catch {
+    } catch (error) {
+      if (!launched && error instanceof Response && error.status === 409) {
+        return json(await error.json(), { status: 409 });
+      }
+
       const compensated = launched ? await compensate() : undefined;
       throw json(
         {
@@ -4266,9 +4293,18 @@ function defaultDebuggerState(language?: string | null) {
   };
 }
 
-function readDebuggerState(envVarsResponse: unknown, language?: string | null) {
+function debuggerStateValue(envVarsResponse: unknown): string | null {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
-  const raw = envVars.find((item: any) => item.key === DEBUGGER_STATE_ENV_KEY)?.value;
+
+  const raw = envVars.find(
+    (item: any) => item.key === DEBUGGER_STATE_ENV_KEY && (!item.scope || item.scope === 'production'),
+  )?.value;
+
+  return typeof raw === 'string' ? raw : null;
+}
+
+function readDebuggerState(envVarsResponse: unknown, language?: string | null) {
+  const raw = debuggerStateValue(envVarsResponse);
 
   if (typeof raw !== 'string' || !raw.trim()) {
     return defaultDebuggerState(language);

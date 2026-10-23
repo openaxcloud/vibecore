@@ -1289,7 +1289,10 @@ const projectKeySchema = projectKeyValueSchema.pick({ key: true });
  * production in the store when omitted.
  */
 const envVarScopeSchema = z.enum(['development', 'preview', 'production']);
-const projectEnvVarUpsertSchema = projectKeyValueSchema.extend({ scope: envVarScopeSchema.optional() });
+const projectEnvVarUpsertSchema = projectKeyValueSchema.extend({
+  scope: envVarScopeSchema.optional(),
+  expectedValue: z.string().nullable().optional(),
+});
 const projectEnvVarDeleteSchema = projectKeySchema.extend({ scope: envVarScopeSchema.optional() });
 
 /*
@@ -25251,7 +25254,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { envVars: await store.listProjectEnvVars(project.id) };
   });
-  app.put('/projects/:projectId/env-vars', async (request) => {
+  const saveProjectEnvironment = async (request: FastifyRequest) => {
     const project = await requireProject(
       request,
       store,
@@ -25261,11 +25264,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(projectEnvVarUpsertSchema, request.body);
 
+    if (body.key === 'VIBECORE_DEBUGGER_STATE' && body.expectedValue === undefined) {
+      throw Object.assign(new Error(), { statusCode: 409, code: 'DEBUG_STATE_PRECONDITION_REQUIRED' });
+    }
     const envVar = await store.upsertProjectEnvVar({
       projectId: project.id,
       key: body.key,
       value: body.value,
       scope: body.scope,
+      expectedValue: body.expectedValue,
     });
     await store.recordProjectActivity({
       projectId: project.id,
@@ -25282,6 +25289,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { envVar };
+  };
+  app.put('/projects/:projectId/env-vars', saveProjectEnvironment);
+  app.put('/projects/:projectId/debugger-state/v1', async (request) => {
+    parse(
+      projectEnvVarUpsertSchema.extend({
+        key: z.literal('VIBECORE_DEBUGGER_STATE'),
+        expectedValue: z.string().nullable(),
+        scope: z.literal('production').optional(),
+      }),
+      request.body,
+    );
+    return saveProjectEnvironment(request);
   });
   app.delete('/projects/:projectId/env-vars', async (request, reply) => {
     const project = await requireProject(

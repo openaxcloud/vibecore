@@ -989,11 +989,24 @@ export class TestApiStore implements ApiStore {
     return [...this.projectTemplates.values()].filter((template) => template.organizationId === organizationId);
   }
 
-  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
+  async upsertProjectEnvVar(input: {
+    projectId: string;
+    key: string;
+    value: string;
+    scope?: EnvVarScope;
+    expectedValue?: string | null;
+  }) {
     // Omitted scope defaults to production (pre-scope back-compat).
     const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
     const key = `${input.projectId}:${input.key}:${scope}`;
     const existing = this.projectEnvVars.get(key);
+
+    if (input.key === 'VIBECORE_DEBUGGER_STATE' && input.expectedValue !== undefined) {
+      if (existing?.value === input.value) return existing;
+      if ((existing?.value ?? null) !== input.expectedValue) {
+        throw Object.assign(new Error(), { statusCode: 409, code: 'DEBUG_STATE_CONFLICT' });
+      }
+    }
 
     const envVar: ProjectEnvironmentRecord = {
       id: existing?.id ?? id('env'),

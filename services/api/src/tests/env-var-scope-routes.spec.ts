@@ -206,3 +206,61 @@ describe('F11 — per-scope project env vars', () => {
     expect(put.statusCode).toBeLessThan(500);
   });
 });
+
+describe('Debugger state preconditions — API with controlled store', () => {
+  it('requires the versioned state contract without changing ordinary environment writes', async () => {
+    const { app, project } = await setup();
+    try {
+      for (const payload of [
+        { key: 'VIBECORE_DEBUGGER_STATE', value: '{}' },
+        { key: 'OTHER_KEY', value: '{}', expectedValue: null },
+        { key: 'VIBECORE_DEBUGGER_STATE', value: '{}', expectedValue: null, scope: 'preview' },
+      ]) {
+        const response = await app.inject({
+          method: 'PUT',
+          url: `/projects/${project.id}/debugger-state/v1`,
+          headers: auth,
+          payload,
+        });
+        expect(response.statusCode).toBe(400);
+      }
+      const legacy = await app.inject({
+        method: 'PUT',
+        url: `/projects/${project.id}/env-vars`,
+        headers: auth,
+        payload: { key: 'VIBECORE_DEBUGGER_STATE', value: '{}' },
+      });
+      expect(legacy.statusCode).toBe(409);
+      expect(legacy.json().code).toBe('DEBUG_STATE_PRECONDITION_REQUIRED');
+      expect(
+        (await app.inject({ method: 'GET', url: `/projects/${project.id}/env-vars`, headers: auth })).json().envVars,
+      ).toHaveLength(0);
+    } finally {
+      await app.close();
+    }
+  });
+  it('returns an explicit conflict and acknowledges identical retries', async () => {
+    const { app, project } = await setup();
+    const write = (value: string, expectedValue: string | null) =>
+      app.inject({
+        method: 'PUT',
+        url: `/projects/${project.id}/debugger-state/v1`,
+        headers: auth,
+        payload: { key: 'VIBECORE_DEBUGGER_STATE', value, expectedValue },
+      });
+    try {
+      expect((await write('first', null)).statusCode).toBe(200);
+      expect((await write('first', null)).statusCode).toBe(200);
+      expect((await write('second', 'first')).statusCode).toBe(200);
+      const stale = await write('lost', 'first');
+      expect(stale.statusCode).toBe(409);
+      expect(stale.json().code).toBe('DEBUG_STATE_CONFLICT');
+      const rows = (await app.inject({ method: 'GET', url: `/projects/${project.id}/env-vars`, headers: auth })).json()
+        .envVars;
+      expect(rows).toHaveLength(1);
+      expect(rows[0].value).toBe('second');
+    } finally {
+      await app.close();
+    }
+  });
+});
