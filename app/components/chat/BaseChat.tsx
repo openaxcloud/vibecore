@@ -23042,6 +23042,26 @@ function ProjectDebuggerPanel({
                         {platformStateLabel(t, session.status)}
                       </span>
                     </div>
+                    <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                      {t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
+                    </p>
+                    {session.expiresAt && (
+                      <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                        {t('chat.debugger.sessionDeadline', {
+                          deadline:
+                            formatBaseChatAstDateTime(language, session.expiresAt) ??
+                            t('baseChatAst.status.notAvailable'),
+                        })}
+                      </p>
+                    )}
+                    {session.persistencePending && (
+                      <form onSubmit={onSubmit}>
+                        <p role="status">{t('chat.debugger.persistencePending')}</p>
+                        <input name="intent" value="reconcile-session" type="hidden" />
+                        <input name="sessionId" value={session.id} type="hidden" />
+                        <PanelButton disabled={busy}>{t('chat.debugger.reconcile')}</PanelButton>
+                      </form>
+                    )}
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(
                         [
@@ -23054,14 +23074,14 @@ function ProjectDebuggerPanel({
                         <button
                           key={action}
                           type="button"
-                          disabled={session.status !== 'paused'}
+                          disabled
                           className="h-8 rounded border border-bolt-elements-borderColor px-2 text-xs text-bolt-elements-textSecondary disabled:opacity-50"
                           title={t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
                         >
                           {label}
                         </button>
                       ))}
-                      {session.status === 'running' && (
+                      {['starting', 'running', 'unknown'].includes(session.status) && (
                         <form onSubmit={onSubmit}>
                           <input name="intent" value="stop-session" type="hidden" />
                           <input name="sessionId" value={session.id} type="hidden" />

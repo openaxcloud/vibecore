@@ -54,6 +54,18 @@ export interface ProcessRecord {
   startedAt: string;
   process: ChildProcessWithoutNullStreams;
   output?: string;
+  expiresAt?: string;
+  stopRequested?: boolean;
+  timedOut?: boolean;
+}
+
+interface TerminalProcessResult {
+  id: string;
+  status: 'stopped' | 'exited' | 'failed' | 'timeout';
+  exitCode: number | null;
+  signal: string | null;
+  finishedAt: string;
+  expiresAt?: string;
 }
 
 /*
@@ -95,6 +107,8 @@ const createSchema = writeSchema
 const renameSchema = z.object({ from: safePathString, to: safePathString });
 
 const commandSchema = z.object({
+  background: z.boolean().optional(),
+  operationId: z.string().uuid().optional(),
   command: z.string().min(1),
   args: z.array(z.string()).default([]),
 
@@ -870,6 +884,36 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   };
 
   const processes = options.processes ?? new Map<string, ProcessRecord>();
+  // Workspace-local, finite reconciliation history; never a second live registry.
+  const terminalResults = new Map<string, TerminalProcessResult>();
+  const pendingLaunches = new Map<string, Promise<unknown>>();
+  const pendingStops = new Map<string, Promise<unknown>>();
+  const terminalResult = (id: string) => {
+    const now = Date.now();
+    for (const [key, value] of terminalResults) {
+      if (now - Date.parse(value.finishedAt) >= 30 * 60_000) terminalResults.delete(key);
+    }
+    return terminalResults.get(id);
+  };
+  const rememberTerminal = (record: ProcessRecord, code: number | null, signal: string | null) => {
+    // An error followed by close must not replace the first authoritative result.
+    if (terminalResults.has(record.id)) return;
+    terminalResults.set(record.id, {
+      id: record.id,
+      status: record.timedOut
+        ? 'timeout'
+        : record.stopRequested && signal !== null
+          ? 'stopped'
+          : code === 0
+            ? 'exited'
+            : 'failed',
+      exitCode: code,
+      signal,
+      finishedAt: new Date().toISOString(),
+      expiresAt: record.expiresAt,
+    });
+    while (terminalResults.size > 200) terminalResults.delete(terminalResults.keys().next().value!);
+  };
   const metrics = createPrometheusRegistry();
 
   const terminalManager = new TerminalSessionManager({
@@ -1154,7 +1198,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { changedFiles: body.files.map((file) => file.path) };
   });
 
-  app.post('/commands/run', async (request) => {
+  const executeCommand = async (request: FastifyRequest) => {
     const body = commandSchema.parse(request.body);
 
     /*
@@ -1163,12 +1207,39 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      */
     const commandCwd = body.cwd ? resolveWorkspacePath(root, body.cwd) : root;
 
-    return runCommand(commandCwd, body.command, body.args, {
-      timeoutMs: Math.min(body.timeoutMs ?? commandTimeoutMs, commandTimeoutMs),
+    if (body.background && body.operationId) {
+      const pending = pendingLaunches.get(body.operationId);
+      if (pending) return pending;
+      const live = processes.get(body.operationId);
+      const terminal = terminalResult(body.operationId);
+      if (live) return { id: live.id, status: 'running', expiresAt: live.expiresAt };
+      if (terminal) return terminal;
+    }
+
+    const launch = runCommand(commandCwd, body.command, body.args, {
+      background: body.background,
+      operationId: body.background ? body.operationId : undefined,
+      rememberTerminal,
+      timeoutMs: body.background ? streamTimeoutMs : Math.min(body.timeoutMs ?? commandTimeoutMs, commandTimeoutMs),
       maxOutputBytes,
       maxProcesses,
       processes,
     });
+    if (!body.background || !body.operationId) return launch;
+    pendingLaunches.set(body.operationId, launch);
+    try {
+      return await launch;
+    } finally {
+      pendingLaunches.delete(body.operationId);
+    }
+  };
+  app.post('/commands/run', executeCommand);
+  // Authenticated by the same agent-token hook as commands; never inferred
+  // from image tags or liveness. Versioned launch cannot execute on old agents.
+  app.get('/sessions/capabilities', async () => ({ trackedSessions: 1 }));
+  app.post('/sessions/v1/start', async (request) => {
+    commandSchema.extend({ background: z.literal(true), operationId: z.string().uuid() }).parse(request.body);
+    return executeCommand(request);
   });
 
   app.get('/processes', async () => ({
@@ -1202,30 +1273,31 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { busy: buildCount > 0, buildCount };
   });
 
+  app.get('/processes/:id', async (request, reply) => {
+    const id = (request.params as { id: string }).id;
+    const live = processes.get(id);
+    if (live) return { id, status: 'running', expiresAt: live.expiresAt };
+    const terminal = terminalResult(id);
+    return terminal ?? reply.code(404).send({ id, code: 'PROCESS_NOT_FOUND' });
+  });
+
   app.post('/processes/:id/kill', async (request) => {
     const id = (request.params as { id: string }).id;
-    const record = processes.get(id);
-
-    /*
-     * Streamed commands are spawned detached (own process group), so signal the
-     * GROUP (negative pid) to take down the dev server's children too; the direct
-     * .kill() left grandchildren orphaned (leaked processes + held ports).
-     */
-    if (record?.process.pid) {
-      try {
-        process.kill(-record.process.pid, 'SIGTERM');
-      } catch {
-        try {
-          record.process.kill('SIGTERM');
-        } catch {
-          // already exited
-        }
-      }
+    const pending = pendingStops.get(id);
+    if (pending) return pending;
+    const previous = terminalResult(id);
+    if (previous) return { ...previous, terminated: true, killed: previous.status === 'stopped' };
+    const stopping = (async () => {
+      const result = await stopTrackedProcess(processes.get(id), id);
+      const terminal = terminalResult(id);
+      return terminal ? { ...terminal, terminated: true, killed: terminal.status === 'stopped' } : result;
+    })();
+    pendingStops.set(id, stopping);
+    try {
+      return await stopping;
+    } finally {
+      pendingStops.delete(id);
     }
-
-    processes.delete(id);
-
-    return { killed: Boolean(record), id };
   });
 
   app.get('/ports', async () => {
@@ -1524,6 +1596,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           maxOutputBytes,
           maxProcesses,
           streamTimeoutMs,
+          rememberTerminal,
           locale,
           processes,
           socket,
@@ -2295,11 +2368,39 @@ const SNAPSHOT_IGNORED_DIRS = new Set([
   'lost+found',
 ]);
 
+// Never interpret an unregistered ID as an OS PID. A successful signal is not
+// confirmation: only the tracked child's close event establishes termination.
+export async function stopTrackedProcess(record: ProcessRecord | undefined, id: string) {
+  if (!record?.process.pid) return { killed: false, id, code: 'PROCESS_NOT_FOUND' };
+  const child = record.process;
+  return new Promise<{ killed: boolean; id: string; code?: string }>((resolve) => {
+    const finish = (killed: boolean, code?: string) => {
+      clearTimeout(timer);
+      child.removeListener('close', closed);
+      resolve({ killed, id, ...(code ? { code } : {}) });
+    };
+    const closed = () => finish(true);
+    const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), 5_000);
+    child.once('close', closed);
+    if (child.exitCode !== null || child.signalCode !== null) return;
+    try {
+      record.stopRequested = true;
+      process.kill(-child.pid!, 'SIGTERM');
+    } catch {
+      record.stopRequested = false;
+      finish(false, 'PROCESS_SIGNAL_FAILED');
+    }
+  });
+}
+
 async function runCommand(
   cwd: string,
   command: string,
   args: string[],
   options: {
+    background?: boolean;
+    operationId?: string;
+    rememberTerminal: (record: ProcessRecord, code: number | null, signal: string | null) => void;
     timeoutMs: number;
     maxOutputBytes: number;
     maxProcesses: number;
@@ -2334,14 +2435,16 @@ async function runCommand(
     setTimeout(releasePinnedLock, 1200);
   }
 
-  const id = createHash('sha256')
-    /*
-     * randomUUID() (not just Date.now()) so two identical commands started within
-     * the same millisecond can't collide and corrupt the process-map accounting.
-     */
-    .update(`${command}:${spawnArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
-    .digest('hex')
-    .slice(0, 12);
+  const id =
+    options.operationId ??
+    createHash('sha256')
+      /*
+       * randomUUID() (not just Date.now()) so two identical commands started within
+       * the same millisecond can't collide and corrupt the process-map accounting.
+       */
+      .update(`${command}:${spawnArgs.join('\0')}:${Date.now()}:${randomUUID()}`)
+      .digest('hex')
+      .slice(0, 12);
 
   /*
    * detached: own process group, so timeout/output-cap termination can signal the
@@ -2372,10 +2475,11 @@ async function runCommand(
     }
   };
 
-  const record = {
+  const record: ProcessRecord = {
     id,
     command: [command, ...spawnArgs].join(' '),
     startedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + options.timeoutMs).toISOString(),
     process: child,
     output: '',
   };
@@ -2385,7 +2489,10 @@ async function runCommand(
   let stderr = '';
   let truncated = false;
 
-  const timer = setTimeout(() => killGroup('SIGTERM'), options.timeoutMs);
+  const timer = setTimeout(() => {
+    record.timedOut = true;
+    killGroup('SIGTERM');
+  }, options.timeoutMs);
 
   /*
    * Decode through a StringDecoder per stream, not chunk.toString('utf8'): a
@@ -2449,6 +2556,9 @@ async function runCommand(
   child.stderr.on('error', () => {});
 
   return new Promise((resolvePromise) => {
+    if (options.background) {
+      child.once('spawn', () => resolvePromise({ id, status: 'running', expiresAt: record.expiresAt }));
+    }
     /*
      * Escalate to SIGKILL if the child ignores/traps SIGTERM, so a wedged
      * process cannot permanently hold a slot and hang the request.
@@ -2465,6 +2575,7 @@ async function runCommand(
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
       flushDecoders();
+      options.rememberTerminal(record, code, signal);
       options.processes.delete(id);
       resolvePromise({ id, code, signal, stdout, stderr, truncated });
     });
@@ -2476,6 +2587,7 @@ async function runCommand(
      * hanging the request. Surface it as a normal failed-command result.
      */
     child.on('error', (error) => {
+      options.rememberTerminal(record, 1, null);
       clearTimeout(timer);
       clearTimeout(sigkillTimer);
       options.processes.delete(id);
@@ -2499,6 +2611,7 @@ async function runCommandStream(
     maxOutputBytes: number;
     maxProcesses: number;
     streamTimeoutMs: number;
+    rememberTerminal: (record: ProcessRecord, code: number | null, signal: string | null) => void;
     locale: WorkspaceAgentLocale;
     processes: Map<string, ProcessRecord>;
     socket: ReturnType<typeof normalizeWebSocket>;
@@ -2586,6 +2699,7 @@ async function runCommandStream(
     id,
     command: [command, ...spawnArgs].join(' '),
     startedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + options.streamTimeoutMs).toISOString(),
     process: child,
     output: '',
   };
@@ -2697,6 +2811,7 @@ async function runCommandStream(
    * a grace period. The 'close' handler clears both timers.
    */
   const timeoutTimer = setTimeout(() => {
+    record.timedOut = true;
     if (options.isOpen()) {
       try {
         options.socket.send(
@@ -2725,6 +2840,7 @@ async function runCommandStream(
 
   await new Promise<void>((resolvePromise) => {
     child.on('close', (code, signal) => {
+      options.rememberTerminal(record, code, signal);
       clearTimeout(timeoutTimer);
       clearTimeout(sigkillTimer);
 
@@ -2768,6 +2884,7 @@ async function runCommandStream(
      * pending. Report it to the client and resolve cleanly instead.
      */
     child.on('error', (error) => {
+      options.rememberTerminal(record, 1, null);
       clearTimeout(timeoutTimer);
       clearTimeout(sigkillTimer);
 

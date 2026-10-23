@@ -1,4 +1,9 @@
 export const chatEn = {
+  'chat.debugger.sessionDeadline':
+    'Runtime session expires at {deadline}, with a stop grace period of up to 5 seconds.',
+  'chat.debugger.persistencePending':
+    'Runtime state differs from saved state or cannot be verified. Reconcile before relying on the saved status.',
+  'chat.debugger.reconcile': 'Reconcile saved status',
   'chat.copy.1Year_afe36da6': '1 year',
   'chat.copy.30Days_7d4278a8': '30 days',
   'chat.copy.90Days_170621ac': '90 days',
@@ -581,7 +586,7 @@ export const chatEn = {
   'chat.copy.noOpenTabsMatchYourSearch_c9496ce2': 'No open tabs match your search.',
   'chat.copy.noPackageJsonHasBeenIndexed_1523ebeb': 'No package.json has been indexed for this workspace.',
   'chat.copy.noPausedFrameStartALaunch_7af5fa04':
-    'No paused frame. Start a launch configuration with inspector/debugpy and pause on a breakpoint to populate stack frames, scopes and variables.',
+    'No debug adapter is connected. Stack frames and variables are unavailable.',
   'chat.copy.noPersistentMemoriesStoredForThis_322165dc': 'No persistent memories stored for this project yet.',
   'chat.copy.noPortsDetectedYetStartYour_3bba07f1':
     'No ports detected yet. Start your app (it must listen on a port) and refresh.',
@@ -905,9 +910,10 @@ export const chatEn = {
   'chat.copy.sshGitUrl_f6b1fb5f': 'SSH git URL',
   'chat.copy.staging_c9fb656c': 'Staging',
   'chat.copy.standardBrowserShortcuts_ac1cbde1': 'Standard browser shortcuts',
-  'chat.copy.startDebugging_94a77e4e': 'Start debugging',
+  'chat.copy.startDebugging_94a77e4e': 'Run process (without debugger)',
   'chat.copy.status_bae7d5be': 'Status',
-  'chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3': 'Stepping is enabled when a debug adapter reports a paused frame.',
+  'chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3':
+    'Continue and stepping are unavailable: no debug adapter is connected. Launch runs a process only; breakpoints and watches are not applied.',
   'chat.copy.stop_9e253470': 'Stop',
   'chat.copy.stopOnEntry_36fd986b': 'Stop on entry',
   'chat.copy.storedAsAnEncryptedSecretThe_4760688f':
@@ -1567,6 +1573,11 @@ export const chatEn = {
 } as const;
 
 export const chatFr = {
+  'chat.debugger.sessionDeadline':
+    'Expiration de la session d’exécution : {deadline}, avec un délai de grâce d’arrêt maximal de 5 secondes.',
+  'chat.debugger.persistencePending':
+    'L’état de l’environnement d’exécution diffère de l’état enregistré ou reste invérifiable. Réconciliez avant de vous fier au statut enregistré.',
+  'chat.debugger.reconcile': 'Réconcilier le statut enregistré',
   'chat.copy.1Year_afe36da6': '1 an',
   'chat.copy.30Days_7d4278a8': '30 jours',
   'chat.copy.90Days_170621ac': '90 jours',
@@ -2160,7 +2171,7 @@ export const chatFr = {
   'chat.copy.noOpenTabsMatchYourSearch_c9496ce2': 'Aucun onglet ouvert ne correspond à votre recherche.',
   'chat.copy.noPackageJsonHasBeenIndexed_1523ebeb': "Aucun package.json n'a été indexé pour cet espace de travail.",
   'chat.copy.noPausedFrameStartALaunch_7af5fa04':
-    "Aucune image en pause. Démarrez une configuration de lancement avec inspecter/debugpy et faites une pause sur un point d'arrêt pour remplir les cadres de pile, les étendues et les variables.",
+    'Aucun adaptateur de débogage n’est connecté. La pile et les variables sont indisponibles.',
   'chat.copy.noPersistentMemoriesStoredForThis_322165dc':
     "Aucun souvenir persistant n'est encore stocké pour ce projet.",
   'chat.copy.noPortsDetectedYetStartYour_3bba07f1':
@@ -2496,10 +2507,10 @@ export const chatFr = {
   'chat.copy.sshGitUrl_f6b1fb5f': 'URL git SSH',
   'chat.copy.staging_c9fb656c': 'Préproduction',
   'chat.copy.standardBrowserShortcuts_ac1cbde1': 'Raccourcis standards du navigateur',
-  'chat.copy.startDebugging_94a77e4e': 'Commencer le débogage',
+  'chat.copy.startDebugging_94a77e4e': 'Lancer le processus (sans débogueur)',
   'chat.copy.status_bae7d5be': 'Statut',
   'chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3':
-    "La progression pas à pas est activée lorsqu'un adaptateur de débogage signale une trame en pause.",
+    'Continuer et le pas-à-pas sont indisponibles : aucun adaptateur de débogage n’est connecté. Le lancement exécute seulement un processus ; les points d’arrêt et expressions ne sont pas appliqués.',
   'chat.copy.stop_9e253470': 'Arrêter',
   'chat.copy.stopOnEntry_36fd986b': "Arrêt à l'entrée",
   'chat.copy.storedAsAnEncryptedSecretThe_4760688f':

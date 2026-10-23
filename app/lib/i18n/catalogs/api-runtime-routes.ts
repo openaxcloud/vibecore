@@ -89,6 +89,8 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.snapshotRequired': 'Select a snapshot to restore.',
   'apiRuntime.panel.databaseRestoreFailed': 'The database could not be restored.',
   'apiRuntime.panel.deploymentRequired': 'Select a deployment before requesting {action}.',
+  'apiRuntime.panel.debugAgentIncompatible':
+    'This workspace agent does not support tracked sessions yet. No process was launched. Update or restart the workspace through the normal controls before retrying.',
   'apiRuntime.panel.debugConfigurationRequired': 'Create a launch configuration before starting the debugger.',
   'apiRuntime.panel.domainsOrganizationMissing': 'Link this project to an organization before managing domains.',
   'apiRuntime.panel.databaseIntentUnsupported': 'The database panel does not support the action “{intent}”.',
@@ -272,6 +274,8 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.snapshotRequired': 'Sélectionnez un instantané à restaurer.',
   'apiRuntime.panel.databaseRestoreFailed': 'La base de données n’a pas pu être restaurée.',
   'apiRuntime.panel.deploymentRequired': 'Sélectionnez un déploiement avant de demander l’action {action}.',
+  'apiRuntime.panel.debugAgentIncompatible':
+    'L’agent de cet espace de travail ne prend pas encore en charge les sessions suivies. Aucun processus n’a été lancé. Mettez à jour ou redémarrez cet espace via les commandes habituelles avant de réessayer.',
   'apiRuntime.panel.debugConfigurationRequired': 'Créez une configuration de lancement avant de démarrer le débogueur.',
   'apiRuntime.panel.domainsOrganizationMissing': 'Associez ce projet à une organisation avant de gérer les domaines.',
   'apiRuntime.panel.databaseIntentUnsupported':

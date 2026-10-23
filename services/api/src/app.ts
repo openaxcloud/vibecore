@@ -1643,6 +1643,8 @@ const runtimePatchSchema = z.object({
   ),
 });
 const runtimeCommandSchema = z.object({
+  background: z.boolean().optional(),
+  operationId: z.string().uuid().optional(),
   command: z.string().min(1),
   args: z.array(z.string()).optional(),
   timeoutMs: z.number().int().positive().optional(),
@@ -17409,25 +17411,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }),
   });
 
-  const stopLocalRuntimeProcess = (workspaceId: string, processId: string) => {
+  const stopLocalRuntimeProcess = async (workspaceId: string, processId: string) => {
     const processes = localRuntimeProcesses.get(workspaceId);
     const record = processes?.get(processId);
-
-    if (record) {
-      record.process.kill('SIGTERM');
-      record.status = 'killed';
-      processes?.delete(processId);
-
-      return { killed: true, id: processId, localRuntime: true };
+    // Only registered children of this workspace are eligible; never use a raw OS PID.
+    if (!record?.process.pid || record.status !== 'running') {
+      return { killed: false, id: processId, code: 'PROCESS_NOT_FOUND' };
     }
-
-    /*
-     * Only ever act on processes we tracked for this workspace. The previous
-     * fallback parsed processId as a raw OS PID and called process.kill(pid),
-     * letting a user-supplied id SIGTERM ARBITRARY processes on the host
-     * (including the API/runtime itself). A miss is just "not found".
-     */
-    return { killed: false, id: processId, localRuntime: true };
+    const child = record.process;
+    return new Promise<{ killed: boolean; id: string; code?: string }>((resolve) => {
+      const finish = (killed: boolean, code?: string) => {
+        clearTimeout(timer);
+        child.removeListener('close', closed);
+        if (killed) {
+          record.status = 'killed';
+          processes?.delete(processId);
+        }
+        resolve({ killed, id: processId, ...(code ? { code } : {}) });
+      };
+      const closed = () => finish(true);
+      const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), 5_000);
+      child.once('close', closed);
+      try {
+        if (!child.kill('SIGTERM')) finish(false, 'PROCESS_SIGNAL_FAILED');
+      } catch {
+        finish(false, 'PROCESS_SIGNAL_FAILED');
+      }
+    });
   };
 
   const localRuntimeLogsSnapshot = async (authorized: {
@@ -19331,7 +19341,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return changes;
   });
-  app.post('/api/runtime/workspaces/:workspaceId/commands', async (request) => {
+  const runRuntimeCommand = async (request: FastifyRequest) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeCommandSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
@@ -19368,6 +19378,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    if (body.background) {
+      let compatible = false;
+      try {
+        const capabilities = await agentRequest<{ trackedSessions?: unknown }>(
+          authorized.workspaceId,
+          '/sessions/capabilities',
+        );
+        compatible = capabilities?.trackedSessions === 1;
+      } catch {
+        // Unavailable and legacy agents fail closed before any command.
+      }
+      if (!compatible) {
+        throw Object.assign(new Error(), { statusCode: 503, code: 'DEBUG_AGENT_INCOMPATIBLE' });
+      }
+    }
+
     /*
      * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
      * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
@@ -19375,20 +19401,44 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Déclarer `code: number` faisait passer ce cas pour impossible, et les
      * `?? 0` plus bas le transformaient en réussite.
      */
-    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
+    let result: {
+      id?: string;
+      status?: string;
+      expiresAt?: string;
+      code: number | null;
+      stdout?: string;
+      stderr?: string;
+      localRuntime?: boolean;
+    };
 
     try {
-      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
-        authorized.workspaceId,
-        '/commands/run',
-        { method: 'POST', body: JSON.stringify(body) },
-      );
+      result = await agentRequest<{
+        id?: string;
+        status?: string;
+        expiresAt?: string;
+        code: number | null;
+        stdout?: string;
+        stderr?: string;
+      }>(authorized.workspaceId, body.background ? '/sessions/v1/start' : '/commands/run', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
     } catch (error) {
-      if (!shouldUseLocalRuntimeFallback(error)) {
+      if (body.background || !shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
       result = await runLocalRuntimeCommand(authorized, body);
+    }
+
+    if (body.background) {
+      if (!result.id || !['running', 'exited', 'failed', 'stopped', 'timeout'].includes(result.status ?? '')) {
+        throw Object.assign(new Error(), {
+          statusCode: 502,
+          code: 'PROCESS_START_FAILED',
+        });
+      }
+      return { processId: result.id, status: result.status, expiresAt: result.expiresAt };
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
@@ -19403,6 +19453,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         { type: 'exit', exitCode: result.code ?? 1, timestamp: new Date().toISOString() },
       ],
     };
+  };
+  app.post('/api/runtime/workspaces/:workspaceId/commands', runRuntimeCommand);
+  // A legacy API has no such route: it cannot strip the session fields and
+  // accidentally execute this request as a synchronous command during rollout.
+  app.post('/api/runtime/workspaces/:workspaceId/sessions/v1/start', async (request) => {
+    parse(runtimeCommandSchema.extend({ background: z.literal(true), operationId: z.string().uuid() }), request.body);
+    return runRuntimeCommand(request);
   });
   app.get('/api/runtime/workspaces/:workspaceId/processes', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -19425,22 +19482,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return result.processes.map((process) => ({ ...process, status: process.status ?? 'running' }));
   });
+  app.get('/api/runtime/workspaces/:workspaceId/processes/:id', async (request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const id = (request.params as { id: string }).id;
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+    return agentRequest(authorized.workspaceId, `/processes/${encodeURIComponent(id)}`);
+  });
   app.post('/api/runtime/workspaces/:workspaceId/processes/:id/kill', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const id = (request.params as { id: string }).id;
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
+    let result: { killed: boolean; id: string; code?: string; terminated?: boolean; status?: string };
     try {
-      await agentRequest(authorized.workspaceId, `/processes/${id}/kill`, { method: 'POST' });
+      result = await agentRequest<{ killed: boolean; id: string; code?: string; terminated?: boolean; status?: string }>(
+        authorized.workspaceId,
+        `/processes/${id}/kill`,
+        { method: 'POST' },
+      );
     } catch (error) {
       if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
-      stopLocalRuntimeProcess(authorized.workspaceId, id);
+      result = await stopLocalRuntimeProcess(authorized.workspaceId, id);
     }
 
-    return reply.code(204).send();
+    return reply.code(result.killed === true || result.terminated === true ? 200 : 409).send(result);
   });
   /**
    * RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's Resources
