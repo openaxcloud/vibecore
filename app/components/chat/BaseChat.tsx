@@ -23437,7 +23437,10 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
           <button
             type="button"
             aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
-            onClick={() => void reload?.()}
+            onClick={() => {
+              setCleared(false);
+              void reload?.();
+            }}
             disabled={busy}
           >
             <span className="bolt-project-console-action-icon i-ph:arrow-clockwise" aria-hidden />

@@ -1,0 +1,110 @@
+{
+  "base": "a1da69ae898487995f2c74cd88a1b3b171a21dcf",
+  "buildExitCode": 0,
+  "compiledFiles": 2306,
+  "compiledManifestSha256": [
+    "df76ceeb",
+    "2da04320",
+    "48d9d4b6",
+    "6ed6c188",
+    "b4472e21",
+    "b3b41581",
+    "aa395d5d",
+    "d1e17a38"
+  ],
+  "productFile": "app/components/chat/BaseChat.tsx",
+  "productBlob": "d148e4fae26f1a32f0350aedb08d87d77a11618b",
+  "node": "v24.19.0",
+  "tests": [
+    {
+      "scenario": "Logs reload at 1440px",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 10471,
+      "observations": {
+        "initial-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-counts": {
+          "before": 5,
+          "afterReload": 5
+        },
+        "error-retry-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 4,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "full-reload-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 5,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        }
+      }
+    },
+    {
+      "scenario": "Logs reload at 1024px",
+      "status": "passed",
+      "retry": 0,
+      "durationMs": 8378,
+      "observations": {
+        "initial-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 3,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "reload-counts": {
+          "before": 5,
+          "afterReload": 5
+        },
+        "error-retry-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 4,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        },
+        "full-reload-response": {
+          "status": 200,
+          "envelopeStatus": "ok",
+          "activityCount": 5,
+          "importEventPresent": true,
+          "runtimeLogCount": 0
+        }
+      }
+    }
+  ],
+  "rawReportSha256": [
+    "916774b3",
+    "61c1bac7",
+    "d7f14133",
+    "d4de64da",
+    "07004e14",
+    "ee429ff8",
+    "27a32a9e",
+    "cda76804"
+  ]
+}
