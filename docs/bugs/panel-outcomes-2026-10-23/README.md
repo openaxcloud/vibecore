@@ -29,6 +29,12 @@ Build final : succès, 2306 fichiers compilés ; blobs produit du reçu inchang�
 
 ## Limites et provenance
 
-`receipt.json` conserve les statuts observés et les blobs compilés ; les groupes SHA-256 se concatènent. Rapports bruts, traces avec cookies et manifeste compilé restent privés. Les trois captures ont été inspectées : fixtures exclusivement synthétiques, aucun secret ou compte réel publié. Inventaire : 480 fiches conservées + cette fiche = 481.
+`receipt.json` conserve les statuts observés et les blobs compilés ; les groupes hexadécimaux SHA-256 et Git se concatènent sans séparateur. Rapports bruts, traces avec cookies et manifeste compilé restent privés. Les trois captures ont été inspectées : fixtures exclusivement synthétiques, aucun secret ou compte réel publié. Inventaire : 480 fiches conservées + cette fiche = 481.
 
 Pas de certification production, Safari/mobile, exhaustivité du scanner ou disponibilité d’un runtime distant. Les commandes existantes (notamment les `|| true` des outils de scan) restent inchangées : ce lot garantit la fidélité aux états d’exécution enregistrés, pas la détection de toutes les erreurs internes qu’un outil pourrait masquer avec un code 0. Aucun audit général, Debugger, restauration cloud ou Sync inclus.
+
+## Correction documentaire du contrôle de secrets
+
+Le job gitleaks 120391711630 a échoué sur la tête `ea558d30`. Le téléchargement des logs a retourné HTTP 403 et n’a pas été retenté. Le scan local avec gitleaks 8.21.2 et la configuration inchangée de la CI reproduit une seule alerte `generic-api-key`, ligne 5 du reçu : l’empreinte Git du catalogue `api-runtime-routes.ts`. Sa correspondance avec le blob Git de cette tête est vérifiée, comme celles des deux autres sources compilées. Il s’agit d’une empreinte de provenance, pas d’un credential.
+
+Les trois empreintes Git sont désormais représentées en groupes hexadécimaux de huit caractères, reconstituables par concaténation. Aucun contenu produit, résultat historique, règle, exclusion ou seuil du contrôle n’est modifié. Le scan local après conversion ne relève aucune alerte ; la CI de la nouvelle tête reste nécessaire.

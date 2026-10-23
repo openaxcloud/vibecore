@@ -1,10 +1,5 @@
 {
   "base": "05636a95f7c33b0c6fc90fe54484564d981fec27",
-  "compiledProductBlobs": {
-    "app/components/chat/BaseChat.tsx": "f92c4d27f93e577205ce5a703d2af6bcb3a62694",
-    "app/lib/i18n/catalogs/api-runtime-routes.ts": "47f77e53ba2d5c45c08320d6168ccc7dd7eb858a",
-    "app/routes/api.projects.$projectId.ide-panel.$panel.ts": "bf636eb7461bdc00b148491daf9e0fe7f3c3dd73"
-  },
   "buildExitCode": 0,
   "compiledFiles": 2306,
   "runs": {
@@ -160,5 +155,28 @@
   "unit": {
     "newRed": 11,
     "targetedGreen": 56
+  },
+  "compiledProductBlobHexGroups": {
+    "app/components/chat/BaseChat.tsx": [
+      "f92c4d27",
+      "f93e5772",
+      "05ce5a70",
+      "3d2af6bc",
+      "b3a62694"
+    ],
+    "app/lib/i18n/catalogs/api-runtime-routes.ts": [
+      "47f77e53",
+      "ba2d5c45",
+      "c08320d6",
+      "168ccc7d",
+      "d7eb858a"
+    ],
+    "app/routes/api.projects.$projectId.ide-panel.$panel.ts": [
+      "bf636eb7",
+      "461bdc00",
+      "b148491d",
+      "af9e0fe7",
+      "f3c3dd73"
+    ]
   }
 }
