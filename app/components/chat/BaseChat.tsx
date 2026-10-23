@@ -22267,6 +22267,7 @@ function ProjectSecurityPanel({
   useEffect(() => {
     return () => {
       scanAbortRef.current?.abort();
+      scanAbortRef.current = null;
     };
   }, []);
 
@@ -22289,6 +22290,10 @@ function ProjectSecurityPanel({
     scanAbortRef.current = controller;
 
     const timeout = window.setTimeout(() => {
+      if (scanAbortRef.current !== controller || controller.signal.aborted) {
+        return;
+      }
+
       controller.abort();
       setScanState({
         status: 'timeout',
@@ -22319,7 +22324,7 @@ function ProjectSecurityPanel({
         scan?: { status?: string };
       };
 
-      if (controller.signal.aborted) {
+      if (scanAbortRef.current !== controller || controller.signal.aborted) {
         return;
       }
 
@@ -22345,6 +22350,10 @@ function ProjectSecurityPanel({
       await reload?.();
     } catch (error) {
       window.clearTimeout(timeout);
+
+      if (scanAbortRef.current !== controller) {
+        return;
+      }
 
       if (controller.signal.aborted) {
         setScanState((current) =>
@@ -22377,6 +22386,7 @@ function ProjectSecurityPanel({
 
   const cancelScan = () => {
     scanAbortRef.current?.abort();
+    scanAbortRef.current = null;
     setScanState({
       status: 'cancelled',
       progress: 0,
