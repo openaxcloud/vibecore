@@ -1,0 +1,182 @@
+{
+  "base": "05636a95f7c33b0c6fc90fe54484564d981fec27",
+  "buildExitCode": 0,
+  "compiledFiles": 2306,
+  "runs": {
+    "red": [
+      {
+        "title": "terminal reports an unavailable runtime as failure, not completion",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 702,
+        "observations": [
+          {
+            "panel": "terminal",
+            "httpStatus": 200,
+            "ok": true,
+            "persistedStatus": "failed",
+            "exitCode": 7
+          }
+        ]
+      },
+      {
+        "title": "workflows reports an unavailable runtime as failure, not completion",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 694,
+        "observations": [
+          {
+            "panel": "workflows",
+            "httpStatus": 200,
+            "ok": true,
+            "persistedStatus": "failed"
+          }
+        ]
+      },
+      {
+        "title": "security reports an unavailable runtime as failure, not completion",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 4427,
+        "observations": [
+          {
+            "panel": "security",
+            "httpStatus": 200,
+            "ok": true,
+            "persistedStatus": "completed",
+            "exitCode": 0
+          }
+        ]
+      }
+    ],
+    "red-ui": [
+      {
+        "title": "security-failed-response preserves the execution outcome",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 8891,
+        "observations": []
+      }
+    ],
+    "green": [
+      {
+        "title": "terminal preserves the execution outcome",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 594,
+        "observations": [
+          {
+            "panel": "terminal",
+            "httpStatus": 422,
+            "ok": false,
+            "persistedStatus": "failed",
+            "exitCode": 7
+          }
+        ]
+      },
+      {
+        "title": "workflows preserves the execution outcome",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 4085,
+        "observations": [
+          {
+            "panel": "workflows",
+            "httpStatus": 422,
+            "ok": false,
+            "persistedStatus": "failed"
+          }
+        ]
+      },
+      {
+        "title": "security preserves the execution outcome",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3984,
+        "observations": [
+          {
+            "panel": "security",
+            "httpStatus": 200,
+            "ok": true,
+            "persistedStatus": "completed",
+            "exitCode": 0
+          }
+        ]
+      },
+      {
+        "title": "security-failed-response preserves the execution outcome",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3184,
+        "observations": []
+      },
+      {
+        "title": "security-failed-status preserves the execution outcome",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3432,
+        "observations": []
+      },
+      {
+        "title": "security-timeout preserves the execution outcome",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3705,
+        "observations": []
+      }
+    ],
+    "green-workflow": [
+      {
+        "title": "workflows preserves the execution outcome",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 3933,
+        "observations": [
+          {
+            "panel": "workflows",
+            "httpStatus": 422,
+            "ok": false,
+            "persistedStatus": "failed"
+          }
+        ]
+      }
+    ]
+  },
+  "compiledManifestSha256Groups": [
+    "9fc07e7c",
+    "30bc0f18",
+    "90fc29c3",
+    "299040a9",
+    "9ea062ca",
+    "01181143",
+    "4ac24133",
+    "bc649e63"
+  ],
+  "unit": {
+    "newRed": 11,
+    "targetedGreen": 56
+  },
+  "compiledProductBlobHexGroups": {
+    "app/components/chat/BaseChat.tsx": [
+      "f92c4d27",
+      "f93e5772",
+      "05ce5a70",
+      "3d2af6bc",
+      "b3a62694"
+    ],
+    "app/lib/i18n/catalogs/api-runtime-routes.ts": [
+      "47f77e53",
+      "ba2d5c45",
+      "c08320d6",
+      "168ccc7d",
+      "d7eb858a"
+    ],
+    "app/routes/api.projects.$projectId.ide-panel.$panel.ts": [
+      "bf636eb7",
+      "461bdc00",
+      "b148491d",
+      "af9e0fe7",
+      "f3c3dd73"
+    ]
+  }
+}
