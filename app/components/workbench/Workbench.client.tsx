@@ -796,7 +796,9 @@ export const Workbench = memo(
                     />
                   </div>
                 ) : null}
-                <div className="relative flex-1 overflow-hidden">
+                {/* Keep off-screen views mounted without letting their overflowing content
+                    scroll this shared viewport when a descendant receives focus. */}
+                <div className="relative min-h-0 flex-1 overflow-clip" data-testid="workbench-view-viewport">
                   <View initial={{ x: '0%' }} animate={{ x: activeWorkbenchView === 'code' ? '0%' : '-100%' }}>
                     <EditorPanel
                       editorDocument={currentDocument}

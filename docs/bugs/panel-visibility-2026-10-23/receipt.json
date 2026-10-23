@@ -1,0 +1,145 @@
+{
+  "base": "8197fb55ac6813350d991e4adb70c3a444edd8ad",
+  "buildExitCode": 0,
+  "compiledFiles": 2306,
+  "compiledManifestSha256Groups": [
+    "e6af07e3",
+    "9e5ff733",
+    "e4e5f410",
+    "1e3e2d09",
+    "06dd4e41",
+    "100743ab",
+    "078c6092",
+    "4e0861ff"
+  ],
+  "runs": {
+    "red-files": [
+      {
+        "title": "ide-panel-visibility.spec.ts / repeated Files Editor Problems Shell Webview transitions keep toolbars below header",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 18906,
+        "geometry": {
+          "samples": 3,
+          "scrollTop": [
+            0,
+            89
+          ],
+          "viewTops": [
+            -41,
+            48
+          ]
+        }
+      }
+    ],
+    "red-final": [
+      {
+        "title": "panel visibility 1180px / tabs closes with Escape and restores focus",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 10440
+      }
+    ],
+    "green": [
+      {
+        "title": "panel visibility 390px / panels closes with Escape and restores focus",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 4275
+      },
+      {
+        "title": "panel visibility 390px / tabs closes with Escape and restores focus",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 4714
+      },
+      {
+        "title": "panel visibility 390px / repeated Files Editor Problems Shell Webview transitions keep toolbars reachable",
+        "status": "failed",
+        "retry": 0,
+        "durationMs": 16755,
+        "geometry": {
+          "samples": 2,
+          "scrollTop": [
+            0
+          ],
+          "viewTops": [
+            48
+          ]
+        }
+      },
+      {
+        "title": "panel visibility 1180px / panels closes with Escape and restores focus",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5036
+      },
+      {
+        "title": "panel visibility 1180px / tabs closes with Escape and restores focus",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5171
+      },
+      {
+        "title": "panel visibility 1180px / repeated Files Editor Problems Shell Webview transitions keep toolbars reachable",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 34093,
+        "geometry": {
+          "samples": 6,
+          "scrollTop": [
+            0
+          ],
+          "viewTops": [
+            48
+          ]
+        }
+      },
+      {
+        "title": "desktop 1280px / desktop panel tools remain usable without mobile sheets",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 5702
+      }
+    ],
+    "green-mobile": [
+      {
+        "title": "panel visibility 390px / repeated Files Editor Problems Shell Webview transitions keep toolbars reachable",
+        "status": "passed",
+        "retry": 0,
+        "durationMs": 30344,
+        "geometry": {
+          "samples": 6,
+          "scrollTop": [
+            0
+          ],
+          "viewTops": [
+            48
+          ]
+        }
+      }
+    ]
+  },
+  "compiledProductBlobs": {
+    "app/components/chat/BaseChat.tsx": "213a00f3394d6af4fd7b5156ce1eced9553827ec",
+    "app/components/workbench/Workbench.client.tsx": "e8cea535d84f49b7e2dd696afdd394914f4cc2a2"
+  },
+  "publishedProductBlobs": {
+    "app/components/chat/BaseChat.tsx": "2fc9d8361df93cdcb21fdc851856595fec04a3ce",
+    "app/components/workbench/Workbench.client.tsx": "e8cea535d84f49b7e2dd696afdd394914f4cc2a2"
+  },
+  "lintOnlyEquivalence": {
+    "method": "TypeScript transpileModule ESNext/ReactJSX removeComments",
+    "equal": true,
+    "sha256Groups": [
+      "9951e153",
+      "db65325b",
+      "b07e2bfd",
+      "a591d274",
+      "59d0af1e",
+      "753d3818",
+      "b7c7b935",
+      "9aa7b985"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+import {defineConfig} from '@playwright/test';
+import standard from '../../playwright.config';
+export default defineConfig({...standard,testDir:'../../tests/e2e',testMatch:'ide-panel-visibility.spec.ts',webServer:undefined,retries:0,workers:1,outputDir:'/workspace/ux-artifacts/panel-visibility-20261023/green/results',reporter:[['list'],['json',{outputFile:'/workspace/ux-artifacts/panel-visibility-20261023/green/results.json'}]],projects:standard.projects?.filter(p=>p.name==='chromium').map(p=>({...p,use:{...p.use,baseURL:'http://127.0.0.1:5230',trace:'retain-on-failure',launchOptions:{executablePath:'/usr/bin/chromium'}}}))});

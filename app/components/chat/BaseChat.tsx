@@ -3013,6 +3013,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [mobileOverlayStorageKey],
     );
+
+    const mobileOverlayReturnFocusRef = useRef<HTMLElement | null>(null);
+
     const blurActiveMobileControl = useCallback(() => {
       if (typeof document === 'undefined') {
         return;
@@ -3021,6 +3024,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const activeElement = document.activeElement;
 
       if (activeElement instanceof HTMLElement) {
+        if (!activeElement.closest('[role="dialog"]')) {
+          mobileOverlayReturnFocusRef.current = activeElement;
+        }
+
         activeElement.blur();
       }
     }, []);
@@ -3214,6 +3221,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         event.preventDefault();
         event.stopPropagation();
         closeMobileOverlays();
+        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
       },
       [closeMobileOverlays],
     );
@@ -3462,12 +3470,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
+        event.preventDefault();
+        event.stopPropagation();
         closeMobileOverlays();
+        mobileOverlayReturnFocusRef.current?.focus({ preventScroll: true });
       };
 
-      window.addEventListener('keydown', handleMobileOverlayEscape);
+      /*
+       * The global overlay.close shortcut consumes Escape during window capture.
+       * Listen at that same boundary so focused buttons/inputs can close these sheets.
+       */
+      window.addEventListener('keydown', handleMobileOverlayEscape, true);
 
-      return () => window.removeEventListener('keydown', handleMobileOverlayEscape);
+      return () => window.removeEventListener('keydown', handleMobileOverlayEscape, true);
     }, [
       closeMobileOverlays,
       mobileAgentMenuOpen,
