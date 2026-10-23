@@ -95,14 +95,14 @@
       "c5620770"
     ],
     "services/workspace-agent/src/debugger-process.spec.ts": [
-      "c8341562",
-      "0e8ec536",
-      "277d6955",
-      "0eac95d8",
-      "1235b077",
-      "2b542d46",
-      "5d63ecba",
-      "c44e6045"
+      "62bf0ee8",
+      "110f07a3",
+      "f0e010c1",
+      "690f7826",
+      "e34c2a05",
+      "94a165e2",
+      "35353ef3",
+      "bf2f52ce"
     ],
     "app/routes/api.projects.$projectId.ide-panel.debugger-stop.spec.ts": [
       "fd3ef030",
@@ -188,5 +188,24 @@
     "i18nSourceCheck": "passed",
     "testsAndWorkflowsChanged": false,
     "initialHookFailure": "Prettier newline only after full typecheck passed; formatted then full hooks rerun"
+  },
+  "ciAgentFixtureCorrection": {
+    "previousHead": "1e975d2f9bbf29b75194b7ca00e49d150d919134",
+    "failedJob": 120497413763,
+    "dependentGate": 120497412285,
+    "cause": "implicit /workspace cwd absent on runner",
+    "beforeMissingCwd": {
+      "failed": 6,
+      "passed": 6
+    },
+    "afterFullAgentServiceMissingDefaultCwd": {
+      "files": 12,
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "retries": 0
+    },
+    "productionCodeChanged": false,
+    "assertionsTimeoutsWorkflowsChanged": false
   }
 }

@@ -3,18 +3,26 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { EventEmitter } from 'node:events';
 import { signAgentToken } from '@vibecore/workspace-sdk';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildWorkspaceAgentApp, stopTrackedProcess, type ProcessRecord } from './app.js';
 
 const secret = 'synthetic-test-secret';
 const workspace = 'synthetic-debugger';
+// Never inherit /workspace from the developer machine: hosted CI need not have
+// that directory. Every real child gets its own existing, isolated cwd.
+let root: string;
+beforeEach(async () => {
+  root = await mkdtemp(join(tmpdir(), 'debugger-process-'));
+});
+afterEach(async () => {
+  await rm(root, { recursive: true, force: true });
+});
 const headers = {
   authorization: `Bearer ${signAgentToken({ workspaceId: workspace, expiresAt: Date.now() + 60_000, secret })}`,
 };
 
 describe('tracked debugger process — real isolated agent', () => {
   it('starts a registered child, rejects a foreign workspace token, and confirms termination', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'debugger-process-'));
     const app = buildWorkspaceAgentApp({
       workspaceRoot: root,
       workspaceId: workspace,
@@ -57,12 +65,11 @@ describe('tracked debugger process — real isolated agent', () => {
     } finally {
       if (id) await app.inject({ method: 'POST', url: `/processes/${id}/kill`, headers });
       await app.close();
-      await rm(root, { recursive: true, force: true });
     }
   });
 
   it('reports spawn failure and absent process instead of success', async () => {
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret });
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, workspaceId: workspace, tokenSecret: secret });
     try {
       const start = await app.inject({
         method: 'POST',
@@ -116,7 +123,12 @@ describe('session lifecycle and shared kill — real children', () => {
   it('uses the existing interactive policy, and makes repeated launches/stops idempotent', async () => {
     const { randomUUID } = await import('node:crypto');
     const id = randomUUID();
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret, commandTimeoutMs: 20 });
+    const app = buildWorkspaceAgentApp({
+      workspaceRoot: root,
+      workspaceId: workspace,
+      tokenSecret: secret,
+      commandTimeoutMs: 20,
+    });
     try {
       const payload = {
         command: process.execPath,
@@ -145,7 +157,7 @@ describe('session lifecycle and shared kill — real children', () => {
 
   it('observes natural exit during Stop without relabelling it stopped', async () => {
     const processes = new Map<string, ProcessRecord>();
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret, processes });
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, workspaceId: workspace, tokenSecret: secret, processes });
     let id: string | undefined;
     try {
       const script = `require('node:child_process').spawn(process.execPath,['-e','setTimeout(() => {}, 800)'],{stdio:['ignore',1,2]}); process.exit(0)`;
@@ -168,7 +180,7 @@ describe('session lifecycle and shared kill — real children', () => {
 
   it('keeps a signal-ignoring child registered after the real 5s stop bound', async () => {
     const processes = new Map<string, ProcessRecord>();
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret, processes });
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, workspaceId: workspace, tokenSecret: secret, processes });
     let child: ProcessRecord['process'] | undefined;
     try {
       const start = await app.inject({
@@ -204,6 +216,7 @@ describe('session lifecycle and shared kill — real children', () => {
   it('keeps synchronous commands bounded and permits confirmed Stop while they await exit', async () => {
     const processes = new Map<string, ProcessRecord>();
     const app = buildWorkspaceAgentApp({
+      workspaceRoot: root,
       workspaceId: workspace,
       tokenSecret: secret,
       processes,
@@ -233,7 +246,12 @@ describe('interactive bound and streamed stop regressions', () => {
   it('applies the configured interactive deadline and keeps synchronous timeout separate', async () => {
     const original = process.env.WORKSPACE_STREAM_TIMEOUT_MS;
     process.env.WORKSPACE_STREAM_TIMEOUT_MS = '200';
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret, commandTimeoutMs: 80 });
+    const app = buildWorkspaceAgentApp({
+      workspaceRoot: root,
+      workspaceId: workspace,
+      tokenSecret: secret,
+      commandTimeoutMs: 80,
+    });
     try {
       const start = await app.inject({
         method: 'POST',
@@ -265,7 +283,7 @@ describe('interactive bound and streamed stop regressions', () => {
     const { default: WebSocket } = await import('ws');
     const { once } = await import('node:events');
     const processes = new Map<string, ProcessRecord>();
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret, processes });
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, workspaceId: workspace, tokenSecret: secret, processes });
     await app.listen({ host: '127.0.0.1', port: 0 });
     const token = signAgentToken({ workspaceId: workspace, expiresAt: Date.now() + 60_000, secret });
     const socket = new WebSocket(
@@ -302,7 +320,7 @@ describe('interactive bound and streamed stop regressions', () => {
 
 describe('authenticated versioned session protocol', () => {
   it('does not expose session capabilities without an agent token', async () => {
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret });
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, workspaceId: workspace, tokenSecret: secret });
     try {
       expect((await app.inject({ method: 'GET', url: '/sessions/capabilities' })).statusCode).toBe(401);
       const authorized = await app.inject({ method: 'GET', url: '/sessions/capabilities', headers });
@@ -314,7 +332,7 @@ describe('authenticated versioned session protocol', () => {
   });
   it('rejects a missing operation identity on the versioned launch without spawning', async () => {
     const processes = new Map<string, ProcessRecord>();
-    const app = buildWorkspaceAgentApp({ workspaceId: workspace, tokenSecret: secret, processes });
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, workspaceId: workspace, tokenSecret: secret, processes });
     try {
       const response = await app.inject({
         method: 'POST',
