@@ -23032,6 +23032,9 @@ function ProjectDebuggerPanel({
                         {platformStateLabel(t, session.status)}
                       </span>
                     </div>
+                    <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                      {t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
+                    </p>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {(
                         [
@@ -23044,7 +23047,7 @@ function ProjectDebuggerPanel({
                         <button
                           key={action}
                           type="button"
-                          disabled={session.status !== 'paused'}
+                          disabled
                           className="h-8 rounded border border-bolt-elements-borderColor px-2 text-xs text-bolt-elements-textSecondary disabled:opacity-50"
                           title={t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
                         >

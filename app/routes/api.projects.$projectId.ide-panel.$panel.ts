@@ -835,7 +835,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        * the stored blob keeps whatever start/stop wrote, and an unreadable
        * process list downgrades nothing.
        */
-      debuggerState.sessions = reconcileDebugSessions(debuggerState.sessions ?? [], runtimeProcesses);
+      debuggerState.sessions = reconcileDebugSessions(debuggerState.sessions ?? [], runtimeProcesses, workspaceId);
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -1718,8 +1718,8 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     }
   } else if (panel === 'debugger') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-    const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
-    const workspaceId = dashboard?.workspace?.id ?? projectId;
+    const workspace = await resolvePanelWorkspace(request, projectId, body.workspaceId);
+    const workspaceId = workspace.selectedWorkspaceId;
     const state = readDebuggerState(envVars, language);
     const now = new Date().toISOString();
 
@@ -1786,31 +1786,45 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         );
       }
 
+      if (!workspaceId || (body.workspaceId && body.workspaceId !== workspaceId)) {
+        throw json(
+          { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_WORKSPACE_UNAVAILABLE' },
+          { status: 409 },
+        );
+      }
+
+      if (config.request === 'attach' || config.stopOnEntry) {
+        throw json(
+          { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_ADAPTER_UNAVAILABLE' },
+          { status: 409 },
+        );
+      }
+
       const sessionId = randomUUID();
       const command = buildDebugLaunchCommand(config, language);
-      const wrapper = `mkdir -p .vibecore/debug && nohup sh -lc ${shellQuote(command)} > .vibecore/debug/${sessionId}.log 2>&1 & echo $!`;
 
-      const result = await apiRequest<{ output?: string; exitCode?: number }>(
+      const result = await apiRequest<{ processId?: string; status?: string }>(
         request,
         `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/commands`,
         {
           method: 'POST',
-          body: JSON.stringify({ command: 'sh', args: ['-lc', wrapper], timeoutMs: 15_000 }),
+          body: JSON.stringify({ command: 'sh', args: ['-lc', command], background: true }),
         },
       );
-      const processId =
-        String(result.output ?? '')
-          .trim()
-          .split(/\s+/)
-          .pop() || undefined;
+
+      if (!result.processId || result.status !== 'running') {
+        throw json({ error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_START_FAILED' }, { status: 502 });
+      }
+
+      const processId = result.processId;
 
       state.sessions = [
         {
           id: sessionId,
           configId: config.id,
           name: config.name,
-          status: result.exitCode && result.exitCode !== 0 ? 'failed' : 'running',
-          adapter: 'runtime-command',
+          status: 'running',
+          adapter: 'tracked-runtime-command',
           command,
           workspaceId,
           processId,
@@ -1818,25 +1832,47 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           updatedAt: now,
           callStack: [],
           variables: [],
-          lastOutput: result.output ?? '',
+          lastOutput: '',
         },
         ...state.sessions,
       ].slice(0, 20);
     } else if (intent === 'stop-session') {
       const session = state.sessions.find((candidate: any) => candidate.id === body.sessionId);
 
-      if (session?.processId) {
-        await apiRequest(
-          request,
-          `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes/${encodeURIComponent(session.processId)}/kill`,
-          { method: 'POST' },
-        ).catch(() => undefined);
+      if (
+        !session?.processId ||
+        session.adapter !== 'tracked-runtime-command' ||
+        !session.workspaceId ||
+        !workspace.workspaceList.some((candidate) => candidate.id === session.workspaceId)
+      ) {
+        throw json(
+          { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_PROCESS_UNAVAILABLE' },
+          { status: 409 },
+        );
+      }
+
+      const result = await apiRequest<{ killed?: boolean; id?: string }>(
+        request,
+        `/api/runtime/workspaces/${encodeURIComponent(session.workspaceId)}/processes/${encodeURIComponent(session.processId)}/kill`,
+        { method: 'POST' },
+      );
+
+      if (result.killed !== true || result.id !== session.processId) {
+        throw json(
+          { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_STOP_UNCONFIRMED' },
+          { status: 409 },
+        );
       }
 
       state.sessions = state.sessions.map((candidate: any) =>
         candidate.id === body.sessionId
           ? { ...candidate, status: 'stopped', stoppedAt: now, updatedAt: now, lastAction: 'stop' }
           : candidate,
+      );
+    } else {
+      throw json(
+        { error: copy['apiRuntime.panel.executionFailed'], code: 'DEBUG_ACTION_UNSUPPORTED' },
+        { status: 400 },
       );
     }
 
@@ -4224,9 +4260,7 @@ function buildDebugLaunchCommand(config: any, language?: string | null) {
       );
     }
 
-    return `python -m debugpy --listen 0.0.0.0:5678 ${config.stopOnEntry ? '--wait-for-client ' : ''}${shellQuote(
-      config.program,
-    )}${args ? ` ${args}` : ''}`;
+    return `python ${shellQuote(config.program)}${args ? ` ${args}` : ''}`;
   }
 
   if (config.type === 'shell') {
@@ -4241,9 +4275,7 @@ function buildDebugLaunchCommand(config: any, language?: string | null) {
     throw json({ error: copy['apiRuntime.panel.nodeLaunchInvalid'], code: 'NODE_LAUNCH_INVALID' }, { status: 400 });
   }
 
-  return `node ${config.stopOnEntry ? '--inspect-brk=0.0.0.0:9229' : '--inspect=0.0.0.0:9229'} ${shellQuote(
-    config.program,
-  )}${args ? ` ${args}` : ''}`;
+  return `node ${shellQuote(config.program)}${args ? ` ${args}` : ''}`;
 }
 
 function packageRunName(intent: string, packageManager: ProjectPackageManager, language?: string | null) {

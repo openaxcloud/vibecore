@@ -95,6 +95,7 @@ const createSchema = writeSchema
 const renameSchema = z.object({ from: safePathString, to: safePathString });
 
 const commandSchema = z.object({
+  background: z.boolean().optional(),
   command: z.string().min(1),
   args: z.array(z.string()).default([]),
 
@@ -1164,6 +1165,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const commandCwd = body.cwd ? resolveWorkspacePath(root, body.cwd) : root;
 
     return runCommand(commandCwd, body.command, body.args, {
+      background: body.background,
       timeoutMs: Math.min(body.timeoutMs ?? commandTimeoutMs, commandTimeoutMs),
       maxOutputBytes,
       maxProcesses,
@@ -1204,28 +1206,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.post('/processes/:id/kill', async (request) => {
     const id = (request.params as { id: string }).id;
-    const record = processes.get(id);
-
-    /*
-     * Streamed commands are spawned detached (own process group), so signal the
-     * GROUP (negative pid) to take down the dev server's children too; the direct
-     * .kill() left grandchildren orphaned (leaked processes + held ports).
-     */
-    if (record?.process.pid) {
-      try {
-        process.kill(-record.process.pid, 'SIGTERM');
-      } catch {
-        try {
-          record.process.kill('SIGTERM');
-        } catch {
-          // already exited
-        }
-      }
-    }
-
-    processes.delete(id);
-
-    return { killed: Boolean(record), id };
+    return stopTrackedProcess(processes.get(id), id);
   });
 
   app.get('/ports', async () => {
@@ -2295,11 +2276,37 @@ const SNAPSHOT_IGNORED_DIRS = new Set([
   'lost+found',
 ]);
 
+// Never interpret an unregistered ID as an OS PID. A successful signal is not
+// confirmation: only the tracked child's close event establishes termination.
+export async function stopTrackedProcess(record: ProcessRecord | undefined, id: string) {
+  if (!record?.process.pid) return { killed: false, id, reason: 'PROCESS_NOT_FOUND' };
+  const child = record.process;
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return { killed: false, id, reason: 'PROCESS_ALREADY_EXITED' };
+  }
+  return new Promise<{ killed: boolean; id: string; reason?: string }>((resolve) => {
+    const finish = (killed: boolean, reason?: string) => {
+      clearTimeout(timer);
+      child.removeListener('close', closed);
+      resolve({ killed, id, ...(reason ? { reason } : {}) });
+    };
+    const closed = () => finish(true);
+    const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), 5_000);
+    child.once('close', closed);
+    try {
+      process.kill(-child.pid!, 'SIGTERM');
+    } catch {
+      finish(false, 'PROCESS_SIGNAL_FAILED');
+    }
+  });
+}
+
 async function runCommand(
   cwd: string,
   command: string,
   args: string[],
   options: {
+    background?: boolean;
     timeoutMs: number;
     maxOutputBytes: number;
     maxProcesses: number;
@@ -2449,6 +2456,9 @@ async function runCommand(
   child.stderr.on('error', () => {});
 
   return new Promise((resolvePromise) => {
+    if (options.background) {
+      child.once('spawn', () => resolvePromise({ id, status: 'running' }));
+    }
     /*
      * Escalate to SIGKILL if the child ignores/traps SIGTERM, so a wedged
      * process cannot permanently hold a slot and hang the request.

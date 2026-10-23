@@ -65,3 +65,14 @@ describe('readLivePids', () => {
     expect(readLivePids(undefined)).toBeNull();
   });
 });
+
+describe('tracked runtime identities', () => {
+  it('matches opaque ID even when a numeric PID is also present', () => {
+    const session = { status: 'running', processId: 'opaque', workspaceId: 'a' };
+    expect(reconcileDebugSessions([session], [{ id: 'opaque', pid: 123 }], 'a')).toEqual([session]);
+  });
+  it('does not use workspace B process table to end a session belonging to A', () => {
+    const session = { status: 'running', processId: 'opaque', workspaceId: 'a' };
+    expect(reconcileDebugSessions([session], [], 'b')).toEqual([session]);
+  });
+});

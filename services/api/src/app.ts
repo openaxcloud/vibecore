@@ -1643,6 +1643,7 @@ const runtimePatchSchema = z.object({
   ),
 });
 const runtimeCommandSchema = z.object({
+  background: z.boolean().optional(),
   command: z.string().min(1),
   args: z.array(z.string()).optional(),
   timeoutMs: z.number().int().positive().optional(),
@@ -17409,25 +17410,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }),
   });
 
-  const stopLocalRuntimeProcess = (workspaceId: string, processId: string) => {
+  const stopLocalRuntimeProcess = async (workspaceId: string, processId: string) => {
     const processes = localRuntimeProcesses.get(workspaceId);
     const record = processes?.get(processId);
-
-    if (record) {
-      record.process.kill('SIGTERM');
-      record.status = 'killed';
-      processes?.delete(processId);
-
-      return { killed: true, id: processId, localRuntime: true };
+    // Only registered children of this workspace are eligible; never use a raw OS PID.
+    if (!record?.process.pid || record.status !== 'running') {
+      return { killed: false, id: processId, reason: 'PROCESS_NOT_FOUND' };
     }
-
-    /*
-     * Only ever act on processes we tracked for this workspace. The previous
-     * fallback parsed processId as a raw OS PID and called process.kill(pid),
-     * letting a user-supplied id SIGTERM ARBITRARY processes on the host
-     * (including the API/runtime itself). A miss is just "not found".
-     */
-    return { killed: false, id: processId, localRuntime: true };
+    const child = record.process;
+    return new Promise<{ killed: boolean; id: string; reason?: string }>((resolve) => {
+      const finish = (killed: boolean, reason?: string) => {
+        clearTimeout(timer);
+        child.removeListener('close', closed);
+        if (killed) {
+          record.status = 'killed';
+          processes?.delete(processId);
+        }
+        resolve({ killed, id: processId, ...(reason ? { reason } : {}) });
+      };
+      const closed = () => finish(true);
+      const timer = setTimeout(() => finish(false, 'PROCESS_STOP_TIMEOUT'), 5_000);
+      child.once('close', closed);
+      try {
+        if (!child.kill('SIGTERM')) finish(false, 'PROCESS_SIGNAL_FAILED');
+      } catch {
+        finish(false, 'PROCESS_SIGNAL_FAILED');
+      }
+    });
   };
 
   const localRuntimeLogsSnapshot = async (authorized: {
@@ -19375,20 +19384,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Déclarer `code: number` faisait passer ce cas pour impossible, et les
      * `?? 0` plus bas le transformaient en réussite.
      */
-    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
+    let result: {
+      id?: string;
+      status?: string;
+      code: number | null;
+      stdout?: string;
+      stderr?: string;
+      localRuntime?: boolean;
+    };
 
     try {
-      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
-        authorized.workspaceId,
-        '/commands/run',
-        { method: 'POST', body: JSON.stringify(body) },
-      );
+      result = await agentRequest<{
+        id?: string;
+        status?: string;
+        code: number | null;
+        stdout?: string;
+        stderr?: string;
+      }>(authorized.workspaceId, '/commands/run', { method: 'POST', body: JSON.stringify(body) });
     } catch (error) {
-      if (!shouldUseLocalRuntimeFallback(error)) {
+      if (body.background || !shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
       result = await runLocalRuntimeCommand(authorized, body);
+    }
+
+    if (body.background) {
+      if (!result.id || result.status !== 'running') {
+        throw Object.assign(new Error(), {
+          statusCode: 502,
+          code: 'PROCESS_START_FAILED',
+        });
+      }
+      return { processId: result.id, status: 'running' };
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
@@ -19430,17 +19458,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const id = (request.params as { id: string }).id;
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
+    let result: { killed: boolean; id: string; reason?: string };
     try {
-      await agentRequest(authorized.workspaceId, `/processes/${id}/kill`, { method: 'POST' });
+      result = await agentRequest<{ killed: boolean; id: string; reason?: string }>(
+        authorized.workspaceId,
+        `/processes/${id}/kill`,
+        { method: 'POST' },
+      );
     } catch (error) {
       if (!shouldUseLocalRuntimeFallback(error)) {
         throw error;
       }
 
-      stopLocalRuntimeProcess(authorized.workspaceId, id);
+      result = await stopLocalRuntimeProcess(authorized.workspaceId, id);
     }
 
-    return reply.code(204).send();
+    return reply.code(result.killed === true ? 200 : 409).send(result);
   });
   /**
    * RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's Resources

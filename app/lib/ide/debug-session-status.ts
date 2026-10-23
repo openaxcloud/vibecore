@@ -74,6 +74,10 @@ export function readLivePids(runtimeProcesses: unknown): Set<string> | null {
 
     if (pid) {
       pids.add(pid);
+
+      if (entry && typeof entry === 'object' && typeof (entry as { id?: unknown }).id === 'string') {
+        pids.add((entry as { id: string }).id);
+      }
     }
   }
 
@@ -83,6 +87,7 @@ export function readLivePids(runtimeProcesses: unknown): Set<string> | null {
 export function reconcileDebugSessions<T extends ReconcilableSession>(
   sessions: readonly T[],
   runtimeProcesses: unknown,
+  workspaceId?: string,
 ): T[] {
   const livePids = readLivePids(runtimeProcesses);
 
@@ -91,6 +96,10 @@ export function reconcileDebugSessions<T extends ReconcilableSession>(
   }
 
   return sessions.map((session) => {
+    if (workspaceId && session.workspaceId && session.workspaceId !== workspaceId) {
+      return session;
+    }
+
     if (session.status !== 'running' || !session.processId) {
       return session;
     }
