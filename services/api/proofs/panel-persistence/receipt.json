@@ -1,0 +1,144 @@
+{
+  "baseCommit": "4af4dd1a0ba14473affb2ee7fdeabbac23b1274f",
+  "recordedAt": "2026-10-21T06:34:00.171633+00:00",
+  "sourceSha256": [
+    {
+      "path": "services/api/src/app.ts",
+      "sha256": "b4a75ba8046a35b9a60e7f75dec6f7720dbc8a7053a3add1d107e58f33986abd"
+    },
+    {
+      "path": "services/api/src/panel-persistence.integration.spec.ts",
+      "sha256": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193"
+    }
+  ],
+  "databaseImage": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+  "before": {
+    "realPostgresPassed": 5,
+    "realPostgresFailed": 1,
+    "expected": "Invalid slug rejects without changing project metadata",
+    "observed": "HTTP 400 twice; new DB connection returned rejected name and description"
+  },
+  "after": {
+    "passed": 20,
+    "failed": 0,
+    "realPostgres": 6,
+    "existingMemoryContracts": 14,
+    "tests": [
+      {
+        "file": "services/api/src/panel-persistence.integration.spec.ts",
+        "assertions": [
+          {
+            "name": "rejects an invalid slug without persisting metadata, including a repeated request",
+            "status": "passed"
+          },
+          {
+            "name": "persists project edits after reconnect and rejects foreign organization edits and reads",
+            "status": "passed"
+          },
+          {
+            "name": "creates and updates scoped variables without duplicates, survives reconnect and rejects foreign access",
+            "status": "passed"
+          },
+          {
+            "name": "deletes only the requested scope and reports repeated deletion after reconnect",
+            "status": "passed"
+          },
+          {
+            "name": "persists partial preference updates and null clearing without changing the other account",
+            "status": "passed"
+          },
+          {
+            "name": "persists exact activity counts and filters, isolates the journal, and rejects invalid queries",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "services/api/src/tests/env-var-scope-routes.spec.ts",
+        "assertions": [
+          {
+            "name": "persists and returns the scope on upsert",
+            "status": "passed"
+          },
+          {
+            "name": "defaults an omitted scope to production (back-compat with pre-scope clients)",
+            "status": "passed"
+          },
+          {
+            "name": "reads pre-scope rows written directly to the store as production",
+            "status": "passed"
+          },
+          {
+            "name": "lets the same key hold a different value per scope (enables the diff view)",
+            "status": "passed"
+          },
+          {
+            "name": "upserting a scoped key updates only that scope",
+            "status": "passed"
+          },
+          {
+            "name": "deletes a single scope, leaving the other scopes intact",
+            "status": "passed"
+          },
+          {
+            "name": "deleting without a scope targets the production row (back-compat)",
+            "status": "passed"
+          },
+          {
+            "name": "rejects an unknown scope value",
+            "status": "passed"
+          }
+        ]
+      },
+      {
+        "file": "services/api/src/tests/project-slug-rename-redirect.spec.ts",
+        "assertions": [
+          {
+            "name": "renames the slug and resolves the old slug to the renamed project (redirect) while not expired",
+            "status": "passed"
+          },
+          {
+            "name": "stops resolving the old slug once the redirect has expired",
+            "status": "passed"
+          },
+          {
+            "name": "rejects a rename to a slug already taken by another project in the org (409)",
+            "status": "passed"
+          },
+          {
+            "name": "rejects a slug that normalizes to empty (400)",
+            "status": "passed"
+          },
+          {
+            "name": "treats a same-slug rename as a no-op (no redirect minted)",
+            "status": "passed"
+          },
+          {
+            "name": "permanently deletes only when the name confirmation matches",
+            "status": "passed"
+          }
+        ]
+      }
+    ]
+  },
+  "cleanup": {
+    "remainingUsers": 0,
+    "remainingOrganizations": 0,
+    "remainingProjects": 0
+  },
+  "lint": {
+    "newTestExitCode": 0,
+    "appBaselineErrors": 366,
+    "appBaselineWarnings": 13,
+    "appCurrentErrors": 366,
+    "appCurrentWarnings": 13,
+    "newDiagnostics": 0
+  },
+  "limits": [
+    "No panel certified",
+    "No UI/BFF/production/provider proof",
+    "Seeded identities and sessions; no login flow",
+    "No physical PostgreSQL restart",
+    "No collision-slug compound error or concurrent preference edit validation"
+  ]
+}

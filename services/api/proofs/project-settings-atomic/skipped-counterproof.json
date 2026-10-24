@@ -1,0 +1,200 @@
+{
+  "sha": "9a1c586032adc09e4ef34ea0ef6f06d6cd5798c5",
+  "dirty": true,
+  "testExitCode": 0,
+  "total": 25,
+  "passed": 13,
+  "failed": 0,
+  "skipped": 12,
+  "todo": 0,
+  "sourceSha256": [
+    {
+      "path": "src/app.ts",
+      "sha256": "045f324fdd79c8922d242754507e8375ad2d0e5e100926604d08430752286c8f"
+    },
+    {
+      "path": "src/prisma-store.ts",
+      "sha256": "c1fb27176286f72b5eedd29711c686be49e5d679892e65cd9c82091e81045ea6"
+    },
+    {
+      "path": "src/store.ts",
+      "sha256": "05c15b25e8f45cb71b303375c3d4335ddf25031fddaa3e4c5a1774174fc1e537"
+    },
+    {
+      "path": "src/tests/test-api-store.ts",
+      "sha256": "b2ec0e88f20d0b2fc34348ee25c24422105fe88ca25594aa4b3d79e2841f4bb6"
+    },
+    {
+      "path": "src/panel-persistence.integration.spec.ts",
+      "sha256": "41ee07842536622fd7ad2639937c67d4d909a0c8975e6273e1db1b35c33dc193"
+    },
+    {
+      "path": "src/project-settings-atomic.integration.spec.ts",
+      "sha256": "f5640971b6902d64652def1930aeb68c7a67d606956b0f0c0f08912ac3cd3eb8"
+    },
+    {
+      "path": "scripts/verify-project-settings-postgres.sh",
+      "sha256": "72e7b02d517d4c254a1201ae24a39b12a403e29c3e29f9ccebd34e8f1a84bf3c"
+    },
+    {
+      "path": "../../.github/workflows/project-settings-postgres.yml",
+      "sha256": "90852e50aa35e55d0e9ab002504e3a126168144d497babad5ec518213dfb6907"
+    }
+  ],
+  "suites": [
+    {
+      "file": "src/panel-persistence.integration.spec.ts",
+      "status": "passed",
+      "durationMs": 0,
+      "tests": [
+        {
+          "name": "panel actions — HTTP and PostgreSQL persistence rejects an invalid slug without persisting metadata, including a repeated request",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "panel actions — HTTP and PostgreSQL persistence persists project edits after reconnect and rejects foreign organization edits and reads",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "panel actions — HTTP and PostgreSQL persistence creates and updates scoped variables without duplicates, survives reconnect and rejects foreign access",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "panel actions — HTTP and PostgreSQL persistence deletes only the requested scope and reports repeated deletion after reconnect",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "panel actions — HTTP and PostgreSQL persistence persists partial preference updates and null clearing without changing the other account",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "panel actions — HTTP and PostgreSQL persistence persists exact activity counts and filters, isolates the journal, and rejects invalid queries",
+          "status": "skipped",
+          "durationMs": null
+        }
+      ]
+    },
+    {
+      "file": "src/project-settings-atomic.integration.spec.ts",
+      "status": "passed",
+      "durationMs": 0,
+      "tests": [
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL rolls back all metadata on repeated 409 collision and leaves no redirect after reconnect",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL commits metadata, slug and redirect together, supports repetition and rename back",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL concurrent claims of one unique slug commit exactly one complete project mutation",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL rejects stale organization scope after a transfer wins the project row lock",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL keeps a completed rename when the real transfer starts its transaction later",
+          "status": "skipped",
+          "durationMs": null
+        },
+        {
+          "name": "atomic project settings — HTTP and PostgreSQL keeps projects:write checks after role downgrade and membership revocation",
+          "status": "skipped",
+          "durationMs": null
+        }
+      ]
+    },
+    {
+      "file": "src/tests/project-collaborator-roles.spec.ts",
+      "status": "passed",
+      "durationMs": 3973.9013671875,
+      "tests": [
+        {
+          "name": "project collaborator role enforcement blocks a read-only (viewer) collaborator from writing, even with an org write role",
+          "status": "passed",
+          "durationMs": 1068.3674629999996
+        },
+        {
+          "name": "project collaborator role enforcement allows an editor collaborator to write",
+          "status": "passed",
+          "durationMs": 550.3352919999998
+        },
+        {
+          "name": "project collaborator role enforcement allows the owner (not an explicit collaborator) to write",
+          "status": "passed",
+          "durationMs": 459.62673600000016
+        },
+        {
+          "name": "project collaborator role enforcement authorizes a collaborator who is NOT an organization member (e.g. redeemed a share link)",
+          "status": "passed",
+          "durationMs": 399.6326420000005
+        },
+        {
+          "name": "project collaborator role enforcement keeps a collaborator-only viewer read-only",
+          "status": "passed",
+          "durationMs": 560.4507479999993
+        },
+        {
+          "name": "project collaborator role enforcement adds a collaborator by email (resolved to a user server-side)",
+          "status": "passed",
+          "durationMs": 464.8790770000014
+        },
+        {
+          "name": "project collaborator role enforcement end-to-end: a non-member redeems a share link and gains READ access, never write",
+          "status": "passed",
+          "durationMs": 469.90143199999875
+        }
+      ]
+    },
+    {
+      "file": "src/tests/project-slug-rename-redirect.spec.ts",
+      "status": "passed",
+      "durationMs": 3235.993896484375,
+      "tests": [
+        {
+          "name": "F13 project slug rename + 30-day redirect + guarded delete renames the slug and resolves the old slug to the renamed project (redirect) while not expired",
+          "status": "passed",
+          "durationMs": 921.5746140000001
+        },
+        {
+          "name": "F13 project slug rename + 30-day redirect + guarded delete stops resolving the old slug once the redirect has expired",
+          "status": "passed",
+          "durationMs": 503.52028800000016
+        },
+        {
+          "name": "F13 project slug rename + 30-day redirect + guarded delete rejects a rename to a slug already taken by another project in the org (409)",
+          "status": "passed",
+          "durationMs": 704.8498570000002
+        },
+        {
+          "name": "F13 project slug rename + 30-day redirect + guarded delete rejects a slug that normalizes to empty (400)",
+          "status": "passed",
+          "durationMs": 288.0790880000004
+        },
+        {
+          "name": "F13 project slug rename + 30-day redirect + guarded delete treats a same-slug rename as a no-op (no redirect minted)",
+          "status": "passed",
+          "durationMs": 375.40797999999995
+        },
+        {
+          "name": "F13 project slug rename + 30-day redirect + guarded delete permanently deletes only when the name confirmation matches",
+          "status": "passed",
+          "durationMs": 442.99396799999977
+        }
+      ]
+    }
+  ],
+  "gateExitCode": 1
+}
