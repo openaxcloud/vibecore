@@ -25062,6 +25062,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const { slug: requestedSlug, ...metadata } = parse(projectSettingsSchema, request.body);
+    const normalizedSlug = requestedSlug === undefined ? undefined : slugifyRouteSegment(requestedSlug);
+
+    /*
+     * Validate the entire request before persisting any of its metadata.
+     * Otherwise a rejected slug still changes the project's name/description.
+     */
+    if (normalizedSlug === '') {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_INVALID')), {
+        statusCode: 400,
+        code: 'PROJECT_SLUG_INVALID',
+      });
+    }
 
     let updated = await store.updateProject({ projectId: project.id, ...metadata });
 
@@ -25070,16 +25082,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * (slugifyRouteSegment), reject a value that collapses to empty, and let the
      * store mint a 30-day redirect from the old slug + surface a 409 on a clash.
      */
-    if (requestedSlug !== undefined) {
-      const normalizedSlug = slugifyRouteSegment(requestedSlug);
-
-      if (!normalizedSlug) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_SLUG_INVALID')), {
-          statusCode: 400,
-          code: 'PROJECT_SLUG_INVALID',
-        });
-      }
-
+    if (normalizedSlug !== undefined) {
       if (normalizedSlug !== project.slug) {
         updated = await store.renameProjectSlug({ projectId: project.id, newSlug: normalizedSlug });
         await store.recordProjectActivity({
